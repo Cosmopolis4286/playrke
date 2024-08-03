@@ -1,47 +1,96 @@
-<x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+@extends('layouts.app_login')
 
-    <form method="POST" action="{{ route('login') }}">
+@section('title', 'Tu Sitio Para Ganar')
+
+@section('content')
+    <form action="{{ route('login') }}" method="post" id="form_lg">
         @csrf
-
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
-
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
-
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
+        <div class="content_form_items">
+            <div class="content_form_info">
+                <!-- Input para email o nombre de usuario -->
+                <div class="login_form_item">
+                    <i class="e_mc fa-solid fa-user" aria-hidden="true"></i>
+                    <input id="user_email" type="text"
+                        class="@error('login') is-invalid @enderror" name="login"
+                        value="{{ old('login') }}" placeholder="Email/Username"
+                        aria-label="Email o Nombre de Usuario">
+                </div>
+                <!-- Mostrar error de validación -->
+                @error('login')
+                    <span class="er_nw">{{ $message }}</span>
+                @enderror
+                <!-- Input para contraseña -->
+                <div class="login_form_item">
+                    <i class="e_mc fa-solid fa-lock" aria-hidden="true"></i>
+                    <i id="eyeClose" class="eye_mc fa-solid fa-eye-slash" style="display: none"
+                        aria-label="Ocultar contraseña"></i>
+                    <input type="password" class="pass" id="pass" name="password" placeholder="Contraseña"
+                        aria-label="Contraseña">
+                    <i id="eyeOpen" class="eye_mc fa-solid fa-eye" aria-label="Mostrar contraseña"></i>
+                </div>
+                <!-- Botón para iniciar sesión -->
+                <div class="login_form_item">
+                    <button type="submit" id="Ingresar">Iniciar Sesión
+                        <span id="loader-btn" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
+                            style="display: none"></span>
+                    </button>
+                </div>
+                <!-- Enlace para recuperar contraseña -->
+                <div class="login_form_item">
+                    <a href="{{ route('password.request') }}" class="forget_password">¿Olvidaste tu contraseña?</a>
+                </div>
+            </div>
         </div>
     </form>
-</x-guest-layout>
+@endsection
+
+@section('preFooter')
+    @if ($register)
+        <div class="login_footer_ck">
+            <a href="{{ route('register') }}">
+                <span class="pre_tx_link">¿No tienes una cuenta?</span>
+                <span class="sep_r"></span>
+                <span class="user_tx_link">Regístrate</span>
+            </a>
+        </div>
+    @endif
+@endsection
+
+@section('scripts')
+    <script type="text/javascript">
+        $(document).ready(function() {
+            // Validación del formulario
+            $('#Ingresar').click(function() {
+                validate();
+            });
+
+            $('#form_lg').keypress(function(e) {
+                if (e.which === 13) {
+                    validate();
+                }
+            });
+
+            function validate() {
+                let emailOrUsername = $('#user_email').val().trim();
+                let password = $('#pass').val().trim();
+
+                if (emailOrUsername === "" || password === "") {
+                    if ($(".notyf__toast").length === 0) {
+                        new Notyf().error({
+                            message: '<span style="font-size: 0.91em;">Toda la información es requerida</span>',
+                            duration: 3450,
+                            ripple: true,
+                            position: {
+                                x: 'center',
+                                y: 'bottom',
+                            }
+                        });
+                    }
+                } else {
+                    $("#loader-btn").show();
+                    $('#form_lg').submit();
+                }
+            }
+        });
+    </script>
+@endsection

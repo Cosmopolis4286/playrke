@@ -3,7 +3,7 @@
 @section('user-type', 'Comercializadora')
 @section('body')
     <li class="nav-item has-treeview">
-        <a href="{{ route('directory.index', ['countryCode' => strtolower('ve')]) }}" title="Directorio"
+        <a href="{{ route('directory.index', ['countryCode' => strtolower(session('countryCode'))]) }}" title="Directorio"
             class="nav-link  {{ !Route::is('directory.index') ?: 'active' }}">
             <i class="nav-icon fas fa-university"></i>
             <p>Directorio</p>

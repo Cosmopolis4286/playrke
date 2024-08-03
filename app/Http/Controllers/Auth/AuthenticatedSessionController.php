@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Country;
 use App\Models\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,10 +28,18 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Autenticar al usuario
         $request->authenticate();
 
+        // Regenerar la sesión para evitar ataques de fijación de sesión
         $request->session()->regenerate();
 
+        $isoCode = Country::getCountryValue(Auth::user()->country, 'iso_code_2');
+
+        // Crear la variable de sesión 'countryCode'
+        $request->session()->put('countryCode', $isoCode);
+
+        // Redirigir al usuario a la ruta de destino
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
