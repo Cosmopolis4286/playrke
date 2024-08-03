@@ -1,0 +1,53 @@
+<div class="row">
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="date">Fecha*</label>
+        <input type="date" id="date" name="date" class="form-control form-info" required
+            min="{{ \Carbon\Carbon::now()->format('Y-m-d') }}">
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="time">Hora*</label>
+        <input type="time" id="time" name="time" class="form-control form-info" required>
+    </div>
+    {{-- <div class="form-group col-sm-6 col-md-4">
+        <label class="country">Pais*</label>
+        <select id="country" name="country" class="form-control form-info" required></select>
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="coin">Moneda*</label>
+        <select id="coin" name="coin" class="form-control form-info" required></select>
+    </div> --}}
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="ctn-price">Precio CTN*</label>
+        <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
+            placeholder="Ingresar Precio" min="1" value="1" required>
+    </div>
+    {{-- <div class="form-group col-sm-6 col-md-4">
+        <label for="small-prizes">%Cantos</label>
+        <input type="number" value="0" id="small-prizes" name="small_prizes" class="form-control form-info"
+            placeholder="Ingrese monto a pagar" required>
+    </div> --}}
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="val-serials">%Seriales</label>
+        <input type="number" value="5" min="5" max="12" id="val-serials" name="val_serials"
+            class="form-control form-info" placeholder="Ingrese valor" required>
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="num-serials">#Max. Seriales</label>
+        <input type="number" step="1" value="5" min="5" max="15" id="num-serials"
+            name="num_serials" class="form-control form-info" placeholder="Ingrese la cantidad" required>
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="commerce-commission">%Comercio*</label>
+        <input type="number" id="commerce-commission" name="commerce_commission" class="form-control form-info"
+            placeholder="%Com" required value="20" step="0.05" min="20" max="45">
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="jackpot-type">Tipo Bote*</label>
+        <select id="jackpot-type" name="jackpot_type" class="form-control form-info" required></select>
+    </div>
+    <div id="cont-fixed-jackpot-value" class="form-group col-sm-6 col-md-4 hide-elem">
+        <label for="fixed-jackpot-value">Ingrese Valor Fijo:</label>
+        <input type="number" id="fixed-jackpot-value" name="fixed_jackpot_value" class="form-control form-info"
+            placeholder="Ingresar Monto" step="0.05" min="50" max="5000">
+    </div>
+</div>

@@ -1,0 +1,195 @@
+@extends('layouts.app_rke')
+@section('title', $title)
+@section('content')
+    <div class="col-12">
+        <div class="card">
+            @include('components.card-header', ['title' => $title])
+            <div class="card-body">
+                @if (count($coins) > 0)
+                    <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
+                            class="fas fa-plus-square"></i> Añadir</button>
+                @endif
+                <div id="chat-notification"></div>
+                <div class="table-responsive mt-2">
+                    <table class="table table-striped table-bordered my-2 w-100">
+                        <h6>Valores en base a Un Dólar (1 USD)</h6>
+                        <thead>
+                            <tr>
+                                <th>Pais</th>
+                                <th>Moneda</th>
+                                <th>Cambio</th>
+                                <th>Status</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($exchangeRate as $cup)
+                                <tr>
+                                    <td>{{ $cup->Coin->Country ? $cup->Coin->Country->name : 'Todos' }}</td>
+                                    <td>{{ $cup->Coin->long_name }}</td>
+                                    <td>{{ $cup->Coin->symbol }} {{ $cup->value }}</td>
+                                    <td>
+                                        @if ($cup->status == 0)
+                                            No/Disp
+                                        @elseif($cup->status == 1)
+                                            Activo
+                                        @elseif($cup->status == 2)
+                                            <a class="badge badge-danger" title="Registrar Datos Bancarios"
+                                                href="{{ route('directory.index', ['countryCode' => strtolower($cup->Coin->Country->iso_code_2)]) }}">
+                                                Sin Datos Bancarios
+                                            </a>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-toggle">
+                                            @if ($cup->status == 1)
+                                                <button class="btn btn-sm btn-primary btn-{{ $name }}"
+                                                    data-type="2" data-id="{{ encrypt($cup->id) }}"
+                                                    title="Editar Tasa de Cambio" data-coin="{{ $cup->coin_name }}"
+                                                    data-coin-val="{{ $cup->value }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            @endif
+                                            @if (!$cup->status == 2)
+                                                <button class="btn btn-sm btn-secondary btn-{{ $name }}"
+                                                    data-type="3" data-id="{{ encrypt($cup->id) }}"
+                                                    title="Cambiar Status">
+                                                    <i class="fa-solid fa-repeat"></i>
+                                                </button>
+                                            @endif
+                                            @if (Auth::user()->user_type == 1)
+                                                <button class="btn btn-sm btn-secondary btn-{{ $name }}"
+                                                    data-type="" data-id="{{ encrypt($cup->id) }}"
+                                                    title="Cambiar Status">
+                                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger btn-{{ $name }}"
+                                                    data-type="3" data-id="{{ encrypt($cup->id) }}" title="Eliminar">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    @component('components.modal-form', [
+        'name' => $name,
+        'dataForm' => view('modules.commerce.currency.form')->render(),
+    ])
+    @endcomponent
+    @include('components.form-other-options')
+@endsection
+@section('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/just-validate/dist/just-validate.production.min.js"></script>
+    <script>
+        const name = '<?php echo $name; ?>';
+        const arrCoins = JSON.parse('<?php echo $coins; ?>');
+        const coins = $("#coin");
+        const valChange = $("#val-change");
+        let valChangeMax, valChangeMin, coinName, update = false;
+
+        valChange.mask('00000.00', {
+            reverse: true
+        }); // Máscara para números con dos decimales
+
+        $(document).on("input", coins, function() {
+            coinName = coins.find("option:selected").text();
+        });
+
+        $(document).on("input change", ".input-exchange-rate", function() {
+            if (coins.val() && valChange.val()) {
+                $("#text-currency-val").text(`${valChange.val()} ${coinName}`);
+                $("#alert-currency").removeClass('hide-elem');
+            }
+        });
+
+        $(document).on("click", `.btn-${name}`, function() {
+            formCRUD($(this), name, 'Tasa de cambio', '{{ asset('') }}exchange-rate')
+        });
+
+        function getLastValueByCoin(coin) {
+            const url = `{{ asset('') }}exchange-rate/getLastValueByCoin/:coin`.replace(':coin', coin);
+            $.getJSON({
+                url: url,
+                data: {
+                    '_token': $("#token").val()
+                },
+                success: function(data) {
+                    const coinValue = parseFloat(data.toFixed(2));
+                    // Calcular los valores de máximo y mínimo
+                    if (coinValue > 1) {
+                        valChangeMax = (coinValue + 3).toFixed(2);
+                        valChangeMin = (coinValue - 2).toFixed(2);
+                    }
+                    if (!update) valChange.val(coinValue);
+                    valChange.prop('readonly', false);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    // Manejar errores aquí si es necesario
+                }
+            });
+        }
+
+        coins.on("change", function() {
+            if (coins.val() != '') valChange.attr('readonly', true), getLastValueByCoin(coins.val());
+        });
+
+        valChange.on('input', function() {
+            let currentValue = parseFloat($(this).val());
+            if (currentValue < valChangeMin) {
+                $(this).val(valChangeMin);
+            } else if (currentValue > valChangeMax) {
+                $(this).val(valChangeMax);
+            }
+        });
+
+        function insertInfo(type, data = '') {
+            update = false;
+            if (type == 1) coins.append(`<option value="" selected>Seleccionar:</option>`);
+
+            if (type == 2) {
+                update = true;
+                const coin = data.coin;
+                coins.append(
+                    `<option value="${coin.id}" selected>${coin.long_name} (${coin.symbol})</option>`
+                );
+                coinName = `${coin.long_name} (${coin.symbol})`;
+                valChange.val(data.value);
+                $(".input-exchange-rate").trigger('change');
+                $("#alert-currency").removeClass('hide-elem');
+            }
+
+            if (arrCoins.length) {
+                $.each(arrCoins, function(index, item) {
+                    coins.append(`<option value="${item.id}">${item.long_name} (${item.symbol})</option>`);
+                });
+            }
+
+            $(`#modal-${name}`).modal('show');
+        }
+
+        submitForm(name, [coins.attr('id'), valChange.attr('id')]);
+
+        function deleteInfo(encryptedId) {
+            showToastOptionBtns(
+                'Esta moneda será eliminada definitivamente',
+                'info',
+                'Sí, eliminar',
+                '#form-other-options',
+                `{{ route('exchange-rate.delete', ['id' => ':id']) }}`,
+                encryptedId
+            );
+        }
+
+        window.Echo.channel('public-message-channel')
+            .listen('.PublicMessageEvent', (e) => {
+                console.log(e.message);
+            });
+    </script>
+@endsection

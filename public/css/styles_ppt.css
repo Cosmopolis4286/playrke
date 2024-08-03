@@ -1,0 +1,26 @@
+/*Fonts*/
+@import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Braah+One&display=swap');
+
+#tx_rm_triv {
+    color: #DADADA;
+    font-size: 29.5px;
+    text-align: center;
+    display: grid;
+    width: 100% !important;
+}
+
+#tx_rm_triv>a {
+    margin-top: -0.65rem;
+    text-decoration: none;
+    font-size: 15.5px !important;
+    color: rgba(0, 138, 148, 0.945)
+}
+
+@media screen and (max-width: 339px) {
+    #tx_rm_triv {
+        font-size: 26.5px;
+    }
+}

@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Coin extends Model
+{
+    protected $table = "coins";
+    protected $fillable = ['symbol', 'short_name', 'long_name', 'country', 'status'];
+
+    public function Country()
+    {
+        return $this->belongsTo(Country::class, 'country');
+    }
+
+    public function ExchangeRate()
+    {
+        return $this->belongsTo(ExchangeRate::class, 'id', 'coin');
+    }
+
+    public function CommerceExchangeRate()
+    {
+        return $this->hasMany(CommerceExchangeRate::class, 'coin', 'id');
+    }
+
+    public function RoomBingoOff()
+    {
+        return $this->belongsTo(BingoOffRoom::class, 'id', 'coin');
+    }
+
+    public function Seller()
+    {
+        return $this->belongsTo(Seller::class, 'id', 'coin');
+    }
+
+    public static function getById($coin, $fields = ['*'])
+    {
+        return self::where('id', $coin)->select($fields)->first();
+    }
+
+    public static function getByIdForStatus($status = ['>=', 0], $fields = ['*'])
+    {
+        // Asume que $status es un array con dos elementos: operador y valor
+        return self::where('status', $status[0], $status[1])->select($fields)->get();
+    }
+
+    public static function getCoinValue($coin, $value)
+    {
+        return self::where('id', $coin)->value($value);
+    }
+
+    public static function getCoinByCountry($country, $fields = ['*'])
+    {
+        return self::where('country', $country)->select($fields)->first();
+    }
+
+    public static function getCoinValueByCountry($country, $value)
+    {
+        return self::where('country', $country)->value($value);
+    }
+
+    public static function getByIdIdOfCountry($country)
+    {
+        return self::where('country', $country)->value('id');
+    }
+
+    public static function getCoinsById($arrCoins, $fields = ['*'])
+    {
+        return self::select($fields)->whereIn('id', $arrCoins)->get();
+    }
+
+    public static function getCoinsByCountry($countries)
+    {
+        return self::whereIn('country', $countries)->pluck('id')->toArray();
+    }
+
+    public static function getCountriesByCoinInArray($coins)
+    {
+        return self::whereIn('id', $coins)->pluck('country')->toArray();
+    }
+
+    public static function getPaymentMethodByCoin($coin)
+    {
+        return self::where('id', $coin)->value('payment_method');
+    }
+}

@@ -1,0 +1,155 @@
+@extends('layouts.app_rke')
+@section('title', $title)
+@section('content')
+    <div class="col-12">
+        <div class="card">
+            @include('components.card-header', ['title' => $title])
+            <div class="card-body">
+                @component('components.coin-tabs', [
+                    'routeName' => 'seller.ctnsSold',
+                    'dateFilter' => $dateFilter,
+                    'coin' => $coinId,
+                    'coins' => $coins,
+                ])
+                @endcomponent
+                @component('components.date-filter-buttons', [
+                    'routeName' => 'seller.ctnsSold',
+                    'dateFilter' => $dateFilter,
+                    'coin' => $coinId,
+                ])
+                @endcomponent
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active">
+                        @if ($ctnsSold->count() > 1 && $pendingCtns > 1)
+                            <button id="btn-notify-all-ctns" class="btn btn-sm btn-secondary mt-2">Notificar Todo</button>
+                        @endif
+                        <div class="table-responsive mt-3">
+                            <table class="table table-striped table-bordered my-2 w-100">
+                                <thead>
+                                    <tr>
+                                        <th>Sala</th>
+                                        <th>Jugador</th>
+                                        <th>País</th>
+                                        <th>Moneda</th>
+                                        <th>#CTN</th>
+                                        <th>Venta</th>
+                                        <th>Creación</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($ctnsSold as $ctn)
+                                        <tr>
+                                            <td class="align-middle">
+                                                <a class="badge bg-navy" title="Ver Reporte"
+                                                    href="{{ route('seller.reportSalesByRoom', ['room' => $ctn->Room->encrypted, 'coin' => encrypt($coinId), 'dateFilter' => $dateFilter]) }}">
+                                                    {{ $ctn->Room->encrypted }}
+                                                </a>
+                                            </td>
+                                            <td>{{ $ctn->PlayerLink->name }} {{ $ctn->PlayerLink->lastname }}</td>
+                                            <td>{{ $ctn->PlayerLink->Country->name }}</td>
+                                            <td>{{ $coin->long_name }}</td>
+                                            <td>{{ $ctn->ctns }}</td>
+                                            <td>{{ $coin->symbol }} {{ $ctn->sale_seller_ctns }}</td>
+                                            <td>{{ $ctn->created_at->format('d/m/y H:i:s') }}<small
+                                                    class="ml-1">GMT-4</small></td>
+                                            <td>
+                                                @if ($ctn->status == 0)
+                                                    <button type="button"
+                                                        class="btn btn-danger btn-sm btn-{{ $name }}"
+                                                        title="Notificar Pago" data-room="{{ $ctn->Room->encrypted }}"
+                                                        data-idlote="{{ $ctn->id }}"
+                                                        data-amount="{{ number_format($ctn->sale_seller_ctns, 2) }}">
+                                                        Notificar Pago
+                                                    </button>
+                                                @elseif($ctn->status == 1)
+                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payment->payment_proof]) }}"
+                                                        title="Ver Comprobante" target="_blank"><span
+                                                            class="badge bg-navy">Notificado</span></a>
+                                                @elseif($ctn->status == 2)
+                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payment->payment_proof]) }}"
+                                                        title="Ver Comprobante" target="_blank"><span
+                                                            class="badge bg-success">Confirmado</span></a>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    @if ($ctnsSold->isNotEmpty())
+                                        <tr>
+                                            <td colspan="4" class="text-right">
+                                                <b>Total:</b>
+                                            </td>
+                                            <td>{{ $ctnsSold->sum('ctns') }}</td>
+                                            <td>{{ $coin->symbol }} {{ $ctnsSold->sum('sale_seller_ctns') }}</td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    @endif
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                @component('components.modal-payment-info', [
+                    'name' => $name,
+                    'title' => 'Notificar Pago',
+                    'formId' => 'ctn-payment',
+                    'formRoute' => route('seller.ctnsLotPayment'),
+                ])
+                @endcomponent
+            </div>
+        </div>
+    </div>
+@endsection
+
+@section('scripts')
+    <script src="{{ asset('js/components/switch-payment-method.js') }}"></script>
+    <script>
+        const name = '{{ $name }}';
+        const coin = '{{ encrypt($coinId) }}';
+        const coinName = '{{ $coin->short_name }}';
+        const allPendingCtnSale = '{{ $allPendingCtnSale }}';
+        const commerceName = '{{ $commerceName }}';
+        let allNotifyCtns = false;
+        let amountSent;
+
+        function getPaymentCommerceDetails() {
+            $.getJSON(`{{ url('seller/getPaymentCommerceDetails') }}/${coin}`, {
+                    '_token': "{{ csrf_token() }}"
+                })
+                .done(data => {
+                    if (!allNotifyCtns) {
+                        $("#sent-amount").text(`${data.coin} ${amountSent}`);
+                    } else {
+                        $("#notify-all").show();
+                        $("#sent-amount").text(`${coinName} ${allPendingCtnSale}`);
+                        $("#notify-all-ctns").val(1);
+                    }
+                    $("#commerce-name").text(commerceName);
+
+                    switchPaymentMethod(data.code, data);
+
+                    $(`#modal-${name}`).modal('show');
+                })
+                .fail((jqXHR, textStatus, errorThrown) => {
+                    console.error('Error:', textStatus, errorThrown);
+                });
+        }
+
+        $(document).on("click", "#btn-notify-all-ctns", function() {
+            if (allPendingCtnSale > 0) {
+                allNotifyCtns = true;
+                getPaymentCommerceDetails();
+            }
+        });
+
+        $(document).on("click", `.btn-${name}`, function() {
+            const data = $(this).data();
+            $("#lot").val(data.idlote);
+            amountSent = data.amount;
+            getPaymentCommerceDetails();
+        });
+    </script>
+    <script src="{{ asset('js/components/payment-confirm-button.js') }}"></script>
+@endsection

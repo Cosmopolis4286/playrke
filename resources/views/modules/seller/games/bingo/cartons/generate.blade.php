@@ -1,0 +1,392 @@
+@extends('layouts.app_rke')
+@section('title', $title)
+@section('content')
+    <div class="col-md-9 col-lg-6 m-auto" style="max-width:535px">
+        <div class="card">
+            @include('components.card-header', ['title' => $title])
+            @if ($status == 1)
+                <div class="card-body mt-n2">
+                    <form id="form-ctns" action="{{ route('seller.generateCartonStore') }}" method="POST">@csrf
+                        <div class="row">
+                            <div class="form-group col-9 col-sm-5">
+                                <label for="bingo-room">Próximos Bingo</label>
+                                <select disabled id="bingo-room" class="form-control" name="bingo_room" required></select>
+                                <div id="cont-tx-jackpot-room" class="mt-1 hide-elem">
+                                    <b><small><span class="jackpot-type"></span> Actual:</small></b>
+                                    <span class="coin-symbol"></span>
+                                    <span id="tx-jackpot-room"></span>
+                                </div>
+                            </div>
+                            <div class="form-group col-6 col-sm-4">
+                                <label for="ctn-price">Precio Carton</label>
+                                <input type="hidden" id="coin" name="coin">
+                                <div class="form-control_d" id="tx-ctn-price"></div>
+                            </div>
+                            <div class="form-group col-6 col-sm-3">
+                                <label for="num-ctns">#CTNs</label>
+                                <input id="num-ctns" class="form-control" type="number" name="num_ctns" min="1"
+                                    max="30" required disabled>
+                            </div>
+                        </div>
+                        <div class="row mt-1">
+                            <div class="col-6 col-sm-4">
+                                <label for="total-amount">Monto Total</label>
+                                <div>
+                                    <span class="coin-symbol"></span>
+                                    <span class="sale-info" id="tx-total-amount"></span>
+                                </div>
+                                <small>Costo de los cartones</small>
+                            </div>
+                            <div class="col-6 col-sm-4">
+                                <label for="seller-commn">Mi Comisión</label>
+                                <div>
+                                    <span class="coin-symbol"></span>
+                                    <span class="sale-info" id="tx-seller-commn"></span>
+                                </div>
+                                <small>Ganancias por venta</small>
+                            </div>
+                            <div class="col-12 col-sm-4">
+                                <label for="commerce-amount">Total Banca</label>
+                                <div>
+                                    <span class="coin-symbol"></span>
+                                    <span class="sale-info" id="tx-commerce-amount"></span>
+                                </div>
+                                <small>Enviar al Comercio</small>
+                            </div>
+                        </div>
+                        <div class="ctn-player-info hide-elem">
+                            <hr>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="alert alert-primary" role="alert">
+                                        <h6 class="alert-heading"><strong>¡Atencion!</strong></h6>
+                                        <p class="mt-n1 mb-0">Genera los cartones solo después de confirmar el pago.</p>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <h5>Informacion del Jugador:</h5>
+                                    <h6 id="get-data-player">Ingresa los datos del nuevo
+                                        participante
+                                    </h6>
+                                    <h6 id="new-player" class="hide-elem">
+                                        ¡Este usuario esta participando!
+                                    </h6>
+                                </div>
+                                <div id="cont-info-player" class="col-12 col-md-8 hide-elem">
+                                    <label class="mb-n1">Cartones comprados: <b id="player-ctns"></b></label>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label for="copy-player-link" class="mt-2" style="min-width: 120px;">Link de
+                                            acceso:</label>
+                                        <div id="copy-player-link" class="input-group input-group-sm ml-auto">
+                                            <input disabled id="player-link-rout" class="form-control"
+                                                aria-label="Link Jugador" aria-describedby="button-addon2"
+                                                style="cursor: pointer" />
+                                            <div class="input-group-append">
+                                                <button class="btn btn-outline-secondary" type="button" id="button-addon2">
+                                                    <i class="fa-solid fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ctn-player-info mt-1 hide-elem">
+                            <div class="row">
+                                <div class="form-group col-12 col-sm-6">
+                                    <label for="country">Pais*</label>
+                                    <select id="country" class="form-control info-form" name="country" required>
+                                        <option value="">Selecciona el Pais:</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-12 col-sm-6 hide-elem" id="cont-document-ve">
+                                    <label for="document-ve">Cédula*</label>
+                                    <div class="d-flex">
+                                        <select disabled id="document-type-ve" class="form-control" name="document_type_ve"
+                                            required>
+                                            <option value="">-</option>
+                                            @foreach ($documentType as $item)
+                                                <option value="{{ $item->id }}">{{ $item->value }}</option>
+                                            @endforeach
+                                        </select>
+                                        <input disabled type="text" id="document-ve" class="form-control"
+                                            name="document_ve" required>
+                                    </div>
+                                </div>
+                                <div class="form-group col-12 col-sm-6 hide-elem info-player">
+                                    <label for="name">Nombre*</label>
+                                    <input id="name" class="form-control input-text info-form" type="text"
+                                        name="name">
+                                </div>
+                                <div class="form-group col-12 col-sm-6 hide-elem info-player">
+                                    <label for="last-name">Apellido*</label>
+                                    <input id="last-name" class="form-control input-text info-form" type="text"
+                                        name="last_name">
+                                </div>
+                                <div class="form-group col-12 col-sm-6 hide-elem info-player">
+                                    <label for="phone">Teléfono*</label>
+                                    <div id="cont-phone" class="form-control_d hide-elem"></div>
+                                    <input type="text" id="phone" class="form-control info-form" name="phone"
+                                        required>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-muted text-center">
+                    <button type="button" data-block="0" disabled id="btn-generate-ctn" class="btn btn-primary">Generar
+                        Cartón <span id="loader-btn-ctn" class="spinner-border spinner-border-sm" role="status"
+                            aria-hidden="true" style="display: none"></span>
+                    </button>
+                </div>
+            @else
+                <div class="container mt-2">
+                    <div class="alert alert-info alert-dismissible" role="alert">
+                        No puedes vender cartones, comunicate con tu Comercializadora
+                    </div>
+                </div>
+            @endif
+        </div>
+    </div>
+    @component('components.modal-copy-info', [
+        'name' => 'copy-link',
+        'title' => 'Link de Acceso Jugador',
+    ])
+    @endcomponent
+@endsection
+@section('scripts')
+    <script src="{{ asset('js/time-functions.js') }}"></script>
+    <script>
+        const room = $("#bingo-room");
+        const rooms = {!! json_encode($rooms) !!};
+        const numCtns = $("#num-ctns");
+        const country = $("#country");
+        const sellerCommn = Number('<?php echo $commn; ?>');
+        const form = $("#form-ctns");
+        const btnGenerate = $("#btn-generate-ctn");
+        var roomVal;
+        var ctnPrice;
+        var jackpotRoom;
+        var findInfoPlayer = '';
+        var playerInGame = false;
+
+        if ("{{ Session::has('PJLink') }}") {
+            $("#info-to-copy").val({!! json_encode(Session::get('PJLink')) !!});
+            setTimeout(function() {
+                $("#modal-copy-link").modal('show');
+            }, 3000);
+        }
+
+        $(document).on("click", "#copy-player-link", function() {
+            copyInfo('Enlace Copiado', $("#player-link-rout"));
+        });
+
+        $(document).on("click", "#btn-copy", function() {
+            copyInfo('Enlace Copiado');
+        });
+
+        $("#phone").mask("00000000000");
+
+        $(function() {
+            room.append(`<option value="" selected>Seleccionar fecha:</option>`);
+            // Iterar sobre los elementos rooms
+            $.each(rooms, function(index, item) {
+                // Convertir la fecha a un formato legible
+                let formattedDate = convertAndDisplay(item.unix_date);
+                // Formatear la opción con la fecha y la hora
+                room.append(`<option value="${item.encrypted}">${formattedDate}</option>`);
+            });
+
+            room.prop('disabled', false);
+        });
+
+        function formatNumber(num) {
+            // Redondear el número a dos decimales
+            const roundedNum = Math.round(num * 100) / 100;
+            // Convertir el número a formato de cadena con exactamente dos decimales
+            const roundedStr = roundedNum.toFixed(2);
+            // Convertir la cadena de vuelta a un número flotante
+            return parseFloat(roundedStr);
+        }
+
+        function calculateSale() {
+            let ctns = numCtns.val();
+            let total = formatNumber(ctnPrice * ctns);
+            let totalsellerCommn = formatNumber(total * (sellerCommn / 100));
+            let jackpotAmount = formatNumber((total - totalsellerCommn));
+
+            if (roomVal) {
+                $(".coin-symbol").text($("#coin").val());
+                $("#tx-total-amount").html(total);
+                $("#tx-seller-commn").html(totalsellerCommn);
+                $("#tx-commerce-amount").html(jackpotAmount);
+            }
+        }
+
+        function convertCurrency(data) {
+            ctnPrice = formatNumber(data.value);
+            $("#coin").val(data.sym);
+            $("#tx-ctn-price").text(`${data.sym} ${ctnPrice}`);
+            $("#tx-jackpot-room").text(formatNumber(jackpotRoom * ctnPrice));
+            calculateSale();
+        }
+
+        function validateFormFields() {
+            if (country.val() && $("#name").val() && $("#last-name").val() && $("#phone").val()) {
+                btnGenerate.prop('disabled', false);
+            } else {
+                btnGenerate.prop('disabled', true);
+            }
+        }
+
+        function getInfo(country) {
+            const url = `{{ asset('') }}seller/bingocash/get/exchange-rate/${country}`;
+            $.getJSON({
+                url: url,
+                data: {
+                    '_token': $("#token").val()
+                },
+                success: function(data) {
+                    convertCurrency(data);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Failed to fetch exchange rate:', textStatus, errorThrown);
+                }
+            });
+        }
+
+        room.on("change", function() {
+            roomVal = $(this).val();
+
+            if (!roomVal) {
+                $(".coin-symbol, .sale-info").empty();
+                $(".ctn-player-info, #cont-tx-jackpot-room").addClass('hide-elem');
+            } else {
+                $.getJSON({
+                    url: `{{ route('seller.getCtnPrice', ['roomID' => ':id']) }}`
+                        .replace(':id', roomVal),
+                    headers: {
+                        'X-CSRF-TOKEN': $("#token").val()
+                    },
+                    success: function(data) {
+                        const {
+                            jackpot,
+                            jackpotType,
+                            price,
+                            coin,
+                            countries
+                        } = data;
+                        ctnPrice = formatNumber(price);
+                        $("#coin").val(coin);
+                        $("#tx-ctn-price").text(`${coin} ${ctnPrice}`);
+                        $("#num-ctns").prop('disabled', false).val(1);
+                        insertCountries(countries)
+                        jackpotRoom = formatNumber(jackpot);
+                        $(".jackpot-type").text(jackpotType == 1 ? 'Bote' : 'Premio');
+                        $("#tx-jackpot-room").text(jackpotRoom);
+                        calculateSale();
+                        $(".ctn-player-info, #cont-tx-jackpot-room").removeClass('hide-elem');
+                    }
+                });
+            }
+        });
+
+        numCtns.on("change", function() {
+            if (roomVal) calculateSale();;
+        })
+
+        country.on("change", function() {
+            $("#name, #last-name, #phone").val('').prop('required', true).prop('readonly', false).show();
+            $("#cont-phone").addClass('hide-elem').text('');
+
+            const countryVal = $(this).val();
+            $(".info-player").toggleClass('hide-elem', countryVal === '');
+            const country = countryVal || 0;
+
+            if (countryVal) getInfo(country);
+        });
+
+        function insertCountries(arr) {
+            country.empty().append('<option value="">Selecciona el País:</option>');
+
+            arr.forEach(item => {
+                country.append(`<option value="${item.id}">${item.name}</option>`);
+            });
+        }
+
+        $(document).on("input", ".info-form", function() {
+            validateFormFields();
+        });
+
+        $(".input-text").on('input', function() {
+            $(this).val($(this).val().replace(/[^a-zA-Z]/g, ''));
+            if (this.value.length > 15) {
+                this.value = this.value.slice(0, 15);
+            }
+        });
+
+        function getPlayer() {
+            $.post({
+                url: "{{ route('seller.getPlayer') }}",
+                headers: {
+                    'X-CSRF-TOKEN': $("#token").val()
+                },
+                data: {
+                    room: roomVal,
+                    country: country.val(),
+                    findInfoPlayer: findInfoPlayer,
+                },
+                dataType: 'json',
+                beforeSend: function() {
+                    btnGenerate.prop('disabled', true);
+                },
+                success: function(data) {
+                    if (data.van == 1) {
+                        const infoPlayer = data.infoPlayer;
+                        showToast('warning', 'Este usuario está participando');
+                        $('#name, #last-name, #type_id, #identification, #phone').prop('required', false);
+                        $('#name, #last-name, #type_id, #phone').prop('readonly', true);
+                        country.val(infoPlayer.country);
+                        $('#name').val(infoPlayer.name);
+                        $('#last-name').val(infoPlayer.lastname);
+                        // $('#cont_type_id').html(data.IdType).show();
+                        $('#type_id').hide();
+                        $('#identification').val(infoPlayer.identification);
+                        $('#cont-phone').text(infoPlayer.phone).removeClass('hide-elem');
+                        $('#phone').val(infoPlayer.phone).hide();
+                        $("#get-data-player, #loader-btn-ctn").hide();
+                        $("#player-ctns").text(data.ctnsLink[0]);
+                        $('#player-link-rout').val(data.ctnsLink[2]);
+                        $("#new-player, #cont-info-player").removeClass('hide-elem');
+                        playerInGame = true;
+                        btnGenerate.prop('disabled', false);
+                    } else {
+                        $('#type_id, #player_code_telf').show();
+                        $('#cont_type_id, #cont-phone').empty().hide();
+                        $('#name, #last-name, #type_id, #identification, #phone').prop('required', true);
+                        $('#name, #last-name, #type_id, #phone').prop('readonly', false);
+                        $("#player-link-rout").val('');
+                        $("#new-player, #cont-info-player").addClass('hide-elem');
+                        $("#get-data-player, #loader-btn-ctn").show();
+                        form.submit();
+                    }
+                }
+            });
+        }
+
+        btnGenerate.on("click", function() {
+            if (!playerInGame) {
+                if (country.val() == 234 && $("#identification").val() && $("#type_id").val()) {
+                    findInfoPlayer = $("#phone").val();
+                    // findInfoPlayer = $("#type_id").val() + $("#identification").val();
+                    getPlayer();
+                } else if (country != 234 && $("#phone").val()) {
+                    findInfoPlayer = $("#phone").val();
+                    getPlayer();
+                }
+            } else {
+                form.submit();
+            }
+        });
+    </script>
+@endsection
