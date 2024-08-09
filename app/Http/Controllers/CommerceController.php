@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Traits\IdEncryptRKE;
+use App\Traits\EncryptRKE;
 use App\Models\User;
 use App\Models\Coin;
 use App\Models\Seller;
@@ -40,7 +40,7 @@ use App\Events\NewMessageEvent;
 
 class CommerceController extends Controller
 {
-    use IdEncryptRKE, UserVal, RouteRKE, BingoTrait, Filters;
+    use EncryptRKE, UserVal, RouteRKE, BingoTrait, Filters;
 
     protected function commerce($fields = ['*'])
     {

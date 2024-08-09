@@ -5,13 +5,14 @@
 @endsection
 
 @section('content')
-    <div class="row">
+    <div class="row" x-data="initializeEcho('{{ $room->encrypted }}')">
         <div class="col-12 col-lg-9 col-xl-10 pb-2 m-auto">
             @include('modules.game.bingo.container-last-chips')
             <div class="container">
                 @include('modules.game.bingo.container-bingo-info')
                 @include('modules.game.bingo.container-history-chips')
                 <div class="container mt-1">
+                    <div id="server-time" class="bg-danger">Cargando...</div>
                     @include('modules.game.bingo.cartons')
                 </div>
             </div>
@@ -30,6 +31,7 @@
         const encrypted = '<?php echo $room->encrypted; ?>';
         const roomStatus = '<?php echo $room->status; ?>';
         const infoGame = {!! json_encode($infoGame) !!};
+        console.log(infoGame);
         const coin = '<?php echo $coin; ?>';
         const valSongs = '<?php echo $room->val_songs; ?>';
         const arrSort = {!! json_encode($sort) !!};
@@ -385,7 +387,7 @@
                 if (newChip == chpLast) {
                     $('#cont_tx_check_bing').show();
                     endWin = 1;
-                    getResult();
+                    getResult(result);
                 }
             }
         }
@@ -488,17 +490,10 @@
             });
         }
 
-        function getResult() {
-            try {
-                const res = $.getJSON(`${preRoute}bingocash/get/result/${encrypted}/${PJLink}`, {
-                    '_token': $("#token").val()
-                });
-                showWinners(res, chpLast);
-                $("#btn-view-winners").prop('disabled', false);
-                $('#cont_tx_check_bing').hide();
-            } catch (error) {
-                console.log("Error:", error);
-            }
+        function getResult(res) {
+            showWinners(res, chpLast);
+            $("#btn-view-winners").prop('disabled', false);
+            $('#cont_tx_check_bing').hide();
         }
 
         $(document).on("click", "#btn-view-winners", function() {

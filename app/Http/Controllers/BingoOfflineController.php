@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\BingoOffRoom as EventsBingoOffRoom;
-use App\Events\GetBingoOffSort;
+use App\Events\Games\BingoOFF_GetRoomInfo;
+use App\Events\Games\BingoOFF_ProccessDraw;
 use App\Traits\UserVal;
-use App\Traits\IdEncryptRKE;
+use App\Traits\EncryptRKE;
 use App\Models\Wallet;
 use App\Models\Coin;
 use App\Models\BingoOffRoom;
@@ -34,7 +34,7 @@ use Illuminate\Support\Facades\DB;
 
 class BingoOfflineController extends Controller
 {
-    use IdEncryptRKE, UserVal, BingoTrait, GameTrait, Filters;
+    use EncryptRKE, UserVal, BingoTrait, GameTrait, Filters;
 
     protected $idCommerceRKE;
 
@@ -43,10 +43,10 @@ class BingoOfflineController extends Controller
         $this->idCommerceRKE = 1;
     }
 
-    public function getBingoInfoByDate($date)
+    public function prueba($room)
     {
-        $data = $this->getBingoOffInfoByDateTrait($this->idCommerceRKE, $date);
-        return response()->json(['data' => $data, 'hh' => 22]);
+        // event(new BingoOFF_ProccessDraw(now()->format('H:i:s'), $room->encrypted));
+        // broadcast(new BingoOFF_GetRoomInfo(now()->format('H:i:s'), $room->encrypted));
     }
 
     private function getRoomOffGame($query, $dateFilter)
@@ -87,7 +87,7 @@ class BingoOfflineController extends Controller
         $this->convertPrizeValue($roomId, $coin->id);
 
         $vanSort = ($room->status > 2) ?
-            BingoOffSort::where(['room' => $roomId, 'status' => 2])->select('id', 'chip')->first() : [];
+            BingoOffSort::where(['room' => $roomId, 'win' => 1])->select('id', 'chip')->first() : [];
 
         $sort = ($room->status == 3) ?
             BingoOffSort::where('room', $roomId)->where('id', '<=', $vanSort->id)
@@ -143,6 +143,8 @@ class BingoOfflineController extends Controller
 
         if (!in_array($room->status, [2, 3, 4])) return redirect('/');
 
+        self::prueba($room);
+
         $title = 'BingoCash';
 
         date_default_timezone_set('America/Caracas');
@@ -152,7 +154,7 @@ class BingoOfflineController extends Controller
         $this->convertPrizeValue($roomId, $coin->id);
 
         $vanSort = ($room->status > 2) ?
-            BingoOffSort::where(['room' => $roomId, 'status' => 2])->select('id', 'chip')->first() : [];
+            BingoOffSort::where(['room' => $roomId, 'win' => 1])->select('id', 'chip')->first() : [];
 
         $sort = ($room->status == 3) ?
             BingoOffSort::where('room', $roomId)->where('id', '<=', $vanSort->id)
@@ -176,6 +178,8 @@ class BingoOfflineController extends Controller
 
         $infoGame = ($room->status > 3) ? $this->getResult($room->encrypted, $PJLink) : [];
 
+        //event(new BingoOFF_ProccessDraw(now()->format('H:i:s'), $room->encrypted));
+
         return view('modules.visitor.games.bingo.in-game')->with([
             'title' => $title,
             'room' => $room,
@@ -194,6 +198,7 @@ class BingoOfflineController extends Controller
             'vanSort' => $vanSort ? $vanSort->chip : '',
             'infoGame' => $infoGame,
             'timeServ' => time(),
+            'encryptionKey' => env('JSON_ENCRYPTION_KEY')
             // Artisan::call('bingooff:dispatch', ['room' => $room->encrypted])
         ]);
     }
@@ -223,7 +228,7 @@ class BingoOfflineController extends Controller
         $roomId = $room->id;
 
         if ($roomId) {
-            $vanSort = BingoOffSort::where('room', $roomId)->where('status', 2)->first();
+            $vanSort = BingoOffSort::where('room', $roomId)->where('win', 2)->first();
             if ($vanSort) {
                 $lastSixChips = ($room->status > 2) ?
                     BingoOffSort::where('room', $roomId)->where('time', '<=', time())
@@ -253,31 +258,7 @@ class BingoOfflineController extends Controller
 
     public function getResult($room, $PJLink = '')
     {
-        date_default_timezone_set('America/Caracas');
-
-        $room = BingoOffRoom::getRoomByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
-
-        $startTime = $this->convertToUnixTimestamp($room->date, $room->time);
-
-        if ($room->status == 3 && $startTime <= time()) {
-            BingoOffRoom::where('id', $room->id)->update(['status' => 4]);
-        }
-
-        $getWinnersJackpot = BingoOffPrizeCtns::getWinnersCountByPrizeType($room->id, 1);
-
-        if (!$getWinnersJackpot && $room->status == 4) $this->findWinnersJackpot($room->id);
-
-        $jackpotWinners = $this->getWinnersJackpot($room->id, $PJLink);
-        $serialsWinners = (BingoOffPrizeCtns::getWinnersCountByPrizeType($room->id, 2)) ? $this->getWinnersSerials($room->id, $PJLink) : [];
-        $prizeSerialVal = BingoOffRoomConfig::getValueByRoom($room->id, 'val_serials');
-
-        $prizesValues = !empty($serialsWinners) ? [100 - $prizeSerialVal, $prizeSerialVal] : [100];
-
-        return (array(
-            'jackpotWinners' => $jackpotWinners,
-            'serialsWinners' => $serialsWinners,
-            'prizesValues' => $prizesValues
-        ));
+        self::getInfoWinners($room, $PJLink = '');
     }
 
     public function viewCtn($ctnId)
@@ -290,7 +271,7 @@ class BingoOfflineController extends Controller
         $room = BingoOffRoom::where('encrypted', $room)->first();
         if ($room->status == 3) {
             BingoOffRoom::where('encrypted', $room)->update(['status' => 4]);
-            EventsBingoOffRoom::dispatch($room);
+            //EventsBingoOffRoom::dispatch($room);
             echo json_encode('end');
         }
     }
@@ -328,7 +309,8 @@ class BingoOfflineController extends Controller
         $this->checkRoomClosure();
 
         $rooms = BingoOffRoom::with([
-            'Config.JackpotType', 'Coin',
+            'Config.JackpotType',
+            'Coin',
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
             },

@@ -1,15 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    @include('layouts.sections.head')
-    @vite('resources/js/app.js') <!-- Si usas Vite para tus activos -->
-</head>
+@include('layouts.sections.head')
+@vite('resources/js/app.js')
 
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed" x-data="{ open: false }">
-    <div class="wrapper" 
-    x-data x-init="Echo.channel('chat').listen('')"
-    >
+    <div class="wrapper" x-data x-init="Echo.channel('chat').listen('')">
         <!-- CSRF Token -->
         <input type="hidden" id="token" value="{{ csrf_token() }}">
 

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\BingoOffRoom as EventsBingoOffRoom;
 use App\Events\GetBingoOffSort;
 use App\Traits\UserVal;
-use App\Traits\IdEncryptRKE;
+use App\Traits\EncryptRKE;
 use App\Models\Wallet;
 use App\Models\User;
 use App\Models\Coin;
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Session;
 
 class PollaExpressController extends Controller
 {
-    use IdEncryptRKE;
+    use EncryptRKE;
     use UserVal;
     use BingoTrait;
 

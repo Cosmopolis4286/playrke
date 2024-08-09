@@ -9,7 +9,7 @@ use App\Events\UserJoinedRoomBingo;
 use App\Models\Wallet;
 use App\Models\User;
 use App\Models\Message;
-use App\Traits\IdEncryptRKE;
+use App\Traits\EncryptRKE;
 use App\Models\BingoRM;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +31,7 @@ use Intervention\Image\Facades\Image;
 class BingoController extends Controller
 {
     use UserVal;
-    use IdEncryptRKE;
+    use EncryptRKE;
 
     public function __construct()
     {

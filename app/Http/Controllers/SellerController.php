@@ -10,7 +10,7 @@ use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\DocumentType;
 use App\Traits\RouteRKE;
-use App\Traits\IdEncryptRKE;
+use App\Traits\EncryptRKE;
 use App\Traits\BingoTrait;
 use App\Traits\PlayerLinkTrait;
 use App\Traits\UserVal;
@@ -40,7 +40,7 @@ use Illuminate\Support\Facades\Validator;
 
 class SellerController extends Controller
 {
-    use IdEncryptRKE, BingoTrait, PlayerLinkTrait, RouteRKE, UserVal, Filters;
+    use EncryptRKE, BingoTrait, PlayerLinkTrait, RouteRKE, UserVal, Filters;
 
     protected function seller($fields = ['*'])
     {

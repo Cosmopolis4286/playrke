@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Session;
 use App\Models\Commerce;
 use App\Models\Country;
 use App\Models\User;
-use App\Traits\IdEncryptRKE;
+use App\Traits\EncryptRKE;
 use App\Traits\UserVal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Hash;
 class AdminController extends Controller
 {
     use UserVal;
-    use IdEncryptRKE;
+    use EncryptRKE;
 
     public function commerces()
     {
