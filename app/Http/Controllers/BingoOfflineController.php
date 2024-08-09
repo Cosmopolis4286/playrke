@@ -117,6 +117,7 @@ class BingoOfflineController extends Controller
             'chipsRest' => $chipsRest,
             'sort' => $sort,
             'encrypt' => $codeEncrypt,
+            'key' => env('JSON_ENCRYPTION_KEY'),
             'lastSixChips' => $lastSixChips[0],
             'lastPostChip' => $lastSixChips[1],
             'allChips' => $allChips,
@@ -172,8 +173,6 @@ class BingoOfflineController extends Controller
 
         $lastSixChips = $this->getChips($room->encrypted);
 
-        //dd($lastSixChips);
-
         $ctns = BingoOffCtns::getCtnsByPlayerInRoom($roomId, $PJLink);
 
         $infoGame = ($room->status > 3) ? $this->getResult($room->encrypted, $PJLink) : [];
@@ -192,6 +191,7 @@ class BingoOfflineController extends Controller
             'cartons' => $ctns,
             'sort' => $sort,
             'encrypt' => $codeEncrypt,
+            'key' => env('JSON_ENCRYPTION_KEY'),
             'lastSixChips' => $lastSixChips[0],
             'lastPostChip' => $lastSixChips[1],
             'allChips' => $allChips,
@@ -228,13 +228,11 @@ class BingoOfflineController extends Controller
         $roomId = $room->id;
 
         if ($roomId) {
-            $vanSort = BingoOffSort::where('room', $roomId)->where('win', 2)->first();
+            $vanSort = BingoOffSort::where('room', $roomId)->where('win', 1)->first();
             if ($vanSort) {
                 $lastSixChips = ($room->status > 2) ?
                     BingoOffSort::where('room', $roomId)->where('time', '<=', time())
                     ->where('id', '<=', $vanSort->id)->orderByDesc('id')->take(7)->pluck('chip')->toArray() : [];
-
-                //dd($lastSixChips);
 
                 $sizeArr = count($lastSixChips);
 
@@ -258,7 +256,14 @@ class BingoOfflineController extends Controller
 
     public function getResult($room, $PJLink = '')
     {
-        self::getInfoWinners($room, $PJLink = '');
+        // Obtener la información de los ganadores
+        $winnersInfo = self::getInfoWinners($room, $PJLink);
+
+        // Encriptar los datos de los ganadores
+        $encryptedData = self::encryptData($winnersInfo, env('JSON_ENCRYPTION_KEY'));
+
+        // Retornar los datos encriptados
+        return $encryptedData;
     }
 
     public function viewCtn($ctnId)

@@ -5,7 +5,7 @@
 @endsection
 
 @section('content')
-    <div class="row">
+    <div class="row" x-data="initializeEcho('{{ $room->encrypted }}')">
         <div class="col-12 col-lg-9 col-xl-10 pb-2 m-auto">
             @include('modules.game.bingo.container-last-chips')
             <div class="container">
@@ -18,7 +18,6 @@
             </div>
             @include('modules.game.bingo.sounds')
         </div>
-        <input type="hidden" id="datosCifrados" value="{{$infoGame}}">
     </div>
     @if ($room->status == 2)
         @include('components.bingo-off.modal-info-draw')
@@ -27,12 +26,11 @@
     @endif
 @endsection
 @section('scripts')
-
     <script>
         const preRoute = '{{ asset('') }}';
         const encrypted = '<?php echo $room->encrypted; ?>';
         const roomStatus = '<?php echo $room->status; ?>';
-        const infoGame = "{{$infoGame}}";
+        const infoGame = {!! json_encode($infoGame) !!};
         console.log(infoGame);
         const coin = '<?php echo $coin; ?>';
         const valSongs = '<?php echo $room->val_songs; ?>';
@@ -389,7 +387,7 @@
                 if (newChip == chpLast) {
                     $('#cont_tx_check_bing').show();
                     endWin = 1;
-                    getResult();
+                    getResult(result);
                 }
             }
         }
@@ -492,17 +490,10 @@
             });
         }
 
-        function getResult() {
-            try {
-                const res = $.getJSON(`${preRoute}bingocash/get/result/${encrypted}/${PJLink}`, {
-                    '_token': $("#token").val()
-                });
-                showWinners(res, chpLast);
-                $("#btn-view-winners").prop('disabled', false);
-                $('#cont_tx_check_bing').hide();
-            } catch (error) {
-                console.log("Error:", error);
-            }
+        function getResult(res) {
+            showWinners(res, chpLast);
+            $("#btn-view-winners").prop('disabled', false);
+            $('#cont_tx_check_bing').hide();
         }
 
         $(document).on("click", "#btn-view-winners", function() {
@@ -529,30 +520,7 @@
                 console.error("Error en la inicialización:", error);
             }
         });
-            </script>
-    <script src="{{ asset('js/time-functions.js') }}"></script>
-
-
-    <script>
-        // Datos cifrados pasados desde PHP
-        const datosCifrados = infoGame;
-
-        // Clave de desencriptación (debe ser la misma que usaste para cifrar)
-        const clave = "{{ env('JSON_ENCRYPTION_KEY') }}";
-
-        // Función para desencriptar usando CryptoJS
-        function desencriptar(datosCifrados, clave) {
-            const bytes  = CryptoJS.AES.decrypt(datosCifrados, CryptoJS.enc.Base64.parse(clave), {
-                iv: CryptoJS.enc.Base64.parse(datosCifrados.slice(0, 24))
-            });
-            const textoDesencriptado = bytes.toString(CryptoJS.enc.Utf8);
-            return JSON.parse(textoDesencriptado);
-        }
-
-        const datosDesencriptados = desencriptar(datosCifrados, clave);
-        console.log(datosDesencriptados);
     </script>
-
-
+    <script src="{{ asset('js/time-functions.js') }}"></script>
     {{-- <script src="{{ asset('js/game-bingo-off.js') }}"></script> --}}
 @endsection

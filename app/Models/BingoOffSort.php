@@ -21,7 +21,7 @@ class BingoOffSort extends Model
 
     public static function getWinningChip($room)
     {
-        return self::where('room', $room)->where('status', 2)->first();
+        return self::where('room', $room)->where('win', 1)->first();
     }
 
     public static function getRoomSort($room)

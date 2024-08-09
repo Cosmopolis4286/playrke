@@ -6,13 +6,11 @@ use App\Traits\EncryptRKE;
 use App\Models\User;
 use App\Models\Coin;
 use App\Models\Seller;
-use App\Models\BingoOffRoomUser;
 use App\Models\BingoOffCtns;
 use App\Models\BingoOffCtnsLot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
-use App\Models\BingoOffCtnsPayment;
 use App\Models\PagoMovil;
 use App\Models\BingoOffPrizeCtns;
 use App\Models\BingoOffPrizeCtnsPayment;
@@ -36,7 +34,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use App\Events\NewMessageEvent;
 
 class CommerceController extends Controller
 {
@@ -272,7 +269,8 @@ class CommerceController extends Controller
                     // Actualizar moneda Principal
                     CommerceCountriesCoins::where('commerce', $commerce->id)
                         ->where('coin', $commerce->coin)->update([
-                            'country' => $commerce->country, 'coin' => $commerce->coin
+                            'country' => $commerce->country,
+                            'coin' => $commerce->coin
                         ]);
                 }
 
@@ -349,7 +347,7 @@ class CommerceController extends Controller
         $title = 'Tasas de Cambio';
         $name = 'currency';
         $wallet = $this->wallet();
-        $commerce = $this->commerce(['id', 'user']); 
+        $commerce = $this->commerce(['id', 'user']);
 
         //$this->sendMessage();
 
@@ -433,7 +431,7 @@ class CommerceController extends Controller
         $roomData = [];
 
         foreach ($rooms as $room) {
-            $allSaleRoom = $room->CtnsLot->sum(fn ($ctns) => $room->ctn_price * $ctns->exchange_rate * $ctns->ctns);
+            $allSaleRoom = $room->CtnsLot->sum(fn($ctns) => $room->ctn_price * $ctns->exchange_rate * $ctns->ctns);
             $finalSaleRoom = $room->CtnsLot->sum('sale_seller_ctns');
             $comSaleSellerRoom = $allSaleRoom - $finalSaleRoom;
             $comRKE = 0; // Actualiza con tu lógica real
@@ -470,7 +468,8 @@ class CommerceController extends Controller
     private function getRoomsData($commerce, $coin, $dateFilter = "today")
     {
         $query = BingoOffRoom::with([
-            'Config', 'Status',
+            'Config',
+            'Status',
             'CtnsLot' => function ($subquery) use ($commerce, $coin) {
                 $subquery->where('commerce', $commerce)
                     ->where('coin', $coin)->with('Coin');
@@ -508,7 +507,8 @@ class CommerceController extends Controller
         // }
 
         $sellers = Seller::with([
-            'Country', 'CtnsLot' => function ($query) use ($room, $coin) {
+            'Country',
+            'CtnsLot' => function ($query) use ($room, $coin) {
                 $query->where('room', $room->id)->where('coin', $coin);
             },
             'ComSellerRoom' => function ($query) use ($room) {
@@ -672,8 +672,11 @@ class CommerceController extends Controller
     private function getWinnersData($commerce = '', $dateFilter = "today", $others = false)
     {
         $winnersQuery = BingoOffPrizeCtns::with([
-            'Room', 'Commerce', 'Coin',
-            'PlayerLink.Country', 'Payment',
+            'Room',
+            'Commerce',
+            'Coin',
+            'PlayerLink.Country',
+            'Payment',
             'Seller' => function ($query) {
                 $query->select('id', 'name');
             },

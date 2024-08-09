@@ -16,6 +16,18 @@
                     <div id="cont-M" class="cont-time-clock"><span id="minutes"></span><span>M</span></div>
                     <div id="cont-S" class="cont-time-clock"><span id="seconds"></span><span>S</span></div>
                 </div>
+                <div id="form-buy-ctns elem-hide">
+                    <div class="form-group col-6 col-sm-4">
+                        <label for="ctn-price">Precio Carton</label>
+                        <input type="hidden" id="coin" name="coin">
+                        <div class="form-control_d" id="tx-ctn-price"></div>
+                    </div>
+                    <div class="form-group col-6 col-sm-3">
+                        <label for="num-ctns">#CTNs</label>
+                        <input id="num-ctns" class="form-control" type="number" name="num_ctns" min="1"
+                            max="30" required disabled>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

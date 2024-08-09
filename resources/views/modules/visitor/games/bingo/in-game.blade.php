@@ -5,14 +5,13 @@
 @endsection
 
 @section('content')
-    <div class="row" x-data="initializeEcho('{{ $room->encrypted }}')">
+    <div class="row">
         <div class="col-12 col-lg-9 col-xl-10 pb-2 m-auto">
             @include('modules.game.bingo.container-last-chips')
             <div class="container">
                 @include('modules.game.bingo.container-bingo-info')
                 @include('modules.game.bingo.container-history-chips')
                 <div class="container mt-1">
-                    <div id="server-time" class="bg-danger">Cargando...</div>
                     @include('modules.game.bingo.cartons')
                 </div>
             </div>
@@ -25,13 +24,14 @@
         @include('components.bingo-off.modal-info-winners')
     @endif
 @endsection
+
 @section('scripts')
+    <script src="{{ asset('js/crypto-js.min.js') }}"></script>
     <script>
         const preRoute = '{{ asset('') }}';
         const encrypted = '<?php echo $room->encrypted; ?>';
         const roomStatus = '<?php echo $room->status; ?>';
-        const infoGame = {!! json_encode($infoGame) !!};
-        console.log(infoGame);
+        let infoGame = '<?php echo $infoGame; ?>';
         const coin = '<?php echo $coin; ?>';
         const valSongs = '<?php echo $room->val_songs; ?>';
         const arrSort = {!! json_encode($sort) !!};
@@ -99,6 +99,7 @@
             }
 
             if (allChips.length && roomStatus > 2) {
+                alert(44);
                 renderChipsView(allChips);
             }
         }
@@ -242,7 +243,7 @@
         };
 
         window.onfocus = function() {
-            getGameData();
+            if (roomStatus == 3) getGameData();
         };
 
         // Ajustar tamano de las casillas
@@ -267,7 +268,7 @@
             renderChipsView(allChips, $(this).data('move'));
         });
 
-        function decrypt(code) {
+        function decryptChp(code) {
             const firstThreeChars = code.substring(0, 3);
             const indexFirst = encrypt.indexOf(firstThreeChars);
 
@@ -297,7 +298,7 @@
                 const chipTime = +arrSort[i].time;
 
                 if (chipTime && chipTime <= timeServ) {
-                    const nextChip = decrypt(arrSort[i].code);
+                    const nextChip = decryptChp(arrSort[i].code);
 
                     if (!allChipsSet.has(nextChip)) {
                         count = i + 1;
@@ -387,7 +388,7 @@
                 if (newChip == chpLast) {
                     $('#cont_tx_check_bing').show();
                     endWin = 1;
-                    getResult(result);
+                    getResult();
                 }
             }
         }
@@ -490,10 +491,17 @@
             });
         }
 
-        function getResult(res) {
-            showWinners(res, chpLast);
-            $("#btn-view-winners").prop('disabled', false);
-            $('#cont_tx_check_bing').hide();
+        function getResult() {
+            try {
+                const res = $.getJSON(`${preRoute}bingocash/get/result/${encrypted}/${PJLink}`, {
+                    '_token': $("#token").val()
+                });
+                showWinners(res, chpLast);
+                $("#btn-view-winners").prop('disabled', false);
+                $('#cont_tx_check_bing').hide();
+            } catch (error) {
+                console.log("Error:", error);
+            }
         }
 
         $(document).on("click", "#btn-view-winners", function() {
@@ -522,5 +530,12 @@
         });
     </script>
     <script src="{{ asset('js/time-functions.js') }}"></script>
+    <script src="{{ asset('js/crypt.js') }}"></script>
+    <script>
+        infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
+    </script>
+    @if ($room->status == 2)
+        <script src="{{ asset('js/games/bingo/bingo-off-buy-ctns.js') }}"></script>
+    @endif
     {{-- <script src="{{ asset('js/game-bingo-off.js') }}"></script> --}}
 @endsection

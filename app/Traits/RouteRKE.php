@@ -9,7 +9,7 @@ trait RouteRKE
         if (app()->environment('production')) {
             $rout = 'https://www.playrke.com/';
         }
-        $rout = 'http://localhost/play10/public/';
+        $rout = 'http://localhost/rke-11/public/';
 
         return $rout;
     }

@@ -33,7 +33,7 @@ return new class extends Migration
             $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('lot')->references('id')->on('bingo_off_ctns_lot');
             $table->foreign('ctn')->references('id')->on('bingo_off_ctns');
-            $table->foreign('prize_type')->references('id')->on('game_prizes')->onDelete('cascade');
+            $table->foreign('prize_type')->references('id')->on('game_prizes')->onUpdate('cascade');
             $table->foreign('coin')->references('id')->on('coins');
 
             // Índice compuesto

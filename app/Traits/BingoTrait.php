@@ -3,7 +3,6 @@
 namespace App\Traits;
 
 use App\Events\Games\BingoOFF_ProccessDraw;
-use App\Http\Controllers\ExchangeRateController;
 use App\Models\SellerRoomLimits;
 use App\Models\BingoOffCtns;
 use App\Models\BingoOffRoom;

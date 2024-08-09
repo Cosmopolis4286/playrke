@@ -4,6 +4,8 @@ namespace App\Traits;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
+use RuntimeException;
 
 trait EncryptRKE
 {
@@ -36,44 +38,29 @@ trait EncryptRKE
         return Str::random(10);
     }
 
-    function encryptData($data) {
-        // Obtén la clave de cifrado del archivo .env
-        $key = env('JSON_ENCRYPTION_KEY');
-    
-        // Genera un IV (vector de inicialización) aleatorio
-        $iv = random_bytes(16); // AES-256-CBC requiere un IV de 16 bytes
-    
-        // Convierte el array en JSON
-        $jsonData = json_encode($data);
-    
-        // Cifra los datos JSON usando AES-256-CBC
-        $ciphertext = openssl_encrypt($jsonData, 'AES-256-CBC', $key, 0, $iv);
-    
-        // Codifica el IV y el texto cifrado en base64 para almacenarlos juntos
-        $encoded = base64_encode($iv . $ciphertext);
-    
-        return $encoded;
+    public function generateRandomIV($length = 16)
+    {
+        return random_bytes($length); // Genera un IV aleatorio de 16 bytes
     }
 
-    function decryptData($encryptedData) {
-        // Obtén la clave de cifrado del archivo .env
-        $key = env('JSON_ENCRYPTION_KEY');
-        
-        // Decodifica el texto cifrado en base64
-        $decoded = base64_decode($encryptedData);
-        
-        // Extrae el IV (los primeros 16 bytes)
-        $iv = substr($decoded, 0, 16);
-        
-        // Extrae el texto cifrado (el resto del contenido)
-        $ciphertext = substr($decoded, 16);
-        
-        // Descifra el texto cifrado usando AES-256-CBC
-        $jsonData = openssl_decrypt($ciphertext, 'AES-256-CBC', $key, 0, $iv);
-        
-        // Convierte los datos JSON de nuevo a un array
-        $data = json_decode($jsonData, true);
-        
-        return $data;
+    public function encryptData($jsonObject, $secretKey)
+    {
+        $text = json_encode($jsonObject); // Convierte el objeto JSON a una cadena
+        $iv = $this->generateRandomIV();
+        $key = base64_decode($secretKey); // Convierte la clave base64 a binario
+        $cipher = "aes-256-cbc";
+        $encryptedText = openssl_encrypt($text, $cipher, $key, 0, $iv);
+        $ivHex = bin2hex($iv);
+        return $ivHex . ':' . $encryptedText;
+    }
+
+    public function decryptData($encryptedText, $secretKey)
+    {
+        list($ivHex, $encryptedData) = explode(':', $encryptedText);
+        $iv = hex2bin($ivHex);
+        $key = base64_decode($secretKey); // Convierte la clave base64 a binario
+        $cipher = "aes-256-cbc";
+        $decryptedText = openssl_decrypt($encryptedData, $cipher, $key, 0, $iv);
+        return json_decode($decryptedText, true); // Convierte la cadena JSON a un objeto
     }
 }

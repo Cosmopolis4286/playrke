@@ -19,6 +19,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('chip');
             $table->string('code', 8);
             $table->integer('time');
+            $table->boolean('win')->default(0);
             $table->boolean('status')->default(0);
             $table->timestamps();
 
