@@ -512,6 +512,8 @@
             try {
                 if (lastSixChips.length) {
                     // Asegúrate de que estas funciones devuelvan promesas si necesitan ejecutarse en paralelo
+                    console.log(lastSixChips);
+                    console.log(allChips);
                     await Promise.all([
                         handleLatestChips(lastSixChips),
                         renderChipsView(allChips)

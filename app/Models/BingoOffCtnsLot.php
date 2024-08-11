@@ -9,7 +9,7 @@ class BingoOffCtnsLot extends Model
     protected $table = "bingo_off_ctns_lot";
     protected $fillable = [
         'coin', 'exchange_rate', 'ctns', 'sale_seller_ctns',
-        'room', 'commerce', 'seller', 'player_link', 'status'
+        'room', 'provider', 'commerce', 'seller', 'player_link', 'status'
     ];
 
     // Relación con la habitación

@@ -20,7 +20,8 @@ class CreateSellersTable extends Migration
             $table->unsignedBigInteger('coin');
             $table->string('phone', 14);
             $table->double('commn');
-            $table->unsignedBigInteger('commerce');
+            $table->unsignedBigInteger('provider')->nullable();
+            $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('user');
             $table->boolean('status')->default(0);
             $table->timestamps();
@@ -28,6 +29,7 @@ class CreateSellersTable extends Migration
             // Foreign keys
             $table->foreign('country')->references('id')->on('countries');
             $table->foreign('coin')->references('id')->on('coins');
+            $table->foreign('provider')->references('id')->on('commerces')->onUpdate('cascade');
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
         });

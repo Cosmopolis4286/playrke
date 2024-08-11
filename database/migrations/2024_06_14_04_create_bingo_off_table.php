@@ -15,7 +15,8 @@ class CreateBingoOffTable extends Migration
     {
         Schema::create('bingo_off_rooms', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('commerce');
+            $table->unsignedBigInteger('provider')->nullable();
+            $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('status')->default(1);
             $table->boolean('all_for_one')->default(0);
             $table->boolean('paid_win')->default(0);
@@ -40,6 +41,9 @@ class CreateBingoOffTable extends Migration
 
             // Definición de la clave foránea para 'status'
             $table->foreign('status')->references('id')->on('game_status');
+
+            // Definición de la clave foránea para 'provider'
+            $table->foreign('provider')->references('id')->on('providers');
 
             // Definición de la clave foránea para 'commerce'
             $table->foreign('commerce')->references('id')->on('commerces');

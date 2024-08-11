@@ -16,6 +16,7 @@ class CreateCommercesTable extends Migration
         Schema::create('commerces', function (Blueprint $table) {
             $table->id();
             $table->string('name', 30);
+            $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('country');
             $table->unsignedBigInteger('coin');
             $table->string('phone', 12);
@@ -26,6 +27,7 @@ class CreateCommercesTable extends Migration
             $table->timestamps();
 
             // Foreign keys
+            $table->foreign('provider')->references('id')->on('providers');
             $table->foreign('country')->references('id')->on('countries');
             $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('user')->references('id')->on('users');

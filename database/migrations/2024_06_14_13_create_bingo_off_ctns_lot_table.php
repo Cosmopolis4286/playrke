@@ -16,7 +16,8 @@ return new class extends Migration
         Schema::create('bingo_off_ctns_lot', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
-            $table->unsignedBigInteger('commerce');
+            $table->unsignedBigInteger('provider')->nullable();
+            $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('seller');
             $table->unsignedBigInteger('player_link');
             $table->unsignedBigInteger('coin');
@@ -28,6 +29,7 @@ return new class extends Migration
 
             $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('room')->references('id')->on('bingo_off_rooms');
+            $table->foreign('provider')->references('id')->on('providers');
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('player_link')->references('id')->on('player_link');

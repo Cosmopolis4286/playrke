@@ -346,6 +346,7 @@ class BingoOfflineController extends Controller
                 $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
 
                 $room = BingoOffRoom::create([
+                    'provider' => $request->provider,
                     'commerce' => Commerce::getValueByUserId($user->id, 'id'),
                     'status' => 1,
                     'all_for_one' => 1,
@@ -451,6 +452,7 @@ class BingoOfflineController extends Controller
 
                 // Crear una nueva sala a partir de la existente
                 $newRoom = BingoOffRoom::create([
+                    'provider' => $existingRoom->provider,
                     'commerce' => $existingRoom->commerce,
                     'status' => 1,
                     'date' => now()->format('Y-m-d'),

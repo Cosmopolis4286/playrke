@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CommerceExchangeRate extends Model
 {
     protected $table = "commerces_exchange_rates";
-    protected $fillable = ['coin', 'value', 'commerce', 'status'];
+    protected $fillable = ['coin', 'value', 'provider', 'commerce', 'status'];
 
     public function Coin()
     {

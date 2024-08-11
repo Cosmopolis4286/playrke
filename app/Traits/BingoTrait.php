@@ -227,7 +227,7 @@ trait BingoTrait
         date_default_timezone_set('America/Caracas');
 
         $encrypted = BingoOffRoom::getValueById($room, 'encrypted');
-        
+
         $result = false;
         do {
             $chip = BingoOffSort::select('id', 'chip', 'status', 'win')->where('room', $room)
@@ -286,6 +286,7 @@ trait BingoTrait
         try {
             $room = BingoOffRoom::select(
                 'id',
+                'provider',
                 'commerce',
                 'players',
                 'ctn_price',
@@ -298,6 +299,7 @@ trait BingoTrait
             if (!$room) return redirect()->back();
 
             $roomId = $room->id;
+            $provider = $arrCtn['provider'];
             $commerce = $arrCtn['commerce'];
             $seller = $arrCtn['seller'];
             $coin = $arrCtn['coin'];
@@ -325,6 +327,7 @@ trait BingoTrait
 
             // Crear lote de cartones de bingo
             $ctnsLote = BingoOffCtnsLot::create([
+                'provider' => $provider,
                 'commerce' => $commerce,
                 'seller' => $seller,
                 'room' => $roomId,
@@ -393,6 +396,7 @@ trait BingoTrait
                     $recordsToInsert[] = [
                         'room' => $roomId,
                         'player_link' => $PJLink,
+                        'provider' => $provider,
                         'commerce' => $commerce,
                         'seller' => $seller,
                         'coin' => $coin,
@@ -423,12 +427,13 @@ trait BingoTrait
                         'o4' => $nwCtn[22],
                         'o5' => $nwCtn[23],
                         'created_at' => $this->getTimestamp()
-
                     ];
                     $x++;
                 }
             }
 
+            $res = true;
+            if (!$res) DB::rollBack();
             // Insertar todos los registros en una sola consulta
             BingoOffCtns::insert($recordsToInsert);
 
@@ -436,6 +441,7 @@ trait BingoTrait
             $roomUser = BingoOffRoomUser::firstOrCreate(
                 ['room' => $roomId, 'player_link' => $PJLink],
                 [
+                    'provider' => $provider,
                     'commerce' => $commerce,
                     'seller' => $seller,
                     'room' => $roomId,

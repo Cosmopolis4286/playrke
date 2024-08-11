@@ -8,13 +8,29 @@ class BingoOffPrizeCtns extends Model
 {
     protected $table = "bingo_off_prize_ctns";
     protected $fillable = [
-        'id', 'room', 'commerce', 'seller', 'player_link', 'ctn',
-        'prize_type', 'coin', 'amount', 'status', 'created_at', 'updated_at'
+        'id',
+        'room',
+        'provider',
+        'commerce',
+        'seller',
+        'player_link',
+        'ctn',
+        'prize_type',
+        'coin',
+        'amount',
+        'status',
+        'created_at',
+        'updated_at'
     ];
 
     public function Room()
     {
         return $this->belongsTo(BingoOffRoom::class, 'room');
+    }
+
+    public function Provider()
+    {
+        return $this->belongsTo(Provider::class, 'provider');
     }
 
     public function Commerce()

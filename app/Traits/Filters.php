@@ -16,16 +16,23 @@ trait Filters
 
     protected function applyDateFilter($date, $query, $column = 'created_at')
     {
-        //$this->getTimeZone(); En una proxima version permitir cambio de zona horaria
-        date_default_timezone_set('America/Caracas');
+        // En una próxima versión permitir cambio de zona horaria
+        $timeZone = 'America/Caracas'; // O usar $this->getTimeZone() cuando esté disponible
 
-        // Usar métodos de Carbon para obtener fechas
-        if ($date === 'today') {
-            $query->whereDate($column, Carbon::today());
-        } elseif ($date === 'yesterday') {
-            $query->whereDate($column, Carbon::yesterday());
-        } elseif ($date === 'tomorrow') {
-            $query->whereDate($column, Carbon::tomorrow());
+        // Usar métodos de Carbon para obtener fechas en la zona horaria específica
+        switch ($date) {
+            case 'today':
+                $query->whereDate($column, Carbon::today($timeZone));
+                break;
+            case 'yesterday':
+                $query->whereDate($column, Carbon::yesterday($timeZone));
+                break;
+            case 'tomorrow':
+                $query->whereDate($column, Carbon::tomorrow($timeZone));
+                break;
+            default:
+                // Aquí podrías lanzar una excepción o simplemente no aplicar ningún filtro
+                break;
         }
 
         return $query;

@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Models\CoinGameRoom;
 use App\Models\ExchangeRate;
 use App\Models\GameExchangeRate;
+use App\Models\Transactions;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -58,5 +59,22 @@ trait GameTrait
         $unixTimestamp = strtotime($dateTime);
 
         return $unixTimestamp;
+    }
+
+    public function getTransaction($game, $provider, $coin, $user)
+    {
+        // Obtener la marca de tiempo fuera del bucle
+        $timestamp = time();
+
+        do {
+            // Concatenar los valores con una cadena aleatoria para asegurar unicidad
+            $randomString = bin2hex(random_bytes(5)); // Genera una cadena aleatoria
+            $data = $game . $provider . $coin . $user . $timestamp . $randomString;
+
+            // Generar un hash MD5 del valor concatenado
+            $uniqueId = md5($data);
+        } while (Transactions::existsCode($uniqueId, $provider));
+
+        return $uniqueId;
     }
 }

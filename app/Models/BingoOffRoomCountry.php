@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BingoOffRoomCountry extends Model
 {
     protected $table = "bingo_off_rooms_country";
-    protected $fillable = ['id', 'country', 'commerce', 'status'];
+    protected $fillable = ['id', 'country', 'provider', 'commerce', 'status'];
 
     public function Country()
     {
