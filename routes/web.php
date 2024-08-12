@@ -7,6 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\CommerceController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\BingoController;
@@ -21,14 +22,13 @@ use App\Http\Controllers\LimitsController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\RetirosController;
-use App\Http\Controllers\CryptoWalletController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\RecargasController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
-use App\Http\Controllers\InformacionController;
+use App\Http\Controllers\InformationController;
 use App\Http\Controllers\TrikiController;
 use App\Http\Controllers\YankenpoController;
 use App\Models\Settings;
@@ -92,11 +92,11 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'perfil', 'as' => 'perfil.']
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'info', 'as' => 'info.'], function () {
-    Route::get('terminos', [InformacionController::class, 'terminos'])->name('terminos');
-    Route::get('acerca', [InformacionController::class, 'acerca'])->name('acerca');
-    Route::get('privacidad', [InformacionController::class, 'privacidad'])->name('privacidad');
-    Route::get('ayuda', [InformacionController::class, 'ayuda'])->name('ayuda');
-    Route::get('pds', [InformacionController::class, 'pds'])->name('pds');
+    Route::get('terms', [InformationController::class, 'terms'])->name('terms');
+    Route::get('about', [InformationController::class, 'about'])->name('about');
+    Route::get('privacy', [InformationController::class, 'privacy'])->name('privacy');
+    Route::get('help-center', [InformationController::class, 'helpCenter'])->name('help-center');
+    Route::get('pds', [InformationController::class, 'pds'])->name('pds');
 });
 
 Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'limits', 'as' => 'limits.'], function () {
@@ -121,24 +121,31 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'exchange-rate',
     Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
 });
 
-// Commerce Options
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
-    Route::post('create', [CommerceController::class, 'create'])->name('create');
-    Route::get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
-    Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
-    Route::put('change-status/{id}', [CommerceController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [CommerceController::class, 'changePassword'])->name('change-pasww');
-});
-
 // Directorio-Datos Bancarios
 Route::group(['middleware' => 'auth', 'prefix' => 'directory', 'as' => 'directory.'], function () {
     Route::get('{countryCode}', [DirectoryController::class, 'index'])->name('index');
 });
 
+//Proveedor
+Route::group(['middleware' => ['auth', 'provider'], 'prefix' => 'provider', 'as' => 'provider.'], function () {
+    Route::get('getPaymentProviderDetails/{idProvider}/{coin}', [ProviderController::class, 'getPaymentProviderDetails'])->name('getPaymentCommerceDetails');
+    Route::get('exchange-rate', [ProviderController::class, 'exchangeRate'])->name('exchangeRate');
+    Route::get('all-directories', [ProviderController::class, 'allDirectories'])->name('allDirectories');
+    Route::get('sellers', [ProviderController::class, 'sellers'])->name('sellers');
+    Route::get('seller/getCoinByCountry/{country}/{seller}', [ProviderController::class, 'getCoinByCountry'])->name('getCoinByCountry');
+    Route::get('seller/getSellerInfoByCtn/{ctn}', [ProviderController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
+    Route::get('bingocash/players/other-winners/{dateFilter?}', [ProviderController::class, 'getBingoOffWinnersByOtherProviders'])->name('getBingoOffWinnersByOtherProviders');
+    Route::get('bingocash/players/my-winners/{dateFilter?}', [ProviderController::class, 'getBingoOffWinnersByProvider'])->name('getBingoOffWinnersByProvider');
+    Route::get('bingocash/carton-sold/{coin}/{dateFilter?}', [ProviderController::class, 'ctnsSold'])->name('ctnsSold');
+    Route::put('bingocash/carton-lot/payment', [ProviderController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
+    Route::post('bingocash/carton/notify/payment/win-ctn', [ProviderController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
+    Route::get('bingocash/sales-report/{coin}/{dateFilter?}', [ProviderController::class, 'reportSalesRooms'])->name('reportSalesRooms');
+    Route::get('bingocash/sales-report/room/{room}/{coin}', [ProviderController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
+});
+
 //Comercio/Comercializadora/Banca
 Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
-    Route::get('getPaymentCommerceDetails/{idCommerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])->name('getPaymentCommerceDetails');
+    Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])->name('getPaymentCommerceDetails');
     Route::get('exchange-rate', [CommerceController::class, 'exchangeRate'])->name('exchangeRate');
     Route::get('all-directories', [CommerceController::class, 'allDirectories'])->name('allDirectories');
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
@@ -151,6 +158,16 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
     Route::post('bingocash/carton/notify/payment/win-ctn', [CommerceController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
     Route::get('bingocash/sales-report/{coin}/{dateFilter?}', [CommerceController::class, 'reportSalesRooms'])->name('reportSalesRooms');
     Route::get('bingocash/sales-report/room/{room}/{coin}', [CommerceController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
+});
+
+// Commerce Options
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
+    Route::post('create', [CommerceController::class, 'create'])->name('create');
+    Route::get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [CommerceController::class, 'changeStatus'])->name('change-status');
+    Route::put('change-passw/{id}', [CommerceController::class, 'changePassword'])->name('change-pasww');
 });
 
 // Seller Options
@@ -339,6 +356,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 Route::group(['middleware' => ['auth'], 'prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('all', [BingoController::class, 'allRooms'])->name('allRooms');
     Route::get('{symCoin}', [BingoController::class, 'rooms'])->name('rooms');
+    Route::get('pvr/{provider}', [BingoController::class, 'roomsProvider'])->name('roomsProvider');
     Route::get('getInfo', [BingoController::class, 'updateInfo'])->name('getInfoRoom');
     Route::post('myprofit', [BingoController::class, 'myprofit'])->name('myprofit');
     Route::get('winners', [BingoController::class, 'winners'])->name('winners');

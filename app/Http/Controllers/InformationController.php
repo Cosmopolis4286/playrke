@@ -3,46 +3,45 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Wallet;
 use App\Traits\UserVal;
 
-class InformacionController extends Controller
+class InformationController extends Controller
 {
     use UserVal;
 
-    public function terminos()
+    public function terms()
     {
         $user = $this->user();
         $wallet = $this->Wallet($user->id);
-        return view('modules.user.info.terminos', compact('wallet'));
+        return view('modules.all.info-rke.terms', compact('wallet'));
     }
 
-    public function acerca()
+    public function about()
     {
         $user = $this->user();
         $wallet = $this->Wallet($user->id);
-        return view('modules.user.info.acerca', compact('wallet'));
+        return view('modules.all.info-rke.about', compact('wallet'));
     }
 
-    public function privacidad()
+    public function privacy()
     {
         $user = $this->user();
         $wallet = $this->Wallet($user->id);
-        return view('modules.user.info.privacidad', compact('wallet'));
+        return view('modules.all.info-rke.privacy', compact('wallet'));
     }
 
-    public function ayuda()
+    public function helpCenter()
     {
         $user = $this->user();
         $wallet = $this->Wallet($user->id);
         $title = 'Centro de Ayuda';
-        return view('modules.user.info.ayuda', compact('wallet', 'title'));
+        return view('modules.all.info-rke.help-center', compact('wallet', 'title'));
     }
 
     public function pds()
     {
         $user = $this->user();
         $wallet = $this->Wallet($user->id);
-        return view('modules.user.info.pds', compact('wallet'));
+        return view('modules.all.info-rke.pds', compact('wallet'));
     }
 }

@@ -31,7 +31,6 @@
         const preRoute = '{{ asset('') }}';
         const encrypted = '<?php echo $room->encrypted; ?>';
         const roomStatus = '<?php echo $room->status; ?>';
-        let infoGame = '<?php echo $infoGame; ?>';
         const coin = '<?php echo $coin; ?>';
         const valSongs = '<?php echo $room->val_songs; ?>';
         const arrSort = {!! json_encode($sort) !!};
@@ -47,6 +46,7 @@
         var timeServ = Number('<?php echo $timeServ; ?>');
         var allChips = {!! json_encode($allChips) !!};
         var allChipsSet = new Set(allChips);
+        var infoGame = '<?php echo $infoGame; ?>';
 
         soundNext.muted = true;
         soundWin.muted = true;
@@ -532,10 +532,12 @@
         });
     </script>
     <script src="{{ asset('js/time-functions.js') }}"></script>
-    <script src="{{ asset('js/crypt.js') }}"></script>
-    <script>
-        infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
-    </script>
+    @if ($room->status > 2)
+        <script src="{{ asset('js/crypt.js') }}"></script>
+        <script>
+            infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
+        </script>
+    @endif
     @if ($room->status == 2)
         <script src="{{ asset('js/games/bingo/bingo-off-buy-ctns.js') }}"></script>
     @endif

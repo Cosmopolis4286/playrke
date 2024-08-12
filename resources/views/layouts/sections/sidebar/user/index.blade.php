@@ -7,4 +7,11 @@
             <p>Directorio</p>
         </a>
     </li>
+    <li class="nav-item has-treeview">
+        <a href="{{ route('bingo.roomsProvider', ['provider' => encrypt(1)]) }}" title="Salas de Juego"
+            class="nav-link  {{ !Route::is('bingo.roomsProvider') ?: 'active' }}">
+            <i class="nav-icon fa-solid fa-hat-wizard"></i>
+            <p>Bingo</p>
+        </a>
+    </li>
 @endsection

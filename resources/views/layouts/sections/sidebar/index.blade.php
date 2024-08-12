@@ -36,14 +36,14 @@
                 @yield('body')
                 {{-- Extras --}}
                 <li class="nav-item">
-                    <a href="#" class="nav-link {{ !Route::is('info.ayuda') ?: 'active' }}">
+                    <a href="#" class="nav-link {{ !Route::is('info.help-center') ?: 'active' }}">
                         <i class="nav-icon fas fa-question-circle"></i>
                         <p>Ayuda <i class="right fas fa-angle-left"></i></p>
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item ">
-                            <a href="{{ route('info.ayuda') }}"
-                                class="nav-link {{ !Route::is('info.ayuda') ?: 'active' }}">
+                            <a href="{{ route('info.help-center') }}"
+                                class="nav-link {{ !Route::is('info.help-center') ?: 'active' }}">
                                 <i class="fa-solid fa-caret-right nav-icon"></i>
                                 <p>FAQ</p>
                             </a>
@@ -58,7 +58,7 @@
                 </li>
                 <li class="nav-item has-treeview">
                     <a href="#"
-                        class="nav-link {{ !Route::is('info.terminos', 'info.acera', 'info.privacidad') ?: 'active' }}">
+                        class="nav-link {{ !Route::is('info.terms', 'info.about', 'info.privacy') ?: 'active' }}">
                         <i class="nav-icon fas fa-book"></i>
                         <p>Información
                             <i class="right fas fa-angle-left"></i>
@@ -66,8 +66,8 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ route('info.acerca') }}" title="Acerca de PlayRKE"
-                                class="nav-link {{ !Route::is('info.acerca') ?: 'active' }}">
+                            <a href="{{ route('info.about') }}" title="Acerca de PlayRKE"
+                                class="nav-link {{ !Route::is('info.about') ?: 'active' }}">
                                 <i class="fa-solid fa-caret-right nav-icon"></i>
                                 <p>Acerca de PlayRKE</p>
                             </a>
@@ -80,15 +80,15 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{{ route('info.terminos') }}" title="Términos y Condiciones"
-                                class="nav-link {{ !Route::is('info.terminos') ?: 'active' }}">
+                            <a href="{{ route('info.terms') }}" title="Términos y Condiciones"
+                                class="nav-link {{ !Route::is('info.terms') ?: 'active' }}">
                                 <i class="fa-solid fa-caret-right nav-icon"></i>
                                 <p>Términos y Condiciones</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{{ route('info.privacidad') }}" title="Política de Privacidad"
-                                class="nav-link {{ !Route::is('info.privacidad') ?: 'active' }}">
+                            <a href="{{ route('info.privacy') }}" title="Política de Privacidad"
+                                class="nav-link {{ !Route::is('info.privacy') ?: 'active' }}">
                                 <i class="fa-solid fa-caret-right nav-icon"></i>
                                 <p>Política de Privacidad</p>
                             </a>

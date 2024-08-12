@@ -40,7 +40,7 @@ class HomeController extends Controller
         // Datos específicos según el tipo de usuario
         switch ($user->user_type) {
             case 1: // Jugador
-                $view = 'modules/user/gadgets/index';
+                $view = 'modules/user/widgets/index';
                 break;
 
             case 2: // Super Admin
@@ -53,7 +53,7 @@ class HomeController extends Controller
                     // 'depositsBPay' => $this->depositsBPay(),
                     // 'retirosBPay' => $this->retirosBPay(),
                 ]);
-                $view = 'modules/admin/gadgets/index';
+                $view = 'modules/admin/widgets/index';
                 break;
 
             case 3: // Bancas
@@ -63,7 +63,7 @@ class HomeController extends Controller
                     'balance_tBs' => $this->balance_tBs(),
                     'balance_tUSDT' => $this->balance_tUSDT(),
                 ]);
-                $view = 'modules/commerce/gadgets/index';
+                $view = 'modules/commerce/widgets/index';
                 break;
 
             case 4: // Taquilleros/Vendedor
@@ -74,7 +74,7 @@ class HomeController extends Controller
                     'balance_tUSDT' => $this->balance_tUSDT(),
                     'counuser_type' => $this->counuser_type(),
                 ]);
-                $view = 'modules/seller/gadgets/index';
+                $view = 'modules/seller/widgets/index';
                 break;
 
             default:
