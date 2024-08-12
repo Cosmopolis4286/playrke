@@ -45,7 +45,7 @@ class Coin extends Model
         return self::where('status', $status[0], $status[1])->select($fields)->get();
     }
 
-    public static function getCoinValue($coin, $value)
+    public static function getValue($coin, $value)
     {
         return self::where('id', $coin)->value($value);
     }
@@ -55,7 +55,7 @@ class Coin extends Model
         return self::where('country', $country)->select($fields)->first();
     }
 
-    public static function getCoinValueByCountry($country, $value)
+    public static function getValueByCountry($country, $value)
     {
         return self::where('country', $country)->value($value);
     }

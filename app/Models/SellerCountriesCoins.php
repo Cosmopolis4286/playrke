@@ -32,7 +32,7 @@ class SellerCountriesCoins extends Model
         return self::select($fields)->where('seller', $seller)->where('coin', $coin)->first();
     }
 
-    public static function getCoinValue($seller, $coin, $value)
+    public static function getValue($seller, $coin, $value)
     {
         return self::where('seller', $seller)->where('coin', $coin)->value($value);
     }

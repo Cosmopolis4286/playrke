@@ -296,7 +296,7 @@ class BingoOfflineController extends Controller
         $name = 'bingo-off';
         $wallet = $this->Wallet($this->user()->id);
         $coin = decrypt($coin);
-        $coinSym = Coin::getCoinValue($coin, 'symbol');
+        $coinSym = Coin::getValue($coin, 'symbol');
         $commerce = Commerce::getValueByUserId(Auth::id(), 'id');
 
         $coins = BingoOffCtnsLot::where('commerce', 1)->distinct()->pluck('coin')->toArray();

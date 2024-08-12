@@ -16,6 +16,8 @@ class CreateProvidersTable extends Migration
         Schema::create('providers', function (Blueprint $table) {
             $table->id();
             $table->string('name', 25)->unique();
+            $table->string('pvr_type', 2);
+            $table->string('security_key', 255);
             $table->boolean('status')->default(1);
             $table->timestamps();
         });

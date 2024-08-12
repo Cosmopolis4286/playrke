@@ -702,7 +702,7 @@ trait BingoTrait
 
             // Obtener el país del jugador y la moneda correspondiente
             $playerCountry = PlayerLink::getValueById($PJLink, 'country');
-            $coin = Coin::getCoinValueByCountry($playerCountry, 'id');
+            $coin = Coin::getValueByCountry($playerCountry, 'id');
             $boat = $room->jackpot_prize * GameExchangeRate::getGameExchangeRateValue(1, $room->id, $coin);
 
             // Calcular la ganancia por jugador y formatearla
@@ -836,7 +836,7 @@ trait BingoTrait
 
             // Obtener el país del jugador y la moneda correspondiente
             $playerCountry = PlayerLink::getValueById($PJLink, 'country');
-            $coin = Coin::getCoinValueByCountry($playerCountry, 'id');
+            $coin = Coin::getValueByCountry($playerCountry, 'id');
             $boat = $room->serial_prize * GameExchangeRate::getGameExchangeRateValue(1, $room->id, $coin);
             // Calcular la ganancia por jugador y formatearla
             $formattedNumber = number_format($boat / $numWinners, 3, ',', '.');

@@ -66,7 +66,7 @@ class RegisteredUserController extends Controller
             ]);
 
             // Obtener el valor de la moneda para el país del usuario
-            $coin = Coin::getCoinValueByCountry($user->country, 'id');
+            $coin = Coin::getValueByCountry($user->country, 'id');
 
             // Crear un nuevo Wallet para el usuario
             $wallet = new Wallet;

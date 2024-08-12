@@ -735,7 +735,7 @@ class CommerceController extends Controller
 
         $coin = $this->existsCoin(BingoOffCtnsLot::where('commerce', $commerce), $coin, $dateFilter);
 
-        $coinSym = Coin::getCoinValue($coin, 'symbol');
+        $coinSym = Coin::getValue($coin, 'symbol');
 
         $ctnsSoldQuery = BingoOffCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
             ->whereHas('Room', function ($query) use ($commerce) {

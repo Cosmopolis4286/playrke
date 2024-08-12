@@ -64,7 +64,7 @@ class PlayerLink extends Model
 
   public static function getById($id, $fields = ['*'])
   {
-    return self::where('id', $id)->select($fields)->first();
+    return self::select($fields)->where('id', $id)->first();
   }
 
   public static function getValueById($id, $value)

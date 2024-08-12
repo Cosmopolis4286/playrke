@@ -26,6 +26,7 @@ use App\Models\PlayerLink;
 use App\Traits\BingoTrait;
 use App\Traits\Filters;
 use App\Traits\GameTrait;
+use App\Traits\SeamlessWallet;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -34,7 +35,7 @@ use Illuminate\Support\Facades\DB;
 
 class BingoController extends Controller
 {
-    use EncryptRKE, UserVal, BingoTrait, GameTrait, Filters;
+    use EncryptRKE, UserVal, BingoTrait, GameTrait, Filters, SeamlessWallet;
 
     protected $idCommerceRKE;
 
@@ -68,9 +69,11 @@ class BingoController extends Controller
     {
         $provider = decrypt($provider);
 
+        $user = $this->getUserFromProvider();
+
         $title = 'Bingo Salas de Juego';
 
-        return view('modules.user.games.bingo.rooms')->with([
+        return view('modules.provider.games.bingo.rooms')->with([
             'title' => $title,
         ]);
     }
@@ -243,7 +246,7 @@ class BingoController extends Controller
         $name = 'bingo-off';
         $wallet = $this->Wallet($this->user()->id);
         $coin = decrypt($coin);
-        $coinSym = Coin::getCoinValue($coin, 'symbol');
+        $coinSym = Coin::getValue($coin, 'symbol');
         $commerce = Commerce::getValueByUserId(Auth::id(), 'id');
 
         $coins = BingoCtnsLot::where('commerce', 1)->distinct()->pluck('coin')->toArray();

@@ -738,7 +738,7 @@ class ProviderController extends Controller
 
         $coin = $this->existsCoin(BingoOffCtnsLot::where('provider', $provider), $coin, $dateFilter);
 
-        $coinSym = Coin::getCoinValue($coin, 'symbol');
+        $coinSym = Coin::getValue($coin, 'symbol');
 
         $ctnsSoldQuery = BingoOffCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
             ->whereHas('Room', function ($query) use ($provider) {
