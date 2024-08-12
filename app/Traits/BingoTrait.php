@@ -45,30 +45,39 @@ trait BingoTrait
             // Obtener los números de chip ya existentes en la sala
             $existingChips = BingoOffSort::where('room', $room)->pluck('chip')->toArray();
 
-            $chips = [];
-            $chp = 1;
-            while ($chp <= 75) {
-                do {
-                    $rnd = mt_rand(1, 75);
-                } while (in_array($rnd, array_merge($chips, $existingChips)));
+            DB::beginTransaction();
 
-                $numEncoded = '';
-                foreach (str_split($rnd) as $digit) {
-                    $num_code = ($digit == '0') ? 10 : $digit;
-                    $numEncoded .= $symbols[$num_code] ?? '';
+            try {
+
+                $chips = [];
+                $chp = 1;
+
+                while ($chp <= 75) {
+                    do {
+                        $rnd = mt_rand(1, 75);
+                    } while (in_array($rnd, array_merge($chips, $existingChips)));
+
+                    $numEncoded = '';
+                    foreach (str_split($rnd) as $digit) {
+                        $num_code = ($digit == '0') ? 10 : $digit;
+                        $numEncoded .= $symbols[$num_code] ?? '';
+                    }
+
+                    $sort = BingoOffSort::where('room', $room)->orderByDesc('id')->first();
+
+                    BingoOffSort::create([
+                        "chip" => $rnd,
+                        "code" => $numEncoded,
+                        "room" => $room,
+                        "time" => ($sort ? $sort->time : $dataTime) + ($sort ? 8 : 12)
+                    ]);
+
+                    $chips[] = $rnd;
+                    $chp++;
                 }
-
-                $sort = BingoOffSort::where('room', $room)->orderByDesc('id')->first();
-
-                BingoOffSort::create([
-                    "chip" => $rnd,
-                    "code" => $numEncoded,
-                    "room" => $room,
-                    "time" => ($sort ? $sort->time : $dataTime) + ($sort ? 8 : 12)
-                ]);
-
-                $chips[] = $rnd;
-                $chp++;
+                DB::commit();
+            } catch (\Throwable $th) {
+                DB::rollBack();
             }
             return $this->chipWinOff($room);
         } else if (count($sort) && $PJLinkWin && $this->user()->user_type == 2) {
@@ -119,19 +128,27 @@ trait BingoTrait
             // Construir un arreglo asociativo de ID => Chip para actualizar
             $updateData = array_combine($OrigSort->toArray(), $newSortValues);
 
-            // Construir la consulta SQL dinámica para actualizar los chips en función de sus IDs
-            $sql = 'UPDATE bingo_off_sort SET chip = CASE id ';
-            $bindings = [];
-            foreach ($updateData as $id => $chip) {
-                $sql .= 'WHEN ? THEN ? ';
-                $bindings[] = $id;
-                $bindings[] = $chip;
-            }
-            $sql .= 'END WHERE room = ?';
-            $bindings[] = $room;
+            DB::beginTransaction();
 
-            // Ejecutar la consulta SQL con bindings
-            DB::update($sql, $bindings);
+            try {
+                // Construir la consulta SQL dinámica para actualizar los chips en función de sus IDs
+                $sql = 'UPDATE bingo_off_sort SET chip = CASE id ';
+                $bindings = [];
+                foreach ($updateData as $id => $chip) {
+                    $sql .= 'WHEN ? THEN ? ';
+                    $bindings[] = $id;
+                    $bindings[] = $chip;
+                }
+                $sql .= 'END WHERE room = ?';
+                $bindings[] = $room;
+
+                // Ejecutar la consulta SQL con bindings
+                DB::update($sql, $bindings);
+
+                DB::commit();
+            } catch (\Throwable $th) {
+                DB::rollBack();
+            }
             return true;
         }
 
@@ -283,21 +300,21 @@ trait BingoTrait
     {
         date_default_timezone_set('America/Caracas');
 
+        $room = BingoOffRoom::select(
+            'id',
+            'provider',
+            'commerce',
+            'players',
+            'ctn_price',
+            'all_sale',
+            'commerce_commn',
+            'seller_commn',
+            'jackpot'
+        )->where('status', 2)->where('id', $arrCtn['room'])->first();
+
+        if (!$room) return redirect()->back();
+
         try {
-            $room = BingoOffRoom::select(
-                'id',
-                'provider',
-                'commerce',
-                'players',
-                'ctn_price',
-                'all_sale',
-                'commerce_commn',
-                'seller_commn',
-                'jackpot'
-            )->where('status', 2)->where('id', $arrCtn['room'])->first();
-
-            if (!$room) return redirect()->back();
-
             $roomId = $room->id;
             $provider = $arrCtn['provider'];
             $commerce = $arrCtn['commerce'];
@@ -308,6 +325,7 @@ trait BingoTrait
 
             // Obtener o crear la comisión del vendedor para la sala
             $commnSeller = SellerRoomLimits::getGameRoomValueBySeller(1, $seller, $roomId, 'commn');
+
             if (!$commnSeller) {
                 $commnSeller = Seller::getValueById($seller, 'commn');
 
@@ -474,7 +492,7 @@ trait BingoTrait
                 CoinGameRoom::create(['game' => 1, 'room' => $roomId, 'coin' => $coin]);
             }
 
-            if ($arrCtn['ctnWin'] == TRUE) $this->newSortOff($room, TRUE);
+            if ($arrCtn['ctnWin'] == true) $this->newSortOff($room, true);
 
             return true;
         } catch (\Exception $e) {

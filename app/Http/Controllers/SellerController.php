@@ -272,7 +272,8 @@ class SellerController extends Controller
                     // Actualizar moneda Principal
                     SellerCountriesCoins::where('seller', $seller->id)
                         ->where('coin', $seller->coin)->update([
-                            'country' => $seller->country, 'coin' => $seller->coin
+                            'country' => $seller->country,
+                            'coin' => $seller->coin
                         ]);
                 }
 
@@ -410,8 +411,10 @@ class SellerController extends Controller
             $ctnsPlayer = BingoOffCtns::where('player_link', $player->id)->where('room', $room)->count();
 
             return response()->json(array(
-                'van' => 1, 'infoPlayer' => $player,
-                /*'IdType' => $IdType->info_ident,*/ 'ctnsLink' => [$ctnsPlayer, $player->link, $allLink]
+                'van' => 1,
+                'infoPlayer' => $player,
+                /*'IdType' => $IdType->info_ident,*/
+                'ctnsLink' => [$ctnsPlayer, $player->link, $allLink]
             ));
         } else {
             return response()->json(array('van' => 0));
@@ -434,7 +437,7 @@ class SellerController extends Controller
             $country = $request->country;
             $coin = Coin::getByIdIdOfCountry($country);
 
-            $seller = $this->seller(['id', 'commerce']);
+            $seller = $this->seller(['id', 'provider', 'commerce']);
             $player = PlayerLink::where('game', 1)->where('room', $roomID)
                 ->where('phone', $request->phone)->first();
 
@@ -451,6 +454,7 @@ class SellerController extends Controller
                     'game' => 1,
                     'game_mode' => 2,
                     'room' => $roomID,
+                    'provider' => $seller->provider,
                     'commerce' => $seller->commerce,
                     'seller' => $seller->id,
                     'country' => $country,
@@ -473,6 +477,7 @@ class SellerController extends Controller
 
             $arrDataCtns = [
                 'room' => $roomID,
+                'provider' => $seller->provider,
                 'commerce' => $seller->commerce,
                 'seller' => $seller->id,
                 'PJLink' => $player,
@@ -563,7 +568,9 @@ class SellerController extends Controller
         $coinId = $this->existsCoin(BingoOffCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
 
         $ctnsSoldQuery = BingoOffCtnsLot::with([
-            'Payment', 'PlayerLink', 'Room',
+            'Payment',
+            'PlayerLink',
+            'Room',
             'ComSellerRoom' => function ($query) use ($seller) {
                 $query->where('seller', $seller->id);
             }
@@ -618,8 +625,12 @@ class SellerController extends Controller
         $coinId = $this->existsCoin(BingoOffCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
 
         $winnersQuery = BingoOffPrizeCtns::with([
-            'Coin', 'Prize', 'GameExchangeRate',
-            'Room', 'PlayerLink.Country', 'PlayerGame'
+            'Coin',
+            'Prize',
+            'GameExchangeRate',
+            'Room',
+            'PlayerLink.Country',
+            'PlayerGame'
         ])->whereHas('Room', function ($query) {
             $query->whereColumn('id', 'bingo_off_prize_ctns.room')
                 ->where('status', 4);
@@ -758,7 +769,8 @@ class SellerController extends Controller
             'Config',
             'CtnsLot' => function ($query) use ($seller, $coinId) {
                 $query->where('seller', $seller->id)->where('coin', $coinId)->with('Coin');
-            }, 'ComSeller' => function ($query) use ($seller) {
+            },
+            'ComSeller' => function ($query) use ($seller) {
                 $query->where('seller', $seller->id);
             }
         ])->whereHas('CtnsLot', function ($query) use ($seller, $coinId) {
