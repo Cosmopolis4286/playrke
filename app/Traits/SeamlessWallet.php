@@ -2,14 +2,14 @@
 
 namespace App\Traits;
 
-use App\Models\Provider;
+use App\Models\ProviderRKE;
 use App\Models\UserProvider;
 
 trait SeamlessWallet
 {
     private function globalCurl($provider, $bodyString, $method)
     {
-        $pvr = decrypt(Provider::getById($provider));
+        $pvr = decrypt(ProviderRKE::getById($provider));
 
         // Clave de seguridad (deberías obtenerla de un lugar seguro, como un archivo de configuración)
         $securityKey = env($pvr->key);
@@ -52,6 +52,7 @@ trait SeamlessWallet
 
     public function getUserInfoFromProvider($provider, $token)
     {
+        $pvr = decrypt(ProviderRKE::getById($provider, ['brand', 'product']));
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",
@@ -63,12 +64,12 @@ trait SeamlessWallet
 
         $bodyString = json_encode($bodyArray);
 
-        $res = $this->globalCurl($provider, $bodyString, '');
+        $res = $this->globalCurl($provider, $bodyString, 'GetUserInfo');
     }
 
-    public function getUserBalanceFromProvider($provider, $token, $UserID)
+    public function getUserBalanceFromProvider($provider, $token, $userId)
     {
-        $user = UserProvider::getByUserID($UserID, ['user_id', 'coin']);
+        $user = UserProvider::getByUserID($userId, ['user_id', 'coin']);
 
         // Datos del cuerpo de la solicitud
         $bodyArray = [
@@ -77,7 +78,7 @@ trait SeamlessWallet
             "Brand" => "APUESTASROYEL",
             "AdditionalData" => null,
             "Token" => $token, // 952549b3-45ae-11ef-aadf-bc2411bfd8ae
-            "UserID" => $user->UserID,
+            "UserID" => $user->user_id,
             "CurrencyCode" => $user->coin
         ];
 
@@ -86,22 +87,22 @@ trait SeamlessWallet
         $res = $this->globalCurl($provider, $bodyString, 'GetBalance');
     }
 
-    public function transferMoney($provider, $token, $UserID, $TransactionType)
+    public function transferMoney($provider, $token, $userId, $betId, $amount, $transactionId, $transactionType)
     {
-        $user = UserProvider::getByUserID($UserID, ['user_id', 'coin']);
+        $user = UserProvider::getByUserID($userId, ['user_id', 'coin']);
 
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",
             "Game" => "RoyalEis",
             "Brand" => "APUESTASROYEL",
-            "Token" => "952549b3-45ae-11ef-aadf-bc2411bfd8ae",
-            "UserID" => "408864",
-            "CurrencyCode" => "VES",
-            "BetID" => "dc8c08d7-e45d-4aad-b66d-e562e6e53af3",
+            "Token" => $token,
+            "UserID" => $user->user_id,
+            "CurrencyCode" => $user->coin,
+            "BetID" => $betId,
             "Amount" => $amount,
-            "TransactionID" => "4c1039fd-5a36-421d-8a20-5b6441fff364",
-            "TransactionType" => $TransactionType,
+            "TransactionID" => $transactionId,
+            "TransactionType" => $transactionType,
             "AdditionalData" => "{}"
         ];
 

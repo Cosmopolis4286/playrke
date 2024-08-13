@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Provider extends Model
+class ProviderRKE extends Model
 {
     protected $table = "providers";
     protected $fillable = ['name', 'pvr_type', 'brand', 'product', 'link_route', 'token', 'security_key', 'status'];
