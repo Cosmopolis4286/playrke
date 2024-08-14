@@ -33,7 +33,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-class BingoController extends Controller
+class BingoOnlineController extends Controller
 {
     use EncryptRKE, UserVal, BingoTrait, GameTrait, Filters, SeamlessWallet;
 
@@ -50,7 +50,7 @@ class BingoController extends Controller
         // broadcast(new Bingo_GetRoomInfo(now()->format('H:i:s'), $room->encrypted));
     }
 
-    private function getRoomOffGame($query, $dateFilter)
+    private function getRoomGame($query, $dateFilter)
     {
         $dateFilters = [$dateFilter, 'yesterday', 'tomorrow'];
         $room = null;
@@ -67,14 +67,15 @@ class BingoController extends Controller
 
     public function roomsProvider($provider)
     {
-        $provider = decrypt($provider);
+        $user = $this->getUserInfoFromProvider($provider, 'hhhh');
 
-        $user = $this->getUserFromProvider();
+        $rooms = BingoRoom::where('provider', $provider)->whereIn('status', [2, 3])->get();
 
         $title = 'Bingo Salas de Juego';
 
         return view('modules.provider.games.bingo.rooms')->with([
             'title' => $title,
+            'rooms' => $rooms
         ]);
     }
 
@@ -167,7 +168,7 @@ class BingoController extends Controller
 
         if ($hasCtns) return response()->json(['room' => $room, 'config' => $roomConfig]);
 
-        $this->ctnStoreOffline(array());
+        $this->ctnStoreline(array());
     }
 
     public function getChips($room)
@@ -218,7 +219,7 @@ class BingoController extends Controller
 
     public function viewCtn($ctnId)
     {
-        return $this->getCtnWinOff($ctnId);
+        return $this->getCtnWin($ctnId);
     }
 
     public function endGame($room)
@@ -242,7 +243,7 @@ class BingoController extends Controller
 
     public function rooms($coin)
     {
-        $title = 'Salas Bingo Off';
+        $title = 'Salas Bingo ';
         $name = 'bingo-off';
         $wallet = $this->Wallet($this->user()->id);
         $coin = decrypt($coin);
@@ -307,7 +308,7 @@ class BingoController extends Controller
                     'coin' => $coin,
                     'ctn_price' => $request->ctn_price,
                     'jackpot' => $boat,
-                    'encrypted' => $this->roomEncrypt('bingo_off_rooms')
+                    'encrypted' => $this->roomEncrypt('bingo_rooms')
                 ]);
 
                 BingoRoomConfig::create([
@@ -411,7 +412,7 @@ class BingoController extends Controller
                     'country' => $existingRoom->country,
                     'coin' => $existingRoom->coin,
                     'ctn_price' => $existingRoom->ctn_price,
-                    'encrypted' => $this->roomEncrypt('bingo_off_rooms')
+                    'encrypted' => $this->roomEncrypt('bingo_rooms')
                 ]);
 
                 // Crear la configuración de la nueva sala
@@ -494,7 +495,7 @@ class BingoController extends Controller
 
         if (PlayerLink::where('link', $PJLink)->exists()) {
             $room = PlayerLink::where('link', $PJLink)->value('room');
-            $this->newSortOff($room, $PJLink);
+            $this->newSort($room, $PJLink);
             return redirect()->back()->with('message', 'Carton Ganador Generado');
         } else {
             return redirect()->back()->with('message', 'El PlayerLink no existe');

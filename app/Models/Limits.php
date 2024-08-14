@@ -19,9 +19,9 @@ class Limits extends Model
         return $this->belongsTo(Wallet::class, 'id');
     }
 
-    public function RoomOffBingo()
+    public function RoomBingo()
     {
-        return $this->belongsTo(BingoOffRoom::class, 'id');
+        return $this->belongsTo(BingoRoom::class, 'id');
     }
 
     public function Seller()

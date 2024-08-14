@@ -6,16 +6,16 @@ use App\Traits\EncryptRKE;
 use App\Models\User;
 use App\Models\Coin;
 use App\Models\Seller;
-use App\Models\BingoOffCtns;
-use App\Models\BingoOffCtnsLot;
+use App\Models\BingoCtns;
+use App\Models\BingoCtnsLot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Models\PagoMovil;
-use App\Models\BingoOffPrizeCtns;
-use App\Models\BingoOffPrizeCtnsPayment;
-use App\Models\BingoOffRoom;
-use App\Models\BingoOffRoomConfig;
+use App\Models\BingoPrizeCtns;
+use App\Models\BingoPrizeCtnsPayment;
+use App\Models\BingoRoom;
+use App\Models\BingoRoomConfig;
 use App\Models\CommerceExchangeRate;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
@@ -407,7 +407,7 @@ class ProviderController extends Controller
         $commerce = $this->provider('id')->id;
 
         // Verificar la existencia de la moneda
-        $coinId = $this->existsCoin(BingoOffCtnsLot::where('provider', $provider), $coinId, $dateFilter);
+        $coinId = $this->existsCoin(BingoCtnsLot::where('provider', $provider), $coinId, $dateFilter);
         // if ($coinId != $coin) {
         //     return redirect()->route('commerce.reportSalesRooms', ['dateFilter' => $dateFilter, 'coin' => encrypt($coin)]);
         // }
@@ -470,7 +470,7 @@ class ProviderController extends Controller
 
     private function getRoomsData($provider, $coin, $dateFilter = "today")
     {
-        $query = BingoOffRoom::with([
+        $query = BingoRoom::with([
             'Config',
             'Status',
             'CtnsLot' => function ($subquery) use ($provider, $coin) {
@@ -494,8 +494,8 @@ class ProviderController extends Controller
         $wallet = $this->wallet();
         $provider = $this->provider('id')->id;
 
-        $room = BingoOffRoom::getRoomByEncrypted($room, ['id', 'ctn_price', 'encrypted']);
-        $query = BingoOffCtnsLot::where('provider', $provider)->where('room', $room->id);
+        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'ctn_price', 'encrypted']);
+        $query = BingoCtnsLot::where('provider', $provider)->where('room', $room->id);
 
         // Verificar la existencia de la moneda
         $coin = $this->existsCoin($query, decrypt($coin));
@@ -526,7 +526,7 @@ class ProviderController extends Controller
             'ctnPrice' => $room->ctn_price,
             'wallet' => $wallet,
             'sellers' => $sellers,
-            'comCommerceRm' => BingoOffRoomConfig::getValueByRoom($room->id, 'commerce_commn') / 100,
+            'comCommerceRm' => BingoRoomConfig::getValueByRoom($room->id, 'commerce_commn') / 100,
             'room' => $room->encrypted,
             'coin' => $coin,
             'coins' => $coins
@@ -569,7 +569,7 @@ class ProviderController extends Controller
     {
         try {
             $ctnId = decrypt($ctn);
-            $ctn = BingoOffCtns::getById($ctnId, ['seller', 'coin']);
+            $ctn = BingoCtns::getById($ctnId, ['seller', 'coin']);
 
             $seller = Seller::getById($ctn->seller, ['name', 'phone', 'user']);
             // Obtener detalles de pago del vendedor usando el ID del usuario autenticado y la moneda decriptada
@@ -593,7 +593,7 @@ class ProviderController extends Controller
         Seller::where('provider', $request->id_comm)->update(['com' => $request->commn]);
     }
 
-    public function getBingoOffWinnersByCommerce($dateFilter)
+    public function getBingoWinnersByCommerce($dateFilter)
     {
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
@@ -609,10 +609,10 @@ class ProviderController extends Controller
         $paymentsOtherCommerces = 0;
 
         // Contar los ganadores pendientes de pago para otros comercios
-        $countWinnersOtherCommerces = BingoOffPrizeCtns::getPendingPaymentsCountExcludingCommerce($commerce);
+        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCommerce($commerce);
 
         // Contar los ganadores pendientes de pago para el propio comercio
-        $countWinnersByCommerce = BingoOffPrizeCtns::getPendingPaymentsCountByCommerce($commerce);
+        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCommerce($commerce);
 
         // Obtener las monedas asociadas al comercio
         $coins = $this->getByIdsForCommerce($commerce);
@@ -634,7 +634,7 @@ class ProviderController extends Controller
         );
     }
 
-    public function getBingoOffWinnersByOtherCommerces($dateFilter)
+    public function getBingoWinnersByOtherCommerces($dateFilter)
     {
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
@@ -647,10 +647,10 @@ class ProviderController extends Controller
         $winnersData = $this->getWinnersData($commerce, $dateFilter, true);
 
         // Contar los ganadores pendientes de pago para otros comercios
-        $countWinnersOtherCommerces = BingoOffPrizeCtns::getPendingPaymentsCountExcludingCommerce($commerce);
+        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCommerce($commerce);
 
         // Contar los ganadores pendientes de pago para el propio comercio
-        $countWinnersByCommerce = BingoOffPrizeCtns::getPendingPaymentsCountByCommerce($commerce);
+        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCommerce($commerce);
 
         // Obtener las monedas asociadas al comercio
         $coins = $this->getByIdsForCommerce($commerce);
@@ -674,7 +674,7 @@ class ProviderController extends Controller
 
     private function getWinnersData($provider = '', $dateFilter = "today", $others = false)
     {
-        $winnersQuery = BingoOffPrizeCtns::with([
+        $winnersQuery = BingoPrizeCtns::with([
             'Room',
             'Provider',
             'Coin',
@@ -736,11 +736,11 @@ class ProviderController extends Controller
 
         $provider = $this->provider('id')->id;
 
-        $coin = $this->existsCoin(BingoOffCtnsLot::where('provider', $provider), $coin, $dateFilter);
+        $coin = $this->existsCoin(BingoCtnsLot::where('provider', $provider), $coin, $dateFilter);
 
         $coinSym = Coin::getValue($coin, 'symbol');
 
-        $ctnsSoldQuery = BingoOffCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
+        $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
             ->whereHas('Room', function ($query) use ($provider) {
                 $query->where('provider', $provider)
                     ->whereIn('status', [2, 3, 4])->where('paid_win', 0);
@@ -765,7 +765,7 @@ class ProviderController extends Controller
 
         try {
             $lot = decrypt($request->lot);
-            $lotCtn = BingoOffCtnsLot::where('id', $lot)->firstOrFail();
+            $lotCtn = BingoCtnsLot::where('id', $lot)->firstOrFail();
             $lotCtn->update(['status' => 2]);
 
             DB::commit();
@@ -790,13 +790,13 @@ class ProviderController extends Controller
             return response()->json(['error' => $validator->errors()], 400);
         }
 
-        $ctn = BingoOffCtns::select('room', 'provider', 'player_link', 'seller', 'coin', 'lot')->findOrFail($ctnId);
+        $ctn = BingoCtns::select('room', 'provider', 'player_link', 'seller', 'coin', 'lot')->findOrFail($ctnId);
 
         if (!$ctn) return redirect()->back();
 
-        $prizeCtn = BingoOffPrizeCtns::getInfoByCtn($ctnId, ['id', 'provider', 'prize_type', 'amount']);
+        $prizeCtn = BingoPrizeCtns::getInfoByCtn($ctnId, ['id', 'provider', 'prize_type', 'amount']);
 
-        $prizeCtnPayment = BingoOffPrizeCtnsPayment::where('prize_ctn', $prizeCtn->id)->where('operation', 1)->exists();
+        $prizeCtnPayment = BingoPrizeCtnsPayment::where('prize_ctn', $prizeCtn->id)->where('operation', 1)->exists();
 
         if ($prizeCtnPayment) return redirect()->back();
 
@@ -833,7 +833,7 @@ class ProviderController extends Controller
             $payment->update(['payment_proof' => $newFileName]);
 
             // PAGO [CTN WIN] ENVIADO DE COMERCIO GANADOR A VENDEDOR
-            BingoOffPrizeCtns::where('ctn', $ctnId)->update(['status' => 1]);
+            BingoPrizeCtns::where('ctn', $ctnId)->update(['status' => 1]);
 
             DB::commit();
 

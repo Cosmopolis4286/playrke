@@ -13,10 +13,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_off_prize_ctns_payment', function (Blueprint $table) {
+        Schema::create('bingo_prize_ctns_payment', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('prize_ctn');
             $table->string('operation', 1);
+            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
@@ -31,16 +32,17 @@ return new class extends Migration
             $table->string('payment_proof', 25);
             $table->timestamps();
 
-            $table->foreign('prize_ctn')->references('id')->on('bingo_off_prize_ctns');
-            $table->foreign('room')->references('id')->on('bingo_off_rooms');
+            $table->foreign('prize_ctn')->references('id')->on('bingo_prize_ctns');
+            $table->foreign('game_mode')->references('id')->on('game_modes');
+            $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('provider')->references('id')->on('providers')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('commerce')->references('id')->on('commerces')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('player_link')->references('id')->on('player_link')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('sender')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('prize_type')->references('id')->on('game_prizes')->onDelete('cascade');
-            $table->foreign('lot')->references('id')->on('bingo_off_ctns_lot');
-            $table->foreign('ctn')->references('id')->on('bingo_off_ctns');
+            $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
+            $table->foreign('ctn')->references('id')->on('bingo_ctns');
             $table->foreign('coin')->references('id')->on('coins');
 
             // índice compuesto
@@ -55,6 +57,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_off_prize_ctns_payment');
+        Schema::dropIfExists('bingo_prize_ctns_payment');
     }
 };

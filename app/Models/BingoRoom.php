@@ -6,24 +6,85 @@ use Illuminate\Database\Eloquent\Model;
 
 class BingoRoom extends Model
 {
-    protected $table = "bingo_room";
-    protected $fillable = [
-        'id', 'img', 'name', 'status', 'date', 'time', 'replay', 'coin', 'price', 'val_automc',
-        'val_songs', 'players', 'jackpot', 'type_boat', 'com', 'profit', 'ctns', 'encrypted'
-    ];
+  protected $table = "bingo_rooms";
+  protected $fillable = [
+    'game_mode', 'provider', 'commerce', 'status', 'all_for_one', 'paid_win', 'date', 'time', 'unix_date', 
+    'country', 'coin', 'publication_date', 'ctn_price', 'players', 'all_sale', 'commerce_commn', 
+    'seller_commn', 'jackpot', 'jackpot_prize', 'serial_prize', 'ctns', 'close_room', 'encrypted'
+  ];
 
-    public function Status()
-    {
-        return $this->belongsTo(StatusGame::class, 'status');
-    }
+  public function GameMode()
+  {
+      return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
+  }
 
-    public function Coin()
-    {
-        return $this->belongsTo(Coin::class, 'coin');
-    }
+  public function Status()
+  {
+    return $this->belongsTo(StatusGame::class, 'status');
+  }
 
-    public function PlayersRoom()
-    {
-        return $this->hasMany(BingoUserRoom::class, 'room', 'id');
-    }
+  public function Config()
+  {
+    return $this->belongsTo(BingoRoomConfig::class, 'id', 'room');
+  }
+
+  public function Prizes()
+  {
+    return $this->belongsTo(BingoRoomPrizes::class, 'id', 'room');
+  }
+
+  public function Coin()
+  {
+    return $this->belongsTo(Coin::class, 'coin');
+  }
+
+  public function Commerce()
+  {
+    return $this->belongsTo(Commerce::class, 'commerce');
+  }
+
+  public function CtnsLot()
+  {
+    return $this->hasMany(BingoCtnsLot::class, 'room', 'id');
+  }
+
+  public function PlayersRoom()
+  {
+    return $this->hasMany(BingoRoomUser::class, 'room', 'id');
+  }
+
+  public function ComSeller()
+  {
+    return $this->belongsTo(SellerRoomLimits::class, 'id', 'room');
+  }
+
+  public function GameExchangeRate()
+  {
+    return $this->hasMany(GameExchangeRate::class, 'room', 'id');
+  }
+
+  public static function getRoomById($room, $fields = ['*'])
+  {
+    return self::where('id', $room)->select($fields)->first();
+  }
+
+  public static function getRoomByEncrypted($encryptedID, $fields = ['*'])
+  {
+    return self::select($fields)->where('encrypted', $encryptedID)->first();
+  }
+
+  public static function getValueById($room, $value)
+  {
+    return self::where('id', $room)->value($value);
+  }
+
+  public static function getRoomValueByEncrypted($room, $value)
+  {
+    return self::where('encrypted', $room)->value($value);
+  }
+
+  public static function getSerialPrize($room)
+  {
+    return self::where('id', $room)->value('serial_prize');
+  }
 }

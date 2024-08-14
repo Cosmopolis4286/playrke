@@ -4,14 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoOffRoomConfig extends Model
+class BingoRoomConfig extends Model
 {
-  protected $table = "bingo_off_rooms_config";
-  protected $fillable = ['room', 'jackpot_type', 'fixed_jackpot_value', 'replay', 'commerce_commn', 'val_serials', 'num_serials', 'val_sm_prizes'];
+  protected $table = "bingo_rooms_config";
+  protected $fillable = ['game_mode', 'room', 'jackpot_type', 'fixed_jackpot_value', 'replay', 'commerce_commn', 'val_serials', 'num_serials', 'val_sm_prizes'];
 
   public function Room()
   {
-    return $this->belongsTo(BingoOffRoom::class, 'room');
+    return $this->belongsTo(BingoRoom::class, 'room');
+  }
+
+  public function GameMode()
+  {
+      return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
   }
 
   public function JackpotType()

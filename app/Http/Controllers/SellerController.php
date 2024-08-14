@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BingoOffRoom;
-use App\Models\BingoOffRoomUser;
-use App\Models\BingoOffCtns;
-use App\Models\BingoOffCtnsLot;
+use App\Models\BingoRoom;
+use App\Models\BingoRoomUser;
+use App\Models\BingoCtns;
+use App\Models\BingoCtnsLot;
 use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\DocumentType;
@@ -16,9 +16,9 @@ use App\Traits\PlayerLinkTrait;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\BingoOffCtnsPayment;
-use App\Models\BingoOffPrizeCtns;
-use App\Models\BingoOffPrizeCtnsPayment;
+use App\Models\BingoCtnsPayment;
+use App\Models\BingoPrizeCtns;
+use App\Models\BingoPrizeCtnsPayment;
 use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
@@ -336,7 +336,7 @@ class SellerController extends Controller
 
         $this->checkRoomClosure();
 
-        $rooms = BingoOffRoom::select('encrypted', 'unix_date')
+        $rooms = BingoRoom::select('encrypted', 'unix_date')
             ->where('status', 2)->where(function ($query) use ($seller) {
                 $query->where('commerce', $seller->commerce)->orWhere('all_for_one', 1);
             })->orderBy('date')->orderBy('time')->get();
@@ -369,7 +369,7 @@ class SellerController extends Controller
 
     public function getCtnPrice($roomID)
     {
-        $room = BingoOffRoom::with(['Coin', 'Config'])
+        $room = BingoRoom::with(['Coin', 'Config'])
             ->select('id', 'encrypted', 'jackpot', 'coin', 'ctn_price')
             ->where('encrypted', $roomID)->first();
 
@@ -397,7 +397,7 @@ class SellerController extends Controller
 
     public function getPlayer(Request $request)
     {
-        $room = BingoOffRoom::getRoomValueByEncrypted($request->room, 'id');
+        $room = BingoRoom::getRoomValueByEncrypted($request->room, 'id');
         $findInfoPlayer = $request->findInfoPlayer;
         // $country = $request->country;
 
@@ -408,7 +408,7 @@ class SellerController extends Controller
             $rout = $this->getRouteRKE();
             $allLink = $rout . 'bingocash/' . $player->link;
             // $IdType = DocumentType::where('id', $request->typeID)->first();
-            $ctnsPlayer = BingoOffCtns::where('player_link', $player->id)->where('room', $room)->count();
+            $ctnsPlayer = BingoCtns::where('player_link', $player->id)->where('room', $room)->count();
 
             return response()->json(array(
                 'van' => 1,
@@ -424,7 +424,7 @@ class SellerController extends Controller
     public function generateCartonStore(Request $request)
     {
         $roomID = $request->bingo_room;
-        $room = BingoOffRoom::with('Config')->where('encrypted', $roomID)->select('id', 'status')->first();
+        $room = BingoRoom::with('Config')->where('encrypted', $roomID)->select('id', 'status')->first();
 
         if ($room->status > 2) {
             return redirect()->back()->with('message', 'Sala no disponible');
@@ -488,7 +488,7 @@ class SellerController extends Controller
                 'ctnWin' => false
             ];
 
-            $carton = $this->ctnStoreOffline($arrDataCtns);
+            $carton = $this->ctnStoreline($arrDataCtns);
 
             if ($carton) {
                 DB::commit();
@@ -565,9 +565,9 @@ class SellerController extends Controller
         $seller = $this->seller(['id', 'commerce']);
 
         $coinId = decrypt($coin);
-        $coinId = $this->existsCoin(BingoOffCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
 
-        $ctnsSoldQuery = BingoOffCtnsLot::with([
+        $ctnsSoldQuery = BingoCtnsLot::with([
             'Payment',
             'PlayerLink',
             'Room',
@@ -622,9 +622,9 @@ class SellerController extends Controller
         $coinId = decrypt($coinId);
         $coin = Coin::getById($coinId);
 
-        $coinId = $this->existsCoin(BingoOffCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
 
-        $winnersQuery = BingoOffPrizeCtns::with([
+        $winnersQuery = BingoPrizeCtns::with([
             'Coin',
             'Prize',
             'GameExchangeRate',
@@ -632,7 +632,7 @@ class SellerController extends Controller
             'PlayerLink.Country',
             'PlayerGame'
         ])->whereHas('Room', function ($query) {
-            $query->whereColumn('id', 'bingo_off_prize_ctns.room')
+            $query->whereColumn('id', 'bingo_prize_ctns.room')
                 ->where('status', 4);
         })->whereHas('GameExchangeRate', function ($query) use ($coinId) {
             $query->where('game', 1)->where('coin', $coinId);
@@ -655,7 +655,7 @@ class SellerController extends Controller
     public function getWinnerInfoForCtn($ctnId)
     {
         $ctnId = decrypt($ctnId);
-        $idPlayer = BingoOffPrizeCtns::getValueById($ctnId, 'player_link');
+        $idPlayer = BingoPrizeCtns::getValueById($ctnId, 'player_link');
         $player = PlayerLink::getById($idPlayer, ['name', 'lastname', 'phone']);
 
         return json_encode(array(
@@ -677,13 +677,13 @@ class SellerController extends Controller
             return response()->json(['error' => $validator->errors()], 400);
         }
 
-        $ctn = BingoOffCtns::select('room', 'commerce', 'player_link', 'seller', 'coin', 'lot')->findOrFail($ctnId);
+        $ctn = BingoCtns::select('room', 'commerce', 'player_link', 'seller', 'coin', 'lot')->findOrFail($ctnId);
 
         if (!$ctn) return redirect()->back();
 
-        $prizeCtn = BingoOffPrizeCtns::getInfoByCtn($ctnId, ['id', 'commerce', 'prize_type', 'amount']);
+        $prizeCtn = BingoPrizeCtns::getInfoByCtn($ctnId, ['id', 'commerce', 'prize_type', 'amount']);
 
-        $prizeCtnPayment = BingoOffPrizeCtnsPayment::where('prize_ctn', $prizeCtn->id)->where('operation', 2)->exists();
+        $prizeCtnPayment = BingoPrizeCtnsPayment::where('prize_ctn', $prizeCtn->id)->where('operation', 2)->exists();
 
         if ($prizeCtnPayment) return redirect()->back();
 
@@ -718,10 +718,10 @@ class SellerController extends Controller
             $payment->update(['payment_proof' => $newFileName]);
 
             // Actualiza status (carton ganador pagado)
-            BingoOffPrizeCtns::where('ctn', $ctnId)->update(['status' => 2]);
+            BingoPrizeCtns::where('ctn', $ctnId)->update(['status' => 2]);
 
             // PAGO [CTN WIN] ENVIADO DE VENDEDOR A GANADOR
-            $success = BingoOffRoomUser::where('player_link', $ctn->player_link)->update(['winner' => 2]);
+            $success = BingoRoomUser::where('player_link', $ctn->player_link)->update(['winner' => 2]);
 
             if ($success) {
                 $this->AllWinCtnPaid($ctn->room);
@@ -763,9 +763,9 @@ class SellerController extends Controller
         $seller = $this->seller(['id', 'commerce']);
         $coinId = decrypt($coin);
 
-        $coinId = $this->existsCoin(BingoOffCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
 
-        $roomsQuery = BingoOffRoom::with([
+        $roomsQuery = BingoRoom::with([
             'Config',
             'CtnsLot' => function ($query) use ($seller, $coinId) {
                 $query->where('seller', $seller->id)->where('coin', $coinId)->with('Coin');
@@ -834,7 +834,7 @@ class SellerController extends Controller
 
     public function reportSalesByRoom($room, $coin, $dateFilter = "today") // Muestra el reporte de una sala
     {
-        $room = BingoOffRoom::getRoomByEncrypted($room, ['id', 'encrypted']);
+        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'encrypted']);
 
         if (!$room) return redirect()->back();
 
@@ -843,7 +843,7 @@ class SellerController extends Controller
         $seller = $this->seller(['id', 'commerce']);
         $coinId = decrypt($coin);
 
-        $coinId = $this->existsCoin(BingoOffCtnsLot::where('seller', $seller->id)->where('room', $room->id), $coinId, $dateFilter);
+        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id)->where('room', $room->id), $coinId, $dateFilter);
 
         $playersRoom = PlayerLink::with(['Coin', 'CtnsLot'])
             ->whereHas('CtnsLot', function ($query) use ($dateFilter) {
@@ -891,7 +891,7 @@ class SellerController extends Controller
     //     $coin = decrypt($coin);
     //     $title = 'Reporte de Sala';
 
-    //     $room = BingoOffRoom::where('encrypted', $room)->value('id');
+    //     $room = BingoRoom::where('encrypted', $room)->value('id');
 
     //     if (!$room) return redirect()->back();
 
@@ -926,7 +926,7 @@ class SellerController extends Controller
             $seller = $this->seller()->id;
 
             // Buscar el lote
-            $lotCtn = BingoOffCtnsLot::where('id', $request->lot)->where('seller', $seller)->firstOrFail();
+            $lotCtn = BingoCtnsLot::where('id', $request->lot)->where('seller', $seller)->firstOrFail();
 
             $notifyAllCtns = $request->notify_all_ctns;
 
@@ -969,7 +969,7 @@ class SellerController extends Controller
     {
         date_default_timezone_set('America/Caracas');
 
-        $allPendingCtns = BingoOffCtns::with('Lot')
+        $allPendingCtns = BingoCtns::with('Lot')
             ->whereHas('Lot', function ($query) use ($seller) {
                 $query->where(['seller' => $seller, 'status' => 0]);
             })->where('seller', $seller)->get(['id', 'room', 'commerce', 'player_link', 'coin', 'lot']);
@@ -996,9 +996,9 @@ class SellerController extends Controller
                     'updated_at' => $timestamp
                 ];
             }
-            BingoOffCtnsPayment::insert($paymentToInsert);
+            BingoCtnsPayment::insert($paymentToInsert);
 
-            BingoOffCtnsLot::where('seller', $seller)->where('status', 0)->update(['status' => 1]);
+            BingoCtnsLot::where('seller', $seller)->where('status', 0)->update(['status' => 1]);
             return true;
         } catch (\Throwable $th) {
             return false;
@@ -1021,7 +1021,7 @@ class SellerController extends Controller
                 $newFileName
             );
 
-            BingoOffCtnsLot::where('id', $lotCtn->id)->where('seller', $lotCtn->seller)
+            BingoCtnsLot::where('id', $lotCtn->id)->where('seller', $lotCtn->seller)
                 ->where('status', 0)->update(['status' => 1]);
             return true;
         } catch (\Throwable $th) {

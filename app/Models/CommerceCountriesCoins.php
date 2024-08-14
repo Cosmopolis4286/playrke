@@ -31,7 +31,7 @@ class CommerceCountriesCoins extends Model
 
     public function CtnsLot()
     {
-        return $this->hasMany(BingoOffCtnsLot::class, 'commerce', 'commerce');
+        return $this->hasMany(BingoCtnsLot::class, 'commerce', 'commerce');
     }
 
     public static function getAvailableCoins($commerce)

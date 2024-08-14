@@ -4,18 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoOffCtnsLot extends Model
+class BingoCtnsLot extends Model
 {
-    protected $table = "bingo_off_ctns_lot";
+    protected $table = "bingo_ctns_lot";
     protected $fillable = [
-        'coin', 'exchange_rate', 'ctns', 'sale_seller_ctns',
+        'game_mode', 'coin', 'exchange_rate', 'ctns', 'sale_seller_ctns',
         'room', 'provider', 'commerce', 'seller', 'player_link', 'status'
     ];
+
+    public function GameMode()
+    {
+        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
+    }
 
     // Relación con la habitación
     public function Room()
     {
-        return $this->belongsTo(BingoOffRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room');
     }
 
     // Relación con la moneda
@@ -33,7 +38,7 @@ class BingoOffCtnsLot extends Model
     // Relación con los cartones
     public function Ctns()
     {
-        return $this->hasMany(BingoOffCtns::class, 'lot', 'id');
+        return $this->hasMany(BingoCtns::class, 'lot', 'id');
     }
 
     // Relación con el vendedor
@@ -51,7 +56,7 @@ class BingoOffCtnsLot extends Model
     // Relación con el pago de cartones
     public function Payment()
     {
-        return $this->belongsTo(BingoOffCtnsPayment::class, 'id', 'lot');
+        return $this->belongsTo(BingoCtnsPayment::class, 'id', 'lot');
     }
     
     public static function getCoinByIds($room)

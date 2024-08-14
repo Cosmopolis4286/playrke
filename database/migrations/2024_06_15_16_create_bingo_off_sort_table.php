@@ -13,8 +13,9 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_off_sort', function (Blueprint $table) {
+        Schema::create('bingo_sort', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->unsignedTinyInteger('chip');
             $table->string('code', 8);
@@ -23,7 +24,8 @@ return new class extends Migration
             $table->boolean('status')->default(0);
             $table->timestamps();
 
-            $table->foreign('room')->references('id')->on('bingo_off_rooms');
+            $table->foreign('game_mode')->references('id')->on('game_modes');
+            $table->foreign('room')->references('id')->on('bingo_rooms');
         });
     }
 
@@ -34,6 +36,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_off_sort');
+        Schema::dropIfExists('bingo_sort');
     }
 };

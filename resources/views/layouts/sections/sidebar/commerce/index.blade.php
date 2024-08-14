@@ -25,7 +25,7 @@
     </li>
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('bingo-off.rooms', 'commerce.getBingoOffWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('bingo-off.rooms', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>
@@ -41,7 +41,7 @@
                 </li>
             @endif
             <li class="nav-item">
-                <a href="{{ route('commerce.getBingoOffWinnersByCommerce', ['dateFilter' => 'today']) }}" title="Ganadores"
+                <a href="{{ route('commerce.getBingoWinnersByCommerce', ['dateFilter' => 'today']) }}" title="Ganadores"
                     class="nav-link">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Ganadores</p>

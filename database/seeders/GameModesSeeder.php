@@ -16,7 +16,7 @@ class GameModesSeeder extends Seeder
     {
         $data = [
             ['id' => 1, 'description' => 'Online', 'status' => 1],
-            ['id' => 2, 'description' => 'Offline', 'status' => 1],
+            ['id' => 2, 'description' => 'line', 'status' => 1],
         ];
 
         // Insertar los datos en la tabla 'game_modes'

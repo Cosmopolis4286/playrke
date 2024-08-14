@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\BingoOffRoom;
+use App\Models\BingoRoom;
 use App\Models\PlayerLink;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -10,5 +10,5 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 
 Broadcast::channel('bingocash.{encrypted}', function ($encrypted) {
     // Verifica si el valor de PJLink existe en tu base de datos
-    return BingoOffRoom::where('encrypted', $encrypted)->exists();
+    return BingoRoom::where('encrypted', $encrypted)->exists();
 });

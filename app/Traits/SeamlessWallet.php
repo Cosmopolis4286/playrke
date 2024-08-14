@@ -9,7 +9,7 @@ trait SeamlessWallet
 {
     private function globalCurl($provider, $bodyString, $method)
     {
-        $pvr = decrypt(ProviderRKE::getById($provider));
+        $pvr = ProviderRKE::getById(decrypt($provider));
 
         // Clave de seguridad (deberías obtenerla de un lugar seguro, como un archivo de configuración)
         $securityKey = env($pvr->key);
@@ -52,7 +52,7 @@ trait SeamlessWallet
 
     public function getUserInfoFromProvider($provider, $token)
     {
-        $pvr = decrypt(ProviderRKE::getById($provider, ['brand', 'product']));
+        $pvr = ProviderRKE::getById(decrypt($provider), ['brand', 'product']);
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",

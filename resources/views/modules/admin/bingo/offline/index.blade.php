@@ -13,7 +13,7 @@
                 ])
                 @endcomponent
                 <div class="btn-group" role="group" aria-label="Basic example">
-                    <button type="button" class="btnBingoOff btn btn-sm btn-success" data-type="1">
+                    <button type="button" class="btnBingo btn btn-sm btn-success" data-type="1">
                         <i class="fas fa-plus-square"></i> Crear
                     </button>
                     <button type="button" class="ml-1 btn btn-sm btn-primary">
@@ -86,28 +86,28 @@
                                             <td class="align-middle">
                                                 <div class="btn-group" role="group" aria-label="Acciones">
                                                     @if ($room->status <= 2)
-                                                        <button title="Editar" class="btnBingoOff btn btn-sm btn-primary"
+                                                        <button title="Editar" class="btnBingo btn btn-sm btn-primary"
                                                             data-type="2" data-id="{{ encrypt($room->id) }}">
                                                             <i class="fa-solid fa-pen-to-square"></i> </button>
                                                         @if ($room->status == 1)
-                                                            <button class="btnBingoOff btn btn-sm btn-success"
+                                                            <button class="btnBingo btn btn-sm btn-success"
                                                                 data-type="5" data-id="{{ encrypt($room->id) }}"
                                                                 title="Publicar">
                                                                 <i class="fa-solid fa-circle-up"></i>
                                                             </button>
-                                                            <button class="btnBingoOff btn btn-sm btn-danger" data-type="3"
+                                                            <button class="btnBingo btn btn-sm btn-danger" data-type="3"
                                                                 data-id="{{ encrypt($room->id) }}" title="Eliminar">
                                                                 <i class="fa-solid fa-trash-can"></i>
                                                             </button>
                                                         @elseif ($room->status == 2)
-                                                            <button class="btnBingoOff btn btn-sm btn-dark" data-type="6"
+                                                            <button class="btnBingo btn btn-sm btn-dark" data-type="6"
                                                                 data-id="{{ encrypt($room->id) }}" title="Reembolsar">
                                                                 <i class="fa-solid fa-rotate-right"></i>
                                                             </button>
                                                         @endif
                                                     @else
                                                         @if ($room->replay == 0)
-                                                            <button class="btnBingoOff btn btn-sm btn-secondary"
+                                                            <button class="btnBingo btn btn-sm btn-secondary"
                                                                 data-type="4" data-id="{{ encrypt($room->id) }}"
                                                                 title="Repetir">
                                                                 <i class="fa-solid fa-repeat"></i>
@@ -180,7 +180,7 @@
         </div>
     </div>
 
-    <div class="modal fade" id="mdlFormBingoOff" tabindex="-1" role="dialog" aria-labelledby="mdlLabel"
+    <div class="modal fade" id="mdlFormBingo" tabindex="-1" role="dialog" aria-labelledby="mdlLabel"
         aria-hidden="true" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog modal-md" role="document">
             <div class="modal-content">
@@ -190,8 +190,8 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form id="formBingoOff" method="POST">@csrf
-                    <div id="formBingoOffPut">@method('PUT')</div>
+                <form id="formBingo" method="POST">@csrf
+                    <div id="formBingoPut">@method('PUT')</div>
                     <div class="modal-body">
                         <div class="row">
                             <div class="form-group col-sm-6 col-md-4">
@@ -280,7 +280,7 @@
         const arrJackpotType = JSON.parse('<?php echo json_encode($jackpotType); ?>')
         var encryptedId;
 
-        function insertInfoBingoOff(type, infoBingoOff) {
+        function insertInfoBingo(type, infoBingo) {
             const country = $("#country");
             const coin = $("#coin");
             const jackpotType = $("#jackpot-type");
@@ -290,52 +290,52 @@
             if (type == 1) country.append(`<option value="" selected>Seleccionar:</option>`);
 
             $.each(arrCountries, function(index, item) {
-                const isSelected = (type == 2 && item.id == infoBingoOff.country) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == infoBingo.country) ? 'selected' : '';
                 country.append(`<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
             // Coins
             if (type == 1) coin.append(`<option value="" selected>Seleccionar:</option>`);
 
             $.each(arrCoins, function(index, item) {
-                const isSelected = (type == 2 && item.id == infoBingoOff.coin) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == infoBingo.coin) ? 'selected' : '';
                 coin.append(`<option value="${item.id}" ${isSelected}>(${item.name}) ${item.long_info}</option>`);
             });
             // jackpotType
             if (type == 1) jackpotType.append(`<option value="" selected>Seleccionar:</option>`);
 
             $.each(arrJackpotType, function(index, item) {
-                const isSelected = (type == 2 && item.id == infoBingoOff.coin) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == infoBingo.coin) ? 'selected' : '';
                 jackpotType.append(
                     `<option value="${item.id}" ${isSelected}>${item.value}</option>`);
             });
-            $('#mdlFormBingoOff').modal('show');
+            $('#mdlFormBingo').modal('show');
         }
 
-        $(document).on("click", ".btnBingoOff", function() {
+        $(document).on("click", ".btnBingo", function() {
             const data = $(this).data();
             if (data.type > 1) encryptedId = data.id;
-            if (data.type == 3) deleteBingoOff();
+            if (data.type == 3) deleteBingo();
 
             $(".form-info").val('');
 
             if (data.type == 1) {
-                $("#formBingoOffPut").remove();
-                $("#mdlLabel").text(`Crear Sala Bingo Off`);
-                $("#formBingoOff").attr('action', `{{ route('bingo_off.create') }}`);
-                insertInfoBingoOff(1);
+                $("#formBingoPut").remove();
+                $("#mdlLabel").text(`Crear Sala Bingo `);
+                $("#formBingo").attr('action', `{{ route('bingo_off.create') }}`);
+                insertInfoBingo(1);
             } else if (data.type == 2) {
-                $("#mdlLabel").text(`Editar Sala Bingo Off`);
-                $("#formBingoOff").attr('action', `{{ route('bingo_off.update', ['id' => ':id']) }}`
+                $("#mdlLabel").text(`Editar Sala Bingo `);
+                $("#formBingo").attr('action', `{{ route('bingo_off.update', ['id' => ':id']) }}`
                     .replace(':id', encryptedId));
-                $('#formBingoOff').append(`<div id="formBingoOffPut">@method('PUT')</div>`);
-                getInfoBingoOff(encryptedId);
+                $('#formBingo').append(`<div id="formBingoPut">@method('PUT')</div>`);
+                getInfoBingo(encryptedId);
             }
         });
 
         $(document).on("click", "#btnConfirm", function() {
             if ($("#date").val() && $("#time").val() && $("#country").val() && ("#coin") && $("#ctn-price") &&
                 $("#serials") && $("#commerce-commission") && $("#jackpot-type")) {
-                $("#formBingoOff").submit();
+                $("#formBingo").submit();
             } else {
                 showToast('warning', `Toda la informacion es requerida`, '');
             }

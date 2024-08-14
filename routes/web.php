@@ -10,7 +10,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\CommerceController;
 use App\Http\Controllers\SellerController;
-use App\Http\Controllers\BingoController;
+use App\Http\Controllers\BingoOnlineController;
 use App\Http\Controllers\BingoOfflineController;
 use App\Http\Controllers\PollaExpressController;
 use App\Http\Controllers\BancosController;
@@ -134,8 +134,8 @@ Route::group(['middleware' => ['auth', 'provider'], 'prefix' => 'provider', 'as'
     Route::get('sellers', [ProviderController::class, 'sellers'])->name('sellers');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [ProviderController::class, 'getCoinByCountry'])->name('getCoinByCountry');
     Route::get('seller/getSellerInfoByCtn/{ctn}', [ProviderController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
-    Route::get('bingocash/players/other-winners/{dateFilter?}', [ProviderController::class, 'getBingoOffWinnersByOtherProviders'])->name('getBingoOffWinnersByOtherProviders');
-    Route::get('bingocash/players/my-winners/{dateFilter?}', [ProviderController::class, 'getBingoOffWinnersByProvider'])->name('getBingoOffWinnersByProvider');
+    Route::get('bingocash/players/other-winners/{dateFilter?}', [ProviderController::class, 'getBingoWinnersByOtherProviders'])->name('getBingoWinnersByOtherProviders');
+    Route::get('bingocash/players/my-winners/{dateFilter?}', [ProviderController::class, 'getBingoWinnersByProvider'])->name('getBingoWinnersByProvider');
     Route::get('bingocash/carton-sold/{coin}/{dateFilter?}', [ProviderController::class, 'ctnsSold'])->name('ctnsSold');
     Route::put('bingocash/carton-lot/payment', [ProviderController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
     Route::post('bingocash/carton/notify/payment/win-ctn', [ProviderController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
@@ -151,8 +151,8 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
     Route::get('seller/getSellerInfoByCtn/{ctn}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
-    Route::get('bingocash/players/other-winners/{dateFilter?}', [CommerceController::class, 'getBingoOffWinnersByOtherCommerces'])->name('getBingoOffWinnersByOtherCommerces');
-    Route::get('bingocash/players/my-winners/{dateFilter?}', [CommerceController::class, 'getBingoOffWinnersByCommerce'])->name('getBingoOffWinnersByCommerce');
+    Route::get('bingocash/players/other-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByOtherCommerces'])->name('getBingoWinnersByOtherCommerces');
+    Route::get('bingocash/players/my-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByCommerce'])->name('getBingoWinnersByCommerce');
     Route::get('bingocash/carton-sold/{coin}/{dateFilter?}', [CommerceController::class, 'ctnsSold'])->name('ctnsSold');
     Route::put('bingocash/carton-lot/payment', [CommerceController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
     Route::post('bingocash/carton/notify/payment/win-ctn', [CommerceController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
@@ -354,31 +354,31 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'bingo', 'as' => 'bingo.'], function () {
-    Route::get('all', [BingoController::class, 'allRooms'])->name('allRooms');
-    Route::get('{symCoin}', [BingoController::class, 'rooms'])->name('rooms');
-    Route::get('pvr/{provider}', [BingoController::class, 'roomsProvider'])->name('roomsProvider');
-    Route::get('getInfo', [BingoController::class, 'updateInfo'])->name('getInfoRoom');
-    Route::post('myprofit', [BingoController::class, 'myprofit'])->name('myprofit');
-    Route::get('winners', [BingoController::class, 'winners'])->name('winners');
-    Route::post('store', [BingoController::class, 'store'])->name('store');
-    Route::post('update', [BingoController::class, 'update'])->name('update');
-    Route::post('replay', [BingoController::class, 'replay'])->name('replay');
-    Route::post('publish', [BingoController::class, 'publish'])->name('publish');
-    Route::post('delete', [BingoController::class, 'delete'])->name('delete');
-    Route::post('refund_room', [BingoController::class, 'refund_room'])->name('refund_room');
-    Route::get('time_serv', [BingoController::class, 'time_serv'])->name('time_serv');
-    Route::get('timer/{id}', [BingoController::class, 'timer'])->name('timer');
-    Route::get('status/{id}', [BingoController::class, 'changeStatusRoom'])->name('status');
-    Route::post('players', [BingoController::class, 'consult_players'])->name('consult_players');
-    Route::post('carton/store', [BingoController::class, 'carton_store'])->name('carton_store');
-    Route::get('room/{id}', [BingoController::class, 'game'])->name('game');
-    Route::get('viewCtn/{ctnId}', [BingoController::class, 'view_ctn'])->name('viewCtn');
-    Route::post('check', [BingoController::class, 'check_ctn'])->name('check_ctn');
-    Route::get('penalty/{id_rm}/{id_user}', [BingoController::class, 'penalty'])->name('penalty');
-    Route::get('info/{id}', [BingoController::class, 'info_win'])->name('info_win');
-    Route::get('get/chips/{id}', [BingoController::class, 'get/chips'])->name('get/chips');
-    Route::post('end', [BingoController::class, 'end_game'])->name('end_game');
-    ///BingOffline
+    Route::get('all', [BingoOnlineController::class, 'allRooms'])->name('allRooms');
+    Route::get('{symCoin}', [BingoOnlineController::class, 'rooms'])->name('rooms');
+    Route::get('pvr/{provider}', [BingoOnlineController::class, 'roomsProvider'])->name('roomsProvider');
+    Route::get('getInfo', [BingoOnlineController::class, 'updateInfo'])->name('getInfoRoom');
+    Route::post('myprofit', [BingoOnlineController::class, 'myprofit'])->name('myprofit');
+    Route::get('winners', [BingoOnlineController::class, 'winners'])->name('winners');
+    Route::post('store', [BingoOnlineController::class, 'store'])->name('store');
+    Route::post('update', [BingoOnlineController::class, 'update'])->name('update');
+    Route::post('replay', [BingoOnlineController::class, 'replay'])->name('replay');
+    Route::post('publish', [BingoOnlineController::class, 'publish'])->name('publish');
+    Route::post('delete', [BingoOnlineController::class, 'delete'])->name('delete');
+    Route::post('refund_room', [BingoOnlineController::class, 'refund_room'])->name('refund_room');
+    Route::get('time_serv', [BingoOnlineController::class, 'time_serv'])->name('time_serv');
+    Route::get('timer/{id}', [BingoOnlineController::class, 'timer'])->name('timer');
+    Route::get('status/{id}', [BingoOnlineController::class, 'changeStatusRoom'])->name('status');
+    Route::post('players', [BingoOnlineController::class, 'consult_players'])->name('consult_players');
+    Route::post('carton/store', [BingoOnlineController::class, 'carton_store'])->name('carton_store');
+    Route::get('room/{id}', [BingoOnlineController::class, 'game'])->name('game');
+    Route::get('viewCtn/{ctnId}', [BingoOnlineController::class, 'view_ctn'])->name('viewCtn');
+    Route::post('check', [BingoOnlineController::class, 'check_ctn'])->name('check_ctn');
+    Route::get('penalty/{id_rm}/{id_user}', [BingoOnlineController::class, 'penalty'])->name('penalty');
+    Route::get('info/{id}', [BingoOnlineController::class, 'info_win'])->name('info_win');
+    Route::get('get/chips/{id}', [BingoOnlineController::class, 'get/chips'])->name('get/chips');
+    Route::post('end', [BingoOnlineController::class, 'end_game'])->name('end_game');
+    ///Bingline
 
 });
 Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'bingo-off', 'as' => 'bingo-off.'], function () {

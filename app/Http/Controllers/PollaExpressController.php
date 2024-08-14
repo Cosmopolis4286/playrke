@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\BingoOffRoom as EventsBingoOffRoom;
-use App\Events\GetBingoOffSort;
+use App\Events\BingoRoom as EventsBingoRoom;
+use App\Events\GetBingoSort;
 use App\Traits\UserVal;
 use App\Traits\EncryptRKE;
 use App\Models\Wallet;
 use App\Models\User;
 use App\Models\Coin;
-use App\Models\BingoOffRoom;
-use App\Models\BingoOffSort;
-use App\Models\BingoOffRoomUser;
-use App\Models\BingoOffCtns;
+use App\Models\BingoRoom;
+use App\Models\BingoSort;
+use App\Models\BingoRoomUser;
+use App\Models\BingoCtns;
 use App\Models\HistGame;
 use App\Http\Controllers\Controller;
-use App\Models\BingoOffSortCode;
+use App\Models\BingoSortCode;
 use App\Models\Country;
 use App\Models\PlayerLink;
 use App\Traits\BingoTrait;
@@ -39,11 +39,11 @@ class PollaExpressController extends Controller
         $player = PlayerLink::where('player_link', $PJLink)->first();
 
         if (!$player) return redirect('/');
-        $this->hideRoomOff();
+        $this->hideRoom();
 
         $room = $player->room;
 
-        $room = BingoOffRoom::with(['Coin'])
+        $room = BingoRoom::with(['Coin'])
             ->select(['status', 'date', 'time', 'coin', 'jackpot', 'encrypted'])->where('id', $room)->first();
 
         if (!in_array($room->status, [2, 3, 4])) return redirect('/');
@@ -51,34 +51,34 @@ class PollaExpressController extends Controller
 
         if ($room->status == 2) {
             $triviaInit = strtotime($room->date . ' ' . $room->time);
-            if (time() >= $triviaInit) BingoOffRoom::where('id', $room)->update(['status' => 3]);
+            if (time() >= $triviaInit) BingoRoom::where('id', $room)->update(['status' => 3]);
         }
 
         $roomCoin = Coin::getMoneyFromCountry($player->country);
 
-        $vanSort = BingoOffSort::where('room', $room)->where('status', 2)->select('id', 'chip')->first();
-        if (!$vanSort) $vanSort = $this->newSortOff($room, null);
+        $vanSort = BingoSort::where('room', $room)->where('status', 2)->select('id', 'chip')->first();
+        if (!$vanSort) $vanSort = $this->newSort($room, null);
 
         $sort = ($room->status == 3) ?
-            BingoOffSort::where('room', $room)->where('id', '<=', $vanSort->id)
+            BingoSort::where('room', $room)->where('id', '<=', $vanSort->id)
             ->where('time', '>', time())->get(['code', 'time']) : [];
 
-        $codeEncrypt = BingoOffSortCode::where('room', $room)->pluck('sym');
+        $codeEncrypt = BingoSortCode::where('room', $room)->pluck('sym');
 
         $lastSixChip = $this->getChips$room->encrypted);
 
-        $chipsRest = BingoOffSort::where('room', $room)->where('time', '>', time())
+        $chipsRest = BingoSort::where('room', $room)->where('time', '>', time())
             ->where('id', '<=', $vanSort->id)->orderBy('chip')->pluck('chip')->sort()->toArray();
 
-        $ctns = BingoOffCtns::getCtnsByPlayerInRoom($room, $PJLink);
+        $ctns = BingoCtns::getCtnsByPlayerInRoom($room, $PJLink);
 
-        $allChips =  BingoOffSort::where('room', $room)->where('id', '<=', $vanSort->id)
+        $allChips =  BingoSort::where('room', $room)->where('id', '<=', $vanSort->id)
             ->where('time', '<', time())->orderByDesc('id')->pluck('chip')->toArray();
 
         $infoGame = [];
         if ($room->status == 4) $infoGame = $this->getResult($room->encrypted, $PJLink);
 
-        $game = BingoOffRoom::find($room)->select('date', 'time')->first();
+        $game = BingoRoom::find($room)->select('date', 'time')->first();
         $timeInitGame = strtotime($game->date . ' ' . $game->time);
 
         return view('modules.visitor.games.bingo.game')->with([
@@ -104,25 +104,25 @@ class PollaExpressController extends Controller
 
     public function getChips$room)
     {
-        $roomId = BingoOffRoom::where('encrypted', $room)->value('id');
+        $roomId = BingoRoom::where('encrypted', $room)->value('id');
         if ($roomId) {
-            $vanSort = BingoOffSort::where('room', $roomId)->where('status', 2)->first();
+            $vanSort = BingoSort::where('room', $roomId)->where('status', 2)->first();
             if ($vanSort) {
-                $lastSixChip = BingoOffSort::where('room', $roomId)->where('time', '<=', time())
+                $lastSixChip = BingoSort::where('room', $roomId)->where('time', '<=', time())
                     ->where('id', '<=', $vanSort->id)->orderByDesc('id')->take(7)->pluck('chip')->toArray();
 
                 $sizeArr = count($lastSixChip);
 
                 $lastPos = false;
                 if ($sizeArr > 1) {
-                    $sort = BingoOffSort::where('room', $roomId)->where('time', '<=', time())
+                    $sort = BingoSort::where('room', $roomId)->where('time', '<=', time())
                         ->where('id', '<=', $vanSort->id)->pluck('chip')->toArray();
 
                     $lastPos = array_search($lastSixChip[$sizeArr - 1], $sort);
                     array_pop($lastSixChip);
                 }
 
-                $allChips =  BingoOffSort::where('room', $room)->where('id', '<=', $vanSort->id)
+                $allChips =  BingoSort::where('room', $room)->where('id', '<=', $vanSort->id)
                     ->where('time', '<', time())->orderByDesc('id')->pluck('chip')->toArray();
 
                 return [$lastSixChip, $lastPos !== false ? $lastPos : 0, time(), $allChips];
@@ -132,10 +132,10 @@ class PollaExpressController extends Controller
 
     public function getResult($room, $PJLink)
     {
-        $room = BingoOffRoom::where('encrypted', $room)->select('id', 'status', 'encrypted')->first();
-        if ($room->status == 3) BingoOffRoom::where('encrypted', $room)->update(['status' => 4]);
+        $room = BingoRoom::where('encrypted', $room)->select('id', 'status', 'encrypted')->first();
+        if ($room->status == 3) BingoRoom::where('encrypted', $room)->update(['status' => 4]);
 
-        $winners = BingoOffRoomUser::where('room', $room->id)->where('winner', '>', 0)->count();
+        $winners = BingoRoomUser::where('room', $room->id)->where('winner', '>', 0)->count();
         if (!$winners && $room->status == 4) $this->findWinners($room);
 
         return $this->getWinners($room, $PJLink);
@@ -143,23 +143,23 @@ class PollaExpressController extends Controller
 
     public function viewCtn($ctnId)
     {
-        return $this->getCtnWinOff($ctnId);
+        return $this->getCtnWin($ctnId);
     }
 
     public function endGame($room)
     {
-        $room = BingoOffRoom::where('encrypted', $room)->first();
+        $room = BingoRoom::where('encrypted', $room)->first();
         if ($room->status == 3) {
-            BingoOffRoom::where('encrypted', $room)->update(['status' => 4]);
-            EventsBingoOffRoom::dispatch($room);
+            BingoRoom::where('encrypted', $room)->update(['status' => 4]);
+            EventsBingoRoom::dispatch($room);
             echo json_encode('end');
         }
     }
 
     public function GetSort($room)
     {
-        $room = BingoOffRoom::where('encrypted', $room)->first();
-        $sort = BingoOffSort::where('room', $room->id)->first();
+        $room = BingoRoom::where('encrypted', $room)->first();
+        $sort = BingoSort::where('room', $room->id)->first();
         if ($sort && !$sort->status) {
             Artisan::call('bingooff:dispatch', ['room' => $room]);
         }
@@ -178,7 +178,7 @@ class PollaExpressController extends Controller
             $commerce = 1;
         }
 
-        $rooms = BingoOffRoom::with(['Coin'])->where('commerce', $commerce)->get();
+        $rooms = BingoRoom::with(['Coin'])->where('commerce', $commerce)->get();
         $coins = Coin::all();
         $country = Country::all();
 
@@ -202,7 +202,7 @@ class PollaExpressController extends Controller
                 $boat = 0;
             }
 
-            BingoOffRoom::create([
+            BingoRoom::create([
                 'commerce' => $user_comm->commerce,
                 // 'all_in' => 0,
                 'status' => 1,
@@ -216,7 +216,7 @@ class PollaExpressController extends Controller
                 'jackpot' => $boat,
                 'type_boat' => $request['type_boat'],
                 'com' => $request['val_com'],
-                'encrypted' => $this->roomEncrypt('bingo_off_room')
+                'encrypted' => $this->roomEncrypt('bingo_room')
             ]);
 
             Session::flash('message', 'Sala creada correctamente');
@@ -226,7 +226,7 @@ class PollaExpressController extends Controller
 
     public function update(Request $request)
     {
-        $bingo = BingoOffRoom::find($request->id);
+        $bingo = BingoRoom::find($request->id);
 
         if ($request->type_boat == 2) {
             $boat = $request->val_fij;
@@ -252,31 +252,31 @@ class PollaExpressController extends Controller
 
     public function replay(Request $request)
     {
-        BingoOffRoom::where("id", $request->id)->update(['replay' => 1]);
+        BingoRoom::where("id", $request->id)->update(['replay' => 1]);
         Session::flash('message', 'Esta sala se publicara cada 24h');
         return redirect()->back();
     }
 
     public function publish(Request $request)
     {
-        BingoOffRoom::where("id", $request->id)->update(['status' => 2]);
+        BingoRoom::where("id", $request->id)->update(['status' => 2]);
         Session::flash('message', 'La Sala fue publicada');
         return redirect()->back();
     }
 
     public function delete($id)
     {
-        BingoOffRoom::where("id", $id)->delete();
+        BingoRoom::where("id", $id)->delete();
         Session::flash('message', 'La Sala fue eliminada');
         return redirect()->back();
     }
 
     public function refundRoom(Request $request) //Reembolsar compras de la sala
     {
-        $room = BingoOffRoom::where('id', $request->id)->first();
-        $bg_user = BingoOffRoomUser::where('room', $request->id)->get();
+        $room = BingoRoom::where('id', $request->id)->first();
+        $bg_user = BingoRoomUser::where('room', $request->id)->get();
         foreach ($bg_user as $key => $value) {
-            $user_bg = BingoOffRoomUser::where('room', $request->id)
+            $user_bg = BingoRoomUser::where('room', $request->id)
                 ->where('user', $value->user)->first();
             $return_balance = ($user_bg->ctns * $room->price);
             $walleuser_type = Wallet::where('usuario_id', $value->user)->first();
@@ -292,7 +292,7 @@ class PollaExpressController extends Controller
                 ->where('user', $value->id)->update(['gain' => 'Reembolsado']);
             //Comprobar el historial de jugadas
         }
-        BingoOffRoom::where('id', $request->id)->update(['status' => 5]);
+        BingoRoom::where('id', $request->id)->update(['status' => 5]);
         return redirect()->back();
     }
 
@@ -302,7 +302,7 @@ class PollaExpressController extends Controller
 
         $room = PlayerLink::where('player_link', $PJLink)->value('room');
         if ($room) {
-            $resp = $this->newSortOff($room, $PJLink);
+            $resp = $this->newSort($room, $PJLink);
             if ($resp) Session::flash('message', 'Carton Ganador Generado');
         } else {
             Session::flash('message', 'El PlayerLink no existe');

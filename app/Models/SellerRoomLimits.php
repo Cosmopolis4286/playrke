@@ -11,7 +11,7 @@ class SellerRoomLimits extends Model
 
     public function Room()
     {
-        return $this->belongsTo(BingoOffRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room');
     }
 
     public function Seller()

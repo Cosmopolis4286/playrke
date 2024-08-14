@@ -4,13 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoOffCtnsPayment extends Model
+class BingoCtnsPayment extends Model
 {
-    protected $table = "bingo_off_ctns_payment";
+    protected $table = "bingo_ctns_payment";
     protected $fillable = [
-        'operation', 'room','provider', 'commerce', 'seller', 'player_link', 'payment_type',
-        'coin', 'lot', 'amount', 'payment_proof', 'created_at', 'updated_at'
+        'operation', 'game_mode', 'room', 'provider', 'commerce', 'seller', 'player_link',
+        'payment_type', 'coin', 'lot', 'amount', 'payment_proof', 'created_at', 'updated_at'
     ];
+
+    public function GameMode()
+    {
+        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
+    }
 
     public function TypeOpt()
     {
@@ -19,7 +24,7 @@ class BingoOffCtnsPayment extends Model
 
     public function Room()
     {
-        return $this->belongsTo(BingoOffRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room');
     }
 
     public function Commerce()
@@ -44,6 +49,6 @@ class BingoOffCtnsPayment extends Model
 
     public function CtnLot()
     {
-        return $this->belongsTo(BingoOffCtnsLot::class, 'lot');
+        return $this->belongsTo(BingoCtnsLot::class, 'lot');
     }
 }

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateBingoOffRoomConfigTable extends Migration
+class CreateBingoRoomConfigTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,9 @@ class CreateBingoOffRoomConfigTable extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_off_rooms_config', function (Blueprint $table) {
+        Schema::create('bingo_rooms_config', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('jackpot_type')->default(1);
             $table->double('fixed_jackpot_value')->nullable();
@@ -26,7 +27,8 @@ class CreateBingoOffRoomConfigTable extends Migration
             $table->timestamps();
 
             // Foreign key constraint
-            $table->foreign('room')->references('id')->on('bingo_off_rooms')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('game_mode')->references('id')->on('game_modes');
+            $table->foreign('room')->references('id')->on('bingo_rooms')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('jackpot_type')->references('id')->on('jackpot_type')->onDelete('restrict')->onUpdate('cascade');
         });
     }
@@ -38,6 +40,6 @@ class CreateBingoOffRoomConfigTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_off_room_config');
+        Schema::dropIfExists('bingo_room_config');
     }
 }

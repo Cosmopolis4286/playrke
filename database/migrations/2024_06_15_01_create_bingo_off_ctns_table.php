@@ -13,8 +13,9 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_off_ctns', function (Blueprint $table) {
+        Schema::create('bingo_ctns', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
@@ -49,12 +50,13 @@ return new class extends Migration
             $table->string('o5', 2);
             $table->timestamp('created_at')->nullable();
 
-            $table->foreign('room')->references('id')->on('bingo_off_rooms');
+            $table->foreign('game_mode')->references('id')->on('game_modes');
+            $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('provider')->references('id')->on('providers');
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('player_link')->references('id')->on('player_link');
             $table->foreign('seller')->references('id')->on('sellers');
-            $table->foreign('lot')->references('id')->on('bingo_off_ctns_lot');
+            $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
             $table->foreign('coin')->references('id')->on('coins');
 
             // Índice compuesto
@@ -69,6 +71,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_off_ctns');
+        Schema::dropIfExists('bingo_ctns');
     }
 };

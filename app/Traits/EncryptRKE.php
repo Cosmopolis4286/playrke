@@ -61,22 +61,5 @@ trait EncryptRKE
         $cipher = "aes-256-cbc";
         $decryptedText = openssl_decrypt($encryptedData, $cipher, $key, 0, $iv);
         return json_decode($decryptedText, true); // Convierte la cadena JSON a un objeto
-    }
-
-    public function getTransaction($provider, $user, $coin, $game)
-    {
-        // Obtener la marca de tiempo fuera del bucle
-        $timestamp = time();
-
-        do {
-            // Concatenar los valores con una cadena aleatoria para asegurar unicidad
-            $randomString = bin2hex(random_bytes(5)); // Genera una cadena aleatoria
-            $data = $user . $coin . $game . $timestamp . $randomString;
-
-            // Generar un hash MD5 del valor concatenado
-            $uniqueId = md5($data);
-        } while (Transactions::existsCode($uniqueId, $provider));
-
-        return $uniqueId;
-    }
+    }   
 }

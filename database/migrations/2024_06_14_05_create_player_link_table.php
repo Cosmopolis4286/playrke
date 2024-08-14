@@ -35,7 +35,7 @@ class CreatePlayerLinkTable extends Migration
             $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('game')->references('id')->on('games');
             $table->foreign('game_mode')->references('id')->on('game_modes');
-            $table->foreign('room')->references('id')->on('bingo_off_rooms');
+            $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('provider')->references('id')->on('providers');
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('seller')->references('id')->on('sellers');

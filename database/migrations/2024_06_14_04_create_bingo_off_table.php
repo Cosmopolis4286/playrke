@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateBingoOffTable extends Migration
+class CreateBingoTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,9 @@ class CreateBingoOffTable extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_off_rooms', function (Blueprint $table) {
+        Schema::create('bingo_rooms', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('status')->default(1);
@@ -40,6 +41,9 @@ class CreateBingoOffTable extends Migration
             $table->timestamps();
 
             // Definición de la clave foránea para 'status'
+            $table->foreign('game_mode')->references('id')->on('game_modes');
+
+            // Definición de la clave foránea para 'status'
             $table->foreign('status')->references('id')->on('game_status');
 
             // Definición de la clave foránea para 'provider'
@@ -63,6 +67,6 @@ class CreateBingoOffTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_off_rooms');
+        Schema::dropIfExists('bingo_rooms');
     }
 }

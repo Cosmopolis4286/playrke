@@ -4,20 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoOffRoomUser extends Model
+class BingoRoomUser extends Model
 {
-    protected $table = 'bingo_off_rooms_user';
-    protected $primaryKey = 'id';
-    protected $fillable = ['room', 'user', 'player_link', 'provider', 'commerce', 'seller', 'winner'];
+    protected $table = 'bingo_rooms_user';
+    protected $fillable = ['game_mode', 'room', 'user', 'player_link', 'provider', 'commerce', 'seller', 'winner'];
 
     public function Seller()
     {
         return $this->belongsTo(Seller::class, 'seller');
     }
 
+    public function GameMode()
+    {
+        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
+    }
+
     public function Room()
     {
-        return $this->belongsTo(BingoOffRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room');
     }
 
     public function Coin()
@@ -37,7 +41,7 @@ class BingoOffRoomUser extends Model
 
     public function WinCtns()
     {
-        return $this->hasMany(BingoOffPrizeCtns::class, 'player_link', 'player_link');
+        return $this->hasMany(BingoPrizeCtns::class, 'player_link', 'player_link');
     }
 
     public static function getPlayerCountByRoom($room, $condition = ['!=', ''])

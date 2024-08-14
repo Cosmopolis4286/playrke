@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('game')->references('id')->on('games');
-            $table->foreign('room')->references('id')->on('bingo_off_rooms');
+            $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('coin')->references('id')->on('coins');
         });
     }

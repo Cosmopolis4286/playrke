@@ -8,4 +8,9 @@ class GameModes extends Model
 {
     protected $table = "game_modes";
     protected $fillable = ['id', 'name'];
+
+    public static function getByName($name)
+    {
+        return self::where('name', $name)->first();
+    }
 }

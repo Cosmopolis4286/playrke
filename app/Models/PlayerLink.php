@@ -39,27 +39,27 @@ class PlayerLink extends Model
 
   public function Room()
   {
-    return $this->belongsTo(BingoOffRoom::class, 'room');
+    return $this->belongsTo(BingoRoom::class, 'room');
   }
 
   public function PlayerGame()
   {
-    return $this->belongsTo(BingoOffRoomUser::class, 'id', 'player_link');
+    return $this->belongsTo(BingoRoomUser::class, 'id', 'player_link');
   }
 
   public function Ctns()
   {
-    return $this->belongsTo(BingoOffCtns::class, 'id', 'player_link');
+    return $this->belongsTo(BingoCtns::class, 'id', 'player_link');
   }
 
   public function WinCtns()
   {
-    return $this->hasMany(BingoOffPrizeCtns::class, 'player_link', 'id');
+    return $this->hasMany(BingoPrizeCtns::class, 'player_link', 'id');
   }
 
   public function CtnsLot()
   {
-    return $this->hasMany(BingoOffCtnsLot::class, 'player_link', 'id');
+    return $this->hasMany(BingoCtnsLot::class, 'player_link', 'id');
   }
 
   public static function getById($id, $fields = ['*'])

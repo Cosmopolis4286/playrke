@@ -11,6 +11,6 @@ class StatusGame extends Model
 
     public function Status()
     {
-        return $this->hasMany(BingoOffRoom::class, 'id');
+        return $this->hasMany(BingoRoom::class, 'id');
     }
 }

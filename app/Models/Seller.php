@@ -47,19 +47,19 @@ class Seller extends Model
     // Relación con los juegos de los jugadores
     public function PlayerGames()
     {
-        return $this->hasMany(BingoOffRoomUser::class, 'seller', 'id');
+        return $this->hasMany(BingoRoomUser::class, 'seller', 'id');
     }
 
     // Relación con los cartones del vendedor
     public function Ctns()
     {
-        return $this->hasMany(BingoOffCtns::class, 'seller', 'id');
+        return $this->hasMany(BingoCtns::class, 'seller', 'id');
     }
 
     // Relación con los estados de los cartones del vendedor
     public function CtnsLot()
     {
-        return $this->hasMany(BingoOffCtnsLot::class, 'seller', 'id');
+        return $this->hasMany(BingoCtnsLot::class, 'seller', 'id');
     }
 
     // Relación con el usuario del vendedor

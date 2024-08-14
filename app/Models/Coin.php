@@ -24,9 +24,9 @@ class Coin extends Model
         return $this->hasMany(CommerceExchangeRate::class, 'coin', 'id');
     }
 
-    public function RoomBingoOff()
+    public function RoomBingo()
     {
-        return $this->belongsTo(BingoOffRoom::class, 'id', 'coin');
+        return $this->belongsTo(BingoRoom::class, 'id', 'coin');
     }
 
     public function Seller()

@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoOffPrizeCtns extends Model
+class BingoPrizeCtns extends Model
 {
-    protected $table = "bingo_off_prize_ctns";
+    protected $table = "bingo_prize_ctns";
     protected $fillable = [
         'id',
+        'game_mode',
         'room',
         'provider',
         'commerce',
@@ -23,14 +24,19 @@ class BingoOffPrizeCtns extends Model
         'updated_at'
     ];
 
+    public function GameMode()
+    {
+        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
+    }
+
     public function Room()
     {
-        return $this->belongsTo(BingoOffRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room');
     }
 
     public function Provider()
     {
-        return $this->belongsTo(Provider::class, 'provider');
+        return $this->belongsTo(ProviderRKE::class, 'provider');
     }
 
     public function Commerce()
@@ -50,7 +56,7 @@ class BingoOffPrizeCtns extends Model
 
     public function PlayerGame()
     {
-        return $this->belongsTo(BingoOffRoomUser::class, 'player_link', 'player_link');
+        return $this->belongsTo(BingoRoomUser::class, 'player_link', 'player_link');
     }
 
     public function Coin()
@@ -65,17 +71,17 @@ class BingoOffPrizeCtns extends Model
 
     public function Ctns()
     {
-        return $this->belongsTo(BingoOffCtns::class, 'ctn');
+        return $this->belongsTo(BingoCtns::class, 'ctn');
     }
 
     public function CtnsLot()
     {
-        return $this->belongsTo(BingoOffCtnsLot::class, 'lot');
+        return $this->belongsTo(BingoCtnsLot::class, 'lot');
     }
 
     public function Payment()
     {
-        return $this->hasMany(BingoOffPrizeCtnsPayment::class, 'prize_ctn', 'id');
+        return $this->hasMany(BingoPrizeCtnsPayment::class, 'prize_ctn', 'id');
     }
 
     public function Prize()

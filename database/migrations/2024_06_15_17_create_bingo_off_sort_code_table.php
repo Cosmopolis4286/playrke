@@ -13,14 +13,16 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_off_sort_code', function (Blueprint $table) {
+        Schema::create('bingo_sort_code', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->string('num', 1);
             $table->string('sym', 6);
             $table->timestamps();
 
-            $table->foreign('room')->references('id')->on('bingo_off_rooms');
+            $table->foreign('game_mode')->references('id')->on('game_modes');
+            $table->foreign('room')->references('id')->on('bingo_rooms');
         });
     }
 
@@ -31,6 +33,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_off_sort_code');
+        Schema::dropIfExists('bingo_sort_code');
     }
 };
