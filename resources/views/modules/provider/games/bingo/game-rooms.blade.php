@@ -1,10 +1,12 @@
-@extends('layouts.app_rke')
+@extends('layouts.app_rke_provider')
 @section('title', 'BingoCash')
-@section('styles')<link rel="stylesheet" href="{{ asset('css/styles_bg_off.css') }}">@endsection
-<style>
+@section('styles')
+    <link rel="stylesheet" href="{{ asset('css/styles_bg.css') }}">
+@endsection<style>
     body {
-        background: url(../img/body/space.png);
+        background: url(../../img/body/space.png);
     }
+    
 </style>
 @section('content')
     <button type="button" class="btn btn-success" id="prueba">prueba</button>
@@ -125,7 +127,7 @@
             </div>
         </div>
         <div class="row jus_f">
-            {{-- @foreach ($rooms as $key => $room)
+            @foreach ($rooms as $key => $room)
                 <div id="bg_rm{{ $room->id }}" class="ct_center col-sm-6 col-md-4 col-xl-3 mb-6 mr-4 ml-4">
                     <input type="hidden" id="bg_in{{ $room->id }}">
                     <input type="hidden" id="bg_in_sts{{ $room->id }}" value="0">
@@ -190,7 +192,7 @@
                         </div>
                     </a>
                 </div>
-            @endforeach --}}
+            @endforeach
         </div>
     </div>
     <script>

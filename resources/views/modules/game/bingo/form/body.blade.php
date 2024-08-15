@@ -8,6 +8,10 @@
         <label for="time">Hora*</label>
         <input type="time" id="time" name="time" class="form-control form-info" required>
     </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="game-mode">Modo de Juego*</label>
+        <select id="game-mode" name="game_mode" class="form-control form-info" required></select>
+    </div>
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label class="country">Pais*</label>
         <select id="country" name="country" class="form-control form-info" required></select>

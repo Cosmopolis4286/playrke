@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ProviderRKE extends Model
 {
     protected $table = "providers";
-    protected $fillable = ['name', 'pvr_type', 'brand', 'product', 'link_route', 'token', 'security_key', 'status'];
+    protected $fillable = ['name', 'user', 'pvr_type', 'brand', 'product', 'link_route', 'token', 'security_key', 'status'];
 
     public static function getById($provider, $fields = ['*'])
     {
@@ -17,5 +17,10 @@ class ProviderRKE extends Model
     public static function getValue($provider, $value)
     {
         return self::where('id', $provider)->value($value);
+    }
+
+    public static function getValueByUserId($user, $value)
+    {
+      return self::where('user', $user)->value($value);
     }
 }

@@ -5,7 +5,7 @@
 
 <body>
     @include('sweetalert::alert')
-    <div class="container" x-data="{ open: false }">@yield('content')</div>
+    <main class="container-fluid" x-data="{ open: false }">@yield('content')</main>
     @include('layouts.sections.scripts')
 </body>
 

@@ -60,6 +60,11 @@ class Coin extends Model
         return self::where('country', $country)->value($value);
     }
 
+    public static function getValueBySymbol($symbol, $value)
+    {
+        return self::where('symbol', $symbol)->value($value);
+    }
+
     public static function getByIdIdOfCountry($country)
     {
         return self::where('country', $country)->value('id');

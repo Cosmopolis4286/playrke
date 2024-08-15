@@ -32,9 +32,9 @@
             <div class="login_footer">
                 @yield('preFooter')
                 <div class="info_rke">
-                    <a href="#" class="terms">Términos y Condiciones</a>
-                    <a href="#" class="about">Quienes Somos</a>
-                    <a href="#" class="priv">Privacidad</a>
+                    <a class="info-user-rke" href="#" data-val="terms">Términos y Condiciones</a>
+                    <a class="info-user-rke" href="#" data-val="about">Quienes Somos</a>
+                    <a class="info-user-rke" href="#" data-val="priv">Privacidad</a>
                 </div>
                 <input type="hidden" id="van_lgn" value="0">
                 <div class="login_footer_link">
@@ -64,15 +64,25 @@
         $(document).on('dragstart', 'img', function(evt) {
             evt.preventDefault();
         });
-        
-        $(document).ready(function() {
-            $(".terms, .about, .priv").click(function() {
-                var page = $(this).attr("class");
-                var pageUrl = "{{ asset('info/') }}" + page + ".blade.php";
 
-                $.post(pageUrl, function(ext) {
-                    $(".modal-body").html(ext);
-                    $("#tap").modal("show");
+        $(document).ready(function() {
+            $(".info-user-rke").click(function() {
+                const info = $(this).data('val');
+                const pageUrl = `{{ route('info-rke', ['page' => ':id']) }}`.replace(':id', info);
+
+                $.ajax({
+                    url: pageUrl,
+                    method: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': $("#token").val()
+                    },
+                    success: function(response) {
+                        $(".modal-body").html(response);
+                        $("#tap").modal("show");
+                    },
+                    error: function() {
+                        console.log("No se pudo cargar el contenido.");
+                    }
                 });
             });
 

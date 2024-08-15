@@ -581,13 +581,12 @@ trait BingoTrait
 
     public function findWinnersJackpot($room)
     {
+        // Obtener la información de la sala
+        $room = BingoRoom::with('Config')
+            ->select('id', 'commerce', 'jackpot', 'jackpot_prize', 'serial_prize')
+            ->where('id', $room)->firstOrFail();
 
         try {
-            // Obtener la información de la sala
-            $room = BingoRoom::with('Config')
-                ->select('id', 'commerce', 'jackpot', 'jackpot_prize', 'serial_prize')
-                ->where('id', $room)->firstOrFail();
-
             $roomId = $room->id; // ID Sala Bingo
 
             // Verificar si ya hay ganadores del premio mayor

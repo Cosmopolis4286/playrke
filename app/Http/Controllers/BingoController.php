@@ -23,6 +23,9 @@ use App\Models\Country;
 use App\Models\ExchangeRate;
 use App\Models\JackpotType;
 use App\Models\PlayerLink;
+use App\Models\ProviderRKE;
+use App\Models\User;
+use App\Models\UserType;
 use App\Traits\BingoTrait;
 use App\Traits\Filters;
 use App\Traits\GameTrait;
@@ -33,7 +36,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-class BingoOnlineController extends Controller
+class BingoController extends Controller
 {
     use EncryptRKE, UserVal, BingoTrait, GameTrait, Filters, SeamlessWallet;
 
@@ -65,17 +68,103 @@ class BingoOnlineController extends Controller
         return $room;
     }
 
-    public function roomsProvider($provider)
+    public function allRooms($user, $coinSym) //  Lista Salas de Juego
     {
-        $user = $this->getUserInfoFromProvider($provider, 'hhhh');
+        $userTypeID = User::getValueById(decrypt($user), 'user_type');
+        $userType = UserType::getValueById($userTypeID, 'prefix');
 
-        $rooms = BingoRoom::where('provider', $provider)->whereIn('status', [2, 3])->get();
+        //$user = $this->getUserInfoFromProvider($provider, 'hhhh');
+        $userTypeVal = false;
+
+        switch ($userType) {
+            case 2: // Admin
+
+                break;
+            case 3: // Comercio
+                $userTypeVal = Commerce::getValueByUserId($user, 'id');
+                break;
+            case 5: // Proveedor
+                $userTypeVal = ProviderRKE::getValueByUserId($user, 'id');
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        $rooms = BingoRoom::where($userType, $userTypeVal)->get();
+
+        $title = 'Salas de Bingo';
+
+        $name = 'bingo-off';
+        $wallet = $this->Wallet($this->user()->id);
+        $commerce = Commerce::getValueByUserId(Auth::id(), 'id');
+
+        $coins = BingoCtnsLot::where('commerce', 1)->distinct()->pluck('coin')->toArray();
+        $coins[] = 1; // ID Coin (USDT)
+        $coins = Coin::getCoinsById($coins);
+        $countries = Country::getAllAvailableCountries();
+
+        // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
+        // $jackpotType = JackpotType::getByIds($gameJackpotType);
+
+        $jackpotType = JackpotType::all();
+
+        $coin = Coin::getValueBySymbol($coinSym, 'id');
+        $exchangeRate = ExchangeRate::getValue($coin) ?: 1;
+
+        $this->checkRoomClosure();
+
+        $rooms = BingoRoom::with([
+            'Config.JackpotType',
+            'Coin',
+            'PlayersRoom' => function ($query) {
+                $query->where('winner', '>', 0);
+            },
+            'GameExchangeRate' => function ($query) use ($coin) {
+                $query->where('coin', $coin)->where('game', 1);
+            }
+        ])->orderBy('status')->orderByDesc('date')
+            ->orderByDesc('time')->where('commerce', $commerce)->get();
+
+        return view(
+            'modules.game.bingo.from.index',
+            compact('title', 'name', 'wallet', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType')
+        );
+    }
+
+    public function gamesRooms($user, $gameMode = 1) // Vista Salas de Juego 
+    {
+        $userTypeID = User::getValueById($user, 'user_type');
+        $userType = UserType::getValueById($userTypeID, 'prefix');
+
+        //$user = $this->getUserInfoFromProvider($provider, 'hhhh');
+        $userTypeVal = false;
+
+        switch ($userType) {
+            case 2: // Admin
+
+                break;
+            case 3: // Comercio
+                $userTypeVal = Commerce::getValueByUserId($user, 'id');
+                break;
+            case 5: // Proveedor
+                $userTypeVal = ProviderRKE::getValueByUserId($user, 'id');
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        $rooms = BingoRoom::where($userType, $userTypeVal)
+            ->where('game_mode', $gameMode)->whereIn('status', [2, 3])->get();
 
         $title = 'Bingo Salas de Juego';
 
-        return view('modules.provider.games.bingo.rooms')->with([
+        return view('modules.provider.games.bingo.game-rooms')->with([
             'title' => $title,
-            'rooms' => $rooms
+            'rooms' => $rooms,
         ]);
     }
 

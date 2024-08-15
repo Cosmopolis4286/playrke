@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Coin;
 use App\Models\Country;
 use App\Models\Settings;
 use Illuminate\Http\RedirectResponse;
@@ -35,9 +36,13 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $isoCode = Country::getCountryValue(Auth::user()->country, 'iso_code_2');
+        $coinSym = Coin::getValueByCountry(Auth::user()->country, 'symbol');
 
         // Crear la variable de sesión 'countryCode'
         $request->session()->put('countryCode', $isoCode);
+
+        // Crear la variable de sesión 'coinSym'
+        $request->session()->put('coinSym', $coinSym);
 
         // Redirigir al usuario a la ruta de destino
         return redirect()->intended(route('dashboard', absolute: false));

@@ -31,7 +31,7 @@
     @component('components.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.commerce.games.bingo.room.form')->render(),
+        'dataForm' => view('modules.game.bingo.form.body')->render(),
     ])
     @endcomponent
     @include('components.form-other-options')
@@ -42,6 +42,7 @@
         const arrCoins = JSON.parse('<?php echo json_encode($coins); ?>');
         const arrCountries = JSON.parse('<?php echo json_encode($countries); ?>');
         const arrJackpotType = JSON.parse('<?php echo json_encode($jackpotType); ?>')
+        const arrGameModes = JSON.parse('<?php echo json_encode($gameModes); ?>')
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -65,8 +66,9 @@
             // const country = $("#country");
             // const coin = $("#coin");
             const jackpotType = $("#jackpot-type");
+            const gameMode = $("#game-mode");
 
-            $("#jackpot-type").empty(); // Limpia las opciones existentes
+            $("#jackpot-type, #game-mode").empty(); // Limpia las opciones existentes
             // Countries
             // if (type == 1) country.append(`<option value="" selected>Seleccionar:</option>`);
 
@@ -83,11 +85,20 @@
             // });
             // jackpotType
 
-            if (type == 1) jackpotType.append(`<option value="" selected>Seleccionar:</option>`);
+            if (type == 1) {
+                jackpotType.append(`<option value="" selected>Seleccionar:</option>`);
+                gameMode.append(`<option value="" selected>Seleccionar:</option>`)
+            }
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
                 jackpotType.append(
+                    `<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+            });
+
+            $.each(arrGameModes, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.config.game_mode) ? 'selected' : '';
+                gameMode.append(
                     `<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
@@ -110,7 +121,7 @@
             $(`#modal-${name}`).modal('show');
         }
 
-        submitForm(name, ['date', 'time', 'ctn-price', 'val-serials', 'commerce-commission', 'jackpot-type']);
+        submitForm(name, ['date', 'time', 'game-mode', 'ctn-price', 'val-serials', 'commerce-commission', 'jackpot-type']);
 
         function deleteInfo(encryptedId) {
             showToastOptionBtns(

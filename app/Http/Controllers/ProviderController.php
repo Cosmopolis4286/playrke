@@ -20,7 +20,7 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\Country;
-use App\Models\Provider;
+use App\Models\ProviderRKE;
 use App\Models\SellerCountriesCoins;
 use App\Models\Wallet;
 use App\Traits\BingoTrait;
@@ -42,7 +42,7 @@ class ProviderController extends Controller
 
     protected function provider($fields = ['*'])
     {
-        return Provider::where('user', Auth::id())->select($fields)->first();
+        return ProviderRKE::where('user', Auth::id())->select($fields)->first();
     }
 
     private function validateRequest($request, $type = 1, $id = '')

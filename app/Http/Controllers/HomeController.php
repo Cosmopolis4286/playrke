@@ -77,6 +77,17 @@ class HomeController extends Controller
                 $view = 'modules/seller/widgets/index';
                 break;
 
+            case 5: // Prooveedor
+                $data = array_merge($data, [
+                    'mmoney' => $this->mmoney(),
+                    'mmoneyUSDT' => $this->mmoneyUSDT(),
+                    'balance_tBs' => $this->balance_tBs(),
+                    'balance_tUSDT' => $this->balance_tUSDT(),
+                    'counuser_type' => $this->counuser_type(),
+                ]);
+                $view = 'modules/provider/widgets/index';
+                break;
+
             default:
                 // Manejar otros casos si es necesario
                 abort(404);

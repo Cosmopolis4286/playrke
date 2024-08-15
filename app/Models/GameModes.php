@@ -7,10 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class GameModes extends Model
 {
     protected $table = "game_modes";
-    protected $fillable = ['id', 'name'];
+    protected $fillable = ['id', 'description'];
 
-    public static function getByName($name)
+    public static function getByName($description)
     {
-        return self::where('name', $name)->first();
+        return self::where('description', $description)->first();
     }
 }

@@ -308,6 +308,7 @@ class BingoOfflineController extends Controller
         // $jackpotType = JackpotType::getByIds($gameJackpotType);
 
         $jackpotType = JackpotType::all();
+        $gameModes = GameModes::all();
 
         $exchangeRate = ExchangeRate::getValue($coin) ?: 1;
 
@@ -326,8 +327,20 @@ class BingoOfflineController extends Controller
             ->orderByDesc('time')->where('commerce', $commerce)->get();
 
         return view(
-            'modules.commerce.games.bingo.room.index',
-            compact('title', 'name', 'wallet', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType')
+            'modules.game.bingo.form.index',
+            compact(
+                'title',
+                'name',
+                'wallet',
+                'rooms',
+                'coin',
+                'coinSym',
+                'exchangeRate',
+                'countries',
+                'coins',
+                'jackpotType',
+                'gameModes'
+            )
         );
     }
 
@@ -344,8 +357,7 @@ class BingoOfflineController extends Controller
                 $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
                 $country = $request->country ?? NULL;
                 $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
-
-                $gameMode = GameModes::getByName('line')->id;
+                $gameMode = $request->game_mode;
 
                 $room = BingoRoom::create([
                     'provider' => $request->provider,
