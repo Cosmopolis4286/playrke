@@ -15,7 +15,7 @@ class CreateUsersProvidersTable extends Migration
     {
         Schema::create('users_providers', function (Blueprint $table) {
             $table->id();
-            $table->integer('user')->unique();
+            $table->bigInteger('user');
             $table->unsignedBigInteger('country')->nullable();
             $table->unsignedBigInteger('provider');
             $table->timestamp('last_activity')->nullable();
