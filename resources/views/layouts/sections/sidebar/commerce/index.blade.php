@@ -25,7 +25,7 @@
     </li>
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('bingo-off.rooms', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('bingo.all-rooms', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>
@@ -34,7 +34,8 @@
         <ul class="nav nav-treeview">
             @if (Auth::user()->user_type == 3)
                 <li class="nav-item">
-                    <a href="{{ route('bingo-off.rooms', ['coin' => encrypt(1)]) }}" title="Salas Bingo" class="nav-link">
+                    <a href="{{ route('bingo.all-rooms', ['coin' => session('coin'), 'user' => encrypt(Auth::id())]) }}"
+                        title="Salas Bingo" class="nav-link">
                         <i class="fa-solid fa-caret-right nav-icon"></i>
                         <p>Salas</p>
                     </a>

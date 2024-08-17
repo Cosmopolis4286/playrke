@@ -823,7 +823,7 @@ class ProviderController extends Controller
             );
 
             $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'bingo-off/payments/prize-ctns');
+            $newFileName = FileController::saveImage($filePayment, 'bingo/payments/prize-ctns');
 
             if (!$newFileName) {
                 DB::rollBack();
@@ -844,7 +844,7 @@ class ProviderController extends Controller
             DB::rollBack();
 
             if (isset($newFileName)) {
-                Storage::delete('bingo-off/payments/prize-ctns/' . $newFileName);
+                Storage::delete('bingo/payments/prize-ctns/' . $newFileName);
             }
 
             Log::error('Error al crear el registro y guardar la imagen: ' . $e->getMessage());

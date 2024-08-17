@@ -7,12 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BingoSort extends Model
 {
     protected $table = 'bingo_sort';
-    protected $fillable = ['chip', 'code', 'game_mode', 'room', 'time', 'win', 'status'];
-
-    public function GameMode()
-    {
-        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
-    }
+    protected $fillable = ['chip', 'code', 'room', 'time', 'win', 'status'];
 
     public function Room()
     {

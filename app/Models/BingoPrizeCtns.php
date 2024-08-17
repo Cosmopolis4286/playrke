@@ -9,7 +9,6 @@ class BingoPrizeCtns extends Model
     protected $table = "bingo_prize_ctns";
     protected $fillable = [
         'id',
-        'game_mode',
         'room',
         'provider',
         'commerce',
@@ -23,11 +22,6 @@ class BingoPrizeCtns extends Model
         'created_at',
         'updated_at'
     ];
-
-    public function GameMode()
-    {
-        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
-    }
 
     public function Room()
     {

@@ -19,7 +19,6 @@ class CreatePlayerLinkTable extends Migration
             $table->unsignedBigInteger('country');
             $table->unsignedBigInteger('coin');
             $table->unsignedBigInteger('game');
-            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
@@ -34,7 +33,6 @@ class CreatePlayerLinkTable extends Migration
             $table->foreign('country')->references('id')->on('countries');
             $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('game')->references('id')->on('games');
-            $table->foreign('game_mode')->references('id')->on('game_modes');
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('provider')->references('id')->on('providers');
             $table->foreign('commerce')->references('id')->on('commerces');

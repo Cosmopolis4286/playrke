@@ -29,6 +29,7 @@ use App\Models\SellerCountriesCoins;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Traits\Filters;
+use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -190,7 +191,7 @@ class SellerController extends Controller
 
             if (!empty($otherCoins) && is_array($otherCoins)) {
                 $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
-                $timestamp = $this->now();
+                $timestamp = now();
 
                 $coinsToCreate = [];
                 foreach ($otherCoins as $coin) {
@@ -452,7 +453,6 @@ class SellerController extends Controller
 
                 $arrDataPlayer = [
                     'game' => 1,
-                    'game_mode' => 2,
                     'room' => $roomID,
                     'provider' => $seller->provider,
                     'commerce' => $seller->commerce,
@@ -707,7 +707,7 @@ class SellerController extends Controller
             );
 
             $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'bingo-off/payments/prize-ctns');
+            $newFileName = FileController::saveImage($filePayment, 'bingo/payments/prize-ctns');
 
             if (!$newFileName) {
                 DB::rollBack();
@@ -741,7 +741,7 @@ class SellerController extends Controller
             dd($e->getMessage());
             // Eliminar el archivo subido en caso de error
             if (isset($newFileName)) {
-                Storage::delete('bingo-off/payments/prize-ctns/' . $newFileName);
+                Storage::delete('bingo/payments/prize-ctns/' . $newFileName);
             }
             Log::error('Error al subir y guardar la imagen: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Hubo un error al subir la imagen.'], 500);
@@ -935,7 +935,7 @@ class SellerController extends Controller
             }
 
             $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'bingo-off/payments/all-ctns');
+            $newFileName = FileController::saveImage($filePayment, 'bingo/payments/all-ctns');
 
             if (!$newFileName) {
                 DB::rollBack();
@@ -958,7 +958,7 @@ class SellerController extends Controller
             DB::rollBack();
 
             if (isset($newFileName)) {
-                Storage::delete('bingo-off/payments/all-ctns' . $newFileName);
+                Storage::delete('bingo/payments/all-ctns' . $newFileName);
             }
 
             return redirect()->back()->with('error', 'Hubo un error al notificar el pago: ' . $e->getMessage());

@@ -331,12 +331,12 @@ class TriviaController extends Controller
         }
     }
 
-    public function roomshh($symCoin)
+    public function roomshh($coinSym)
     {
         $user = $this->user();
         $wallet = $this->Wallet($user->id);
         $coin = 0;
-        if (!$symCoin == 'USDT')  $coin = $wallet->Coin->id;
+        if (!$coinSym == 'USDT')  $coin = $wallet->Coin->id;
 
         $this->changeStatusRoom('');
 
@@ -390,12 +390,12 @@ class TriviaController extends Controller
             'quser_type' => count($arr_quest)
         ]);
     }
-    public function rooms($symCoin)
+    public function rooms($coinSym)
     {
         $user = $this->user();
         $wallet = $this->Wallet($user->id);
-        $coinRoom = $symCoin;
-        $coin = strtoupper($symCoin) == 'USDT' ? 1 : $wallet->Coin->id;
+        $coinRoom = $coinSym;
+        $coin = strtoupper($coinSym) == 'USDT' ? 1 : $wallet->Coin->id;
 
         // $this->changeStatusRoom('');
 
@@ -451,9 +451,9 @@ class TriviaController extends Controller
         }
     }
 
-    public function roomMulti($symCoin, $room) //Multijugador
+    public function roomMulti($coinSym, $room) //Multijugador
     {
-        $coin = Coin::where('name', $symCoin)->first();
+        $coin = Coin::where('name', $coinSym)->first();
         if (!$coin) return redirect()->back();
 
         $user = $this->user();

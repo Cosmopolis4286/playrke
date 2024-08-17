@@ -191,7 +191,7 @@
         color: white;
     }
 
-    .contTxSymCoin {
+    .contTxcoinSym {
         position: relative;
         width: 56%;
         height: 100%;
@@ -231,7 +231,7 @@
 @section('content')
     <div class="txRoomGM">
         <span>Salas de Juego</span>
-        <a href="{{ route('trivia.rooms', ['symCoin' => $wallet->Coin->name]) }}">
+        <a href="{{ route('trivia.rooms', ['coinSym' => $wallet->Coin->name]) }}">
             <small>Cambiar a {{ $wallet->Coin->info }}</samll>
         </a>
     </div>
@@ -245,7 +245,7 @@
                                 <small>Modo:</small>
                                 <span>Multiple</span>
                             </div>
-                            <div class="contTxSymCoin">
+                            <div class="contTxcoinSym">
                                 <img class="iconCryptoTriv" src="{{ asset('imgSystem/tether.svg') }}">
                                 <span>{{ $triv->precio }}</span>
                             </div>
@@ -284,7 +284,7 @@
                                 <span class="txSymCion"></span>
                                 <span id="boatRoom{{ $triv->id }}">{{ number_format($triv->jackpot, 2) }}</span>
                             </div>
-                            <div class="contTxSymCoin" title="Jugadores">
+                            <div class="contTxcoinSym" title="Jugadores">
                                 <i class="fa-solid fa-users-line"></i>
                                 <span id="playersRoom{{ $triv->id }}" class="ml-1">{{ $triv->players }}</span>
                             </div>

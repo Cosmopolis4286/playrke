@@ -8,18 +8,13 @@ class BingoPrizeCtnsPayment extends Model
 {
     protected $table = "bingo_prize_ctns_payment";
     protected $fillable = [
-        'prize_ctn', 'operation', 'game_mode', 'room', 'provider', 'commerce', 'seller', 'player_link', 'sender',
+        'prize_ctn', 'operation', 'room', 'provider', 'commerce', 'seller', 'player_link', 'sender',
         'prize_type', 'coin', 'lot', 'ctn', 'amount', 'payment_proof', 'created_at', 'updated_at'
     ];
 
     public function TypeOpt()
     {
         return $this->belongsTo(TransactionType::class, 'operation');
-    }
-
-    public function GameMode()
-    {
-        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
     }
 
     public function Prize()

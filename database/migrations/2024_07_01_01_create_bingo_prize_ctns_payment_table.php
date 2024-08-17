@@ -17,7 +17,6 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('prize_ctn');
             $table->string('operation', 1);
-            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
@@ -33,7 +32,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('prize_ctn')->references('id')->on('bingo_prize_ctns');
-            $table->foreign('game_mode')->references('id')->on('game_modes');
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('provider')->references('id')->on('providers')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('commerce')->references('id')->on('commerces')->onDelete('cascade')->onUpdate('cascade');

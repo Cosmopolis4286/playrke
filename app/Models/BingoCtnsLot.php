@@ -8,14 +8,9 @@ class BingoCtnsLot extends Model
 {
     protected $table = "bingo_ctns_lot";
     protected $fillable = [
-        'game_mode', 'coin', 'exchange_rate', 'ctns', 'sale_seller_ctns',
+        'coin', 'exchange_rate', 'ctns', 'sale_seller_ctns',
         'room', 'provider', 'commerce', 'seller', 'player_link', 'status'
     ];
-
-    public function GameMode()
-    {
-        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
-    }
 
     // Relación con la habitación
     public function Room()

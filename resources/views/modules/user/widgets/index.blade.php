@@ -35,11 +35,11 @@
     {{-- Game Room --}}
     {{-- <div class="col-12 col-sm-6 col-md-6 col-lg-3">
                 <div class="info-box mb-3 bg-rke">
-                    <a class="info-box-icon bg-navy bg-rke" href="{{ route('trivia.rooms', ['symCoin' => $wallet->Coin->name]) }}">
+                    <a class="info-box-icon bg-navy bg-rke" href="{{ route('trivia.rooms', ['coinSym' => $wallet->Coin->name]) }}">
                         <i class="fa-solid fa-piggy-bank"></i>
                     </a>
                     <div class="info-box-content">
-                        <a style="color: #00237A;" href="{{ route('trivia.rooms', ['symCoin' => $wallet->Coin->name]) }}">
+                        <a style="color: #00237A;" href="{{ route('trivia.rooms', ['coinSym' => $wallet->Coin->name]) }}">
                             <span class="info-box-number">jackpot en Juego</span>
                             <span class="info-box-text" style="color: #000 !important;">
                                 @if ($wallet->country > 0)

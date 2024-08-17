@@ -15,13 +15,11 @@ return new class extends Migration
     {
         Schema::create('bingo_sort_code', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->string('num', 1);
             $table->string('sym', 6);
             $table->timestamps();
 
-            $table->foreign('game_mode')->references('id')->on('game_modes');
             $table->foreign('room')->references('id')->on('bingo_rooms');
         });
     }

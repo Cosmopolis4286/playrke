@@ -1,4 +1,4 @@
-{{-- resources/views/components/table-info-bingo-off-rooms.blade.php --}}
+{{-- resources/views/components/table-info-bingo-rooms.blade.php --}}
 <div class="table-responsive mt-3">
     <table class="table table-striped table-bordered my-2 w-100">
         <thead>

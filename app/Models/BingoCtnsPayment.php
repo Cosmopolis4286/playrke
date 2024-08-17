@@ -8,14 +8,9 @@ class BingoCtnsPayment extends Model
 {
     protected $table = "bingo_ctns_payment";
     protected $fillable = [
-        'operation', 'game_mode', 'room', 'provider', 'commerce', 'seller', 'player_link',
+        'operation', 'room', 'provider', 'commerce', 'seller', 'player_link',
         'payment_type', 'coin', 'lot', 'amount', 'payment_proof', 'created_at', 'updated_at'
     ];
-
-    public function GameMode()
-    {
-        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
-    }
 
     public function TypeOpt()
     {

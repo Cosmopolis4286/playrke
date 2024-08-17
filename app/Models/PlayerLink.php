@@ -8,7 +8,7 @@ class PlayerLink extends Model
 {
   protected $table = "player_link";
   protected $fillable = [
-    'game', 'game_mode', 'room', 'provider', 'commerce', 'seller', 'link',
+    'game', 'room', 'provider', 'commerce', 'seller', 'link',
     'country', 'coin', 'name', 'lastname', 'identification', 'phone'
   ];
 

@@ -15,7 +15,6 @@ class CreateBingoRoomConfigTable extends Migration
     {
         Schema::create('bingo_rooms_config', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('jackpot_type')->default(1);
             $table->double('fixed_jackpot_value')->nullable();
@@ -27,7 +26,6 @@ class CreateBingoRoomConfigTable extends Migration
             $table->timestamps();
 
             // Foreign key constraint
-            $table->foreign('game_mode')->references('id')->on('game_modes');
             $table->foreign('room')->references('id')->on('bingo_rooms')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('jackpot_type')->references('id')->on('jackpot_type')->onDelete('restrict')->onUpdate('cascade');
         });

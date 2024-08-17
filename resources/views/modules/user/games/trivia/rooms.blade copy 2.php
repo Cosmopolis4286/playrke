@@ -145,7 +145,7 @@
         <div class="col-12">
             <div class="txRoomGM">
                 <span>Salas de Juego</span>
-                <a href="{{ route('trivia.rooms', ['symCoin' => $wallet->Coin->name]) }}">
+                <a href="{{ route('trivia.rooms', ['coinSym' => $wallet->Coin->name]) }}">
                     <small>Cambiar a {{ $wallet->Coin->info }}</samll>
                 </a>
             </div>

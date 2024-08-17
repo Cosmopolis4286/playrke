@@ -15,7 +15,6 @@ return new class extends Migration
     {
         Schema::create('bingo_rooms_prizes', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->boolean('jackpot')->default(1);
             $table->boolean('serials')->default(1);
@@ -26,7 +25,6 @@ return new class extends Migration
             $table->boolean('sm_cross')->default(0);
             $table->timestamps();
 
-            $table->foreign('game_mode')->references('id')->on('game_modes');
             $table->foreign('room')->references('id')->on('bingo_rooms');
         });
     }

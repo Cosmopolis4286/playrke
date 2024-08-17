@@ -8,16 +8,11 @@ class BingoCtns extends Model
 {
     protected $table = 'bingo_ctns';
     protected $fillable = [
-        'game_mode', 'room', 'provider', 'commerce', 'seller', 'player_link',  'coin', 'lot',
+        'room', 'provider', 'commerce', 'seller', 'player_link',  'coin', 'lot',
         'serial', 'created_at', 'b1', 'b2', 'b3', 'b4', 'b5', 'i1', 'i2', 'i3', 'i4', 'i5',
         'n1', 'n2', 'n3', 'n4', 'g1', 'g2', 'g3', 'g4', 'g5', 'o1', 'o2', 'o3', 'o4', 'o5',
         'created_at'
     ];
-
-    public function GameMode()
-    {
-        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
-    }
 
     public function Seller()
     {

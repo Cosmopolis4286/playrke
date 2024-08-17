@@ -20,13 +20,13 @@ class EmailVerificationPromptController extends Controller
         if ($request->user()->hasVerifiedEmail()) {
 
             $isoCode = Country::getCountryValue(Auth::user()->country, 'iso_code_2');
-            $coinSym = Coin::getValueByCountry(Auth::user()->country, 'symbol');
+            $coin = encrypt(Coin::getValueByCountry(Auth::user()->country, 'id'));
 
             // Crear la variable de sesión 'countryCode'
             $request->session()->put('countryCode', $isoCode);
 
-            // Crear la variable de sesión 'coinSym'
-            $request->session()->put('coinSym', $coinSym);
+            // Crear la variable de sesión 'coin'
+            $request->session()->put('coin', $coin);
 
             return redirect()->intended(route('dashboard', absolute: false));
         } else {

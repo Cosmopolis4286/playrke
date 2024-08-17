@@ -26,7 +26,7 @@
         <div style="position: relative">
             <div id="tx_rm_triv">SALAS DE JUEGO
                 {{-- @if ($wallet->coin > 0)
-                    <a href="{{ route('bingo.rooms', ['symCoin' => $wallet->Coin->name]) }}">
+                    <a href="{{ route('bingo.rooms', ['coinSym' => $wallet->Coin->name]) }}">
                         <span>Cambiar a {{ $wallet->Coin->info }}</span>
                     </a>
                 @endif --}}

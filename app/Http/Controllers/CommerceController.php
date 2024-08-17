@@ -355,7 +355,7 @@ class CommerceController extends Controller
             $query->where('commerce', $commerce->id);
         })->whereNot('id', 1)->get(['id', 'symbol', 'long_name']);
 
-        $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce->id, 2);
+        $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce->id, 1);
 
         $coinsNotDirectories = $this->checkBankDirectoriesExistence($commerce->user, $commerceCoins);
 
@@ -820,7 +820,7 @@ class CommerceController extends Controller
             );
 
             $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'bingo-off/payments/prize-ctns');
+            $newFileName = FileController::saveImage($filePayment, 'bingo/payments/prize-ctns');
 
             if (!$newFileName) {
                 DB::rollBack();
@@ -841,7 +841,7 @@ class CommerceController extends Controller
             DB::rollBack();
 
             if (isset($newFileName)) {
-                Storage::delete('bingo-off/payments/prize-ctns/' . $newFileName);
+                Storage::delete('bingo/payments/prize-ctns/' . $newFileName);
             }
 
             Log::error('Error al crear el registro y guardar la imagen: ' . $e->getMessage());

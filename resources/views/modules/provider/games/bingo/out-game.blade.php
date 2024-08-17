@@ -1,7 +1,7 @@
 @extends('layouts.app_rke_provider')
 @section('title', $title)
 @section('styles')
-    <link rel="stylesheet" href="{{ asset('css/styles-bingo-off.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/styles-bingo.css') }}">
 @endsection
 
 @section('content')
@@ -16,9 +16,9 @@
         </div>
     </div>
     @if ($room->status == 2)
-        @include('components.bingo-off.modal-info-draw')
+        @include('components.bingo.modal-info-draw')
     @elseif($room->status >= 3)
-        @include('components.bingo-off.modal-info-winners')
+        @include('components.bingo.modal-info-winners')
     @endif
 @endsection
 @section('scripts')
@@ -518,8 +518,8 @@
         });
     </script>
     <script src="{{ asset('js/time-functions.js') }}"></script>
-    {{-- <script src="{{ asset('js/game-bingo-off.js') }}"></script> --}}
+    {{-- <script src="{{ asset('js/game-bingo.js') }}"></script> --}}
     @if ($room->status == 2)
-        <script src="{{ asset('js/games/bingo/bingo-off-buy-ctns.js') }}"></script>
+        <script src="{{ asset('js/games/bingo/bingo-buy-ctns.js') }}"></script>
     @endif
 @endsection

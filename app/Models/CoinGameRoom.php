@@ -7,18 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class CoinGameRoom extends Model
 {
     protected $table = "coins_game_rooms";
-    protected $fillable = ['game', 'game_mode', 'room', 'coin'];
+    protected $fillable = ['game', 'room', 'coin'];
 
     public function Game()
     {
         return $this->belongsTo(Games::class, 'game');
     }
-
-    public function GameMode()
-    {
-        return $this->belongsTo(GameModes::class, 'game_mode');
-    }
-
+    
     public function Coin()
     {
         return $this->belongsTo(Coin::class, 'coin');

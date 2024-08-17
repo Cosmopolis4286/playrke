@@ -7,7 +7,8 @@
             <div class="card-body">
                 @component('components.coin-tabs', [
                     'coins' => $coins,
-                    'routeName' => 'bingo-off.rooms',
+                    'routeName' => 'bingo.all-rooms',
+                    'user' => Auth::id(),
                     'coin' => $coin,
                 ])
                 @endcomponent
@@ -16,7 +17,7 @@
                 </button>
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @component('components.table-info-bingo-off-rooms', [
+                        @component('components.table-info-bingo-rooms', [
                             'name' => $name,
                             'rooms' => $rooms,
                             'coinSym' => $coinSym,
@@ -59,7 +60,7 @@
         });
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingo-off', otherCasesMap)
+            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingo', otherCasesMap)
         });
 
         function insertInfo(type, data = '') {
@@ -129,7 +130,7 @@
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `{{ route('bingo-off.delete', ['id' => ':id']) }}`,
+                `{{ route('bingo.delete', ['id' => ':id']) }}`,
                 encryptedId
             );
         }
@@ -141,7 +142,7 @@
                     'question',
                     'Sí, repetir',
                     '#form-other-options',
-                    `{{ route('bingo-off.replay', ['id' => ':id']) }}`,
+                    `{{ route('bingo.replay', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -151,7 +152,7 @@
                     'info',
                     'Sí, publicarla',
                     '#form-other-options',
-                    `{{ route('bingo-off.publish', ['id' => ':id']) }}`,
+                    `{{ route('bingo.publish', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -161,7 +162,7 @@
                     'warning',
                     'Sí, reembolsar',
                     '#form-other-options',
-                    `{{ route('bingo-off.refund', ['id' => ':id']) }}`,
+                    `{{ route('bingo.refund', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -171,7 +172,7 @@
                     'question',
                     'Sí, copiar',
                     '#form-other-options',
-                    `{{ route('bingo-off.copy', ['id' => ':id']) }}`,
+                    `{{ route('bingo.copy', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },

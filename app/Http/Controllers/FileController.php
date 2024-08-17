@@ -23,10 +23,10 @@ class FileController extends Controller
     {
         // Verificar si el usuario está autenticado
         if (auth()->check()) {
-            // Verificar si el archivo existe en el disco 'public/bingo-off'
-            if (Storage::disk('public')->exists('bingo-off/' . $filePath)) {
+            // Verificar si el archivo existe en el disco 'public/bingo'
+            if (Storage::disk('public')->exists('bingo/' . $filePath)) {
                 // Obtener el archivo desde la carpeta storage
-                $path = storage_path('app/public/bingo-off/' . $filePath);
+                $path = storage_path('app/public/bingo/' . $filePath);
                 $file = file_get_contents($path);
                 $mimeType = mime_content_type($path);
 

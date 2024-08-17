@@ -36,13 +36,13 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $isoCode = Country::getCountryValue(Auth::user()->country, 'iso_code_2');
-        $coinSym = Coin::getValueByCountry(Auth::user()->country, 'symbol');
+        $coin = encrypt(Coin::getValueByCountry(Auth::user()->country, 'id'));
 
         // Crear la variable de sesión 'countryCode'
         $request->session()->put('countryCode', $isoCode);
 
-        // Crear la variable de sesión 'coinSym'
-        $request->session()->put('coinSym', $coinSym);
+        // Crear la variable de sesión 'coin'
+        $request->session()->put('coin', $coin);
 
         // Redirigir al usuario a la ruta de destino
         return redirect()->intended(route('dashboard', absolute: false));

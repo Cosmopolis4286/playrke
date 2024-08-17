@@ -7,16 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class BingoRoomUser extends Model
 {
     protected $table = 'bingo_rooms_user';
-    protected $fillable = ['game_mode', 'room', 'user', 'player_link', 'provider', 'commerce', 'seller', 'winner'];
+    protected $fillable = ['room', 'user', 'player_link', 'provider', 'commerce', 'seller', 'winner'];
 
     public function Seller()
     {
         return $this->belongsTo(Seller::class, 'seller');
-    }
-
-    public function GameMode()
-    {
-        return $this->belongsTo(GameModes::class, 'game_mode', 'game_mode');
     }
 
     public function Room()

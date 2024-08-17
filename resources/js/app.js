@@ -1,6 +1,6 @@
 import './bootstrap';
 
-import './games/bingo-off/channels';
+import './games/bingo/channels';
 
 import Alpine from 'alpinejs';
 

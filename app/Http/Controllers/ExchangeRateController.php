@@ -28,12 +28,12 @@ class ExchangeRateController extends Controller
         $title = 'Tasas de Cambio';
         $name = 'currency';
         $wallet = $this->Wallet(Auth::id());
-        $commerce = $this->commerce()->id;
+        $commerce = Commerce::getValueByUserId(Auth::id(), 'id');
 
         $coins = Coin::whereNot('id', 1)->get(['id', 'symbol', 'long_name']);
 
         // //with('CommerceExchangeRate')
-        // ->whereHas('CommerceExchangeRate', function ($query) {
+        // ->whereHas('CommerceExchanxgeRate', function ($query) {
         //     $query->whereColumn('coin', 'commerces_countries_coins.coin')
         //         ->where('commerce', $this->commerce()->id);
         // }) /
@@ -121,9 +121,9 @@ class ExchangeRateController extends Controller
         }
     }
 
-    private function checkExchangeRate($coin, $val = '')
+    private function checkExchangeRate($coin, $amount = '')
     {
-        if (!$val) {
+        if (!$amount) {
             try {
                 // Obtener el valor promedio de la tasa con respecto a la moneda recibida
                 $exchangeRates = CommerceExchangeRate::getValuesByCoin($coin);
@@ -149,10 +149,13 @@ class ExchangeRateController extends Controller
             }
         } else {
             $checkVal = ExchangeRate::getLastValueByCoin($coin);
-            // Ajustar $valChange si está fuera del rango permitido
-            $valChange = max($val, $checkVal - 3); // Mantener $valChange como mínimo igual a $checkVal - 3
-            $valChange = min($valChange, $checkVal + 2); // Mantener $valChange como máximo igual a $checkVal + 2
+            $valChange = $amount;
 
+            if ($checkVal) {
+                // Ajustar $valChange si está fuera del rango permitido
+                $valChange = max($amount, $checkVal - 3); // Mantener $valChange como mínimo igual a $checkVal - 3
+                $valChange = min($valChange, $checkVal + 2); // Mantener $valChange como máximo igual a $checkVal + 2
+            }
             return number_format($valChange, 2, '.', '');
         }
     }
