@@ -16,15 +16,11 @@
             <p>Conversión</p>
         </a>
     </li>
-
     <li class="nav-item has-treeview">
-    <li class="nav-item has-treeview">
-        <a href="{{ route('all-rooms', ['coin' => session('coin'), 'user' => encrypt(Auth::id())]) }}"
-            title="Salas de Juego" class="nav-link {{ !Route::is('all-rooms') ?: 'active' }}">
+        <a href="{{ route('bingo.all-rooms', ['coin' => session('coin'), 'user' => encrypt(Auth::id())]) }}"
+            title="Salas de Juego" class="nav-link {{ !Route::is('bingo.all-rooms') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo</p>
         </a>
-    </li>
-
     </li>
 @endsection

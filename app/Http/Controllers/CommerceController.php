@@ -349,11 +349,10 @@ class CommerceController extends Controller
         $wallet = $this->wallet();
         $commerce = $this->commerce(['id', 'user']);
 
-        //$this->sendMessage();
-
-        $coins = Coin::whereDoesntHave('CommerceExchangeRate', function ($query) use ($commerce) {
-            $query->where('commerce', $commerce->id);
-        })->whereNot('id', 1)->get(['id', 'symbol', 'long_name']);
+        $coins = Coin::whereIn('id', $this->getAvailableCoins($commerce->user))
+            ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($commerce) {
+                $query->where('commerce', $commerce->id);
+            })->get(['id', 'symbol', 'long_name']);
 
         $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce->id, 1);
 

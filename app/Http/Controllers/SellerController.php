@@ -488,7 +488,7 @@ class SellerController extends Controller
                 'ctnWin' => false
             ];
 
-            $carton = $this->ctnStoreline($arrDataCtns);
+            $carton = $this->cartonStore($arrDataCtns);
 
             if ($carton) {
                 DB::commit();

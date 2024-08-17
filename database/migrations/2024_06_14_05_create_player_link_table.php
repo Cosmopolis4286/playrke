@@ -22,7 +22,7 @@ class CreatePlayerLinkTable extends Migration
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
-            $table->unsignedBigInteger('seller');
+            $table->unsignedBigInteger('seller')->nullable();
             $table->string('name', 20);
             $table->string('lastname', 20);
             $table->string('identification', 12)->nullable();

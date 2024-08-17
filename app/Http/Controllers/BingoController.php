@@ -394,7 +394,7 @@ class BingoController extends Controller
 
         if ($hasCtns) return response()->json(['room' => $room, 'config' => $roomConfig]);
 
-        $this->ctnStoreline(array());
+        $this->cartonStore(array());
     }
 
     public function getChips($room)
@@ -470,20 +470,21 @@ class BingoController extends Controller
     // CRUD //     
     public function allRooms($user, $coin) //  Lista Salas de Juego
     {
-        $userTypeID = User::getValueById(decrypt($user), 'user_type');
+        $user = decrypt($user);
+
+        $userTypeID = User::getValueById($user, 'user_type');
         $userType = UserType::getValueById($userTypeID, 'prefix');
 
         //$user = $this->getUserInfoFromProvider($provider, 'hhhh');
         $userTypeVal = false;
 
         switch ($userType) {
-            case 2: // Admin
-
+            case 'admin': // Admin
                 break;
-            case 3: // Comercio
+            case 'commerce': // Comercio
                 $userTypeVal = Commerce::getValueByUserId($user, 'id');
                 break;
-            case 5: // Proveedor
+            case 'provider': // Proveedor
                 $userTypeVal = ProviderRKE::getValueByUserId($user, 'id');
                 break;
 
@@ -492,15 +493,12 @@ class BingoController extends Controller
                 break;
         }
 
-        $rooms = BingoRoom::where($userType, $userTypeVal)->get();
-
         $title = 'Salas de Bingo';
 
         $name = 'bingo';
         $wallet = $this->Wallet($this->user()->id);
-        $commerce = Commerce::getValueByUserId(Auth::id(), 'id');
 
-        $coins = BingoCtnsLot::where('commerce', 1)->distinct()->pluck('coin')->toArray();
+        $coins = BingoCtnsLot::where($userType, $userTypeVal)->distinct()->pluck('coin')->toArray();
         $coins[] = 1; // ID Coin (USDT)
         $coins = Coin::getCoinsById($coins);
         $countries = Country::getAllAvailableCountries();
@@ -526,8 +524,8 @@ class BingoController extends Controller
             'GameExchangeRate' => function ($query) use ($coin) {
                 $query->where('coin', $coin)->where('game', 1);
             }
-        ])->orderBy('status')->orderByDesc('date')
-            ->orderByDesc('time')->where('commerce', $commerce)->get();
+        ])->where($userType, $userTypeVal)->orderBy('status')
+            ->orderByDesc('date')->orderByDesc('time')->get();
 
         return view(
             'modules.game.bingo.form.index',
@@ -548,7 +546,7 @@ class BingoController extends Controller
                 $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
                 $country = $request->country ?? NULL;
                 $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
-                 
+
                 $room = BingoRoom::create([
                     'provider' => $request->provider,
                     'game_mode' => $request->game_mode,

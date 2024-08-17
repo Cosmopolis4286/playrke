@@ -296,7 +296,7 @@ trait BingoTrait
         return $numbers;
     }
 
-    public function ctnStoreline($arrCtn)
+    public function cartonStore($arrCtn)
     {
         date_default_timezone_set('America/Caracas');
 

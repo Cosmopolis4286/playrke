@@ -192,7 +192,7 @@ class BingoOLDController extends Controller
 
         if ($hasCtns) return response()->json(['room' => $room, 'config' => $roomConfig]);
 
-        $this->ctnStoreline(array());
+        $this->cartonStore(array());
     }
 
     public function getChips($room)

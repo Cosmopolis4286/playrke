@@ -387,7 +387,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'bingo', 'as' => 'bingo.'], 
     // Route::post('end', [BingoOLDController::class, 'end_game'])->name('end_game');
 });
 
-Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'bingo', 'as' => 'bingo.'], function () {
+Route::group(['middleware' => ['auth', 'provider-commerce'], 'prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('rooms/{user}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
     Route::get('games-room/{user}', [BingoController::class, 'gamesRooms'])->name('game-rooms');
     Route::post('create', [BingoController::class, 'create'])->name('create');
