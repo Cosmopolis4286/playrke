@@ -98,7 +98,7 @@
             });
 
             $.each(arrGameModes, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.config.game_mode) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
                 gameMode.append(
                     `<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });

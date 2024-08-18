@@ -14,7 +14,6 @@ trait PlayerLinkTrait
             // Crear el nuevo registro
             $player = PlayerLink::create([
                 'game' => $arr['game'], // Bingo
-                'game_mode' => $arr['game_mode'],
                 'room' => $arr['room'], // ID Sala Bingo
                 'commerce' => $arr['commerce'],
                 'seller' => $arr['seller'],

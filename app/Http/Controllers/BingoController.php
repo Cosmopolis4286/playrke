@@ -104,7 +104,7 @@ class BingoController extends Controller
 
     public function inGameProvider($room, $provider)
     {
-        $player = PlayerLink::where('link', $PJLink)->first();
+        $player = PlayerLink::where('link', $provider)->first();
         if (!$player) return redirect('/');
 
         $PJLink = $player->id;
@@ -392,7 +392,7 @@ class BingoController extends Controller
 
         $hasCtns = $this->hasPurchasedCartons($request->phone);
 
-        if ($hasCtns) return response()->json(['room' => $room, 'config' => $roomConfig]);
+        if ($hasCtns) return response()->json(['room' => [], 'config' => []]);
 
         $this->cartonStore(array());
     }
@@ -517,6 +517,7 @@ class BingoController extends Controller
 
         $rooms = BingoRoom::with([
             'Config.JackpotType',
+            'GameMode',
             'Coin',
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
@@ -634,7 +635,7 @@ class BingoController extends Controller
     {
         $id = decrypt($room);
 
-        $room = BingoRoom::where('id', $id)->select('date', 'time', 'ctn_price', 'jackpot')->firstOrFail();
+        $room = BingoRoom::where('id', $id)->select('game_mode', 'date', 'time', 'ctn_price', 'jackpot')->firstOrFail();
 
         $roomConfig = BingoRoomConfig::where('room', $id)
             ->select('jackpot_type', 'fixed_jackpot_value', 'commerce_commn', 'val_serials', 'num_serials')->firstOrFail();

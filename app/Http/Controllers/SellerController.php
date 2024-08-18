@@ -338,7 +338,7 @@ class SellerController extends Controller
         $this->checkRoomClosure();
 
         $rooms = BingoRoom::select('encrypted', 'unix_date')
-            ->where('status', 2)->where(function ($query) use ($seller) {
+            ->where('status', 2)->where('game_mode', 2)->where(function ($query) use ($seller) {
                 $query->where('commerce', $seller->commerce)->orWhere('all_for_one', 1);
             })->orderBy('date')->orderBy('time')->get();
 
@@ -438,7 +438,7 @@ class SellerController extends Controller
             $country = $request->country;
             $coin = Coin::getByIdIdOfCountry($country);
 
-            $seller = $this->seller(['id', 'provider', 'commerce']);
+            $seller = $this->seller(['id', 'commerce']);
             $player = PlayerLink::where('game', 1)->where('room', $roomID)
                 ->where('phone', $request->phone)->first();
 
@@ -454,7 +454,6 @@ class SellerController extends Controller
                 $arrDataPlayer = [
                     'game' => 1,
                     'room' => $roomID,
-                    'provider' => $seller->provider,
                     'commerce' => $seller->commerce,
                     'seller' => $seller->id,
                     'country' => $country,

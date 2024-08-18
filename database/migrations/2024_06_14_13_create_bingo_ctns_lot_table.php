@@ -15,7 +15,6 @@ return new class extends Migration
     {
         Schema::create('bingo_ctns_lot', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
@@ -28,7 +27,6 @@ return new class extends Migration
             $table->boolean('status')->default(0);
             $table->timestamps();
 
-            $table->foreign('game_mode')->references('id')->on('game_modes');
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('provider')->references('id')->on('providers');
             $table->foreign('commerce')->references('id')->on('commerces');

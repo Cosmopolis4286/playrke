@@ -34,7 +34,7 @@
         <ul class="nav nav-treeview">
             @if (Auth::user()->user_type == 3)
                 <li class="nav-item">
-                    <a href="{{ route('bingo.all-rooms', ['coin' => session('coin'), 'user' => encrypt(Auth::id())]) }}"
+                    <a href="{{ route('bingo.all-rooms', ['coin' => encrypt(1), 'user' => encrypt(Auth::id())]) }}"
                         title="Salas Bingo" class="nav-link">
                         <i class="fa-solid fa-caret-right nav-icon"></i>
                         <p>Salas</p>
