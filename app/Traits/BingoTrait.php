@@ -302,8 +302,6 @@ trait BingoTrait
 
         $room = BingoRoom::select(
             'id',
-            'provider',
-            'commerce',
             'players',
             'ctn_price',
             'all_sale',
@@ -316,7 +314,7 @@ trait BingoTrait
 
         try {
             $roomId = $room->id;
-            $provider = $arrCtn['provider'];
+            $provider = $room['provider'];
             $commerce = $arrCtn['commerce'];
             $seller = $arrCtn['seller'];
             $coin = $arrCtn['coin'];
