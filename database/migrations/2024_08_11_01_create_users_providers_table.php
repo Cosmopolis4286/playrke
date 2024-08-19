@@ -16,13 +16,14 @@ class CreateUsersProvidersTable extends Migration
         Schema::create('users_providers', function (Blueprint $table) {
             $table->id();
             $table->bigInteger('user');
-            $table->unsignedBigInteger('country')->nullable();
             $table->unsignedBigInteger('provider');
+            $table->unsignedBigInteger('country')->nullable();
+            $table->string('coin', 10);
             $table->timestamp('last_activity')->nullable();
             $table->timestamps();
 
-            $table->foreign('country')->references('id')->on('countries')->onDelete('cascade');
             $table->foreign('provider')->references('id')->on('providers')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('country')->references('id')->on('countries')->onDelete('cascade');
         });
     }
 

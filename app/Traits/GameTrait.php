@@ -69,7 +69,7 @@ trait GameTrait
         do {
             // Concatenar los valores con una cadena aleatoria para asegurar unicidad
             $randomString = bin2hex(random_bytes(5)); // Genera una cadena aleatoria
-            $data = $game . $provider . $coin . $user . $timestamp . $randomString;
+            $data = 'RKE' . $game . $provider . $coin . $user . $timestamp . $randomString . 'RKE';
 
             // Generar un hash MD5 del valor concatenado
             $uniqueId = md5($data);

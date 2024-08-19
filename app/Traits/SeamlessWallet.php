@@ -9,7 +9,7 @@ trait SeamlessWallet
 {
     private function globalCurl($provider, $bodyString, $method)
     {
-        $pvr = ProviderRKE::getById(decrypt($provider));
+        $pvr = ProviderRKE::getById($provider);
 
         // Clave de seguridad (deberías obtenerla de un lugar seguro, como un archivo de configuración)
         $securityKey = env($pvr->key);
@@ -52,53 +52,53 @@ trait SeamlessWallet
 
     public function getUserInfoFromProvider($provider, $token)
     {
-        $pvr = ProviderRKE::getById(decrypt($provider), ['brand', 'product']);
+        $pvr = ProviderRKE::getById($provider, ['brand', 'product']);
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",
             "Product" => $pvr->product,
             "Brand" => $pvr->brand,
-            "AdditionalData" => "{}",
+            "AdditionalData" => "{Teste Bingo}",
             "Token" => $token // 952549b3-45ae-11ef-aadf-bc2411bfd8ae
         ];
 
         $bodyString = json_encode($bodyArray);
 
-        $res = $this->globalCurl($provider, $bodyString, 'GetUserInfo');
+        return $this->globalCurl($provider, $bodyString, 'GetUserInfo');
     }
 
-    public function getUserBalanceFromProvider($provider, $token, $userId)
+    public function getUserBalanceFromProvider($provider, $userToken, $game = '')
     {
-        $user = UserProvider::getByUserID($userId, ['user_id', 'coin']);
+        $pvr = ProviderRKE::getById($provider, ['brand', 'product']);
 
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",
-            "Game" => "RoyalEis",
-            "Brand" => "APUESTASROYEL",
+            "Game" => $pvr->product,
+            "Brand" => $pvr->brand,
             "AdditionalData" => null,
-            "Token" => $token, // 952549b3-45ae-11ef-aadf-bc2411bfd8ae
-            "UserID" => $user->user_id,
-            "CurrencyCode" => $user->coin
+            "Token" => $userToken[1], // 952549b3-45ae-11ef-aadf-bc2411bfd8ae
+            "UserID" => $userToken[0],
+            "CurrencyCode" => ""
         ];
 
         $bodyString = json_encode($bodyArray);
 
-        $res = $this->globalCurl($provider, $bodyString, 'GetBalance');
+        return $this->globalCurl($provider, $bodyString, 'GetBalance');
     }
 
-    public function transferMoney($provider, $token, $userId, $betId, $amount, $transactionId, $transactionType)
+    public function transferMoney($provider, $userToken, $betId, $amount, $transactionId, $transactionType, $game = '')
     {
-        $user = UserProvider::getByUserID($userId, ['user_id', 'coin']);
+        $pvr = ProviderRKE::getById($provider, ['brand', 'product']);
 
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",
-            "Game" => "RoyalEis",
-            "Brand" => "APUESTASROYEL",
-            "Token" => $token,
-            "UserID" => $user->user_id,
-            "CurrencyCode" => $user->coin,
+            "Game" => $pvr->product,
+            "Brand" => $pvr->brand,
+            "Token" => $userToken[1],
+            "UserID" => $userToken[0],
+            "CurrencyCode" => '',
             "BetID" => $betId,
             "Amount" => $amount,
             "TransactionID" => $transactionId,
@@ -108,6 +108,17 @@ trait SeamlessWallet
 
         $bodyString = json_encode($bodyArray);
 
-        $res = $this->globalCurl($provider, $bodyString, 'TransferMoney');
+        return $this->globalCurl($provider, $bodyString, 'TransferMoney');
+    }
+
+    public function handleUserProviderSession($provider, $userToken)
+    {
+        $pvrResponse = $this->getUserInfoFromProvider($provider, $userToken);
+
+        if (!$pvrResponse) return false;
+
+        // Crear la variable de sesión 'userPvr'
+        $arrUserToken = [encrypt($pvrResponse['ID']), encrypt($userToken)];
+        session()->put('userPvr', $arrUserToken);
     }
 }

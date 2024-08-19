@@ -91,6 +91,8 @@ class BingoController extends Controller
                 break;
         }
 
+        // pvrResponse = $this->getUserInfoFromProvider($provider, $user);
+
         $rooms = BingoRoom::where($userType, $userTypeVal)
             ->where('game_mode', $gameMode)->whereIn('status', [2, 3])->get();
 
@@ -104,6 +106,9 @@ class BingoController extends Controller
 
     public function inGameProvider($room, $provider)
     {
+        //Obtener user_id de la variable de session
+        $userID = session('userPvr')[0];
+        
         $player = PlayerLink::where('link', $provider)->first();
         if (!$player) return redirect('/');
 

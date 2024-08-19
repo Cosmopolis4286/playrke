@@ -8,9 +8,11 @@ use App\Models\CommerceCountriesCoins;
 use App\Models\Country;
 use App\Models\PagoMovil;
 use App\Models\Pix;
+use App\Models\ProviderRKE;
 use App\Models\Seller;
 use App\Models\SellerCountriesCoins;
 use App\Models\User;
+use App\Models\UserProvider;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
 
@@ -18,7 +20,7 @@ trait UserVal
 {
     public function user()
     {
-        return auth()->user();
+        return Auth::user();
     }
 
     public function wallet()

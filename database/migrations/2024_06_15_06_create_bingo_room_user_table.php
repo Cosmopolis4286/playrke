@@ -18,13 +18,15 @@ return new class extends Migration
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
-            $table->unsignedBigInteger('player');
+            $table->integer('user')->nullable();
+            $table->unsignedBigInteger('player_link')->nullable();
             $table->string('winner', 1)->default(0);
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('provider')->references('id')->on('providers')->onUpdate('cascade');
             $table->foreign('commerce')->references('id')->on('commerces');
+            $table->foreign('player_link')->references('id')->on('player_link');
         });
     }
 

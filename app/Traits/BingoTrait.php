@@ -20,13 +20,14 @@ use App\Models\GameExchangeRate;
 use App\Models\ExchangeRate;
 use App\Models\PlayerLink;
 use App\Models\Seller;
+use App\Models\Transactions;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 trait BingoTrait
 {
-    use UserVal, EncryptRKE, GameTrait, PlayerLinkTrait;
+    use UserVal, EncryptRKE, GameTrait, PlayerLinkTrait, SeamlessWallet;
 
     public function newSort($room, $PJLinkWin = '')
     {
@@ -302,6 +303,7 @@ trait BingoTrait
 
         $room = BingoRoom::select(
             'id',
+            'game_mode',
             'players',
             'ctn_price',
             'all_sale',
@@ -320,26 +322,31 @@ trait BingoTrait
             $coin = $arrCtn['coin'];
             $numOfCtns = $arrCtn['numOfCtns'];
             $PJLink = $arrCtn['PJLink'];
+            $playerUser = $arrCtn['playerUser'];
 
-            // Obtener o crear la comisión del vendedor para la sala
-            $commnSeller = SellerRoomLimits::getGameRoomValueBySeller(1, $seller, $roomId, 'commn');
+            $totalAmountCtns = $numOfCtns * $room->ctn_price;
 
-            if (!$commnSeller) {
-                $commnSeller = Seller::getValueById($seller, 'commn');
+            if ($room->game_mode == 2) {
+                // Obtener o crear la comisión del vendedor para la sala
+                $commnSeller = SellerRoomLimits::getGameRoomValueBySeller(1, $seller, $roomId, 'commn');
 
-                SellerRoomLimits::create([
-                    'game' => 1, // Bingo 
-                    'room' => $roomId,
-                    'seller' => $seller,
-                    'commn' => $commnSeller
-                ]);
+                if (!$commnSeller) {
+                    $commnSeller = Seller::getValueById($seller, 'commn');
+
+                    SellerRoomLimits::create([
+                        'game' => 1, // Bingo 
+                        'room' => $roomId,
+                        'seller' => $seller,
+                        'commn' => $commnSeller
+                    ]);
+                }
+
+                // Conversión de Moneda para obtener valor de venta
+                $exchangeRate = ExchangeRate::getLastValueByCoin($coin);
+                $totalSaleCtns = $numOfCtns * $exchangeRate;
+                $comSaleSellerCtns = number_format($totalSaleCtns * ($commnSeller / 100), 2, '.', '');
+                $saleSellerCtns = $totalSaleCtns - $comSaleSellerCtns;
             }
-
-            // Conversión de Moneda para obtener valor de venta
-            $exchangeRate = ExchangeRate::getLastValueByCoin($coin);
-            $totalSaleCtns = $numOfCtns * $exchangeRate;
-            $comSaleSellerCtns = number_format($totalSaleCtns * ($commnSeller / 100), 2, '.', '');
-            $saleSellerCtns = $totalSaleCtns - $comSaleSellerCtns;
 
             // Crear lote de cartones de bingo
             $ctnsLote = BingoCtnsLot::create([
@@ -349,13 +356,29 @@ trait BingoTrait
                 'room' => $roomId,
                 'coin' => $coin,
                 'exchange_rate' => $exchangeRate,
+                'user' => $playerUser,
                 'player_link' => $PJLink,
                 'status' => 0,
                 'ctns' => $numOfCtns,
-                'sale_seller_ctns' => $saleSellerCtns,
+                'sale_seller_ctns' => $saleSellerCtns ?? NULL,
             ]);
 
-            $idLote = $ctnsLote->id;
+            if ($provider) { // Si el proceso el de un Proveedor  
+                $pvrResponse = false;
+                $pvrResponse = $this->getUserBalanceFromProvider($provider, []);
+
+                if (!$pvrResponse['Error']) {
+                    // Ocurrio un error inesperado
+                    DB::rollBack();
+                }
+
+                if ($pvrResponse['Data']['amount'] < $totalAmountCtns) {
+                    // Saldo insuficiente
+                    DB::rollBack();
+                }
+            }
+
+            $idLote = $ctnsLote->id; // ID de Lote de Cartones
 
             // Obtener cartones existentes para verificación de duplicados
             $existingCtns = BingoCtns::where('room', $roomId)->get()->map(function ($val) {
@@ -390,7 +413,7 @@ trait BingoTrait
             // Generar cartones de bingo
             $x = 1;
             $initials = $arrCtn['initials'];
-            $numLastCtn = BingoCtns::getLastCtnCreated();
+            $numLastCtn = BingoCtns::getLastCtnCreated($roomId);
             $numLastCtn = $numLastCtn ? $numLastCtn->id : 0;
 
             $recordsToInsert = [];
@@ -411,6 +434,7 @@ trait BingoTrait
                     // Preparar el array para insertar
                     $recordsToInsert[] = [
                         'room' => $roomId,
+                        'user' => $playerUser,
                         'player_link' => $PJLink,
                         'provider' => $provider,
                         'commerce' => $commerce,
@@ -448,22 +472,26 @@ trait BingoTrait
                 }
             }
 
-            $res = true;
-            if (!$res) DB::rollBack();
             // Insertar todos los registros en una sola consulta
             BingoCtns::insert($recordsToInsert);
 
+            // Determinar la columna y el ID del jugador según el modo de juego
+            $playerColumn = ($room->game_mode == 1) ? 'user' : 'player_link';
+            $playerID = ($room->game_mode == 1) ? $playerUser : $PJLink;
+
+            // Preparar los datos para buscar o crear el registro
+            $searchCriteria = ['room' => $roomId, $playerColumn => $playerID];
+            $defaultValues = [
+                'provider' => $provider,
+                'commerce' => $commerce,
+                'seller' => $seller,
+                'room' => $roomId,
+                'user' => $playerUser,
+                'player_link' => $PJLink
+            ];
+
             // Registrar usuario en la sala si no está ya registrado
-            $roomUser = BingoRoomUser::firstOrCreate(
-                ['room' => $roomId, 'player_link' => $PJLink],
-                [
-                    'provider' => $provider,
-                    'commerce' => $commerce,
-                    'seller' => $seller,
-                    'room' => $roomId,
-                    'player_link' => $PJLink
-                ]
-            );
+            $roomUser = BingoRoomUser::firstOrCreate($searchCriteria, $defaultValues);
 
             if ($roomUser->wasRecentlyCreated) {
                 $room->increment('players');
@@ -476,18 +504,37 @@ trait BingoTrait
             $comCommerce = ($jackpot * BingoRoomConfig::getValueByRoom($roomId, 'commerce_commn') / 100);
             $jackpot -= $comCommerce;
 
-            $room->update([
-                'all_sale' => $room->all_sale + ($numOfCtns * $room->ctn_price),
-                'commerce_commn' => $room->commerce_commn + $comCommerce,
-                'seller_commn' => $room->seller_commn + $comSaleSellerCtns,
+            // Preparar los datos para actualizar la sala
+            $updateData = [
+                'all_sale' => $room->all_sale + $totalAmountCtns,
                 'jackpot' => $jackpot,
                 'jackpot_prize' => $jackpot,
                 'ctns' => $room->ctns + $numOfCtns
-            ]);
+            ];
+
+            if ($room->game_mode) {
+                $updateData['commerce_commn'] = $room->commerce_commn + $comCommerce;
+                $updateData['seller_commn'] = $room->seller_commn + $comSaleSellerCtns;
+            }
+
+            // Actualiza la sala con los datos preparados
+            $room->update($updateData);
 
             // Registrar Nueva Moneda en CoinsGameRoom si no existe
             if (!CoinGameRoom::checkCoinGameRoom($coin, $roomId, 1)) {
                 CoinGameRoom::create(['game' => 1, 'room' => $roomId, 'coin' => $coin]);
+            }
+
+            if ($provider) { // Si existe un proveedor
+                Transactions::create([
+                    'code' => $this->getTransaction(1, $provider, $coin, $playerUser),
+                    'provider' => $provider,
+                    'game' => 1,
+                    'game_mode' => 1,
+                    'user_pvr' => $playerUser,
+                    'action' => 'BET',
+                    'amount' => $totalAmountCtns
+                ]);
             }
 
             if ($arrCtn['ctnWin'] == true) $this->newSort($room, true);
@@ -530,6 +577,7 @@ trait BingoTrait
         date_default_timezone_set('America/Caracas');
 
         try {
+
             $recordsToInsert = [];
             $playersToUpdate = [];
 
