@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Transactions extends Model
 {
     protected $table = "transactions";
-    protected $fillable = ['code', 'provider', 'game', 'game_mode', 'user_pvr', 'action', 'amount', 'status'];
+    protected $fillable = ['code', 'provider', 'game', 'game_mode', 'user_pvr', 'transaction_type', 'amount', 'status'];
 
     public static function existsCode($code, $provider)
     {

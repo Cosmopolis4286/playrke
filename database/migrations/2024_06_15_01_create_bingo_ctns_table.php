@@ -19,7 +19,8 @@ return new class extends Migration
             $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('seller')->nullable();
-            $table->unsignedBigInteger('player_link');
+            $table->integer('user')->nullable();
+            $table->unsignedBigInteger('player_link')->nullable();
             $table->unsignedBigInteger('lot');
             $table->unsignedBigInteger('coin');
             $table->string('serial', 20);

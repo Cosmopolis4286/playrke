@@ -3,7 +3,7 @@
 namespace App\Traits;
 
 use App\Models\ProviderRKE;
-use App\Models\UserProvider;
+use App\Models\Transactions;
 
 trait SeamlessWallet
 {
@@ -120,5 +120,42 @@ trait SeamlessWallet
         // Crear la variable de sesión 'userPvr'
         $arrUserToken = [encrypt($pvrResponse['ID']), encrypt($userToken)];
         session()->put('userPvr', $arrUserToken);
+    }
+
+    public function getTransaction($game, $provider, $user)
+    {
+        // Obtener la marca de tiempo fuera del bucle
+        $timestamp = time();
+
+        do {
+            // Concatenar los valores con una cadena aleatoria para asegurar unicidad
+            $randomString = bin2hex(random_bytes(5)); // Genera una cadena aleatoria
+            $data = 'RKE' . $game . $provider . $user . $timestamp . $randomString . 'RKE';
+
+            // Generar un hash MD5 del valor concatenado
+            $uniqueId = md5($data);
+        } while (Transactions::existsCode($uniqueId, $provider));
+
+        return $uniqueId;
+    }
+
+    public function registerTransaction($game = [], $provider, $userPvr, $type, $amount, $status = 0)
+    {
+        try {
+            Transactions::create([
+                'code' => $this->getTransaction($game, $provider, $userPvr),
+                'provider' => $provider,
+                'game' => $game[0],
+                'game_mode' => $game[1],
+                'user_pvr' => $userPvr,
+                'transaction_type' => $type,
+                'amount' => $amount,
+                'status' => $status
+            ]);
+            return true;
+        } catch (\Throwable $th) {
+            //throw $th;
+            return false;
+        }
     }
 }

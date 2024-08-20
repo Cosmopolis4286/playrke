@@ -19,6 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('commerce');
             $table->unsignedBigInteger('seller');
+            $table->integer('user')->nullable();
             $table->unsignedBigInteger('player_link');
             $table->string('payment_type', 1);
             $table->unsignedBigInteger('coin');
