@@ -14,13 +14,11 @@ class JackpotTypeSeeder extends Seeder
      */
     public function run()
     {
-        $data = [
+        // Insertar los datos en la tabla 'jackpot_type'
+        DB::table('jackpot_type')->insert(
             ['id' => 1, 'description' => 'Acumulativo'],
             ['id' => 2, 'description' => 'Premio'],
-            ['id' => 3, 'description' => 'Mixto'],
-        ];
-
-        // Insertar los datos en la tabla 'jackpot_type'
-        DB::table('jackpot_type')->insert($data);
+            ['id' => 3, 'description' => 'Mixto']
+        );
     }
 }

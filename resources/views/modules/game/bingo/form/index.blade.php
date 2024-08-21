@@ -32,6 +32,7 @@
     @component('components.modal-form', [
         'name' => $name,
         'size' => 'md',
+        'provider' => $provider,
         'dataForm' => view('modules.game.bingo.form.body')->render(),
     ])
     @endcomponent

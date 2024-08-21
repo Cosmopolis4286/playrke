@@ -14,15 +14,13 @@ class PixKeysSeeder extends Seeder
      */
     public function run()
     {
-        $data = [
+        // Insertar los datos en la tabla 'pix_keys'
+        DB::table('pix_keys')->insert(
             ['id' => 1, 'value' => 'CPF'],
             ['id' => 2, 'value' => 'Celular'],
             ['id' => 3, 'value' => 'Email'],
             ['id' => 4, 'value' => 'Chave aleatória'],
             ['id' => 5, 'value' => 'CPNJ']
-        ];
-
-        // Insertar los datos en la tabla 'pix_keys'
-        DB::table('pix_keys')->insert($data);
+        );
     }
 }

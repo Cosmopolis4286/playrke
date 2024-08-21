@@ -30,11 +30,13 @@
         <input type="number" value="0" id="small-prizes" name="small_prizes" class="form-control form-info"
             placeholder="Ingrese monto a pagar" required>
     </div> --}}
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="serials-commission">%Com. X Seriales</label>
-        <input type="number" value="1" min="1" max="6" step="0.01" id="serials-commission"
-            name="serials_commission" class="form-control form-info" placeholder="Ingrese valor">
-    </div>
+    @isset($provider)
+        <div class="form-group col-sm-6 col-md-4">
+            <label for="serials-commission">%Com. X Seriales</label>
+            <input type="number" value="1" min="1" max="6" step="0.01" id="serials-commission"
+                name="serials_commission" class="form-control form-info" placeholder="Ingrese valor">
+        </div>
+    @endisset
     <div class="form-group col-sm-6 col-md-4">
         <label for="val-serials">%Seriales</label>
         <input type="number" value="5" min="5" max="12" id="val-serials" name="val_serials"

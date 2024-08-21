@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             GamesSeeder::class,
             GameModesSeeder::class,
             GameStatusSeeder::class,
+            GamePrizesSeeder::class,
             JackpotTypeSeeder::class,
             GameJackpotTypeSeeder::class,
             PixKeysSeeder::class,

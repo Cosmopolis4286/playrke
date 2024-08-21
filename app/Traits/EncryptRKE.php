@@ -61,5 +61,20 @@ trait EncryptRKE
         $cipher = "aes-256-cbc";
         $decryptedText = openssl_decrypt($encryptedData, $cipher, $key, 0, $iv);
         return json_decode($decryptedText, true); // Convierte la cadena JSON a un objeto
-    }   
+    }
+
+    public function getHashMD5($value)
+    {
+        // Obtener la marca de tiempo fuera del bucle
+        $timestamp = time();
+
+        // Concatenar los valores con una cadena aleatoria para asegurar unicidad
+        $randomString = bin2hex(random_bytes(5)); // Genera una cadena aleatoria
+        $data = 'RKE' . $value . $timestamp . $randomString . 'RKE';
+
+        // Generar un hash MD5 del valor concatenado
+        $uniqueId = md5($data);
+
+        return $uniqueId;
+    }
 }

@@ -14,12 +14,10 @@ class SettingsSeeder extends Seeder
      */
     public function run()
     {
-        $data = [
-            ['description' => 'LOGIN', 'status' => 1],
-            ['description' => 'REGISTER', 'status' => 1],
-        ];
-
         // Insertar los datos en la tabla 'settings'
-        DB::table('settings')->insert($data);
+        DB::table('settings')->insert(
+            ['description' => 'LOGIN', 'status' => 1],
+            ['description' => 'REGISTER', 'status' => 1]
+        );
     }
 }

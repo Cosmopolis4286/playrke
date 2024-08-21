@@ -100,9 +100,11 @@ class BingoController extends Controller
 
         return view('modules.provider.games.bingo.game-rooms')->with([
             'title' => $title,
-            'rooms' => $rooms,
+            'rooms' => $rooms
         ]);
     }
+
+    public function generateCarton(Request $request) {}
 
     public function inGameProvider($room, $provider)
     {
@@ -262,7 +264,7 @@ class BingoController extends Controller
 
         if (!in_array($room->status, [2, 3, 4])) return redirect('/');
 
-        self::prueba($room);
+        //self::prueba($room);
 
         $title = 'BingoCash';
 
@@ -533,9 +535,11 @@ class BingoController extends Controller
         ])->where($userType, $userTypeVal)->orderBy('status')
             ->orderByDesc('date')->orderByDesc('time')->get();
 
+        $provider = $userType === 'provider';
+
         return view(
             'modules.game.bingo.form.index',
-            compact('title', 'name', 'wallet', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType', 'gameModes')
+            compact('title', 'name', 'wallet', 'provider', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType', 'gameModes')
         );
     }
 

@@ -14,16 +14,14 @@ class GameStatusSeeder extends Seeder
      */
     public function run()
     {
-        $data = [
+        // Insertar los datos en la tabla 'game_status'
+        DB::table('game_status')->insert(
             ['id' => 1, 'description' => 'N/D'],
             ['id' => 2, 'description' => 'Disponible'],
             ['id' => 3, 'description' => 'En Juego'],
             ['id' => 4, 'description' => 'Finalizada'],
             ['id' => 5, 'description' => 'Reembolso'],
-            ['id' => 6, 'description' => 'Fuera de Línea'],
-        ];
-
-        // Insertar los datos en la tabla 'game_status'
-        DB::table('game_status')->insert($data);
+            ['id' => 6, 'description' => 'Fuera de Línea']
+        );
     }
 }

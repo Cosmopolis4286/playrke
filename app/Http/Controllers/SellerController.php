@@ -422,88 +422,33 @@ class SellerController extends Controller
         }
     }
 
-    public function generateCartonStore(Request $request)
+    public function generateCarton(Request $request)
     {
-        $roomID = $request->bingo_room;
-        $room = BingoRoom::with('Config')->where('encrypted', $roomID)->select('id', 'status')->first();
+        $data = [
+            'room' => $request->bingo_room ?? null,
+            'provider' => $request->provider ?? null,
+            'country' => $request->country ?? null,
+            'playerPhone' => $request->phone ?? null,
+            'playerUser' => $request->user_pvr ?? null,
+            'playerName' => $request->name ?? null,
+            'playerLastname' => $request->last_name ?? null,
+            'numOfCtns' => $request->num_ctns ?? 0
+        ];
 
-        if ($room->status > 2) {
-            return redirect()->back()->with('message', 'Sala no disponible');
+        if (!$data['room']) {
+            return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
         }
 
-        DB::beginTransaction();
+        $res = $this->generateCartonStore($data);
 
-        try {
-            $roomID = $room->id;
-            $country = $request->country;
-            $coin = Coin::getByIdIdOfCountry($country);
+        if ($res) {
+            Session::flash('message', 'Proceso efectuado con exito');
 
-            $seller = $this->seller(['id', 'commerce']);
-            $player = PlayerLink::where('game', 1)->where('room', $roomID)
-                ->where('phone', $request->phone)->first();
+            if (!$data['provider']) Session::flash('PJLink', $this->getRouteRKE() . 'bingocash/' . $res);
 
-            $playerName = $request->name;
-            $playerLastname = $request->last_name;
-            $playerInitials = $this->initialCharacters([$playerName, $playerLastname]);
-
-            if (!$player) {
-                $PJLink = $this->createPlayerLink(1);
-                $playerDocument = null;
-                $phone = $request->phone;
-
-                $arrDataPlayer = [
-                    'game' => 1,
-                    'room' => $roomID,
-                    'commerce' => $seller->commerce,
-                    'seller' => $seller->id,
-                    'country' => $country,
-                    'coin' => $coin,
-                    'link' => $PJLink,
-                    'name' => $playerName,
-                    'lastname' => $playerLastname,
-                    'identification' => $playerDocument,
-                    'phone' => $phone
-                ];
-
-                $player = $this->createPlayerLinkInfo($arrDataPlayer);
-                if (!$player) {
-                    DB::rollBack();
-                    return redirect()->back()->withErrors(['error' => 'Hubo un error al crear la información del jugador'])->with('type', 'warning');
-                }
-            } else {
-                $player = $player->id;
-            }
-
-            $arrDataCtns = [
-                'room' => $roomID,
-                'provider' => $seller->provider,
-                'commerce' => $seller->commerce,
-                'seller' => $seller->id,
-                'PJLink' => $player,
-                'initials' => $playerInitials[0] . $playerInitials[1],
-                'coin' => $coin,
-                'numOfCtns' => $request->num_ctns,
-                'jackpotType' => $room->Config->jackpot_type,
-                'ctnWin' => false
-            ];
-
-            $carton = $this->cartonStore($arrDataCtns);
-
-            if ($carton) {
-                DB::commit();
-
-                Session::flash('message', 'Proceso efectuado con exito');
-                Session::flash('PJLink', $this->getRouteRKE() . 'bingocash/' . $PJLink);
-
-                return redirect()->back();
-            } else {
-                DB::rollBack();
-                return redirect()->back()->withErrors(['error' => 'Hubo un error al crear los cartones del jugador'])->with('type', 'warning');
-            }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al crear la información del jugador: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Se produjo un error. Inténtalo de nuevo.']);
+            return redirect()->back();
+        } else {
+            return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
         }
     }
 

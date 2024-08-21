@@ -6,7 +6,7 @@
             @include('components.card-header', ['title' => $title])
             @if ($status == 1)
                 <div class="card-body mt-n2">
-                    <form id="form-ctns" action="{{ route('seller.generateCartonStore') }}" method="POST">@csrf
+                    <form id="form-ctns" action="{{ route('seller.generateCarton') }}" method="POST">@csrf
                         <div class="row">
                             <div class="form-group col-9 col-sm-5">
                                 <label for="bingo-room">Próximos Bingo</label>
