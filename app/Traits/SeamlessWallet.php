@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Models\ProviderRKE;
 use App\Models\Transactions;
+use Illuminate\Support\Facades\Log;
 
 trait SeamlessWallet
 {
@@ -87,18 +88,25 @@ trait SeamlessWallet
         return $this->globalCurl($provider, $bodyString, 'GetBalance');
     }
 
-    public function transferMoney($provider, $userToken, $betId, $amount, $transactionId, $transactionType, $game = '')
+    public function transferMoney($provider, $userToken, $betId, $coin, $amount, $transactionId, $transactionType, $game = '')
     {
+        // Obtener datos del proveedor
         $pvr = ProviderRKE::getById($provider, ['brand', 'product']);
+
+        // Validar que se obtuvieron datos del proveedor
+        if (!$pvr) {
+            Log::error("Proveedor no encontrado: ID {$provider}");
+            return ['Error' => true, 'Message' => 'Proveedor no encontrado'];
+        }
 
         // Datos del cuerpo de la solicitud
         $bodyArray = [
-            "Ticks" => "0000000",
+            "Ticks" => "0000000", // Asegúrate de que este valor es correcto
             "Game" => $pvr->product,
             "Brand" => $pvr->brand,
-            "Token" => $userToken[1],
-            "UserID" => $userToken[0],
-            "CurrencyCode" => '',
+            "Token" => $userToken[1] ?? '',
+            "UserID" => $userToken[0] ?? '',
+            "CurrencyCode" => $coin,
             "BetID" => $betId,
             "Amount" => $amount,
             "TransactionID" => $transactionId,
@@ -108,18 +116,26 @@ trait SeamlessWallet
 
         $bodyString = json_encode($bodyArray);
 
-        return $this->globalCurl($provider, $bodyString, 'TransferMoney');
+        // Llamada al método globalCurl
+        $response = $this->globalCurl($provider, $bodyString, 'TransferMoney');
+
+        // Manejo de la respuesta
+        if (isset($response['Error']) && $response['Error']) {
+            Log::error("Error en la transferencia de dinero: " . ($response['Message'] ?? 'Error desconocido'));
+        }
+
+        return $response;
     }
 
-    public function handleUserProviderSession($provider, $userToken)
+    public function handleProviderUserSession($provider, $userToken)
     {
         $pvrResponse = $this->getUserInfoFromProvider($provider, $userToken);
 
         if (!$pvrResponse) return false;
 
         // Crear la variable de sesión 'userPvr'
-        $arrUserToken = [encrypt($pvrResponse['ID']), encrypt($userToken)];
-        session()->put('userPvr', $arrUserToken);
+        session()->put('userPvr', encrypt([$pvrResponse['ID'], $userToken]));
+        session()->put('coinUserPvr', encrypt($pvrResponse['DefaultCurrencyCode']));
     }
 
     public function getTransaction($game, $provider, $user)
@@ -142,7 +158,7 @@ trait SeamlessWallet
     public function registerTransaction($game = [], $provider, $userPvr, $type, $amount, $status = 0)
     {
         try {
-            Transactions::create([
+            $transaction = Transactions::create([
                 'code' => $this->getTransaction($game, $provider, $userPvr),
                 'provider' => $provider,
                 'game' => $game[0],
@@ -152,7 +168,7 @@ trait SeamlessWallet
                 'amount' => $amount,
                 'status' => $status
             ]);
-            return true;
+            return [$transaction->id, $transaction->code];
         } catch (\Throwable $th) {
             //throw $th;
             return false;

@@ -117,6 +117,7 @@
                 $('#val-serials').val(data.config.val_serials);
                 $('#num-serials').val(data.config.num_serials);
                 $('#commerce-commission').val(data.config.commerce_commn);
+                $('#serials-commission').val(data.config.serials_commn);
             }
 
             $(`#modal-${name}`).modal('show');

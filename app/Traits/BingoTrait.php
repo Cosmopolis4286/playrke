@@ -526,7 +526,24 @@ trait BingoTrait
             }
 
             if ($provider) { // Si existe un proveedor
-                $this->registerTransaction([1, 1], $provider, $playerUser, 'BET', $totalAmountCtns);
+
+                $userToken = decrypt(session('userPvr'));
+                $coinUserPvr = decrypt(session('coinUserPvr'));
+
+                $transaction = $this->registerTransaction([1, 1], $provider, $playerUser, 'BET', $totalAmountCtns);
+
+                // Enviar informacion al proveedor por una url externa
+                $transactionResponse = $this->transferMoney(
+                    $provider,
+                    $userToken,
+                    $playerCtn,
+                    $coinUserPvr,
+                    $prizeWn,
+                );
+
+                if ($transactionResponse['Error']) DB::rollBack();
+                // Cambiar status si la respuesta es exitosa
+                Transactions::where('id', $transaction[0])->update(['status' => 1]);
             }
 
             if ($arrCtn['ctnWin'] == true) $this->newSort($room, true);
@@ -609,22 +626,38 @@ trait BingoTrait
             //Determinar la columna según el modo de juego
             $playerColumn = ($gameMode == 1) ? 'user' : 'player_link';
 
-            // Insertar los registros de una sola vez
-            if ($recordsToInsert) {
-                BingoPrizeCtns::insert($recordsToInsert);
-                if ($provider) {
-                    foreach ($playerCtn as $ctn) {
-                        $this->registerTransaction([1, 1], $provider, $ctn->user, 'WIN', $prizeWn);
-                    }
-                }
-            }
-
             // Actualizar el estado del jugador
             if ($playersToUpdate) {
                 BingoRoomUser::where('room', $room)->whereIn($playerColumn, $playersToUpdate)
                     ->where('winner', 0)->update(['winner' => 1]);
             }
 
+            // Insertar los registros de una sola vez
+            if ($recordsToInsert) {
+                BingoPrizeCtns::insert($recordsToInsert);
+                if ($provider) {
+
+                    $userToken = decrypt(session('userPvr'));
+                    $coinUserPvr = decrypt(session('coinUserPvr'));
+
+                    foreach ($playerCtn as $ctn) {
+                        $transaction = $this->registerTransaction([1, 1], $provider, $ctn->user, 'WIN', $prizeWn);
+
+                        // Enviar informacion al proveedor por una url externa
+                        $transactionResponse = $this->transferMoney(
+                            $provider,
+                            $userToken,
+                            $playerCtn,
+                            $coinUserPvr,
+                            $prizeWn,
+                        );
+
+                        if ($transactionResponse['Error']) DB::rollBack();
+                        // Cambiar status si la respuesta es exitosa
+                        Transactions::where('id', $transaction[0])->update(['status' => 1]);
+                    }
+                }
+            }
             DB::commit();
             return true;
         } catch (\Exception $e) {

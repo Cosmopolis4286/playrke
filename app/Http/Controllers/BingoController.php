@@ -108,7 +108,7 @@ class BingoController extends Controller
     {
         //Obtener user_id de la variable de session
         $userID = session('userPvr')[0];
-        
+
         $player = PlayerLink::where('link', $provider)->first();
         if (!$player) return redirect('/');
 
@@ -574,6 +574,7 @@ class BingoController extends Controller
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
                     'commerce_commn' => $request->commerce_commission,
+                    'serials_commn' => $request->serials_commission,
                     'val_serials' => $request->val_serials,
                     'num_serials' => $request->num_serials,
                     //'val_sm_prizes' => $request->val_sm_prizes,
@@ -607,6 +608,7 @@ class BingoController extends Controller
             $coin = $request->coin ?? 1;
 
             $bingo->update([
+                'game_mode' => $request->game_mode,
                 'date' => $request->date,
                 'time' => $request->time,
                 'unix_date' => strtotime($request->date . ' ' . $request->time),
@@ -621,6 +623,7 @@ class BingoController extends Controller
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
                     'commerce_commn' => $request->commerce_commission,
+                    'serials_commn' => $request->serials_commission,
                     'val_serials' => $request->val_serials,
                     'num_serials' => $request->num_serials
                 ]
@@ -643,7 +646,7 @@ class BingoController extends Controller
         $room = BingoRoom::where('id', $id)->select('game_mode', 'date', 'time', 'ctn_price', 'jackpot')->firstOrFail();
 
         $roomConfig = BingoRoomConfig::where('room', $id)
-            ->select('jackpot_type', 'fixed_jackpot_value', 'commerce_commn', 'val_serials', 'num_serials')->firstOrFail();
+            ->select('jackpot_type', 'fixed_jackpot_value', 'commerce_commn', 'serials_commn', 'val_serials', 'num_serials')->firstOrFail();
 
         return response()->json(['room' => $room, 'config' => $roomConfig]);
     }
@@ -680,6 +683,7 @@ class BingoController extends Controller
                     'jackpot_type' => $existingRoomConfig->jackpot_type,
                     'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
                     'commerce_commn' => $existingRoomConfig->commerce_commn,
+                    'serials_commn' => $existingRoomConfig->serials_commn,
                     'val_serials' => $existingRoomConfig->val_serials,
                     'num_serials' => $existingRoomConfig->num_serials,
                     //'val_sm_prizes' => $existingRoomConfig->val_sm_prizes,
