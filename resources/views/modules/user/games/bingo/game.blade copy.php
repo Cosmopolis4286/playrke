@@ -417,7 +417,7 @@
         window.onfocus = function() {
             if (v_rtn == 1 && win == 0) {
                 $.ajax({
-                    url: '{{ asset('') }}bingo/get/chips/' + room,
+                    url: '{{ asset('') }}bingocash/get/chips/' + room,
                     headers: {
                         'X-CSRF-TOKEN': $("#token").val()
                     },
@@ -996,7 +996,7 @@
                 if (c_inf == 1 || cslt_van == 1) {
                     c_inf = 0;
                     $.ajax({
-                        url: '{{ asset('') }}bingo/info/' + room,
+                        url: '{{ asset('') }}bingocash/info/' + room,
                         headers: {
                             'X-CSRF-TOKEN': $("#token").val()
                         },

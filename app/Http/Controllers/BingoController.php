@@ -29,15 +29,17 @@ use App\Models\UserType;
 use App\Traits\BingoTrait;
 use App\Traits\Filters;
 use App\Traits\GameTrait;
+use App\Traits\RouteRKE;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 
 class BingoController extends Controller
 {
-    use EncryptRKE, UserVal, BingoTrait, GameTrait, Filters;
+    use EncryptRKE, UserVal, BingoTrait, GameTrait, RouteRKE, Filters;
 
     protected $idCommerceRKE;
 
@@ -104,10 +106,41 @@ class BingoController extends Controller
         ]);
     }
 
-    public function generateCarton(Request $request) {}
-
-    public function inGameProvider($room, $provider)
+    public function generateCarton(Request $request)
     {
+        $data = [
+            'room' => $request->bingo_room ?? null,
+            'provider' => $request->provider ?? null,
+            'country' => $request->country ?? null,
+            'playerPhone' => $request->phone ?? null,
+            'playerUser' => $request->user_pvr ?? null,
+            'playerName' => $request->name ?? null,
+            'playerLastname' => $request->last_name ?? null,
+            'numOfCtns' => $request->num_ctns ?? 0
+        ];
+
+        if (!$data['room']) {
+            return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
+        }
+
+        $res = $this->generateCartonStore($data);
+
+        if ($res) {
+            Session::flash('message', 'Proceso efectuado con exito');
+
+            if (!$data['provider']) Session::flash('PJLink', $this->getRouteRKE() . 'bingocash/' . $res);
+
+            return redirect()->back();
+        } else {
+            return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
+        }
+    }
+
+    public function inGameProvider($provider, $userToken)
+    {
+        //Consultar informacion de usuario  y crear variables de session
+        $this->handleProviderUserSession($provider, $userToken);
+
         //Obtener user_id de la variable de session
         $userID = session('userPvr')[0];
 

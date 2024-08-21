@@ -456,7 +456,7 @@
         var c_timer = 0;
 
         function rm_timer() {
-            $.getJSON("{{ asset('') }}bingo/timer/1", {
+            $.getJSON("{{ asset('') }}bingocash/timer/1", {
                     'X-CSRF-TOKEN': $("#token").val()
                 })
                 .done(res => res.forEach(value => {
@@ -574,7 +574,7 @@
 
         function status(id_sala) {
             $.ajax({
-                url: "{{ asset('') }}bingo/status/" + id_sala,
+                url: "{{ asset('') }}bingocash/status/" + id_sala,
                 headers: {
                     'X-CSRF-TOKEN': $("#token").val()
                 },

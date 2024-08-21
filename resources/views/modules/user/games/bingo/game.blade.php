@@ -486,7 +486,7 @@
 
         window.onfocus = function() {
             if (vanChange === 1 && endWin === 0) {
-                $.getJSON(`{{ asset('') }}bingo/get/chips/${idRmBing}`, {
+                $.getJSON(`{{ asset('') }}bingocash/get/chips/${idRmBing}`, {
                         '_token': $("#token").val()
                     })
                     .done(data => {
@@ -871,7 +871,7 @@
 
         async function viewCtn(ctnId) {
             try {
-                const res = await $.getJSON(`{{ asset('') }}bingo/viewCtn/${ctnId}`, {
+                const res = await $.getJSON(`{{ asset('') }}bingocash/viewCtn/${ctnId}`, {
                     '_token': $("#token").val()
                 });
 
@@ -893,7 +893,7 @@
             return new Promise((resolve, reject) => {
                 if (stopGetInfo == 0) {
                     $.get({
-                        url: `{{ asset('') }}bingo/info/${idRmBing}`,
+                        url: `{{ asset('') }}bingocash/info/${idRmBing}`,
                         headers: {
                             'X-CSRF-TOKEN': $("#token").val()
                         },

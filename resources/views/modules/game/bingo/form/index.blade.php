@@ -8,7 +8,6 @@
                 @component('components.coin-tabs', [
                     'coins' => $coins,
                     'routeName' => 'bingo.all-rooms',
-                    'user' => Auth::id(),
                     'coin' => $coin,
                 ])
                 @endcomponent
@@ -61,7 +60,7 @@
         });
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingo', otherCasesMap)
+            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap)
         });
 
         function insertInfo(type, data = '') {
