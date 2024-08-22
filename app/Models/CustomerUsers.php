@@ -4,10 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class UserProvider extends Model
+class CustomerUser extends Model
 {
-    protected $table = "users_providers";
-    protected $fillable = ['user', 'provider', 'country', 'coin', 'last_activity'];
+    protected $table = "customer_users";
+    protected $fillable = ['user_id', 'customer', 'country', 'coin', 'last_activity'];
 
     public static function getValueByUserId($userId, $value)
     {

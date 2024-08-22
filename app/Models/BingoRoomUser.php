@@ -8,7 +8,7 @@ class BingoRoomUser extends Model
 {
     protected $table = 'bingo_rooms_user';
     protected $primaryKey = 'id';
-    protected $fillable = ['room', 'user', 'player_link', 'provider', 'commerce', 'seller', 'winner'];
+    protected $fillable = ['room', 'user', 'player_link', 'commerce', 'subsidiary', 'seller', 'winner'];
 
     public function Seller()
     {

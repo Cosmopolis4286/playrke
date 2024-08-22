@@ -23,7 +23,7 @@ use App\Models\ExchangeRate;
 use App\Models\GameModes;
 use App\Models\JackpotType;
 use App\Models\PlayerLink;
-use App\Models\ProviderRKE;
+use App\Models\Customer;
 use App\Models\User;
 use App\Models\UserType;
 use App\Traits\BingoTrait;
@@ -74,7 +74,7 @@ class BingoController extends Controller
         $userTypeID = User::getValueById($user, 'user_type');
         $userType = UserType::getValueById($userTypeID, 'prefix');
 
-        //$user = $this->getUserInfoFromProvider($provider, 'hhhh');
+        //$user = $this->getUserInfoFromCustomer($customer, 'hhhh');
         $userTypeVal = false;
 
         switch ($userType) {
@@ -85,7 +85,7 @@ class BingoController extends Controller
                 $userTypeVal = Commerce::getValueByUserId($user, 'id');
                 break;
             case 5: // Proveedor
-                $userTypeVal = ProviderRKE::getValueByUserId($user, 'id');
+                $userTypeVal = Customer::getValueByUserId($user, 'id');
                 break;
 
             default:
@@ -93,14 +93,14 @@ class BingoController extends Controller
                 break;
         }
 
-        // pvrResponse = $this->getUserInfoFromProvider($provider, $user);
+        // pvrResponse = $this->getUserInfoFromCustomer($customer, $user);
 
         $rooms = BingoRoom::where($userType, $userTypeVal)
             ->where('game_mode', $gameMode)->whereIn('status', [2, 3])->get();
 
         $title = 'Bingo Salas de Juego';
 
-        return view('modules.provider.games.bingo.game-rooms')->with([
+        return view('modules.customer.games.bingo.game-rooms')->with([
             'title' => $title,
             'rooms' => $rooms
         ]);
@@ -110,7 +110,7 @@ class BingoController extends Controller
     {
         $data = [
             'room' => $request->bingo_room ?? null,
-            'provider' => $request->provider ?? null,
+            'customer' => $request->customer ?? null,
             'country' => $request->country ?? null,
             'playerPhone' => $request->phone ?? null,
             'playerUser' => $request->user_pvr ?? null,
@@ -128,7 +128,7 @@ class BingoController extends Controller
         if ($res) {
             Session::flash('message', 'Proceso efectuado con exito');
 
-            if (!$data['provider']) Session::flash('PJLink', $this->getRouteRKE() . 'bingocash/' . $res);
+            if (!$data['customer']) Session::flash('PJLink', $this->getRouteRKE() . 'bingocash/' . $res);
 
             return redirect()->back();
         } else {
@@ -136,15 +136,15 @@ class BingoController extends Controller
         }
     }
 
-    public function inGameProvider($provider, $userToken)
+    public function inGameCustomer($customer, $userToken)
     {
         //Consultar informacion de usuario  y crear variables de session
-        $this->handleProviderUserSession($provider, $userToken);
+        $this->handleCustomerUserSession($customer, $userToken);
 
         //Obtener user_id de la variable de session
         $userID = session('userPvr')[0];
 
-        $player = PlayerLink::where('link', $provider)->first();
+        $player = PlayerLink::where('link', $customer)->first();
         if (!$player) return redirect('/');
 
         $PJLink = $player->id;
@@ -193,7 +193,7 @@ class BingoController extends Controller
 
         //event(new Bingo_ProccessDraw(now()->format('H:i:s'), $room->encrypted));
 
-        return view('modules.provider.games.bingo.in-game')->with([
+        return view('modules.customer.games.bingo.in-game')->with([
             'title' => $title,
             'room' => $room,
             'jackpotType' => BingoRoomConfig::getValueByRoom($roomId, 'jackpot_type'),
@@ -356,7 +356,7 @@ class BingoController extends Controller
         ]);
     }
 
-    public function outGameProvider($dateFilter = 'today')
+    public function outGameCustomer($dateFilter = 'today')
     {
         date_default_timezone_set('America/Caracas');
 
@@ -515,7 +515,7 @@ class BingoController extends Controller
         $userTypeID = User::getValueById($user, 'user_type');
         $userType = UserType::getValueById($userTypeID, 'prefix');
 
-        //$user = $this->getUserInfoFromProvider($provider, 'hhhh');
+        //$user = $this->getUserInfoFromCustomer($customer, 'hhhh');
         $userTypeVal = false;
 
         switch ($userType) {
@@ -524,8 +524,8 @@ class BingoController extends Controller
             case 'commerce': // Comercio
                 $userTypeVal = Commerce::getValueByUserId($user, 'id');
                 break;
-            case 'provider': // Proveedor
-                $userTypeVal = ProviderRKE::getValueByUserId($user, 'id');
+            case 'customer': // Customere
+                $userTypeVal = Customer::getValueByUserId($user, 'id');
                 break;
 
             default:
@@ -568,11 +568,11 @@ class BingoController extends Controller
         ])->where($userType, $userTypeVal)->orderBy('status')
             ->orderByDesc('date')->orderByDesc('time')->get();
 
-        $provider = $userType === 'provider';
+        $customer = $userType === 'customer';
 
         return view(
             'modules.game.bingo.form.index',
-            compact('title', 'name', 'wallet', 'provider', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType', 'gameModes')
+            compact('title', 'name', 'wallet', 'customer', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType', 'gameModes')
         );
     }
 
@@ -591,9 +591,9 @@ class BingoController extends Controller
                 $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
 
                 $room = BingoRoom::create([
-                    'provider' => $request->provider,
                     'game_mode' => $request->game_mode,
                     'commerce' => Commerce::getValueByUserId($user->id, 'id'),
+                    'subsidiary' => $request->subsidiary ?? null,
                     'status' => 1,
                     'all_for_one' => 1,
                     'date' => $request->date,
@@ -702,7 +702,7 @@ class BingoController extends Controller
                 // Crear una nueva sala a partir de la existente
                 $newRoom = BingoRoom::create([
                     'game_mode' => $existingRoom->game_mode,
-                    'provider' => $existingRoom->provider,
+                    'customer' => $existingRoom->customer,
                     'commerce' => $existingRoom->commerce,
                     'status' => 1,
                     'date' => now()->format('Y-m-d'),

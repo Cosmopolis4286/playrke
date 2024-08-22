@@ -2,15 +2,15 @@
 
 namespace App\Traits;
 
-use App\Models\ProviderRKE;
+use App\Models\Customer;
 use App\Models\Transactions;
 use Illuminate\Support\Facades\Log;
 
 trait SeamlessWallet
 {
-    private function globalCurl($provider, $bodyString, $method)
+    private function globalCurl($customer, $bodyString, $method)
     {
-        $pvr = ProviderRKE::getById($provider);
+        $pvr = Customer::getById($customer);
 
         // Clave de seguridad (deberías obtenerla de un lugar seguro, como un archivo de configuración)
         $securityKey = env($pvr->key);
@@ -51,9 +51,9 @@ trait SeamlessWallet
         return $response;
     }
 
-    public function getUserInfoFromProvider($provider, $token)
+    public function getUserInfoFromCustomer($customer, $token)
     {
-        $pvr = ProviderRKE::getById($provider, ['brand', 'product']);
+        $pvr = Customer::getById($customer, ['brand', 'product']);
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",
@@ -65,12 +65,12 @@ trait SeamlessWallet
 
         $bodyString = json_encode($bodyArray);
 
-        return $this->globalCurl($provider, $bodyString, 'GetUserInfo');
+        return $this->globalCurl($customer, $bodyString, 'GetUserInfo');
     }
 
-    public function getUserBalanceFromProvider($provider, $userToken, $game = '')
+    public function getUserBalanceFromCustomer($customer, $userToken, $game = '')
     {
-        $pvr = ProviderRKE::getById($provider, ['brand', 'product']);
+        $pvr = Customer::getById($customer, ['brand', 'product']);
 
         // Datos del cuerpo de la solicitud
         $bodyArray = [
@@ -85,17 +85,17 @@ trait SeamlessWallet
 
         $bodyString = json_encode($bodyArray);
 
-        return $this->globalCurl($provider, $bodyString, 'GetBalance');
+        return $this->globalCurl($customer, $bodyString, 'GetBalance');
     }
 
-    public function transferMoney($provider, $userToken, $betId, $coin, $amount, $transactionId, $transactionType, $game = '')
+    public function transferMoney($customer, $userToken, $betId, $coin, $amount, $transactionId, $transactionType, $game = '')
     {
         // Obtener datos del proveedor
-        $pvr = ProviderRKE::getById($provider, ['brand', 'product']);
+        $pvr = Customer::getById($customer, ['brand', 'product']);
 
         // Validar que se obtuvieron datos del proveedor
         if (!$pvr) {
-            Log::error("Proveedor no encontrado: ID {$provider}");
+            Log::error("Proveedor no encontrado: ID {$customer}");
             return ['Error' => true, 'Message' => 'Proveedor no encontrado'];
         }
 
@@ -117,7 +117,7 @@ trait SeamlessWallet
         $bodyString = json_encode($bodyArray);
 
         // Llamada al método globalCurl
-        $response = $this->globalCurl($provider, $bodyString, 'TransferMoney');
+        $response = $this->globalCurl($customer, $bodyString, 'TransferMoney');
 
         // Manejo de la respuesta
         if (isset($response['Error']) && $response['Error']) {
@@ -127,9 +127,9 @@ trait SeamlessWallet
         return $response;
     }
 
-    public function handleProviderUserSession($provider, $userToken)
+    public function handleCustomerUserSession($customer, $userToken)
     {
-        $pvrResponse = $this->getUserInfoFromProvider($provider, $userToken);
+        $pvrResponse = $this->getUserInfoFromCustomer($customer, $userToken);
 
         if (!$pvrResponse) return false;
 
@@ -138,7 +138,7 @@ trait SeamlessWallet
         session()->put('coinUserPvr', encrypt($pvrResponse['DefaultCurrencyCode']));
     }
 
-    public function getTransaction($game, $provider, $user)
+    public function getTransaction($game, $customer, $user)
     {
         // Obtener la marca de tiempo fuera del bucle
         $timestamp = time();
@@ -146,21 +146,21 @@ trait SeamlessWallet
         do {
             // Concatenar los valores con una cadena aleatoria para asegurar unicidad
             $randomString = bin2hex(random_bytes(5)); // Genera una cadena aleatoria
-            $data = 'RKE' . $game . $provider . $user . $timestamp . $randomString . 'RKE';
+            $data = 'RKE' . $game . $customer . $user . $timestamp . $randomString . 'RKE';
 
             // Generar un hash MD5 del valor concatenado
             $uniqueId = md5($data);
-        } while (Transactions::existsCode($uniqueId, $provider));
+        } while (Transactions::existsCode($uniqueId, $customer));
 
         return $uniqueId;
     }
 
-    public function registerTransaction($game = [], $provider, $userPvr, $type, $amount, $status = 0)
+    public function registerTransaction($game = [], $customer, $userPvr, $type, $amount, $status = 0)
     {
         try {
             $transaction = Transactions::create([
-                'code' => $this->getTransaction($game, $provider, $userPvr),
-                'provider' => $provider,
+                'code' => $this->getTransaction($game, $customer, $userPvr),
+                'customer' => $customer,
                 'game' => $game[0],
                 'game_mode' => $game[1],
                 'user_pvr' => $userPvr,

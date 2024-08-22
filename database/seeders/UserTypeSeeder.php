@@ -22,6 +22,7 @@ class UserTypeSeeder extends Seeder
             ['id' => 4, 'description' => 'Sucursal', 'prefix' => 'subsidiary', 'status' => 1],
             ['id' => 5, 'description' => 'Vendedor', 'prefix' => 'seller', 'status' => 1],
             ['id' => 6, 'description' => 'Proveedor', 'prefix' => 'provider', 'status' => 1],
+            ['id' => 7, 'description' => 'Cliente', 'prefix' => 'customer', 'status' => 1]
         ]);
     }
 }

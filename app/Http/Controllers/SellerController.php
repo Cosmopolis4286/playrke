@@ -426,7 +426,7 @@ class SellerController extends Controller
     {
         $data = [
             'room' => $request->bingo_room ?? null,
-            'provider' => $request->provider ?? null,
+            'customer' => $request->customer ?? null,
             'country' => $request->country ?? null,
             'playerPhone' => $request->phone ?? null,
             'playerUser' => $request->user_pvr ?? null,
@@ -444,7 +444,7 @@ class SellerController extends Controller
         if ($res) {
             Session::flash('message', 'Proceso efectuado con exito');
 
-            if (!$data['provider']) Session::flash('PJLink', $this->getRouteRKE() . 'bingocash/' . $res);
+            if (!$data['customer']) Session::flash('PJLink', $this->getRouteRKE() . 'bingocash/' . $res);
 
             return redirect()->back();
         } else {

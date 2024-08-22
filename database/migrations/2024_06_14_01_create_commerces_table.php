@@ -22,11 +22,6 @@ class CreateCommercesTable extends Migration
             $table->unsignedBigInteger('user');
             $table->double('commn')->default(25);
             $table->boolean('all_in')->default(0);
-            $table->string('brand', 20)->nullable();
-            $table->string('product', 30)->nullable();
-            $table->string('link_route', 255)->nullable();
-            $table->string('token', 255);
-            $table->string('security_key', 255);
             $table->boolean('status')->default(0);
             $table->timestamps();
 

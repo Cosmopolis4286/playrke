@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BingoSort extends Model
 {
     protected $table = 'bingo_sort';
-    protected $fillable = ['chip', 'code', 'room', 'time', 'win', 'status'];
+    protected $fillable = ['chip', 'code', 'room', 'time', 'win', 'status', 'created_at', 'updated_at'];
 
     public function Room()
     {

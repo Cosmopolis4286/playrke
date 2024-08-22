@@ -7,7 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Commerce extends Model
 {
   protected $table = "commerces";
-  protected $fillable = ['name', 'country', 'coin', 'phone', 'commn', 'all_in', 'user', 'status'];
+  protected $fillable = [
+    'name',
+    'country',
+    'coin',
+    'phone',
+    'commn',
+    'all_in',
+    'user',
+    'status'
+  ];
 
   public function Country()
   {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\UserType;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,12 +24,15 @@ class Commerce
             return redirect()->route('login')->with('error', 'Por favor, inicie sesión para continuar.');
         }
 
-        // Verificar si el usuario es de tipo 2 (admin) o tipo 3 (comercio)
-        if (Auth::user()->user_type == 2 || Auth::user()->user_type == 3) {
+        $userType = Auth::user()->user_type;
+        $allowedPrefixes = ['admin', 'commerce'];
+
+        // Verificar si el tipo de usuario es permitido
+        if (in_array(UserType::getValueById($userType, 'prefix'), $allowedPrefixes)) {
             return $next($request); // Permite el acceso al siguiente middleware o ruta
         }
 
-        // Redirigir al dashboard si el usuario no es de tipo 2 ni tipo 3
+        // Redirigir al dashboard si el usuario no tiene permiso
         return redirect()->route('dashboard')->with('error', 'Acceso denegado.');
     }
 }

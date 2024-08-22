@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\UserType;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,7 @@ class Admin
         }
 
         // Verificar si el usuario es de tipo 2 (admin)
-        if (Auth::user()->user_type == 2) {
+        if (UserType::getValueById(Auth::user()->user_type, 'prefix') == 'admin') {
             return $next($request); // Permite el acceso al siguiente middleware o ruta
         }
 

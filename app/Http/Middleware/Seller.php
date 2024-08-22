@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\UserType;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,8 +24,8 @@ class Seller
             return redirect()->route('login')->with('error', 'Por favor, inicie sesión para continuar.');
         }
 
-        // Verificar si el usuario es de tipo 4 (vendedor)
-        if (Auth::user()->user_type == 4) {
+        // Verificar si el usuario es de tipo 'seller' (vendedor)
+        if (UserType::getValueById(Auth::user()->user_type, 'prefix') == 'seller') {
             return $next($request); // Permite el acceso al siguiente middleware o ruta
         }
 

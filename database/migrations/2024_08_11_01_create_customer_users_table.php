@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateUsersCommercesTable extends Migration
+class CreateCustomerUsersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,28 +13,26 @@ class CreateUsersCommercesTable extends Migration
      */
     public function up()
     {
-        Schema::create('users_commerces', function (Blueprint $table) {
+        Schema::create('customer_users', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('commerce');
-            $table->unsignedBigInteger('subsidiary')->nullable();
+            $table->unsignedBigInteger('customer');
             $table->bigInteger('user_id');
             $table->unsignedBigInteger('country')->nullable();
             $table->string('coin', 10);
             $table->timestamp('last_activity')->nullable();
             $table->timestamps();
 
-            $table->foreign('commerce')->references('id')->on('commerces')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('customer')->references('id')->on('customers')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('country')->references('id')->on('countries')->onDelete('cascade');
-            $table->foreign('subsidiary')->references('id')->on('subsidiaries')->onDelete('cascade')->onUpdate('cascade');
         });
     }
 
     public function down()
     {
-        Schema::table('users_providers', function (Blueprint $table) {
+        Schema::table('customer_users', function (Blueprint $table) {
             $table->dropForeign(['country']);
-            $table->dropForeign(['provider']);
+            $table->dropForeign(['customer']);
         });
-        Schema::dropIfExists('users_providers');
+        Schema::dropIfExists('customer_users');
     }
 }

@@ -8,7 +8,7 @@ class BingoPrizeCtnsPayment extends Model
 {
     protected $table = "bingo_prize_ctns_payment";
     protected $fillable = [
-        'prize_ctn', 'operation', 'room', 'provider', 'commerce', 'seller', 'player_link', 'sender',
+        'prize_ctn', 'operation', 'room', 'commerce', 'subsidiary', 'seller', 'player_link', 'sender',
         'prize_type', 'coin', 'lot', 'ctn', 'amount', 'payment_proof', 'created_at', 'updated_at'
     ];
 

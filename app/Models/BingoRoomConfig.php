@@ -7,12 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 class BingoRoomConfig extends Model
 {
   protected $table = "bingo_rooms_config";
-  protected $fillable = ['room', 'jackpot_type', 'fixed_jackpot_value', 'replay', 'commerce_commn', 'serials_commn', 'val_serials', 'num_serials', 'val_sm_prizes'];
+  protected $fillable = [
+    'room',
+    'jackpot_type',
+    'fixed_jackpot_value',
+    'replay',
+    'commerce_commn',
+    'serials_commn',
+    'val_serials',
+    'num_serials',
+    'val_sm_prizes'
+  ];
 
   public function Room()
   {
     return $this->belongsTo(BingoRoom::class, 'room');
-  } 
+  }
 
   public function JackpotType()
   {
