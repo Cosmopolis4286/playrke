@@ -159,7 +159,7 @@ class ProviderController extends Controller
 
             $newUser = User::create([
                 'username' => $request->username,
-                'user_type' => 3, // Comercio
+                'user_type' => 5, // Proveedor
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
@@ -169,47 +169,49 @@ class ProviderController extends Controller
             // Crear un nuevo Wallet para el usuario
             Wallet::create(['coin' => $request->coin, 'user' => $newUser->id]);
 
-            $provider = Commerce::create([
+            $commerce = Commerce::create([
                 'name' => $request->name,
-                'phone' => $request->phone,
-                'coin' => $request->coin,
-                'country' => $request->country,
-                'status' => 1,
-                'user' => $newUser->id
+                'user' => $request->phone,
+                'pvr_type' => $request->coin,
+                'brand' => $request->country,
+                'product' => 1,
+                'link_route' => $newUser->id,
+                'token' => 1,
+                'security_key' => 1,
             ]);
 
-            // Registar moneda Principal
-            CommerceCountriesCoins::create([
-                'provider' => $provider->id,
-                'country' => $provider->country,
-                'coin' => $provider->coin,
-                'status' => 1
-            ]);
+            // // Registar moneda Principal
+            // CommerceCountriesCoins::create([
+            //     'provider' => $provider->id,
+            //     'country' => $provider->country,
+            //     'coin' => $provider->coin,
+            //     'status' => 1
+            // ]);
 
-            $otherCoins = $request->other_coins;
+            //$otherCoins = $request->other_coins;
 
-            if (!empty($otherCoins) && is_array($otherCoins)) {
-                $otherCoins = Coin::getCoinsById($otherCoins);
-                $timestamp = now();
+            // if (!empty($otherCoins) && is_array($otherCoins)) {
+            //     $otherCoins = Coin::getCoinsById($otherCoins);
+            //     $timestamp = now();
 
-                $coinsToCreate = [];
-                foreach ($otherCoins as $coin) {
-                    $coinsToCreate[] = [
-                        'provider' => $provider->id,
-                        'country' => $coin->country,
-                        'coin' => $coin->id,
-                        'status' => 1,
-                        'created_at' => $timestamp,
-                        'updated_at' => $timestamp
-                    ];
-                }
-                CommerceCountriesCoins::insert($coinsToCreate);
-            }
+            //     $coinsToCreate = [];
+            //     foreach ($otherCoins as $coin) {
+            //         $coinsToCreate[] = [
+            //             'provider' => $provider->id,
+            //             'country' => $coin->country,
+            //             'coin' => $coin->id,
+            //             'status' => 1,
+            //             'created_at' => $timestamp,
+            //             'updated_at' => $timestamp
+            //         ];
+            //     }
+            //     CommerceCountriesCoins::insert($coinsToCreate);
+            // }
 
             DB::commit();
 
             // Mensajes flash con tiempo de expiración personalizado
-            Session::flash('message', 'Comercio ' . $request->name . ' registrado con éxito');
+            Session::flash('message', 'Proveedor ' . $request->name . ' registrado con éxito');
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();

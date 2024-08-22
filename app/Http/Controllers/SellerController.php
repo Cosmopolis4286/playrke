@@ -27,6 +27,7 @@ use App\Models\Country;
 use App\Models\ExchangeRate;
 use App\Models\SellerCountriesCoins;
 use App\Models\User;
+use App\Models\UserType;
 use App\Models\Wallet;
 use App\Traits\Filters;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -157,7 +158,7 @@ class SellerController extends Controller
 
             $newUser = User::create([
                 'username' => $request->username,
-                'user_type' => 4, // Vendedor
+                'user_type' => UserType::getValueByPrefix('seller', 'id'), // Vendedor
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,

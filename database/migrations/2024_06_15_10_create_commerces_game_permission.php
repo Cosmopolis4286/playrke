@@ -15,14 +15,12 @@ return new class extends Migration
     {
         Schema::create('commerces_game_permission', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('game_mode');
             $table->boolean('status')->default(0);
             $table->timestamps();
 
-            $table->foreign('provider')->references('id')->on('providers');
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('game')->references('id')->on('games');
             $table->foreign('game_mode')->references('id')->on('game_modes');

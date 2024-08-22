@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateUsersProvidersTable extends Migration
+class CreateUsersCommercesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,17 +13,19 @@ class CreateUsersProvidersTable extends Migration
      */
     public function up()
     {
-        Schema::create('users_providers', function (Blueprint $table) {
+        Schema::create('users_commerces', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('user');
-            $table->unsignedBigInteger('provider');
+            $table->unsignedBigInteger('commerce');
+            $table->unsignedBigInteger('subsidiary')->nullable();
+            $table->bigInteger('user_id');
             $table->unsignedBigInteger('country')->nullable();
             $table->string('coin', 10);
             $table->timestamp('last_activity')->nullable();
             $table->timestamps();
 
-            $table->foreign('provider')->references('id')->on('providers')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('commerce')->references('id')->on('commerces')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('country')->references('id')->on('countries')->onDelete('cascade');
+            $table->foreign('subsidiary')->references('id')->on('subsidiaries')->onDelete('cascade')->onUpdate('cascade');
         });
     }
 

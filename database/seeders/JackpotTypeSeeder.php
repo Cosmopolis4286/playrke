@@ -15,10 +15,10 @@ class JackpotTypeSeeder extends Seeder
     public function run()
     {
         // Insertar los datos en la tabla 'jackpot_type'
-        DB::table('jackpot_type')->insert(
+        DB::table('jackpot_type')->insert([
             ['id' => 1, 'description' => 'Acumulativo'],
             ['id' => 2, 'description' => 'Premio'],
             ['id' => 3, 'description' => 'Mixto']
-        );
+        ]);
     }
 }

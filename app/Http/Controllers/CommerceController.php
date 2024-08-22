@@ -21,6 +21,7 @@ use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\Country;
 use App\Models\SellerCountriesCoins;
+use App\Models\UserType;
 use App\Models\Wallet;
 use App\Traits\BingoTrait;
 use App\Traits\Filters;
@@ -158,7 +159,7 @@ class CommerceController extends Controller
 
             $newUser = User::create([
                 'username' => $request->username,
-                'user_type' => 3, // Comercio
+                'user_type' => UserType::getValueByPrefix('commerce', 'id'),
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,

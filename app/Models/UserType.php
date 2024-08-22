@@ -13,4 +13,9 @@ class UserType extends Model
     {
         return self::where('id', $id)->value($value);
     }
+
+    public static function getValueByPrefix($prefix, $value)
+    {
+        return self::where('prefix', $prefix)->value($value);
+    }
 }

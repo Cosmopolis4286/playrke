@@ -15,10 +15,10 @@ class CoinsSeeder extends Seeder
     public function run()
     {
         // Insertar los datos en la tabla 'coins'
-        DB::table('coins')->insert(
+        DB::table('coins')->insert([
             ['id' => 1, 'symbol' => 'USDT', 'short_name' => 'USDT', 'long_name' => 'Tether USDT', 'country' => NULL, 'status' => 1],
             ['id' => 2, 'symbol' => 'Bs', 'short_name' => 'Bolívar', 'long_name' => 'Bolívar', 'country' => 234, 'status' => 1],
             ['id' => 3, 'symbol' => 'R$', 'short_name' => 'Real', 'long_name' => 'Real brasileño', 'country' => 29, 'status' => 1]
-        );
+        ]);
     }
 }

@@ -15,9 +15,9 @@ class GameModesSeeder extends Seeder
     public function run()
     {
         // Insertar los datos en la tabla 'game_modes'
-        DB::table('game_modes')->insert(
+        DB::table('game_modes')->insert([
             ['id' => 1, 'description' => 'Online', 'status' => 1],
             ['id' => 2, 'description' => 'Offline', 'status' => 1]
-        );
+        ]);
     }
 }

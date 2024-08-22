@@ -16,18 +16,21 @@ class CreateCommercesTable extends Migration
         Schema::create('commerces', function (Blueprint $table) {
             $table->id();
             $table->string('name', 30);
-            $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('country');
             $table->unsignedBigInteger('coin');
             $table->string('phone', 12);
             $table->unsignedBigInteger('user');
             $table->double('commn')->default(25);
             $table->boolean('all_in')->default(0);
+            $table->string('brand', 20)->nullable();
+            $table->string('product', 30)->nullable();
+            $table->string('link_route', 255)->nullable();
+            $table->string('token', 255);
+            $table->string('security_key', 255);
             $table->boolean('status')->default(0);
             $table->timestamps();
 
             // Foreign keys
-            $table->foreign('provider')->references('id')->on('providers');
             $table->foreign('country')->references('id')->on('countries');
             $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('user')->references('id')->on('users');

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('operation', 1);
             $table->unsignedBigInteger('room');
             $table->unsignedBigInteger('commerce');
+            $table->unsignedBigInteger('subsidiary');
             $table->unsignedBigInteger('seller');
             $table->integer('user')->nullable();
             $table->unsignedBigInteger('player_link');
@@ -30,6 +31,7 @@ return new class extends Migration
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('commerce')->references('id')->on('commerces');
+            $table->foreign('subsidiary')->references('id')->on('subsidiaries');
             $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade');
             $table->foreign('player_link')->references('id')->on('player_link');
             $table->foreign('coin')->references('id')->on('coins');

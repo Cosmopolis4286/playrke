@@ -18,8 +18,8 @@ return new class extends Migration
             $table->unsignedBigInteger('prize_ctn');
             $table->string('operation', 1);
             $table->unsignedBigInteger('room');
-            $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
+            $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('seller');
             $table->unsignedBigInteger('player_link');
             $table->unsignedBigInteger('sender');
@@ -33,8 +33,8 @@ return new class extends Migration
 
             $table->foreign('prize_ctn')->references('id')->on('bingo_prize_ctns');
             $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('provider')->references('id')->on('providers')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('commerce')->references('id')->on('commerces')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('subsidiary')->references('id')->on('subsidiaries')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('player_link')->references('id')->on('player_link')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('sender')->references('id')->on('users')->onDelete('cascade');

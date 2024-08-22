@@ -20,8 +20,8 @@ class CreatePlayerLinkTable extends Migration
             $table->unsignedBigInteger('coin');
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('room');
-            $table->unsignedBigInteger('provider')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
+            $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('seller')->nullable();
             $table->string('name', 20);
             $table->string('lastname', 20);
@@ -34,8 +34,8 @@ class CreatePlayerLinkTable extends Migration
             $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('game')->references('id')->on('games');
             $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('provider')->references('id')->on('providers');
             $table->foreign('commerce')->references('id')->on('commerces');
+            $table->foreign('subsidiary')->references('id')->on('subsidiaries');
             $table->foreign('seller')->references('id')->on('sellers');
         });
     }

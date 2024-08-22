@@ -16,17 +16,19 @@ class CreateTransactionsTable extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
-            $table->unsignedBigInteger('provider');
+            $table->unsignedBigInteger('commerce');
+            $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('game_mode');
-            $table->unsignedBigInteger('user_pvr');
+            $table->unsignedBigInteger('user_id');
             $table->string('action', 12);
             $table->double('amount');
             $table->boolean('status')->default(0);
             $table->timestamps();
 
-            $table->foreign('provider')->references('id')->on('providers')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('user_pvr')->references('id')->on('users_providers')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('commerce')->references('id')->on('commerces')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('subsidiary')->references('id')->on('subsidiaries');
+            $table->foreign('user_id')->references('id')->on('users_commerces')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('game')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('game_mode')->references('id')->on('game_modes');
         });

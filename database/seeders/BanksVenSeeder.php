@@ -14,7 +14,8 @@ class BanksVenSeeder extends Seeder
      */
     public function run()
     {
-        $data = [
+        // Insertar los datos en la tabla 'banks_ven'
+        DB::table('banks_ven')->insert([
             ['id' => 1, 'name' => 'Venezuela', 'code' => '0102'],
             ['id' => 2, 'name' => 'Venezolano de Crédito', 'code' => '0104'],
             ['id' => 3, 'name' => 'Mercantil', 'code' => '0105'],
@@ -37,10 +38,7 @@ class BanksVenSeeder extends Seeder
             ['id' => 20, 'name' => 'Bancamiga', 'code' => '0172'],
             ['id' => 21, 'name' => 'Banplus', 'code' => '0174'],
             ['id' => 22, 'name' => 'BNC', 'code' => '0191'],
-            ['id' => 23, 'name' => 'Banfanb', 'code' => '0177'],
-        ];
-
-        // Insertar los datos en la tabla 'banks_ven'
-        DB::table('banks_ven')->insert($data);
+            ['id' => 23, 'name' => 'Banfanb', 'code' => '0177']
+        ]);
     }
 }
