@@ -14,12 +14,14 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name', 30);
+            $table->string('description', 45)->nullable();
             $table->unsignedBigInteger('country')->nullable();
             $table->string('phone', 12)->nullable();
             $table->double('commn')->nullable();
             $table->boolean('all_in')->default(0);
-            $table->string('brand', 20)->nullable();
-            $table->string('product', 30)->nullable();
+            $table->string('brand', 25)->nullable();
+            $table->string('product', 25)->nullable();
+            $table->string('logo', 35)->nullable();
             $table->string('link_route', 255)->nullable();
             $table->string('token', 255)->nullable();
             $table->string('security_key', 255)->nullable();

@@ -8,15 +8,34 @@ class BingoRoom extends Model
 {
   protected $table = "bingo_rooms";
   protected $fillable = [
-    'game_mode', 'customer', 'commerce', 'subsidiary', 'status', 'all_for_one', 'paid_win', 
-    'date', 'time', 'country', 'coin', 'publication_date', 'ctn_price', 'players', 
-    'all_sale', 'commerce_commn', 'seller_commn', 'jackpot', 'jackpot_prize', 
-    'serial_prize', 'ctns', 'close_room', 'encrypted'
+    'game_mode',
+    'customer',
+    'commerce',
+    'subsidiary',
+    'status',
+    'all_for_one',
+    'paid_win',
+    'date',
+    'time',
+    'country',
+    'coin',
+    'publication_date',
+    'ctn_price',
+    'players',
+    'all_sale',
+    'commerce_commn',
+    'seller_commn',
+    'jackpot',
+    'jackpot_prize',
+    'serial_prize',
+    'ctns',
+    'close_room',
+    'encrypted'
   ];
 
   public function GameMode()
   {
-      return $this->belongsTo(GameModes::class, 'game_mode', 'id');
+    return $this->belongsTo(GameModes::class, 'game_mode', 'id');
   }
 
   public function Status()
@@ -37,6 +56,11 @@ class BingoRoom extends Model
   public function Coin()
   {
     return $this->belongsTo(Coin::class, 'coin');
+  }
+
+  public function Customer()
+  {
+    return $this->belongsTo(Customer::class, 'customer');
   }
 
   public function Commerce()

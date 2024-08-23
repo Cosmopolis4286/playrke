@@ -35,4 +35,14 @@ class Customer extends Model
   {
     return self::where('id', $id)->value($value);
   }
+
+  public static function getByToken($token, $fields = ['*'])
+  {
+    return self::select($fields)->where('token', $token)->first();
+  }
+
+  public static function getValueByToken($token, $value)
+  {
+    return self::where('token', $token)->value($value);
+  }
 }

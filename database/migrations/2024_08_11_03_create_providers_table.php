@@ -17,7 +17,7 @@ class CreateProvidersTable extends Migration
             $table->id();
             $table->string('name', 30)->unique();
             $table->string('description', 45)->nullable();
-            $table->string('brand', 20)->nullable();
+            $table->string('brand', 25)->nullable();
             $table->string('logo', 35)->nullable();
             $table->string('link_route', 255)->nullable();
             $table->string('token', 255);

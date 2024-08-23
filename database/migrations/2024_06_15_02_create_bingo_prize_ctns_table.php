@@ -16,10 +16,11 @@ return new class extends Migration
         Schema::create('bingo_prize_ctns', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
+            $table->unsignedBigInteger('customer')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('seller');
-            $table->integer('user');
+            $table->integer('player_user');
             $table->unsignedBigInteger('player_link');
             $table->unsignedBigInteger('lot');
             $table->unsignedBigInteger('ctn');
@@ -30,6 +31,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
+            $table->foreign('customer')->references('id')->on('customers');
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('subsidiary')->references('id')->on('subsidiaries');
             $table->foreign('player_link')->references('id')->on('player_link');

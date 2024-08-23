@@ -10,12 +10,13 @@ class BingoPrizeCtns extends Model
     protected $fillable = [
         'id',
         'room',
+        'customer',
         'commerce',
         'subsidiary',
         'seller',
+        'player_user',
         'player_link',
         'ctn',
-        'user',
         'prize_type',
         'coin',
         'amount',
@@ -29,9 +30,9 @@ class BingoPrizeCtns extends Model
         return $this->belongsTo(BingoRoom::class, 'room');
     }
 
-    public function Provider()
+    public function Customer()
     {
-        return $this->belongsTo(ProviderRKE::class, 'provider');
+        return $this->belongsTo(Customer::class, 'customer');
     }
 
     public function Commerce()
@@ -42,6 +43,11 @@ class BingoPrizeCtns extends Model
     public function Seller()
     {
         return $this->belongsTo(Seller::class, 'seller');
+    }
+
+    public function Provider()
+    {
+        return $this->belongsTo(ProviderRKE::class, 'provider');
     }
 
     public function PlayerLink()

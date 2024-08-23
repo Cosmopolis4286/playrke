@@ -51,9 +51,9 @@ trait SeamlessWallet
         return $response;
     }
 
-    public function getUserInfoFromCustomer($customer, $token)
+    public function getUserInfoFromCustomer($customerId, $token)
     {
-        $customer = Customer::getById($customer, ['brand', 'product']);
+        $customer = Customer::getById($customerId, ['brand', 'product']);
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",

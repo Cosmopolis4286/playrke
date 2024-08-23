@@ -406,13 +406,18 @@ Route::post('bingocash/actWn', [BingoController::class, 'actWn'])
 
 // BingoCash -Jugador-
 Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
-    // Rutas Jugador/Comercio
+
+    // Rutas Jugador/Comercio TODOS
     Route::get('game/{dateFilter?}', [BingoController::class, 'outGame'])->name('outGame');
     Route::get('{PlayerLink}', [BingoController::class, 'inGame'])->name('inGame');
 
+    // Ruta /Jugador/Comercio Especifico
+    Route::get('comm/{commerce}/{PlayerLink}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
+    Route::get('comm/{commerce}/game/{dateFilter?}', [BingoController::class, 'outGameCommerce'])->name('out-game-commerce');
+
     // Rutas Jugador/Cliente
     Route::get('rke/{cust}/game/{dateFilter?}', [BingoController::class, 'outGameCustomer'])->name('out-game');
-    Route::get('rke/{cust}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('in-game-customer');
+    Route::get('rke/{cust}/room/{room}/{userToken}', [BingoController::class, 'inGameCustomer'])->name('in-game-customer');
 
     Route::get('getSort/{room}', [BingoController::class, 'getSort'])->name('getSort');
     Route::get('get/chips/{room}', [BingoController::class, 'getChips'])->name('getChips');

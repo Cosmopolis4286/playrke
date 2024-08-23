@@ -19,9 +19,9 @@
         </div>
     </div>
     @if ($room->status == 2)
-        @include('components.bingo.layout.modal-info-draw')
+        @include('components.game.bingo.layout.modal-info-draw')
     @elseif($room->status >= 3)
-        @include('components.bingo.layout.modal-info-winners')
+        @include('components.game.bingo.layout.modal-info-winners')
     @endif
 @endsection
 

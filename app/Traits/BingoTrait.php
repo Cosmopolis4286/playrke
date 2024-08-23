@@ -703,7 +703,7 @@ trait BingoTrait
 
                 $recordsToInsert[] = [
                     'room' => $room,
-                    'user' => $ctn->user,
+                    'player_user' => $ctn->player_user,
                     'player_link' => $ctn->player_link,
                     'commerce' => $ctn->commerce,
                     'seller' => $ctn->seller,
@@ -846,7 +846,7 @@ trait BingoTrait
 
         // Obtener información de los cartones ganadores
         $playerCtn = BingoCtns::where('room', $roomID)->whereIn('id', $arrCtnWin)
-            ->get(['id', 'commerce', 'seller', 'user', 'player_link', 'coin', 'lot']);
+            ->get(['id', 'commerce', 'seller', 'player_user', 'player_link', 'coin', 'lot']);
 
         // Obtener la cantidad de ganadores distintos
         $winnersCount = $filteredCtns->pluck('player_link')->unique()->count();
@@ -1015,7 +1015,7 @@ trait BingoTrait
         $arrSerialsPlayers = $filteredCtns->pluck('serial')->toArray();
 
         $ctnSerials = BingoCtns::whereIn('serial', $arrSerialsPlayers)
-            ->where('room', $room)->get(['id', 'commerce', 'seller', 'player_link', 'coin', 'lot']);
+            ->where('room', $room)->get(['id', 'commerce', 'seller', 'player_user', 'player_link', 'coin', 'lot']);
 
         $USDPrize = BingoRoom::getSerialPrize($room) / count($arrSerialsPlayers);
         try {
