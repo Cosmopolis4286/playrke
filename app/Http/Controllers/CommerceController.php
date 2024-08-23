@@ -519,7 +519,8 @@ class CommerceController extends Controller
         $coins = $this->getCommerceCoins($commerce, '', ['CtnsLot', 'Coin']);
 
         return view('modules/commerce/games/bingo/report/by-room')->with([
-            'title' => 'Reporte de Sala',
+            'title' => "Reporte de Sala",
+            'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
             'ctnPrice' => $room->ctn_price,
             'wallet' => $wallet,
             'sellers' => $sellers,

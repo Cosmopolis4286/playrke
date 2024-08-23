@@ -10,10 +10,10 @@ trait SeamlessWallet
 {
     private function globalCurl($customer, $bodyString, $method)
     {
-        $pvr = Customer::getById($customer);
+        $customer = Customer::getById($customer);
 
         // Clave de seguridad (deberías obtenerla de un lugar seguro, como un archivo de configuración)
-        $securityKey = env($pvr->key);
+        $securityKey = env($customer->key);
 
         // Concatenar el cuerpo de la solicitud con la clave de seguridad
         $combinedString = $bodyString . $securityKey;
@@ -26,7 +26,7 @@ trait SeamlessWallet
 
         // Configurar las opciones de CURL
         curl_setopt_array($curl, array(
-            CURLOPT_URL => "http://{$pvr->link_route}/{$method}",
+            CURLOPT_URL => "http://{$customer->link_route}/{$method}",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
@@ -53,12 +53,12 @@ trait SeamlessWallet
 
     public function getUserInfoFromCustomer($customer, $token)
     {
-        $pvr = Customer::getById($customer, ['brand', 'product']);
+        $customer = Customer::getById($customer, ['brand', 'product']);
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",
-            "Product" => $pvr->product,
-            "Brand" => $pvr->brand,
+            "Product" => $customer->product,
+            "Brand" => $customer->brand,
             "AdditionalData" => "{Teste Bingo}",
             "Token" => $token // 952549b3-45ae-11ef-aadf-bc2411bfd8ae
         ];
@@ -70,13 +70,13 @@ trait SeamlessWallet
 
     public function getUserBalanceFromCustomer($customer, $userToken, $game = '')
     {
-        $pvr = Customer::getById($customer, ['brand', 'product']);
+        $customer = Customer::getById($customer, ['brand', 'product']);
 
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000",
-            "Game" => $pvr->product,
-            "Brand" => $pvr->brand,
+            "Game" => $customer->product,
+            "Brand" => $customer->brand,
             "AdditionalData" => null,
             "Token" => $userToken[1], // 952549b3-45ae-11ef-aadf-bc2411bfd8ae
             "UserID" => $userToken[0],
@@ -91,19 +91,19 @@ trait SeamlessWallet
     public function transferMoney($customer, $userToken, $betId, $coin, $amount, $transactionId, $transactionType, $game = '')
     {
         // Obtener datos del proveedor
-        $pvr = Customer::getById($customer, ['brand', 'product']);
+        $customer = Customer::getById($customer, ['brand', 'product']);
 
         // Validar que se obtuvieron datos del proveedor
-        if (!$pvr) {
-            Log::error("Proveedor no encontrado: ID {$customer}");
-            return ['Error' => true, 'Message' => 'Proveedor no encontrado'];
+        if (!$customer) {
+            Log::error("Cliente no encontrado: ID {$customer}");
+            return ['Error' => true, 'Message' => 'Cliente no encontrado'];
         }
 
         // Datos del cuerpo de la solicitud
         $bodyArray = [
             "Ticks" => "0000000", // Asegúrate de que este valor es correcto
-            "Game" => $pvr->product,
-            "Brand" => $pvr->brand,
+            "Game" => $customer->product,
+            "Brand" => $customer->brand,
             "Token" => $userToken[1] ?? '',
             "UserID" => $userToken[0] ?? '',
             "CurrencyCode" => $coin,
@@ -129,13 +129,13 @@ trait SeamlessWallet
 
     public function handleCustomerUserSession($customer, $userToken)
     {
-        $pvrResponse = $this->getUserInfoFromCustomer($customer, $userToken);
+        $customerResponse = $this->getUserInfoFromCustomer($customer, $userToken);
 
-        if (!$pvrResponse) return false;
+        if (!$customerResponse) return false;
 
-        // Crear la variable de sesión 'userPvr'
-        session()->put('userPvr', encrypt([$pvrResponse['ID'], $userToken]));
-        session()->put('coinUserPvr', encrypt($pvrResponse['DefaultCurrencyCode']));
+        // Crear la variable de sesión 'clientUser'
+        session()->put('clientUser', encrypt([$customerResponse['ID'], $userToken]));
+        session()->put('coinClientUser', encrypt($customerResponse['DefaultCurrencyCode']));
     }
 
     public function getTransaction($game, $customer, $user)
@@ -155,15 +155,15 @@ trait SeamlessWallet
         return $uniqueId;
     }
 
-    public function registerTransaction($game = [], $customer, $userPvr, $type, $amount, $status = 0)
+    public function registerTransaction($game = [], $customer, $clientUser, $type, $amount, $status = 0)
     {
         try {
             $transaction = Transactions::create([
-                'code' => $this->getTransaction($game, $customer, $userPvr),
+                'code' => $this->getTransaction($game, $customer, $clientUser),
                 'customer' => $customer,
                 'game' => $game[0],
                 'game_mode' => $game[1],
-                'user_pvr' => $userPvr,
+                'user_customer' => $clientUser,
                 'transaction_type' => $type,
                 'amount' => $amount,
                 'status' => $status

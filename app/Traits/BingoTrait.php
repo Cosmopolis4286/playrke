@@ -308,6 +308,10 @@ trait BingoTrait
     {
         date_default_timezone_set('America/Caracas');
 
+        $roomID = $arrCtn['room'];
+
+        $this->checkRoomClosure($roomID);
+
         $room = BingoRoom::select(
             'id',
             'game_mode',
@@ -317,12 +321,11 @@ trait BingoTrait
             'commerce_commn',
             'seller_commn',
             'jackpot'
-        )->where('status', 2)->where('id', $arrCtn['room'])->first();
+        )->where('status', 2)->where('id', $roomID)->first();
 
         if (!$room) return redirect()->back();
 
         try {
-            $roomID = $room->id;
             $customer = $room['customer'];
             $commerce = $arrCtn['commerce'];
             $seller = $arrCtn['seller'];
@@ -356,28 +359,29 @@ trait BingoTrait
 
             // Crear lote de cartones de bingo
             $ctnsLot = BingoCtnsLot::create([
+                'customer' => $customer,
                 'commerce' => $commerce,
                 'seller' => $seller,
                 'room' => $roomID,
                 'coin' => $coin,
                 'exchange_rate' => $exchangeRate,
-                'user' => $playerUser,
+                'player_user' => $playerUser,
                 'player_link' => $PJLink,
                 'status' => 0,
                 'ctns' => $numOfCtns,
                 'sale_seller_ctns' => $saleSellerCtns ?? NULL,
             ]);
 
-            if ($customer) { // Si el proceso el de un Proveedor  
-                $pvrResponse = false;
-                $pvrResponse = $this->getUserBalanceFromCustomer($customer, []);
+            if ($customer) { // Si el proceso es de un cliente externo  
+                $customerResponse = false;
+                $customerResponse = $this->getUserBalanceFromCustomer($customer, []);
 
-                if (!$pvrResponse['Error']) {
+                if (!$customerResponse['Error']) {
                     // Ocurrio un error inesperado
                     DB::rollBack();
                 }
 
-                if ($pvrResponse['Data']['amount'] < $totalAmountCtns) {
+                if ($customerResponse['Data']['amount'] < $totalAmountCtns) {
                     // Saldo insuficiente
                     DB::rollBack();
                 }
@@ -439,10 +443,11 @@ trait BingoTrait
                     // Preparar el array para insertar
                     $recordsToInsert[] = [
                         'room' => $roomID,
-                        'user' => $playerUser,
-                        'player_link' => $PJLink,
+                        'customer' => $customer,
                         'commerce' => $commerce,
                         'seller' => $seller,
+                        'player_user' => $playerUser,
+                        'player_link' => $PJLink,
                         'coin' => $coin,
                         'lot' => $lotID,
                         'serial' => $serialCtn,
@@ -480,16 +485,16 @@ trait BingoTrait
             BingoCtns::insert($recordsToInsert);
 
             // Determinar la columna y el ID del jugador según el modo de juego
-            $playerColumn = ($room->game_mode == 1) ? 'user' : 'player_link';
+            $playerColumn = ($room->game_mode == 1) ? 'player_user' : 'player_link';
             $playerID = ($room->game_mode == 1) ? $playerUser : $PJLink;
 
             // Preparar los datos para buscar o crear el registro
             $searchCriteria = ['room' => $roomID, $playerColumn => $playerID];
             $defaultValues = [
+                'room' => $roomID,
                 'commerce' => $commerce,
                 'seller' => $seller,
-                'room' => $roomID,
-                'user' => $playerUser,
+                'player_user' => $playerUser,
                 'player_link' => $PJLink
             ];
 
@@ -528,19 +533,19 @@ trait BingoTrait
                 CoinGameRoom::create(['game' => 1, 'room' => $roomID, 'coin' => $coin]);
             }
 
-            if ($customer) { // Si existe un proveedor
+            if ($customer) { // Si existe un cliente afiliado
 
-                $userToken = decrypt(session('userPvr'));
-                $coinUserPvr = decrypt(session('coinUserPvr'));
+                $userToken = decrypt(session('clientUser'));
+                $coinClientUser = decrypt(session('coinClientUser'));
 
                 $transaction = $this->registerTransaction([1, 1], $customer, $playerUser, 'BET', $totalAmountCtns);
 
-                // Enviar informacion al proveedor por una url externa
+                // Enviar informacion al cliente afiliado por una url externa
                 $transactionResponse = $this->transferMoney(
                     $customer,
                     $userToken,
                     $this->getHashMD5($lotID),
-                    $coinUserPvr,
+                    $coinClientUser,
                     $totalAmountCtns,
                     $transaction[1],
                     'BET',
@@ -562,7 +567,7 @@ trait BingoTrait
         }
     }
 
-    public function generateCartonStore($data = [])
+    public function handleCartonStore($data = [])
     {
         $roomID = $data['room'];
         $room = BingoRoom::with('Config')->where('encrypted', $roomID)->select('id', 'status')->first();
@@ -641,7 +646,7 @@ trait BingoTrait
 
             if ($carton) {
                 DB::commit();
-                return $PJLink;
+                return $PJLink ?? true;
             } else {
                 DB::rollBack();
                 return false;
@@ -711,7 +716,7 @@ trait BingoTrait
                     'updated_at' => $timestamp
                 ];
 
-                // Determinar el campo de actualización basado en la presencia del proveedor
+                // Determinar el campo de actualización basado en la presencia del cliente afiliado
                 $playersToUpdate[] = $customer ? $ctn->user : $ctn->player_link;
             }
         }
@@ -734,18 +739,18 @@ trait BingoTrait
                 BingoPrizeCtns::insert($recordsToInsert);
                 if ($customer) {
 
-                    $userToken = decrypt(session('userPvr'));
-                    $coinUserPvr = decrypt(session('coinUserPvr'));
+                    $userToken = decrypt(session('clientUser'));
+                    $coinClientUser = decrypt(session('coinClientUser'));
 
                     foreach ($playerCtn as $ctn) {
                         $transaction = $this->registerTransaction([1, 1], $customer, $ctn->user, 'WIN', $prizeWn);
 
-                        // Enviar informacion al proveedor por una url externa
+                        // Enviar informacion al cliente afiliado por una url externa
                         $transactionResponse = $this->transferMoney(
                             $customer,
                             $userToken,
                             $this->getHashMD5($ctn->id),
-                            $coinUserPvr,
+                            $coinClientUser,
                             $prizeWn,
                             $transaction[1],
                             'WIN',
@@ -1117,27 +1122,33 @@ trait BingoTrait
         return null;
     }
 
-    public function checkRoomClosure()
+    public function checkRoomClosure($room = '')
     {
         date_default_timezone_set('America/Caracas');
 
-        $rooms = BingoRoom::whereIn('status', [2, 3, 4])->get(['id', 'date', 'time']);
-        foreach ($rooms as $room) {
-            $triviaInit = strtotime($room->date . ' ' . $room->time);
-            if (time() >= $triviaInit) {
-                $room = $room->id;
-                $existsCtns = BingoCtns::getCountCtnByRoom($room);
-                if ($existsCtns) {
-                    $winChip = BingoSort::getWinningChip($room);
-                    if (!$winChip) $winChip = $this->newSort($room);
+        $rooms = $room ? BingoRoom::where('id', $room)
+            ->whereIn('status', [2, 3, 4])
+            ->get(['id', 'unix_date'])
 
-                    $status = ($winChip->time <= time()) ? 4 : 3;
-                } else {
-                    $status = 1; //N/D Borrador
-                }
-                BingoRoom::where('id', $room)->update(['status' => $status]);
+            : BingoRoom::whereIn('status', [2, 3, 4])
+            ->get(['id', 'unix_date']);
+
+        foreach ($rooms as $room) {
+
+            if (time() < $room->unix_date) continue;
+
+            $existsCtns = BingoCtns::getCountCtnByRoom($room->id);
+
+            if ($existsCtns) {
+                $winChip = BingoSort::getWinningChip($room->id) ?? $this->newSort($room->id);
+                $status = ($winChip->time <= time()) ? 4 : 3;
+            } else {
+                $status = 1; //N/D Borrador
             }
+
+            BingoRoom::where('id', $room->id)->update(['status' => $status]);
         }
+
         $this->hideRoom();
     }
 

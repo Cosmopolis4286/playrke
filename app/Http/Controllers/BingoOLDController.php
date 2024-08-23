@@ -289,7 +289,6 @@ class BingoOLDController extends Controller
                     'all_for_one' => 1,
                     'date' => $request->date,
                     'time' => $request->time,
-                    'unix_date' => strtotime($request->date . ' ' . $request->time),
                     'country' => $country,
                     'coin' => $coin,
                     'ctn_price' => $request->ctn_price,
@@ -337,7 +336,6 @@ class BingoOLDController extends Controller
             $bingo->update([
                 'date' => $request->date,
                 'time' => $request->time,
-                'unix_date' => strtotime($request->date . ' ' . $request->time),
                 'country' => $country,
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
@@ -394,7 +392,6 @@ class BingoOLDController extends Controller
                     'status' => 1,
                     'date' => now()->format('Y-m-d'),
                     'time' => $existingRoom->time,
-                    'unix_date' => strtotime(now()->format('Y-m-d') . ' ' . $existingRoom->time),
                     'country' => $existingRoom->country,
                     'coin' => $existingRoom->coin,
                     'ctn_price' => $existingRoom->ctn_price,

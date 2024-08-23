@@ -5,7 +5,8 @@
             <a href="{{ route('dashboard') }}" title="Regresar" class="mr-1 mb-n1">
                 <i class="fas fa-arrow-circle-left" style="font-size: 20px;"></i>
             </a>
-            <h5 class="m-0">{{ $title }}</h5>
+            @php $displayTitle = $cardTitle ?? $title; @endphp
+            <h5 class="m-0">{!! $displayTitle !!}</h5>
         </div>
         <div id="loader-sm" class="spinner-border spinner-border-sm text-primary" role="status" style="display: none;">
             <span class="sr-only">Loading...</span>

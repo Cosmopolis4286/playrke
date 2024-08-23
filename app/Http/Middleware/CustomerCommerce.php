@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class ProviderCommerce
+class CustomerCommerce
 {
     /**
      * Handle an incoming request.
@@ -23,8 +23,8 @@ class ProviderCommerce
             return redirect()->route('login')->with('error', 'Por favor, inicie sesión para continuar.');
         }
 
-        // Verificar si el usuario es de tipo 2 (admin) o tipo 3 (comercio)
-        if (in_array(Auth::user()->user_type, [2, 3, 5])) {
+        // Verificar si el usuario es de tipo 2 (admin), 3 (comercio) o tipo 7 (cliente)
+        if (in_array(Auth::user()->user_type, [2, 3, 7])) {
             return $next($request); // Permite el acceso al siguiente middleware o ruta
         }
 

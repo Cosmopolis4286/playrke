@@ -337,9 +337,10 @@ class SellerController extends Controller
 
         $this->checkRoomClosure();
 
-        $rooms = BingoRoom::select('encrypted', 'unix_date')
+        $rooms = BingoRoom::select('encrypted','unix_date')
             ->where('status', 2)->where('game_mode', 2)->where(function ($query) use ($seller) {
-                $query->where('commerce', $seller->commerce)->orWhere('all_for_one', 1);
+                $query->where('commerce', $seller->commerce)
+                    ->orWhere('all_for_one', 1);
             })->orderBy('date')->orderBy('time')->get();
 
         return view('modules/seller/games/bingo/cartons/generate')->with([
@@ -439,7 +440,7 @@ class SellerController extends Controller
             return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
         }
 
-        $res = $this->generateCartonStore($data);
+        $res = $this->handleCartonStore($data);
 
         if ($res) {
             Session::flash('message', 'Proceso efectuado con exito');
@@ -529,6 +530,7 @@ class SellerController extends Controller
             ->where('seller', $seller->id)->orderBy('status')->orderByDesc('id')->get();
 
         $allPendingCtnSale = $pendingCtns = 0;
+        
         foreach ($ctnsSold as $value) {
             if ($value->status == 0) {
                 $allPendingCtnSale += $value->sale_seller_ctns;

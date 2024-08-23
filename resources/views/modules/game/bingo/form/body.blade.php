@@ -30,7 +30,7 @@
         <input type="number" value="0" id="small-prizes" name="small_prizes" class="form-control form-info"
             placeholder="Ingrese monto a pagar" required>
     </div> --}}
-    @isset($provider)
+    @isset($customer)
         <div class="form-group col-sm-6 col-md-4">
             <label for="serials-commission">%Com. X Seriales</label>
             <input type="number" value="1" min="1" max="6" step="0.01" id="serials-commission"

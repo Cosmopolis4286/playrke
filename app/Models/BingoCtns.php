@@ -9,9 +9,11 @@ class BingoCtns extends Model
     protected $table = 'bingo_ctns';
     protected $fillable = [
         'room',
+        'customer',
         'commerce',
         'subsidiary',
         'seller',
+        'player_user',
         'player_link',
         'coin',
         'lot',

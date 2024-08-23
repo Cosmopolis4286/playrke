@@ -8,8 +8,18 @@ class BingoCtnsLot extends Model
 {
     protected $table = "bingo_ctns_lot";
     protected $fillable = [
-        'coin', 'exchange_rate', 'ctns', 'sale_seller_ctns', 'room',
-        'commerce', 'subsidiary', 'seller', 'user', 'player_link', 'status'
+        'coin',
+        'exchange_rate',
+        'ctns',
+        'sale_seller_ctns',
+        'room',
+        'customer',
+        'commerce',
+        'subsidiary',
+        'seller',
+        'player_user',
+        'player_link',
+        'status'
     ];
 
     // Relación con la habitación
@@ -24,11 +34,18 @@ class BingoCtnsLot extends Model
         return $this->belongsTo(Coin::class, 'coin');
     }
 
+    // Relación con el enlace del cliente
+    public function Customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer', 'id');
+    }
+
     // Relación con el enlace del jugador
     public function PlayerLink()
     {
         return $this->belongsTo(PlayerLink::class, 'player_link', 'id');
     }
+
 
     // Relación con los cartones
     public function Ctns()
@@ -53,7 +70,7 @@ class BingoCtnsLot extends Model
     {
         return $this->belongsTo(BingoCtnsPayment::class, 'id', 'lot');
     }
-    
+
     public static function getCoinByIds($room)
     {
         return self::where('room', $room)->distinct('coin')->pluck('coin');

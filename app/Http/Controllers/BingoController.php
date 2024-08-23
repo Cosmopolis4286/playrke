@@ -111,6 +111,7 @@ class BingoController extends Controller
         $data = [
             'room' => $request->bingo_room ?? null,
             'customer' => $request->customer ?? null,
+            'commerce' => $request->commerce ?? null,
             'country' => $request->country ?? null,
             'playerPhone' => $request->phone ?? null,
             'playerUser' => $request->user_pvr ?? null,
@@ -123,7 +124,7 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
         }
 
-        $res = $this->generateCartonStore($data);
+        $res = $this->handleCartonStore($data);
 
         if ($res) {
             Session::flash('message', 'Proceso efectuado con exito');
@@ -598,7 +599,7 @@ class BingoController extends Controller
                     'all_for_one' => 1,
                     'date' => $request->date,
                     'time' => $request->time,
-                    'unix_date' => strtotime($request->date . ' ' . $request->time),
+                    'unix_date' => strtotime("{$request->date} {$request->time}"),
                     'country' => $country,
                     'coin' => $coin,
                     'ctn_price' => $request->ctn_price,
@@ -648,7 +649,7 @@ class BingoController extends Controller
                 'game_mode' => $request->game_mode,
                 'date' => $request->date,
                 'time' => $request->time,
-                'unix_date' => strtotime($request->date . ' ' . $request->time),
+                'unix_date' => strtotime("{$request->date} {$request->time}"),
                 'country' => $country,
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,

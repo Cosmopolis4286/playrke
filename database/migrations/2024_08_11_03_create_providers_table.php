@@ -15,11 +15,10 @@ class CreateProvidersTable extends Migration
     {
         Schema::create('providers', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 25)->unique();
-            $table->string('pvr_type', 2);
-            $table->string('description', 35);
+            $table->string('name', 30)->unique();
+            $table->string('description', 45)->nullable();
             $table->string('brand', 20)->nullable();
-            $table->string('product', 30)->nullable();
+            $table->string('logo', 35)->nullable();
             $table->string('link_route', 255)->nullable();
             $table->string('token', 255);
             $table->string('security_key', 255);

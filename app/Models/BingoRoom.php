@@ -8,9 +8,10 @@ class BingoRoom extends Model
 {
   protected $table = "bingo_rooms";
   protected $fillable = [
-    'game_mode', 'commerce', 'subsidiary', 'status', 'all_for_one', 'paid_win', 'date', 'time', 'unix_date', 
-    'country', 'coin', 'publication_date', 'ctn_price', 'players', 'all_sale', 'commerce_commn', 
-    'seller_commn', 'jackpot', 'jackpot_prize', 'serial_prize', 'ctns', 'close_room', 'encrypted'
+    'game_mode', 'customer', 'commerce', 'subsidiary', 'status', 'all_for_one', 'paid_win', 
+    'date', 'time', 'country', 'coin', 'publication_date', 'ctn_price', 'players', 
+    'all_sale', 'commerce_commn', 'seller_commn', 'jackpot', 'jackpot_prize', 
+    'serial_prize', 'ctns', 'close_room', 'encrypted'
   ];
 
   public function GameMode()

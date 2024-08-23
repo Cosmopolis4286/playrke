@@ -7,21 +7,21 @@
 @section('content')
     <div class="row">
         <div class="col-12 col-lg-9 col-xl-10 pb-2 m-auto">
-            @include('modules.game.bingo.container-last-chips')
+            @include('components.game.bingo.layout.container-last-chips')
             <div class="container">
-                @include('modules.game.bingo.container-bingo-info')
-                @include('modules.game.bingo.container-history-chips')
+                @include('components.game.bingo.layout.container-bingo-info')
+                @include('components.game.bingo.layout.container-history-chips')
                 <div class="container mt-1">
-                    @include('modules.game.bingo.cartons')
+                    @include('components.game.bingo.layout.cartons')
                 </div>
             </div>
-            @include('modules.game.bingo.sounds')
+            @include('components.game.bingo.layout.sounds')
         </div>
     </div>
     @if ($room->status == 2)
-        @include('components.bingo.modal-info-draw')
+        @include('components.bingo.layout.modal-info-draw')
     @elseif($room->status >= 3)
-        @include('components.bingo.modal-info-winners')
+        @include('components.bingo.layout.modal-info-winners')
     @endif
 @endsection
 

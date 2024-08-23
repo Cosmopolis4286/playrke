@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('bingo_rooms', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('game_mode');
+            $table->unsignedBigInteger('customer')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('status')->default(1);
@@ -21,7 +22,6 @@ return new class extends Migration
             $table->boolean('paid_win')->default(0);
             $table->date('date');
             $table->string('time', 10);
-            $table->integer('unix_date')->nullable();
             $table->unsignedBigInteger('country')->nullable();
             $table->unsignedBigInteger('coin')->nullable();
             $table->timestamp('publication_date')->nullable();
@@ -43,6 +43,9 @@ return new class extends Migration
 
             // Definición de la clave foránea para 'status'
             $table->foreign('status')->references('id')->on('game_status');
+
+            // Definición de la clave foránea para 'customer'
+            $table->foreign('customer')->references('id')->on('customers');
 
             // Definición de la clave foránea para 'commerce'
             $table->foreign('commerce')->references('id')->on('commerces');

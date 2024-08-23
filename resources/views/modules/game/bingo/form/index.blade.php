@@ -16,7 +16,7 @@
                 </button>
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @component('components.table-info-bingo-rooms', [
+                        @component('components.game.bingo.table-info-bingo-rooms', [
                             'name' => $name,
                             'rooms' => $rooms,
                             'coinSym' => $coinSym,
@@ -31,7 +31,7 @@
     @component('components.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'provider' => $provider,
+        'customer' => $customer,
         'dataForm' => view('modules.game.bingo.form.body')->render(),
     ])
     @endcomponent

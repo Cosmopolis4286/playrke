@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('components.card-header', ['title' => $title, 'cardTitle' => $cardTitle])
             <div class="card-body">
                 @component('components.coin-tabs', [
                     'coins' => $coins,
@@ -31,7 +31,7 @@
                                     </tr>
                                 </thead>
                                 @if (!empty($sellers))
-                                    <tbody>hhhh
+                                    <tbody>
                                         @foreach ($sellers as $seller)
                                             @php
                                                 $allSale = $allSalePreJackpot = 0;
