@@ -16,6 +16,7 @@ class CreateCommercesTable extends Migration
         Schema::create('commerces', function (Blueprint $table) {
             $table->id();
             $table->string('name', 30);
+            $table->string('code', 10)->nullable()->unique();
             $table->unsignedBigInteger('country');
             $table->unsignedBigInteger('coin');
             $table->string('phone', 12);

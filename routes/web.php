@@ -412,7 +412,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('{PlayerLink}', [BingoController::class, 'inGame'])->name('inGame');
 
     // Ruta /Jugador/Comercio Especifico
-    Route::get('comm/{commerce}/{PlayerLink}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
+    Route::get('comm/{PlayerLink}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
     Route::get('comm/{commerce}/game/{dateFilter?}', [BingoController::class, 'outGameCommerce'])->name('out-game-commerce');
 
     // Rutas Jugador/Cliente

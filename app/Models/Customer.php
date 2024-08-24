@@ -17,6 +17,7 @@ class Customer extends Model
     'product',
     'link_route',
     'token',
+    'customer_key',
     'security_key',
     'status'
   ];

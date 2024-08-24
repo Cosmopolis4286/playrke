@@ -68,18 +68,25 @@ trait EncryptRKE
         return json_decode($decryptedText, true); // Convierte la cadena JSON a un objeto
     }
 
-    public function getHashMD5($value)
+    public function getHashMD5($value = '', $num = 7)
     {
-        // Obtener la marca de tiempo fuera del bucle
         $timestamp = time();
 
         // Concatenar los valores con una cadena aleatoria para asegurar unicidad
-        $randomString = bin2hex(random_bytes(5)); // Genera una cadena aleatoria
-        $data = 'RKE' . $value . $timestamp . $randomString . 'RKE';
+        $randomString = bin2hex(random_bytes($num)); // Genera una cadena aleatoria
+        $data = $value . $timestamp . $randomString;
 
         // Generar un hash MD5 del valor concatenado
         $uniqueId = md5($data);
 
         return $uniqueId;
+    }
+
+    function generateFormattedString($arr = [])
+    {
+        // Concatenar las partes con guiones
+        $formattedString = $arr[0] . '-' . $arr[1] . '-' . $arr[2] . '-' . $arr[3];
+
+        return $formattedString;
     }
 }

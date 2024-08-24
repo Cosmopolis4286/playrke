@@ -8,8 +8,18 @@ class PlayerLink extends Model
 {
   protected $table = "player_link";
   protected $fillable = [
-    'game', 'room', 'provider', 'commerce', 'seller', 'link',
-    'country', 'coin', 'name', 'lastname', 'identification', 'phone'
+    'game',
+    'room',
+    'provider',
+    'commerce',
+    'seller',
+    'link',
+    'country',
+    'coin',
+    'name',
+    'lastname',
+    'identification',
+    'phone'
   ];
 
   public function Country()
@@ -75,5 +85,10 @@ class PlayerLink extends Model
   public static function getByLink($PJLink, $fields = ['*'])
   {
     return self::where('link', $PJLink)->select($fields)->first();
+  }
+
+  public static function getValueByLink($link, $value)
+  {
+    return self::where('link', $link)->value($value);
   }
 }

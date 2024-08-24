@@ -37,7 +37,7 @@ trait PlayerLinkTrait
     public function createPlayerLink($game, $room = '')
     {
         do {
-            $code = Str::random(15);
+            $code = Str::random(16);
         } while (PlayerLink::where('game', $game)->where('link', $code)->exists());
         return $code;
     }

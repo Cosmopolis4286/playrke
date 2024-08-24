@@ -9,6 +9,7 @@ class BingoRoomUser extends Model
     protected $table = 'bingo_rooms_user';
     protected $fillable = [
         'room',
+        'customer',
         'commerce',
         'subsidiary',
         'seller',
@@ -17,14 +18,24 @@ class BingoRoomUser extends Model
         'winner'
     ];
 
-    public function Seller()
-    {
-        return $this->belongsTo(Seller::class, 'seller');
-    }
-
     public function Room()
     {
         return $this->belongsTo(BingoRoomUser::class, 'room');
+    }
+
+    public function Customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer');
+    }
+
+    public function Commerce()
+    {
+        return $this->belongsTo(Commerce::class, 'commerce');
+    }
+
+    public function Seller()
+    {
+        return $this->belongsTo(Seller::class, 'seller');
     }
 
     public function Coin()
@@ -45,6 +56,11 @@ class BingoRoomUser extends Model
     public function WinCtns()
     {
         return $this->hasMany(BingoPrizeCtns::class, 'player_link', 'player_link');
+    }
+
+    public static function getByColumn($column, $value, $fields = ['*'])
+    {
+        return self::select($fields)->where($column, $value)->first();
     }
 
     public static function getPlayerCountByRoom($room, $condition = ['!=', ''])

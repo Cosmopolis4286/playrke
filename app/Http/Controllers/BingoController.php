@@ -137,21 +137,57 @@ class BingoController extends Controller
         }
     }
 
-    private function inGameInfoView($type, $valUserType, $player, $roomEncrypted = '')
+    private function inGameInfoView($type, $data = [])
     {
-        $player = PlayerLink::where('link', $PJLink)->first();
-        if (!$player) return redirect('/');
+        date_default_timezone_set('America/Caracas');
 
-        $PJLink = $player->id;
+        switch ($type) {
+            case 'customer':
 
-        $this->checkRoomClosure(); // Verificar Cierre de Sala
+                $playerUser = $data['playerUser'];
 
-        $roomId = $player->room;
+                $player = BingoRoomUser::getByColumn('player_user', $data['playerUser']);
+
+                if (!$player) return redirect('/');
+
+                $columnGetCtns = 'player_user';
+                $valColumnGetCtns = $playerUser;
+
+                $moreViewData = ['customerLogo' => Customer::getValueById($data['customer'], 'logo')];
+
+                break;
+            case 'all';
+            case 'commerce':
+
+                $player = PlayerLink::select('id', 'country', 'room')->where('link', $data['PJLink']);
+
+                if ($type == 'commerce') $player->where('commerce', $data['commerce']);
+
+                $player->first();
+
+                if (!$player) return redirect('/');
+
+                $PJLink = $player->id;
+                $roomId = $player->room;
+                $columnGetCtns = 'player_link';
+                $valColumnGetCtns = $PJLink;
+
+                $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
+
+                $moreViewData = ['PJLink' => $PJLink];
+
+                break;
+            default:
+                return redirect('/');
+                break;
+        }
+
+        // Verificar Cierre de Sala
+        $this->checkRoomClosure($roomId);
 
         $room = BingoRoom::with(['Coin'])
             ->select([
                 'status',
-                'customer',
                 'date',
                 'time',
                 'coin',
@@ -161,15 +197,11 @@ class BingoController extends Controller
 
         if (!in_array($room->status, [2, 3, 4])) return redirect('/');
 
-        //self::prueba($room);
+        // Obtener valor formateado del bote
+        $jackpot = $this->convertPrizeValue($roomId, $coin->id);
 
-        $title = 'BingoCash';
-
-        date_default_timezone_set('America/Caracas');
-
-        $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
-
-        $this->convertPrizeValue($roomId, $coin->id);
+        // Obtener Cartones del jugador
+        $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, $columnGetCtns, $valColumnGetCtns);
 
         $vanSort = ($room->status > 2) ?
             BingoSort::where(['room' => $roomId, 'win' => 1])->select('id', 'chip')->first() : [];
@@ -190,21 +222,15 @@ class BingoController extends Controller
 
         $lastSixChips = $this->getChips($room->encrypted);
 
-        $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, $PJLink);
-
         $infoGame = ($room->status > 3) ? $this->getResult($room->encrypted, $PJLink) : [];
 
-        //event(new BingoOFF_ProccessDraw(now()->format('H:i:s'), $room->encrypted));
-
-        return view('modules.visitor.games.bingo.in-game')->with([
-            'title' => $title,
+        $viewData = [
+            'title' => 'BingoCash',
             'room' => $room,
-            'customerLogo' => Customer::getValueById($room->customer, 'logo'),
             'jackpotType' => BingoRoomConfig::getValueByRoom($roomId, 'jackpot_type'),
             'coin' => $coin->symbol,
-            'jackpot' => $this->convertPrizeValue($roomId, $coin->id),
+            'jackpot' => $jackpot,
             'startTime' => $this->convertToUnixTimestamp($room->date, $room->time),
-            'PJLink' => $PJLink,
             'chipsRest' => $chipsRest,
             'cartons' => $ctns,
             'sort' => $sort,
@@ -217,11 +243,16 @@ class BingoController extends Controller
             'infoGame' => $infoGame,
             'timeServ' => time(),
             'encryptionKey' => env('JSON_ENCRYPTION_KEY')
-            // Artisan::call('bingooff:dispatch', ['room' => $room->encrypted])
-        ]);
+        ];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
+
+        return view('modules.visitor.games.bingo.in-game')->with($viewData);
     }
 
-    private function outGameInfoView($type, $valUserType, $dateFilter = 'today')
+    private function outGameInfoView($type, $dateFilter = 'today', $data = [])
     {
         date_default_timezone_set('America/Caracas');
 
@@ -288,13 +319,15 @@ class BingoController extends Controller
     public function inGame($PJLink)
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        self::inGameInfoView('all', 'RKE', $PJLink);
+        self::inGameInfoView('all', ['commerce' => 'RKE', 'PJLink' => $PJLink]);
     }
 
-    public function inGameCommerce($commerce, $PJLink) //
+    public function inGameCommerce($PJLink) //
     {
         // Vista para el juego de un comercio especifico
-        self::inGameInfoView('commerce', $commerce, $PJLink);
+        $commerce = PlayerLink::getValueByLink($PJLink, 'commerce');
+
+        self::inGameInfoView('commerce', ['commerce' => $commerce, 'PJLink' => $PJLink]);
     }
 
     public function inGameCustomer($customerToken, $room, $userToken)
@@ -313,7 +346,7 @@ class BingoController extends Controller
         $this->handleCustomerUserSession($customerId, $userToken);
 
         // Mostrar la vista con la información del cliente
-        self::inGameInfoView('customer', $customerId, $userToken, $room);
+        self::inGameInfoView('customer', ['customer' => $customerId, 'playerUser' => $userToken, 'room' => $room]);
     }
 
     public function outGame($dateFilter = 'today')
@@ -384,10 +417,10 @@ class BingoController extends Controller
         return ['', '', time()];
     }
 
-    public function getResult($room, $PJLink = '')
+    public function getResult($room, $column, $value)
     {
         // Obtener la información de los ganadores
-        $winnersInfo = self::getInfoWinners($room, $PJLink);
+        $winnersInfo = self::getInfoWinners($room, $column, $value);
 
         // Encriptar los datos de los ganadores
         $encryptedData = self::encryptData($winnersInfo, env('JSON_ENCRYPTION_KEY'));
