@@ -33,4 +33,9 @@ class GameExchangeRate extends Model
     {
         return self::where('game', $game)->where('room', $room)->count();
     }
+
+    public static function existsGameExchangeRate($game, $room, $coin)
+    {
+        return self::where('game', $game)->where('room', $room)->where('coin', $coin)->exists();
+    }
 }

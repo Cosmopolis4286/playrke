@@ -2,7 +2,6 @@
 
 namespace App\Traits;
 
-use App\Models\Transactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -16,6 +15,7 @@ trait EncryptRKE
 
         return $code;
     }
+
     public function encryptSort($table, $id)
     {
         $existingSymbols = DB::table($table)->where('room', $id)->pluck('sym')->toArray();

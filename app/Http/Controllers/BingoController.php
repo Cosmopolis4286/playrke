@@ -28,6 +28,7 @@ use App\Models\CustomerUser;
 use App\Models\User;
 use App\Models\UserType;
 use App\Traits\BingoTrait;
+use App\Traits\CustomerTrait;
 use App\Traits\Filters;
 use App\Traits\GameTrait;
 use App\Traits\RouteRKE;
@@ -36,11 +37,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
 class BingoController extends Controller
 {
-    use EncryptRKE, UserVal, BingoTrait, GameTrait, RouteRKE, Filters;
+    use EncryptRKE, UserVal, CustomerTrait, BingoTrait, GameTrait, RouteRKE, Filters;
 
     protected $idCommerceRKE;
 
@@ -138,7 +140,7 @@ class BingoController extends Controller
         }
     }
 
-    private function inGameInfoView($type, $data = [])
+    private function getGameViewInfo($type, $data = [])
     {
         date_default_timezone_set('America/Caracas');
 
@@ -155,19 +157,18 @@ class BingoController extends Controller
                 if (!$player) return redirect('/');
 
                 if (!CustomerUser::existsUserByCustomer($customer, $playerUser)) {
-                    CustomerUser::create([
-                        'customer' => $customer,
-                        'user_id' => $playerUser,
-                        'country' => $countryCoin[0],
-                        'coin' => $coin[1],
-                        'first_entry' => now()
-                    ]);
+                    $this->registerUserByCustomer(
+                        $customer,
+                        $playerUser,
+                        $countryCoin[0],
+                        $coin[1]
+                    );
                 }
 
                 $columnData = 'player_user';
                 $valColumnData = $playerUser;
 
-                $moreViewData = ['customer' => Customer::getById($customer)];
+                $moreViewData = ['custLogo' => Customer::getValueById($customer, 'logo')];
 
                 break;
             case 'all';
@@ -188,7 +189,7 @@ class BingoController extends Controller
 
                 $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
 
-                $coin = $coin->id;
+                $coinID = $coin->id;
                 $coinSym = $coin->symbol;
 
                 $moreViewData = ['PJLink' => $PJLink];
@@ -215,7 +216,7 @@ class BingoController extends Controller
         if (!in_array($room->status, [2, 3, 4])) return redirect('/');
 
         // Obtener valor formateado del bote
-        $jackpot = $this->convertPrizeValue($roomId, $coin);
+        $jackpot = $this->convertPrizeValue($roomId, $coinID);
 
         // Obtener Cartones del jugador
         $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, $columnData, $valColumnData);
@@ -266,7 +267,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return view('modules.visitor.games.bingo.in-game')->with($viewData);
+        return $viewData;
     }
 
     private function outGameInfoView($type, $dateFilter = 'today', $data = [])
@@ -333,21 +334,25 @@ class BingoController extends Controller
         ]);
     }
 
-    public function inGame($PJLink)
+    public function inGame($PJLink, $dateFilter = 'today')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        self::inGameInfoView('all', ['commerce' => 'RKE', 'PJLink' => $PJLink]);
+        $viewData = self::getGameViewInfo('all', ['commerce' => 'RKE', 'PJLink' => $PJLink]);
+
+        return view('modules.visitor.games.bingo.in-game')->with($viewData);
     }
 
-    public function inGameCommerce($PJLink) //
+    public function inGameCommerce($PJLink, $dateFilter = 'today') //
     {
         // Vista para el juego de un comercio especifico
         $commerce = PlayerLink::getValueByLink($PJLink, 'commerce');
 
-        self::inGameInfoView('commerce', ['commerce' => $commerce, 'PJLink' => $PJLink]);
+        $viewData = self::getGameViewInfo('commerce', ['commerce' => $commerce, 'PJLink' => $PJLink]);
+
+        return view('modules.visitor.games.bingo.in-game')->with($viewData);
     }
 
-    public function inGameCustomer($customerToken, $room, $userToken)
+    public function inGameCustomer($customerToken, $dateFilter, $userToken)
     {
         // Vista para el juego de un cliente especifico
 
@@ -362,25 +367,11 @@ class BingoController extends Controller
         // Consultar información de usuario y crear variables de sesión
         $this->handleCustomerUserSession($customerId, $userToken);
 
-        // Mostrar la vista con la información del cliente
-        self::inGameInfoView('customer', ['customer' => $customerId]);
-    }
+        // Obtener informacion de la vista del cliente
+        $viewData = self::getGameViewInfo('customer', ['customer' => $customerId]);
 
-    public function outGame($dateFilter = 'today')
-    {
-        // Vista para la venta del juego de la sala conjunta de todos los comercios
-        //self::outGameInfoView();
-    }
-
-    public function outGameCommerce($dateFilter = 'today')
-    {
-        // Vista para la venta del juego de la sala de un comercio especifico
-        //self::outGameInfoView();
-    }
-
-    public function outGameCustomer($dateFilter = 'today')
-    {
-        //self::outGameInfoView();
+        // Retorna a vista con la informacion del cliente
+        return view('modules.visitor.games.bingo.in-game')->with($viewData);
     }
 
     private function hasPurchasedCartons($phone)
@@ -712,11 +703,21 @@ class BingoController extends Controller
         // Desencripta el ID y busca el registro correspondiente.
         $bingoRoom = BingoRoom::findOrFail(decrypt($id));
 
-        // Actualiza el estado y la fecha de publicación.
-        $bingoRoom->update(['status' => 2, 'publication_date' => Carbon::now('America/Caracas')]);
+        DB::beginTransaction();
 
-        // Redirige al usuario con un mensaje de éxito.
-        return redirect()->back()->with('message', 'La sala fue publicada')->with('type', 'success');
+        try {
+            // Actualiza el estado y la fecha de publicación.
+            $bingoRoom->update(['status' => 2, 'publication_date' => Carbon::now('America/Caracas')]);
+
+            DB::commit();
+
+            // Redirige al usuario con un mensaje de éxito.
+            return redirect()->back()->with('message', 'La sala fue publicada')->with('type', 'success');
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error('Error al publicar la sala: ' . $th->getMessage());
+            return redirect()->back()->with('message', 'Ocurrió un error')->with('type', 'warning');
+        }
     }
 
     public function delete($id)

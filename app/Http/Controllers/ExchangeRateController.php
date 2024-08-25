@@ -54,13 +54,12 @@ class ExchangeRateController extends Controller
         DB::beginTransaction();
 
         try {
-            $valChange = $this->checkExchangeRate($coin, $request->val_change);
 
             $status = $this->getPaymentDetailsByUserId($commerce->user, $coin) ? 1 : 2;
 
             CommerceExchangeRate::create([
                 'coin' => $coin,
-                'value' => $valChange,
+                'value' => $request->val_change,
                 'status' => $status,
                 'commerce' => $commerce->id,
                 'user' => Auth::id()
@@ -88,14 +87,12 @@ class ExchangeRateController extends Controller
 
         try {
             $coin = $request->coin;
-            $valChange = $this->checkExchangeRate($coin, $request->val_change);
-
             // Buscar el registro de CommerceExchangeRate por su ID desencriptado
             $commerceExchangeRate = CommerceExchangeRate::findOrFail(decrypt($id));
 
             // Actualizar los campos necesarios
             $commerceExchangeRate->coin = $coin;
-            $commerceExchangeRate->value = $valChange;
+            $commerceExchangeRate->value = $request->val_change;
             $commerceExchangeRate->save();
 
             $check = $this->checkExchangeRate($coin);

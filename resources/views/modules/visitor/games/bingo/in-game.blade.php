@@ -31,22 +31,21 @@
         const preRoute = '{{ asset('') }}';
         const encrypted = '<?php echo $room->encrypted; ?>';
         const roomStatus = '<?php echo $room->status; ?>';
-        const coin = '<?php echo $coin; ?>';
+        const coinSym = '<?php echo $coinSym; ?>';
         const valSongs = '<?php echo $room->val_songs; ?>';
-        const arrSort = {!! json_encode($sort) !!};
+        const arrSort = JSON.parse('<?php echo json_encode($sort); ?>');
         const chpLast = Number('<?php echo $vanSort; ?>');
         const PJLink = '<?php echo $PJLink; ?>';
         const startTime = Number('<?php echo $startTime; ?>');
-        const encrypt = {!! json_encode($encrypt) !!};
+        const encrypt = JSON.parse('<?php echo json_encode($encrypt); ?>');
         const soundNext = $('#next')[0];
         const soundWin = $("#winner")[0];
         const images = [];
-        const restChips = {!! json_encode($chipsRest) !!};
-        var lastSixChips = {!! json_encode($lastSixChips) !!};
+        const restChips = JSON.parse('<?php echo json_encode($chipsRest); ?>');
+        var lastSixChips = JSON.parse('<?php echo json_encode($lastSixChips); ?>');
         var timeServ = Number('<?php echo $timeServ; ?>');
-        var allChips = {!! json_encode($allChips) !!};
-        var allChipsSet = new Set(allChips);
-        var infoGame = '<?php echo $infoGame; ?>';
+        var allChips = JSON.parse('<?php echo json_encode($allChips); ?>');
+        var infoGame = JSON.parse('<?php echo json_encode($infoGame); ?>');
 
         soundNext.muted = true;
         soundWin.muted = true;
@@ -405,7 +404,7 @@
                         <img class="user-img" src="${preRoute}imgSystem/imgUsers/${img}">
                     </button>
                     <div class="winner-info-text fw-bold badge badge-success">${arrInfo.name[i]}</div>
-                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy">${coin} ${arrInfo.gain[i]}</div>
+                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy">${coinSym} ${arrInfo.gain[i]}</div>
             </div>`;
             }
             return content;
@@ -510,6 +509,7 @@
 
         $(async function() {
             try {
+                console.log(lastSixChips);
                 if (lastSixChips.length) {
                     // Asegúrate de que estas funciones devuelvan promesas si necesitan ejecutarse en paralelo
                     console.log(lastSixChips);

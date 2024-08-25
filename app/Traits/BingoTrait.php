@@ -160,7 +160,8 @@ trait BingoTrait
         }
 
         $winChip = BingoSort::getWinningChip($room);
-        if (!$winChip) return $this->chipWin($room);
+        if (!$winChip || $PJLinkWin) return $this->chipWin($room);
+
         return false;
     }
 
@@ -326,7 +327,7 @@ trait BingoTrait
         if (!$room) return redirect()->back();
 
         try {
-            $customer = $room['customer'];
+            $customer = $arrCtn['customer'];
             $commerce = $arrCtn['commerce'];
             $seller = $arrCtn['seller'];
             $coin = $arrCtn['coin'];
@@ -658,18 +659,18 @@ trait BingoTrait
         }
     }
 
-    public function convertPrizeValue($room, $coin, $type = 'string')
+    public function convertPrizeValue($roomID, $coin, $type = 'string')
     {
-        $room = BingoRoom::getRoomById($room, ['customer', 'status']);
+        $room = BingoRoom::getRoomById($roomID, ['customer', 'status']);
 
         if (!$room->customer) {
             $exchangeRate = ($room->status == 2)
                 ? ExchangeRate::getLastValueByCoin($coin)
-                : GameExchangeRate::getGameExchangeRateValue(1, $room, $coin);
+                : GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
 
-            if (!$exchangeRate) $this->insertGameExchangeRate($room, 1);
+            if (!$exchangeRate) $this->insertGameExchangeRate($roomID, 1);
 
-            $jackpotPrize = BingoRoom::getValueById($room, 'jackpot_prize');
+            $jackpotPrize = BingoRoom::getValueById($roomID, 'jackpot_prize');
         }
 
         $jackpot = $jackpotPrize * ($exchangeRate ?? 1);
@@ -1137,10 +1138,10 @@ trait BingoTrait
         date_default_timezone_set('America/Caracas');
 
         $rooms = $room ? BingoRoom::where('id', $room)
-            ->whereIn('status', [2, 3, 4])
+            ->whereIn('status', [2, 3])
             ->get(['id', 'unix_date'])
 
-            : BingoRoom::whereIn('status', [2, 3, 4])
+            : BingoRoom::whereIn('status', [2, 3])
             ->get(['id', 'unix_date']);
 
         foreach ($rooms as $room) {
@@ -1173,7 +1174,7 @@ trait BingoTrait
                 // Sumar 2 semanas (14 días * 24 horas * 60 minutos * 60 segundos)
                 $dataTime2Week = $dataTime + (2 * 7 * 24 * 60 * 60);
 
-                if ($dataTime2Week <= time()) {
+                if ($dataTime2Week <= time()) { // Status (6) Sala Oculta
                     BingoRoom::where('id', $value->id)->update(['status' => 6]);
                 }
             }

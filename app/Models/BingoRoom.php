@@ -17,6 +17,7 @@ class BingoRoom extends Model
     'paid_win',
     'date',
     'time',
+    'unix_date',
     'country',
     'coin',
     'publication_date',
