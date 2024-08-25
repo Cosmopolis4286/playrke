@@ -5,7 +5,6 @@ namespace App\Traits;
 use App\Models\Customer;
 use App\Models\Transactions;
 use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Request;
 use Illuminate\Support\Facades\Log;
 
 trait SeamlessWallet
@@ -177,7 +176,7 @@ trait SeamlessWallet
     {
         $customerResponse = json_decode($this->getUserInfoFromCustomer($customerID, $userToken));
 
-        if (!$customerResponse) return false;
+        if (isset($customerResponse->Error)) return false;
 
         // Crear la variable de sesión 'CustomerUser'
         session()->put('CUSTU', encrypt([$customerResponse->Data->ID, $userToken]));
@@ -189,7 +188,7 @@ trait SeamlessWallet
             ])
         );
 
-        return $customerResponse->Data;
+        return true;
     }
 
     public function getTransaction($game, $customerID, $user)

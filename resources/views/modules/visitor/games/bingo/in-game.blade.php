@@ -45,6 +45,7 @@
         var lastSixChips = JSON.parse('<?php echo json_encode($lastSixChips); ?>');
         var timeServ = Number('<?php echo $timeServ; ?>');
         var allChips = JSON.parse('<?php echo json_encode($allChips); ?>');
+        var allChipsSet = new Set(allChips);
         var infoGame = JSON.parse('<?php echo json_encode($infoGame); ?>');
 
         soundNext.muted = true;
@@ -98,7 +99,6 @@
             }
 
             if (allChips.length && roomStatus > 2) {
-                alert(44);
                 renderChipsView(allChips);
             }
         }

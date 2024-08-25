@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Log;
 
 trait BingoTrait
 {
-    use UserVal, EncryptRKE, GameTrait, PlayerLinkTrait, SeamlessWallet;
+    use UserVal, EncryptRKE, GameTrait, RouteRKE, PlayerLinkTrait, SeamlessWallet;
 
     public function newSort($room, $PJLinkWin = '')
     {
@@ -285,7 +285,10 @@ trait BingoTrait
         if (!$getWinnersJackpot && $room->status == 4) $this->handleJackpotWinners($room->id, $column);
 
         $jackpotWinners = $this->getWinnersJackpot($room->id, $column, $value);
-        $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 2)) ? $this->getWinnersSerials($room->id, $PJLink) : [];
+
+        $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 2)) ?
+            $this->getWinnersSerials($room->id, $column, $value) : [];
+
         $prizeSerialVal = BingoRoomConfig::getValueByRoom($room->id, 'val_serials');
 
         $prizesValues = !empty($serialsWinners) ? [100 - $prizeSerialVal, $prizeSerialVal] : [100];
@@ -570,8 +573,8 @@ trait BingoTrait
 
     public function handleCartonStore($data = [])
     {
-        $roomID = $data['room'];
-        $room = BingoRoom::with('Config')->where('encrypted', $roomID)->select('id', 'status')->first();
+        $room = BingoRoom::with('Config')->where('encrypted', $data['room'])
+            ->select('id', 'all_for_one', 'status')->first();
 
         if ($room->status > 2) {
             return redirect()->back()->with('message', 'Sala no disponible');
@@ -647,7 +650,13 @@ trait BingoTrait
 
             if ($carton) {
                 DB::commit();
-                return $PJLink ?? true;
+
+                if (!$customer) {
+                    $baseRoute = $this->getRouteRKE() . "bingocash/";
+                    $route = $baseRoute . ($room->all_for_one == 0 ? "comm/$PJLink/game/today" : "$PJLink/game/today");
+                }
+
+                return  $route ?? true;
             } else {
                 DB::rollBack();
                 return false;
@@ -779,6 +788,24 @@ trait BingoTrait
         }
     }
 
+    private function getCoinByPlayer($column, $value)
+    {
+        switch ($column) {
+            case 'player_user':
+                # code...
+                break;
+            case 'player_link':
+                $country = PlayerLink::getValueById($value, 'country');
+                $coin = Coin::getValueByCountry($country, 'id');
+                break;
+            default:
+                # code...
+                break;
+        }
+
+        return $coin;
+    }
+
     public function handleJackpotWinners($roomID, $column)
     {
         // Obtener la información de la sala
@@ -899,7 +926,7 @@ trait BingoTrait
 
     public function getWinnersJackpot($roomID, $column, $value)
     {
-        $room = BingoRoom::select('id', 'customer', 'jackpot_prize')
+        $room = BingoRoom::select('customer', 'jackpot_prize')
             ->where('id', $roomID)->where('status', 4)->first();
 
         if ($room) {
@@ -909,7 +936,7 @@ trait BingoTrait
                 default => 'PlayerLink',
             };
 
-            // Obtener todos los ganadores y verificar si el jugador específico está entre ellos
+            // Obtener todos los ganadores del jackpot
             $winners = BingoRoomUser::with($relation, 'WinCtns')
                 ->whereHas('WinCtns', function ($query) {
                     $query->where('prize_type', 1);
@@ -917,14 +944,15 @@ trait BingoTrait
 
             $numWinners = $winners->count(); // Contar todos los ganadores
 
-            if ($numWinners == 0) $this->handleJackpotWinners($room);
+            if ($numWinners == 0) $this->handleJackpotWinners($roomID, $column);
 
             // Verificar si el jugador específico está entre los ganadores
             $winPlayer = $winners->firstWhere($column, $value);
 
             // Obtener el país del jugador y la moneda correspondiente
-            $country = PlayerLink::getValueById($PJLink, 'country');
-            $coin = Coin::getValueByCountry($country, 'id');
+            $coin = $this->getCoinByPlayer($column, $value);
+
+            // Calcular valor del Jackpot con respecto a la moneda
             $boat = $room->jackpot_prize * GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
 
             // Calcular la ganancia por jugador y formatearla
@@ -938,21 +966,21 @@ trait BingoTrait
             // Añadir información del jugador específico es un ganador
             if ($winPlayer) {
                 $infoPlayer['size'] = 1;
-                $playerLastName = $this->initialCharacters($winPlayer->PlayerLink->lastname);
-                $infoPlayer['name'][] = $winPlayer->PlayerLink->name . ' ' . $playerLastName;
+                $playerLastName = $this->initialCharacters($winPlayer->$relation->lastname);
+                $infoPlayer['name'][] = "{$winPlayer->$relation->name} {$playerLastName}";
                 $infoPlayer['gain'][] = $gain;
-                $infoPlayer['ctns'][] = $winPlayer->PlayerLink->WinCtns[0]->ctn;
+                $infoPlayer['ctns'][] = $winPlayer->$relation->WinCtns[0]->ctn;
             }
 
             // Añadir información de todos los demás ganadores
             foreach ($winners as $win) {
                 // Evitar añadir el jugador específico de nuevo si ya está en la lista de ganadores
                 if (!$winPlayer || $win->player_link != $winPlayer->player_link) {
-                    $infoPlayer['size'] += 1;
-                    $playerLastName = $this->initialCharacters($win->PlayerLink->lastname);
-                    $infoPlayer['name'][] = $win->PlayerLink->name . ' ' . $playerLastName;
+                    $infoPlayer['size']++;
+                    $playerLastName = $this->initialCharacters($win->$relation->lastname);
+                    $infoPlayer['name'][] = "{$win->$relation->name} {$playerLastName}";
                     $infoPlayer['gain'][] = $gain;
-                    $infoPlayer['ctns'][] = $win->PlayerLink->WinCtns[0]->ctn;
+                    $infoPlayer['ctns'][] = $win->$relation->WinCtns[0]->ctn;
                 }
             }
 
@@ -1041,25 +1069,33 @@ trait BingoTrait
 
     public function getWinnersSerials($roomID, $column, $value) // Obtener Seriales Ganadores
     {
-        $room = BingoRoom::select('id', 'serial_prize')
+        $room = BingoRoom::select('customer', 'serial_prize')
             ->where('id', $roomID)->where('status', 4)->first();
 
         if ($room) {
-            // Obtener todos los ganadores y verificar si el jugador específico está entre ellos
-            $winners = BingoRoomUser::with('PlayerLink')
-                ->whereHas('PlayerLink.WinCtns', function ($query) {
-                    $query->where('prize_type', 2); // (2) Seriales
+
+            $relation = match ($column) {
+                'player_user' => $room->customer ? 'CustomerUser' : 'User',
+                default => 'PlayerLink',
+            };
+
+            // Obtener todos los ganadores por seriales 
+            $winners = BingoRoomUser::with($relation, 'WinCtns')
+                ->whereHas('WinCtns', function ($query) {
+                    $query->where('prize_type', 2);
                 })->where('room', $roomID)->where('winner', '>', 0)->get();
 
             $numWinners = $winners->count(); // Contar todos los ganadores
 
             // Verificar si el jugador específico está entre los ganadores
-            $winPlayer = $winners->firstWhere('player_link', $PJLink);
+            $winPlayer = $winners->firstWhere($column, $value);
 
             // Obtener el país del jugador y la moneda correspondiente
-            $country = PlayerLink::getValueById($PJLink, 'country');
-            $coin = Coin::getValueByCountry($country, 'id');
+            $coin = $this->getCoinByPlayer($column, $value);
+
+            // Calcular valor del monto a repartir en Seriales
             $boat = $room->serial_prize * GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
+
             // Calcular la ganancia por jugador y formatearla
             $formattedNumber = number_format($boat / $numWinners, 3, ',', '.');
             $gain = rtrim(rtrim($formattedNumber, '0'), ',');
@@ -1070,21 +1106,22 @@ trait BingoTrait
             // Añadir información del jugador específico es un ganador
             if ($winPlayer) {
                 $infoPlayer['size'] = 1;
-                $infoPlayer['name'][] = BingoCtns::getCtnSerialByPlayerInRoom($roomID, $winPlayer->PlayerLink->id);
+                $infoPlayer['name'][] = BingoCtns::getCtnSerialByPlayerInRoom($roomID, $winPlayer->$relation->id);
                 $infoPlayer['gain'][] = $gain;
-                $infoPlayer['ctns'][] = $winPlayer->PlayerLink->WinCtns[0]->ctn;
+                $infoPlayer['ctns'][] = $winPlayer->$relation->WinCtns[0]->ctn;
             }
 
             // Añadir información de todos los demás ganadores
             foreach ($winners as $win) {
                 // Evitar añadir el jugador específico de nuevo si ya está en la lista de ganadores
                 if (!$winPlayer || $win->player_link != $winPlayer->player_link) {
-                    $infoPlayer['size'] += 1;
+                    $infoPlayer['size']++;
                     $infoPlayer['name'][] = BingoCtns::getCtnSerialByPlayerInRoom($roomID, $win->player_link);
                     $infoPlayer['gain'][] = $gain;
-                    $infoPlayer['ctns'][] = $win->PlayerLink->WinCtns[0]->ctn;
+                    $infoPlayer['ctns'][] = $win->$relation->WinCtns[0]->ctn;
                 }
             }
+
             return $infoPlayer;
         }
     }

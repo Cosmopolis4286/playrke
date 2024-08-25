@@ -440,12 +440,12 @@ class SellerController extends Controller
             return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
         }
 
-        $res = $this->handleCartonStore($data);
+        $resRoute = $this->handleCartonStore($data);
 
-        if ($res) {
+        if ($resRoute) {
             Session::flash('message', 'Proceso efectuado con exito');
 
-            if (!$data['customer']) Session::flash('PJLink', $this->getRouteRKE() . 'bingocash/' . $res);
+            if (!$data['customer']) Session::flash('PJLink',  $resRoute);
 
             return redirect()->back();
         } else {

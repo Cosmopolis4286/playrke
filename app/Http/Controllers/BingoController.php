@@ -140,7 +140,7 @@ class BingoController extends Controller
         }
     }
 
-    private function getGameViewInfo($type, $data = [])
+    private function getGameViewInfo($type, $data = [], $dateFilter = 'today')
     {
         date_default_timezone_set('America/Caracas');
 
@@ -154,7 +154,7 @@ class BingoController extends Controller
 
                 $player = BingoRoomUser::getByColumn('player_user', $playerUser);
 
-                if (!$player) return redirect('/');
+                if (!$player) return false;
 
                 if (!CustomerUser::existsUserByCustomer($customer, $playerUser)) {
                     $this->registerUserByCustomer(
@@ -180,7 +180,7 @@ class BingoController extends Controller
 
                 $player = $query->first();
 
-                if (!$player) return redirect('/');
+                if (!$player) return false;
 
                 $PJLink = $player->id;
                 $roomId = $player->room;
@@ -270,76 +270,12 @@ class BingoController extends Controller
         return $viewData;
     }
 
-    private function outGameInfoView($type, $dateFilter = 'today', $data = [])
-    {
-        date_default_timezone_set('America/Caracas');
-
-        $queryRoom = BingoRoom::where('all_for_one', 1);
-        $room = $this->getRoomGame($queryRoom, $dateFilter);
-
-        if (!$room) return redirect('/');
-
-        $this->checkRoomClosure(); // Verificar Cierre de Sala
-
-        $roomId = $room->id;
-
-        $room = BingoRoom::with(['Coin'])
-            ->select(['status', 'date', 'time', 'coin', 'jackpot', 'encrypted'])->where('id', $roomId)->first();
-
-        $title = 'BingoCash';
-
-        $coin = Coin::getById(1, ['id', 'symbol']);
-
-        $this->convertPrizeValue($roomId, $coin->id);
-
-        $vanSort = ($room->status > 2) ?
-            BingoSort::where(['room' => $roomId, 'win' => 1])->select('id', 'chip')->first() : [];
-
-        $sort = ($room->status == 3) ?
-            BingoSort::where('room', $roomId)->where('id', '<=', $vanSort->id)
-            ->where('time', '>', time())->get(['code', 'time']) : [];
-
-        $chipsRest = ($room->status == 3) ?
-            BingoSort::where('room', $roomId)->where('time', '>', time())
-            ->where('id', '<=', $vanSort->id)->orderBy('chip')->pluck('chip')->sort()->toArray() : [];
-
-        $allChips = ($room->status > 2) ?
-            BingoSort::where('room', $roomId)->where('id', '<=', $vanSort->id)
-            ->where('time', '<', time())->orderByDesc('id')->pluck('chip')->toArray() : [];
-
-        $codeEncrypt = ($room->status == 3) ? BingoSortCode::where('room', $roomId)->pluck('sym')->toArray() : [];
-
-        $lastSixChips = $this->getChips($room->encrypted);
-
-        //$infoGame = ($room->status > 3) ? $this->getResult($room->encrypted) : [];
-
-        return view('modules.visitor.games.bingo.out-game')->with([
-            'title' => $title,
-            'room' => $room,
-            'jackpotType' => BingoRoomConfig::getValueByRoom($roomId, 'jackpot_type'),
-            'coin' => $coin->symbol,
-            'jackpot' => $this->convertPrizeValue($roomId, $coin->id),
-            'startTime' => $this->convertToUnixTimestamp($room->date, $room->time),
-            'chipsRest' => $chipsRest,
-            'sort' => $sort,
-            'encrypt' => $codeEncrypt,
-            'key' => env('JSON_ENCRYPTION_KEY'),
-            'lastSixChips' => $lastSixChips[0],
-            'lastPostChip' => $lastSixChips[1],
-            'allChips' => $allChips,
-            'vanSort' => $vanSort ? $vanSort->chip : '',
-            //'infoGame' => $infoGame,
-            'timeServ' => time(),
-            // Artisan::call('bingooff:dispatch', ['room' => $room->encrypted])
-        ]);
-    }
-
     public function inGame($PJLink, $dateFilter = 'today')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        $viewData = self::getGameViewInfo('all', ['commerce' => 'RKE', 'PJLink' => $PJLink]);
+        $viewData = self::getGameViewInfo('all', ['commerce' => 'RKE', 'PJLink' => $PJLink], $dateFilter);
 
-        return view('modules.visitor.games.bingo.in-game')->with($viewData);
+        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
     }
 
     public function inGameCommerce($PJLink, $dateFilter = 'today') //
@@ -347,12 +283,12 @@ class BingoController extends Controller
         // Vista para el juego de un comercio especifico
         $commerce = PlayerLink::getValueByLink($PJLink, 'commerce');
 
-        $viewData = self::getGameViewInfo('commerce', ['commerce' => $commerce, 'PJLink' => $PJLink]);
+        $viewData = self::getGameViewInfo('commerce', ['commerce' => $commerce, 'PJLink' => $PJLink], $dateFilter);
 
-        return view('modules.visitor.games.bingo.in-game')->with($viewData);
+        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
     }
 
-    public function inGameCustomer($customerToken, $dateFilter, $userToken)
+    public function inGameCustomer($customerToken, $userToken, $dateFilter)
     {
         // Vista para el juego de un cliente especifico
 
@@ -365,13 +301,19 @@ class BingoController extends Controller
         }
 
         // Consultar información de usuario y crear variables de sesión
-        $this->handleCustomerUserSession($customerId, $userToken);
+        $response = $this->handleCustomerUserSession($customerId, $userToken);
+
+        // Verificar si existe el usuario por su token
+        if (!$response) {
+            return response()->json(['message' => 'Token de usuario incorrecto'], 404);
+        }
 
         // Obtener informacion de la vista del cliente
-        $viewData = self::getGameViewInfo('customer', ['customer' => $customerId]);
+        $viewData = self::getGameViewInfo('customer', ['customer' => $customerId], $dateFilter);
 
         // Retorna a vista con la informacion del cliente
-        return view('modules.visitor.games.bingo.in-game')->with($viewData);
+        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData)
+            : response()->json(['message' => 'Ocurrió un error'], 404);
     }
 
     private function hasPurchasedCartons($phone)
