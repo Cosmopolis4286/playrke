@@ -16,6 +16,7 @@ return new class extends Migration
         Schema::create('bingo_rooms_user', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
+            $table->unsignedBigInteger('customer')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('seller')->nullable();
@@ -25,6 +26,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
+            $table->foreign('customer')->references('id')->on('customer');
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('subsidiary')->references('id')->on('subsidiaries')->onUpdate('cascade');

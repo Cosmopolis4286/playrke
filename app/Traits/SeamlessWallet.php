@@ -10,14 +10,6 @@ use Illuminate\Support\Facades\Log;
 
 trait SeamlessWallet
 {
-    private function generateSignature($dataJson, $securityKey)
-    {
-        // Concatenar el cuerpo de la solicitud con la clave de seguridad
-        $combinedString = $dataJson . $securityKey;
-        //Generar el hash SHA-256 y convertirlo a hexadecimal
-        return bin2hex(hash('sha256', $combinedString, true));
-    }
-
     private function getCustomerKey($customerID)
     {
         $customer = Customer::getById($customerID, ['customer_key', 'security_key']);
@@ -26,114 +18,104 @@ trait SeamlessWallet
         $encryptedKey = decrypt($customer->security_key, env('CTMER_ENCRYPTION_KEY'));
 
         // Desencriptar la clave de seguridad del cliente usando la clave específica
-        return decrypt($customer->customer_key, $encryptedKey);
+        $customerKey = decrypt($customer->customer_key, $encryptedKey);
+
+        return $customerKey;
+    }
+
+    private function generateSignature($dataJson, $securityKey)
+    {
+        // Concatenar el cuerpo de la solicitud con la clave de seguridad
+        // Generar el hash SHA-256 y convertirlo a hexadecimal
+        return hash('sha256', $dataJson . $securityKey);
     }
 
     private function globalCurl($customerID, $dataJson, $action)
     {
-
-        $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'http://apipolla.apuestasroyal.com/GetUserInfo',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => '{
-            "Ticks": "0000000",
-            "Product": "RoyalEis",
-            "Brand": "APUESTASROYAL",
-            "AdditionalData": "{}",
-            "Token": "952549b3-45ae-11ef-aadf-bc2411bfd8ae"
-        }',
-            CURLOPT_HTTPHEADER => array(
-                'X-Signature: 32c07f1676ceae90104f2e293e61e4507ee53b5de435d4f692b23e423f5e8598',
-                'Content-Type: application/json'
-            ),
-        ));
-
-        $response = curl_exec($curl);
-
-        curl_close($curl);
-        echo $response;
-        die;
-
-        $customerKey = self::getCustomerKey($customerID);
+        // Obtener la clave de seguridad y la ruta del enlace
+        $customerKey = $this->getCustomerKey($customerID);
         $linkRoute = Customer::getValueById($customerID, 'link_route');
 
-        // Generar el hash SHA-256 y convertirlo a hexadecimal
-        $hashHex = self::generateSignature($dataJson, $customerKey);
+        // Generar la firma
+        $hashHex = $this->generateSignature($dataJson, $customerKey);
 
-        // Inicializar CURL
-        $curl = curl_init();
-
-        // Configurar las opciones de CURL
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => "http://{$linkRoute}/{$action}",
+        // Inicializar y configurar CURL en una sola llamada
+        $curl = curl_init("http://{$linkRoute}/{$action}");
+        curl_setopt_array($curl, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
+            CURLOPT_TIMEOUT => 60,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => $dataJson, // Pasar el cuerpo como JSON
-            CURLOPT_HTTPHEADER => array(
-                "X-Signature: $hashHex",  // Incluir la firma en el encabezado
-                'Content-Type: application/json'
-            ),
-        ));
+            CURLOPT_POSTFIELDS => $dataJson,
+            CURLOPT_HTTPHEADER => [
+                "X-Signature: $hashHex",
+                'Content-Type: application/json',
+            ],
+        ]);
 
-        // Ejecutar la solicitud
+        // Ejecutar la solicitud y cerrar CURL
         $response = curl_exec($curl);
-
-        // Cerrar la conexión CURL
         curl_close($curl);
 
-        // Mostrar la respuesta
         return $response;
     }
 
     private function globalGuzzle($customerID, $dataJson, $action)
     {
+        // Obtener la clave de seguridad del cliente
         $customerKey = self::getCustomerKey($customerID);
+
+        // Generar la firma
+        $signature = $this->generateSignature($dataJson, $customerKey);
+
+        // Obtener la URL base del cliente
         $linkRoute = Customer::getValueById($customerID, 'link_route');
 
-        // Generar el hash SHA-256 y convertirlo a hexadecimal
-        $hashHex = self::generateSignature($dataJson, $customerKey);
-
+        // Crear una instancia de Guzzle
         $client = new Client();
 
+        // Configurar los encabezados de la solicitud
         $headers = [
-            'X-Signature' => '32c07f1676ceae90104f2e293e61e4507ee53b5de435d4f692b23e423f5e8598',
+            'X-Signature' => $signature,
             'Content-Type' => 'application/json'
         ];
 
-        $request = new Request('POST', "http://apipolla.apuestasroyal.com/{$action}", $headers, $dataJson);
-        $res = $client->sendAsync($request)->wait();
-        return $res->getBody();
+        // Realizar la solicitud HTTP POST con tiempos de espera extendidos
+        try {
+            $response = $client->post("http://{$linkRoute}/{$action}", [
+                'headers' => $headers,
+                'body' => $dataJson,
+                'timeout' => 30,           // Tiempo máximo de espera de la respuesta en segundos
+                'connect_timeout' => 20,   // Tiempo máximo de espera para la conexión en segundos
+            ]);
+
+            // Retornar la respuesta del servidor
+            return $response->getBody()->getContents();
+        } catch (\Exception $e) {
+            // Manejar errores
+            Log::error('Error en la solicitud HTTP: ' . $e->getMessage());
+            return null;
+        }
     }
 
     public function getUserInfoFromCustomer($customerID, $token)
     {
         $customer = Customer::getById($customerID, ['brand', 'product']);
+
         // Datos del cuerpo de la solicitud
-        $bodyArray = [
+        $dataJson = json_encode([
             "Ticks" => "0000000",
             "Product" => 'RoyalEis',
             "Brand" => 'APUESTASROYAL',
             "AdditionalData" => "{}",
-            "Token" => "952549b3-45ae-11ef-aadf-bc2411bfd8ae" //$token // 952549b3-45ae-11ef-aadf-bc2411bfd8ae
-        ];
+            "Token" => $token
+        ]);
 
-        $dataJson = json_encode($bodyArray);
-
-        return $this->globalCurl($customerID, $dataJson, 'GetUserInfo');
-        //return self::globalGuzzle($customerID, $dataJson, 'GetUserInfo');
+        //return $this->globalCurl($customerID, $dataJson, 'GetUserInfo');
+        return $this->globalGuzzle($customerID, $dataJson, 'GetUserInfo');
     }
 
     public function getUserBalanceFromCustomer($customerID, $userToken, $game = '')
@@ -141,7 +123,7 @@ trait SeamlessWallet
         $customer = Customer::getById($customerID, ['brand', 'product']);
 
         // Datos del cuerpo de la solicitud
-        $bodyArray = [
+        $dataJson = json_encode([
             "Ticks" => "0000000",
             "Game" => $customer->product,
             "Brand" => $customer->brand,
@@ -149,9 +131,7 @@ trait SeamlessWallet
             "Token" => $userToken[1], // 952549b3-45ae-11ef-aadf-bc2411bfd8ae
             "UserID" => $userToken[0],
             "CurrencyCode" => ""
-        ];
-
-        $dataJson = json_encode($bodyArray);
+        ]);
 
         return $this->globalCurl($customerID, $dataJson, 'GetBalance');
     }
@@ -168,7 +148,7 @@ trait SeamlessWallet
         }
 
         // Datos del cuerpo de la solicitud
-        $bodyArray = [
+        $dataJson = json_encode([
             "Ticks" => "0000000", // Asegúrate de que este valor es correcto
             "Game" => $customer->product,
             "Brand" => $customer->brand,
@@ -180,9 +160,7 @@ trait SeamlessWallet
             "TransactionID" => $transactionId,
             "TransactionType" => $transactionType,
             "AdditionalData" => "{}"
-        ];
-
-        $dataJson = json_encode($bodyArray);
+        ]);
 
         // Llamada al método globalCurl
         $response = $this->globalCurl($customerID, $dataJson, 'TransferMoney');
@@ -197,15 +175,21 @@ trait SeamlessWallet
 
     public function handleCustomerUserSession($customerID, $userToken)
     {
-        $customerResponse = $this->getUserInfoFromCustomer($customerID, $userToken);
-
-        dd($customerResponse);
+        $customerResponse = json_decode($this->getUserInfoFromCustomer($customerID, $userToken));
 
         if (!$customerResponse) return false;
 
-        // Crear la variable de sesión 'clientUser'
-        session()->put('clientUser', encrypt([$customerResponse['ID'], $userToken]));
-        session()->put('coinClientUser', encrypt($customerResponse['DefaultCurrencyCode']));
+        // Crear la variable de sesión 'CustomerUser'
+        session()->put('CUSTU', encrypt([$customerResponse->Data->ID, $userToken]));
+        session()->put(
+            'CCCUSTU',
+            encrypt([
+                $customerResponse->Data->Country,
+                $customerResponse->Data->DefaultCurrencyCode
+            ])
+        );
+
+        return $customerResponse->Data;
     }
 
     public function getTransaction($game, $customerID, $user)

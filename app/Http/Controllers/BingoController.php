@@ -24,6 +24,7 @@ use App\Models\GameModes;
 use App\Models\JackpotType;
 use App\Models\PlayerLink;
 use App\Models\Customer;
+use App\Models\CustomerUser;
 use App\Models\User;
 use App\Models\UserType;
 use App\Traits\BingoTrait;
@@ -144,35 +145,51 @@ class BingoController extends Controller
         switch ($type) {
             case 'customer':
 
-                $playerUser = $data['playerUser'];
+                $customer = $data['customer'];
+                $playerUser = decrypt(session('CUSTU'))[0];
+                $countryCoin = decrypt(session('CCCUSTU'));
+                $coin = $countryCoin[1];
 
-                $player = BingoRoomUser::getByColumn('player_user', $data['playerUser']);
+                $player = BingoRoomUser::getByColumn('player_user', $playerUser);
 
                 if (!$player) return redirect('/');
 
-                $columnGetCtns = 'player_user';
-                $valColumnGetCtns = $playerUser;
+                if (!CustomerUser::existsUserByCustomer($customer, $playerUser)) {
+                    CustomerUser::create([
+                        'customer' => $customer,
+                        'user_id' => $playerUser,
+                        'country' => $countryCoin[0],
+                        'coin' => $coin[1],
+                        'first_entry' => now()
+                    ]);
+                }
 
-                $moreViewData = ['customerLogo' => Customer::getValueById($data['customer'], 'logo')];
+                $columnData = 'player_user';
+                $valColumnData = $playerUser;
+
+                $moreViewData = ['customer' => Customer::getById($customer)];
 
                 break;
             case 'all';
             case 'commerce':
 
-                $player = PlayerLink::select('id', 'country', 'room')->where('link', $data['PJLink']);
+                $query = PlayerLink::select('id', 'country', 'room')->where('link', $data['PJLink']);
 
-                if ($type == 'commerce') $player->where('commerce', $data['commerce']);
+                if ($type == 'commerce') $player = $query->where('commerce', $data['commerce']);
 
-                $player->first();
+                $player = $query->first();
 
                 if (!$player) return redirect('/');
 
                 $PJLink = $player->id;
                 $roomId = $player->room;
-                $columnGetCtns = 'player_link';
-                $valColumnGetCtns = $PJLink;
+                $columnData = 'player_link';
+                $valColumnData = $PJLink;
 
                 $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
+
+                $coin = $coin->id;
+                $coinSym = $coin->symbol;
 
                 $moreViewData = ['PJLink' => $PJLink];
 
@@ -198,10 +215,10 @@ class BingoController extends Controller
         if (!in_array($room->status, [2, 3, 4])) return redirect('/');
 
         // Obtener valor formateado del bote
-        $jackpot = $this->convertPrizeValue($roomId, $coin->id);
+        $jackpot = $this->convertPrizeValue($roomId, $coin);
 
         // Obtener Cartones del jugador
-        $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, $columnGetCtns, $valColumnGetCtns);
+        $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, $columnData, $valColumnData);
 
         $vanSort = ($room->status > 2) ?
             BingoSort::where(['room' => $roomId, 'win' => 1])->select('id', 'chip')->first() : [];
@@ -222,13 +239,13 @@ class BingoController extends Controller
 
         $lastSixChips = $this->getChips($room->encrypted);
 
-        $infoGame = ($room->status > 3) ? $this->getResult($room->encrypted, $PJLink) : [];
+        $infoGame = ($room->status > 3) ? $this->getResult($room->encrypted, $columnData, $valColumnData) : [];
 
         $viewData = [
             'title' => 'BingoCash',
             'room' => $room,
             'jackpotType' => BingoRoomConfig::getValueByRoom($roomId, 'jackpot_type'),
-            'coin' => $coin->symbol,
+            'coinSym' => $coinSym,
             'jackpot' => $jackpot,
             'startTime' => $this->convertToUnixTimestamp($room->date, $room->time),
             'chipsRest' => $chipsRest,
@@ -293,7 +310,7 @@ class BingoController extends Controller
 
         $lastSixChips = $this->getChips($room->encrypted);
 
-        $infoGame = ($room->status > 3) ? $this->getResult($room->encrypted) : [];
+        //$infoGame = ($room->status > 3) ? $this->getResult($room->encrypted) : [];
 
         return view('modules.visitor.games.bingo.out-game')->with([
             'title' => $title,
@@ -310,7 +327,7 @@ class BingoController extends Controller
             'lastPostChip' => $lastSixChips[1],
             'allChips' => $allChips,
             'vanSort' => $vanSort ? $vanSort->chip : '',
-            'infoGame' => $infoGame,
+            //'infoGame' => $infoGame,
             'timeServ' => time(),
             // Artisan::call('bingooff:dispatch', ['room' => $room->encrypted])
         ]);
@@ -346,24 +363,24 @@ class BingoController extends Controller
         $this->handleCustomerUserSession($customerId, $userToken);
 
         // Mostrar la vista con la información del cliente
-        self::inGameInfoView('customer', ['customer' => $customerId, 'playerUser' => $userToken, 'room' => $room]);
+        self::inGameInfoView('customer', ['customer' => $customerId]);
     }
 
     public function outGame($dateFilter = 'today')
     {
         // Vista para la venta del juego de la sala conjunta de todos los comercios
-        self::outGameInfoView();
+        //self::outGameInfoView();
     }
 
     public function outGameCommerce($dateFilter = 'today')
     {
         // Vista para la venta del juego de la sala de un comercio especifico
-        self::outGameInfoView();
+        //self::outGameInfoView();
     }
 
     public function outGameCustomer($dateFilter = 'today')
     {
-        self::outGameInfoView();
+        //self::outGameInfoView();
     }
 
     private function hasPurchasedCartons($phone)
