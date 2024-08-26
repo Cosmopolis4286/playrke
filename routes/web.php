@@ -408,10 +408,12 @@ Route::post('bingocash/actWn', [BingoController::class, 'actWn'])
 Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
     // Rutas Jugador/Comercio TODOS
-    Route::get('{PlayerLink}/game/{dateFilter?}', [BingoController::class, 'inGame'])->name('inGame');
+    Route::get('{PlayerLink}', [BingoController::class, 'inGame'])->name('in-game-rke');
+    Route::get('game/{dateFilter?}', [BingoController::class, 'outGame'])->name('out-game-rke');
 
     // Ruta /Jugador/Comercio Especifico
-    Route::get('comm/{PlayerLink}/game/{dateFilter?}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
+    Route::get('comm/{commerce}/{PlayerLink}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
+    Route::get('comm/{commerce}/game/{dateFilter?}', [BingoController::class, 'outGameCommerce'])->name('out-game-commerce');
 
     // Rutas Jugador/Cliente
     Route::get('rke/{cust}/{userToken}/game/{dateFilter?}', [BingoController::class, 'inGameCustomer'])->name('in-game-customer');

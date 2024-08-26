@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Models\UUIDCodes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -88,5 +89,14 @@ trait EncryptRKE
         $formattedString = $arr[0] . '-' . $arr[1] . '-' . $arr[2] . '-' . $arr[3];
 
         return $formattedString;
+    }
+
+    public function getCodeUUID()
+    {
+        do {
+            $code = Str::random(12);
+        } while (UUIDCodes::existsCode($code));
+
+        return $code;
     }
 }

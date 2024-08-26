@@ -175,7 +175,8 @@ class CommerceController extends Controller
                 'coin' => $request->coin,
                 'country' => $request->country,
                 'status' => 1,
-                'user' => $newUser->id
+                'user' => $newUser->id,
+                'code_uuid' => $this->getCodeUUID()
             ]);
 
             // Registar moneda Principal

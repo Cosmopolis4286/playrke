@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class DocumentType extends Model
 {
     protected $table = "document_type";
-    protected $primaryKey = 'id';
     protected $fillable = ['value', 'description', 'country', 'status'];
 
     public function Country()

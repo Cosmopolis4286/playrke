@@ -174,16 +174,19 @@ class BingoController extends Controller
             case 'all';
             case 'commerce':
 
-                $query = PlayerLink::select('id', 'country', 'room')->where('link', $data['PJLink']);
+                $roomId = PlayerLink::getValueByLink($data['PJLink'], 'room');
+                $allForOne = BingoRoom::getValueById($roomId, 'all_for_one');
 
-                if ($type == 'commerce') $player = $query->where('commerce', $data['commerce']);
+                if (($type == 'all' && !$allForOne) ||
+                    ($type == 'commerce' && $allForOne &&
+                        !PlayerLink::where('room', $roomId)->where('commerce', $data['commerce'])->exists())
+                ) {
+                    return false;
+                }
 
-                $player = $query->first();
-
-                if (!$player) return false;
+                $player = PlayerLink::select('id', 'country')->where('room', $roomId)->first();
 
                 $PJLink = $player->id;
-                $roomId = $player->room;
                 $columnData = 'player_link';
                 $valColumnData = $PJLink;
 
@@ -314,6 +317,27 @@ class BingoController extends Controller
         // Retorna a vista con la informacion del cliente
         return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData)
             : response()->json(['message' => 'Ocurrió un error'], 404);
+    }
+
+    public function outGame($dateFilter = 'today')
+    {
+        // Vista del el juego solo para comprar [TODOS]
+        $viewData = self::getGameViewInfo('all', ['commerce' => 'RKE'], $dateFilter);
+
+        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
+    }
+
+    public function outGameCommerce($commerce, $dateFilter = 'today')
+    {
+        // Vista del el juego para un comercio especifico solo para comprar
+        $commerce = Commerce::getByCodeUUID($commerce, 'id');
+
+        // Redireccionar al Login si no hay coincidencia
+        if (!$commerce) return redirect('/');
+
+        $viewData = self::getGameViewInfo('commerce', ['commerce' => $commerce->id], $dateFilter);
+
+        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
     }
 
     private function hasPurchasedCartons($phone)
@@ -491,7 +515,6 @@ class BingoController extends Controller
                     'commerce' => Commerce::getValueByUserId($user->id, 'id'),
                     'subsidiary' => $request->subsidiary ?? null,
                     'status' => 1,
-                    'all_for_one' => 1,
                     'date' => $request->date,
                     'time' => $request->time,
                     'unix_date' => strtotime("{$request->date} {$request->time}"),

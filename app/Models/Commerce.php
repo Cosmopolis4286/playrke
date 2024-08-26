@@ -12,9 +12,11 @@ class Commerce extends Model
     'country',
     'coin',
     'phone',
-    'commn',
-    'all_in',
     'user',
+    'commn',
+    'code_rke',
+    'all_in',
+    'code_uuid',
     'status'
   ];
 
@@ -51,5 +53,25 @@ class Commerce extends Model
   public static function getValueByUserId($user, $value)
   {
     return self::where('user', $user)->value($value);
+  }
+
+  public static function getByCodeRKE($code, $fields = ['*'])
+  {
+    return self::select($fields)->where('code_rke', $code)->first();
+  }
+
+  public static function getValueByCodeRKE($code, $value)
+  {
+    return self::where('code_rke', $code)->value($value);
+  }
+
+  public static function getByCodeUUID($code, $fields = ['*'])
+  {
+    return self::select($fields)->where('code_uuid', $code)->first();
+  }
+
+  public static function getValueByCodeUUID($code, $value)
+  {
+    return self::where('code_uuid', $code)->value($value);
   }
 }
