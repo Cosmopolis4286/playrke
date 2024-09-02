@@ -111,10 +111,24 @@ class BingoController extends Controller
 
     public function generateCarton(Request $request)
     {
+        $customer = null;
+        $commerce = $request->commerce;
+
+        if ($request->user_type) {
+            $userType = decrypt($request->user_type);
+            $userTypeVal = decrypt($request->user_type_val);
+
+            if ($userType == 'customer') {
+                $customer = $userTypeVal;
+            } else {
+                $commerce = $userTypeVal;
+            }
+        }
+
         $data = [
-            'room' => $request->bingo_room ?? null,
-            'customer' => $request->customer ?? null,
-            'commerce' => $request->commerce ?? null,
+            'room' => $request->room ?? null,
+            'customer' => $customer ?? null,
+            'commerce' => $commerce ?? null,
             'country' => $request->country ?? null,
             'playerPhone' => $request->phone ?? null,
             'playerUser' => $request->user_pvr ?? null,
@@ -168,7 +182,11 @@ class BingoController extends Controller
                 $columnData = 'player_user';
                 $valColumnData = $playerUser;
 
-                $moreViewData = ['custLogo' => Customer::getValueById($customer, 'logo')];
+                $moreViewData = [
+                    'custLogo' => Customer::getValueById($customer, 'logo'),
+                    'userType' => encrypt('customer'),
+                    'userTypeVal' => encrypt($customer)
+                ];
 
                 break;
             case 'all';
@@ -196,6 +214,11 @@ class BingoController extends Controller
                 $coinSym = $coin->symbol;
 
                 $moreViewData = ['PJLink' => $PJLink];
+
+                if ($type == 'commerce') {
+                    $moreViewData['userType'] = encrypt('commerce');
+                    $moreViewData['userTypeVal'] = encrypt($data['commerce']);
+                }
 
                 break;
             default:

@@ -22,6 +22,7 @@ use App\Models\CommerceCountriesCoins;
 use App\Models\Country;
 use App\Models\SellerCountriesCoins;
 use App\Models\UserType;
+use App\Models\UUIDCodes;
 use App\Models\Wallet;
 use App\Traits\BingoTrait;
 use App\Traits\Filters;
@@ -214,6 +215,12 @@ class CommerceController extends Controller
                 }
                 CommerceCountriesCoins::insert($coinsToCreate);
             }
+
+            // Registrar Code UUID
+            UUIDCodes::create([
+                'code' => $commerce->code_uuid,
+                'user_type' => UserType::getValueByPrefix('commerce', 'id')
+            ]);
 
             DB::commit();
 

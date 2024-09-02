@@ -390,7 +390,6 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'bingo', 'as' => 'bingo.'], 
 Route::group(['middleware' => ['auth', 'customer-commerce'], 'prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('rooms/{user}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
     Route::get('games-room/{user}', [BingoController::class, 'gamesRooms'])->name('game-rooms');
-    Route::post('bingocash/carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
@@ -417,6 +416,9 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
     // Rutas Jugador/Cliente
     Route::get('rke/{cust}/{userToken}/game/{dateFilter?}', [BingoController::class, 'inGameCustomer'])->name('in-game-customer');
+
+    // Procesar Compra de Cartones
+    Route::post('carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
 
     Route::get('getSort/{room}', [BingoController::class, 'getSort'])->name('getSort');
     Route::get('get/chips/{room}', [BingoController::class, 'getChips'])->name('getChips');

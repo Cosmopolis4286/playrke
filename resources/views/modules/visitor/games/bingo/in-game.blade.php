@@ -30,7 +30,7 @@
     <script>
         const preRoute = '{{ asset('') }}';
         const encrypted = '<?php echo $room->encrypted; ?>';
-        const roomStatus = '<?php echo $room->status; ?>';
+        const status = '<?php echo $room->status; ?>';
         const coinSym = '<?php echo $coinSym; ?>';
         const valSongs = '<?php echo $room->val_songs; ?>';
         const arrSort = JSON.parse('<?php echo json_encode($sort); ?>');
@@ -57,7 +57,7 @@
         var loadTimeServ = false;
         var vanChange = 0;
         var actSound = 0;
-        var endWin = (arrSort.length && (roomStatus === 2 || roomStatus === 3)) ? 0 : (roomStatus >= 4 ? 1 : 0);
+        var endWin = (arrSort.length && (status === 2 || status === 3)) ? 0 : (status >= 4 ? 1 : 0);
         var sizeCarrsel;
 
         if (restChips.length) {
@@ -98,7 +98,7 @@
                 sizeCarrsel = 8;
             }
 
-            if (allChips.length && roomStatus > 2) {
+            if (allChips.length && status > 2) {
                 renderChipsView(allChips);
             }
         }
@@ -106,7 +106,7 @@
         window.addEventListener('resize', handleResize, true);
 
         document.body.addEventListener('click', function() {
-            if (actSound == 0 && endWin == 0 && lastSixChips && roomStatus == 3) {
+            if (actSound == 0 && endWin == 0 && lastSixChips && status == 3) {
                 $('#icon-volume').toggleClass('fa-volume-high fa-volume-xmark');
                 actSound = 1;
                 soundNext.muted = false;
@@ -183,7 +183,7 @@
                     );
                 });
                 autoMarked();
-                if (roomStatus == 3) processChips();
+                if (status == 3) processChips();
 
                 resolve(); // Resuelve la promesa
             });
@@ -242,7 +242,7 @@
         };
 
         window.onfocus = function() {
-            if (roomStatus == 3) getGameData();
+            if (status == 3) getGameData();
         };
 
         // Ajustar tamano de las casillas
@@ -291,7 +291,7 @@
         let count = 0;
 
         function checkExitOfToken() {
-            if (roomStatus != 3) return;
+            if (status != 3) return;
 
             for (let i = count; i < arrSort.length; i++) {
                 const chipTime = +arrSort[i].time;
@@ -331,7 +331,7 @@
                     }
                 }, 1000);
             }
-            if (roomStatus < 3) {
+            if (status < 3) {
                 // Mostrar el modal si el estado de la sala es menor a 3
                 $('#modal-info-draw-title').text(convertAndDisplay(startTime));
                 $("#modal-info-draw").modal('show');
@@ -346,7 +346,7 @@
                 if (actSound === 1) soundNext.play();
                 if (arrSortImg.length) $(`#${arrSortImg[0].id}`).removeClass('zoom');
 
-                if (loaderChip && roomStatus > 2) {
+                if (loaderChip && status > 2) {
                     $('#cont-loader').hide();
                     loaderChip = false;
                 }
@@ -484,7 +484,7 @@
                     $("#cont-ctn-award-winning").show();
                     getViewCtn = false;
                 },
-                error: function(xhr, roomStatus, error) {
+                error: function(xhr, status, error) {
                     console.error("Error en la solicitud:", error);
                 }
             });
@@ -519,7 +519,7 @@
                         renderChipsView(allChips)
                     ]);
 
-                    if (roomStatus > 3) {
+                    if (status > 3) {
                         showWinners(infoGame, chpLast);
                         $("#btn-view-winners").prop('disabled', false);
                     }
@@ -539,7 +539,46 @@
         </script>
     @endif
     @if ($room->status == 2)
+        <script>
+            let userType = '<?php echo json_encode($userType); ?>';
+            let userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
+        </script>
         <script src="{{ asset('js/games/bingo/bingo-buy-ctns.js') }}"></script>
+        <script>
+            function toggleModalInfo() {
+                $("#form-buy-ctns").toggleClass('hide-elem');
+                $("#cont-btn-buy-ctns, #game-clock").toggle();
+            }
+
+            $(document).on("click", ".mdl-buy-ctns", function() {
+                toggleModalInfo();
+            });
+
+            $(document).on("click", "#btn-buy-ctns-confirm", function() {
+
+                if (!$("#num-ctns").val()) return false;
+
+                $.ajax({
+                    url: "{{ route('bingocash.generateCarton') }}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'post',
+                    dataType: 'json',
+                    data: {
+                        room: encrypted,
+                        user_type: userType,
+                        user_type_val: userTypeVal,
+                        num_ctns: $("#num-ctns").val()
+                    },
+                    beforeSend: function() {},
+                    success: function(data) {
+                        toggleModalInfo();
+                    },
+                    error: function() {}
+                });
+            });
+        </script>
     @endif
     {{-- <script src="{{ asset('js/game-bingo.js') }}"></script> --}}
 @endsection

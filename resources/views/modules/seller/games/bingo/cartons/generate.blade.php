@@ -9,8 +9,8 @@
                     <form id="form-ctns" action="{{ route('seller.generateCarton') }}" method="POST">@csrf
                         <div class="row">
                             <div class="form-group col-9 col-sm-5">
-                                <label for="bingo-room">Próximos Bingo</label>
-                                <select disabled id="bingo-room" class="form-control" name="bingo_room" required></select>
+                                <label for="room">Próximos Bingo</label>
+                                <select disabled id="room" class="form-control" name="room" required></select>
                                 <div id="cont-tx-jackpot-room" class="mt-1 hide-elem">
                                     <b><small><span class="jackpot-type"></span> Actual:</small></b>
                                     <span class="coin-symbol"></span>
@@ -157,7 +157,7 @@
 @section('scripts')
     <script src="{{ asset('js/time-functions.js') }}"></script>
     <script>
-        const room = $("#bingo-room");
+        const room = $("#room");
         const rooms = {!! json_encode($rooms) !!};
         const numCtns = $("#num-ctns");
         const country = $("#country");
