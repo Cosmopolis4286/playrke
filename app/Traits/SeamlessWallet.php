@@ -199,7 +199,7 @@ trait SeamlessWallet
         do {
             // Concatenar los valores con una cadena aleatoria para asegurar unicidad
             $randomString = bin2hex(random_bytes(5)); // Genera una cadena aleatoria
-            $data = 'RKE' . $game . $customerID . $user . $timestamp . $randomString . 'RKE';
+            $data = $game . $customerID . $user . $timestamp . $randomString;
 
             // Generar un hash MD5 del valor concatenado
             $uniqueId = md5($data);

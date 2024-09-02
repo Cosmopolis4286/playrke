@@ -16,6 +16,7 @@ use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomUser;
 use App\Models\Coin;
 use App\Models\CoinGameRoom;
+use App\Models\Commerce;
 use App\Models\GameExchangeRate;
 use App\Models\ExchangeRate;
 use App\Models\PlayerLink;
@@ -548,7 +549,7 @@ trait BingoTrait
                 $transactionResponse = $this->transferMoney(
                     $customer,
                     $userToken,
-                    $this->getHashMD5($lotID),
+                    $this->getCodeUUID(),
                     $coinClientUser,
                     $totalAmountCtns,
                     $transaction[1],
@@ -603,6 +604,8 @@ trait BingoTrait
 
         try {
 
+            $commerceID = $seller->commerce ?? null;
+
             if (!$player) {
                 $PJLink = $this->createPlayerLink(1);
                 $playerDocument = null;
@@ -610,7 +613,7 @@ trait BingoTrait
                 $arrDataPlayer = [
                     'game' => 1,
                     'room' => $roomID,
-                    'commerce' => $seller->commerce,
+                    'commerce' => $commerceID,
                     'seller' => $seller->id,
                     'country' => $country,
                     'coin' => $coin,
@@ -635,7 +638,7 @@ trait BingoTrait
             $arrDataCtns = [
                 'room' => $roomID,
                 'customer' => $customer,
-                'commerce' => $seller->commerce,
+                'commerce' => $commerceID,
                 'seller' => $seller->id,
                 'playerUser' => $playerUser,
                 'PJLink' => $player,
@@ -653,7 +656,13 @@ trait BingoTrait
 
                 if (!$customer) {
                     $baseRoute = $this->getRouteRKE() . "bingocash/";
-                    $route = $baseRoute . ($room->all_for_one == 0 ? "comm/$PJLink/game/today" : "$PJLink/game/today");
+                    $code = Commerce::getValueById($commerceID, 'code_rke');
+
+                    if (!$code) { // Si no existe codigo RKE
+                        $code = Commerce::getValueById($commerceID, 'code_uuid');
+                    }
+
+                    $route = $baseRoute . ($room->all_for_one == 0 ? "comm/$code/$PJLink" : $PJLink);
                 }
 
                 return  $route ?? true;
@@ -763,7 +772,7 @@ trait BingoTrait
                         $transactionResponse = $this->transferMoney(
                             $customer,
                             $userToken,
-                            $this->getHashMD5($ctn->id),
+                            $this->getCodeUUID($ctn->id),
                             $coinClientUser,
                             $prizeWn,
                             $transaction[1],

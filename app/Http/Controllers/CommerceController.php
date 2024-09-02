@@ -144,6 +144,13 @@ class CommerceController extends Controller
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
 
+        $codeRKE = $request->code_rke;
+        $existsCodeRKE = Commerce::existsValue('code_rke', $codeRKE);
+
+        if ($existsCodeRKE) {
+            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
+        }
+
         date_default_timezone_set('America/Caracas');
 
         DB::beginTransaction();
@@ -176,6 +183,7 @@ class CommerceController extends Controller
                 'country' => $request->country,
                 'status' => 1,
                 'user' => $newUser->id,
+                'code_rke' => $codeRKE,
                 'code_uuid' => $this->getCodeUUID()
             ]);
 
@@ -243,6 +251,13 @@ class CommerceController extends Controller
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
 
+        $codeRKE = $request->code_rke;
+        $existsCodeRKE = Commerce::existsValue('code_rke', $codeRKE);
+
+        if ($existsCodeRKE) {
+            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
+        }
+
         DB::beginTransaction();
 
         try {
@@ -265,6 +280,7 @@ class CommerceController extends Controller
                     'country' => $request->country,
                     'coin' => $request->coin,
                     'phone' => $request->phone,
+                    'code_rke' => $request->code_rke
                 ]);
 
                 if ($coinChange) {

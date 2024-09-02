@@ -273,20 +273,25 @@ class BingoController extends Controller
         return $viewData;
     }
 
-    public function inGame($PJLink, $dateFilter = 'today')
+    public function inGame($PJLink)
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        $viewData = self::getGameViewInfo('all', ['commerce' => 'RKE', 'PJLink' => $PJLink], $dateFilter);
+        $viewData = self::getGameViewInfo('all', ['commerce' => 'RKE', 'PJLink' => $PJLink]);
 
         return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
     }
 
-    public function inGameCommerce($PJLink, $dateFilter = 'today') //
+    public function inGameCommerce($commerce, $PJLink) //
     {
         // Vista para el juego de un comercio especifico
-        $commerce = PlayerLink::getValueByLink($PJLink, 'commerce');
+        $commerceID = PlayerLink::getValueByLink($PJLink, 'commerce');
 
-        $viewData = self::getGameViewInfo('commerce', ['commerce' => $commerce, 'PJLink' => $PJLink], $dateFilter);
+        // Validar el codigo de comercio
+        $comerceIDByUUID = Commerce::getByCodeUUID($commerce, 'id');
+
+        if ($comerceIDByUUID->id != $commerceID) return redirect('/');
+
+        $viewData = self::getGameViewInfo('commerce', ['commerce' => $commerceID, 'PJLink' => $PJLink]);
 
         return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
     }

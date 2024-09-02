@@ -94,7 +94,7 @@ trait EncryptRKE
     public function getCodeUUID()
     {
         do {
-            $code = Str::random(12);
+            $code = Str::uuid()->toString();
         } while (UUIDCodes::existsCode($code));
 
         return $code;
