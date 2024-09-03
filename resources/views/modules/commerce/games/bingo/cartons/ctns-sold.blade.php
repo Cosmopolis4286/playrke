@@ -40,7 +40,7 @@
                                         @php
                                             $totalCtns = $ctn->sum('ctns');
                                             if ($ctn->status != 2) {
-                                                $totalNotPaid += $ctn->ctns * $ctn->sale_seller_ctns;
+                                                $totalNotPaid += $ctn->ctns * $ctn->sale_amount;
                                             }
                                             $saleReal = $ctn->Room->price * $ctn->ctns * $ctn->exchange_rate;
                                         @endphp
@@ -58,7 +58,7 @@
                                             <td>{{ $ctn->Seller->name }}</td>
                                             <td>{{ $ctn->Coin->long_name }} ({{ $coinSym }})</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coinSym }} {{ $ctn->sale_seller_ctns }}</td>
+                                            <td>{{ $coinSym }} {{ $ctn->sale_amount }}</td>
                                             <td>
                                                 {{ $ctn->created_at->format('d/m/y H:i:s') }}
                                                 <small>GMT-4</small>
@@ -71,7 +71,7 @@
                                                         data-seller="{{ $ctn->Seller->name }}"
                                                         data-lot="{{ encrypt($ctn->id) }}"
                                                         data-coin_sym="{{ $coinSym }}"
-                                                        data-sale_ctns="{{ $ctn->sale_seller_ctns }}"
+                                                        data-sale_ctns="{{ $ctn->sale_amount }}"
                                                         data-proof="{{ $ctn->Payment->payment_proof }}">
                                                         Confirmar Pago
                                                     </button>
@@ -89,7 +89,7 @@
                                     <tr>
                                         <td colspan="3" class="text-right"><b>Total:</b></td>
                                         <td>{{ $ctnsSold->sum('ctns') }}</td>
-                                        <td>{{ $coinSym }} {{ $ctnsSold->sum('sale_seller_ctns') }}</td>
+                                        <td>{{ $coinSym }} {{ $ctnsSold->sum('sale_amount') }}</td>
                                         <td colspan="2"></td>
                                     </tr>
                                 </tfoot>

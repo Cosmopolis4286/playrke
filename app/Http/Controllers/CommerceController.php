@@ -451,7 +451,7 @@ class CommerceController extends Controller
 
         foreach ($rooms as $room) {
             $allSaleRoom = $room->CtnsLot->sum(fn($ctns) => $room->ctn_price * $ctns->exchange_rate * $ctns->ctns);
-            $finalSaleRoom = $room->CtnsLot->sum('sale_seller_ctns');
+            $finalSaleRoom = $room->CtnsLot->sum('sale_amount');
             $comSaleSellerRoom = $allSaleRoom - $finalSaleRoom;
             $comRKE = 0; // Actualiza con tu lógica real
             $preJackpot = $allSaleRoom - $comSaleSellerRoom - $comRKE;

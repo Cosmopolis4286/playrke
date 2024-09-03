@@ -130,7 +130,7 @@ class BingoController extends Controller
             'customer' => $customer ?? null,
             'commerce' => $commerce ?? null,
             'country' => $request->country ?? null,
-            'PJLink' => $request->player_link ?? null,
+            'PJLink' =>  $request->player_link ?? null,
             'playerPhone' => $request->phone ?? null,
             'playerUser' => $request->user_pvr ?? null,
             'playerName' => $request->name ?? null,
@@ -142,13 +142,8 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
         }
 
-        $res = $this->handleCartonStore($data);
-
-        if ($res) {
+        if ($this->handleCartonStore($data)) {
             Session::flash('message', 'Proceso efectuado con exito');
-
-            if (!$data['customer']) Session::flash('PJLink', $this->getRouteRKE() . 'bingocash/' . $res);
-
             return redirect()->back();
         } else {
             return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
@@ -210,18 +205,17 @@ class BingoController extends Controller
                     return false;
                 }
 
-                $player = PlayerLink::select('id', 'country')->where('room', $roomId)->first();
+                $player = PlayerLink::select('id', 'country', 'link')->where('room', $roomId)->first();
 
-                $PJLink = $player->id;
                 $columnData = 'player_link';
-                $valColumnData = $PJLink;
+                $valColumnData = $player->id;
 
                 $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
 
                 $coinID = $coin->id;
                 $coinSym = $coin->symbol;
 
-                $moreViewData = ['PJLink' => $PJLink];
+                $moreViewData = ['PJLink' => $player->link];
 
                 if ($type == 'commerce' && $room->status == 2) {
                     $moreViewData['userType'] = encrypt('commerce');
@@ -275,7 +269,7 @@ class BingoController extends Controller
 
         $lastSixChips = $this->getChips($room->encrypted);
 
-        $infoGame = ($room->status > 3) ? $this->getResult($room->encrypted, $columnData, $valColumnData) : [];
+        $infoGame = ($room->status > 3) ? $this->getResult($room->encrypted, $valColumnData, $columnData) : [];
 
         $viewData = [
             'title' => 'BingoCash',
@@ -428,7 +422,7 @@ class BingoController extends Controller
         return ['', '', time()];
     }
 
-    public function getResult($room, $column, $value)
+    public function getResult($room, $value, $column = '')
     {
         // Obtener la información de los ganadores
         $winnersInfo = self::getInfoWinners($room, $column, $value);

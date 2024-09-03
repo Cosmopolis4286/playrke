@@ -50,7 +50,7 @@
                                             <td>{{ $ctn->PlayerLink->Country->name }}</td>
                                             <td>{{ $coin->long_name }}</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coin->symbol }} {{ $ctn->sale_seller_ctns }}</td>
+                                            <td>{{ $coin->symbol }} {{ $ctn->sale_amount }}</td>
                                             <td>{{ $ctn->created_at->format('d/m/y H:i:s') }}<small
                                                     class="ml-1">GMT-4</small></td>
                                             <td>
@@ -59,7 +59,7 @@
                                                         class="btn btn-danger btn-sm btn-{{ $name }}"
                                                         title="Notificar Pago" data-room="{{ $ctn->Room->encrypted }}"
                                                         data-idlote="{{ $ctn->id }}"
-                                                        data-amount="{{ number_format($ctn->sale_seller_ctns, 2) }}">
+                                                        data-amount="{{ number_format($ctn->sale_amount, 2) }}">
                                                         Notificar Pago
                                                     </button>
                                                 @elseif($ctn->status == 1)
@@ -82,7 +82,7 @@
                                                 <b>Total:</b>
                                             </td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
-                                            <td>{{ $coin->symbol }} {{ $ctnsSold->sum('sale_seller_ctns') }}</td>
+                                            <td>{{ $coin->symbol }} {{ $ctnsSold->sum('sale_amount') }}</td>
                                             <td colspan="2"></td>
                                         </tr>
                                     @endif

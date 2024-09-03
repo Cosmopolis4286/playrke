@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name', 30);
             $table->string('description', 45)->nullable();
             $table->unsignedBigInteger('country')->nullable();
+            $table->unsignedBigInteger('user')->nullable();
             $table->string('phone', 12)->nullable();
             $table->double('commn')->nullable();
             $table->boolean('all_in')->default(0);
@@ -31,6 +32,7 @@ return new class extends Migration
 
             // Foreign keys
             $table->foreign('country')->references('id')->on('countries');
+            $table->foreign('user')->references('id')->on('users');
         });
     }
 

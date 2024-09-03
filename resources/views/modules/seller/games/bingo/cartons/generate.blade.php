@@ -167,7 +167,7 @@
         var roomVal;
         var ctnPrice;
         var jackpotRoom;
-        var findInfoPlayer = '';
+        var playerInfo = '';
         var playerInGame = false;
 
         if ("{{ Session::has('PJLink') }}") {
@@ -334,7 +334,7 @@
                 data: {
                     room: roomVal,
                     country: country.val(),
-                    findInfoPlayer: findInfoPlayer,
+                    player_info: playerInfo,
                 },
                 dataType: 'json',
                 beforeSend: function() {
@@ -377,11 +377,11 @@
         btnGenerate.on("click", function() {
             if (!playerInGame) {
                 if (country.val() == 234 && $("#identification").val() && $("#type_id").val()) {
-                    findInfoPlayer = $("#phone").val();
-                    // findInfoPlayer = $("#type_id").val() + $("#identification").val();
+                    playerInfo = $("#phone").val();
+                    // playerInfo = $("#type_id").val() + $("#identification").val();
                     getPlayer();
                 } else if (country != 234 && $("#phone").val()) {
-                    findInfoPlayer = $("#phone").val();
+                    playerInfo = $("#phone").val();
                     getPlayer();
                 }
             } else {

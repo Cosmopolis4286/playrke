@@ -44,7 +44,7 @@
                                                 foreach ($seller->CtnsLot as $ctns) {
                                                     $allSale += $ctns->ctns * $ctnPrice * $ctns->exchange_rate;
                                                 }
-                                                $finalSale = $seller->CtnsLot->sum('sale_seller_ctns');
+                                                $finalSale = $seller->CtnsLot->sum('sale_amount');
                                                 $comSaleSeller = $allSale - $finalSale;
 
                                                 $totalAllSale += $allSale;

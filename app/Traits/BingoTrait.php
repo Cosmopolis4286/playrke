@@ -339,10 +339,12 @@ trait BingoTrait
             $PJLink = $arrCtn['PJLink'];
             $playerUser = $arrCtn['playerUser'];
             $totalAmountCtns = $numOfCtns * $room->ctn_price;
-
-            dd($arrCtn); // Falta revisar esta funcion
+            $comSaleSellerCtns = 0;
 
             if ($room->game_mode == 2 && $commerce) {
+                // Conversión de Moneda para obtener valor de venta
+                $exchangeRate = ExchangeRate::getLastValueByCoin($coin);
+                $totalSaleCtns = $numOfCtns * $exchangeRate;
 
                 if ($seller) {
                     // Obtener o crear la comisión del vendedor para la sala
@@ -358,15 +360,11 @@ trait BingoTrait
                             'commn' => $commnSeller
                         ]);
                     }
+
+                    $comSaleSellerCtns = $commnSeller ? number_format($totalSaleCtns * ($commnSeller / 100), 2, '.', '') : 0;
                 }
-
-                // Conversión de Moneda para obtener valor de venta
-                $exchangeRate = ExchangeRate::getLastValueByCoin($coin);
-                $totalSaleCtns = $numOfCtns * $exchangeRate;
-                $comSaleSellerCtns = number_format($totalSaleCtns * ($commnSeller ?? 0 / 100), 2, '.', '');
-                $saleSellerCtns = $totalSaleCtns - $comSaleSellerCtns;
+                $saleAmount = $totalSaleCtns - $comSaleSellerCtns;
             }
-
 
             // Crear lote de cartones de bingo
             $ctnsLot = BingoCtnsLot::create([
@@ -375,12 +373,12 @@ trait BingoTrait
                 'seller' => $seller,
                 'room' => $roomID,
                 'coin' => $coin,
-                'exchange_rate' => $exchangeRate,
+                'exchange_rate' => $exchangeRate ?? 1,
                 'player_user' => $playerUser,
                 'player_link' => $PJLink,
                 'status' => 0,
                 'ctns' => $numOfCtns,
-                'sale_seller_ctns' => $saleSellerCtns ?? NULL,
+                'sale_amount' => $saleAmount ?? $totalAmountCtns,
             ]);
 
             if ($customer) { // Si el proceso es de un cliente externo  
@@ -430,9 +428,11 @@ trait BingoTrait
                 ];
             });
 
+            dd($arrCtn);
+
             // Generar cartones de bingo
             $x = 1;
-            $initials = $arrCtn['initials'];
+            $initials = $arrCtn['initials']; // Falta traer las iniciales
             $numLastCtn = BingoCtns::getLastCtnCreated($roomID);
             $numLastCtn = $numLastCtn ? $numLastCtn->id : 0;
 
@@ -449,7 +449,7 @@ trait BingoTrait
 
                 if (!$existingCtns->contains($nwCtn)) {
                     $numLastCtn++;
-                    $serialCtn = $initials . '-' . $numLastCtn;
+                    $serialCtn = "$initials-$numLastCtn";
 
                     // Preparar el array para insertar
                     $recordsToInsert[] = [
@@ -517,7 +517,7 @@ trait BingoTrait
             }
 
             // Actualización del bote acumulado y otras métricas de la sala
-            $convertedJackpot = number_format($saleSellerCtns / $exchangeRate, 3, '.');
+            $convertedJackpot = number_format($saleAmount / $exchangeRate, 3, '.');
             $boatAcum = ($arrCtn['jackpotType'] == 1) ? $convertedJackpot : (($arrCtn['jackpotType'] == 2) ? 0 : null);
             $jackpot = $room->jackpot + $boatAcum;
             $comCommerce = ($jackpot * BingoRoomConfig::getValueByRoom($roomID, 'commerce_commn') / 100);
@@ -588,21 +588,22 @@ trait BingoTrait
         }
 
         $roomID = $room->id;
+        $country = $data['country'] ?? null;
         $customer = $data['customer'] ?? null;
         $commerce = $data['commerce'] ?? null;
         $seller = $data['seller'] ?? null;
-        $PJLink = $data['PJLink'];
+        $PJLink = $data['PJLink'] ?? null;
         $playerPhone = $data['playerPhone'];
         $playerUser = $data['playerUser'];
 
         if ($commerce || $seller) {  // Si la venta es procesada por un comercio o vendedor
 
-            $seller = $this->seller(['id', 'commerce']);
+            if ($seller) $seller = $this->seller(['id', 'commerce']);
 
             $player = PlayerLink::where('game', 1)->where('room', $roomID)
                 ->where(function ($query) use ($playerPhone, $PJLink) {
                     $query->where('phone', $playerPhone)
-                        ->orWhere('id', $PJLink);
+                        ->orWhere('link', $PJLink);
                 })->first();
 
             $playerName = $data['playerName'];
@@ -610,8 +611,7 @@ trait BingoTrait
             $playerInitials = $this->initialCharacters([$playerName, $playerLastname]);
         }
 
-        $country = $customer ? $data['country'] : $player->country;
-        $coin = $customer ? $room->coin : Coin::getByIdIdOfCountry($country);
+        $coin = $customer ? $room->coin : null;
 
         DB::beginTransaction();
 
@@ -619,6 +619,7 @@ trait BingoTrait
 
             if ($commerce || $seller) {
 
+                $coin = $seller ? Coin::getByIdIdOfCountry($country) : $player->coin;
                 $commerceID = $seller->commerce ?? $commerce;
                 $sellerID = $seller->id ?? null;
 
@@ -670,19 +671,7 @@ trait BingoTrait
 
             if ($carton) {
                 DB::commit();
-
-                if (!$customer) {
-                    $baseRoute = $this->getRouteRKE() . "bingocash/";
-                    $code = Commerce::getValueById($commerceID, 'code_rke');
-
-                    if (!$code) { // Si no existe codigo RKE
-                        $code = Commerce::getValueById($commerceID, 'code_uuid');
-                    }
-
-                    $route = $baseRoute . ($room->all_for_one == 0 ? "comm/$code/$PJLink" : $PJLink);
-                }
-
-                return  $route ?? true;
+                return $seller ? $this->getPlayerGameLink($commerceID, $PJLink, $room->all_for_one) : true;
             } else {
                 DB::rollBack();
                 return false;

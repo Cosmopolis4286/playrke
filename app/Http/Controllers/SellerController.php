@@ -394,16 +394,14 @@ class SellerController extends Controller
 
     public function getPlayer(Request $request)
     {
-        $room = BingoRoom::getRoomValueByEncrypted($request->room, 'id');
-        $findInfoPlayer = $request->findInfoPlayer;
-        // $country = $request->country;
+        $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'commerce', 'all_for_one']);
 
         $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
-            ->where('phone', $findInfoPlayer)->where('game', 1)->where('room', $room)->first();
+            ->where('phone', $request->player_info)->where('game', 1)->where('room', $room)->first();
 
         if ($player) {
-            $rout = $this->getRouteRKE();
-            $allLink = $rout . 'bingocash/' . $player->link;
+            $route = $this->getPlayerGameLink($room->commerce, $player->id, $room->all_for_one);
+
             // $IdType = DocumentType::where('id', $request->typeID)->first();
             $ctnsPlayer = BingoCtns::where('player_link', $player->id)->where('room', $room)->count();
 
@@ -411,7 +409,7 @@ class SellerController extends Controller
                 'van' => 1,
                 'infoPlayer' => $player,
                 /*'IdType' => $IdType->info_ident,*/
-                'ctnsLink' => [$ctnsPlayer, $player->link, $allLink]
+                'ctnsLink' => [$ctnsPlayer, $player->link, $route]
             ));
         } else {
             return response()->json(array('van' => 0));
@@ -529,7 +527,7 @@ class SellerController extends Controller
 
         foreach ($ctnsSold as $value) {
             if ($value->status == 0) {
-                $allPendingCtnSale += $value->sale_seller_ctns;
+                $allPendingCtnSale += $value->sale_amount;
                 $pendingCtns++;
             }
         }
@@ -744,7 +742,7 @@ class SellerController extends Controller
             }
 
             $roomCtns = $room->CtnsLot->sum('ctns');
-            $roomBanca = $room->CtnsLot->sum('sale_seller_ctns');
+            $roomBanca = $room->CtnsLot->sum('sale_amount');
             $roomSaleCom = $roomSale - $roomBanca;
 
             $totalSale += $roomSale;
@@ -920,7 +918,7 @@ class SellerController extends Controller
             $paymentToInsert = [];
 
             foreach ($allPendingCtns as $value) {
-                $ctnPrice = $value->Lot->sale_seller_ctns / $value->Lot->ctns;
+                $ctnPrice = $value->Lot->sale_amount / $value->Lot->ctns;
                 $timestamp = now();
 
                 $paymentToInsert[] = [
@@ -959,7 +957,7 @@ class SellerController extends Controller
                 1, // Tipo de Pago
                 $lotCtn->id,
                 $lotCtn->coin,
-                $lotCtn->sale_seller_ctns,
+                $lotCtn->sale_amount,
                 $newFileName
             );
 

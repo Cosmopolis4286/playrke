@@ -25,7 +25,7 @@ return new class extends Migration
             $table->unsignedBigInteger('coin');
             $table->double('exchange_rate');
             $table->integer('ctns');
-            $table->double('sale_seller_ctns');
+            $table->double('sale_amount');
             $table->boolean('status')->default(0);
             $table->timestamps();
 

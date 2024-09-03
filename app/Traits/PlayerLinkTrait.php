@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Models\Commerce;
 use App\Models\PlayerLink;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
@@ -58,5 +59,17 @@ trait PlayerLinkTrait
             $firstCharacter = strtoupper(substr($text, 0, 1));
             return $firstCharacter;
         }
+    }
+
+    public function getPlayerGameLink($commerceID, $PJLink, $allForOne)
+    {
+        $baseRoute = $this->getRouteRKE() . "bingocash/";
+        $code = Commerce::getValueById($commerceID, 'code_rke');
+
+        if (!$code) { // Si no existe codigo RKE
+            $code = Commerce::getValueById($commerceID, 'code_uuid');
+        }
+
+        return $baseRoute . ($allForOne == 0 ? "comm/$code/$PJLink" : $PJLink);
     }
 }
