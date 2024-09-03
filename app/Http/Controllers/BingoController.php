@@ -111,30 +111,8 @@ class BingoController extends Controller
 
     public function generateCarton(Request $request)
     {
-        $customer = null;
-        $commerce = $request->commerce;
-
-        if ($request->user_type) {
-            $userType = decrypt($request->user_type);
-            $userTypeVal = decrypt($request->user_type_val);
-
-            if ($userType == 'customer') {
-                $customer = $userTypeVal;
-            } else {
-                $commerce = $userTypeVal;
-            }
-        }
-
         $data = [
             'room' => $request->room ?? null,
-            'customer' => $customer ?? null,
-            'commerce' => $commerce ?? null,
-            'country' => $request->country ?? null,
-            'PJLink' =>  $request->player_link ?? null,
-            'playerPhone' => $request->phone ?? null,
-            'playerUser' => $request->user_pvr ?? null,
-            'playerName' => $request->name ?? null,
-            'playerLastname' => $request->last_name ?? null,
             'numOfCtns' => $request->num_ctns ?? 0
         ];
 
@@ -142,9 +120,27 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
         }
 
+        if ($request->user_type) {
+            $userType = decrypt($request->user_type);
+            $userTypeVal = decrypt($request->user_type_val);
+
+            if ($userType == 'customer') {
+                $data['customer'] = $userTypeVal;
+                $data['playerUser'] = $request->user_pvr ?? null;
+            } else {
+                $data['commerce'] = $userTypeVal;
+                $data['PJLink'] =  $request->player_link ?? null;
+                if ($request->user_in_game) {
+                    $data['country'] = $request->country ?? null;
+                    $data['playerPhone'] = $request->phone ?? null;
+                    $data['playerName'] = $request->name ?? null;
+                    $data['playerLastname'] = $request->last_name ?? null;
+                }
+            }
+        }
+
         if ($this->handleCartonStore($data)) {
-            Session::flash('message', 'Proceso efectuado con exito');
-            return redirect()->back();
+            return response()->json(['message' => 'Proceso efectuado con exito']);
         } else {
             return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
         }
@@ -182,6 +178,7 @@ class BingoController extends Controller
 
                 $columnData = 'player_user';
                 $valColumnData = $playerUser;
+                $sellerType = 'rke';
 
                 $moreViewData = ['custLogo' => Customer::getValueById($customer, 'logo')];
 
@@ -214,6 +211,7 @@ class BingoController extends Controller
 
                 $coinID = $coin->id;
                 $coinSym = $coin->symbol;
+                $sellerType = 'comm';
 
                 $moreViewData = ['PJLink' => $player->link];
 
@@ -269,7 +267,7 @@ class BingoController extends Controller
 
         $lastSixChips = $this->getChips($room->encrypted);
 
-        $infoGame = ($room->status > 3) ? $this->getResult($room->encrypted, $valColumnData, $columnData) : [];
+        $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $valColumnData, $columnData) : [];
 
         $viewData = [
             'title' => 'BingoCash',
@@ -289,7 +287,8 @@ class BingoController extends Controller
             'vanSort' => $vanSort ? $vanSort->chip : '',
             'infoGame' => $infoGame,
             'timeServ' => time(),
-            'encryptionKey' => env('JSON_ENCRYPTION_KEY')
+            'encryptionKey' => env('JSON_ENCRYPTION_KEY'),
+            'sellerType' => $sellerType
         ];
 
         if (isset($moreViewData)) {

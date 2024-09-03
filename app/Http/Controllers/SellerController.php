@@ -418,28 +418,25 @@ class SellerController extends Controller
 
     public function generateCarton(Request $request)
     {
+        if (!$request->room) {
+            return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
+        }
+
         $data = [
             'room' => $request->room ?? null,
-            'customer' => $request->customer ?? null,
             'seller' => true,
             'country' => $request->country ?? null,
             'playerPhone' => $request->phone ?? null,
-            'playerUser' => $request->user_pvr ?? null,
             'playerName' => $request->name ?? null,
             'playerLastname' => $request->last_name ?? null,
             'numOfCtns' => $request->num_ctns ?? 0
         ];
 
-        if (!$data['room']) {
-            return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
-        }
-
         $resRoute = $this->handleCartonStore($data);
 
         if ($resRoute) {
             Session::flash('message', 'Proceso efectuado con exito');
-
-            if (!$data['customer']) Session::flash('PJLink',  $resRoute);
+            Session::flash('PJLink',  $resRoute);
 
             return redirect()->back();
         } else {

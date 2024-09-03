@@ -535,14 +535,17 @@
     @if ($room->status > 2)
         <script src="{{ asset('js/crypt.js') }}"></script>
         <script>
-            infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
+            if (endWin == 1) {
+                infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
+            }
         </script>
     @endif
     @if ($room->status == 2)
         <script>
             let userType = '<?php echo json_encode($userType); ?>';
             let userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
-            let ctnPrice = '<?php echo json_encode($ctnPrice); ?>';
+            let ctnPrice = '<?php echo $ctnPrice; ?>';
+            let type = '<?php echo $sellerType; ?>';
             let info = false;
         </script>
         <script src="{{ asset('js/games/bingo/bingo-buy-ctns.js') }}"></script>
@@ -556,6 +559,10 @@
                 if (!info) {
                     $("#ctn-price-coin-symbol").text(coinSym);
                     $("#ctn-price-amount").text(ctnPrice);
+
+                    if (type == 'comm') {
+
+                    }
                 }
                 toggleModalInfo();
             });
@@ -580,6 +587,7 @@
                     },
                     beforeSend: function() {},
                     success: function(data) {
+                        showToast('info', data.message);
                         toggleModalInfo();
                     },
                     error: function() {}
