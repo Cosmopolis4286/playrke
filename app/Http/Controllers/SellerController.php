@@ -43,11 +43,6 @@ class SellerController extends Controller
 {
     use EncryptRKE, BingoTrait, PlayerLinkTrait, RouteRKE, UserVal, Filters;
 
-    protected function seller($fields = ['*'])
-    {
-        return Seller::select($fields)->where('user', Auth::id())->first();
-    }
-
     private function validateRequest($request, $type = 1, $id = '')
     {
         // Definir reglas de validación.
@@ -337,7 +332,7 @@ class SellerController extends Controller
 
         $this->checkRoomClosure();
 
-        $rooms = BingoRoom::select('encrypted','unix_date')
+        $rooms = BingoRoom::select('encrypted', 'unix_date')
             ->where('status', 2)->where('game_mode', 2)->where(function ($query) use ($seller) {
                 $query->where('commerce', $seller->commerce)
                     ->orWhere('all_for_one', 1);
@@ -426,8 +421,9 @@ class SellerController extends Controller
     public function generateCarton(Request $request)
     {
         $data = [
-            'room' => $request->bingo_room ?? null,
+            'room' => $request->room ?? null,
             'customer' => $request->customer ?? null,
+            'seller' => true,
             'country' => $request->country ?? null,
             'playerPhone' => $request->phone ?? null,
             'playerUser' => $request->user_pvr ?? null,
@@ -530,7 +526,7 @@ class SellerController extends Controller
             ->where('seller', $seller->id)->orderBy('status')->orderByDesc('id')->get();
 
         $allPendingCtnSale = $pendingCtns = 0;
-        
+
         foreach ($ctnsSold as $value) {
             if ($value->status == 0) {
                 $allPendingCtnSale += $value->sale_seller_ctns;

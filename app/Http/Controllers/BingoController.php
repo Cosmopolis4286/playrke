@@ -130,6 +130,7 @@ class BingoController extends Controller
             'customer' => $customer ?? null,
             'commerce' => $commerce ?? null,
             'country' => $request->country ?? null,
+            'PJLink' => $request->player_link ?? null,
             'playerPhone' => $request->phone ?? null,
             'playerUser' => $request->user_pvr ?? null,
             'playerName' => $request->name ?? null,
@@ -166,7 +167,7 @@ class BingoController extends Controller
                 $countryCoin = decrypt(session('CCCUSTU'));
                 $coin = $countryCoin[1];
 
-                $player = BingoRoomUser::getByColumn('player_user', $playerUser);
+                $player = BingoRoomUser::getByColumn('player_user', $playerUser, 'room');
 
                 if (!$player) return false;
 
@@ -179,24 +180,31 @@ class BingoController extends Controller
                     );
                 }
 
+                $roomId = $player->room;
+
+                // Obtener informacion de Sala
+                $room = BingoRoom::getRoomById($roomId, ['status', 'ctn_price']);
+
                 $columnData = 'player_user';
                 $valColumnData = $playerUser;
 
-                $moreViewData = [
-                    'custLogo' => Customer::getValueById($customer, 'logo'),
-                    'userType' => encrypt('customer'),
-                    'userTypeVal' => encrypt($customer)
-                ];
+                $moreViewData = ['custLogo' => Customer::getValueById($customer, 'logo')];
+
+                if ($room->status == 2) {
+                    $moreViewData['userType'] = encrypt('customer');
+                    $moreViewData['userTypeVal'] = encrypt($customer);
+                    $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomId, $room->ctn_price, 'float');
+                }
 
                 break;
             case 'all';
             case 'commerce':
 
                 $roomId = PlayerLink::getValueByLink($data['PJLink'], 'room');
-                $allForOne = BingoRoom::getValueById($roomId, 'all_for_one');
+                $room = BingoRoom::getRoomById($roomId, ['status', 'all_for_one', 'ctn_price']);
 
-                if (($type == 'all' && !$allForOne) ||
-                    ($type == 'commerce' && $allForOne &&
+                if (($type == 'all' && !$room->status) ||
+                    ($type == 'commerce' && $room->status &&
                         !PlayerLink::where('room', $roomId)->where('commerce', $data['commerce'])->exists())
                 ) {
                     return false;
@@ -215,9 +223,10 @@ class BingoController extends Controller
 
                 $moreViewData = ['PJLink' => $PJLink];
 
-                if ($type == 'commerce') {
+                if ($type == 'commerce' && $room->status == 2) {
                     $moreViewData['userType'] = encrypt('commerce');
                     $moreViewData['userTypeVal'] = encrypt($data['commerce']);
+                    $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomId, $room->ctn_price, 'float', $coinID);
                 }
 
                 break;

@@ -41,11 +41,6 @@ class CommerceController extends Controller
 {
     use EncryptRKE, UserVal, RouteRKE, BingoTrait, Filters;
 
-    protected function commerce($fields = ['*'])
-    {
-        return Commerce::where('user', Auth::id())->select($fields)->first();
-    }
-
     private function validateRequest($request, $type = 1, $id = '')
     {
         // Si es tipo 2, encuentra al vendedor usando el ID descifrado.

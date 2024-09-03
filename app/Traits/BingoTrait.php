@@ -340,27 +340,33 @@ trait BingoTrait
             $playerUser = $arrCtn['playerUser'];
             $totalAmountCtns = $numOfCtns * $room->ctn_price;
 
-            if ($room->game_mode == 2) {
-                // Obtener o crear la comisión del vendedor para la sala
-                $commnSeller = SellerRoomLimits::getGameRoomValueBySeller(1, $seller, $roomID, 'commn');
+            dd($arrCtn); // Falta revisar esta funcion
 
-                if (!$commnSeller) {
-                    $commnSeller = Seller::getValueById($seller, 'commn');
+            if ($room->game_mode == 2 && $commerce) {
 
-                    SellerRoomLimits::create([
-                        'game' => 1, // Bingo 
-                        'room' => $roomID,
-                        'seller' => $seller,
-                        'commn' => $commnSeller
-                    ]);
+                if ($seller) {
+                    // Obtener o crear la comisión del vendedor para la sala
+                    $commnSeller = SellerRoomLimits::getGameRoomValueBySeller(1, $seller, $roomID, 'commn');
+
+                    if (!$commnSeller) {
+                        $commnSeller = Seller::getValueById($seller, 'commn');
+
+                        SellerRoomLimits::create([
+                            'game' => 1, // Bingo 
+                            'room' => $roomID,
+                            'seller' => $seller,
+                            'commn' => $commnSeller
+                        ]);
+                    }
                 }
 
                 // Conversión de Moneda para obtener valor de venta
                 $exchangeRate = ExchangeRate::getLastValueByCoin($coin);
                 $totalSaleCtns = $numOfCtns * $exchangeRate;
-                $comSaleSellerCtns = number_format($totalSaleCtns * ($commnSeller / 100), 2, '.', '');
+                $comSaleSellerCtns = number_format($totalSaleCtns * ($commnSeller ?? 0 / 100), 2, '.', '');
                 $saleSellerCtns = $totalSaleCtns - $comSaleSellerCtns;
             }
+
 
             // Crear lote de cartones de bingo
             $ctnsLot = BingoCtnsLot::create([
@@ -575,71 +581,82 @@ trait BingoTrait
     public function handleCartonStore($data = [])
     {
         $room = BingoRoom::with('Config')->where('encrypted', $data['room'])
-            ->select('id', 'all_for_one', 'status')->first();
+            ->select('id', 'coin', 'all_for_one', 'status')->first();
 
         if ($room->status > 2) {
             return redirect()->back()->with('message', 'Sala no disponible');
         }
 
         $roomID = $room->id;
-        $customer = $data['customer'];
-        $country = $data['country'];
-        $coin = Coin::getByIdIdOfCountry($country);
-        $player = false;
+        $customer = $data['customer'] ?? null;
+        $commerce = $data['commerce'] ?? null;
+        $seller = $data['seller'] ?? null;
+        $PJLink = $data['PJLink'];
         $playerPhone = $data['playerPhone'];
         $playerUser = $data['playerUser'];
 
-        if (!$customer) {
+        if ($commerce || $seller) {  // Si la venta es procesada por un comercio o vendedor
+
             $seller = $this->seller(['id', 'commerce']);
 
             $player = PlayerLink::where('game', 1)->where('room', $roomID)
-                ->where('phone', $playerPhone)->first();
+                ->where(function ($query) use ($playerPhone, $PJLink) {
+                    $query->where('phone', $playerPhone)
+                        ->orWhere('id', $PJLink);
+                })->first();
 
             $playerName = $data['playerName'];
             $playerLastname = $data['playerLastname'];
             $playerInitials = $this->initialCharacters([$playerName, $playerLastname]);
         }
 
+        $country = $customer ? $data['country'] : $player->country;
+        $coin = $customer ? $room->coin : Coin::getByIdIdOfCountry($country);
+
         DB::beginTransaction();
 
         try {
 
-            $commerceID = $seller->commerce ?? null;
+            if ($commerce || $seller) {
 
-            if (!$player) {
-                $PJLink = $this->createPlayerLink(1);
-                $playerDocument = null;
-
-                $arrDataPlayer = [
-                    'game' => 1,
-                    'room' => $roomID,
-                    'commerce' => $commerceID,
-                    'seller' => $seller->id,
-                    'country' => $country,
-                    'coin' => $coin,
-                    'link' => $PJLink,
-                    'name' => $playerName,
-                    'lastname' => $playerLastname,
-                    'identification' => $playerDocument,
-                    'phone' => $playerPhone
-                ];
-
-                $player = $this->createPlayerLinkInfo($arrDataPlayer);
+                $commerceID = $seller->commerce ?? $commerce;
+                $sellerID = $seller->id ?? null;
 
                 if (!$player) {
-                    DB::rollBack();
-                    Log::error('Hubo un error al crear la información del jugador');
-                    return false;
+                    $PJLink = $this->createPlayerLink(1);
+                    $playerDocument = null;
+
+                    $arrDataPlayer = [
+                        'game' => 1,
+                        'room' => $roomID,
+                        'commerce' => $commerceID,
+                        'seller' => $sellerID,
+                        'country' => $country,
+                        'coin' => $coin,
+                        'link' => $PJLink,
+                        'name' => $playerName,
+                        'lastname' => $playerLastname,
+                        'identification' => $playerDocument,
+                        'phone' => $playerPhone
+                    ];
+
+                    $player = $this->createPlayerLinkInfo($arrDataPlayer);
+
+                    if (!$player) {
+                        DB::rollBack();
+                        Log::error('Hubo un error al crear la información del jugador');
+                        return false;
+                    }
+                } else {
+                    $player = $player->id ?? null;
                 }
-            } else {
-                $player = $player->id ?? null;
             }
 
             $arrDataCtns = [
                 'room' => $roomID,
                 'customer' => $customer,
-                'commerce' => $commerceID,
-                'seller' => $seller->id,
+                'commerce' => $commerceID ?? null,
+                'seller' => $sellerID ?? null,
                 'playerUser' => $playerUser,
                 'PJLink' => $player,
                 'initials' => $playerInitials[0] . $playerInitials[1],

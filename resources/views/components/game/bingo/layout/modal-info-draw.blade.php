@@ -22,7 +22,7 @@
                         <div class="form-group col-12">
                             <label for="ctn-price">Precio Cartón:</label>
                             <div class="form-control_d">
-                                <span id="ctn-price-coin-symbol"></span>
+                                <span id="ctn-price-coin-symbol" class="mr-1"></span>
                                 <span id="ctn-price-amount"></span>
                             </div>
                         </div>

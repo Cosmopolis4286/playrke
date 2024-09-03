@@ -10,8 +10,8 @@ class PlayerLink extends Model
   protected $fillable = [
     'game',
     'room',
-    'provider',
     'commerce',
+    'subsidiary',
     'seller',
     'link',
     'country',

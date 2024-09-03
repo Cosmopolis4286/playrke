@@ -2,9 +2,11 @@
 
 namespace App\Traits;
 
+use App\Models\BingoRoom;
 use App\Models\CoinGameRoom;
 use App\Models\ExchangeRate;
 use App\Models\GameExchangeRate;
+use App\Models\Games;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -62,5 +64,34 @@ trait GameTrait
         $unixTimestamp = strtotime($dateTime);
 
         return $unixTimestamp;
+    }
+
+    public function convertValueByGame($game, $roomID, $value, $type = 'string', $coin = '')
+    {
+        switch ($game) {
+            case 'BINGO': 
+                $room = BingoRoom::getRoomById($roomID, ['customer', 'status']);
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        if (!$room->customer) {
+            $exchangeRate = ($room->status == 2)
+                ? ExchangeRate::getLastValueByCoin($coin)
+                : GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
+        }
+
+        $amount = $value * ($exchangeRate ?? 1);
+
+        if ($type == 'string') {
+            // Formatear como cadena y eliminar ceros y comas finales
+            return rtrim(number_format($amount, 2, ',', '.'), '0,');
+        } else {
+            // Devolver como número de punto flotante
+            return (float) $amount;
+        }
     }
 }

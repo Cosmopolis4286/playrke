@@ -542,6 +542,8 @@
         <script>
             let userType = '<?php echo json_encode($userType); ?>';
             let userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
+            let ctnPrice = '<?php echo json_encode($ctnPrice); ?>';
+            let info = false;
         </script>
         <script src="{{ asset('js/games/bingo/bingo-buy-ctns.js') }}"></script>
         <script>
@@ -551,6 +553,10 @@
             }
 
             $(document).on("click", ".mdl-buy-ctns", function() {
+                if (!info) {
+                    $("#ctn-price-coin-symbol").text(coinSym);
+                    $("#ctn-price-amount").text(ctnPrice);
+                }
                 toggleModalInfo();
             });
 
@@ -569,6 +575,7 @@
                         room: encrypted,
                         user_type: userType,
                         user_type_val: userTypeVal,
+                        player_link: PJLink,
                         num_ctns: $("#num-ctns").val()
                     },
                     beforeSend: function() {},

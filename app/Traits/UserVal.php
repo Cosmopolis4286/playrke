@@ -28,6 +28,16 @@ trait UserVal
         return Wallet::with('Coin')->where("user", Auth::id())->first();
     }
 
+    public function commerce($fields = ['*'])
+    {
+        return Commerce::select($fields)->where('user', Auth::id())->first();
+    }
+
+    public function seller($fields = ['*'])
+    {
+        return Seller::select($fields)->where('user', Auth::id())->first();
+    }
+
     public function getAvailableCountries($user)
     {
         $userType = User::getValueById($user, 'user_type');
