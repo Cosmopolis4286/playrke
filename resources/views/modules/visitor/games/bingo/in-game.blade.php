@@ -544,15 +544,22 @@
         <script>
             let userType = '<?php echo json_encode($userType); ?>';
             let userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
-            let ctnPrice = '<?php echo $ctnPrice; ?>';
+            let coinID = '<?php echo json_encode($coinID); ?>';
+            let ctnPrice = Number('<?php echo $ctnPrice; ?>');
             let type = '<?php echo $sellerType; ?>';
             let info = false;
+            let amount = ctnPrice;
         </script>
+        <script src="{{ asset('js/components/switch-payment-method.js') }}"></script>
         <script src="{{ asset('js/games/bingo/bingo-buy-ctns.js') }}"></script>
         <script>
             function toggleModalInfo() {
                 $("#form-buy-ctns").toggleClass('hide-elem');
                 $("#cont-btn-buy-ctns, #game-clock").toggle();
+            }
+
+            function setAmount(amount) {
+                $("#sent-amount").text(`${coinSym} ${amount}`);
             }
 
             $(document).on("click", ".mdl-buy-ctns", function() {
@@ -561,20 +568,44 @@
                     $("#ctn-price-amount").text(ctnPrice);
 
                     if (type == 'comm') {
+                        $.getJSON(`{{ url('commerce/getPaymentCommerceDetails') }}/${userTypeVal}/${coinID}`, {
+                                '_token': "{{ csrf_token() }}"
+                            })
+                            .done(res => {
+                                const data = res.data;
 
+                                setAmount(amount);
+                                $("#commerce-name").text(name);
+
+                                switchPaymentMethod(data.code, data);
+                            })
+                            .fail((jqXHR, textStatus, errorThrown) => {
+                                console.error('Error:', textStatus, errorThrown);
+                            });
                     }
                 }
                 toggleModalInfo();
+            });
+
+            $(document).on("change", "#num-ctns", function() {
+                amount = ctnPrice * $(this).val();
+                setAmount(amount);
             });
 
             $(document).on("click", "#btn-buy-ctns-confirm", function() {
 
                 if (!$("#num-ctns").val()) return false;
 
+                if (type == 'comm') {
+                    if (!$("#payment-proof").val()) {
+                        return showToast('warning', 'Cargue el Comprobante');
+                    }
+                }
+
                 $.ajax({
                     url: "{{ route('bingocash.generateCarton') }}",
                     headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     type: 'post',
                     dataType: 'json',
@@ -587,6 +618,7 @@
                     },
                     beforeSend: function() {},
                     success: function(data) {
+                        $("#jackpot-amount").text(data.jackpot);
                         showToast('info', data.message);
                         toggleModalInfo();
                     },

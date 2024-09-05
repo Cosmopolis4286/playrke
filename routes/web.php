@@ -155,7 +155,8 @@ Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as'
 
 //Comercio/Comercializadora/Banca
 Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
-    Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])->name('getPaymentCommerceDetails');
+    Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])
+        ->withoutMiddleware(['auth', 'commerce'])->name('getPaymentCommerceDetails');
     Route::get('exchange-rate', [CommerceController::class, 'exchangeRate'])->name('exchangeRate');
     Route::get('all-directories', [CommerceController::class, 'allDirectories'])->name('allDirectories');
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');

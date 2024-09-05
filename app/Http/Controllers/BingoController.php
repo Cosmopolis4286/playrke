@@ -127,9 +127,16 @@ class BingoController extends Controller
             if ($userType == 'customer') {
                 $data['customer'] = $userTypeVal;
                 $data['playerUser'] = $request->user_pvr ?? null;
+                $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
+                $coin = session('coin');
             } else {
                 $data['commerce'] = $userTypeVal;
                 $data['PJLink'] =  $request->player_link ?? null;
+
+                $player = PlayerLink::getByLink($data['PJLink'], ['room', 'coin']);
+                $roomId = $player->room;
+                $coin = $player->coin;
+
                 if ($request->user_in_game) {
                     $data['country'] = $request->country ?? null;
                     $data['playerPhone'] = $request->phone ?? null;
@@ -140,7 +147,8 @@ class BingoController extends Controller
         }
 
         if ($this->handleCartonStore($data)) {
-            return response()->json(['message' => 'Proceso efectuado con exito']);
+            $jackpot = $this->convertPrizeValue($roomId, $coin);
+            return response()->json(['jackpot' => $jackpot, 'message' => 'Proceso efectuado con exito']);
         } else {
             return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
         }
@@ -290,6 +298,8 @@ class BingoController extends Controller
             'encryptionKey' => env('JSON_ENCRYPTION_KEY'),
             'sellerType' => $sellerType
         ];
+
+        if ($room->status == 2) $viewData['coinID'] = encrypt($coinID);
 
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);

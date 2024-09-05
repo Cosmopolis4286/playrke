@@ -738,10 +738,13 @@ class CommerceController extends Controller
         return Coin::getCoinsById($coinsCommerce);
     }
 
-    public function getPaymentCommerceDetails($coin, $arr = [])
+    public function getPaymentCommerceDetails($commerce, $coin)
     {
-        $data = $this->getPaymentDetailsByCommerce(Auth::id(), $coin);
-        if ($data) return response()->json($data);
+        $commerce = Commerce::getById(decrypt($commerce), ['name', 'user']);
+        // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda desencriptada
+        $data = $this->getPaymentDetailsByUserId($commerce->user, decrypt($coin));
+
+        if ($data) return response()->json(['data' => $data, 'name' => $commerce->name]);
     }
 
     public function ctnsSold($coin, $dateFilter = "today")
