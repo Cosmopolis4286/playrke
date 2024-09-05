@@ -6,7 +6,7 @@ function switchPaymentMethod(code, data = '') {
         case 'VE':
             $("#payment-subtitle").text('Pago Móvil:');
             $("#payment-method-1").text(`Banco: ${data.paymentMethod[0]}`);
-            $("#payment-method-2").text(data.paymentMethod[1]);
+            $("#payment-method-2").text(`Documento: ${data.paymentMethod[1]}`);
             $("#payment-method-3").text(`Celular: ${data.paymentMethod[2]}`);
             break;
         case 'BR':

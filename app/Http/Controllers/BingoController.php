@@ -164,22 +164,25 @@ class BingoController extends Controller
                 $customer = $data['customer'];
                 $playerUser = decrypt(session('CUSTU'))[0];
                 $countryCoin = decrypt(session('CCCUSTU'));
-                $coin = $countryCoin[1];
 
-                $player = BingoRoomUser::getByColumn('player_user', $playerUser, 'room');
+                $coinID = $countryCoin[1];
 
-                if (!$player) return false;
+                //$player = BingoRoomUser::getByColumn('player_user', $playerUser, 'room');
+
+                //if (!$player) return false;
 
                 if (!CustomerUser::existsUserByCustomer($customer, $playerUser)) {
                     $this->registerUserByCustomer(
                         $customer,
                         $playerUser,
                         $countryCoin[0],
-                        $coin[1]
+                        $coinID
                     );
                 }
 
-                $roomId = $player->room;
+                //$roomId = $player->room;
+
+                $roomId = BingoRoom::where('customer', $customer)->whereIn('status', [2, 3])->pluck('id')->first();
 
                 // Obtener informacion de Sala
                 $room = BingoRoom::getRoomById($roomId, ['status', 'ctn_price']);
@@ -194,34 +197,39 @@ class BingoController extends Controller
                     $moreViewData['userType'] = encrypt('customer');
                     $moreViewData['userTypeVal'] = encrypt($customer);
                     $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomId, $room->ctn_price, 'float');
+                    $moreViewData['customerName'] = Customer::getValueById($customer, 'name');
                 }
 
                 break;
             case 'all';
             case 'commerce':
 
-                $roomId = PlayerLink::getValueByLink($data['PJLink'], 'room');
-                $room = BingoRoom::getRoomById($roomId, ['status', 'all_for_one', 'ctn_price']);
+                $moreViewData = [];
+                $columnData = 'player_link';
 
-                if (($type == 'all' && !$room->status) ||
-                    ($type == 'commerce' && $room->status &&
-                        !PlayerLink::where('room', $roomId)->where('commerce', $data['commerce'])->exists())
-                ) {
-                    return false;
+                if (isset($data['PJLink'])) {
+                    $roomId = PlayerLink::getValueByLink($data['PJLink'], 'room');
+
+                    $player = PlayerLink::select('id', 'country', 'link')->where('room', $roomId)->first();
+
+                    $valColumnData = $player->id;
+
+                    $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
+
+                    $coinID = $coin->id;
+                    $coinSym = $coin->symbol;
+
+                    $moreViewData['PJLink'] = $player->link;
+                } else {
+                    $query = BingoRoom::where('commerce', $data['commerce']);
+                    $roomId = $this->applyDateFilter($dateFilter, $query, 'publication_date')->value('id');
+
+                    $coinID = 1;
+                    $coinSym = 'USDT';
                 }
 
-                $player = PlayerLink::select('id', 'country', 'link')->where('room', $roomId)->first();
-
-                $columnData = 'player_link';
-                $valColumnData = $player->id;
-
-                $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
-
-                $coinID = $coin->id;
-                $coinSym = $coin->symbol;
+                $room = BingoRoom::getRoomById($roomId, ['status', 'all_for_one', 'ctn_price']);
                 $sellerType = 'comm';
-
-                $moreViewData = ['PJLink' => $player->link];
 
                 if ($type == 'commerce' && $room->status == 2) {
                     $moreViewData['userType'] = encrypt('commerce');
@@ -248,7 +256,7 @@ class BingoController extends Controller
                 'encrypted'
             ])->where('id', $roomId)->first();
 
-        if (!in_array($room->status, [2, 3, 4])) return redirect('/');
+        if (!in_array($room->status, [2, 3, 4])) return false;
 
         // Obtener valor formateado del bote
         $jackpot = $this->convertPrizeValue($roomId, $coinID);
@@ -305,6 +313,8 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
+        dd($viewData);
+
         return $viewData;
     }
 
@@ -331,7 +341,7 @@ class BingoController extends Controller
         return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
     }
 
-    public function inGameCustomer($customerToken, $userToken, $dateFilter)
+    public function inGameCustomer($customerToken, $userToken, $dateFilter = 'today')
     {
         // Vista para el juego de un cliente especifico
 
@@ -468,7 +478,7 @@ class BingoController extends Controller
     }
 
     // CRUD //     
-    public function allRooms($user, $coin) //  Lista Salas de Juego
+    public function allRooms($user, $coin, $connection = false) //  Lista Salas de Juego
     {
         $user = decrypt($user);
 
@@ -532,8 +542,14 @@ class BingoController extends Controller
 
         return view(
             'modules.game.bingo.form.index',
-            compact('title', 'name', 'wallet', 'customer', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType', 'gameModes')
+            compact('connection', 'title', 'name', 'wallet', 'customer', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType', 'gameModes')
         );
+    }
+
+    public function allCustomerRooms($customer, $coin = 1)
+    {
+        $user = encrypt(Customer::getValueByToken($customer, 'token'));
+        $this->allRooms($user, $coin, true);
     }
 
     public function create(Request $request)
@@ -707,12 +723,13 @@ class BingoController extends Controller
     {
         // Desencripta el ID y busca el registro correspondiente.
         $bingoRoom = BingoRoom::findOrFail(decrypt($id));
+        $publicationDate = "{$bingoRoom->date} {$bingoRoom->time}";
 
         DB::beginTransaction();
 
         try {
             // Actualiza el estado y la fecha de publicación.
-            $bingoRoom->update(['status' => 2, 'publication_date' => Carbon::now('America/Caracas')]);
+            $bingoRoom->update(['status' => 2, 'publication_date' => $publicationDate]);
 
             DB::commit();
 

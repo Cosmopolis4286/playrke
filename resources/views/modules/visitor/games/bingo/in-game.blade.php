@@ -554,7 +554,7 @@
         <script src="{{ asset('js/games/bingo/bingo-buy-ctns.js') }}"></script>
         <script>
             function toggleModalInfo() {
-                $("#form-buy-ctns").toggleClass('hide-elem');
+                $("#card-form-buy-ctns").toggleClass('hide-elem');
                 $("#cont-btn-buy-ctns, #game-clock").toggle();
             }
 
@@ -562,7 +562,7 @@
                 $("#sent-amount").text(`${coinSym} ${amount}`);
             }
 
-            $(document).on("click", ".mdl-buy-ctns", function() {
+            $(document).on("click", "#cont-btn-buy-ctns", function() {
                 if (!info) {
                     $("#ctn-price-coin-symbol").text(coinSym);
                     $("#ctn-price-amount").text(ctnPrice);
@@ -578,6 +578,7 @@
                                 $("#commerce-name").text(name);
 
                                 switchPaymentMethod(data.code, data);
+                                $("#commerce-details").removeClass('hide-elem');
                             })
                             .fail((jqXHR, textStatus, errorThrown) => {
                                 console.error('Error:', textStatus, errorThrown);
@@ -592,11 +593,19 @@
                 setAmount(amount);
             });
 
+            $(document).on("click", "#btn-cancel-buy-ctns", function() {
+                toggleModalInfo();
+            });
+
             $(document).on("click", "#btn-buy-ctns-confirm", function() {
 
-                if (!$("#num-ctns").val()) return false;
+                if (!$("#num-ctns").val()) {
+                    $("#num-ctns").val(1);
+                }
 
                 if (type == 'comm') {
+                    if (!$("#purchase-code").val()) return showToast('warning', 'Ingrese el Código de Compra');
+
                     if (!$("#payment-proof").val()) {
                         return showToast('warning', 'Cargue el Comprobante');
                     }

@@ -10,7 +10,6 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CommerceController;
 use App\Http\Controllers\SellerController;
-use App\Http\Controllers\BingoOLDController;
 use App\Http\Controllers\BingoController;
 use App\Http\Controllers\PollaExpressController;
 use App\Http\Controllers\BancosController;
@@ -390,6 +389,8 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'bingo', 'as' => 'bingo.'], 
 
 Route::group(['middleware' => ['auth', 'customer-commerce'], 'prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('rooms/{user}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
+    Route::get('rooms-customer/{token}/{coin?}', [BingoController::class, 'allCustomerRooms'])
+        ->withoutMiddleware(['auth', 'customer-commerce'])->name('all-customer-rooms');
     Route::get('games-room/{user}', [BingoController::class, 'gamesRooms'])->name('game-rooms');
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');

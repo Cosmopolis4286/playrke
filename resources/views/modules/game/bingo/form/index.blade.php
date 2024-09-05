@@ -1,4 +1,8 @@
-@extends('layouts.app_rke')
+@if ($connection)
+    @extends('layouts.app_rke_off')
+@else
+    @extends('layouts.app_rke')
+@endif
 @section('title', $title)
 @section('content')
     <div class="col-12">
