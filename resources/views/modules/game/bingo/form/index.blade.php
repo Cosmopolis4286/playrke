@@ -1,8 +1,4 @@
-@if ($connection)
-    @extends('layouts.app_rke_off')
-@else
-    @extends('layouts.app_rke')
-@endif
+@extends($layout)
 @section('title', $title)
 @section('content')
     <div class="col-12">
@@ -72,6 +68,11 @@
             // const coin = $("#coin");
             const jackpotType = $("#jackpot-type");
             const gameMode = $("#game-mode");
+
+            gameMode.prop({
+                disabled: data.room.jackpot != 0,
+                required: data.room.jackpot == 0
+            });
 
             $("#jackpot-type, #game-mode").empty(); // Limpia las opciones existentes
             // Countries

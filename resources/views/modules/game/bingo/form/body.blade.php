@@ -2,7 +2,7 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="date">Fecha*</label>
         <input type="date" id="date" name="date" class="form-control form-info" required
-            min="{{ \Carbon\Carbon::now()->format('Y-m-d') }}">
+            min="{{ \Carbon\Carbon::now()->format('Y-m-d') }}" value="{{ \Carbon\Carbon::now()->format('Y-m-d') }}">
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="time">Hora*</label>
@@ -10,7 +10,7 @@
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="game-mode">Modo de Juego*</label>
-        <select id="game-mode" name="game_mode" class="form-control form-info" required></select>
+        <select id="game-mode" name="game_mode" class="form-control form-info"></select>
     </div>
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label class="country">Pais*</label>
@@ -23,7 +23,7 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
         <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
-            placeholder="Ingresar Precio" min="1" value="1" required>
+            placeholder="Ingresar Precio" min="1" value="1" step="0.5" required>
     </div>
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label for="small-prizes">%Cantos</label>
@@ -31,11 +31,11 @@
             placeholder="Ingrese monto a pagar" required>
     </div> --}}
     {{-- @isset($customer) --}}
-        <div class="form-group col-sm-6 col-md-4">
-            <label for="serials-commission">%Com. X Seriales</label>
-            <input type="number" value="1" min="1" max="6" step="0.01" id="serials-commission"
-                name="serials_commission" class="form-control form-info" placeholder="Ingrese valor">
-        </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="serials-commission">%Com. X Seriales</label>
+        <input type="number" value="1" min="1" max="6" step="0.01" id="serials-commission"
+            name="serials_commission" class="form-control form-info" placeholder="Ingrese valor">
+    </div>
     {{-- @endisset --}}
     <div class="form-group col-sm-6 col-md-4">
         <label for="val-serials">%Seriales</label>

@@ -19,7 +19,7 @@
         </div>
     </div>
     @if ($room->status == 2)
-        @include('components.game.bingo.layout.modal-info-draw')
+        @include('components.game.bingo.layout.modal-info-draw', ['sellerType' => $sellerType])
     @elseif($room->status >= 3)
         @include('components.game.bingo.layout.modal-info-winners')
     @endif
@@ -35,7 +35,7 @@
         const valSongs = '<?php echo $room->val_songs; ?>';
         const arrSort = JSON.parse('<?php echo json_encode($sort); ?>');
         const chpLast = Number('<?php echo $vanSort; ?>');
-        const PJLink = '<?php echo $PJLink; ?>';
+        const player = '<?php echo json_encode($player); ?>';
         const startTime = Number('<?php echo $startTime; ?>');
         const encrypt = JSON.parse('<?php echo json_encode($encrypt); ?>');
         const soundNext = $('#next')[0];
@@ -492,7 +492,7 @@
 
         function getResult() {
             try {
-                const res = $.getJSON(`${preRoute}bingocash/get/result/${encrypted}/${PJLink}`, {
+                const res = $.getJSON(`${preRoute}bingocash/get/result/${encrypted}/${player}`, {
                     '_token': $("#token").val()
                 });
                 showWinners(res, chpLast);
@@ -622,7 +622,7 @@
                         room: encrypted,
                         user_type: userType,
                         user_type_val: userTypeVal,
-                        player_link: PJLink,
+                        player: player,
                         num_ctns: $("#num-ctns").val()
                     },
                     beforeSend: function() {},

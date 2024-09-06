@@ -533,7 +533,9 @@ class CommerceController extends Controller
             'ComSellerRoom' => function ($query) use ($room) {
                 $query->where('room', $room->id);
             },
-        ])->whereHas('CtnsLot')->where('commerce', $commerce)->get();
+        ])->whereHas('CtnsLot', function ($query) use ($room, $coin) {
+            $query->where('room', $room->id)->where('coin', $coin);
+        })->where('commerce', $commerce)->get();
 
         $coins = $this->getCommerceCoins($commerce, '', ['CtnsLot', 'Coin']);
 

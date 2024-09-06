@@ -1,7 +1,7 @@
 {{-- resources/views/components/modal-info-draw.blade.php  --}}
 <div class="modal fade" id="modal-info-draw" tabindex="-1" role="dialog" aria-labelledby="modal-info-drawLabel"
     aria-hidden="true" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog modal-sm mx-auto" role="document" style="max-width: 320px">
+    <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <div id="modal-info-draw-title"></div>
@@ -21,7 +21,7 @@
                     <div class="card-header py-1">COMPRAR CARTONES</div>
                     <section id="form-buy-ctns">
                         <div class="card-body py-2">
-                            @if ($sellerType = 'comm')
+                            @if ($sellerType == 'comm')
                                 <div id="commerce-details" class="row hide-elem">
                                     <div class="col-12">
                                         <h5 class="mb-2">¿Enviaste <span id="sent-amount"></span>?</h5>
@@ -33,7 +33,7 @@
                                             <span id="payment-method-2" class="payment-method"></span>
                                             <span id="payment-method-3" class="payment-method"></span>
                                         </div>
-                                    </div>
+                                    </div>kkk
                                     <div class="col-12 mt-1 text-center">
                                         <label for="payment-proof">Cargar Comprobante:</label>
                                         <input type="file" id="payment-proof" class="form-control-file"
@@ -42,26 +42,34 @@
                                 </div>
                                 <hr>
                             @endif
+                            @if ($sellerType == 'rke')
+                                <div class="col-12 mb-2">
+                                    {{-- <img class="mr-1" src="{{ asset('img/cofre.png') }}"
+                                style="width: 28px; height:28px" alt="{{ $customerName }}"> --}}
+                                    <small class="card-text"
+                                        style="text-transform: uppercase">{{ $customerName }}</small>
+                                </div>
+                            @endif
                             <div class="alert alert-primary py-1" role="alert">
                                 <span><b>Precio Cartón:</b></span>
                                 <span id="ctn-price-coin-symbol" class="mr-1"></span>
                                 <span id="ctn-price-amount"></span>
                             </div>
-                            @if ($sellerType = 'comm')
+                            @if ($sellerType == 'comm')
                                 <div class="form-group">
                                     <input type="text" class="form-control" id="purchase-code" name="purchase_code"
                                         placeholder="Código de Compra" required>
                                 </div>
-                            @else
-                                <div class="col-12 d-flex justify-content-center">
-                                    <img class="mr-1" src="{{ asset('img/cofre.png') }}"
-                                        style="width: 28px; height:28px" alt="{{ $customerName }}">
-                                    <label for="customer-name">{{ $customerName }}</label>
-                                </div>
                             @endif
                             <div class="form-group">
-                                <input type="number" class="form-control" id="num-ctns" name="num_ctns"
-                                    placeholder="Cantidad de Cartones" step="1" min="1" max="30" required>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">Cantidad</span>
+                                    </div>
+                                    <input type="number" class="form-control" id="num-ctns" name="num_ctns"
+                                        title="Cantidad a Comprar" step="1" min="1" max="30"
+                                        required>
+                                </div>
                             </div>
                             <span class="mt-3 card-text mb-n3" style="cursor: pointer">¿No tienes un código de
                                 compra?</span>

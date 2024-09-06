@@ -334,7 +334,7 @@ trait BingoTrait
         try {
             $coin = $arrCtn['coin'];
             $numOfCtns = $arrCtn['numOfCtns'];
-            $PJLink = $arrCtn['PJLink'];
+            $PJLink = $arrCtn['PJLink'] ?? null;
 
             $customer = $arrCtn['customer'] ?? null;
             $commerce = $arrCtn['commerce'] ?? null;
@@ -697,14 +697,14 @@ trait BingoTrait
     {
         $room = BingoRoom::getRoomById($roomID, ['customer', 'status']);
 
+        $jackpotPrize = BingoRoom::getValueById($roomID, 'jackpot_prize');
+
         if (!$room->customer) {
             $exchangeRate = ($room->status == 2)
                 ? ExchangeRate::getLastValueByCoin($coin)
                 : GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
 
             if (!$exchangeRate) $this->insertGameExchangeRate($roomID, 1);
-
-            $jackpotPrize = BingoRoom::getValueById($roomID, 'jackpot_prize');
         }
 
         $jackpot = $jackpotPrize * ($exchangeRate ?? 1);

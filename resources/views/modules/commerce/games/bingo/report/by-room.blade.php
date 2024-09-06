@@ -30,7 +30,7 @@
                                         <th>Banca</th>
                                     </tr>
                                 </thead>
-                                @if (!empty($sellers))
+                                @if (count($sellers))
                                     <tbody>
                                         @foreach ($sellers as $seller)
                                             @php

@@ -30,7 +30,11 @@
                 @endphp
                 <tr>
                     <td class="align-middle">
-                        <small>Modo: {{$room->GameMode->description}}</small><br>
+                        <small>Modo: {{ $room->GameMode->description }}</small>
+                        <a href="#" class="badge badge-dark">
+                            <i class="fa-regular fa-eye"></i>
+                        </a>
+                        <br>
                         <a class="badge bg-navy" title="Ver Reporte"
                             href="{{ route('commerce.reportSalesByRoom', [
                                 'room' => $room->encrypted,

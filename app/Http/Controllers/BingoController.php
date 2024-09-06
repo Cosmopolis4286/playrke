@@ -126,12 +126,12 @@ class BingoController extends Controller
 
             if ($userType == 'customer') {
                 $data['customer'] = $userTypeVal;
-                $data['playerUser'] = $request->user_pvr ?? null;
+                $data['playerUser'] = decrypt($request->player) ?? null;
                 $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
                 $coin = session('coin');
             } else {
                 $data['commerce'] = $userTypeVal;
-                $data['PJLink'] =  $request->player_link ?? null;
+                $data['PJLink'] =  $request->player ?? null;
 
                 $player = PlayerLink::getByLink($data['PJLink'], ['room', 'coin']);
                 $roomId = $player->room;
@@ -166,6 +166,7 @@ class BingoController extends Controller
                 $countryCoin = decrypt(session('CCCUSTU'));
 
                 $coinID = $countryCoin[1];
+                $coinSym = $coinID;
 
                 //$player = BingoRoomUser::getByColumn('player_user', $playerUser, 'room');
 
@@ -191,7 +192,10 @@ class BingoController extends Controller
                 $valColumnData = $playerUser;
                 $sellerType = 'rke';
 
-                $moreViewData = ['custLogo' => Customer::getValueById($customer, 'logo')];
+                $moreViewData = [
+                    'custLogo' => Customer::getValueById($customer, 'logo'),
+                    'player' => encrypt($playerUser)
+                ];
 
                 if ($room->status == 2) {
                     $moreViewData['userType'] = encrypt('customer');
@@ -219,7 +223,7 @@ class BingoController extends Controller
                     $coinID = $coin->id;
                     $coinSym = $coin->symbol;
 
-                    $moreViewData['PJLink'] = $player->link;
+                    $moreViewData['player'] = $player->link;
                 } else {
                     $query = BingoRoom::where('commerce', $data['commerce']);
                     $roomId = $this->applyDateFilter($dateFilter, $query, 'publication_date')->value('id');
@@ -312,8 +316,6 @@ class BingoController extends Controller
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);
         }
-
-        dd($viewData);
 
         return $viewData;
     }
@@ -540,9 +542,11 @@ class BingoController extends Controller
 
         $customer = $userType === 'customer';
 
+        $layout = $connection ? 'layouts.app_rke_off' : 'layouts.app_rke';
+
         return view(
             'modules.game.bingo.form.index',
-            compact('connection', 'title', 'name', 'wallet', 'customer', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType', 'gameModes')
+            compact('layout', 'title', 'name', 'wallet', 'customer', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType', 'gameModes')
         );
     }
 
@@ -619,8 +623,7 @@ class BingoController extends Controller
             $country = $request->country ?? NULL;
             $coin = $request->coin ?? 1;
 
-            $bingo->update([
-                'game_mode' => $request->game_mode,
+            $updateData = [
                 'date' => $request->date,
                 'time' => $request->time,
                 'unix_date' => strtotime("{$request->date} {$request->time}"),
@@ -628,7 +631,15 @@ class BingoController extends Controller
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
                 'jackpot' => $bingo->jackpot + $boat,
-            ]);
+            ];
+
+            // Solo añadir 'game_mode' si el jackpot es 0
+            if ($bingo->jackpot == 0) {
+                $updateData['game_mode'] = $request->game_mode;
+            }
+
+            // Actualizar el bingo con los datos construidos
+            $bingo->update($updateData);
 
             BingoRoomConfig::where('room', $id)->update(
                 [
