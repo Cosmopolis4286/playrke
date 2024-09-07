@@ -42,9 +42,11 @@
                 <tr>
                     <td class="align-middle">
                         <small>Modo: {{ $room->GameMode->description }}</small>
-                        <a href="{{ $roomRoute }}" class="badge badge-dark" target="_blank">
-                            <i class="fa-regular fa-eye"></i>
-                        </a>
+                        @if ($room->status > 1)
+                            <a href="{{ $roomRoute }}" class="badge badge-dark" target="_blank">
+                                <i class="fa-regular fa-eye"></i>
+                            </a>
+                        @endif
                         <br>
                         <a class="badge bg-navy" title="Ver Reporte"
                             href="{{ route('commerce.reportSalesByRoom', [

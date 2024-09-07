@@ -1,7 +1,7 @@
 {{-- resources/views/components/modal-info-draw.blade.php  --}}
 <div class="modal fade" id="modal-info-draw" tabindex="-1" role="dialog" aria-labelledby="modal-info-drawLabel"
     aria-hidden="true" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-dialog modal-sm mx-auto" role="document" style="max-width: 325px">
         <div class="modal-content">
             <div class="modal-header">
                 <div id="modal-info-draw-title"></div>
@@ -33,7 +33,7 @@
                                             <span id="payment-method-2" class="payment-method"></span>
                                             <span id="payment-method-3" class="payment-method"></span>
                                         </div>
-                                    </div>kkk
+                                    </div>
                                     <div class="col-12 mt-1 text-center">
                                         <label for="payment-proof">Cargar Comprobante:</label>
                                         <input type="file" id="payment-proof" class="form-control-file"
@@ -55,14 +55,8 @@
                                 <span id="ctn-price-coin-symbol" class="mr-1"></span>
                                 <span id="ctn-price-amount"></span>
                             </div>
-                            @if ($sellerType == 'comm')
-                                <div class="form-group">
-                                    <input type="text" class="form-control" id="purchase-code" name="purchase_code"
-                                        placeholder="Código de Compra" required>
-                                </div>
-                            @endif
                             <div class="form-group">
-                                <div class="input-group mb-3">
+                                <div class="input-group">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text" id="basic-addon1">Cantidad</span>
                                     </div>
@@ -70,9 +64,14 @@
                                         title="Cantidad a Comprar" step="1" value="1" min="1"
                                         max="35" required>
                                 </div>
+                                <span><b>Total: </b>VES 300</span>
                             </div>
                             @if ($sellerType == 'comm')
-                                <span class="mt-3 card-text mb-n3" style="cursor: pointer">¿No tienes un código de
+                                <div class="form-group">
+                                    <input type="text" class="form-control" id="purchase-code" name="purchase_code"
+                                        placeholder="Código de Compra" required>
+                                </div>
+                                <span class="mt-n1 card-text" style="cursor: pointer">¿No tienes un código de
                                     compra?</span>
                             @endif
                         </div>

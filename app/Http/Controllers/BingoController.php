@@ -493,7 +493,6 @@ class BingoController extends Controller
         $userTypeID = User::getValueById($user, 'user_type');
         $userType = UserType::getValueById($userTypeID, 'prefix');
 
-        //$user = $this->getUserInfoFromCustomer($customer, 'hhhh');
         $userTypeVal = false;
 
         switch ($userType) {
@@ -525,7 +524,7 @@ class BingoController extends Controller
         // $jackpotType = JackpotType::getByIds($gameJackpotType);
 
         $jackpotType = JackpotType::all();
-        $gameModes = GameModes::all();
+        $gameModes = GameModes::all()->forget(0);
 
         $coin = decrypt($coin);
         $coinSym = Coin::getValue($coin, 'symbol');
@@ -543,8 +542,8 @@ class BingoController extends Controller
             'GameExchangeRate' => function ($query) use ($coin) {
                 $query->where('coin', $coin)->where('game', 1);
             }
-        ])->where($userType, $userTypeVal)->orderBy('status')
-            ->orderByDesc('date')->orderByDesc('time')->get();
+        ])->where($userType, $userTypeVal)->orderByDesc('date')
+            ->orderByDesc('time')->orderBy('status')->get();
 
         $userID = $userType == 'customer'
             ? Customer::getValueById($userTypeVal, 'token')
@@ -595,11 +594,13 @@ class BingoController extends Controller
                     'encrypted' => $this->roomEncrypt('bingo_rooms')
                 ];
 
-                if ($request->user_type == 'comm') {
-                    $createData['commerce'] = Commerce::getValueByUserId($user->id, 'id');
+                $user = json_decode($request->input('user'));
+
+                if ($user[0] == 'commerce') {
+                    $createData['commerce'] = Commerce::getValueByCodeUUID($user[1], 'id');
                     $createData['subsidiary'] = $request->subsidiary ?? null;
                 } else {
-                    $createData['customer'] = $userID;
+                    $createData['customer'] = Customer::getValueByToken($request->token, 'id');
                     $createData['uuid_code'] = $this->getCodeUUID();
                 }
 

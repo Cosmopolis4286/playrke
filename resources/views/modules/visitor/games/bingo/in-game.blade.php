@@ -509,7 +509,6 @@
 
         $(async function() {
             try {
-                console.log(lastSixChips);
                 if (lastSixChips.length) {
                     // Asegúrate de que estas funciones devuelvan promesas si necesitan ejecutarse en paralelo
                     console.log(lastSixChips);
@@ -604,7 +603,10 @@
                 }
 
                 if (type == 'comm') {
-                    if (!$("#purchase-code").val()) return showToast('warning', 'Ingrese el Código de Compra');
+                    if (!$("#purchase-code").val()) {
+                        $("#purchase-code").focus();
+                        return showToast('warning', 'Ingrese el Código de Compra');
+                    }
 
                     if (!$("#payment-proof").val()) {
                         return showToast('warning', 'Cargue el Comprobante');
