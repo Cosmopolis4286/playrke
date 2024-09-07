@@ -627,8 +627,16 @@
                     },
                     beforeSend: function() {},
                     success: function(data) {
-                        $("#jackpot-amount").text(data.jackpot);
-                        showToast('info', data.message);
+
+                        showToast(data.msg_type, data.message);
+
+                        if (data.jackpot) {
+                            $("#jackpot-amount").text(data.jackpot);
+                            // setTimeout(function() {
+                            //     location.reload();
+                            // }, 3500);
+                        }
+
                         toggleModalInfo();
                     },
                     error: function() {}

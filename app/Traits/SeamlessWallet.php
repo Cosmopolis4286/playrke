@@ -59,7 +59,7 @@ trait SeamlessWallet
         $response = curl_exec($curl);
         curl_close($curl);
 
-        return $response;
+        return json_decode($response);
     }
 
     private function globalGuzzle($customerID, $dataJson, $action)
@@ -92,7 +92,7 @@ trait SeamlessWallet
             ]);
 
             // Retornar la respuesta del servidor
-            return $response->getBody()->getContents();
+            return json_decode($response->getBody()->getContents());
         } catch (\Exception $e) {
             // Manejar errores
             Log::error('Error en la solicitud HTTP: ' . $e->getMessage());
@@ -143,30 +143,31 @@ trait SeamlessWallet
         // Validar que se obtuvieron datos del proveedor
         if (!$customer) {
             Log::error("Cliente no encontrado: ID {$customerID}");
-            return ['Error' => true, 'Message' => 'Cliente no encontrado'];
+            return ['Error' => 'Cliente no encontrado'];
         }
 
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
             "Ticks" => "0000000", // Asegúrate de que este valor es correcto
-            "Game" => $customer->product,
+            "Game" => $game,
             "Brand" => $customer->brand,
             "Token" => $userToken[1] ?? '',
             "UserID" => $userToken[0] ?? '',
             "CurrencyCode" => $coin,
-            "BetID" => $betId,
+            "BetID" => Transactions::getValueByCode($transactionId, 'bet_code'),
             "Amount" => $amount,
             "TransactionID" => $transactionId,
             "TransactionType" => $transactionType,
             "AdditionalData" => "{}"
         ]);
 
-        // Llamada al método globalCurl
-        $response = $this->globalCurl($customerID, $dataJson, 'TransferMoney');
+        // Llamada al método globalGuzzle
+        $response = $this->globalGuzzle($customerID, $dataJson, 'TransferMoney');
 
         // Manejo de la respuesta
-        if (isset($response['Error']) && $response['Error']) {
-            Log::error("Error en la transferencia de dinero: " . ($response['Message'] ?? 'Error desconocido'));
+        if (isset($response->Error)) {
+            Log::error("Error en la transferencia de dinero: " . ($response->Error ?? 'Error desconocido'));
+            return $response->Error;
         }
 
         return $response;
@@ -174,7 +175,7 @@ trait SeamlessWallet
 
     public function handleCustomerUserSession($customerID, $userToken)
     {
-        $customerResponse = json_decode($this->getUserInfoFromCustomer($customerID, $userToken));
+        $customerResponse = $this->getUserInfoFromCustomer($customerID, $userToken);
 
         if (isset($customerResponse->Error)) return false;
 
@@ -208,21 +209,27 @@ trait SeamlessWallet
         return $uniqueId;
     }
 
-    public function registerTransaction($game = [], $customer, $clientUser, $type, $amount, $status = 0)
+    public function registerTransaction($game = [], $customer, $clientUser, $roomCode, $type, $amount, $status = 0)
     {
         try {
+
+            $code = $this->getTransaction($game[0], $customer, $clientUser);
+
             $transaction = Transactions::create([
-                'code' => $this->getTransaction($game, $customer, $clientUser),
                 'customer' => $customer,
+                'user_id' => $clientUser,
                 'game' => $game[0],
                 'game_mode' => $game[1],
-                'user_customer' => $clientUser,
+                'room_code' => $roomCode,
+                'code' => $code,
                 'transaction_type' => $type,
                 'amount' => $amount,
                 'status' => $status
             ]);
+
             return [$transaction->id, $transaction->code];
-        } catch (\Throwable $th) {
+        } catch (\Exception $e) {
+            dd($e->getMessage());
             //throw $th;
             return false;
         }

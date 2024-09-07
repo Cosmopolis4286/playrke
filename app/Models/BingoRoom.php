@@ -31,7 +31,8 @@ class BingoRoom extends Model
     'serial_prize',
     'ctns',
     'close_room',
-    'encrypted'
+    'encrypted',
+    'uuid_code'
   ];
 
   public function GameMode()

@@ -9,9 +9,9 @@ class CustomerUser extends Model
     protected $table = "customer_users";
     protected $fillable = ['customer', 'user_id', 'country', 'coin', 'last_activity'];
 
-    public static function getValueByUserId($userId, $value)
+    public static function getValueByUserId($customer, $userId, $value)
     {
-        return self::where('user_id', $userId)->value('value', $value);
+        return self::Where('customer', $customer)->where('user_id', $userId)->value($value);
     }
 
     public static function existsUserByCustomer($customer, $userID)

@@ -410,14 +410,15 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
     // Rutas Jugador/Comercio TODOS
     Route::get('{PlayerLink}', [BingoController::class, 'inGame'])->name('in-game-rke');
-    Route::get('game/{dateFilter?}', [BingoController::class, 'outGame'])->name('out-game-rke');
+    Route::get('game/{dateFilter}', [BingoController::class, 'outGame'])->name('out-game-rke');
 
     // Ruta /Jugador/Comercio Especifico
     Route::get('comm/{commerce}/{PlayerLink}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
-    Route::get('comm/{commerce}/game/{dateFilter?}', [BingoController::class, 'outGameCommerce'])->name('out-game-commerce');
+    Route::get('comm/{commerce}/room/{room}', [BingoController::class, 'outGameCommerce'])->name('out-game-commerce');
 
     // Rutas Jugador/Cliente
-    Route::get('rke/{cust}/{userToken}/game/{dateFilter?}', [BingoController::class, 'inGameCustomer'])->name('in-game-customer');
+    Route::get('cust/{cust}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('in-game-customer');
+    Route::get('cust/{cust}/room/{room}', [BingoController::class, 'outGameCustomer'])->name('out-game-customer');
 
     // Procesar Compra de Cartones
     Route::post('carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');

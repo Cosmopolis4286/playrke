@@ -20,8 +20,8 @@ return new class extends Migration
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('seller')->nullable();
-            $table->integer('player_user');
-            $table->unsignedBigInteger('player_link');
+            $table->integer('player_user')->nullable();
+            $table->unsignedBigInteger('player_link')->nullable();
             $table->unsignedBigInteger('lot');
             $table->unsignedBigInteger('ctn');
             $table->unsignedBigInteger('prize_type');

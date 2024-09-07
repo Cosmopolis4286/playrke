@@ -340,8 +340,11 @@ trait BingoTrait
             $commerce = $arrCtn['commerce'] ?? null;
             $seller = $arrCtn['seller'] ?? null;
             $playerUser = $arrCtn['playerUser'] ?? null;
+
             $totalAmountCtns = $numOfCtns * $room->ctn_price;
             $comSaleSellerCtns = 0;
+            $saleAmount = $totalAmountCtns;
+            $exchangeRate = 1;
 
             if ($room->game_mode == 2 && $commerce || $seller) {
                 // Conversión de Moneda para obtener valor de venta
@@ -383,17 +386,18 @@ trait BingoTrait
             ]);
 
             if ($customer) { // Si el proceso es de un cliente externo  
-                $customerResponse = false;
-                $customerResponse = $this->getUserBalanceFromCustomer($customer, []);
+                $customerResponse = $this->getUserBalanceFromCustomer($customer, decrypt(session('CUSTU')));
 
-                if (!$customerResponse['Error']) {
+                if (isset($customerResponse->Error)) {
                     // Ocurrio un error inesperado
                     DB::rollBack();
+                    return ['Error' => $customerResponse->Error];
                 }
 
-                if ($customerResponse['Data']['amount'] < $totalAmountCtns) {
-                    // Saldo insuficiente
+                if ($customerResponse->Data[0]->Amount < $totalAmountCtns) {
+                    // Validar saldo disponible
                     DB::rollBack();
+                    return ['Error' => 'Saldo insuficiente'];
                 }
             }
 
@@ -517,7 +521,7 @@ trait BingoTrait
             }
 
             // Actualización del bote acumulado y otras métricas de la sala
-            $convertedJackpot = number_format($saleAmount / $exchangeRate, 3, '.');
+            $convertedJackpot = number_format($saleAmount / $exchangeRate ?? 1, 3, '.');
             $boatAcum = ($arrCtn['jackpotType'] == 1) ? $convertedJackpot : (($arrCtn['jackpotType'] == 2) ? 0 : null);
             $jackpot = $room->jackpot + $boatAcum;
             $comCommerce = ($jackpot * BingoRoomConfig::getValueByRoom($roomID, 'commerce_commn') / 100);
@@ -546,26 +550,42 @@ trait BingoTrait
 
             if ($customer) { // Si existe un cliente afiliado
 
-                $userToken = decrypt(session('clientUser'));
-                $coinClientUser = decrypt(session('coinClientUser'));
-
-                $transaction = $this->registerTransaction([1, 1], $customer, $playerUser, 'BET', $totalAmountCtns);
-
-                // Enviar informacion al cliente afiliado por una url externa
-                $transactionResponse = $this->transferMoney(
+                $transaction = $this->registerTransaction(
+                    [1, 1],
                     $customer,
-                    $userToken,
-                    $this->getCodeUUID(),
-                    $coinClientUser,
-                    $totalAmountCtns,
-                    $transaction[1],
+                    $playerUser,
                     'BET',
-                    'BINGO'
+                    $totalAmountCtns,
+                    BingoRoom::getValueById($roomID, 'uuid_code')
                 );
 
-                if ($transactionResponse['Error']) DB::rollBack();
-                // Cambiar status si la respuesta es exitosa
-                Transactions::where('id', $transaction[0])->update(['status' => 1]);
+                if ($transaction) {
+
+                    $userToken = decrypt(session('CUSTU'));
+                    $coinClientUser = decrypt(session('CCCUSTU'))[1];
+
+                    // Enviar informacion al cliente afiliado por una url externa
+                    $transactionResponse = $this->transferMoney(
+                        $customer,
+                        $userToken,
+                        $this->getCodeUUID(),
+                        $coinClientUser,
+                        $totalAmountCtns,
+                        $transaction[1],
+                        'BET',
+                        'BingoCash'
+                    );
+                }
+
+                if (isset($transactionResponse->Error) && $transactionResponse->Error) {
+                    DB::rollBack();
+                    return ['Error' => $transactionResponse->Error];
+                }
+
+                if ($transactionResponse) {
+                    // Cambiar status si la respuesta es exitosa
+                    Transactions::where('id', $transaction[0])->update(['status' => 1]);
+                }
             }
 
             if (isset($arrCtn['ctnWin'])) $this->newSort($room, $PJLink);
@@ -679,12 +699,14 @@ trait BingoTrait
                 $dataCtns['PJLink'] = $player;
             }
 
-            if ($this->cartonStore($dataCtns)) {
+            $responseCtns = $this->cartonStore($dataCtns);
+
+            if (!isset($responseCtns['Error'])) {
                 DB::commit();
                 return $seller ? $this->getPlayerGameLink($commerceID, $PJLink, $room->all_for_one) : true;
             } else {
                 DB::rollBack();
-                return false;
+                return $responseCtns;
             }
         } catch (\Exception $e) {
             DB::rollBack();
@@ -756,7 +778,7 @@ trait BingoTrait
                 ];
 
                 // Determinar el campo de actualización basado en la presencia del cliente afiliado
-                $playersToUpdate[] = $customer ? $ctn->user : $ctn->player_link;
+                $playersToUpdate[] = $customer ? $ctn->player_user : $ctn->player_link;
             }
         }
 
@@ -782,7 +804,16 @@ trait BingoTrait
                     $coinClientUser = decrypt(session('coinClientUser'));
 
                     foreach ($playerCtn as $ctn) {
-                        $transaction = $this->registerTransaction([1, 1], $customer, $ctn->user, 'WIN', $prizeWn);
+
+                        // Registrar la transaccion en PlayRKE
+                        $transaction = $this->registerTransaction(
+                            [1, 1],
+                            $customer,
+                            $ctn->player_user,
+                            BingoRoom::getValueById($room, 'uuid_code'),
+                            'WIN',
+                            $prizeWn
+                        );
 
                         // Enviar informacion al cliente afiliado por una url externa
                         $transactionResponse = $this->transferMoney(

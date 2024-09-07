@@ -67,12 +67,14 @@
                                         <span class="input-group-text" id="basic-addon1">Cantidad</span>
                                     </div>
                                     <input type="number" class="form-control" id="num-ctns" name="num_ctns"
-                                        title="Cantidad a Comprar" step="1" min="1" max="30"
-                                        required>
+                                        title="Cantidad a Comprar" step="1" value="1" min="1"
+                                        max="35" required>
                                 </div>
                             </div>
-                            <span class="mt-3 card-text mb-n3" style="cursor: pointer">¿No tienes un código de
-                                compra?</span>
+                            @if ($sellerType == 'comm')
+                                <span class="mt-3 card-text mb-n3" style="cursor: pointer">¿No tienes un código de
+                                    compra?</span>
+                            @endif
                         </div>
                         <div class="card-footer d-flex justify-content-center">
                             <button type="button" id="btn-cancel-buy-ctns"

@@ -21,6 +21,17 @@
             @endphp
             @foreach ($rooms as $room)
                 @php
+
+                    if ($userType == 'customer') {
+                        $roomRoute = "{$routeRKE}bingocash/cust/{$userID}/room/{$room->encrypted}";
+                    } else {
+                        if ($room->all_for_one == 1) {
+                            $roomRoute = "{$routeRKE}bingocash/game/today";
+                        } else {
+                            $roomRoute = "{$routeRKE}bingocash/comm/{$userID}/room/{$room->encrypted}";
+                        }
+                    }
+
                     $ctnPrice = $room->ctn_price * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
                     $allSale = $room->all_sale * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
                     $jackpot = $room->jackpot * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
@@ -31,7 +42,7 @@
                 <tr>
                     <td class="align-middle">
                         <small>Modo: {{ $room->GameMode->description }}</small>
-                        <a href="#" class="badge badge-dark">
+                        <a href="{{ $roomRoute }}" class="badge badge-dark" target="_blank">
                             <i class="fa-regular fa-eye"></i>
                         </a>
                         <br>

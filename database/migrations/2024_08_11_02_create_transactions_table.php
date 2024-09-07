@@ -17,10 +17,11 @@ class CreateTransactionsTable extends Migration
             $table->id();
             $table->string('code')->unique();
             $table->unsignedBigInteger('customer');
+            $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('game_mode');
-            $table->unsignedBigInteger('user_id');
-            $table->string('action', 12);
+            $table->string('bet_code');
+            $table->string('transaction_type', 12);
             $table->double('amount');
             $table->boolean('status')->default(0);
             $table->timestamps();

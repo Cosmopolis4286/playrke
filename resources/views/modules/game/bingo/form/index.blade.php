@@ -17,7 +17,10 @@
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @component('components.game.bingo.table-info-bingo-rooms', [
+                            'userType' => $userType,
+                            'userID' => $userID,
                             'name' => $name,
+                            'routeRKE' => $routeRKE,
                             'rooms' => $rooms,
                             'coinSym' => $coinSym,
                             'exchangeRate' => $exchangeRate,
@@ -31,7 +34,7 @@
     @component('components.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'customer' => $customer,
+        'user' => [$userType, $userID],
         'dataForm' => view('modules.game.bingo.form.body')->render(),
     ])
     @endcomponent
@@ -70,8 +73,8 @@
             const gameMode = $("#game-mode");
 
             gameMode.prop({
-                disabled: data.room.jackpot != 0,
-                required: data.room.jackpot == 0
+                disabled: type == 2 && data.room.jackpot != 0,
+                required: !(type == 2 && data.room.jackpot != 0)
             });
 
             $("#jackpot-type, #game-mode").empty(); // Limpia las opciones existentes
