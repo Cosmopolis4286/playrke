@@ -55,6 +55,21 @@
                                 <span id="ctn-price-coin-symbol" class="mr-1"></span>
                                 <span id="ctn-price-amount"></span>
                             </div>
+                            @isset($saleLink)
+                                <div class="form-group">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <sapn class="input-group-text" for="coin">Moneda</span>
+                                        </div>
+                                        <select class="custom-select" id="coin">
+                                            <option selected>Seleccione</option>
+                                            <option value="1">One</option>
+                                            <option value="2">Two</option>
+                                            <option value="3">Three</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            @endisset
                             <div class="form-group">
                                 <div class="input-group">
                                     <div class="input-group-prepend">
@@ -64,15 +79,17 @@
                                         title="Cantidad a Comprar" step="1" value="1" min="1"
                                         max="35" required>
                                 </div>
-                                <span><b>Total: </b>VES 300</span>
+                                <div class="ml-1 d-flex mt-1 mb-n2">
+                                    <b class="mr-1">Total:</b><span id="total-amount"></span>
+                                </div>
                             </div>
                             @if ($sellerType == 'comm')
                                 <div class="form-group">
                                     <input type="text" class="form-control" id="purchase-code" name="purchase_code"
                                         placeholder="Código de Compra" required>
+                                    <span class="mt-2 badge badge-light" style="cursor: pointer; font-size: 11.5px;">
+                                        ¿No tienes un código de compra?</span>
                                 </div>
-                                <span class="mt-n1 card-text" style="cursor: pointer">¿No tienes un código de
-                                    compra?</span>
                             @endif
                         </div>
                         <div class="card-footer d-flex justify-content-center">

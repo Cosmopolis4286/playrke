@@ -33,8 +33,8 @@
         const status = '<?php echo $room->status; ?>';
         const coinSym = '<?php echo $coinSym; ?>';
         const valSongs = '<?php echo $room->val_songs; ?>';
-        const arrSort = JSON.parse('<?php echo json_encode($sort); ?>');
-        const chpLast = Number('<?php echo $vanSort; ?>');
+        const arrDraw = JSON.parse('<?php echo json_encode($sort); ?>');
+        const chpLast = Number('<?php echo $vanDraw; ?>');
         const player = '<?php echo json_encode($player); ?>';
         const startTime = Number('<?php echo $startTime; ?>');
         const encrypt = JSON.parse('<?php echo json_encode($encrypt); ?>');
@@ -57,7 +57,7 @@
         var loadTimeServ = false;
         var vanChange = 0;
         var actSound = 0;
-        var endWin = (arrSort.length && (status === 2 || status === 3)) ? 0 : (status >= 4 ? 1 : 0);
+        var endWin = (arrDraw.length && (status === 2 || status === 3)) ? 0 : (status >= 4 ? 1 : 0);
         var sizeCarrsel;
 
         if (restChips.length) {
@@ -293,11 +293,11 @@
         function checkExitOfToken() {
             if (status != 3) return;
 
-            for (let i = count; i < arrSort.length; i++) {
-                const chipTime = +arrSort[i].time;
+            for (let i = count; i < arrDraw.length; i++) {
+                const chipTime = +arrDraw[i].time;
 
                 if (chipTime && chipTime <= timeServ) {
-                    const nextChip = decryptChp(arrSort[i].code);
+                    const nextChip = decryptChp(arrDraw[i].code);
 
                     if (!allChipsSet.has(nextChip)) {
                         count = i + 1;
@@ -341,10 +341,10 @@
         async function getNewChip(newChip) {
             if (newChip != undefined && !lastSixChips.includes(newChip)) {
 
-                const arrSortImg = $('.img-chip');
+                const arrDrawImg = $('.img-chip');
 
                 if (actSound === 1) soundNext.play();
-                if (arrSortImg.length) $(`#${arrSortImg[0].id}`).removeClass('zoom');
+                if (arrDrawImg.length) $(`#${arrDrawImg[0].id}`).removeClass('zoom');
 
                 if (loaderChip && status > 2) {
                     $('#cont-loader').hide();
@@ -367,8 +367,8 @@
                 });
 
                 // Eliminar el chip más antiguo si hay 6 chips
-                if (arrSortImg.length === 6) {
-                    $(`#${arrSortImg[5].id}`).remove();
+                if (arrDrawImg.length === 6) {
+                    $(`#${arrDrawImg[5].id}`).remove();
                     lastSixChips.pop();
                 }
 
@@ -541,7 +541,6 @@
     @endif
     @if ($room->status == 2)
         <script>
-            let userType = '<?php echo json_encode($userType); ?>';
             let userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
             let coinID = '<?php echo json_encode($coinID); ?>';
             let ctnPrice = Number('<?php echo $ctnPrice; ?>');
@@ -558,7 +557,8 @@
             }
 
             function setAmount(amount) {
-                $("#sent-amount").text(`${coinSym} ${amount}`);
+                if (type == 'comm') $("#sent-amount").text(`${coinSym} ${amount}`);
+                $("#total-amount").text(`${coinSym} ${amount}`);
             }
 
             $(document).on("click", "#cont-btn-buy-ctns", function() {
@@ -576,8 +576,10 @@
                                 setAmount(amount);
                                 $("#commerce-name").text(name);
 
-                                switchPaymentMethod(data.code, data);
-                                $("#commerce-details").removeClass('hide-elem');
+                                if (true) {
+                                    switchPaymentMethod(data.code, data);
+                                    $("#commerce-details").removeClass('hide-elem');
+                                }
                             })
                             .fail((jqXHR, textStatus, errorThrown) => {
                                 console.error('Error:', textStatus, errorThrown);
@@ -622,7 +624,7 @@
                     dataType: 'json',
                     data: {
                         room: encrypted,
-                        user_type: userType,
+                        user_type: type,
                         user_type_val: userTypeVal,
                         player: player,
                         num_ctns: $("#num-ctns").val()

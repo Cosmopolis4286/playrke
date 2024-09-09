@@ -17,7 +17,7 @@ trait EncryptRKE
         return $code;
     }
 
-    public function encryptSort($table, $id)
+    public function encryptDraw($table, $id)
     {
         $existingSymbols = DB::table($table)->where('room', $id)->pluck('sym')->toArray();
 

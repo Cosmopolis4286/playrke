@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_sort', function (Blueprint $table) {
+        Schema::create('bingo_draw', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
             $table->unsignedTinyInteger('chip');
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_sort');
+        Schema::dropIfExists('bingo_draw');
     }
 };

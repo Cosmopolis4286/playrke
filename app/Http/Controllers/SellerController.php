@@ -813,11 +813,13 @@ class SellerController extends Controller
 
         $coin = Coin::getById($coinId, ['symbol', 'long_name']);
 
+        $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
+
         $routCtns = $this->getRouteRKE();
 
         return view(
             'modules.seller.games.bingo.report.by-room',
-            compact('title', 'wallet', 'roomEncrypted', 'playersRoom', 'dateFilter', 'coins', 'coin', 'coinId', 'routCtns', 'totalCtnsPurchased', 'totalCtnsByRoom')
+            compact('title', 'wallet', 'commerce', 'roomEncrypted', 'playersRoom', 'dateFilter', 'coins', 'coin', 'coinId', 'routCtns', 'totalCtnsPurchased', 'totalCtnsByRoom')
         );
     }
 

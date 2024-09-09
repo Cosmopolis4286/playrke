@@ -3,19 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Events\BingoRoom as EventsBingoRoom;
-use App\Events\GetBingoSort;
+use App\Events\GetBingoDraw;
 use App\Traits\UserVal;
 use App\Traits\EncryptRKE;
 use App\Models\Wallet;
 use App\Models\User;
 use App\Models\Coin;
 use App\Models\BingoRoom;
-use App\Models\BingoSort;
+use App\Models\BingoDraw;
 use App\Models\BingoRoomUser;
 use App\Models\BingoCtns;
 use App\Models\HistGame;
 use App\Http\Controllers\Controller;
-use App\Models\BingoSortCode;
+use App\Models\BingoDrawCode;
 use App\Models\Country;
 use App\Models\PlayerLink;
 use App\Traits\BingoTrait;
@@ -56,23 +56,23 @@ class PollaExpressController extends Controller
 
         $roomCoin = Coin::getMoneyFromCountry($player->country);
 
-        $vanSort = BingoSort::where('room', $room)->where('status', 2)->select('id', 'chip')->first();
-        if (!$vanSort) $vanSort = $this->newSort($room, null);
+        $vanDraw = BingoDraw::where('room', $room)->where('status', 2)->select('id', 'chip')->first();
+        if (!$vanDraw) $vanDraw = $this->newDraw($room, null);
 
         $sort = ($room->status == 3) ?
-            BingoSort::where('room', $room)->where('id', '<=', $vanSort->id)
+            BingoDraw::where('room', $room)->where('id', '<=', $vanDraw->id)
             ->where('time', '>', time())->get(['code', 'time']) : [];
 
-        $codeEncrypt = BingoSortCode::where('room', $room)->pluck('sym');
+        $codeEncrypt = BingoDrawCode::where('room', $room)->pluck('sym');
 
         $lastSixChip = $this->getChips$room->encrypted);
 
-        $chipsRest = BingoSort::where('room', $room)->where('time', '>', time())
-            ->where('id', '<=', $vanSort->id)->orderBy('chip')->pluck('chip')->sort()->toArray();
+        $chipsRest = BingoDraw::where('room', $room)->where('time', '>', time())
+            ->where('id', '<=', $vanDraw->id)->orderBy('chip')->pluck('chip')->sort()->toArray();
 
         $ctns = BingoCtns::getCtnsByPlayerInRoom($room, $PJLink);
 
-        $allChips =  BingoSort::where('room', $room)->where('id', '<=', $vanSort->id)
+        $allChips =  BingoDraw::where('room', $room)->where('id', '<=', $vanDraw->id)
             ->where('time', '<', time())->orderByDesc('id')->pluck('chip')->toArray();
 
         $infoGame = [];
@@ -95,7 +95,7 @@ class PollaExpressController extends Controller
             'lastSixChip' => $lastSixChip[0],
             'lastPos' => $lastSixChip[1],
             'allChips' => $allChips,
-            'vanSort' => $vanSort->chip,
+            'vanDraw' => $vanDraw->chip,
             'infoGame' => $infoGame,
             'timeServ' => time(),
             // Artisan::call('bingooff:dispatch', ['room' => $room->encrypted])
@@ -106,23 +106,23 @@ class PollaExpressController extends Controller
     {
         $roomId = BingoRoom::where('encrypted', $room)->value('id');
         if ($roomId) {
-            $vanSort = BingoSort::where('room', $roomId)->where('status', 2)->first();
-            if ($vanSort) {
-                $lastSixChip = BingoSort::where('room', $roomId)->where('time', '<=', time())
-                    ->where('id', '<=', $vanSort->id)->orderByDesc('id')->take(7)->pluck('chip')->toArray();
+            $vanDraw = BingoDraw::where('room', $roomId)->where('status', 2)->first();
+            if ($vanDraw) {
+                $lastSixChip = BingoDraw::where('room', $roomId)->where('time', '<=', time())
+                    ->where('id', '<=', $vanDraw->id)->orderByDesc('id')->take(7)->pluck('chip')->toArray();
 
                 $sizeArr = count($lastSixChip);
 
                 $lastPos = false;
                 if ($sizeArr > 1) {
-                    $sort = BingoSort::where('room', $roomId)->where('time', '<=', time())
-                        ->where('id', '<=', $vanSort->id)->pluck('chip')->toArray();
+                    $sort = BingoDraw::where('room', $roomId)->where('time', '<=', time())
+                        ->where('id', '<=', $vanDraw->id)->pluck('chip')->toArray();
 
                     $lastPos = array_search($lastSixChip[$sizeArr - 1], $sort);
                     array_pop($lastSixChip);
                 }
 
-                $allChips =  BingoSort::where('room', $room)->where('id', '<=', $vanSort->id)
+                $allChips =  BingoDraw::where('room', $room)->where('id', '<=', $vanDraw->id)
                     ->where('time', '<', time())->orderByDesc('id')->pluck('chip')->toArray();
 
                 return [$lastSixChip, $lastPos !== false ? $lastPos : 0, time(), $allChips];
@@ -156,10 +156,10 @@ class PollaExpressController extends Controller
         }
     }
 
-    public function GetSort($room)
+    public function GetDraw($room)
     {
         $room = BingoRoom::where('encrypted', $room)->first();
-        $sort = BingoSort::where('room', $room->id)->first();
+        $sort = BingoDraw::where('room', $room->id)->first();
         if ($sort && !$sort->status) {
             Artisan::call('bingooff:dispatch', ['room' => $room]);
         }
@@ -302,7 +302,7 @@ class PollaExpressController extends Controller
 
         $room = PlayerLink::where('player_link', $PJLink)->value('room');
         if ($room) {
-            $resp = $this->newSort($room, $PJLink);
+            $resp = $this->newDraw($room, $PJLink);
             if ($resp) Session::flash('message', 'Carton Ganador Generado');
         } else {
             Session::flash('message', 'El PlayerLink no existe');

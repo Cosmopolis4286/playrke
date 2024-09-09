@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoSort extends Model
+class BingoDraw extends Model
 {
-    protected $table = 'bingo_sort';
+    protected $table = 'bingo_draw';
     protected $fillable = ['chip', 'code', 'room', 'time', 'win', 'status', 'created_at', 'updated_at'];
 
     public function Room()
@@ -14,9 +14,9 @@ class BingoSort extends Model
         return $this->belongsTo(BingoRoom::class, 'room');
     }
 
-    public function CodeSort()
+    public function CodeDraw()
     {
-        return $this->belongsTo(BingoSortCode::class, 'room', 'room');
+        return $this->belongsTo(BingoDrawCode::class, 'room', 'room');
     }
 
     public static function getWinningChip($room)
@@ -24,12 +24,12 @@ class BingoSort extends Model
         return self::where('room', $room)->where('win', 1)->first();
     }
 
-    public static function getRoomSort($room)
+    public static function getRoomDraw($room)
     {
         return self::where('room', $room)->get();
     }
 
-    public static function getFirstSortChip($room, $fields = ['*'])
+    public static function getFirstDrawChip($room, $fields = ['*'])
     {
         return self::where('room', $room)->select($fields)->first();
     }

@@ -9,14 +9,14 @@ use App\Traits\EncryptRKE;
 use App\Models\Wallet;
 use App\Models\Coin;
 use App\Models\BingoRoom;
-use App\Models\BingoSort;
+use App\Models\BingoDraw;
 use App\Models\BingoRoomUser;
 use App\Models\BingoCtns;
 use App\Models\HistGame;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCtnsLot;
 use App\Models\BingoRoomConfig;
-use App\Models\BingoSortCode;
+use App\Models\BingoDrawCode;
 use App\Models\Commerce;
 use App\Models\Country;
 use App\Models\ExchangeRate;
@@ -121,7 +121,7 @@ class BingoController extends Controller
         }
 
         if ($request->user_type) {
-            $userType = decrypt($request->user_type);
+            $userType = ($request->user_type == 'comm') ? 'commerce' : 'customer';
             $userTypeVal = decrypt($request->user_type_val);
 
             if ($userType == 'customer') {
@@ -229,6 +229,7 @@ class BingoController extends Controller
                 } else {
                     $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
                     $moreViewData['player'] = null;
+                    $moreViewData['saleLink'] = true;
                     $coinID = 1;
                     $coinSym = 'USDT';
                 }
@@ -271,26 +272,26 @@ class BingoController extends Controller
             $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, $columnData, $valColumnData);
         }
 
-        $vanSort = ($room->status > 2) ?
-            BingoSort::where(['room' => $roomId, 'win' => 1])->select('id', 'chip')->first() : [];
+        $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $valColumnData, $columnData) : [];
+
+        $vanDraw = ($room->status > 2) ?
+            BingoDraw::where(['room' => $roomId, 'win' => 1])->select('id', 'chip')->first() : [];
 
         $sort = ($room->status == 3) ?
-            BingoSort::where('room', $roomId)->where('id', '<=', $vanSort->id)
+            BingoDraw::where('room', $roomId)->where('id', '<=', $vanDraw->id)
             ->where('time', '>', time())->get(['code', 'time']) : [];
 
         $chipsRest = ($room->status == 3) ?
-            BingoSort::where('room', $roomId)->where('time', '>', time())
-            ->where('id', '<=', $vanSort->id)->orderBy('chip')->pluck('chip')->sort()->toArray() : [];
+            BingoDraw::where('room', $roomId)->where('time', '>', time())
+            ->where('id', '<=', $vanDraw->id)->orderBy('chip')->pluck('chip')->sort()->toArray() : [];
 
         $allChips = ($room->status > 2) ?
-            BingoSort::where('room', $roomId)->where('id', '<=', $vanSort->id)
+            BingoDraw::where('room', $roomId)->where('id', '<=', $vanDraw->id)
             ->where('time', '<', time())->orderByDesc('id')->pluck('chip')->toArray() : [];
 
-        $codeEncrypt = ($room->status == 3) ? BingoSortCode::where('room', $roomId)->pluck('sym')->toArray() : [];
+        $codeEncrypt = ($room->status == 3) ? BingoDrawCode::where('room', $roomId)->pluck('sym')->toArray() : [];
 
         $lastSixChips = $this->getChips($room->encrypted);
-
-        $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $valColumnData, $columnData) : [];
 
         $viewData = [
             'title' => 'BingoCash',
@@ -307,7 +308,7 @@ class BingoController extends Controller
             'lastSixChips' => $lastSixChips[0],
             'lastPostChip' => $lastSixChips[1],
             'allChips' => $allChips,
-            'vanSort' => $vanSort ? $vanSort->chip : '',
+            'vanDraw' => $vanDraw ? $vanDraw->chip : '',
             'infoGame' => $infoGame,
             'timeServ' => time(),
             'encryptionKey' => env('JSON_ENCRYPTION_KEY'),
@@ -390,7 +391,7 @@ class BingoController extends Controller
         // Vista del el juego para un comercio especifico solo para comprar
         $commerce = Commerce::getByCodeUUID($commerce, 'id');
 
-        // Redireccionar al Login si no hay coincidencia
+        // Redireccionar al Login si no hay coincidencia    
         if (!$commerce) return redirect('/');
 
         $viewData = self::getGameViewInfo('commerce', ['commerce' => $commerce->id, 'room' => $room]);
@@ -423,24 +424,24 @@ class BingoController extends Controller
         $roomId = $room->id;
 
         if ($roomId) {
-            $vanSort = BingoSort::where('room', $roomId)->where('win', 1)->first();
-            if ($vanSort) {
+            $vanDraw = BingoDraw::where('room', $roomId)->where('win', 1)->first();
+            if ($vanDraw) {
                 $lastSixChips = ($room->status > 2) ?
-                    BingoSort::where('room', $roomId)->where('time', '<=', time())
-                    ->where('id', '<=', $vanSort->id)->orderByDesc('id')->take(7)->pluck('chip')->toArray() : [];
+                    BingoDraw::where('room', $roomId)->where('time', '<=', time())
+                    ->where('id', '<=', $vanDraw->id)->orderByDesc('id')->take(7)->pluck('chip')->toArray() : [];
 
                 $sizeArr = count($lastSixChips);
 
                 $lastPos = false;
                 if ($sizeArr > 1) {
-                    $sort = BingoSort::where('room', $roomId)->where('time', '<=', time())
-                        ->where('id', '<=', $vanSort->id)->pluck('chip')->toArray();
+                    $sort = BingoDraw::where('room', $roomId)->where('time', '<=', time())
+                        ->where('id', '<=', $vanDraw->id)->pluck('chip')->toArray();
 
                     $lastPos = array_search($lastSixChips[$sizeArr - 1], $sort);
                     array_pop($lastSixChips);
                 }
 
-                $allChips =  BingoSort::where('room', $roomId)->where('id', '<=', $vanSort->id)
+                $allChips =  BingoDraw::where('room', $roomId)->where('id', '<=', $vanDraw->id)
                     ->where('time', '<', time())->orderByDesc('id')->pluck('chip')->toArray();
 
                 return [$lastSixChips, $lastPos !== false ? $lastPos : 0, time(), $allChips];
@@ -476,10 +477,10 @@ class BingoController extends Controller
         }
     }
 
-    public function getSort($room)
+    public function getDraw($room)
     {
         $room = BingoRoom::where('encrypted', $room)->first();
-        $sort = BingoSort::where('room', $room->id)->first();
+        $sort = BingoDraw::where('room', $room->id)->first();
         if ($sort && !$sort->status) {
             Artisan::call('bingooff:dispatch', ['room' => $room]);
         }
@@ -813,7 +814,7 @@ class BingoController extends Controller
 
         if (PlayerLink::where('link', $PJLink)->exists()) {
             $room = PlayerLink::where('link', $PJLink)->value('room');
-            $this->newSort($room, $PJLink);
+            $this->newDraw($room, $PJLink);
             return redirect()->back()->with('message', 'Carton Ganador Generado');
         } else {
             return redirect()->back()->with('message', 'El PlayerLink no existe');

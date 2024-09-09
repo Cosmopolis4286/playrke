@@ -423,7 +423,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     // Procesar Compra de Cartones
     Route::post('carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
 
-    Route::get('getSort/{room}', [BingoController::class, 'getSort'])->name('getSort');
+    Route::get('getDraw/{room}', [BingoController::class, 'getDraw'])->name('getDraw');
     Route::get('get/chips/{room}', [BingoController::class, 'getChips'])->name('getChips');
     Route::get('get/result/{room}/{value}/{column?}', [BingoController::class, 'getResult'])->name('getResult');
     Route::get('viewCtn/{ctnId}', [BingoController::class, 'viewCtn'])->name('viewCtn');
@@ -432,7 +432,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
 // PollaExpress -Jugador-
 Route::group(['prefix' => 'pollaexpress', 'as' => 'pollaexpress.'], function () {
-    Route::get('getSort/{room}', [PollaExpressController::class, 'getSort'])->name('getSort');
+    Route::get('getDraw/{room}', [PollaExpressController::class, 'getDraw'])->name('getDraw');
     Route::get('{PlayerLink}', [PollaExpressController::class, 'game'])->name('game');
     Route::get('get/chips/{room}', [PollaExpressController::class, 'getChips'])->name('getChips');
     Route::get('getResult/{room}/{PJLink}', [PollaExpressController::class, 'getResult'])->name('getResult');

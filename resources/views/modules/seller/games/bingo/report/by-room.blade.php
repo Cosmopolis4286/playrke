@@ -72,5 +72,8 @@
     <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
+    <script>
+        const commerce = '<?php echo $commerce; ?>'
+    </script>
     <script src="{{ asset('js/components/view-player-ctns.js') }}"></script>
 @endsection

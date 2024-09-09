@@ -34,8 +34,8 @@
         console.log(infoGame);
         const coin = '<?php echo $coin; ?>';
         const valSongs = '<?php echo $room->val_songs; ?>';
-        const arrSort = {!! json_encode($sort) !!};
-        const chpLast = Number('<?php echo $vanSort; ?>');
+        const arrDraw = {!! json_encode($sort) !!};
+        const chpLast = Number('<?php echo $vanDraw; ?>');
         const PJLink = '<?php echo $PJLink; ?>';
         const startTime = Number('<?php echo $startTime; ?>');
         const encrypt = {!! json_encode($encrypt) !!};
@@ -57,7 +57,7 @@
         var loadTimeServ = false;
         var vanChange = 0;
         var actSound = 0;
-        var endWin = (arrSort.length && (roomStatus === 2 || roomStatus === 3)) ? 0 : (roomStatus >= 4 ? 1 : 0);
+        var endWin = (arrDraw.length && (roomStatus === 2 || roomStatus === 3)) ? 0 : (roomStatus >= 4 ? 1 : 0);
         var sizeCarrsel;
 
         if (restChips.length) {
@@ -293,11 +293,11 @@
         function checkExitOfToken() {
             if (roomStatus != 3) return;
 
-            for (let i = count; i < arrSort.length; i++) {
-                const chipTime = +arrSort[i].time;
+            for (let i = count; i < arrDraw.length; i++) {
+                const chipTime = +arrDraw[i].time;
 
                 if (chipTime && chipTime <= timeServ) {
-                    const nextChip = decrypt(arrSort[i].code);
+                    const nextChip = decrypt(arrDraw[i].code);
 
                     if (!allChipsSet.has(nextChip)) {
                         count = i + 1;
@@ -341,10 +341,10 @@
         async function getNewChip(newChip) {
             if (newChip != undefined && !lastSixChips.includes(newChip)) {
 
-                const arrSortImg = $('.img-chip');
+                const arrDrawImg = $('.img-chip');
 
                 if (actSound === 1) soundNext.play();
-                if (arrSortImg.length) $(`#${arrSortImg[0].id}`).removeClass('zoom');
+                if (arrDrawImg.length) $(`#${arrDrawImg[0].id}`).removeClass('zoom');
 
                 if (loaderChip && roomStatus > 2) {
                     $('#cont-loader').hide();
@@ -367,8 +367,8 @@
                 });
 
                 // Eliminar el chip más antiguo si hay 6 chips
-                if (arrSortImg.length === 6) {
-                    $(`#${arrSortImg[5].id}`).remove();
+                if (arrDrawImg.length === 6) {
+                    $(`#${arrDrawImg[5].id}`).remove();
                     lastSixChips.pop();
                 }
 
