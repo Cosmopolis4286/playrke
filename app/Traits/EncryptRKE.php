@@ -8,10 +8,10 @@ use Illuminate\Support\Str;
 
 trait EncryptRKE
 {
-    public function roomEncrypt($table)
+    public function generateUniqueCode($table, $size = 14)
     {
         do {
-            $code = Str::random(12);
+            $code = Str::random($size);
         } while (DB::table($table)->where('encrypted', $code)->exists());
 
         return $code;

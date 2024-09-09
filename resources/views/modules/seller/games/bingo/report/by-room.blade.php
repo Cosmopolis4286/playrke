@@ -8,7 +8,7 @@
                 @component('components.coin-tabs', [
                     'routeName' => 'seller.reportSalesByRoom',
                     'dateFilter' => $dateFilter,
-                    'room' => $roomEncrypted,
+                    'room' => $generateUniqueCodeed,
                     'coin' => $coinId,
                     'coins' => $coins,
                 ])
@@ -16,7 +16,7 @@
                 @component('components.date-filter-buttons', [
                     'routeName' => 'seller.reportSalesByRoom',
                     'dateFilter' => $dateFilter,
-                    'room' => $roomEncrypted,
+                    'room' => $generateUniqueCodeed,
                     'coin' => $coinId,
                     'coins' => $coins,
                 ])

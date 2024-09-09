@@ -182,7 +182,7 @@ class BingoController extends Controller
                 }
 
                 // Obtener informacion de Sala
-                $room = BingoRoom::where('customer', $customer)->where('encrypted', $data['roomEncrypt'])
+                $room = BingoRoom::where('customer', $customer)->where('encrypted', $data['room'])
                     ->select('id', 'status', 'ctn_price')->whereIn('status', [2, 3, 4])->first();
 
                 // Si la sala no existe 
@@ -356,21 +356,21 @@ class BingoController extends Controller
 
         // Verificar si el cliente existe
         if (!$customerId) {
-            return response()->json(['message' => 'El token no existe'], 404);
+            return response()->json(['message' => 'Token del cliente no existe'], 404);
         }
 
         // Consultar información de usuario y crear variables de sesión
         $response = $this->handleCustomerUserSession($customerId, $userToken);
 
         // Verificar si existe el usuario por su token
-        if (!$response) {
+        if (isset($response->Error)) {
             return response()->json(['message' => 'Token de usuario incorrecto'], 404);
         }
 
         // Obtener informacion de la vista del cliente
         $viewData = self::getGameViewInfo('customer', [
             'customer' => $customerId,
-            'roomEncrypt' => $room
+            'room' => $room
         ], $dateFilter);
 
         // Retorna a vista con la informacion del cliente
@@ -592,7 +592,7 @@ class BingoController extends Controller
                     'coin' => $coin,
                     'ctn_price' => $request->ctn_price,
                     'jackpot' => $boat,
-                    'encrypted' => $this->roomEncrypt('bingo_rooms')
+                    'encrypted' => $this->generateUniqueCode('bingo_rooms')
                 ];
 
                 $user = json_decode($request->input('user'));
@@ -719,7 +719,7 @@ class BingoController extends Controller
                     'country' => $existingRoom->country,
                     'coin' => $existingRoom->coin,
                     'ctn_price' => $existingRoom->ctn_price,
-                    'encrypted' => $this->roomEncrypt('bingo_rooms')
+                    'encrypted' => $this->generateUniqueCode('bingo_rooms')
                 ]);
 
                 // Crear la configuración de la nueva sala

@@ -216,7 +216,7 @@ class PollaExpressController extends Controller
                 'jackpot' => $boat,
                 'type_boat' => $request['type_boat'],
                 'com' => $request['val_com'],
-                'encrypted' => $this->roomEncrypt('bingo_room')
+                'encrypted' => $this->generateUniqueCode('bingo_room')
             ]);
 
             Session::flash('message', 'Sala creada correctamente');

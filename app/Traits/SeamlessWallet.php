@@ -107,8 +107,8 @@ trait SeamlessWallet
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
             "Ticks" => "0000000",
-            "Product" => 'RoyalEis',
-            "Brand" => 'APUESTASROYAL',
+            "Product" => $customer->product,
+            "Brand" => $customer->brand,
             "AdditionalData" => "{}",
             "Token" => $token
         ]);
@@ -177,7 +177,9 @@ trait SeamlessWallet
     {
         $customerResponse = $this->getUserInfoFromCustomer($customerID, $userToken);
 
-        if (isset($customerResponse->Error)) return false;
+        if (isset($customerResponse->Error)) {
+            return ['Error' => $customerResponse->Error];
+        }
 
         // Crear la variable de sesión 'CustomerUser'
         session()->put('CUSTU', encrypt([$customerResponse->Data->ID, $userToken]));

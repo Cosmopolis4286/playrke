@@ -293,7 +293,7 @@ class BingoOLDController extends Controller
                     'coin' => $coin,
                     'ctn_price' => $request->ctn_price,
                     'jackpot' => $boat,
-                    'encrypted' => $this->roomEncrypt('bingo_rooms')
+                    'encrypted' => $this->generateUniqueCode('bingo_rooms')
                 ]);
 
                 BingoRoomConfig::create([
@@ -395,7 +395,7 @@ class BingoOLDController extends Controller
                     'country' => $existingRoom->country,
                     'coin' => $existingRoom->coin,
                     'ctn_price' => $existingRoom->ctn_price,
-                    'encrypted' => $this->roomEncrypt('bingo_rooms')
+                    'encrypted' => $this->generateUniqueCode('bingo_rooms')
                 ]);
 
                 // Crear la configuración de la nueva sala

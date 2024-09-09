@@ -775,7 +775,7 @@ class SellerController extends Controller
 
         if (!$room) return redirect()->back();
 
-        $roomEncrypted = $room->encrypted;
+        $generateUniqueCodeed = $room->encrypted;
 
         $seller = $this->seller(['id', 'commerce']);
         $coinId = decrypt($coin);
@@ -819,7 +819,7 @@ class SellerController extends Controller
 
         return view(
             'modules.seller.games.bingo.report.by-room',
-            compact('title', 'wallet', 'commerce', 'roomEncrypted', 'playersRoom', 'dateFilter', 'coins', 'coin', 'coinId', 'routCtns', 'totalCtnsPurchased', 'totalCtnsByRoom')
+            compact('title', 'wallet', 'commerce', 'generateUniqueCodeed', 'playersRoom', 'dateFilter', 'coins', 'coin', 'coinId', 'routCtns', 'totalCtnsPurchased', 'totalCtnsByRoom')
         );
     }
 
