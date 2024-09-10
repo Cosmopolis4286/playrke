@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('commerce');
             $table->unsignedBigInteger('coin');
-            $table->double('value')->default(1);
+            $table->double('exchange_rate')->default(1);
             $table->boolean('status')->default(0);
             $table->timestamps();
 

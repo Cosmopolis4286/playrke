@@ -844,6 +844,8 @@ trait BingoTrait
                             'Pruebas Bingo'
                         );
 
+                        dd($transactionResponse);
+
                         if ($transactionResponse->Error) {
                             return ['Error' => $transactionResponse->Error];
                             DB::rollBack();

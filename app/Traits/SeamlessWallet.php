@@ -3,6 +3,8 @@
 namespace App\Traits;
 
 use App\Models\Customer;
+use App\Models\CustomerGames;
+use App\Models\Games;
 use App\Models\Transactions;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
@@ -102,37 +104,22 @@ trait SeamlessWallet
 
     public function getUserInfoFromCustomer($customerID, $token)
     {
-        $customer = Customer::getById($customerID, ['brand', 'product']);
-
         // Datos del cuerpo de la solicitud
-        $dataJson = json_encode([
-            "Ticks" => "0000000",
-            "Product" => $customer->product,
-            "Brand" => $customer->brand,
-            "AdditionalData" => "{}",
-            "Token" => $token
-        ]);
+        $dataJson = json_encode(["Token" => $token]);
 
-        //return $this->globalCurl($customerID, $dataJson, 'GetUserInfo');
         return $this->globalGuzzle($customerID, $dataJson, 'GetUserInfo');
     }
 
-    public function getUserBalanceFromCustomer($customerID, $userToken, $game = '')
+    public function getUserBalanceFromCustomer($customerID, $userToken, $coin)
     {
-        $customer = Customer::getById($customerID, ['brand', 'product']);
-
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
-            "Ticks" => "0000000",
-            "Game" => $customer->product,
-            "Brand" => $customer->brand,
-            "AdditionalData" => null,
-            "Token" => $userToken[1], // 952549b3-45ae-11ef-aadf-bc2411bfd8ae
+            "Token" => $userToken[1],
             "UserID" => $userToken[0],
-            "CurrencyCode" => ""
+            "CurrencyCode" => $coin ?? ''
         ]);
 
-        return $this->globalCurl($customerID, $dataJson, 'GetBalance');
+        return $this->globalGuzzle($customerID, $dataJson, 'GetBalance');
     }
 
     public function transferMoney($customerID, $game = '', $userToken, $betId, $coin, $amount, $transactionId, $transactionType, $additionalData = '')
@@ -146,10 +133,14 @@ trait SeamlessWallet
             return ['Error' => 'Cliente no encontrado'];
         }
 
+        $customerGameID = CustomerGames::getCustomerGameID($customer, $game);
+
+        $game = $customerGameID ?: Games::where('game', $game)->value('name');
+
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
             "Ticks" => "0000000",
-            "Game" => $game,
+            "Game" => "RoyalEis", //$game
             "Brand" => $customer->brand,
             "Token" => $userToken[1] ?? '',
             "UserID" => $userToken[0] ?? '',
@@ -157,10 +148,10 @@ trait SeamlessWallet
             "BetID" => $betId,
             "Amount" => $amount,
             "TransactionID" => $transactionId,
-            "TransactionType" => 'BET',
+            "TransactionType" => $transactionType,
             "AdditionalData" => json_encode($additionalData) ?? "{}"
         ]);
-        //print_r($dataJson);
+
         // Llamada al método globalGuzzle
         $response = $this->globalGuzzle($customerID, $dataJson, 'TransferMoney');
 

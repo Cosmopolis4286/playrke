@@ -24,11 +24,6 @@ class ExchangeRateRelation extends Model
         return $this->belongsTo(User::class, 'user');
     }
 
-    public static function getCommerceCoinValue($commerce, $coin)
-    {
-        return self::where('commerce', $commerce)->where('coin', $coin)->value('value');
-    }
-
     public static function allowedCurrenciesByCommerce($user, $commerce)
     {
         return self::where('user', $user)->where('commerce', $commerce)->pluck('coin')->toArray();
