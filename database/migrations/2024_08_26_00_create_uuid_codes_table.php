@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('uuid_codes', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 36);
+            $table->string('uuid_code', 36);
             $table->unsignedBigInteger('user_type');
             $table->boolean('status')->default(1);
             $table->timestamps();

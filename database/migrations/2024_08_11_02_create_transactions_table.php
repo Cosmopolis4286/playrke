@@ -15,12 +15,12 @@ class CreateTransactionsTable extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique();
             $table->unsignedBigInteger('customer');
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('game_mode');
-            $table->string('bet_code');
+            $table->string('bet_id');
+            $table->string('code')->unique();
             $table->string('transaction_type', 12);
             $table->double('amount');
             $table->boolean('status')->default(0);

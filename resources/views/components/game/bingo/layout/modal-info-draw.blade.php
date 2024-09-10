@@ -52,7 +52,7 @@
                             @endif
                             <div class="alert alert-primary py-1" role="alert">
                                 <span><b>Precio Cartón:</b></span>
-                                <span id="ctn-price-coin-symbol" class="mr-1"></span>
+                                <span id="ctn-price-coin-symbol"></span>
                                 <span id="ctn-price-amount"></span>
                             </div>
                             @isset($saleLink)
@@ -95,8 +95,11 @@
                         <div class="card-footer d-flex justify-content-center">
                             <button type="button" id="btn-cancel-buy-ctns"
                                 class="mdl-buy-ctns btn btn-sm btn-secondary mx-1">Cancelar</button>
-                            <button type="button" id="btn-buy-ctns-confirm"
-                                class="mdl-buy-ctns btn btn-success mx-1">Comprar</button>
+                            <button id="btn-buy-ctns-confirm" class="mdl-buy-ctns btn btn-success mx-1"
+                                type="button">Comprar
+                                <span id="spinner-btn-buy-ctns-confirm" class="spinner-grow spinner-grow-sm hide-elem"
+                                    role="status" aria-hidden="true"></span>
+                            </button>
                         </div>
                     </section>
                 </div>

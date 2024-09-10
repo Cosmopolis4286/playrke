@@ -135,7 +135,7 @@ trait SeamlessWallet
         return $this->globalCurl($customerID, $dataJson, 'GetBalance');
     }
 
-    public function transferMoney($customerID, $userToken, $betId, $coin, $amount, $transactionId, $transactionType, $game = '')
+    public function transferMoney($customerID, $game = '', $userToken, $betId, $coin, $amount, $transactionId, $transactionType, $additionalData = '')
     {
         // Obtener datos del proveedor
         $customer = Customer::getById($customerID, ['brand', 'product']);
@@ -148,24 +148,24 @@ trait SeamlessWallet
 
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
-            "Ticks" => "0000000", // Asegúrate de que este valor es correcto
+            "Ticks" => "0000000",
             "Game" => $game,
             "Brand" => $customer->brand,
             "Token" => $userToken[1] ?? '',
             "UserID" => $userToken[0] ?? '',
             "CurrencyCode" => $coin,
-            "BetID" => Transactions::getValueByCode($transactionId, 'bet_code'),
+            "BetID" => $betId,
             "Amount" => $amount,
             "TransactionID" => $transactionId,
-            "TransactionType" => $transactionType,
-            "AdditionalData" => "{}"
+            "TransactionType" => 'BET',
+            "AdditionalData" => json_encode($additionalData) ?? "{}"
         ]);
-
+        //print_r($dataJson);
         // Llamada al método globalGuzzle
         $response = $this->globalGuzzle($customerID, $dataJson, 'TransferMoney');
 
         // Manejo de la respuesta
-        if (isset($response->Error)) {
+        if (isset($response->Error) && $response->Error) {
             Log::error("Error en la transferencia de dinero: " . ($response->Error ?? 'Error desconocido'));
             return $response->Error;
         }
@@ -222,14 +222,14 @@ trait SeamlessWallet
                 'user_id' => $clientUser,
                 'game' => $game[0],
                 'game_mode' => $game[1],
-                'room_code' => $roomCode,
-                'code' => $code,
+                'bet_id' => $roomCode,
+                'code' => $code, // transaction_id
                 'transaction_type' => $type,
                 'amount' => $amount,
                 'status' => $status
             ]);
 
-            return [$transaction->id, $transaction->code];
+            return [$transaction->bet_id, $transaction->code];
         } catch (\Exception $e) {
             dd($e->getMessage());
             //throw $th;

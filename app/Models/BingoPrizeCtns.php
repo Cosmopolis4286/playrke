@@ -95,9 +95,9 @@ class BingoPrizeCtns extends Model
         return self::select($fields)->where('ctn', $ctnId)->first();
     }
 
-    public static function existsPrizeCtn($room, $prizeType, $playerLink)
+    public static function existsPrizeCtn($room, $prizeType, $column, $playerLink)
     {
-        return self::where(['room' => $room, 'prize_type' => $prizeType, 'player_link' => $playerLink])->exists();
+        return self::where(['room' => $room, 'prize_type' => $prizeType, $column => $playerLink])->exists();
     }
 
     public static function getValueById($ctnId, $value)

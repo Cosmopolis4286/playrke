@@ -25,6 +25,7 @@ class ExchangeRateController extends Controller
 
     public function index()
     {
+        dd(88);
         $title = 'Tasas de Cambio';
         $name = 'currency';
         $wallet = $this->Wallet(Auth::id());

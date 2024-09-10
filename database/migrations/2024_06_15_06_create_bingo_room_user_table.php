@@ -26,7 +26,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('customer')->references('id')->on('customer');
+            $table->foreign('customer')->references('id')->on('customers');
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('subsidiary')->references('id')->on('subsidiaries')->onUpdate('cascade');

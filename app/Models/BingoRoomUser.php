@@ -48,6 +48,11 @@ class BingoRoomUser extends Model
         return $this->belongsTo(SellerRoomLimits::class, 'seller', 'seller');
     }
 
+    public function CustomerUser()
+    {
+        return $this->belongsTo(CustomerUser::class, 'player_user', 'id');
+    }
+
     public function PlayerLink()
     {
         return $this->belongsTo(PlayerLink::class, 'player_link', 'id');

@@ -91,11 +91,11 @@ trait EncryptRKE
         return $formattedString;
     }
 
-    public function getCodeUUID()
+    public function getCodeUUID($model = 'UUIDCodes')
     {
         do {
             $code = Str::uuid()->toString();
-        } while (UUIDCodes::existsCode($code));
+        } while (app("App\\Models\\$model")::where('uuid_code', $code)->exists());
 
         return $code;
     }

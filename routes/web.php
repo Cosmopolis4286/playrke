@@ -138,7 +138,9 @@ Route::group(['middleware' => 'auth', 'prefix' => 'directory', 'as' => 'director
 //Cliente
 Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as' => 'customer.'], function () {
     Route::get('getPaymentCustomerDetails/{idCustomer}/{coin}', [CustomerController::class, 'getPaymentCustomerDetails'])->name('getPaymentCommerceDetails');
-    Route::get('exchange-rate', [CustomerController::class, 'exchangeRate'])->name('exchangeRate');
+
+    Route::get('exchange-rate', [CustomerController::class, 'exchangeRate'])->withoutMiddleware(['auth', 'customer'])->name('exchangeRate');
+
     Route::get('all-directories', [CustomerController::class, 'allDirectories'])->name('allDirectories');
     Route::get('sellers', [CustomerController::class, 'sellers'])->name('sellers');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CustomerController::class, 'getCoinByCountry'])->name('getCoinByCountry');
@@ -389,8 +391,10 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'bingo', 'as' => 'bingo.'], 
 
 Route::group(['middleware' => ['auth', 'customer-commerce'], 'prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('rooms/{user}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
+
     Route::get('rooms-customer/{token}/{coin?}', [BingoController::class, 'allCustomerRooms'])
         ->withoutMiddleware(['auth', 'customer-commerce'])->name('all-customer-rooms');
+
     Route::get('games-room/{user}', [BingoController::class, 'gamesRooms'])->name('game-rooms');
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');

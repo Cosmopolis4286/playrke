@@ -556,6 +556,10 @@
                 $("#cont-btn-buy-ctns, #game-clock").toggle();
             }
 
+            function toggleSpinnerBtn() {
+                $("#spinner-btn-buy-ctns-confirm").toggleClass('hide-elem');
+            }
+
             function setAmount(amount) {
                 if (type == 'comm') $("#sent-amount").text(`${coinSym} ${amount}`);
                 $("#total-amount").text(`${coinSym} ${amount}`);
@@ -584,6 +588,8 @@
                             .fail((jqXHR, textStatus, errorThrown) => {
                                 console.error('Error:', textStatus, errorThrown);
                             });
+                    } else {
+                        setAmount(amount);
                     }
                 }
                 toggleModalInfo();
@@ -629,18 +635,21 @@
                         player: player,
                         num_ctns: $("#num-ctns").val()
                     },
-                    beforeSend: function() {},
+                    beforeSend: function() {
+                        toggleSpinnerBtn();
+                    },
                     success: function(data) {
 
                         showToast(data.msg_type, data.message);
 
                         if (data.jackpot) {
                             $("#jackpot-amount").text(data.jackpot);
-                            // setTimeout(function() {
-                            //     location.reload();
-                            // }, 3500);
+                            setTimeout(function() {
+                                location.reload();
+                            }, 3000);
                         }
 
+                        toggleSpinnerBtn();
                         toggleModalInfo();
                     },
                     error: function() {}
