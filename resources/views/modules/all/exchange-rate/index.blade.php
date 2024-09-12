@@ -1,11 +1,11 @@
-@extends('layouts.app_rke')
+@extends($layout)
 @section('title', $title)
 @section('content')
-    <div class="col-12">
+    <div class="col-12 @if ($customer) p-2 @endif">
         <div class="card">
             @include('components.card-header', ['title' => $title])
             <div class="card-body">
-                @if (count($coins) > 0)
+                @if (count($coins) > 0 || $customer)
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                 @endif
@@ -23,48 +23,48 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($exchangeRate as $cup)
+                            @foreach ($exchangeRate as $item)
                                 <tr>
-                                    <td>{{ $cup->Coin->Country ? $cup->Coin->Country->name : 'Todos' }}</td>
-                                    <td>{{ $cup->Coin->long_name }}</td>
-                                    <td>{{ $cup->Coin->symbol }} {{ $cup->value }}</td>
+                                    <td>{{ $item->Coin->Country ? $item->Coin->Country->name : 'Todos' }}</td>
+                                    <td>{{ $item->Coin->long_name }}</td>
+                                    <td>{{ $item->Coin->symbol }} {{ $item->exchange_rate }}</td>
                                     <td>
-                                        @if ($cup->status == 0)
+                                        @if ($item->status == 0)
                                             No/Disp
-                                        @elseif($cup->status == 1)
+                                        @elseif($item->status == 1)
                                             Activo
-                                        @elseif($cup->status == 2)
+                                        @elseif($item->status == 2)
                                             <a class="badge badge-danger" title="Registrar Datos Bancarios"
-                                                href="{{ route('directory.index', ['countryCode' => strtolower($cup->Coin->Country->iso_code_2)]) }}">
+                                                href="{{ route('directory.index', ['countryCode' => strtolower($item->Coin->Country->iso_code_2)]) }}">
                                                 Sin Datos Bancarios
                                             </a>
                                         @endif
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-toggle">
-                                            @if ($cup->status == 1)
+                                            @if ($item->status == 1)
                                                 <button class="btn btn-sm btn-primary btn-{{ $name }}"
-                                                    data-type="2" data-id="{{ encrypt($cup->id) }}"
-                                                    title="Editar Tasa de Cambio" data-coin="{{ $cup->coin_name }}"
-                                                    data-coin-val="{{ $cup->value }}">
+                                                    data-type="2" data-id="{{ encrypt($item->id) }}"
+                                                    title="Editar Tasa de Cambio" data-coin="{{ $item->coin_name }}"
+                                                    data-coin-val="{{ $item->value }}">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                             @endif
-                                            @if (!$cup->status == 2)
+                                            @if (!$item->status == 2)
                                                 <button class="btn btn-sm btn-secondary btn-{{ $name }}"
-                                                    data-type="3" data-id="{{ encrypt($cup->id) }}"
+                                                    data-type="3" data-id="{{ encrypt($item->id) }}"
                                                     title="Cambiar Status">
                                                     <i class="fa-solid fa-repeat"></i>
                                                 </button>
                                             @endif
                                             @if (Auth::user()->user_type == 1)
                                                 <button class="btn btn-sm btn-secondary btn-{{ $name }}"
-                                                    data-type="" data-id="{{ encrypt($cup->id) }}"
+                                                    data-type="" data-id="{{ encrypt($item->id) }}"
                                                     title="Cambiar Status">
                                                     <i class="fa-solid fa-arrows-rotate"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-danger btn-{{ $name }}"
-                                                    data-type="3" data-id="{{ encrypt($cup->id) }}" title="Eliminar">
+                                                    data-type="3" data-id="{{ encrypt($item->id) }}" title="Eliminar">
                                                     <i class="fa-solid fa-trash-can"></i>
                                                 </button>
                                             @endif
@@ -80,16 +80,21 @@
     </div>
     @component('components.modal-form', [
         'name' => $name,
-        'dataForm' => view('modules.commerce.currency.form')->render(),
+        'dataForm' => view('modules.all.exchange-rate.form', ['customer' => [$customer ?? false]])->render(),
     ])
     @endcomponent
     @include('components.form-other-options')
 @endsection
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/just-validate/dist/just-validate.production.min.js"></script>
+    @if ($customer)
+        <script>
+            const customer = true;
+        </script>
+    @endif
     <script>
         const name = '<?php echo $name; ?>';
-        const arrCoins = JSON.parse('<?php echo $coins; ?>');
+        const arrCoins = '<?php echo json_encode($coins); ?>';
         const coins = $("#coin");
         const valChange = $("#val-change");
         let valChangeMax, valChangeMin, coinName, update = false;
@@ -160,12 +165,12 @@
                     `<option value="${coin.id}" selected>${coin.long_name} (${coin.symbol})</option>`
                 );
                 coinName = `${coin.long_name} (${coin.symbol})`;
-                valChange.val(data.value);
+                valChange.val(data.exchange_rate);
                 $(".input-exchange-rate").trigger('change');
                 $("#alert-currency").removeClass('hide-elem');
             }
 
-            if (arrCoins.length) {
+            if (arrCoins.length && !customer) {
                 $.each(arrCoins, function(index, item) {
                     coins.append(`<option value="${item.id}">${item.long_name} (${item.symbol})</option>`);
                 });

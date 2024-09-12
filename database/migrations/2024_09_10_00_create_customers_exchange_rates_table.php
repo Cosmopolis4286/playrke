@@ -16,11 +16,13 @@ return new class extends Migration
             $table->unsignedBigInteger('customer');
             $table->string('coin', 15);
             $table->double('exchange_rate')->default(1);
+            $table->unsignedBigInteger('user')->nullable();
             $table->boolean('status')->default(0);
             $table->timestamps();
 
             // Foreign keys
             $table->foreign('customer')->references('id')->on('customers');
+            $table->foreign('user')->references('id')->on('users');
         });
     }
 

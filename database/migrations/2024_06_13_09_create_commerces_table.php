@@ -16,15 +16,14 @@ class CreateCommercesTable extends Migration
         Schema::create('commerces', function (Blueprint $table) {
             $table->id();
             $table->string('name', 30);
-            $table->string('code', 10)->nullable()->unique();
             $table->unsignedBigInteger('country');
             $table->unsignedBigInteger('coin');
             $table->string('phone', 12);
             $table->unsignedBigInteger('user');
             $table->double('commn')->default(25);
             $table->boolean('all_in')->default(0);
-            $table->string('code_rke', 16)->nullable();
-            $table->string('code_uuid', 36);
+            $table->string('code_rke', 16)->nullable()->unique();
+            $table->string('code_uuid', 36)->unique();
             $table->boolean('status')->default(0);
             $table->timestamps();
 

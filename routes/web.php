@@ -30,6 +30,7 @@ use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\TrikiController;
 use App\Http\Controllers\YankenpoController;
+use App\Models\ExchangeRate;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -121,8 +122,8 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment', 'as' => 'payment.
 });
 
 // Tasa de Cambio/ExhangeRate
-Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function () {
-    Route::get('', [ExchangeRateController::class, 'index'])->name('index');
+Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function () {
+    Route::get('{userType}/{userID?}', [ExchangeRateController::class, 'index'])->name('index');
     Route::post('create', [ExchangeRateController::class, 'create'])->name('create');
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
     Route::put('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
@@ -158,7 +159,6 @@ Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as'
 Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
     Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])
         ->withoutMiddleware(['auth', 'commerce'])->name('getPaymentCommerceDetails');
-    Route::get('exchange-rate', [CommerceController::class, 'exchangeRate'])->name('exchangeRate');
     Route::get('all-directories', [CommerceController::class, 'allDirectories'])->name('allDirectories');
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');

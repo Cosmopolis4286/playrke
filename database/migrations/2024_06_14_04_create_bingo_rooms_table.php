@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('paid_win')->default(0);
             $table->date('date');
             $table->string('time', 10);
+            $table->integer('unix_time')->nullable();
             $table->unsignedBigInteger('country')->nullable();
             $table->unsignedBigInteger('coin')->nullable();
             $table->timestamp('publication_date')->nullable();
@@ -36,7 +37,7 @@ return new class extends Migration
             $table->integer('ctns')->default(0);
             $table->integer('close_room')->nullable();
             $table->string('encrypted', 18)->unique();
-            $table->string('uuid_code', 36)->unique();
+            $table->string('uuid_code', 36)->nullable()->unique();
             $table->timestamps();
 
             // Definición de la clave foránea para 'status'

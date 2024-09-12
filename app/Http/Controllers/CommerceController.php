@@ -343,48 +343,6 @@ class CommerceController extends Controller
         return redirect()->back();
     }
 
-    private function changeStatusByCoinsWithoutDirectories($coins)
-    {
-        DB::beginTransaction();
-
-        try {
-            $commerce = $this->commerce()->id;
-            if (!empty($coins)) {
-                CommerceExchangeRate::where('commerce', $commerce)
-                    ->whereIn('coin', $coins)->update(['status' => 2]);
-            } else {
-                CommerceExchangeRate::where('commerce', $commerce)->update(['status' => 1]);
-            }
-            DB::commit();
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            Log::error('Error al cambiar el estado de las monedas sin directorios: ' . $th->getMessage());
-        }
-    }
-
-    public function exchangeRate()
-    {
-        $title = 'Tasas de Cambio';
-        $name = 'currency';
-        $wallet = $this->wallet();
-        $commerce = $this->commerce(['id', 'user']);
-
-        $coins = Coin::whereIn('id', $this->getAvailableCoins($commerce->user))
-            ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($commerce) {
-                $query->where('commerce', $commerce->id);
-            })->get(['id', 'symbol', 'long_name']);
-
-        $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce->id, 1);
-
-        $coinsNotDirectories = $this->checkBankDirectoriesExistence($commerce->user, $commerceCoins);
-
-        $this->changeStatusByCoinsWithoutDirectories($coinsNotDirectories);
-
-        $exchangeRate = CommerceExchangeRate::where('commerce', $commerce->id)->get();
-
-        return view('modules.commerce.currency.index', compact('title', 'name', 'coins', 'wallet', 'exchangeRate'));
-    }
-
     public function allDirectories()
     {
         $title = 'Datos Bancarios';

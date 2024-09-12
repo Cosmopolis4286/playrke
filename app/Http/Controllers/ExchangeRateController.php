@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
+use App\Models\Customer;
+use App\Models\CustomerExchangeRate;
 use App\Models\ExchangeRate;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
@@ -16,60 +18,93 @@ class ExchangeRateController extends Controller
 {
     use UserVal;
 
-    protected $idCommerceRKE;
-
-    public function __construct()
+    public function index($userType, $userID = '')
     {
-        $this->idCommerceRKE = 1;
-    }
+        switch ($userType) {
+            case 'customer':
+                $customer = Customer::getValueByToken($userID, 'id');
+                $exchangeRate = CustomerExchangeRate::where('customer', $customer)->get();
 
-    public function index()
-    {
-        dd(88);
-        $title = 'Tasas de Cambio';
-        $name = 'currency';
-        $wallet = $this->Wallet(Auth::id());
-        $commerce = Commerce::getValueByUserId(Auth::id(), 'id');
+                $moreViewData = ['layout' => 'layouts.app_rke_off', 'customer' => true];
+                break;
+            case 'commerce':
+                $commerce = $this->commerce(['id', 'user']);
+                $commerceID = $commerce->id;
 
-        $coins = Coin::whereNot('id', 1)->get(['id', 'symbol', 'long_name']);
+                $coins = Coin::whereIn('id', $this->getAvailableCoins($commerce->user))
+                    ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($commerceID) {
+                        $query->where('commerce', $commerceID);
+                    })->get(['id', 'symbol', 'long_name']);
 
-        // //with('CommerceExchangeRate')
-        // ->whereHas('CommerceExchanxgeRate', function ($query) {
-        //     $query->whereColumn('coin', 'commerces_countries_coins.coin')
-        //         ->where('commerce', $this->commerce()->id);
-        // }) /
+                $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerceID, 1);
 
-        $commerceExchangeRate = CommerceExchangeRate::with(['Coin.Country'])->where('commerce', $commerce)->get()->unique('coin');
+                $coinsNotDirectories = $this->checkBankDirectoriesExistence($commerce->user, $commerceCoins);
 
-        return view('modules.commerce.currency.index', compact('title', 'name', 'coins', 'wallet', 'CommerceExchangeRate'));
+                if (count($coinsNotDirectories)) {
+                    $this->changeStatusByExchangeRateWithoutDirectories($coinsNotDirectories, $commerceID);
+                }
+
+                $exchangeRate = CommerceExchangeRate::where('commerce', $commerceID)->get();
+
+                $moreViewData = ['layout' => 'layouts.app_rke', 'wallet' => $this->wallet()];
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        $viewData = [
+            'title' => 'Tasas de Cambio',
+            'name' => 'currency',
+            'coins' => $coins ?? [],
+            'exchangeRate' => $exchangeRate
+        ];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
+
+        return view('modules.all.exchange-rate.index')->with($viewData);
     }
 
     public function create(Request $request)
     {
-        $commerce = Commerce::getByUserId(Auth::id(), ['id', 'user']);
         $coin = $request->coin;
-        $existsCommerceExchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce->id, $coin);
-
-        if ($existsCommerceExchangeRate) return redirect()->back();
 
         DB::beginTransaction();
 
         try {
 
-            $status = $this->getPaymentDetailsByUserId($commerce->user, $coin) ? 1 : 2;
+            if ($request->user_type == 'customer') {
 
-            CommerceExchangeRate::create([
-                'coin' => $coin,
-                'value' => $request->val_change,
-                'status' => $status,
-                'commerce' => $commerce->id,
-                'user' => Auth::id()
-            ]);
+                $userVal = decrypt($request->user_value);
 
-            $check = $this->checkExchangeRate($coin);
-            if (!$check) {
-                DB::rollBack();
-                Log::error('Error al actualizar la tasa de cambio general');
+                $customerUser = Customer::getValueById($userVal, 'user');
+
+                CustomerExchangeRate::create([
+                    'customer' => $userVal,
+                    'coin' => $coin,
+                    'exchange_rate' => $request->val_change,
+                    'status' => 1,
+                    'user' => $customerUser ?? null
+                ]);
+            } else {
+                $commerce = Commerce::getByUserId(Auth::id(), ['id', 'user']);
+
+                $existsCommerceExchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce->id, $coin);
+
+                if ($existsCommerceExchangeRate) return redirect()->back();
+
+                $status = $this->getPaymentDetailsByUserId($commerce->user, $coin) ? 1 : 2;
+
+                CommerceExchangeRate::create([
+                    'commerce' => $commerce->id,
+                    'coin' => $coin,
+                    'exchange_rate' => $request->val_change,
+                    'status' => $status,
+                    'user' => Auth::id()
+                ]);
             }
 
             DB::commit();
@@ -80,6 +115,16 @@ class ExchangeRateController extends Controller
             Log::error('Error al registar la tasa de cambio: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al confirmar el pago.']);
         }
+
+        // DB::beginTransaction();
+
+        // try {
+        //     $this->checkExchangeRate($coin);
+        //     DB::commit();
+        // } catch (\Exception $e) {
+        //     DB::rollBack();
+        //     Log::error('Error al actualizar la tasa de cambio general');
+        // }
     }
 
     public function update(Request $request, $id)
@@ -87,41 +132,48 @@ class ExchangeRateController extends Controller
         DB::beginTransaction();
 
         try {
+
             $coin = $request->coin;
-            // Buscar el registro de CommerceExchangeRate por su ID desencriptado
-            $commerceExchangeRate = CommerceExchangeRate::findOrFail(decrypt($id));
+            $exchange_rate = $request->val_change;
 
-            // Actualizar los campos necesarios
-            $commerceExchangeRate->coin = $coin;
-            $commerceExchangeRate->value = $request->val_change;
-            $commerceExchangeRate->save();
+            if ($request->user_type == 'customer') {
+                // Buscar el registro de CustomerExchangeRate por su ID desencriptado
+                $customerExchangeRate = CustomerExchangeRate::findOrFail(decrypt($id));
 
-            $check = $this->checkExchangeRate($coin);
-            if (!$check) {
-                DB::rollBack();
-                Log::error('Error al actualizar la tasa de cambio general');
+                //$customerExchangeRate->coin = $coin;
+                $customerExchangeRate->exchange_rate = $exchange_rate;
+                $customerExchangeRate->save();
+            } else {
+                // Buscar el registro de CommerceExchangeRate por su ID desencriptado
+                $commerceExchangeRate = CommerceExchangeRate::findOrFail(decrypt($id));
+
+                //$commerceExchangeRate->coin = $coin;
+                $commerceExchangeRate->exchange_rate = $exchange_rate;
+                $commerceExchangeRate->save();
             }
 
-            // Completar la transacción
             DB::commit();
-
-            // Redireccionar con un mensaje de éxito
             return redirect()->back()->with('message', 'La información fue actualizada con éxito');
         } catch (\Exception $e) {
-            // Revertir la transacción en caso de error
             DB::rollBack();
-
-            // Registrar el error
             Log::error('Error actualizando la tasa de cambio: ' . $e->getMessage());
 
-            // Redireccionar con un mensaje de error
             return redirect()->back()->with('error', 'Ocurrió un error al actualizar la información');
         }
+
+        // DB::beginTransaction();
+
+        // try {
+        //     $this->checkExchangeRate($coin);
+        // } catch (\Exception $e) {
+        //     DB::rollBack();
+        //     Log::error('Error al actualizar la tasa de cambio general');
+        // }
     }
 
-    private function checkExchangeRate($coin, $amount = '')
+    private function checkExchangeRate($coin, $getAVG = false, $amount = '')
     {
-        if (!$amount) {
+        if ($getAVG) {
             try {
                 // Obtener el valor promedio de la tasa con respecto a la moneda recibida
                 $exchangeRates = CommerceExchangeRate::getValuesByCoin($coin);
@@ -145,33 +197,50 @@ class ExchangeRateController extends Controller
                 Log::error('Error actualizando la tasa de cambio: ' . $e->getMessage());
                 return false;
             }
-        } else {
-            $checkVal = ExchangeRate::getLastValueByCoin($coin);
-            $valChange = $amount;
-
-            if ($checkVal) {
-                // Ajustar $valChange si está fuera del rango permitido
-                $valChange = max($amount, $checkVal - 3); // Mantener $valChange como mínimo igual a $checkVal - 3
-                $valChange = min($valChange, $checkVal + 2); // Mantener $valChange como máximo igual a $checkVal + 2
-            }
-            return number_format($valChange, 2, '.', '');
         }
+
+        // $checkVal = ExchangeRate::getLastValueByCoin($coin);
+        // $valChange = $amount;
+
+        // if ($checkVal) {
+        //     // Ajustar $valChange si está fuera del rango permitido
+        //     $valChange = max($amount, $checkVal - 3); // Mantener $valChange como mínimo igual a $checkVal - 3
+        //     $valChange = min($valChange, $checkVal + 2); // Mantener $valChange como máximo igual a $checkVal + 2
+        // }
+        // return number_format($valChange, 2, '.', '');
     }
 
     public function delete($id)
     {
-        //CommerceExchangeRate::destroy(decrypt($id));
         CommerceExchangeRate::where('id', decrypt($id))->update(['status' => 0]);
-        return redirect()->back()->with('message', 'La moneda fue eliminada');
+        return redirect()->back()->with('message', 'La tasa de cambio fue eliminada');
     }
 
     public function getInfo($id)
     {
-        return CommerceExchangeRate::getById(decrypt($id), ['coin', 'value']);
+        return CommerceExchangeRate::getById(decrypt($id), ['coin', 'exchange_rate']);
     }
 
     public function getLastValueByCoin($coin)
     {
         return ExchangeRate::getLastValueByCoin($coin) ?? 1;
+    }
+
+    public function changeStatusByExchangeRateWithoutDirectories($coins, $user)
+    {
+        DB::beginTransaction();
+
+        try {
+            if (count($coins)) {
+                // status => 2 Sin directorio registrado
+                CommerceExchangeRate::where('commerce', $user)->whereIn('coin', $coins)->update(['status' => 2]);
+            } else {
+                CommerceExchangeRate::where('commerce', $user)->update(['status' => 1]);
+            }
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error('Error al cambiar el estado de las monedas sin directorios: ' . $th->getMessage());
+        }
     }
 }

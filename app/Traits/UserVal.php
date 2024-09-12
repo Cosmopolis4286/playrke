@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
+use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PagoMovil;
 use App\Models\Pix;
@@ -13,8 +14,11 @@ use App\Models\Seller;
 use App\Models\SellerCountriesCoins;
 use App\Models\User;
 use App\Models\UserProvider;
+use App\Models\UserType;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 trait UserVal
 {
@@ -67,20 +71,24 @@ trait UserVal
 
     public function getAvailableCoins($user)
     {
-        $userType = User::getValueById($user, 'user_type');
+        $userType = UserType::getValueById(User::getValueById($user, 'user_type'), 'prefix');
 
         switch ($userType) {
-            case 1: // Jugador
+            case 'user': // Jugador
                 $coins = [User::getValueById($user, 'country')];
                 break;
-            case 2: // Admin
+            case 'admin': // Admin
                 # code...
                 break;
-            case 3: // Comercio
+            case 'commerce': // Comercio
                 $commerce = Commerce::getValueByUserId($user, 'id');
                 $coins = CommerceCountriesCoins::getAvailableCoins($commerce);
                 break;
-            case 4: // Vendedor
+            case 'seller': // Vendedor
+                $seller = Seller::getValueByUserId($user, 'id');
+                $coins = SellerCountriesCoins::getAvailableCoins($seller);
+                break;
+            case 'customer': // Cliente
                 $seller = Seller::getValueByUserId($user, 'id');
                 $coins = SellerCountriesCoins::getAvailableCoins($seller);
                 break;
