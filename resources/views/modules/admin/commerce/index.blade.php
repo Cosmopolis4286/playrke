@@ -196,7 +196,9 @@
             $(`#modal-${name}`).modal('show');
         }
 
-        submitForm(name, ['name', 'country', 'coin', 'phone', 'username', 'email']);
+        $(document).on("click", "#btn-confirm", function() {
+            submitForm(name, ['name', 'country', 'coin', 'phone', 'username', 'email']);
+        });
 
         function deleteInfo(encryptedId) {
             showToastOptionBtns(

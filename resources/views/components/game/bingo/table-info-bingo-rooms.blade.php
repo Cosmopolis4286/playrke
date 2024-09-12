@@ -21,6 +21,7 @@
             @endphp
             @foreach ($rooms as $room)
                 @php
+                    date_default_timezone_set('America/Caracas');
 
                     if ($userType == 'customer') {
                         $roomRoute = "{$routeRKE}bingocash/cust/{$userID}/room/{$room->encrypted}";
@@ -93,10 +94,12 @@
                                     data-type="2" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i> </button>
                                 @if ($room->status == 1)
-                                    <button class="btn-{{ $name }} btn btn-sm btn-success" data-type="5"
-                                        data-id="{{ encrypt($room->id) }}" title="Publicar">
-                                        <i class="fa-solid fa-circle-up"></i>
-                                    </button>
+                                    @if (strtotime("{$room->date} {$room->time}") > time())
+                                        <button class="btn-{{ $name }} btn btn-sm btn-success" data-type="5"
+                                            data-id="{{ encrypt($room->id) }}" title="Publicar">
+                                            <i class="fa-solid fa-circle-up"></i>
+                                        </button>
+                                    @endif
                                     <button class="btn-{{ $name }} btn btn-sm btn-danger" data-type="3"
                                         data-id="{{ encrypt($room->id) }}" title="Eliminar">
                                         <i class="fa-solid fa-trash-can"></i>

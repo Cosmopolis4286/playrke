@@ -130,7 +130,13 @@
             $(`#modal-${name}`).modal('show');
         }
 
-        submitForm(name, ['date', 'time', 'game-mode', 'ctn-price', 'val-serials', 'commerce-commission', 'jackpot-type']);
+        $(document).on("click", "#btn-confirm", function() {
+            submitForm(name,
+                [
+                    'date', 'time', 'game-mode', 'ctn-price',
+                    'val-serials', 'commerce-commission', 'jackpot-type'
+                ]);
+        });
 
         function deleteInfo(encryptedId) {
             showToastOptionBtns(

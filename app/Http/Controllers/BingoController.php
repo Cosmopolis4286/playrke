@@ -751,9 +751,16 @@ class BingoController extends Controller
 
     public function publish($id)
     {
+        date_default_timezone_set('America/Caracas');
+
         // Desencripta el ID y busca el registro correspondiente.
         $bingoRoom = BingoRoom::findOrFail(decrypt($id));
         $publicationDate = "{$bingoRoom->date} {$bingoRoom->time}";
+        $unixDate = strtotime($publicationDate);
+
+        if ($unixDate < time()) {
+            return redirect()->back()->with('message', 'Fecha/Hora no disponible')->with('type', 'warning');
+        }
 
         DB::beginTransaction();
 

@@ -86,7 +86,9 @@
             $(`#modal-${name}`).modal('show');
         }
 
-        submitForm(name, ['pix-key', 'pix-key-value']);
+        $(document).on("click", "#btn-confirm", function() {
+            submitForm(name, ['pix-key', 'pix-key-value']);
+        });
 
         function deleteInfo() {
             showToastOptionBtns(

@@ -21,11 +21,14 @@ class ExchangeRateController extends Controller
     public function index($userType, $userID = '')
     {
         switch ($userType) {
-            case 'customer':
+            case 'cust': //customer
                 $customer = Customer::getValueByToken($userID, 'id');
+
+                if (!$customer) return response()->json(['message' => 'Token del cliente no existe'], 404);
+
                 $exchangeRate = CustomerExchangeRate::where('customer', $customer)->get();
 
-                $moreViewData = ['layout' => 'layouts.app_rke_off', 'customer' => true];
+                $moreViewData = ['layout' => 'layouts.app_rke_off', 'cusToken' => $userID];
                 break;
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user']);
@@ -50,7 +53,7 @@ class ExchangeRateController extends Controller
                 break;
 
             default:
-                # code...
+                return response()->json(['message' => 'Ruta no encontrada'], 404);
                 break;
         }
 
@@ -70,27 +73,24 @@ class ExchangeRateController extends Controller
 
     public function create(Request $request)
     {
-        $coin = $request->coin;
-
         DB::beginTransaction();
 
         try {
 
-            if ($request->user_type == 'customer') {
+            if ($request->currency) {
 
-                $userVal = decrypt($request->user_value);
-
-                $customerUser = Customer::getValueById($userVal, 'user');
+                $customer = Customer::getByToken($request->cust_token, ['id', 'user']);
 
                 CustomerExchangeRate::create([
-                    'customer' => $userVal,
-                    'coin' => $coin,
+                    'customer' => $customer->id,
+                    'coin' => $request->currency,
                     'exchange_rate' => $request->val_change,
                     'status' => 1,
-                    'user' => $customerUser ?? null
+                    'user' => $customer->user ?? null
                 ]);
             } else {
                 $commerce = Commerce::getByUserId(Auth::id(), ['id', 'user']);
+                $coin = $request->coin;
 
                 $existsCommerceExchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce->id, $coin);
 
@@ -109,11 +109,12 @@ class ExchangeRateController extends Controller
 
             DB::commit();
 
-            return redirect()->back()->with('message', 'La moneda ha sido cargada con exito');
+            return redirect()->back()->with('message', 'La tasa de cambio ha sido cargada con exito');
         } catch (\Exception $e) {
             DB::rollBack();
+            dd($e->getMessage());
             Log::error('Error al registar la tasa de cambio: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Hubo un error al confirmar el pago.']);
+            return redirect()->back()->with('message', 'Error al registar la tasa de cambio')->with('type', 'warning');
         }
 
         // DB::beginTransaction();

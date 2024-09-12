@@ -51,24 +51,21 @@ function deleteSessionFlash(arr = []) {
 }
 
 function submitForm(formName, requiredFields = []) {
-    $(document).on("click", "#btn-confirm", function () {
-        let isValid = true;
+    let isValid = true;
 
-        // Recorre los campos requeridos y verifica si todos tienen valor
-        requiredFields.forEach(function (fieldId) {
-            if (!$(`#${fieldId}`).val()) {
-                console.log(fieldId);
-                isValid = false;
-            }
-        });
-
-        if (isValid) {
-            $(`#form-${formName}`).submit();
-        } else {
-            showToast('warning', 'Toda la información es requerida');
+    // Recorre los campos requeridos y verifica si todos tienen valor
+    requiredFields.forEach(function (fieldId) {
+        if (!$(`#${fieldId}`).val()) {
+            isValid = false;
         }
     });
-}
+
+    if (isValid) {
+        $(`#form-${formName}`).submit();
+    } else {
+        showToast('warning', 'Toda la información es requerida');
+    }
+ }
 
 let modalName;
 let insert = update = false;

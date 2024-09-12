@@ -109,7 +109,9 @@
             $(`#modal-${name}`).modal('show');
         }
 
-        submitForm(name, ['document-type', 'document-val', 'bank', 'phone']);
+        $(document).on("click", "#btn-confirm", function() {
+            submitForm(name, ['document-type', 'document-val', 'bank', 'phone']);
+        });
 
         function deleteInfo() {
             showToastOptionBtns(
