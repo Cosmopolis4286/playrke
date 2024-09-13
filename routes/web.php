@@ -92,8 +92,11 @@ Route::group(['middleware' => 'auth', 'prefix' => 'image', 'as' => 'image.'], fu
 });
 
 Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin', 'as' => 'admin.'], function () {
+    Route::get('users', [AdminController::class, 'users'])->name('users');
     Route::get('commerces', [AdminController::class, 'commerces'])->name('commerces');
+    Route::get('subsidiaries', [AdminController::class, 'subsidiaries'])->name('subsidiaries');
     Route::get('sellers', [AdminController::class, 'sellers'])->name('sellers');
+    Route::get('customers', [AdminController::class, 'customers'])->name('customers');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'perfil', 'as' => 'perfil.'], function () {

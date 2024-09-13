@@ -8,6 +8,7 @@ use App\Models\Coin;
 use Illuminate\Support\Facades\Session;
 use App\Models\Commerce;
 use App\Models\Country;
+use App\Models\Customer;
 use App\Models\User;
 use App\Traits\EncryptRKE;
 use App\Traits\UserVal;
@@ -30,6 +31,22 @@ class AdminController extends Controller
         $coins = Coin::getByIdForStatus(['=', 1]);
 
         return view('modules/admin/commerce/index', compact('title', 'name', 'wallet', 'commerces', 'countries', 'coins'));
+    }
+
+    public function customers()
+    {
+        $customers = Customer::all();
+        $countries = Country::getAllAvailableCountries();
+        $coins = Coin::getByIdForStatus(['=', 1]);
+
+        return view('modules/admin/customer/index')->with([
+            'title' => 'Clientes',
+            'name' => 'customer',
+            'wallet' => $this->Wallet(Auth::id()),
+            'customers' => $customers,
+            'countries' => $countries,
+            'coins' => $coins
+        ]);
     }
 
     public function storeCommerce(Request $request)

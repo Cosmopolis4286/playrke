@@ -134,10 +134,9 @@ class ExchangeRateController extends Controller
 
         try {
 
-            $coin = $request->coin;
             $exchange_rate = $request->val_change;
 
-            if ($request->user_type == 'customer') {
+            if ($request->currency) {
                 // Buscar el registro de CustomerExchangeRate por su ID desencriptado
                 $customerExchangeRate = CustomerExchangeRate::findOrFail(decrypt($id));
 
@@ -211,15 +210,28 @@ class ExchangeRateController extends Controller
         // return number_format($valChange, 2, '.', '');
     }
 
-    public function delete($id)
+    public function delete($data = [])
     {
-        CommerceExchangeRate::where('id', decrypt($id))->update(['status' => 0]);
+        dd($data);
+        $exchangeRateID = decrypt($data[0]);
+
+        switch ($data[1]) {
+            case 'commerce':
+                CommerceExchangeRate::where('id', $exchangeRateID)->update(['status' => 0]);
+                break;
+            case 'customer':
+                CustomerExchangeRate::where('id', $exchangeRateID)->update(['status' => 0]);
+                break;
+
+            default:
+                # code...
+                break;
+        }
         return redirect()->back()->with('message', 'La tasa de cambio fue eliminada');
     }
 
     public function getInfo($data = [])
     {
-        dd($data);
         $exchangeRateID = decrypt($data[0]);
 
         switch ($data[1]) {

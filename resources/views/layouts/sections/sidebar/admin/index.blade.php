@@ -4,12 +4,19 @@
 @section('body')
     <li class="nav-item has-treeview">
         <a href="{{ route('admin.commerces') }}" title="Comercios"
-            class="nav-link  {{ !Route::is('admin.commerce') ?: 'active' }}">
+            class="nav-link  {{ !Route::is('admin.commerces') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-circle-dollar-to-slot"></i>
             <p>Comercios</p>
         </a>
     </li>
     <li class="nav-item has-treeview">
+        <a href="{{ route('admin.customers') }}" title="Comercios"
+            class="nav-link  {{ !Route::is('admin.customers') ?: 'active' }}">
+            <i class="nav-icon fa-solid fa-circle-dollar-to-slot"></i>
+            <p>Clientes</p>
+        </a>
+    </li>
+    {{-- <li class="nav-item has-treeview">
         <a href="#" class="nav-link {{ !Route::is('trivia.allRooms') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-puzzle-piece"></i>
             <p>Trivia
@@ -178,6 +185,6 @@
             <p>Reportes</p>
         </a>
         <hr>
-    </li>
+    </li> --}}
 @endsection
 {{-- ADMIN --}}

@@ -8,8 +8,7 @@
         </a>
     </li>
     <li class="nav-item has-treeview">
-        <a href="{{ route('bingo.game-rooms-provider', ['provider' => encrypt(1)]) }}" title="Salas de Juego"
-            class="nav-link  {{ !Route::is('bingo.game-rooms-provider') ?: 'active' }}">
+        <a href="#" title="Salas de Juego" class="nav-link">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo</p>
         </a>
