@@ -217,9 +217,25 @@ class ExchangeRateController extends Controller
         return redirect()->back()->with('message', 'La tasa de cambio fue eliminada');
     }
 
-    public function getInfo($id)
+    public function getInfo($data = [])
     {
-        return CommerceExchangeRate::getById(decrypt($id), ['coin', 'exchange_rate']);
+        dd($data);
+        $exchangeRateID = decrypt($data[0]);
+
+        switch ($data[1]) {
+            case 'commerce':
+                $info = CommerceExchangeRate::getById($exchangeRateID, ['coin', 'exchange_rate']);
+                break;
+            case 'customer':
+                $info = CustomerExchangeRate::getById($exchangeRateID, ['coin', 'exchange_rate']);
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        return $info;
     }
 
     public function getLastValueByCoin($coin)

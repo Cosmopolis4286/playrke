@@ -127,7 +127,7 @@ class HomeController extends Controller
     }
     public  function balance_tUSDT()
     {
-        $data = DB::table("Wallets")->sum('usdt');
+        $data = Wallet::sum('usdt');
         return $data;
     }
     public  function balance_inGBs($id)

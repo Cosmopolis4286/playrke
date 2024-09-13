@@ -65,11 +65,12 @@ function submitForm(formName, requiredFields = []) {
     } else {
         showToast('warning', 'Toda la información es requerida');
     }
- }
+}
 
 let modalName;
 let insert = update = false;
 let encryptedId;
+let extraInfo;
 
 function formCRUD(elem, name, title, route, otherCasesMap = '') {
     modalName = $(`#modal-${name}`);
@@ -85,6 +86,8 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
         type = data.type;
         if (type > 1) {
             encryptedId = data.id;
+
+            if (extraInfo) encryptedId = [data.id, extraInfo];
         }
     } else {
         type = elem[0];

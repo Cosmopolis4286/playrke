@@ -70,7 +70,7 @@
                                                     <i class="fa-solid fa-repeat"></i>
                                                 </button>
                                             @endif
-                                            @if (Auth::user()->user_type == 1 || isset($cusToken))
+                                            @if ((Auth::user() && Auth::user()->user_type == 1) || isset($cusToken))
                                                 <button class="btn btn-sm btn-secondary btn-{{ $name }}"
                                                     data-type="" data-id="{{ encrypt($item->id) }}"
                                                     title="Cambiar Status">
@@ -110,6 +110,7 @@
         <script>
             customer = true;
             coinID = $("#currency");
+            extraInfo = 'customer';
 
             coinID.mask('AAAAAA', {
                 translation: {
@@ -153,6 +154,7 @@
         <script>
             const coins = $("#coin");
             coinID = coins;
+            extraInfo = 'commerce';
 
             function insertInfo(type, data = '') {
                 update = false;
