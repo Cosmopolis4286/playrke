@@ -14,6 +14,7 @@
                                 <th>Nombre</th>
                                 <th>Pais</th>
                                 <th>Telefono</th>
+                                <th>Email</th>
                                 <th>Status</th>
                                 <th>Accion</th>
                             </tr>
@@ -24,6 +25,7 @@
                                     <td>{{ $item->name }}</td>
                                     <td>{{ $item->Country->name }}</td>
                                     <td>{{ $item->phone }}</td>
+                                    <td>{{ $item->User->email }}</td>
                                     <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                     <td>
                                         @component('components.btn-group', [
@@ -70,7 +72,7 @@
     @endcomponent
     @component('components.modal-copy-info', [
         'name' => 'copy-passw',
-        'title' => 'Contraseña Vendedor',
+        'title' => 'Contraseña Comercio',
     ])
     @endcomponent
     @include('components.form-other-options')

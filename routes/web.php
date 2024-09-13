@@ -99,7 +99,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin', 'as' => 'a
     Route::get('customers', [AdminController::class, 'customers'])->name('customers');
 });
 
-Route::group(['middleware' => ['auth'], 'prefix' => 'perfil', 'as' => 'perfil.'], function () {
+Route::group(['middleware' => ['auth'], 'prefix' => 'profile', 'as' => 'profile.'], function () {
     Route::get('', [ProfileController::class, 'index'])->name('index');
     Route::put('{id}', [ProfileController::class, 'update'])->name('update');
 });
@@ -140,22 +140,16 @@ Route::group(['middleware' => 'auth', 'prefix' => 'directory', 'as' => 'director
 });
 
 //Cliente
-Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as' => 'customer.'], function () {
-    Route::get('getPaymentCustomerDetails/{idCustomer}/{coin}', [CustomerController::class, 'getPaymentCustomerDetails'])->name('getPaymentCommerceDetails');
+Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as' => 'customer.'], function () {});
 
-    Route::get('exchange-rate', [CustomerController::class, 'exchangeRate'])->withoutMiddleware(['auth', 'customer'])->name('exchangeRate');
-
-    Route::get('all-directories', [CustomerController::class, 'allDirectories'])->name('allDirectories');
-    Route::get('sellers', [CustomerController::class, 'sellers'])->name('sellers');
-    Route::get('seller/getCoinByCountry/{country}/{seller}', [CustomerController::class, 'getCoinByCountry'])->name('getCoinByCountry');
-    Route::get('seller/getSellerInfoByCtn/{ctn}', [CustomerController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
-    Route::get('bingocash/players/other-winners/{dateFilter?}', [CustomerController::class, 'getBingoWinnersByOtherCustomers'])->name('getBingoWinnersByOtherCustomers');
-    Route::get('bingocash/players/my-winners/{dateFilter?}', [CustomerController::class, 'getBingoWinnersByCustomer'])->name('getBingoWinnersByCustomer');
-    Route::get('bingocash/carton-sold/{coin}/{dateFilter?}', [CustomerController::class, 'ctnsSold'])->name('ctnsSold');
-    Route::put('bingocash/carton-lot/payment', [CustomerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
-    Route::post('bingocash/carton/notify/payment/win-ctn', [CustomerController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
-    Route::get('bingocash/sales-report/{coin}/{dateFilter?}', [CustomerController::class, 'reportSalesRooms'])->name('reportSalesRooms');
-    Route::get('bingocash/sales-report/room/{room}/{coin}', [CustomerController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
+// Cliente Options ADMIN
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'customer', 'as' => 'customer.'], function () {
+    Route::post('create', [CustomerController::class, 'create'])->name('create');
+    Route::get('getInfo/{id}', [CustomerController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [CustomerController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [CustomerController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [CustomerController::class, 'changeStatus'])->name('change-status');
+    Route::put('change-passw/{id}', [CustomerController::class, 'changePassword'])->name('change-pasww');
 });
 
 //Comercio/Comercializadora/Banca
@@ -175,7 +169,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
     Route::get('bingocash/sales-report/room/{room}/{coin}', [CommerceController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
 });
 
-// Commerce Options
+// Commerce Options ADMIN
 Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
     Route::post('create', [CommerceController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
@@ -185,7 +179,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'commerce', 'as' =>
     Route::put('change-passw/{id}', [CommerceController::class, 'changePassword'])->name('change-pasww');
 });
 
-// Seller Options
+// Seller Options 
 Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'seller', 'as' => 'seller.'], function () {
     Route::post('create', [SellerController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [SellerController::class, 'getInfo'])->name('getInfo');

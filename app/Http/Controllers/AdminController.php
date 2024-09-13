@@ -22,20 +22,29 @@ class AdminController extends Controller
 
     public function commerces()
     {
-        $wallet = $this->Wallet(Auth::id());
-        $title = 'Comercializadoras';
-        $name = 'commerce';
-
-        $commerces = Commerce::with(['Country'])->get();
+        $commerces = Commerce::with(['Country', 'User' => function ($query) {
+            $query->select('id', 'email');
+        }])->get();
+        
         $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
 
-        return view('modules/admin/commerce/index', compact('title', 'name', 'wallet', 'commerces', 'countries', 'coins'));
+        return view('modules/admin/commerce/index')->with([
+            'title' => 'Comercializadoras',
+            'name' => 'commerce',
+            'wallet' => $this->Wallet(Auth::id()),
+            'commerces' => $commerces,
+            'countries' => $countries,
+            'coins' => $coins
+        ]);
     }
 
     public function customers()
     {
-        $customers = Customer::all();
+        $customers = Customer::with(['Country', 'User' => function ($query) {
+            $query->select('id', 'email');
+        }])->get();
+
         $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
 

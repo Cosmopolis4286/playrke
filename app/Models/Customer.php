@@ -28,6 +28,11 @@ class Customer extends Model
     return $this->belongsTo(Country::class, 'country');
   }
 
+  public function User()
+  {
+    return $this->belongsTo(User::class, 'user');
+  }
+
   public static function getById($id, $fields = ['*'])
   {
     return self::select($fields)->where('id', $id)->first();

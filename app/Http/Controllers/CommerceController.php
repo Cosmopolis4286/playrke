@@ -16,7 +16,6 @@ use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoom;
 use App\Models\BingoRoomConfig;
-use App\Models\CommerceExchangeRate;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\Country;
@@ -235,7 +234,7 @@ class CommerceController extends Controller
     {
         $id = decrypt($id);
         $commerce = Commerce::getById($id, ['name', 'country', 'coin', 'phone']);
-        $otherCoins = CommerceCountriesCoins::getCoinsByCommerce($id, 1);
+        $otherCoins = CommerceCountriesCoins::getAvailableCoins($id);
         $user = User::getById(Commerce::getValueById($id, 'user'), ['username', 'email']);
 
         $data = [
@@ -333,13 +332,16 @@ class CommerceController extends Controller
 
     public function changePassword($id)
     {
-        $newPassw = $this->valEncrypt();
-        $commerce = Commerce::findOrFail(decrypt($id));
+        $res = $this->handleChangePassword('Commerce', $id);
 
-        User::where('id', $commerce->user)->update(['password' => Hash::make($newPassw)]);
-
-        Session::flash('message', 'La nueva contraseña del Comercio es: ' . ' <b>' . $newPassw . '</b>');
-        Session::flash('message-passw', $newPassw);
+        if (isset($res['PWD'])) {
+            $password = $res['PWD'];
+            Session::flash('message', "La nueva contraseña del Comercio es: <b>$password</b>");
+            Session::flash('message-passw', $password);
+        } else {
+            Session::flash('message', 'Ha ocurrido un error');
+            Session::flash('type', 'warning');
+        }
         return redirect()->back();
     }
 

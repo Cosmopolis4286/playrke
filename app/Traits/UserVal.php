@@ -5,7 +5,6 @@ namespace App\Traits;
 use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
-use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PagoMovil;
 use App\Models\Pix;

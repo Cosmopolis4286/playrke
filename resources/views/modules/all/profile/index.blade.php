@@ -7,11 +7,11 @@
             <div class="card-body">
                 @if ($user->user_type == 1 || $user->user_type == 2)
                     @if ($wallet->coin == 1)
-                        @include('modules/user/user/forms/form_user_usdt')
+                        @include('modules/all/profile/forms/form_user_usdt')
                     @elseif($wallet->coin == 2)
-                        @include('modules/user/user/forms/form_user_ves')
+                        @include('modules/all/profile/forms/form_user_ves')
                     @elseif($wallet->coin == 4)
-                        @include('modules/user/user/forms/form_user_chl')
+                        @include('modules/all/profile/forms/form_user_chl')
                     @endif
                 @endif
             </div>

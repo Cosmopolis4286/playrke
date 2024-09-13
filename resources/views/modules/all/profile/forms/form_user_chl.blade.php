@@ -10,7 +10,7 @@
                         <span style="font-size:11.6px;">MI PERFIL</span>
                     </div>
                 </div>
-                <form id="store_perfil" action="{{ route('perfil.update', $user->id) }}" method="post"
+                <form id="store_perfil" action="{{ route('profile.update', $user->id) }}" method="post"
                     enctype="multipart/form-data">
                     {{ method_field('PUT') }}
                     {{ csrf_field() }}

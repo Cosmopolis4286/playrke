@@ -2,8 +2,11 @@
 
 namespace App\Traits;
 
+use App\Models\Commerce;
+use App\Models\User;
 use App\Models\UUIDCodes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 trait EncryptRKE
@@ -98,5 +101,27 @@ trait EncryptRKE
         } while (app("App\\Models\\$model")::where('uuid_code', $code)->exists());
 
         return $code;
+    }
+
+    public function handleChangePassword($userType, $id)
+    {
+        DB::beginTransaction();
+
+        try {
+            $userID = $userType::getValueById(decrypt($id));
+
+            dd($userID);
+
+            $newPassw = $this->valEncrypt();
+
+            User::where('id', $userID)->update(['password' => Hash::make($newPassw)]);
+
+            DB::commit();
+            return ['PWD' => $newPassw];
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+            return ['Error' => true];
+        }
     }
 }

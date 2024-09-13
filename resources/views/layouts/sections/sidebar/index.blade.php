@@ -96,12 +96,13 @@
                     </ul>
                 </li>
                 <li class="nav-item has-treeview">
-                    <a class="nav-link" href="{{ route('logout') }}"
+                    <a class="nav-link" href="#"
                         onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
-                        <p>Salir</p>
+                        <p>Cerrar sesión</p>
                     </a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">@csrf
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                        @csrf
                     </form>
                 </li>
 

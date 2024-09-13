@@ -1,4 +1,4 @@
-<form id="store_perfil" action="{{ route('perfil.update', $user->id) }}" method="post" enctype="multipart/form-data">
+<form id="store_perfil" action="{{ route('profile.update', $user->id) }}" method="post" enctype="multipart/form-data">
     {{ method_field('PUT') }}
     {{ csrf_field() }}
     <div class="sp_body card-body mt-n3">

@@ -21,7 +21,7 @@ class ProfileController extends Controller
         $document = DocumentType::getDocumentTypeByCountry($user->country);
         $wallet = $this->wallet();
 
-        return view('modules.user.profile.index', compact('title', 'user', 'document', 'wallet'));
+        return view('modules.all.profile.index', compact('title', 'user', 'document', 'wallet'));
     }
 
     public function update(validationPerfil $request, $id)

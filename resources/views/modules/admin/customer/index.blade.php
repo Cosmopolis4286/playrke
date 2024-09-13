@@ -14,16 +14,20 @@
                                 <th>Nombre</th>
                                 <th>Pais</th>
                                 <th>Telefono</th>
+                                <th>Email</th>
                                 <th>Status</th>
                                 <th>Accion</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($commerces as $item)
+                            @foreach ($customers as $item)
                                 <tr>
                                     <td>{{ $item->name }}</td>
                                     <td>{{ $item->Country->name }}</td>
                                     <td>{{ $item->phone }}</td>
+                                    <td>
+                                        {{ $item->User?->email ?? 'Sin Email para Login' }}
+                                    </td>
                                     <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                     <td>
                                         @component('components.btn-group', [
@@ -65,12 +69,12 @@
     @component('components.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.admin.commerce.form')->render(),
+        'dataForm' => view('modules.admin.customer.form')->render(),
     ])
     @endcomponent
     @component('components.modal-copy-info', [
         'name' => 'copy-passw',
-        'title' => 'Contraseña Vendedor',
+        'title' => 'Contraseña Cliente',
     ])
     @endcomponent
     @include('components.form-other-options')
@@ -127,11 +131,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Comercio', '{{ asset('') }}commerce');
+            formCRUD(elem, name, 'Cliente', '{{ asset('') }}customer');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Comercio', '{{ asset('') }}commerce', otherCasesMap)
+            formCRUD($(this), name, 'Cliente', '{{ asset('') }}customer', otherCasesMap)
         });
 
         country.on("change", function() {
@@ -172,18 +176,18 @@
             if (type == 1) country.append(`<option value="" selected>Seleccionar:</option>`);
 
             $.each(arrCountries, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.commerce.country) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == data.customer.country) ? 'selected' : '';
                 country.append(
                     `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
 
             if (type == 2) {
-                let commerce = data.commerce;
+                let customer = data.customer;
                 let otherCoins = data.other_coins;
                 let user = data.user;
 
-                $('#name').val(commerce.name);
-                $('#phone').val(commerce.phone);
+                $('#name').val(customer.name);
+                $('#phone').val(customer.phone);
                 update = true;
                 country.trigger('change');
                 insertOtherCoins(otherCoins)
@@ -202,11 +206,11 @@
 
         function deleteInfo(encryptedId) {
             showToastOptionBtns(
-                'Este Comercio será eliminado definitivamente',
+                'Este Cliente será eliminado definitivamente',
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `{{ route('commerce.delete', ['id' => ':id']) }}`,
+                `{{ route('customer.delete', ['id' => ':id']) }}`,
                 encryptedId
             );
         }
@@ -214,21 +218,21 @@
         const otherCasesMap = {
             4: function() {
                 showToastOptionBtns(
-                    'Deseas cambiar el status de este Comercio',
+                    'Deseas cambiar el status de este Cliente',
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('commerce.change-status', ['id' => ':id']) }}`,
+                    `{{ route('customer.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
             5: function() {
                 showToastOptionBtns(
-                    'Generar Nueva Contraseña a este Comercio',
+                    'Generar Nueva Contraseña a este Cliente',
                     'info',
                     'Sí, generar',
                     '#form-other-options',
-                    `{{ route('commerce.change-pasww', ['id' => ':id']) }}`,
+                    `{{ route('customer.change-pasww', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
