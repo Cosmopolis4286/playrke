@@ -63,19 +63,11 @@
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                             @endif
-                                            @if (!$item->status == 2)
-                                                <button class="btn btn-sm btn-secondary btn-{{ $name }}"
-                                                    data-type="3" data-id="{{ encrypt($item->id) }}"
-                                                    title="Cambiar Status">
-                                                    <i class="fa-solid fa-repeat"></i>
-                                                </button>
-                                            @endif
+                                            <button class="btn btn-sm btn-secondary btn-{{ $name }}" data-type="4"
+                                                data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
+                                                <i class="fa-solid fa-repeat"></i>
+                                            </button>
                                             @if ((Auth::user() && Auth::user()->user_type == 1) || isset($cusToken))
-                                                <button class="btn btn-sm btn-secondary btn-{{ $name }}"
-                                                    data-type="" data-id="{{ encrypt($item->id) }}"
-                                                    title="Cambiar Status">
-                                                    <i class="fa-solid fa-arrows-rotate"></i>
-                                                </button>
                                                 <button class="btn btn-sm btn-danger btn-{{ $name }}"
                                                     data-type="3" data-id="{{ encrypt($item->id) }}" title="Eliminar">
                                                     <i class="fa-solid fa-trash-can"></i>
@@ -137,10 +129,8 @@
                 if (type == 2) {
                     update = true;
                     const coin = data.coin;
-
-                    coinID.val();
-
-                    coinName = 'Prueba';
+                    coinID.val(coin);
+                    coinName = coin;
 
                     valChange.val(data.exchange_rate);
                     $(".input-exchange-rate").trigger('change');
@@ -158,7 +148,6 @@
 
             function insertInfo(type, data = '') {
                 update = false;
-                if (type == 1) coins.append(`<option value="" selected>Seleccionar:</option>`);
 
                 if (type == 2) {
                     update = true;
@@ -253,5 +242,18 @@
                 encryptedId
             );
         }
+
+        const otherCasesMap = {
+            4: function() {
+                showToastOptionBtns(
+                    'Deseas cambiar el status de esta Tasa de Cambio',
+                    'question',
+                    'Sí, cambiar',
+                    '#form-other-options',
+                    `{{ route('exchange-rate.change-status', ['id' => ':id']) }}`,
+                    encryptedId
+                );
+            }
+        };
     </script>
 @endsection

@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 class ExchangeRateController extends Controller
 {
@@ -26,7 +27,7 @@ class ExchangeRateController extends Controller
 
                 if (!$customer) return response()->json(['message' => 'Token del cliente no existe'], 404);
 
-                $exchangeRate = CustomerExchangeRate::where('customer', $customer)->get();
+                $exchangeRate = CustomerExchangeRate::where('customer', $customer)->where('status', '<>', 3)->get();
 
                 $moreViewData = ['layout' => 'layouts.app_rke_off', 'cusToken' => $userID];
                 break;
@@ -77,17 +78,22 @@ class ExchangeRateController extends Controller
 
         try {
 
-            if ($request->currency) {
+            $currency = $request->currency;
 
+            if ($currency) {
                 $customer = Customer::getByToken($request->cust_token, ['id', 'user']);
+                $currencyID = CustomerExchangeRate::getCustomerCoinValue($customer->id, $currency, 'id');
+                CustomerExchangeRate::where('id', $currencyID)->update(['status' => 1]);
 
-                CustomerExchangeRate::create([
-                    'customer' => $customer->id,
-                    'coin' => $request->currency,
-                    'exchange_rate' => $request->val_change,
-                    'status' => 1,
-                    'user' => $customer->user ?? null
-                ]);
+                if (!$currency) {
+                    CustomerExchangeRate::create([
+                        'customer' => $customer->id,
+                        'coin' => $currency,
+                        'exchange_rate' => $request->val_change,
+                        'status' => 1,
+                        'user' => $customer->user ?? null
+                    ]);
+                }
             } else {
                 $commerce = Commerce::getByUserId(Auth::id(), ['id', 'user']);
                 $coin = $request->coin;
@@ -210,17 +216,17 @@ class ExchangeRateController extends Controller
         // return number_format($valChange, 2, '.', '');
     }
 
-    public function delete($data = [])
+    public function delete($data)
     {
-        dd($data);
+        $data = json_decode(urldecode($data), true);
         $exchangeRateID = decrypt($data[0]);
 
         switch ($data[1]) {
             case 'commerce':
-                CommerceExchangeRate::where('id', $exchangeRateID)->update(['status' => 0]);
+                CommerceExchangeRate::where('id', $exchangeRateID)->update(['status' => 3]);
                 break;
             case 'customer':
-                CustomerExchangeRate::where('id', $exchangeRateID)->update(['status' => 0]);
+                CustomerExchangeRate::where('id', $exchangeRateID)->update(['status' => 3]);
                 break;
 
             default:
@@ -230,8 +236,37 @@ class ExchangeRateController extends Controller
         return redirect()->back()->with('message', 'La tasa de cambio fue eliminada');
     }
 
-    public function getInfo($data = [])
+    public function changeStatus($data)
     {
+        DB::beginTransaction();
+
+        try {
+            $id = decrypt($id);
+
+            // Obtener el estado del cliente
+            $customerStatus = CustomerExchangeRate::getValueById($id, 'status');
+
+            // Determinar si el cliente está eliminado
+            $isDeleted = $customerStatus == 3 ? true : false;
+
+            // Determinar el estado basado en si está eliminado o no
+            $status = $isDeleted ? 1 : (int)!$customerStatus;
+
+            Customer::where('id', $id)->update(['status' => $status]);
+
+            DB::commit();
+
+            Session::flash('message', 'Status actualizado');
+            return redirect()->back()->with('type', 'success');
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+        }
+    }
+
+    public function getInfo($data)
+    {
+        $data = json_decode(urldecode($data), true);
         $exchangeRateID = decrypt($data[0]);
 
         switch ($data[1]) {

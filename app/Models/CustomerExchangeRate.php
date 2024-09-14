@@ -11,7 +11,7 @@ class CustomerExchangeRate extends Model
 
     public function Customer()
     {
-        return $this->belongsTo(Commerce::class, 'commerce');
+        return $this->belongsTo(Commerce::class, 'customer');
     }
 
     public static function getById($id, $fields = ['*'])
@@ -19,9 +19,14 @@ class CustomerExchangeRate extends Model
         return self::where('id', $id)->select($fields)->first();
     }
 
-    public static function getCustomerCoinValue($commerce, $coin, $value = 'value')
+    public static function getValueById($id, $value)
     {
-        return self::where('customer', $commerce)->where('coin', $coin)->value($value);
+        return self::where('id', $id)->value($value);
+    }
+
+    public static function getCustomerCoinValue($customer, $coin, $value = 'value')
+    {
+        return self::where('customer', $customer)->where('coin', $coin)->value($value);
     }
 
     public static function getAllExchangeRates()

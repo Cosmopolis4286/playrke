@@ -123,9 +123,10 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment', 'as' => 'payment.
 Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function () {
     Route::get('all/{userType}/{userID?}', [ExchangeRateController::class, 'index'])->name('index');
     Route::post('create', [ExchangeRateController::class, 'create'])->name('create');
+    Route::get('getInfo/{id}', [ExchangeRateController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
     Route::put('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
-    Route::get('getInfo/{id}', [ExchangeRateController::class, 'getInfo'])->name('getInfo');
+    Route::put('change-status/{id}', [ExchangeRateController::class, 'changeStatus'])->name('change-status');
     Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
 });
 
