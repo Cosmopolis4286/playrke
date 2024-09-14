@@ -54,7 +54,7 @@ class CommerceController extends Controller
             'country' => ['required', 'numeric', 'exists:countries,id'],
             'coin' => ['required', 'numeric', 'exists:coins,id'],
             'name' => ['required', 'string'],
-            'phone' => ['required', 'string', 'max:20', 'unique:sellers,phone'],
+            'phone' => ['required', 'string', 'max:20', 'unique:commerces,phone'],
             'other_coins.*' => ['exists:coins,id'],
         ];
 
@@ -62,7 +62,7 @@ class CommerceController extends Controller
         if ($type == 2) {
             $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $commerce->user];
             $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $commerce->user];
-            $rules['phone'] = ['required', 'string', 'max:20', 'unique:sellers,phone,' . $commerce->id];
+            $rules['phone'] = ['required', 'string', 'max:20', 'unique:commerces,phone,' . $commerce->id];
         }
 
         // Definir mensajes de error personalizados.
@@ -178,7 +178,7 @@ class CommerceController extends Controller
                 'country' => $request->country,
                 'status' => 1,
                 'user' => $newUser->id,
-                'code_rke' => $codeRKE,
+                'code_rke' => $this->replaceLettersWithNumbers($codeRKE),
                 'code_uuid' => $this->getCodeUUID()
             ]);
 

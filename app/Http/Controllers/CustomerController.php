@@ -25,7 +25,7 @@ class CustomerController extends Controller
     {
         // Si es tipo 2, encuentra al Cliente usando el ID descifrado.
         if ($type == 2) {
-            $commerce = Customer::findOrFail(decrypt($id));
+            $customer = Customer::findOrFail(decrypt($id));
         }
 
         // Definir reglas de validación.
@@ -33,17 +33,17 @@ class CustomerController extends Controller
             'username' => ['required', 'string', 'max:20', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
-            'coin' => ['required', 'numeric', 'exists:coins,id'],
             'name' => ['required', 'string'],
-            'phone' => ['required', 'string', 'max:20', 'unique:sellers,phone'],
-            'other_coins.*' => ['exists:coins,id'],
+            'phone' => ['required', 'string', 'max:20', 'unique:customers,phone'],
+            'api_route' => ['required', 'string', 'max:255'],
+            'customer_key' => ['required', 'string', 'max:255'],
         ];
 
         // Ajustar reglas de validación si es una actualización.
         if ($type == 2) {
-            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $commerce->user];
-            $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $commerce->user];
-            $rules['phone'] = ['required', 'string', 'max:20', 'unique:sellers,phone,' . $commerce->id];
+            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $customer->user];
+            $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $customer->user];
+            $rules['phone'] = ['required', 'string', 'max:20', 'unique:customers,phone,' . $customer->id];
         }
 
         // Definir mensajes de error personalizados.
@@ -51,7 +51,6 @@ class CustomerController extends Controller
             'username.unique' => 'Nombre de usuario no disponible.',
             'email.unique' => 'Este correo ya está registrado.',
             'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
-            'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
         ];
 
         // Crear el validador.
@@ -69,17 +68,21 @@ class CustomerController extends Controller
         return $validator; // Devuelve el validador en caso de éxito
     }
 
+    private function getEncryptionKeyForClient($customerKey)
+    {
+        // Crear clave de Encriptacion para Clave de Conexion del Cliente
+        $securityKey = $this->generateBase64Key();
+        $customerKey = encrypt($customerKey, $securityKey);
+
+        $securityKey = encrypt($securityKey, env('CTMER_ENCRYPTION_KEY'));
+
+        return ['customerKey' => $customerKey, 'securityKey' => $securityKey];
+    }
+
     public function create(Request $request) /// Registar Comercializadoras
     {
         if (!in_array($this->user()->user_type, [2])) {
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
-        }
-
-        $codeRKE = $request->code_rke;
-        $existsCodeRKE = Customer::existsValue('code_rke', $codeRKE);
-
-        if ($existsCodeRKE) {
-            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
         }
 
         date_default_timezone_set('America/Caracas');
@@ -97,7 +100,7 @@ class CustomerController extends Controller
 
             $newUser = User::create([
                 'username' => $request->username,
-                'user_type' => UserType::getValueByPrefix('commerce', 'id'),
+                'user_type' => UserType::getValueByPrefix('customer', 'id'),
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
@@ -105,50 +108,25 @@ class CustomerController extends Controller
             ]);
 
             // Crear un nuevo Wallet para el usuario
-            Wallet::create(['coin' => $request->coin, 'user' => $newUser->id]);
+            Wallet::create(['coin' => $request->coin ?? 1, 'user' => $newUser->id]);
 
-            $commerce = Customer::create([
+            $keys = $this->getEncryptionKeyForClient($request->customer_key);
+
+            $customer = Customer::create([
                 'name' => $request->name,
-                'phone' => $request->phone,
-                'coin' => $request->coin,
                 'country' => $request->country,
-                'status' => 1,
+                'phone' => $request->phone,
                 'user' => $newUser->id,
-                'code_rke' => $codeRKE,
-                'code_uuid' => $this->getCodeUUID()
+                'link_route' => $request->api_route,
+                'token' => $this->getCodeUUID(),
+                'customer_key' => $keys['customerKey'],
+                'security_key' => $keys['securityKey'],
+                'status' => 1
             ]);
-
-            // // Registar moneda Principal
-            // CustomerCountriesCoins::create([
-            //     'commerce' => $commerce->id,
-            //     'country' => $commerce->country,
-            //     'coin' => $commerce->coin,
-            //     'status' => 1
-            // ]);
-
-            // $otherCoins = $request->other_coins;
-
-            // if (!empty($otherCoins) && is_array($otherCoins)) {
-            //     $otherCoins = Coin::getCoinsById($otherCoins);
-            //     $timestamp = now();
-
-            //     $coinsToCreate = [];
-            //     foreach ($otherCoins as $coin) {
-            //         $coinsToCreate[] = [
-            //             'commerce' => $commerce->id,
-            //             'country' => $coin->country,
-            //             'coin' => $coin->id,
-            //             'status' => 1,
-            //             'created_at' => $timestamp,
-            //             'updated_at' => $timestamp
-            //         ];
-            //     }
-            //     CustomerCountriesCoins::insert($coinsToCreate);
-            // }
 
             // Registrar Code UUID
             UUIDCodes::create([
-                'code' => $commerce->code_uuid,
+                'code' => $customer->code_uuid,
                 'user_type' => UserType::getValueByPrefix('customer', 'id')
             ]);
 
@@ -159,6 +137,7 @@ class CustomerController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
+            dd($e->getMessage());
             Log::error('Error general: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
@@ -170,11 +149,23 @@ class CustomerController extends Controller
     {
         $id = decrypt($id);
 
-        $customer = Customer::getById($id, ['name', 'country', 'coin', 'phone']);
+        // Obtener datos del cliente
+        $customer = Customer::getById($id, ['name', 'country', 'phone', 'link_route']);
+
+        // Obtener datos del usuario
         $user = User::getById(Customer::getValueById($id, 'user'), ['username', 'email']);
 
+        $keys = Customer::getById($id, ['customer_key', 'security_key']);
+        // Desencriptar clave de seguridad 
+        $encryptedKey = decrypt($keys->security_key, env('CTMER_ENCRYPTION_KEY'));
+        // Desencriptar la clave de seguridad del cliente usando la clave específica
+        $customerKey = decrypt($keys->customer_key, $encryptedKey);
+
+        // Anexar el customerKey al array de customer
+        $customerData = array_merge($customer->toArray(), ['customer_key' => $customerKey]);
+
         $data = [
-            'customer' => $customer,
+            'customer' => $customerData,
             'user' => $user
         ];
 
@@ -187,61 +178,51 @@ class CustomerController extends Controller
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
 
-        $codeRKE = $request->code_rke;
-        $existsCodeRKE = Customer::existsValue('code_rke', $codeRKE);
-
-        if ($existsCodeRKE) {
-            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
-        }
-
         DB::beginTransaction();
 
         try {
-            // Decryptar el ID y encontrar el vendedor
-            $commerce = Customer::findOrFail(decrypt($id));
+            // Decryptar el ID y encontrar el cliente
+            $customer = Customer::findOrFail(decrypt($id));
 
-            if ($commerce) {
+            if ($customer) {
                 $validator = $this->validateRequest($request, 2, $id);
 
                 if ($validator->fails()) {
                     return redirect()->back()->withErrors($validator)->withInput();
                 }
 
-                // Verificar si la moneda principal ha cambiado
-                $coinChange = $commerce->coin !== $request->coin;
-
-                // Actualizar los campos del vendedor
-                $commerce->update([
+                $data = [
                     'name' => $request->name,
                     'country' => $request->country,
-                    'coin' => $request->coin,
                     'phone' => $request->phone,
-                    'code_rke' => $request->code_rke
-                ]);
+                    'link_route' => $request->api_route
+                ];
 
-                // if ($coinChange) {
-                //     // Actualizar moneda Principal
-                //     CustomerCountriesCoins::where('commerce', $commerce->id)
-                //         ->where('coin', $commerce->coin)->update([
-                //             'country' => $commerce->country,
-                //             'coin' => $commerce->coin
-                //         ]);
-                // }
+                // Desencriptar clave de seguridad 
+                $encryptedKey = decrypt($customer->security_key, env('CTMER_ENCRYPTION_KEY'));
+                // Desencriptar la clave de seguridad del cliente usando la clave específica
+                $customerKey = decrypt($customer->customer_key, $encryptedKey);
 
-                // $otherCoins = $request->other_coins;
-                // $this->insertOtherCoins($commerce->id, $otherCoins);
+                if ($customerKey != $request->customer_key) {
+                    $keys = $this->getEncryptionKeyForClient($request->customer_key);
+                    $data['customer_key'] = $keys['customerKey'];
+                    $data['security_key'] = $keys['securityKey'];
+                }
+
+                // Actualizar los campos del cliente
+                $customer->update($data);
 
                 DB::commit();
 
                 Session::flash('message', 'La información fue actualizada correctamente');
             } else {
-                // Manejar caso donde no se encuentra el vendedor
-                Session::flash('error', 'No se encontró el vendedor');
+                // Manejar caso donde no se encuentra el cliente
+                Session::flash('error', 'No se encontró el cliente');
             }
         } catch (\Exception $e) {
             DB::rollBack();
             // Captura cualquier excepción lanzada durante el proceso de actualización
-            Session::flash('error', 'Hubo un problema al actualizar la información del vendedor: ' . $e->getMessage());
+            Session::flash('error', 'Hubo un problema al actualizar la información del cliente: ' . $e->getMessage());
         }
 
         return redirect()->back();

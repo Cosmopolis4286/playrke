@@ -119,11 +119,7 @@
 
         const name = '<?php echo $name; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
-        const coins = JSON.parse('<?php echo $coins; ?>');
         const country = $("#country");
-        const coin = $("#coin");
-        const coinText = $("#coin-text");
-        const otherCoins = $("#other-coins");
         let update = false;
 
         if (@json(Session::has('msg-error'))) {
@@ -139,37 +135,6 @@
             formCRUD($(this), name, 'Cliente', '{{ asset('') }}customer', otherCasesMap)
         });
 
-        country.on("change", function() {
-            const selectedCountry = country.val(); // Obtener el valor seleccionado del país
-
-            if (selectedCountry) {
-                $.each(coins, function(index, item) {
-                    if (item.country == selectedCountry) {
-                        coinText.val(`(${item.symbol}) ${item.short_name}`);
-                        coin.val(item.id);
-                    }
-                });
-                if (coins.length > 1 && !update) insertOtherCoins();
-            } else {
-                coinText.val('');
-                coin.val('');
-                $("#cont-other-coins").addClass('hide-elem');
-            }
-        });
-
-        function insertOtherCoins(selectedCoins = '') {
-            otherCoins.empty();
-            $.each(coins, function(index, item) {
-                if (item.id != coin.val()) {
-                    const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
-                    otherCoins.append(
-                        `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
-                    );
-                }
-            });
-            $("#cont-other-coins").removeClass('hide-elem');
-        }
-
         function insertInfo(type, data = '') {
             update = false;
             $('#username, #email').attr('readonly', false);
@@ -183,18 +148,18 @@
             });
 
             if (type == 2) {
-                let customer = data.customer;
-                let otherCoins = data.other_coins;
-                let user = data.user;
+                const customer = data.customer;
+                const user = data.user;
 
                 $('#name').val(customer.name);
-                $('#phone').val(customer.phone);
-                update = true;
-                country.trigger('change');
-                insertOtherCoins(otherCoins)
-
-                $("#username").val(user.username);
                 $("#email").val(user.email);
+                $("#username").val(user.username);
+                $('#phone').val(customer.phone);
+
+                $('#api-route').val(customer.link_route);
+                $('#customer-key').val(customer.customer_key);
+
+                update = true;
                 $('#username, #email').attr('readonly', true);
             }
 
@@ -202,7 +167,7 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'country', 'coin', 'phone', 'username', 'email']);
+            submitForm(name, ['name', 'email', 'username', 'country', 'phone', 'api-route', 'customer-key']);
         });
 
         function deleteInfo(encryptedId) {

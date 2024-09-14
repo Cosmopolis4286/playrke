@@ -46,6 +46,26 @@ trait EncryptRKE
         return Str::random(10);
     }
 
+    function replaceLettersWithNumbers($text)
+    {
+        $replacements = [
+            'A' => '4',
+            'E' => '3',
+            'I' => '1',
+            'O' => '0',
+            'S' => '5',
+            'B' => '8',
+            'G' => '9',
+            'L' => '7',
+            'T' => '7',
+            'Z' => '2'
+        ];
+
+        $convertedText = strtr(strtoupper($text), $replacements);
+
+        return $convertedText;
+    }
+
     public function generateRandomIV($length = 16)
     {
         return random_bytes($length); // Genera un IV aleatorio de 16 bytes
@@ -72,6 +92,15 @@ trait EncryptRKE
         return json_decode($decryptedText, true); // Convierte la cadena JSON a un objeto
     }
 
+    function generateUniqueId($text, $length = 14)
+    {
+        // Generar un hash SHA-1 del texto
+        $hash = sha1($text);
+
+        // Extraer una subcadena de longitud deseada
+        return substr($hash, 0, $length);
+    }
+
     public function getHashMD5($value = '', $num = 7)
     {
         $timestamp = time();
@@ -84,6 +113,17 @@ trait EncryptRKE
         $uniqueId = md5($data);
 
         return $uniqueId;
+    }
+
+    function generateBase64Key($length = 32) {
+        // Generar bytes aleatorios
+        $randomBytes = random_bytes($length);
+        
+        // Codificar los bytes en base64
+        $base64Key = base64_encode($randomBytes);
+        
+        // Retornar la clave en formato Base64
+        return $base64Key;
     }
 
     function generateFormattedString($arr = [])
@@ -113,7 +153,7 @@ trait EncryptRKE
             if (!$userID) {
                 return ['Error' => 'Cliente no posee usuario del sistema'];
             }
-            
+
             $newPassw = $this->valEncrypt();
 
             User::where('id', $userID)->update(['password' => Hash::make($newPassw)]);
