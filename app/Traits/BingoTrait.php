@@ -554,7 +554,7 @@ trait BingoTrait
                     [1, 1],
                     $customer,
                     $playerUser,
-                    BingoRoom::getValueById($roomID, 'uuid_code'),
+                    BingoRoom::getValueById($roomID, 'code_uuid'),
                     'BET',
                     $totalAmountCtns
                 );
@@ -820,7 +820,7 @@ trait BingoTrait
 
                     foreach ($playerCtn as $ctn) {
 
-                        $roomUUID = BingoRoom::getValueById($roomID, 'uuid_code');
+                        $roomUUID = BingoRoom::getValueById($roomID, 'code_uuid');
                         // Registrar la transaccion en PlayRKE
                         $transaction = $this->registerTransaction(
                             [1, 1],

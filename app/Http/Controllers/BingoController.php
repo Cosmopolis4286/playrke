@@ -601,7 +601,7 @@ class BingoController extends Controller
                     $createData['subsidiary'] = $request->subsidiary ?? null;
                 } else {
                     $createData['customer'] = Customer::getValueByToken($request->token, 'id');
-                    $createData['uuid_code'] = $this->getCodeUUID('BingoRoom');
+                    $createData['code_uuid'] = $this->getCodeUUID('BingoRoom');
                 }
 
                 $room = BingoRoom::create($createData);

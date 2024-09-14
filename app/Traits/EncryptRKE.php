@@ -98,20 +98,22 @@ trait EncryptRKE
     {
         do {
             $code = Str::uuid()->toString();
-        } while (app("App\\Models\\$model")::where('uuid_code', $code)->exists());
+        } while (app("App\\Models\\$model")::where('code_uuid', $code)->exists());
 
         return $code;
     }
 
-    public function handleChangePassword($userType, $id)
+    public function handleChangePassword($model, $id)
     {
         DB::beginTransaction();
 
         try {
-            $userID = $userType::getValueById(decrypt($id));
+            $userID = app("App\\Models\\$model")::getValueById(decrypt($id), 'user');
 
-            dd($userID);
-
+            if (!$userID) {
+                return ['Error' => 'Cliente no posee usuario del sistema'];
+            }
+            
             $newPassw = $this->valEncrypt();
 
             User::where('id', $userID)->update(['password' => Hash::make($newPassw)]);

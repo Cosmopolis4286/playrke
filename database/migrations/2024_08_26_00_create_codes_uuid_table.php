@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('uuid_codes', function (Blueprint $table) {
+        Schema::create('code_uuid', function (Blueprint $table) {
             $table->id();
-            $table->string('uuid_code', 36);
+            $table->string('code_uuid', 36);
             $table->unsignedBigInteger('user_type');
             $table->boolean('status')->default(1);
             $table->timestamps();
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('uuid_codes');
+        Schema::dropIfExists('code_uuids');
     }
 };

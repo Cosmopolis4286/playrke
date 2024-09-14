@@ -6,16 +6,68 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\User;
 use App\Models\UserType;
+use App\Models\UUIDCodes;
 use App\Models\Wallet;
 use App\Traits\EncryptRKE;
+use App\Traits\UserVal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Validator;
 
 class CustomerController extends Controller
 {
-    use EncryptRKE;
+    use EncryptRKE, UserVal;
+
+    private function validateRequest($request, $type = 1, $id = '')
+    {
+        // Si es tipo 2, encuentra al Cliente usando el ID descifrado.
+        if ($type == 2) {
+            $commerce = Customer::findOrFail(decrypt($id));
+        }
+
+        // Definir reglas de validación.
+        $rules = [
+            'username' => ['required', 'string', 'max:20', 'unique:users,username'],
+            'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
+            'country' => ['required', 'numeric', 'exists:countries,id'],
+            'coin' => ['required', 'numeric', 'exists:coins,id'],
+            'name' => ['required', 'string'],
+            'phone' => ['required', 'string', 'max:20', 'unique:sellers,phone'],
+            'other_coins.*' => ['exists:coins,id'],
+        ];
+
+        // Ajustar reglas de validación si es una actualización.
+        if ($type == 2) {
+            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $commerce->user];
+            $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $commerce->user];
+            $rules['phone'] = ['required', 'string', 'max:20', 'unique:sellers,phone,' . $commerce->id];
+        }
+
+        // Definir mensajes de error personalizados.
+        $messages = [
+            'username.unique' => 'Nombre de usuario no disponible.',
+            'email.unique' => 'Este correo ya está registrado.',
+            'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
+            'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
+        ];
+
+        // Crear el validador.
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        // Si la validación falla.
+        if ($validator->fails()) {
+            Session::flash('msg-error', $type);
+            if ($type > 1) {
+                Session::flash('encryptedId', $id);
+            }
+            return $validator; // Devuelve el validador en caso de falla
+        }
+
+        return $validator; // Devuelve el validador en caso de éxito
+    }
 
     public function create(Request $request) /// Registar Comercializadoras
     {
@@ -66,44 +118,44 @@ class CustomerController extends Controller
                 'code_uuid' => $this->getCodeUUID()
             ]);
 
-            // Registar moneda Principal
-            CustomerCountriesCoins::create([
-                'commerce' => $commerce->id,
-                'country' => $commerce->country,
-                'coin' => $commerce->coin,
-                'status' => 1
-            ]);
+            // // Registar moneda Principal
+            // CustomerCountriesCoins::create([
+            //     'commerce' => $commerce->id,
+            //     'country' => $commerce->country,
+            //     'coin' => $commerce->coin,
+            //     'status' => 1
+            // ]);
 
-            $otherCoins = $request->other_coins;
+            // $otherCoins = $request->other_coins;
 
-            if (!empty($otherCoins) && is_array($otherCoins)) {
-                $otherCoins = Coin::getCoinsById($otherCoins);
-                $timestamp = now();
+            // if (!empty($otherCoins) && is_array($otherCoins)) {
+            //     $otherCoins = Coin::getCoinsById($otherCoins);
+            //     $timestamp = now();
 
-                $coinsToCreate = [];
-                foreach ($otherCoins as $coin) {
-                    $coinsToCreate[] = [
-                        'commerce' => $commerce->id,
-                        'country' => $coin->country,
-                        'coin' => $coin->id,
-                        'status' => 1,
-                        'created_at' => $timestamp,
-                        'updated_at' => $timestamp
-                    ];
-                }
-                CustomerCountriesCoins::insert($coinsToCreate);
-            }
+            //     $coinsToCreate = [];
+            //     foreach ($otherCoins as $coin) {
+            //         $coinsToCreate[] = [
+            //             'commerce' => $commerce->id,
+            //             'country' => $coin->country,
+            //             'coin' => $coin->id,
+            //             'status' => 1,
+            //             'created_at' => $timestamp,
+            //             'updated_at' => $timestamp
+            //         ];
+            //     }
+            //     CustomerCountriesCoins::insert($coinsToCreate);
+            // }
 
             // Registrar Code UUID
             UUIDCodes::create([
                 'code' => $commerce->code_uuid,
-                'user_type' => UserType::getValueByPrefix('commerce', 'id')
+                'user_type' => UserType::getValueByPrefix('customer', 'id')
             ]);
 
             DB::commit();
 
             // Mensajes flash con tiempo de expiración personalizado
-            Session::flash('message', 'Comercio ' . $request->name . ' registrado con éxito');
+            Session::flash('message', "Cliente $request->name registrado con éxito");
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -117,14 +169,13 @@ class CustomerController extends Controller
     public function getInfo($id) // Obtener Info Comercializadora
     {
         $id = decrypt($id);
-        $commerce = Customer::getById($id, ['name', 'country', 'coin', 'phone']);
-        $otherCoins = CustomerCountriesCoins::getAvailableCoins($id);
+
+        $customer = Customer::getById($id, ['name', 'country', 'coin', 'phone']);
         $user = User::getById(Customer::getValueById($id, 'user'), ['username', 'email']);
 
         $data = [
-            'commerce' => $commerce,
-            'user' => $user,
-            'other_coins' => $otherCoins
+            'customer' => $customer,
+            'user' => $user
         ];
 
         return response()->json($data);
@@ -168,17 +219,17 @@ class CustomerController extends Controller
                     'code_rke' => $request->code_rke
                 ]);
 
-                if ($coinChange) {
-                    // Actualizar moneda Principal
-                    CustomerCountriesCoins::where('commerce', $commerce->id)
-                        ->where('coin', $commerce->coin)->update([
-                            'country' => $commerce->country,
-                            'coin' => $commerce->coin
-                        ]);
-                }
+                // if ($coinChange) {
+                //     // Actualizar moneda Principal
+                //     CustomerCountriesCoins::where('commerce', $commerce->id)
+                //         ->where('coin', $commerce->coin)->update([
+                //             'country' => $commerce->country,
+                //             'coin' => $commerce->coin
+                //         ]);
+                // }
 
-                $otherCoins = $request->other_coins;
-                $this->insertOtherCoins($commerce->id, $otherCoins);
+                // $otherCoins = $request->other_coins;
+                // $this->insertOtherCoins($commerce->id, $otherCoins);
 
                 DB::commit();
 
@@ -200,18 +251,36 @@ class CustomerController extends Controller
     {
         //Customer::destroy(decrypt($request->id));
         Customer::where('id', decrypt($id))->update(['status' => 3]);
-        Session::flash('message', 'El Comercio fue eliminado');
+
+        Session::flash('message', 'El Cliente fue eliminado');
         return redirect()->back();
     }
 
     public function changeStatus($id)
     {
-        $id = decrypt($id);
-        $commerceStatus = (int)!Customer::getValueById($id, 'status');
-        Customer::where('id', $id)->update(['status' => $commerceStatus]);
+        DB::beginTransaction();
 
-        Session::flash('message', 'Status actualizado');
-        return redirect()->back()->with('type', 'success');
+        try {
+            $id = decrypt($id);
+
+            // Obtener el estado del cliente
+            $customerStatus = Customer::getValueById($id, 'status');
+
+            // Determinar si el cliente está eliminado
+            $isDeleted = $customerStatus == 3 ? true : false;
+
+            // Determinar el estado basado en si está eliminado o no
+            $status = $isDeleted ? 1 : (int)!$customerStatus;
+
+            Customer::where('id', $id)->update(['status' => $status]);
+
+            DB::commit();
+            Session::flash('message', 'Status actualizado');
+            return redirect()->back()->with('type', 'success');
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+        }
     }
 
     public function changePassword($id)
@@ -223,8 +292,7 @@ class CustomerController extends Controller
             Session::flash('message', "La nueva contraseña del Cliente es: <b>$password</b>");
             Session::flash('message-passw', $password);
         } else {
-            Session::flash('message', 'Ha ocurrido un error');
-            Session::flash('type', 'warning');
+            Session::flash('msg-error', 'Ha ocurrido un error: ' . $res['Error']);
         }
         return redirect()->back();
     }

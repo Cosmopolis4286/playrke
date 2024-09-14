@@ -20,6 +20,14 @@
         @enderror
     </div>
     <div class="form-group col-sm-6">
+        <label for="code-rke">Código RKE*</label>
+        <input type="text" id="code-rke" name="code_rke" minlength="4" maxlength="15"
+            class="form-control @error('code_rke') is-invalid @enderror" required value="{{ old('code_rke') }}">
+        @error('code_rke')
+            <span class="invalid-feedback">{{ $message }}</span>
+        @enderror
+    </div>
+    <div class="form-group col-sm-6">
         <label for="phone">Teléfono*</label>
         <input type="text" id="phone" name="phone" class="form-control @error('phone') is-invalid @enderror"
             required value="{{ old('username') }}" placeholder="Ingresa el número" required value="{{ old('phone') }}">
@@ -29,13 +37,23 @@
             </span>
         @enderror
     </div>
-       <div class="form-group col-sm-6">
+    <div class="form-group col-sm-6">
         <label for="country">País*</label>
         <select id="country" name="country" class="form-control" required>
             <option value="">Selecciona un país</option>
         </select>
     </div>
-    <div class="form-group col-sm-6">
+    <div class="form-group col-sm-12 col-md-6">
+        <label for="api-route">Ruta API*</label>
+        <input type="text" id="api-route" name="api_route" class="form-control" required
+            value="{{ old('api_route') }}">
+    </div>
+    <div class="form-group col-sm-12 col-md-6">
+        <label for="customer-key">Llave de Conexión*</label>
+        <input type="text" id="customer-key" name="customer_key" class="form-control" required
+            value="{{ old('customer_key') }}">
+    </div>
+    {{-- <div class="form-group col-sm-6">
         <label for="coin">Moneda*</label>
         <input type="text" id="coin-text" class="form-control" disabled />
         <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}" />
@@ -45,5 +63,5 @@
         <select multiple id="other-coins" name="other_coins[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
             class="select2 form-control">
         </select>
-    </div>
+    </div> --}}
 </div>

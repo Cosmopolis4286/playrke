@@ -37,7 +37,7 @@ return new class extends Migration
             $table->integer('ctns')->default(0);
             $table->integer('close_room')->nullable();
             $table->string('encrypted', 18)->unique();
-            $table->string('uuid_code', 36)->nullable()->unique();
+            $table->string('code_uuid', 36)->nullable()->unique();
             $table->timestamps();
 
             // Definición de la clave foránea para 'status'

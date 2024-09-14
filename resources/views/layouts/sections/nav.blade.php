@@ -62,7 +62,7 @@
                     <span class="user-text-nav">{{ Auth::user()->username }}</span>
                 </button>
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu2" style="font-size: 13px">
-                    <button class="dropdown-item" type="button">
+                    <button id="change-password" class="dropdown-item" type="button" data-type="change_pwd">
                         <i class="mr-1 fa-solid fa-lock"></i>Contraseña
                     </button>
                     <button type="button" class="dropdown-item" href="#"

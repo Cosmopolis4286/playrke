@@ -8,7 +8,9 @@ use Intervention\Image\Facades\Image;
 use App\Http\Requests\validationPerfil;
 use App\Models\DocumentType;
 use App\Traits\UserVal;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
@@ -27,7 +29,7 @@ class ProfileController extends Controller
     public function update(validationPerfil $request, $id)
     {
         $user = User::findOrFail($id);
-        
+
         $files = $request->file("foto");
         $nombreimg = date("Y-m-d hms") . '.' . $files->getClientOriginalExtension();
 
@@ -45,5 +47,32 @@ class ProfileController extends Controller
         $user->update(['name' => $request->name, 'last_name' => $request->last_name]);
 
         return redirect()->back();
+    }
+
+    public function changePassword(Request $request, $id)
+    {
+        // Obtener el usuario
+        $user = User::findOrFail($id);
+
+        // Validar los datos
+        $request->validate([
+            'current_password' => 'required|string|max:255',
+            'new_password' => 'required|string|min:8|confirmed|different:current_password'
+        ], [
+            'new_password.different' => 'La nueva contraseña no puede ser la misma que la contraseña actual.',
+            'new_password.confirmed' => 'La confirmación de la nueva contraseña no coincide.'
+        ]);
+
+        // Verificar que la contraseña actual sea correcta
+        if (!Hash::check($request->current_password, $user->password)) {
+            return redirect()->back()->with('msg-error', 'Contraseña actual incorrecta');
+        }
+
+        // Actualizar la contraseña con el hash de la nueva contraseña
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        // Redirigir con un mensaje de éxito
+        return redirect()->back()->with('message', 'Contraseña actualizada correctamente');
     }
 }

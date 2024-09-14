@@ -20,6 +20,14 @@
         @enderror
     </div>
     <div class="form-group col-sm-6">
+        <label for="code-rke">Código RKE*</label>
+        <input type="text" id="code-rke" name="code_rke" minlength="4" maxlength="15"
+            class="form-control @error('code_rke') is-invalid @enderror" required value="{{ old('code_rke') }}">
+        @error('code_rke')
+            <span class="invalid-feedback">{{ $message }}</span>
+        @enderror
+    </div>
+    <div class="form-group col-sm-6">
         <label for="phone">Teléfono*</label>
         <input type="text" id="phone" name="phone" class="form-control @error('phone') is-invalid @enderror"
             required value="{{ old('username') }}" placeholder="Ingresa el número" required value="{{ old('phone') }}">
@@ -29,7 +37,7 @@
             </span>
         @enderror
     </div>
-       <div class="form-group col-sm-6">
+    <div class="form-group col-sm-6">
         <label for="country">País*</label>
         <select id="country" name="country" class="form-control" required>
             <option value="">Selecciona un país</option>

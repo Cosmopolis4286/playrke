@@ -31,6 +31,7 @@
 
         <!-- Modals -->
         @include('layouts.modals.report')
+        @include('layouts.modals.change-password')
 
         <!-- Footer -->
         <footer class="main-footer foo_gradnt"

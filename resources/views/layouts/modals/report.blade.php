@@ -11,7 +11,7 @@
                 <div class="modal-body mb-n3">
                     <textarea class="form-control text_report" name="problem" rows="4" minlength="10" maxlength="200" required></textarea>
                 </div>
-                <div class="modal-footer" align="center">
+                <div class="modal-footer text-center">
                     <button type="submit" class="col-2 btn btn-primary profile-button">
                         <i class="fa-solid fa-arrow-up-right-from-square"></i> </button>
                 </div>

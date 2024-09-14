@@ -56,10 +56,10 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+Route::group(['middleware' => ['auth'], 'prefix' => 'profile', 'as' => 'profile.'], function () {
+    Route::get('', [ProfileController::class, 'index'])->name('index');
+    Route::put('{id}', [ProfileController::class, 'update'])->name('update');
+    Route::patch('change-password/{id}', [ProfileController::class, 'changePassword'])->name('change-password');
 });
 
 Route::get('dashboard', [HomeController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
@@ -97,11 +97,6 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin', 'as' => 'a
     Route::get('subsidiaries', [AdminController::class, 'subsidiaries'])->name('subsidiaries');
     Route::get('sellers', [AdminController::class, 'sellers'])->name('sellers');
     Route::get('customers', [AdminController::class, 'customers'])->name('customers');
-});
-
-Route::group(['middleware' => ['auth'], 'prefix' => 'profile', 'as' => 'profile.'], function () {
-    Route::get('', [ProfileController::class, 'index'])->name('index');
-    Route::put('{id}', [ProfileController::class, 'update'])->name('update');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'info', 'as' => 'info.'], function () {

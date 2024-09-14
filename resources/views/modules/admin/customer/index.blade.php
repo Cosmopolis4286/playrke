@@ -13,7 +13,7 @@
                             <tr>
                                 <th>Nombre</th>
                                 <th>Pais</th>
-                                <th>Telefono</th>
+                                <th>Contacto</th>
                                 <th>Email</th>
                                 <th>Status</th>
                                 <th>Accion</th>
@@ -28,7 +28,9 @@
                                     <td>
                                         {{ $item->User?->email ?? 'Sin Email para Login' }}
                                     </td>
-                                    <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
+                                    <td>
+                                        {{ $item->status == 1 ? 'Activo' : ($item->status == 2 ? 'Inactivo' : 'Eliminado') }}
+                                    </td>
                                     <td>
                                         @component('components.btn-group', [
                                             'name' => $name,
@@ -126,7 +128,6 @@
 
         if (@json(Session::has('msg-error'))) {
             const error = {!! json_encode(Session::get('msg-error')) !!};
-
             // Asignar elem basado en el valor de error
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);

@@ -339,8 +339,7 @@ class CommerceController extends Controller
             Session::flash('message', "La nueva contraseña del Comercio es: <b>$password</b>");
             Session::flash('message-passw', $password);
         } else {
-            Session::flash('message', 'Ha ocurrido un error');
-            Session::flash('type', 'warning');
+            Session::flash('msg-error', 'Ha ocurrido un error');
         }
         return redirect()->back();
     }

@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class UUIDCodes extends Model
 {
-    protected $table = "uuid_codes";
-    protected $fillable = ['uuid_code', 'user_type', 'status'];
+    protected $table = "code_uuids";
+    protected $fillable = ['code_uuid', 'user_type', 'status'];
 
     public function UserType()
     {

@@ -17,6 +17,14 @@
 <script src="{{ asset('template/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
 <script src="{{ asset('template/dist/js/adminlte.js') }}"></script>
 <script>
+    $(document).on('click', '#change-password', function() {
+        $('#modal-change-password').modal('show');
+    });
+
+    $(document).on("click", "#btn-confirm-new-pwd[data-type='change_pwd']", function() {
+        submitForm('change-password', ['current_password', 'new_password']);
+    });
+
     $(document).on('dragstart', 'img', function(evt) {
         evt.preventDefault();
     });
