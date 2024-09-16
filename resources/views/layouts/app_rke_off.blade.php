@@ -6,7 +6,7 @@
 
 <body>
     @include('sweetalert::alert')
-    <div class="container">@yield('content')</div>
+    <main class="container">@yield('content')</main>
     @include('layouts.sections.scripts')
 </body>
 

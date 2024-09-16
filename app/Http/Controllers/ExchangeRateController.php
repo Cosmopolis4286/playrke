@@ -134,28 +134,35 @@ class ExchangeRateController extends Controller
         // }
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $data)
     {
+        $data = json_decode(urldecode($data), true);
+        $exchangeRateID = decrypt($data[0]);
+
         DB::beginTransaction();
 
         try {
+            $exchangeRate = $request->val_change;
+            switch ($data[1]) {
+                case 'commerce':
+                    // Buscar el registro de CommerceExchangeRate por su ID desencriptado
+                    $commerceExchangeRate = CommerceExchangeRate::findOrFail($exchangeRateID);
 
-            $exchange_rate = $request->val_change;
+                    //$commerceExchangeRate->coin = $coin;
+                    $commerceExchangeRate->exchange_rate = $exchangeRate;
+                    $commerceExchangeRate->save();
+                    break;
+                case 'customer':
+                    // Buscar el registro de CustomerExchangeRate por su ID desencriptado
+                    $customerExchangeRate = CustomerExchangeRate::findOrFail($exchangeRateID);
 
-            if ($request->currency) {
-                // Buscar el registro de CustomerExchangeRate por su ID desencriptado
-                $customerExchangeRate = CustomerExchangeRate::findOrFail(decrypt($id));
-
-                //$customerExchangeRate->coin = $coin;
-                $customerExchangeRate->exchange_rate = $exchange_rate;
-                $customerExchangeRate->save();
-            } else {
-                // Buscar el registro de CommerceExchangeRate por su ID desencriptado
-                $commerceExchangeRate = CommerceExchangeRate::findOrFail(decrypt($id));
-
-                //$commerceExchangeRate->coin = $coin;
-                $commerceExchangeRate->exchange_rate = $exchange_rate;
-                $commerceExchangeRate->save();
+                    //$customerExchangeRate->coin = $coin;
+                    $customerExchangeRate->exchange_rate = $exchangeRate;
+                    $customerExchangeRate->save();
+                    break;
+                default:
+                    # code...
+                    break;
             }
 
             DB::commit();
@@ -163,18 +170,8 @@ class ExchangeRateController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error actualizando la tasa de cambio: ' . $e->getMessage());
-
             return redirect()->back()->with('error', 'Ocurrió un error al actualizar la información');
         }
-
-        // DB::beginTransaction();
-
-        // try {
-        //     $this->checkExchangeRate($coin);
-        // } catch (\Exception $e) {
-        //     DB::rollBack();
-        //     Log::error('Error al actualizar la tasa de cambio general');
-        // }
     }
 
     private function checkExchangeRate($coin, $getAVG = false, $amount = '')
@@ -238,21 +235,43 @@ class ExchangeRateController extends Controller
 
     public function changeStatus($data)
     {
+        $data = json_decode(urldecode($data), true);
+        $exchangeRateID = decrypt($data[0]);
+
         DB::beginTransaction();
 
         try {
-            $id = decrypt($id);
+            switch ($data[1]) {
+                case 'commerce':
+                    // Obtener el estado del comercio
+                    $commerceStatus = CommerceExchangeRate::getValueById($exchangeRateID, 'status');
 
-            // Obtener el estado del cliente
-            $customerStatus = CustomerExchangeRate::getValueById($id, 'status');
+                    // Determinar si el comercio está eliminado
+                    $isDeleted = $commerceStatus == 3 ? true : false;
 
-            // Determinar si el cliente está eliminado
-            $isDeleted = $customerStatus == 3 ? true : false;
+                    // Determinar el estado basado en si está eliminado o no
+                    $status = $isDeleted ? 1 : (int)!$commerceStatus;
 
-            // Determinar el estado basado en si está eliminado o no
-            $status = $isDeleted ? 1 : (int)!$customerStatus;
+                    CommerceExchangeRate::where('id', $exchangeRateID)->update(['status' => $status]);
+                    break;
+                    break;
+                case 'customer':
+                    // Obtener el estado del cliente
+                    $customerStatus = CustomerExchangeRate::getValueById($exchangeRateID, 'status');
 
-            Customer::where('id', $id)->update(['status' => $status]);
+                    // Determinar si el cliente está eliminado
+                    $isDeleted = $customerStatus == 3 ? true : false;
+
+                    // Determinar el estado basado en si está eliminado o no
+                    $status = $isDeleted ? 1 : (int)!$customerStatus;
+
+                    CustomerExchangeRate::where('id', $exchangeRateID)->update(['status' => $status]);
+                    break;
+
+                default:
+                    # code...
+                    break;
+            }
 
             DB::commit();
 

@@ -225,7 +225,7 @@
         });
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Tasa de cambio', '{{ asset('') }}exchange-rate')
+            formCRUD($(this), name, 'Tasa de cambio', '{{ asset('') }}exchange-rate', otherCasesMap)
         });
 
         $(document).on("click", "#btn-confirm", function() {
@@ -246,7 +246,7 @@
         const otherCasesMap = {
             4: function() {
                 showToastOptionBtns(
-                    'Deseas cambiar el status de esta Tasa de Cambio',
+                    'Cambiar el status de esta Tasa de Cambio',
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
