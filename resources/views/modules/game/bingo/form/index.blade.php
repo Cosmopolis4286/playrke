@@ -1,14 +1,15 @@
 @extends($layout)
 @section('title', $title)
 @section('content')
-    <div class="col-12">
+    <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
             @include('components.card-header', ['title' => $title])
             <div class="card-body">
                 @component('components.coin-tabs', [
                     'coins' => $coins,
-                    'routeName' => 'bingo.all-rooms',
+                    'routeName' => $routeName,
                     'coin' => $coin,
+                    'userToken' => $userToken ?? false,
                 ])
                 @endcomponent
                 <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
@@ -18,7 +19,7 @@
                     <div class="tab-pane fade show active">
                         @component('components.game.bingo.table-info-bingo-rooms', [
                             'userType' => $userType,
-                            'userID' => $userID,
+                            'userID' => $userToken,
                             'name' => $name,
                             'routeRKE' => $routeRKE,
                             'rooms' => $rooms,
@@ -34,7 +35,7 @@
     @component('components.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['user' => [$userType, $userID]])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['user' => [$userType, $userToken]])->render(),
     ])
     @endcomponent
     @include('components.form-other-options')
@@ -43,7 +44,6 @@
     <script>
         const name = '<?php echo $name; ?>';
         const arrCoins = JSON.parse('<?php echo json_encode($coins); ?>');
-        const arrCountries = JSON.parse('<?php echo json_encode($countries); ?>');
         const arrJackpotType = JSON.parse('<?php echo json_encode($jackpotType); ?>')
         const arrGameModes = JSON.parse('<?php echo json_encode($gameModes); ?>')
 

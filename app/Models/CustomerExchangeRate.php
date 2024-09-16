@@ -24,7 +24,7 @@ class CustomerExchangeRate extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getCustomerCoinValue($customer, $coin, $value = 'value')
+    public static function getCustomerCoinValue($customer, $coin, $value = 'exchange_rate')
     {
         return self::where('customer', $customer)->where('coin', $coin)->value($value);
     }
@@ -36,6 +36,24 @@ class CustomerExchangeRate extends Model
 
     public static function getValuesByCoin($coin)
     {
-        return self::where('coin', $coin)->pluck('value');
+        return self::where('coin', $coin)->pluck('exchange_rate');
+    }
+
+    public static function getCoinsByCustomer($customer, $status = '')
+    {
+        $query = self::where('customer', $customer);
+
+        if ($status) $query->where('status', $status);
+
+        return $query->pluck('coin')->unique()->toArray();
+    }
+
+    public static function getCoinsIDsByCustomer($customer, $status = '')
+    {
+        $query = self::select('id', 'coin')->where('customer', $customer);
+
+        if ($status) $query->where('status', $status);
+
+        return $query->get();
     }
 }

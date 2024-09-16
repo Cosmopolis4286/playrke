@@ -18,12 +18,13 @@ use App\Models\BingoCtnsLot;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawCode;
 use App\Models\Commerce;
+use App\Models\CommerceExchangeRate;
 use App\Models\Country;
-use App\Models\ExchangeRate;
 use App\Models\GameModes;
 use App\Models\JackpotType;
 use App\Models\PlayerLink;
 use App\Models\Customer;
+use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\User;
 use App\Models\UserType;
@@ -32,7 +33,6 @@ use App\Traits\CustomerTrait;
 use App\Traits\Filters;
 use App\Traits\GameTrait;
 use App\Traits\RouteRKE;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
@@ -486,83 +486,113 @@ class BingoController extends Controller
     }
 
     // CRUD //     
-    public function allRooms($user, $coin, $connection = false) //  Lista Salas de Juego
+    public function getGameRoomsInfo($userType, $userID, $coin, $connection = false) //  Lista Salas CRUD de Juego
     {
-        $user = decrypt($user);
-
-        $userTypeID = User::getValueById($user, 'user_type');
-        $userType = UserType::getValueById($userTypeID, 'prefix');
-
-        $userTypeVal = false;
-
         switch ($userType) {
             case 'admin': // Admin
                 break;
             case 'commerce': // Comercio
-                $userTypeVal = Commerce::getValueByUserId($user, 'id');
+
+                $coinSym = Coin::getValue($coin, 'symbol');
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($userID, $coin) ?: 1;
+
+                $coins = CommerceExchangeRate::getCoinsByCommerce($userID);
+                $coins[] = 1; // ID Coin (USDT)
+                $coins = Coin::getCoinsById($coins);
+
+                $moreViewData = [
+                    'wallet' => $this->Wallet($this->user()->id),
+                    'countries' => Country::getAllAvailableCountries()
+                ];
+
+                $routeName = 'bingo.all-commerce-rooms';
+
                 break;
-            case 'customer': // Customere
-                $userTypeVal = Customer::getValueByUserId($user, 'id');
+            case 'customer': // Cliente
+
+                $coinSym = $coin;
+                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($userID, $coin) ?: 1;
+                $coins = CustomerExchangeRate::getCoinsIDsByCustomer($userID);
+
+                $moreViewData = ['customer' => true];
+
+                $routeName = 'bingo.all-customer-rooms';
+
                 break;
 
             default:
-                # code...
+                return false;
                 break;
         }
 
-        $title = 'Salas de Bingo';
-
-        $name = 'bingo';
-        $wallet = $this->Wallet($this->user()->id);
-
-        $coins = BingoCtnsLot::where($userType, $userTypeVal)->distinct()->pluck('coin')->toArray();
-        $coins[] = 1; // ID Coin (USDT)
-        $coins = Coin::getCoinsById($coins);
-        $countries = Country::getAllAvailableCountries();
-
         // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
         // $jackpotType = JackpotType::getByIds($gameJackpotType);
-
-        $jackpotType = JackpotType::all();
-        $gameModes = GameModes::all()->forget(0);
-
-        $coin = decrypt($coin);
-        $coinSym = Coin::getValue($coin, 'symbol');
-        $exchangeRate = ExchangeRate::getValue($coin) ?: 1;
 
         $this->checkRoomClosure();
 
         $rooms = BingoRoom::with([
             'Config.JackpotType',
             'GameMode',
-            'Coin',
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
             },
             'GameExchangeRate' => function ($query) use ($coin) {
                 $query->where('coin', $coin)->where('game', 1);
             }
-        ])->where($userType, $userTypeVal)->orderByDesc('date')
+        ])->where($userType, $userID)->orderByDesc('date')
             ->orderByDesc('time')->orderBy('status')->get();
 
-        $userID = $userType == 'customer'
-            ? Customer::getValueById($userTypeVal, 'token')
-            : Commerce::getValueById($userTypeVal, 'code_uuid');
+        $userToken = $userType == 'customer'
+            ? Customer::getValueById($userID, 'token')
+            : Commerce::getValueById($userID, 'code_uuid');
 
-        $layout = $connection ? 'layouts.app_rke_off' : 'layouts.app_rke';
+        $viewData = [
+            'title' => 'Salas de Bingo',
+            'name' => 'bingocash',
+            'layout' => $connection ? 'layouts.app_rke_off' : 'layouts.app_rke',
+            'routeName' => $routeName,
+            'routeRKE' => $this->getRouteRKE(),
+            'userType' => $userType,
+            'userID' => $userID,
+            'userToken' => $userToken ?? false,
+            'coins' => $coins,
+            'coin' => $coin,
+            'coinSym' => $coinSym,
+            'exchangeRate' => $exchangeRate,
+            'rooms' => $rooms,
+            'jackpotType' => JackpotType::all(),
+            'gameModes' => GameModes::all()->forget(0)
+        ];
 
-        $routeRKE = $this->getRouteRKE();
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
 
-        return view(
-            'modules.game.bingo.form.index',
-            compact('layout', 'title', 'name', 'routeRKE', 'wallet', 'userType', 'userID', 'rooms', 'coin', 'coinSym', 'exchangeRate', 'countries', 'coins', 'jackpotType', 'gameModes')
-        );
+        return $viewData;
+    }
+
+    public function allCommerceRooms($commerce, $coin)
+    {
+        $commerceId = Commerce::getValueById(decrypt($commerce), 'id');
+
+        if (!$commerceId) return redirect()->back();
+
+        $viewData = $this->getGameRoomsInfo('commerce', $commerceId, decrypt($coin));
+
+        return $viewData ? view('modules.game.bingo.form.index')->with($viewData) : redirect('/');
     }
 
     public function allCustomerRooms($customer, $coin = 1)
     {
-        $user = encrypt(Customer::getValueByToken($customer, 'token'));
-        $this->allRooms($user, $coin, true);
+        $customerId = Customer::getValueByToken($customer, 'id');
+
+        if (!$customerId) return response()->json(['message' => 'Token del cliente no existe'], 404);
+
+        $viewData = $this->getGameRoomsInfo('customer', $customerId, $coin, true);
+
+        // Retorna a vista con la informacion del cliente
+        return $viewData ? view('modules.game.bingo.form.index')->with($viewData)
+            : response()->json(['message' => 'Ocurrió un error'], 404);
     }
 
     public function create(Request $request)

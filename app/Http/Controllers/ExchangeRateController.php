@@ -187,6 +187,8 @@ class ExchangeRateController extends Controller
                 }
 
                 // Calcular el promedio solo si hay más de una tasa, si no usar la única tasa disponible
+                // En otra version, divides el bote entre la cantidad de cartones para obtener la tasa
+                // con respecto a todas las tasas de cambio de los comercios 
                 $averageExchangeRate = $exchangeRates->count() > 1 ? $exchangeRates->avg() : $exchangeRates->first();
 
                 ExchangeRate::updateOrCreate(

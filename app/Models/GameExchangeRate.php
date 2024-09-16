@@ -13,12 +13,7 @@ class GameExchangeRate extends Model
     {
         return $this->belongsTo(Games::class, 'game');
     }
-
-    public function Commerce() // La voy a necesitar en un futuro
-    {
-        return $this->belongsTo(Commerce::class, 'commerce');
-    }
-
+  
     public function Coin()
     {
         return $this->belongsTo(Coin::class, 'coin');

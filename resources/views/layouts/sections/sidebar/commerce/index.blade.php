@@ -10,8 +10,8 @@
         </a>
     </li>
     <li class="nav-item has-treeview">
-        <a href="{{ route('exchange-rate.index', ['userType' => 'commerce']) }}"
-            title="Tasa de Cambio" class="nav-link  {{ !Route::is('commerce.exchangeRate') ?: 'active' }}">
+        <a href="{{ route('exchange-rate.index', ['userType' => 'commerce']) }}" title="Tasa de Cambio"
+            class="nav-link  {{ !Route::is('commerce.exchangeRate') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-circle-dollar-to-slot"></i>
             <p>Conversión</p>
         </a>
@@ -25,7 +25,7 @@
     </li>
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('bingo.all-rooms', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('bingo.all-commerce-rooms', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>
@@ -34,7 +34,7 @@
         <ul class="nav nav-treeview">
             @if (Auth::user()->user_type == 3)
                 <li class="nav-item">
-                    <a href="{{ route('bingo.all-rooms', ['coin' => encrypt(1), 'user' => encrypt(Auth::id())]) }}"
+                    <a href="{{ route('bingo.all-commerce-rooms', ['coin' => encrypt(1), 'user' => encrypt(Auth::id())]) }}"
                         title="Salas Bingo" class="nav-link">
                         <i class="fa-solid fa-caret-right nav-icon"></i>
                         <p>Salas</p>
