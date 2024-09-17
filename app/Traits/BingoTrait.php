@@ -324,7 +324,7 @@ trait BingoTrait
             'players',
             'ctn_price',
             'all_sale',
-            'commerce_commn',
+            'room_commn',
             'seller_commn',
             'jackpot'
         )->where('status', 2)->where('id', $roomID)->first();
@@ -524,7 +524,7 @@ trait BingoTrait
             $convertedJackpot = number_format($saleAmount / $exchangeRate ?? 1, 3, '.');
             $boatAcum = ($arrCtn['jackpotType'] == 1) ? $convertedJackpot : (($arrCtn['jackpotType'] == 2) ? 0 : null);
             $jackpot = $room->jackpot + $boatAcum;
-            $comCommerce = ($jackpot * BingoRoomConfig::getValueByRoom($roomID, 'commerce_commn') / 100);
+            $comCommerce = ($jackpot * BingoRoomConfig::getValueByRoom($roomID, 'room_commn') / 100);
             $jackpot -= $comCommerce;
 
             // Preparar los datos para actualizar la sala
@@ -536,7 +536,7 @@ trait BingoTrait
             ];
 
             if ($room->game_mode) {
-                $updateData['commerce_commn'] = $room->commerce_commn + $comCommerce;
+                $updateData['room_commn'] = $room->room_commn + $comCommerce;
                 $updateData['seller_commn'] = $room->seller_commn + $comSaleSellerCtns;
             }
 

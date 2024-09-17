@@ -29,7 +29,7 @@ return new class extends Migration
             $table->double('ctn_price');
             $table->integer('players')->default(0);
             $table->double('all_sale')->default(0);
-            $table->double('commerce_commn')->default(0);
+            $table->double('room_commn')->default(0);
             $table->double('seller_commn')->default(0);
             $table->double('jackpot')->default(0);
             $table->double('jackpot_prize')->default(0);
@@ -40,25 +40,13 @@ return new class extends Migration
             $table->string('code_uuid', 36)->nullable()->unique();
             $table->timestamps();
 
-            // Definición de la clave foránea para 'status'
+            // Definición de las claves foráneas
             $table->foreign('game_mode')->references('id')->on('game_modes');
-
-            // Definición de la clave foránea para 'status'
             $table->foreign('status')->references('id')->on('game_status');
-
-            // Definición de la clave foránea para 'customer'
             $table->foreign('customer')->references('id')->on('customers');
-
-            // Definición de la clave foránea para 'commerce'
             $table->foreign('commerce')->references('id')->on('commerces');
-
-            // Definición de la clave foránea para 'subsidiary'
             $table->foreign('subsidiary')->references('id')->on('subsidiaries');
-
-            // Definición de la clave foránea para 'country'
             $table->foreign('country')->references('id')->on('countries');
-
-            // Definición de la clave foránea para 'coin'
             $table->foreign('coin')->references('id')->on('coins');
         });
     }
@@ -70,6 +58,17 @@ return new class extends Migration
      */
     public function down()
     {
+        Schema::table('bingo_rooms', function (Blueprint $table) {
+            // Eliminar claves foráneas antes de eliminar la tabla
+            $table->dropForeign(['game_mode']);
+            $table->dropForeign(['status']);
+            $table->dropForeign(['customer']);
+            $table->dropForeign(['commerce']);
+            $table->dropForeign(['subsidiary']);
+            $table->dropForeign(['country']);
+            $table->dropForeign(['coin']);
+        });
+
         Schema::dropIfExists('bingo_rooms');
     }
 };

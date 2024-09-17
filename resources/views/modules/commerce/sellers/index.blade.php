@@ -29,7 +29,7 @@
                                     <td>{{ $seller->phone }}</td>
                                     <td>{{ $seller->Country->name }}</td>
                                     <td>
-                                        {{ $seller->Coin->long_name }} ({{ $seller->Coin->symbol }})
+                                        {{ $seller->Coin->short_name }} ({{ $seller->Coin->symbol }})
                                         @if ($seller->CountriesCoins->count() > 1)
                                             <a tabindex="0" class="badge btn-sm btn-primary" role="button"
                                                 data-toggle="popover" data-trigger="focus" title="Otras Monedas"

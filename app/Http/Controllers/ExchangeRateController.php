@@ -61,6 +61,7 @@ class ExchangeRateController extends Controller
         $viewData = [
             'title' => 'Tasas de Cambio',
             'name' => 'currency',
+            'userType' => $userType,
             'coins' => $coins ?? [],
             'exchangeRate' => $exchangeRate
         ];
@@ -256,7 +257,6 @@ class ExchangeRateController extends Controller
 
                     CommerceExchangeRate::where('id', $exchangeRateID)->update(['status' => $status]);
                     break;
-                    break;
                 case 'customer':
                     // Obtener el estado del cliente
                     $customerStatus = CustomerExchangeRate::getValueById($exchangeRateID, 'status');
@@ -282,6 +282,7 @@ class ExchangeRateController extends Controller
         } catch (\Throwable $th) {
             //throw $th;
             DB::rollBack();
+            dd($th->getMessage());
         }
     }
 

@@ -414,7 +414,7 @@ class CommerceController extends Controller
             $comSaleSellerRoom = $allSaleRoom - $finalSaleRoom;
             $comRKE = 0; // Actualiza con tu lógica real
             $preJackpot = $allSaleRoom - $comSaleSellerRoom - $comRKE;
-            $comBancaRoom = round($preJackpot * ($room->Config->commerce_commn / 100), 2);
+            $comBancaRoom = round($preJackpot * ($room->Config->room_commn / 100), 2);
             $jackpotRoom = $preJackpot - $comBancaRoom;
 
             $totals['allCtns'] += $room->CtnsLot->sum('ctns');
@@ -504,7 +504,7 @@ class CommerceController extends Controller
             'ctnPrice' => $room->ctn_price,
             'wallet' => $wallet,
             'sellers' => $sellers,
-            'comCommerceRm' => BingoRoomConfig::getValueByRoom($room->id, 'commerce_commn') / 100,
+            'comCommerceRm' => BingoRoomConfig::getValueByRoom($room->id, 'room_commn') / 100,
             'room' => $room->encrypted,
             'coin' => $coin,
             'coins' => $coins

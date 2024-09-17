@@ -1,11 +1,11 @@
 @extends($layout)
 @section('title', $title)
 @section('content')
-    <div class="col-12 @if ($cusToken) p-2 @endif">
+    <div class="col-12 @if (isset($cusToken)) p-2 @endif">
         <div class="card">
             @include('components.card-header', ['title' => $title, 'returnBtn' => true])
             <div class="card-body">
-                @if (count($coins) > 0 || $cusToken)
+                @if (count($coins) > 0 || isset($cusToken))
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                 @endif
@@ -30,7 +30,7 @@
                                     @if (!isset($cusToken))
                                         <td>
                                             {{ $item->Coin->Country ? $item->Coin->Country->name : 'Todos' }}
-                                        <td>
+                                        </td>
                                     @endif
                                     <td>
                                         {{ isset($cusToken) ? $item->coin : $item->Coin->long_name }}
@@ -94,15 +94,14 @@
     <script src="https://cdn.jsdelivr.net/npm/just-validate/dist/just-validate.production.min.js"></script>
     <script>
         const name = '<?php echo $name; ?>';
-        const arrCoins = '<?php echo json_encode($coins); ?>';
         const valChange = $("#val-change");
         let coinID, customer, valChangeMax, valChangeMin, coinName, update = false;
+        extraInfo = '<?php echo $name; ?>';
     </script>
-    @if ($cusToken)
+    @if (isset($cusToken))
         <script>
             customer = true;
             coinID = $("#currency");
-            extraInfo = 'customer';
 
             coinID.mask('AAAAAA', {
                 translation: {
@@ -142,9 +141,10 @@
         </script>
     @else
         <script>
+            const arrCoins = JSON.parse('<?php echo json_encode($coins); ?>');
             const coins = $("#coin");
+            console.log(arrCoins);
             coinID = coins;
-            extraInfo = 'commerce';
 
             function insertInfo(type, data = '') {
                 update = false;
@@ -161,7 +161,7 @@
                     $("#alert-currency").removeClass('hide-elem');
                 }
 
-                if (arrCoins.length && !customer) {
+                if (arrCoins.length > 0 && !customer) {
                     $.each(arrCoins, function(index, item) {
                         coins.append(`<option value="${item.id}">${item.long_name} (${item.symbol})</option>`);
                     });
@@ -203,10 +203,6 @@
         </script>
     @endif
     <script>
-        valChange.mask('00000.00', {
-            reverse: true
-        }); // Máscara para números con dos decimales
-
         $(document).on("input change", ".input-exchange-rate", function() {
             if (coinID.val() && valChange.val()) {
                 console.log(900, coinName);

@@ -50,7 +50,7 @@
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="commerce-commission">%Comercio*</label>
-        <input type="number" id="commerce-commission" name="commerce_commission" class="form-control form-info"
+        <input type="number" id="commerce-commission" name="room_commission" class="form-control form-info"
             placeholder="%Com" required value="20" step="0.05" min="20" max="45">
     </div>
     <div class="form-group col-sm-6 col-md-4">

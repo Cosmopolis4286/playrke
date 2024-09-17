@@ -35,7 +35,7 @@
     @component('components.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['user' => [$userType, $userToken]])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['user' => [$userToken, $userType]])->render(),
     ])
     @endcomponent
     @include('components.form-other-options')
@@ -46,6 +46,7 @@
         const arrCoins = JSON.parse('<?php echo json_encode($coins); ?>');
         const arrJackpotType = JSON.parse('<?php echo json_encode($jackpotType); ?>')
         const arrGameModes = JSON.parse('<?php echo json_encode($gameModes); ?>')
+        extraInfo = '<?php echo $userType; ?>';
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -123,7 +124,7 @@
                 $('#ctn-price').val(data.room.ctn_price);
                 $('#val-serials').val(data.config.val_serials);
                 $('#num-serials').val(data.config.num_serials);
-                $('#commerce-commission').val(data.config.commerce_commn);
+                $('#commerce-commission').val(data.config.room_commn);
                 $('#serials-commission').val(data.config.serials_commn);
             }
 

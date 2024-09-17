@@ -21,7 +21,7 @@ class GameStatusSeeder extends Seeder
             ['id' => 3, 'description' => 'En Juego'],
             ['id' => 4, 'description' => 'Finalizada'],
             ['id' => 5, 'description' => 'Reembolso'],
-            ['id' => 6, 'description' => 'Fuera de Línea']
+            ['id' => 6, 'description' => 'Fuera de Línea'],
         ]);
     }
 }

@@ -300,7 +300,7 @@ class BingoOLDController extends Controller
                     'room' => $room->id,
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
-                    'commerce_commn' => $request->commerce_commission,
+                    'room_commn' => $request->room_commission,
                     'val_serials' => $request->val_serials,
                     'num_serials' => $request->num_serials,
                     //'val_sm_prizes' => $request->val_sm_prizes,
@@ -346,7 +346,7 @@ class BingoOLDController extends Controller
                 [
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
-                    'commerce_commn' => $request->commerce_commission,
+                    'room_commn' => $request->room_commission,
                     'val_serials' => $request->val_serials,
                     'num_serials' => $request->num_serials
                 ]
@@ -369,7 +369,7 @@ class BingoOLDController extends Controller
         $room = BingoRoom::where('id', $id)->select('date', 'time', 'ctn_price', 'jackpot')->firstOrFail();
 
         $roomConfig = BingoRoomConfig::where('room', $id)
-            ->select('jackpot_type', 'fixed_jackpot_value', 'commerce_commn', 'val_serials', 'num_serials')->firstOrFail();
+            ->select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'val_serials', 'num_serials')->firstOrFail();
 
         return response()->json(['room' => $room, 'config' => $roomConfig]);
     }
@@ -403,7 +403,7 @@ class BingoOLDController extends Controller
                     'room' => $newRoom->id,
                     'jackpot_type' => $existingRoomConfig->jackpot_type,
                     'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
-                    'commerce_commn' => $existingRoomConfig->commerce_commn,
+                    'room_commn' => $existingRoomConfig->room_commn,
                     'val_serials' => $existingRoomConfig->val_serials,
                     'num_serials' => $existingRoomConfig->num_serials,
                     //'val_sm_prizes' => $existingRoomConfig->val_sm_prizes,

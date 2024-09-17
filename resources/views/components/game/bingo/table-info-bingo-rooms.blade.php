@@ -104,7 +104,7 @@
                                         data-id="{{ encrypt($room->id) }}" title="Eliminar">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
-                                @elseif ($room->status == 2)
+                                @elseif ($room->status == 2 && $room->jackpot_prize > 0)
                                     <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="6"
                                         data-id="{{ encrypt($room->id) }}" title="Reembolsar">
                                         <i class="fa-solid fa-rotate-right"></i>
