@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('components.card-header', ['title' => $title, 'returnBtn' => $returnBtn])
             <div class="card-body">
                 @component('components.coin-tabs', [
                     'coins' => $coins,
@@ -12,9 +12,14 @@
                     'userToken' => $userToken ?? false,
                 ])
                 @endcomponent
-                <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
-                    <i class="fas fa-plus-square"></i> Crear
-                </button>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
+                        <i class="fas fa-plus-square"></i> Crear
+                    </button>
+                    <a href="#" class="ml-1 btn btn-sm btn-primary" data-type="1">
+                        <i class="fas fa-hat-wizard"></i> Ver Salas
+                    </a>
+                </div>
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @component('components.game.bingo.table-info-bingo-rooms', [
@@ -43,10 +48,10 @@
 @section('scripts')
     <script>
         const name = '<?php echo $name; ?>';
+        const userType = '<?php echo $userType; ?>';
         const arrCoins = JSON.parse('<?php echo json_encode($coins); ?>');
         const arrJackpotType = JSON.parse('<?php echo json_encode($jackpotType); ?>')
         const arrGameModes = JSON.parse('<?php echo json_encode($gameModes); ?>')
-        extraInfo = '<?php echo $userType; ?>';
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -63,6 +68,9 @@
         });
 
         $(document).on("click", `.btn-${name}`, function() {
+            if ($(this).data('type') == 1) {
+                extraInfo = userType;
+            }
             formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap)
         });
 

@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12 @if (isset($cusToken)) p-2 @endif">
         <div class="card">
-            @include('components.card-header', ['title' => $title, 'returnBtn' => true])
+            @include('components.card-header', ['title' => $title, 'returnBtn' => $returnBtn])
             <div class="card-body">
                 @if (count($coins) > 0 || isset($cusToken))
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i

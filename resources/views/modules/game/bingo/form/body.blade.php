@@ -24,7 +24,7 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
         <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
-            placeholder="Ingresar Precio" min="1" value="1" step="0.5" required>
+            placeholder="Ingresar Precio" min="1" value="1" step="0.05" required>
     </div>
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label for="small-prizes">%Cantos</label>

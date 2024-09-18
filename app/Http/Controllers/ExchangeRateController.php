@@ -29,6 +29,8 @@ class ExchangeRateController extends Controller
 
                 $exchangeRate = CustomerExchangeRate::where('customer', $customer)->where('status', '<>', 3)->get();
 
+                $returnBtn = false;
+
                 $moreViewData = ['layout' => 'layouts.app_rke_off', 'cusToken' => $userID];
                 break;
             case 'commerce':
@@ -61,6 +63,7 @@ class ExchangeRateController extends Controller
         $viewData = [
             'title' => 'Tasas de Cambio',
             'name' => 'currency',
+            'returnBtn' => $returnBtn ?? true,
             'userType' => $userType,
             'coins' => $coins ?? [],
             'exchangeRate' => $exchangeRate
@@ -82,11 +85,12 @@ class ExchangeRateController extends Controller
             $currency = $request->currency;
 
             if ($currency) {
-                $customer = Customer::getByToken($request->cust_token, ['id', 'user']);
-                $currencyID = CustomerExchangeRate::getCustomerCoinValue($customer->id, $currency, 'id');
-                CustomerExchangeRate::where('id', $currencyID)->update(['status' => 1]);
 
-                if (!$currency) {
+                $customer = Customer::getByToken($request->cust_token, ['id', 'user']);
+
+                $currencyID = CustomerExchangeRate::getCustomerCoinValue($customer->id, $currency, 'id');
+
+                if (!$currencyID) {
                     CustomerExchangeRate::create([
                         'customer' => $customer->id,
                         'coin' => $currency,
@@ -94,6 +98,8 @@ class ExchangeRateController extends Controller
                         'status' => 1,
                         'user' => $customer->user ?? null
                     ]);
+                } else {
+                    CustomerExchangeRate::where('id', $currencyID)->update(['status' => 1]);
                 }
             } else {
                 $commerce = Commerce::getByUserId(Auth::id(), ['id', 'user']);
@@ -143,7 +149,9 @@ class ExchangeRateController extends Controller
         DB::beginTransaction();
 
         try {
+
             $exchangeRate = $request->val_change;
+
             switch ($data[1]) {
                 case 'commerce':
                     // Buscar el registro de CommerceExchangeRate por su ID desencriptado
@@ -167,9 +175,11 @@ class ExchangeRateController extends Controller
             }
 
             DB::commit();
+
             return redirect()->back()->with('message', 'La información fue actualizada con éxito');
         } catch (\Exception $e) {
             DB::rollBack();
+
             Log::error('Error actualizando la tasa de cambio: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Ocurrió un error al actualizar la información');
         }

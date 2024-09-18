@@ -383,7 +383,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'bingo', 'as' => 'bingo.'], 
 });
 
 Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
-    
+
     Route::get('rooms/admin/{user}/{coin?}', [BingoController::class, 'allRooms'])
         ->middleware(['auth', 'customer-commerce'])->name('all-rooms');
 
@@ -391,7 +391,15 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
         ->middleware(['auth', 'customer-commerce'])->name('all-commerce-rooms');
 
     Route::get('rooms/cust/{user}/{coin?}', [BingoController::class, 'allCustomerRooms'])->name('all-customer-rooms');
-    Route::get('games-room/{user}', [BingoController::class, 'gamesRooms'])->name('game-rooms');
+
+    Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
+        ->middleware(['auth', 'customer-commerce'])->name('admin-game-rooms');
+
+    Route::get('game-rooms/comm/{user}/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
+        ->middleware(['auth', 'customer-commerce'])->name('commerce-game-rooms');
+
+    Route::get('game-rooms/cust/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('customer-game-rooms');
+
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
@@ -438,7 +446,6 @@ Route::group(['prefix' => 'pollaexpress', 'as' => 'pollaexpress.'], function () 
     Route::get('getResult/{room}/{PJLink}', [PollaExpressController::class, 'getResult'])->name('getResult');
     Route::get('viewCtn/{ctnId}', [PollaExpressController::class, 'viewCtn'])->name('viewCtn');
 });
-// PollaExpress -Jugador-
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'ruleta', 'as' => 'ruleta.'], function () {
     Route::get('room', [RuletaController::class, 'index'])->name('index');

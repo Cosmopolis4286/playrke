@@ -469,10 +469,14 @@ class CommerceController extends Controller
         $wallet = $this->wallet();
         $commerce = $this->commerce('id')->id;
 
-        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'ctn_price', 'encrypted']);
-        $query = BingoCtnsLot::where('commerce', $commerce)->where('room', $room->id);
+        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'ctn_price', 'encrypted', 'commerce']);
+
+        if ($room->commerce != $commerce || !$room->commerce) {
+            return redirect()->back();
+        }
 
         // Verificar la existencia de la moneda
+        $query = BingoCtnsLot::where('commerce', $commerce)->where('room', $room->id);
         $coin = $this->existsCoin($query, decrypt($coin));
 
         //dd($coinId,'commerce.reportSalesByRoom',['room' => $room->encrypted, 'coin' => encrypt($coinId)]);
