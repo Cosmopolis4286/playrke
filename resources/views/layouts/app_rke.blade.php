@@ -22,9 +22,7 @@
         <div class="content-wrapper bg-transparent">
             <div class="content-header">
                 <div class="container-fluid">
-                    <div class="row">
-                        @yield('content')
-                    </div>
+                    @yield('content')
                 </div>
             </div>
         </div>

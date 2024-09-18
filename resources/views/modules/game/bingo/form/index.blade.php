@@ -16,7 +16,8 @@
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
                         <i class="fas fa-plus-square"></i> Crear
                     </button>
-                    <a href="#" class="ml-1 btn btn-sm btn-primary" data-type="1">
+                    <a href="{{ route('bingo.commerce-game-rooms', ['user' => encrypt(Auth::id())]) }}"
+                        class="ml-1 btn btn-sm btn-primary" data-type="1">
                         <i class="fas fa-hat-wizard"></i> Ver Salas
                     </a>
                 </div>

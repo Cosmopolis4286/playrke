@@ -14,7 +14,6 @@ use App\Models\BingoRoomUser;
 use App\Models\BingoCtns;
 use App\Models\HistGame;
 use App\Http\Controllers\Controller;
-use App\Models\BingoCtnsLot;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawCode;
 use App\Models\Commerce;
@@ -72,22 +71,20 @@ class BingoController extends Controller
         return $room;
     }
 
-    public function gamesRooms($user, $gameMode = 1) // Vista Salas de Juego 
+    private function getGamesRoomsView($userType, $userID, $coin)
     {
-        $userTypeID = User::getValueById($user, 'user_type');
-        $userType = UserType::getValueById($userTypeID, 'prefix');
-
-        $userTypeVal = false;
-
         switch ($userType) {
-            case 2: // Admin
+            case 'admin': // Admin
 
                 break;
-            case 3: // Comercio
-                $userTypeVal = Commerce::getValueByUserId($user, 'id');
+            case 'commerce': // Comercio
+                $wallet = $this->Wallet($this->user()->id);
+                $coinSym = $wallet->Coin->symbol;
+
+                $moreViewData = ['wallet' => $wallet];
                 break;
-            case 5: // Proveedor
-                $userTypeVal = Customer::getValueByUserId($user, 'id');
+            case 'customer': // Cliente
+                $coinSym = $coin;
                 break;
 
             default:
@@ -95,17 +92,53 @@ class BingoController extends Controller
                 break;
         }
 
-        // pvrResponse = $this->getUserInfoFromCustomer($customer, $user);
+        $rooms = BingoRoom::where($userType, $userID)->whereIn('status', [2, 3])->get();
 
-        $rooms = BingoRoom::where($userType, $userTypeVal)
-            ->where('game_mode', $gameMode)->whereIn('status', [2, 3])->get();
-
-        $title = 'Bingo Salas de Juego';
-
-        return view('modules.customer.games.bingo.game-rooms')->with([
-            'title' => $title,
+        $viewData = [
+            'title' => 'Bingo Salas de Juego',
+            'coinSym' => $coinSym,
             'rooms' => $rooms
-        ]);
+        ];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
+
+        // Retorna ruta y datos
+        return ['modules.game.bingo.game-rooms', $viewData];
+    }
+
+    public function gamesRoomsAdmin() {}
+
+    public function gamesRoomsCommerce($user, $coin = 1)
+    {
+        // Vista para todas las salas disponibles o en juego de un comercio 
+
+        // Obtner ID d Comercio a traves del ID de usuario
+        $commerce = Commerce::getValueByUserId(decrypt($user), 'id');
+
+        $viewData = self::getGamesRoomsView('commerce', $commerce, $coin);
+
+        return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
+    }
+
+    public function gamesRoomsCustomer($customerToken, $userToken, $coin = '')
+    {
+        // Vista para todas las salas disponibles o en juego de un cliente 
+        $response = $this->validateCustomer($customerToken, $userToken);
+
+        if (isset($response['Error'])) {
+            return response()->json(['message' => $response['Error']], 404);
+        }
+
+        if (!$coin) $coin = decrypt(session('CCCUSTU'))[0];
+
+        // Obtener informacion de la vista del cliente
+        $viewData = self::getGamesRoomsView('customer', $response, $coin);
+
+        // Retorna a vista con la informacion del cliente
+        return $viewData ? view($viewData[0])->with($viewData[1])
+            : response()->json(['message' => 'Ocurrió un error'], 404);
     }
 
     public function generateCarton(Request $request)
@@ -155,7 +188,7 @@ class BingoController extends Controller
         }
     }
 
-    private function getGameViewInfo($type, $data = [], $dateFilter = 'today')
+    private function getGameInfo($type, $data = [], $dateFilter = 'today')
     {
         date_default_timezone_set('America/Caracas');
 
@@ -320,15 +353,15 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return $viewData;
+        return ['modules.visitor.games.bingo.in-game', $viewData];
     }
 
     public function inGame($PJLink)
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        $viewData = self::getGameViewInfo('all', ['commerce' => 'RKE', 'PJLink' => $PJLink]);
+        $viewData = self::getGameInfo('all', ['commerce' => 'RKE', 'PJLink' => $PJLink]);
 
-        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
+        return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }
 
     public function inGameCommerce($commerce, $PJLink) //
@@ -341,48 +374,38 @@ class BingoController extends Controller
 
         if ($comerceIDByUUID->id != $commerceID) return redirect('/');
 
-        $viewData = self::getGameViewInfo('commerce', ['commerce' => $commerceID, 'PJLink' => $PJLink]);
+        $viewData = self::getGameInfo('commerce', ['commerce' => $commerceID, 'PJLink' => $PJLink]);
 
-        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
+        return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }
 
     public function inGameCustomer($customerToken, $userToken, $room, $dateFilter = 'today')
     {
         // Vista para el juego de un cliente especifico
+        // Validar Informacion de cliente-user y crear variabales de session
+        $response = $this->validateCustomer($customerToken, $userToken);
 
-        // Obtener el ID del cliente usando el token
-        $customerId = Customer::getValueByToken($customerToken, 'id');
-
-        // Verificar si el cliente existe
-        if (!$customerId) {
-            return response()->json(['message' => 'Token del cliente no existe'], 404);
-        }
-
-        // Consultar información de usuario y crear variables de sesión
-        $response = $this->handleCustomerUserSession($customerId, $userToken);
-
-        // Verificar si existe el usuario por su token
-        if (isset($response->Error)) {
-            return response()->json(['message' => 'Token de usuario incorrecto'], 404);
+        if (isset($response['Error'])) {
+            return response()->json(['message' => $response['Error']], 404);
         }
 
         // Obtener informacion de la vista del cliente
-        $viewData = self::getGameViewInfo('customer', [
-            'customer' => $customerId,
+        $viewData = self::getGameInfo('customer', [
+            'customer' => $response,
             'room' => $room
         ], $dateFilter);
 
         // Retorna a vista con la informacion del cliente
-        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData)
+        return $viewData ? view($viewData[0])->with($viewData[1])
             : response()->json(['message' => 'Ocurrió un error'], 404);
     }
 
     public function outGame($dateFilter = 'today')
     {
         // Vista del el juego solo para comprar [TODOS]
-        $viewData = self::getGameViewInfo('all', ['commerce' => 'RKE'], $dateFilter);
+        $viewData = self::getGameInfo('all', ['commerce' => 'RKE'], $dateFilter);
 
-        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
+        return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }
 
     public function outGameCommerce($commerce, $room)
@@ -393,9 +416,9 @@ class BingoController extends Controller
         // Redireccionar al Login si no hay coincidencia    
         if (!$commerce) return redirect('/');
 
-        $viewData = self::getGameViewInfo('commerce', ['commerce' => $commerce->id, 'room' => $room]);
+        $viewData = self::getGameInfo('commerce', ['commerce' => $commerce->id, 'room' => $room]);
 
-        return $viewData ? view('modules.visitor.games.bingo.in-game')->with($viewData) : redirect('/');
+        return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }
 
     private function hasPurchasedCartons($phone)
@@ -571,7 +594,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return $viewData;
+        return ['modules.game.bingo.form.index', $viewData];
     }
 
     public function allCommerceRooms($commerce, $coin)
@@ -582,7 +605,7 @@ class BingoController extends Controller
 
         $viewData = $this->getGameRoomsInfo('commerce', $commerceId, decrypt($coin));
 
-        return $viewData ? view('modules.game.bingo.form.index')->with($viewData) : redirect('/');
+        return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }
 
     public function allCustomerRooms($customer, $coin = 1)
@@ -594,7 +617,7 @@ class BingoController extends Controller
         $viewData = $this->getGameRoomsInfo('customer', $customerId, $coin, true);
 
         // Retorna a vista con la informacion del cliente
-        return $viewData ? view('modules.game.bingo.form.index')->with($viewData)
+        return $viewData ? view($viewData[0])->with($viewData[1])
             : response()->json(['message' => 'Ocurrió un error'], 404);
     }
 

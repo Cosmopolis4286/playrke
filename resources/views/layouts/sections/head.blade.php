@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('css/DataTables/responsive.bootstrap4.css') }}">
     <link rel="stylesheet" href="{{ asset('css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/select2-bootstrap4.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/animate.min.css') }}">
 
     @yield('styles')
     <title>PlayRKE - @yield('title')</title>
