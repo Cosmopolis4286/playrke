@@ -17,7 +17,7 @@
                 ])
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        @include('components.game.bingo.other-winners-report-table', [
+                        @include('components.game.bingo.report.other-winners-report-table', [
                             'winnersData' => $winnersData,
                             'commerce' => $commerce,
                             'wallet' => $wallet,

@@ -167,36 +167,13 @@ body {
     text-align: var(--center);
 }
 
-.content_forms {
-    height: 100%;
-}
-
-.content_form_items {
-    display: flex;
-    height: 100%;
-}
-
-.content_form_info {
-    margin: auto;
-    height: 100%;
-    width: 100%;
-    display: grid;
-    align-items: center;
-}
-
 .login_form_item {
     position: relative;
-    margin: 2px auto !important;
     width: 100%;
+    margin: 1.75% 0;
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-.d_center {
-    display: flex;
-    justify-content: center;
-    text-align: center;
 }
 
 .e_mc {

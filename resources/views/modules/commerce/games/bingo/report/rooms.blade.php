@@ -21,7 +21,7 @@
                 @endcomponent
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @component('components.game.bingo.report-table-bingo', [
+                        @component('components.game.bingo.report.report-table-bingo', [
                             'wallet' => $wallet,
                             'roomData' => $roomData,
                             'totals' => $totals,

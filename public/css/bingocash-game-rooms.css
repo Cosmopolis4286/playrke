@@ -1,0 +1,393 @@
+body {
+    background: url(../img/body/space.png) !important;
+}
+
+/*Fonts*/
+@import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Braah+One&display=swap');
+
+#container-text-game-rooms {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+#text-game-rooms {
+    font-weight: 500;
+    color: #DADADA;
+    font-size: 30px;
+}
+
+/* Modal Compra */
+#container-purchase-ctns {
+    display: none;
+    position: absolute;
+    top: 0%;
+    left: 50%;
+    transform: translate(-50%, 27%);
+    z-index: 9999;
+    min-width: 300px;
+    max-width: 360px;
+}
+
+.purchase-ctns__header {
+    position: relative;
+    display: flex;
+    height: 60px;
+    width: 100%;
+}
+
+.purchase-ctns__body {
+    position: relative;
+    height: auto;
+    width: 100%;
+}
+
+.purchase-ctns__body-form {
+    position: relative;
+    display: flex;
+    padding: 1.5%;
+}
+
+#purchase-ctns__body-form-section-left {
+    position: relative;
+    width: 66%;
+}
+
+#purchase-ctns__body-form-section-right {
+    position: relative;
+    width: 34%;
+    display: flex;
+    justify-content: right;
+}
+
+.purchase-ctns__jackpot {
+    position: relative;
+    width: 66%;
+    height: 100%;
+    display: flex;
+    padding: 1.15%;
+    border-top-left-radius: 6px;
+    background: linear-gradient(to bottom, #0b4cfde3, #124bc5);
+}
+
+.purchase-ctns__jackpot-img {
+    width: 25%;
+    padding: 3px;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.purchase-ctns__img {
+    max-width: 100%;
+    height: auto;
+}
+
+.purchase-ctns__coin {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    width: 78%;
+    height: 100%;
+    margin-left: 2.5px;
+}
+
+#purchase-ctns__coin-value {
+    display: flex;
+    align-items: center;
+    height: 50%;
+}
+
+.purchase-ctns__coin-text {
+    display: flex;
+    align-items: center;
+    height: 50%;
+    font-size: 15.6px;
+    margin-right: 3px;
+    color: rgb(255, 255, 255);
+    font-weight: 500;
+}
+
+#purchase-ctns__coin-value small {
+    display: flex;
+    align-items: center;
+    height: 50%;
+    padding-top: 1px;
+    font-size: 14px;
+    color: rgb(219, 219, 219);
+    font-weight: 600;
+}
+
+#purchase-ctns__coin-number {
+    height: 50%;
+    display: flex;
+    align-items: center;
+    font-size: 23px;
+    color: rgb(255, 230, 0);
+}
+
+#purchase-ctns__coin small {
+    margin-left: 1.5px;
+    justify-content: flex-end;
+    font-size: 16px;
+}
+
+.purchase-ctns__date {
+    position: relative;
+    width: 34%;
+    border-top-right-radius: 7px;
+    height: 100%;
+    padding: 1.5%;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    color: rgb(224, 224, 224);
+    font-weight: 400;
+    background-color: #013bb9;
+}
+
+.purchase-ctns__date-item {
+    height: 50%;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.purchase-ctns__icon {
+    color: #008afc;
+    margin-right: 2.75px;
+}
+
+.purchase-ctns__icon_rlg {
+    color: #008afc;
+    font-size: 12.2px;
+    margin-right: 2.75px;
+}
+
+#text-date {
+    font-size: 17px;
+}
+
+#text-time {
+    font-size: 17px;
+}
+
+#purchase-ctns__form {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+#purchase-ctns__form-title {
+    text-transform: uppercase;
+    width: 100%;
+    font-weight: 600;
+}
+
+.purchase-ctns__game-room-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-left: 1.5%;
+    padding-right: 1.5%;
+    padding-bottom: 0.25%;
+    line-height: 20px;
+    border-bottom: 1px solid rgba(0, 75, 187, 0.521);
+    border-left: 1px solid rgba(0, 75, 187, 0.521);
+    border-right: 1px solid rgba(0, 75, 187, 0.521);
+}
+
+.purchase-ctns__body-form-num-ctns {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    gap: 5.5%;
+}
+
+.quantity {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.quant {
+    background-color: #c4e7ff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 50%;
+    height: 23px;
+    width: 23px;
+    font-weight: 500;
+}
+
+.quantity-down {
+    padding-top: 2.5px;
+}
+
+.quantity-up {
+    padding-top: 1.5px;
+    padding-left: 1px;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.quantity input {
+    width: 45px;
+    text-align: center;
+    font-size: 24.5px;
+    padding-top: 2px;
+    background-color: transparent;
+    border: transparent;
+}
+
+.quantity input:focus {
+    outline: 0;
+}
+
+/* Card Game-Rooms */
+.card-game-room {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    position: relative;
+    cursor: pointer;
+    width: 228px;
+    padding: 5px;
+    box-shadow: 0px 4px 14px 0px rgba(34, 88, 204, 0.493);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #2af598 0%, #009efd 100%);
+    /* Efecto Pulso */
+    /* animation: pulse;
+                                                                                                                                                                                                                                animation-duration: 1.6s;
+                                                                                                                                                                                                                                animation-iteration-count: infinite; */
+}
+
+.card-game-room__time {
+    background-color: #333;
+    color: whitesmoke;
+    border-radius: 10px;
+    height: 32px;
+    font-size: 17px;
+    font-weight: 600;
+    width: 124px;
+    position: absolute;
+    padding: 0 5px;
+    top: -0.25%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-game-room__game-mode {
+    color: rgb(255, 240, 240);
+    font-weight: 500;
+    border-radius: 8px;
+    width: 82.5%;
+    height: 25px;
+    text-align: center;
+    background: linear-gradient(to bottom, #941725e8, #631209e8);
+    position: absolute;
+    top: 14.5%;
+    left: 50%;
+    font-size: 14px;
+    transform: translate(-50%, -50%);
+}
+
+.card-game-room__number-of-ctns {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    color: #e0b700;
+    top: 57.3%;
+    left: 102%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(to bottom, rgb(1, 56, 160), rgba(0, 44, 126, 0.975));
+    width: 20.2%;
+    height: 25.8px;
+    padding-top: 0.9px;
+    padding-right: 1px;
+    border-radius: 7px;
+    font-size: 18px;
+    text-transform: uppercase;
+}
+
+.card-game-room__auto-marker {
+    position: absolute;
+    top: 85.95%;
+    left: 7.75%;
+    color: rgb(0, 84, 240);
+}
+
+.card-game-room__room-image {
+    border-top-left-radius: 10%;
+    border-top-right-radius: 10%;
+    width: 100%;
+}
+
+.card-game-room__jackpot-text {
+    margin-top: -3.25px;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 1%;
+}
+
+.card-game-room__jackpot-amount {
+    text-align: center;
+    width: 100%;
+    font-weight: 700;
+    color: #0049cf;
+    font-size: 100%;
+    text-shadow: 1.5px 1px 0 #0099ff;
+}
+
+.card-game-room__ctn-price {
+    text-align: center;
+    width: 55%;
+    color: #000b24;
+    font-weight: 500;
+    font-size: 14px;
+    background-color: rgb(182, 235, 241);
+    margin-bottom: 7.5%;
+    border-radius: 4px;
+}
+
+.card-game-room__status {
+    width: 75%;
+    padding-top: 2px;
+    background: linear-gradient(360deg, rgba(226, 192, 25, 0.966) 0%, rgba(243, 240, 54, 0.986)100.2%);
+    border-radius: 9px;
+    position: absolute;
+    bottom: -9.25%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-transform: uppercase;
+    text-align: center;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+    font-size: 12px;
+    color: rgb(0, 0, 0);
+}

@@ -1,50 +1,42 @@
-@extends('layouts.app_login')
-
+@extends('layouts.app_auth_pages')
 @section('title', 'Tu Sitio Para Ganar')
 
 @section('content')
-    <form action="{{ route('login') }}" method="post" id="form_lg">
-        @csrf
-        <div class="content_form_items">
-            <div class="content_form_info">
-                <!-- Input para email o nombre de usuario -->
-                <div class="login_form_item">
-                    <i class="e_mc fa-solid fa-user" aria-hidden="true"></i>
-                    <input id="user_email" type="text"
-                        class="@error('login') is-invalid @enderror" name="login"
-                        value="{{ old('login') }}" placeholder="Email/Username"
-                        aria-label="Email o Nombre de Usuario">
-                </div>
-                <!-- Mostrar error de validación -->
-                @error('login')
-                    <span class="er_nw">{{ $message }}</span>
-                @enderror
-                <!-- Input para contraseña -->
-                <div class="login_form_item">
-                    <i class="e_mc fa-solid fa-lock" aria-hidden="true"></i>
-                    <i id="eyeClose" class="eye_mc fa-solid fa-eye-slash" style="display: none"
-                        aria-label="Ocultar contraseña"></i>
-                    <input type="password" class="pass" id="pass" name="password" placeholder="Contraseña"
-                        aria-label="Contraseña">
-                    <i id="eyeOpen" class="eye_mc fa-solid fa-eye" aria-label="Mostrar contraseña"></i>
-                </div>
-                <!-- Botón para iniciar sesión -->
-                <div class="login_form_item">
-                    <button type="submit" id="Ingresar">Iniciar Sesión
-                        <span id="loader-btn" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
-                            style="display: none"></span>
-                    </button>
-                </div>
-                <!-- Enlace para recuperar contraseña -->
-                <div class="login_form_item">
-                    <a href="{{ route('password.request') }}" class="forget_password">¿Olvidaste tu contraseña?</a>
-                </div>
-            </div>
+    <form action="{{ route('login') }}" method="post" id="form-login">@csrf
+        <!-- Input para email o nombre de usuario -->
+        <div class="login_form_item">
+            <i class="e_mc fa-solid fa-user" aria-hidden="true"></i>
+            <input id="user-email" type="text" class="@error('login') is-invalid @enderror" name="login"
+                value="{{ old('login') }}" placeholder="Email/Username" aria-label="Email o Nombre de Usuario">
+        </div>
+        <!-- Mostrar error de validación -->
+        @error('login')
+            <span class="er_nw">{{ $message }}</span>
+        @enderror
+        <!-- Input para contraseña -->
+        <div class="login_form_item">
+            <i class="e_mc fa-solid fa-lock" aria-hidden="true"></i>
+            <i id="eyeClose" class="eye_mc fa-solid fa-eye-slash" style="display: none"
+                aria-label="Ocultar contraseña"></i>
+            <input type="password" class="pass" id="user-psw" name="password" placeholder="Contraseña"
+                aria-label="Contraseña">
+            <i id="eyeOpen" class="eye_mc fa-solid fa-eye" aria-label="Mostrar contraseña"></i>
+        </div>
+        <!-- Botón para iniciar sesión -->
+        <div class="login_form_item">
+            <button type="submit" id="Ingresar">Iniciar Sesión
+                <span id="loader-btn" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
+                    style="display: none"></span>
+            </button>
+        </div>
+        <!-- Enlace para recuperar contraseña -->
+        <div class="login_form_item">
+            <a href="{{ route('password.request') }}" class="forget_password">¿Olvidaste tu contraseña?</a>
         </div>
     </form>
 @endsection
 
-@section('preFooter')
+@section('pre-footer')
     @if ($register)
         <div class="login_footer_ck">
             <a href="{{ route('register') }}">
@@ -64,17 +56,17 @@
                 validate();
             });
 
-            $('#form_lg').keypress(function(e) {
+            $('#form-login').keypress(function(e) {
                 if (e.which === 13) {
                     validate();
                 }
             });
 
             function validate() {
-                let emailOrUsername = $('#user_email').val().trim();
-                let password = $('#pass').val().trim();
+                let emailOrUsername = $('#user-email').val().trim();
+                let password = $('#user-psw').val().trim();
 
-                if (emailOrUsername === "" || password === "") {
+                if (!emailOrUsername || !password) {
                     if ($(".notyf__toast").length === 0) {
                         new Notyf().error({
                             message: '<span style="font-size: 0.91em;">Toda la información es requerida</span>',
@@ -88,9 +80,25 @@
                     }
                 } else {
                     $("#loader-btn").show();
-                    $('#form_lg').submit();
+                    $('#form-login').submit();
                 }
             }
+
+            $(document).on('click', '.eye_mc', function(e) {
+                var passwordInput = $(".pass");
+                var isPasswordVisible = passwordInput.attr('type') === 'text';
+
+                passwordInput.attr('type', isPasswordVisible ? 'password' : 'text');
+                $("#van").val(isPasswordVisible ? '0' : '1');
+
+                $("#eyeOpen, #eyeClose").toggle();
+            });
+
+            $("#user_email, #username, #email, #login").on('input', function(evt) {
+                if (this.value.length > 40) {
+                    this.value = this.value.slice(0, 40);
+                }
+            });
         });
     </script>
 @endsection

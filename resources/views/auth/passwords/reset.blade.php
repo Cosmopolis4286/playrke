@@ -1,4 +1,4 @@
-@extends('layouts.app_login')
+@extends('layouts.app_auth_pages')
 @section('title', 'Reestablecer Contraseña')
 @section('content')
     <form id="pass_chg" method="POST" action="{{ route('password.update') }}">@csrf
@@ -32,7 +32,7 @@
         </div>
     </form>
 @endsection
-@section('preFooter')
+@section('pre-footer')
     <div class="login_footer_ck">
         <a href="{{ route('login') }}">
             <span class="pre_tx_link">¿Quieres volver a intentar?</span>

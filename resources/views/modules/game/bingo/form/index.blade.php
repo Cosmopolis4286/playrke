@@ -23,7 +23,7 @@
                 </div>
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @component('components.game.bingo.table-info-bingo-rooms', [
+                        @component('components.game.bingo.report.table-info-bingo-rooms', [
                             'userType' => $userType,
                             'userID' => $userToken,
                             'name' => $name,

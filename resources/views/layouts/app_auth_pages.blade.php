@@ -6,13 +6,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://playrke.com/">
+    <meta property="og:url" content="https://www.playrke.com/">
     <meta property="og:site_name" content="PlayRKE">
     <meta name="description"
         content="Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online. Gana rápido y retira seguro con PlayRKE.">
     <link rel="icon" href="{{ asset('img/fav.ico') }}" sizes="192x192">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/rlg_r.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/auth-pages.css') }}">
     <link rel="stylesheet" href="{{ asset('css/notyf.min.css') }}">
     <link rel="stylesheet" href="{{ asset('template/plugins/fontawesome/css/all.min.css') }}">
     <title>PlayRKE - @yield('title')</title>
@@ -26,17 +26,14 @@
                 <img src="{{ asset('img/log.png') }}" alt="PlayRKE">
                 <p class="login_content_text"></p>
             </div>
-            <div class="content_forms">
-                @yield('content')
-            </div>
+            <div class="container-form">@yield('content')</div>
             <div class="login_footer">
-                @yield('preFooter')
+                @yield('pre-footer')
                 <div class="info_rke">
                     <a class="info-user-rke" href="#" data-val="terms">Términos y Condiciones</a>
                     <a class="info-user-rke" href="#" data-val="about">Quienes Somos</a>
                     <a class="info-user-rke" href="#" data-val="priv">Privacidad</a>
                 </div>
-                <input type="hidden" id="van_lgn" value="0">
                 <div class="login_footer_link">
                     <div class="mr-3 name_pg">PlayRKE © {{ date('Y') }}</div>
                     <div class="content_rs">
@@ -84,22 +81,6 @@
                         console.log("No se pudo cargar el contenido.");
                     }
                 });
-            });
-
-            $(document).on('click', '.eye_mc', function(e) {
-                var passwordInput = $(".pass");
-                var isPasswordVisible = passwordInput.attr('type') === 'text';
-
-                passwordInput.attr('type', isPasswordVisible ? 'password' : 'text');
-                $("#van").val(isPasswordVisible ? '0' : '1');
-
-                $("#eyeOpen, #eyeClose").toggle();
-            });
-
-            $("#user_email, #username, #email, #login").on('input', function(evt) {
-                if (this.value.length > 40) {
-                    this.value = this.value.slice(0, 40);
-                }
             });
         });
     </script>

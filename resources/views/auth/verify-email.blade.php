@@ -1,7 +1,7 @@
-@extends('layouts.app_login')
+@extends('layouts.app_auth_pages')
 @section('title', 'Confirmar Email')
 @section('content')
-    <div class="login_form_item d_center">
+    <div class="login_form_item text-center">
         <span class="verify_email_tx">
             ¡Gracias por registrarte! Antes de comenzar, debes verificar tu dirección
             de correo electrónico haciendo clic en el enlance recibido. Revisa la bandeja
