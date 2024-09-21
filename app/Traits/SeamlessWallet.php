@@ -227,4 +227,37 @@ trait SeamlessWallet
             return false;
         }
     }
+
+    public function validateTransaction($customer)
+    {
+        $transactions = Transactions::where('customer', $customer)->where('status', 0)->get();
+
+        if (count($transactions)) return false;
+
+        foreach ($transactions as $item) {
+            // Obtener Identificador del Juego con respecto al cliente
+            $gameID = 1;
+            // Enviar informacion al cliente afiliado por una url externa
+            $transactionResponse = $this->transferMoney(
+                $customer,
+                $gameID,
+                [$item->user_id, $item->token],
+                $item->bet_id,
+                $item->coin,
+                $item->amount,
+                $item->id,
+                $item->transaction_type
+            );
+
+            if (isset($transactionResponse->Error) && $transactionResponse->Error) {
+                return ['Error' => $transactionResponse->Error];
+            }
+
+            if ($transactionResponse) {
+                // Cambiar status si la respuesta es exitosa
+                Transactions::where('code', $item->id)->update(['status' => 1]);
+                return true;
+            }
+        }
+    }
 }

@@ -22,6 +22,7 @@ class CreateTransactionsTable extends Migration
             $table->string('bet_id');
             $table->string('code')->unique();
             $table->string('transaction_type', 12);
+            $table->string('coin', 15);
             $table->double('amount');
             $table->boolean('status')->default(0);
             $table->timestamps();

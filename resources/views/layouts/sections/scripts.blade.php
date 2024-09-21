@@ -17,6 +17,12 @@
 <script src="{{ asset('template/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
 <script src="{{ asset('template/dist/js/adminlte.js') }}"></script>
 <script>
+    if ("{{ Session::has('message') }}") {
+        const message = {!! json_encode(Session::get('message')) !!};
+        const html = `<div style="font-size: 15px;">${message}</div>`;
+        showToast(html);
+    }
+    
     $(document).on('click', '#change-password', function() {
         $('#modal-change-password').modal('show');
     });
@@ -28,12 +34,6 @@
     $(document).on('dragstart', 'img', function(evt) {
         evt.preventDefault();
     });
-
-    if ("{{ Session::has('message') }}") {
-        const message = {!! json_encode(Session::get('message')) !!};
-        const html = `<div style="font-size: 15px;">${message}</div>`;
-        showToast('success', html);
-    }
 
     $(document).ready(function() {
         $('.table').DataTable({

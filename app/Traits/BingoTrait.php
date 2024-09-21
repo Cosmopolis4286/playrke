@@ -559,23 +559,25 @@ trait BingoTrait
                     $totalAmountCtns
                 );
 
-                if ($transaction) {
-
-                    $userToken = decrypt(session('CUSTU'));
-                    $coinClientUser = decrypt(session('CCCUSTU'))[1];
-
-                    // Enviar informacion al cliente afiliado por una url externa
-                    $transactionResponse = $this->transferMoney(
-                        $customer,
-                        $userToken,
-                        $transaction[0],
-                        $coinClientUser,
-                        $totalAmountCtns,
-                        $transaction[1],
-                        'BET',
-                        'BingoCash'
-                    );
+                if (!$transaction) {
+                    DB::rollBack();
+                    return ['Error' => 'Error al registrar la transacción'];
                 }
+
+                $userToken = decrypt(session('CUSTU'));
+                $coinClientUser = decrypt(session('CCCUSTU'))[1];
+
+                // Enviar informacion al cliente afiliado por una url externa
+                $transactionResponse = $this->transferMoney(
+                    $customer,
+                    $userToken,
+                    $transaction[0],
+                    $coinClientUser,
+                    $totalAmountCtns,
+                    $transaction[1],
+                    'BET',
+                    'BingoCash'
+                );
 
                 if (isset($transactionResponse->Error) && $transactionResponse->Error) {
                     DB::rollBack();
@@ -612,15 +614,16 @@ trait BingoTrait
         $customer = $data['customer'] ?? null;
         $commerce = $data['commerce'] ?? null;
         $seller = $data['seller'] ?? null;
-        $PJLink = $data['PJLink'] ?? null;
-        $playerPhone = $data['playerPhone'] ?? null;
-        $playerUser = $data['playerUser'] ?? null;
 
         if ($commerce || $seller) {  // Si la venta es procesada por un comercio o vendedor
+            $PJLink = $data['PJLink'] ?? null;
+            $playerPhone = $data['playerPhone'] ?? null;
+            $playerUser = $data['playerUser'] ?? null;
 
             if ($seller) $seller = $this->seller(['id', 'commerce']);
 
-            $player = PlayerLink::where('game', 1)->where('room', $roomID)
+            $player = PlayerLink::select('id', 'name', 'lastname', 'link')
+                ->where('game', 1)->where('room', $roomID)
                 ->where(function ($query) use ($playerPhone, $PJLink) {
                     $query->where('phone', $playerPhone)
                         ->orWhere('link', $PJLink);
@@ -670,6 +673,7 @@ trait BingoTrait
                         return false;
                     }
                 } else {
+                    if (!$PJLink) $PJLink = $player->link;
                     $player = $player->id ?? null;
                 }
             }
@@ -710,6 +714,7 @@ trait BingoTrait
             }
         } catch (\Exception $e) {
             DB::rollBack();
+            dd($e->getMessage());
             Log::error('Error al crear la información del jugador: ' . $e->getMessage());
             return false;
         }
@@ -760,7 +765,7 @@ trait BingoTrait
 
                 // Verificar y obtener el tipo de cambio
                 $exchangeRate = GameExchangeRate::getGameExchangeRateValue(1, $roomID, $playerCtn[0]->coin) ?? 1;
-                
+
                 if (!$exchangeRate) {
                     $this->insertGameExchangeRate($roomID, 1);
                     $exchangeRate = GameExchangeRate::getGameExchangeRateValue(1, $roomID, $playerCtn[0]->coin);
@@ -831,6 +836,11 @@ trait BingoTrait
                             $prizeWn
                         );
 
+                        if (!$transaction) {
+                            DB::rollBack();
+                            return ['Error' => 'Error al registrar la transacción'];
+                        }
+
                         // Enviar informacion al cliente afiliado por una url externa
                         $transactionResponse = $this->transferMoney(
                             $customer,
@@ -843,8 +853,6 @@ trait BingoTrait
                             'WIN',
                             'Pruebas Bingo'
                         );
-
-                        dd($transactionResponse);
 
                         if ($transactionResponse->Error) {
                             return ['Error' => $transactionResponse->Error];

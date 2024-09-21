@@ -402,6 +402,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
+    Route::get('getInfoByEncrypt/{id}/{mode?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
     Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');
     Route::put('replay/{id}', [BingoController::class, 'replay'])->name('replay');

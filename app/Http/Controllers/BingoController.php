@@ -92,7 +92,20 @@ class BingoController extends Controller
                 break;
         }
 
-        $rooms = BingoRoom::where($userType, $userID)->whereIn('status', [2, 3])->get();
+        $rooms = BingoRoom::select(
+            $userType,
+            'subsidiary',
+            'status',
+            'date',
+            'time',
+            'unix_date',
+            'coin',
+            'ctn_price',
+            'players',
+            'jackpot_prize',
+            'ctns',
+            'encrypted',
+        )->where($userType, $userID)->whereIn('status', [2, 3])->get();
 
         $viewData = [
             'title' => 'Bingo Salas de Juego',
@@ -116,6 +129,8 @@ class BingoController extends Controller
 
         // Obtner ID d Comercio a traves del ID de usuario
         $commerce = Commerce::getValueByUserId(decrypt($user), 'id');
+
+        if ($coin != 1) $coin = decrypt($coin);
 
         $viewData = self::getGamesRoomsView('commerce', $commerce, $coin);
 
@@ -745,6 +760,27 @@ class BingoController extends Controller
             ->select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')->firstOrFail();
 
         return response()->json(['room' => $room, 'config' => $roomConfig]);
+    }
+
+    public function getInfoByEncrypt($id, $mode = '')
+    {
+        $roomID = BingoRoom::getRoomValueByEncrypted($id, 'id');
+
+        $room = BingoRoom::where('id', $roomID)->select('game_mode', 'date', 'time', 'ctn_price', 'jackpot')->firstOrFail();
+
+        $roomConfig = BingoRoomConfig::where('room', $roomID)
+            ->select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')->firstOrFail();
+
+        if (!$mode) {
+
+
+            return response()->json(['room' => $room, 'config' => $roomConfig]);
+        } else {
+
+            $room = [];
+
+            return response()->json(['room' => $room]);
+        }
     }
 
     public function copy($id)

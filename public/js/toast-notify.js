@@ -12,12 +12,12 @@ const Toast = Swal.mixin({
     }
 });
 
-function showToast(icon, title, type = '') {
+function showToast(text, icon = 'success', type = '') {
     if (!toastInExecution) {
         toastInExecution = true;
         Toast.fire({
             icon: icon,
-            title: title
+            title: text
         }).then((result) => {
             if (result.isConfirmed && type == 2) {
                 setTimeout(() => {

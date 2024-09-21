@@ -64,11 +64,9 @@ trait PlayerLinkTrait
     public function getPlayerGameLink($commerceID, $PJLink, $allForOne)
     {
         $baseRoute = $this->getRouteRKE() . "bingocash/";
-        $code = Commerce::getValueById($commerceID, 'code_rke');
 
-        if (!$code) { // Si no existe codigo RKE
-            $code = Commerce::getValueById($commerceID, 'code_uuid');
-        }
+        $code = Commerce::getValueById($commerceID, 'code_rke') ??
+            Commerce::getValueById($commerceID, 'code_uuid');
 
         return $baseRoute . ($allForOne == 0 ? "comm/$code/$PJLink" : $PJLink);
     }

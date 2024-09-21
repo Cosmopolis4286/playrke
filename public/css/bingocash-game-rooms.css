@@ -273,14 +273,14 @@ input[type=number] {
     position: relative;
     cursor: pointer;
     width: 228px;
-    padding: 5px;
-    box-shadow: 0px 4px 14px 0px rgba(34, 88, 204, 0.493);
-    border-radius: 16px;
+    padding: 4.5px;
+    /* box-shadow: 0px 4px 14px 0px rgba(34, 88, 204, 0.493); */
+    border-radius: 14px;
     background: linear-gradient(180deg, #2af598 0%, #009efd 100%);
     /* Efecto Pulso */
     /* animation: pulse;
-                                                                                                                                                                                                                                animation-duration: 1.6s;
-                                                                                                                                                                                                                                animation-iteration-count: infinite; */
+    animation-duration: 1.6s;
+    animation-iteration-count: infinite; */
 }
 
 .card-game-room__time {
@@ -346,6 +346,18 @@ input[type=number] {
     border-top-left-radius: 10%;
     border-top-right-radius: 10%;
     width: 100%;
+    background-color: rgb(216, 236, 255) !important;
+}
+
+.container-card-game-room__jackpot {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+    background-color: rgb(216, 236, 255) !important;
 }
 
 .card-game-room__jackpot-text {

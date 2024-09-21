@@ -15,10 +15,11 @@ class CreateCustomerUsersTable extends Migration
     {
         Schema::create('customer_users', function (Blueprint $table) {
             $table->id();
-            $table->string('user_id');
             $table->unsignedBigInteger('customer');
+            $table->string('user_id');
+            $table->string('token', 255);
             $table->string('country', 3)->nullable();
-            $table->string('coin', 10);
+            $table->string('coin', 15);
             $table->timestamp('first_entry');
             $table->timestamps();
 
