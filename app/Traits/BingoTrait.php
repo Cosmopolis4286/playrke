@@ -16,14 +16,11 @@ use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomUser;
 use App\Models\Coin;
 use App\Models\CoinGameRoom;
-use App\Models\Commerce;
 use App\Models\GameExchangeRate;
 use App\Models\ExchangeRate;
 use App\Models\PlayerLink;
 use App\Models\Seller;
-use App\Models\Transactions;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -329,9 +326,10 @@ trait BingoTrait
             'jackpot'
         )->where('status', 2)->where('id', $roomID)->first();
 
-        if (!$room) return redirect()->back();
+        if (!$room) return ['Error' => 'Sala no disponible'];
 
         try {
+
             $coin = $arrCtn['coin'];
             $numOfCtns = $arrCtn['numOfCtns'];
             $PJLink = $arrCtn['PJLink'] ?? null;
@@ -350,6 +348,7 @@ trait BingoTrait
                 // Conversión de Moneda para obtener valor de venta
                 $exchangeRate = ExchangeRate::getLastValueByCoin($coin);
                 $totalSaleCtns = $numOfCtns * $exchangeRate;
+
                 if ($seller) {
                     // Obtener o crear la comisión del vendedor para la sala
                     $commnSeller = SellerRoomLimits::getGameRoomValueBySeller(1, $seller, $roomID, 'commn');
@@ -384,22 +383,6 @@ trait BingoTrait
                 'ctns' => $numOfCtns,
                 'sale_amount' => $saleAmount ?? $totalAmountCtns,
             ]);
-
-            if ($customer) { // Si el proceso es de un cliente externo  
-                $customerResponse = $this->getUserBalanceFromCustomer($customer, decrypt(session('CUSTU')));
-
-                if (isset($customerResponse->Error)) {
-                    // Ocurrio un error inesperado
-                    DB::rollBack();
-                    return ['Error' => $customerResponse->Error];
-                }
-
-                if ($customerResponse->Data[0]->Amount < $totalAmountCtns) {
-                    // Validar saldo disponible
-                    DB::rollBack();
-                    return ['Error' => 'Saldo insuficiente'];
-                }
-            }
 
             $lotID = $ctnsLot->id; // ID de Lote de Cartones
 
@@ -562,31 +545,6 @@ trait BingoTrait
                 if (!$transaction) {
                     DB::rollBack();
                     return ['Error' => 'Error al registrar la transacción'];
-                }
-
-                $userToken = decrypt(session('CUSTU'));
-                $coinClientUser = decrypt(session('CCCUSTU'))[1];
-
-                // Enviar informacion al cliente afiliado por una url externa
-                $transactionResponse = $this->transferMoney(
-                    $customer,
-                    $userToken,
-                    $transaction[0],
-                    $coinClientUser,
-                    $totalAmountCtns,
-                    $transaction[1],
-                    'BET',
-                    'BingoCash'
-                );
-
-                if (isset($transactionResponse->Error) && $transactionResponse->Error) {
-                    DB::rollBack();
-                    return ['Error' => $transactionResponse->Error];
-                }
-
-                if ($transactionResponse) {
-                    // Cambiar status si la respuesta es exitosa
-                    Transactions::where('code', $transaction[1])->update(['status' => 1]);
                 }
             }
 
@@ -820,9 +778,6 @@ trait BingoTrait
 
                 if ($customer) {
 
-                    $userToken = decrypt(session('CUSTU'));
-                    $coinClientUser = decrypt(session('CCCUSTU'))[1];
-
                     foreach ($playerCtn as $ctn) {
 
                         $roomUUID = BingoRoom::getValueById($roomID, 'code_uuid');
@@ -840,26 +795,6 @@ trait BingoTrait
                             DB::rollBack();
                             return ['Error' => 'Error al registrar la transacción'];
                         }
-
-                        // Enviar informacion al cliente afiliado por una url externa
-                        $transactionResponse = $this->transferMoney(
-                            $customer,
-                            'BingoCash',
-                            $userToken,
-                            $roomUUID,
-                            $coinClientUser,
-                            $prizeWn,
-                            $transaction[1],
-                            'WIN',
-                            'Pruebas Bingo'
-                        );
-
-                        if ($transactionResponse->Error) {
-                            return ['Error' => $transactionResponse->Error];
-                            DB::rollBack();
-                        }
-                        // Cambiar status si la respuesta es exitosa
-                        Transactions::where('id', $transaction[0])->update(['status' => 1]);
                     }
                 }
             }
@@ -896,7 +831,7 @@ trait BingoTrait
     {
         // Obtener la información de la sala
         $room = BingoRoom::with('Config')
-            ->select('id', 'jackpot', 'jackpot_prize', 'serial_prize')
+            ->select('id', 'customer', 'jackpot', 'jackpot_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 
         // Verificar si ya hay ganadores del premio mayor
@@ -992,6 +927,7 @@ trait BingoTrait
 
             // Crear registros de ganadores y actualizar el estado de los jugadores
             $registerPrizeCtn = $this->registerPrizeCtn($roomID, $playerCtn, 1, $USDPrize);
+
             if (!$registerPrizeCtn) DB::rollBack();
 
             // Generar seriales ganadores si hay jugadores no ganadores
@@ -1008,6 +944,9 @@ trait BingoTrait
             // Devolver un mensaje de error
             return response()->json(['error' => 'Hubo un error al procesar la solicitud.'], 500);
         }
+
+        // Validar Transacciones
+        if ($room->customer) $this->validateTransaction($room->customer);
     }
 
     public function getWinnersJackpot($roomID, $column, $value)
@@ -1077,17 +1016,27 @@ trait BingoTrait
     public function handleSerialWinners($room) // Obtener Seriales Ganadores
     {
         $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($room, 2);
+
         if ($getWinners) return false;
 
         $chpVn = BingoDraw::where('room', $room)->where('status', 1)->value('id');
 
         $chipSrt = BingoDraw::where('room', $room)->where('id', '<', $chpVn)->pluck('chip')->toArray();
-        $ctnsPlayer = BingoCtns::where('room', $room)->get();
+
+        // Definir nombre de columna con respecto al usuario creador de la sala
+        $column = BingoRoom::getValueById($room, 'customer') ? 'player_user' : 'player_link';
+
+        // Obtener los IDs del los jugadores ganadores del Jackpot
+        $jackpotWinners = BingoPrizeCtns::getWinnersIDsByPrizeType($room, 1, $column);
+
+        // Filtrar los  cartones excluyendo los cartones de los ganadores del jackpot
+        $ctnsPlayer = BingoCtns::where('room', $room)->whereNotIn($column, $jackpotWinners)->get();
 
         $countSerials = BingoRoomConfig::getValueByRoom($room, 'num_serials');
 
         // Filtrar los registros en $ctnsPlayer que contienen $chpVn->chip y tienen 23 aciertos
         $filteredCtns = $ctnsPlayer->filter(function ($ctn) use ($chipSrt, $room, $countSerials) {
+
             static $countCtns = 0; // Contador estático para el número de cartones
             static $uniquePlayers = [];
             $playerId = $ctn->player_link;
@@ -1124,14 +1073,13 @@ trait BingoTrait
 
             $aciertos = array_intersect($ctnFull, $chipSrt);
 
-            $existsPrizeCtn = BingoPrizeCtns::existsPrizeCtn($room, 1, $playerId);
-
             // Incrementar el contador de cartones si hay 23 aciertos en el cartón actual
-            if (count($aciertos) === 23 && !in_array($playerId, $uniquePlayers) && !$existsPrizeCtn) {
+            if (count($aciertos) === 23 && !in_array($playerId, $uniquePlayers)) {
                 $uniquePlayers[] = $playerId;
                 $countCtns++;
                 return true;
             }
+
             return false;
         });
 
@@ -1143,6 +1091,7 @@ trait BingoTrait
             ->where('room', $room)->get(['id', 'commerce', 'seller', 'player_user', 'player_link', 'coin', 'lot']);
 
         $USDPrize = BingoRoom::getSerialPrize($room) / count($arrSerialsPlayers);
+
         try {
             $registerPrizeCtn = $this->registerPrizeCtn($ctnSerials, 2, $USDPrize, $room);
             if (!$registerPrizeCtn) DB::rollBack();

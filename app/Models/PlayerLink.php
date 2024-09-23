@@ -19,7 +19,8 @@ class PlayerLink extends Model
     'name',
     'lastname',
     'identification',
-    'phone'
+    'phone',
+    'purchase_code'
   ];
 
   public function Country()

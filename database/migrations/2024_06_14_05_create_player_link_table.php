@@ -27,6 +27,7 @@ class CreatePlayerLinkTable extends Migration
             $table->string('lastname', 20);
             $table->string('identification', 12)->nullable();
             $table->string('phone', 14);
+            $table->unsignedBigInteger('purchase_code');
             $table->timestamps();
 
             // Foreign keys
@@ -37,6 +38,7 @@ class CreatePlayerLinkTable extends Migration
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('subsidiary')->references('id')->on('subsidiaries');
             $table->foreign('seller')->references('id')->on('sellers');
+            $table->foreign('purchase_code')->references('id')->on('user_purchase_codes');
         });
     }
 

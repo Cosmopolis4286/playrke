@@ -16,7 +16,9 @@ return new class extends Migration
             $table->string('name', 20);
             $table->string('lastname', 20);
             $table->unsignedBigInteger('country');
-            $table->string('whatsapp_phone', 14);
+            $table->string('phone', 14);
+            $table->string('code', 8);
+            $table->string('status', 12);
             $table->timestamps();
 
             $table->foreign('country')->references('id')->on('countries');

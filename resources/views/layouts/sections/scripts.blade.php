@@ -19,10 +19,11 @@
 <script>
     if ("{{ Session::has('message') }}") {
         const message = {!! json_encode(Session::get('message')) !!};
+        const type = {!! json_encode(Session::get('type')) !!} || 'success';
         const html = `<div style="font-size: 15px;">${message}</div>`;
-        showToast(html);
+        showToast(html, type);
     }
-    
+
     $(document).on('click', '#change-password', function() {
         $('#modal-change-password').modal('show');
     });

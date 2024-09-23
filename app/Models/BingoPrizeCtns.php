@@ -95,14 +95,19 @@ class BingoPrizeCtns extends Model
         return self::select($fields)->where('ctn', $ctnId)->first();
     }
 
-    public static function existsPrizeCtn($room, $prizeType, $column, $playerLink)
+    public static function existsPrizeCtn($room, $prizeType, $column, $value)
     {
-        return self::where(['room' => $room, 'prize_type' => $prizeType, $column => $playerLink])->exists();
+        return self::where(['room' => $room, 'prize_type' => $prizeType, $column => $value])->exists();
     }
 
     public static function getValueById($ctnId, $value)
     {
         return self::where('ctn', $ctnId)->value($value);
+    }
+
+    public static function getWinnersIDsByPrizeType($room, $prizeType, $colum)
+    {
+        return self::where(['room' => $room, 'prize_type' => $prizeType])->pluck($colum);
     }
 
     public static function getWinnersCountByPrizeType($room, $prizeType)

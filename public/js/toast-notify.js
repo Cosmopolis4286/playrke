@@ -12,21 +12,22 @@ const Toast = Swal.mixin({
     }
 });
 
-function showToast(text, icon = 'success', type = '') {
-    if (!toastInExecution) {
-        toastInExecution = true;
-        Toast.fire({
-            icon: icon,
-            title: text
-        }).then((result) => {
-            if (result.isConfirmed && type == 2) {
-                setTimeout(() => {
-                    showToast('warning', '¡Gracias por participar!', 3);
-                }, 2800);
-            }
-            toastInExecution = false;
-        });
-    }
+function showToast(text, icon, type = '') {
+
+    if (toastInExecution) return false;
+
+    toastInExecution = true;
+    Toast.fire({
+        icon: icon,
+        title: text
+    }).then((result) => {
+        if (result.isConfirmed && type == 2) {
+            setTimeout(() => {
+                showToast('warning', '¡Gracias por participar!', 3);
+            }, 2800);
+        }
+        toastInExecution = false;
+    });
 }
 
 function showToastOptionBtns(text, icon, confirmButtonText, form, routeTemplate, encryptedId) {

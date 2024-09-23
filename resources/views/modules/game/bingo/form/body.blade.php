@@ -40,7 +40,7 @@
     {{-- @endisset --}}
     <div class="form-group col-sm-6 col-md-4">
         <label for="val-serials">%Seriales</label>
-        <input type="number" value="5" min="5" max="12" id="val-serials" name="val_serials"
+        <input type="number" value="2" min="2" max="15" step="0.05" id="val-serials" name="val_serials"
             class="form-control form-info" placeholder="Ingrese valor" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
@@ -51,7 +51,7 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="commerce-commission">%Comercio*</label>
         <input type="number" id="commerce-commission" name="room_commission" class="form-control form-info"
-            placeholder="%Com" required value="20" step="0.05" min="20" max="45">
+            placeholder="%Com" required value="15" step="0.05" min="15" max="50">
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="jackpot-type">Tipo Bote*</label>

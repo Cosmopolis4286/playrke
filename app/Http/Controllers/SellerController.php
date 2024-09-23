@@ -432,15 +432,15 @@ class SellerController extends Controller
             'numOfCtns' => $request->num_ctns ?? 0
         ];
 
-        $resRoute = $this->handleCartonStore($data);
+        $response = $this->handleCartonStore($data);
 
-        if ($resRoute) {
+        if (!$response['Error']) {
             Session::flash('message', 'Proceso efectuado con exito');
-            Session::flash('PJLink',  $resRoute);
+            Session::flash('PJLink',  $response);
 
             return redirect()->back();
         } else {
-            return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
+            return redirect()->back()->with('message', "Ha ocurrido un error: {$response['Error']}")->with('type', 'warning');
         }
     }
 

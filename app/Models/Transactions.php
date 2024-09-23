@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Transactions extends Model
 {
     protected $table = "transactions";
-    protected $fillable = ['customer', 'user_id', 'game', 'game_mode', 'bet_id', 'code', 'transaction_type', 'coin', 'amount', 'status'];
+    protected $fillable = ['customer', 'user_id', 'game', 'game_mode', 'bet_id', 'code', 'transaction_type', 'coin', 'amount', 'status', 'processing_data'];
 
     public static function getValueByCode($code, $value)
     {

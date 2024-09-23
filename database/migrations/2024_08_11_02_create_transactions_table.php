@@ -25,6 +25,7 @@ class CreateTransactionsTable extends Migration
             $table->string('coin', 15);
             $table->double('amount');
             $table->boolean('status')->default(0);
+            $table->timestamp('processing_data')->nullable();
             $table->timestamps();
 
             $table->foreign('customer')->references('id')->on('customers')->onDelete('restrict')->onUpdate('cascade');

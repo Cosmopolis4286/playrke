@@ -25,6 +25,7 @@ use App\Models\PlayerLink;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
+use App\Models\Transactions;
 use App\Models\User;
 use App\Models\UserType;
 use App\Traits\BingoTrait;
@@ -172,10 +173,27 @@ class BingoController extends Controller
             $userTypeVal = decrypt($request->user_type_val);
 
             if ($userType == 'customer') {
+
+                $userToken = decrypt(session('CUSTU'));
+                $coin = decrypt(session('CCCUSTU'))[1];
+
+                $customerResponse = $this->getUserBalanceFromCustomer($userTypeVal, $userToken, $coin);
+
+                if (isset($customerResponse->Error)) {
+                    return ['Error' => $customerResponse->Error];
+                }
+
+                $room = BingoRoom::getRoomByEncrypted($data['room'], ['id', 'ctn_price']);
+
+                $roomId = $room->id;
+
+                if ($customerResponse->Data[0]->Amount < $data['numOfCtns'] * $room->ctn_price) {
+                    // Validar saldo disponible
+                    return redirect()->back()->with('message', 'Saldo insuficiente')->with('type', 'warning');
+                }
+
                 $data['customer'] = $userTypeVal;
                 $data['playerUser'] = decrypt($request->player) ?? null;
-                $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
-                $coin = session('coin');
             } else {
                 $data['commerce'] = $userTypeVal;
                 $data['PJLink'] =  $request->player ?? null;
@@ -196,10 +214,22 @@ class BingoController extends Controller
         $cartonStore = $this->handleCartonStore($data);
 
         if (!isset($cartonStore['Error'])) {
+
+            if ($userType == 'customer') {
+                DB::beginTransaction();
+                try {
+                    // Validar transacciones del cliente
+                    $this->validateTransaction($userTypeVal);
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    Log::error('Ha ocurrido un error: ' . $e->getMessage());
+                }
+            }
+
             $jackpot = $this->convertPrizeValue($roomId, $coin);
             return response()->json(['jackpot' => $jackpot, 'msg_type' => 'info', 'message' => 'Proceso efectuado con exito']);
         } else {
-            return response()->json(['msg_type' => 'warning', 'message' => 'Ha ocurrido un error' . ' ' . $cartonStore['Error']]);
+            return response()->json(['msg_type' => 'warning', 'message' => "Ha ocurrido un error: {$cartonStore['Error']}"]);
         }
     }
 
@@ -705,6 +735,14 @@ class BingoController extends Controller
         $id = decrypt($id);
         $room = BingoRoom::findOrFail($id);
 
+        $newDate = $request->date;
+        $newTime = $request->time;
+        $unixDate = strtotime("{$newDate} {$newTime}");
+
+        if ($unixDate < time()) {
+            return redirect()->back()->with('message', 'Fecha/Hora no disponible')->with('type', 'warning');
+        }
+
         DB::beginTransaction();
 
         try {
@@ -713,8 +751,8 @@ class BingoController extends Controller
             $coin = $request->coin ?? 1;
 
             $updateData = [
-                'date' => $request->date,
-                'time' => $request->time,
+                'date' => $newDate,
+                'time' => $newTime,
                 'country' => $country,
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,

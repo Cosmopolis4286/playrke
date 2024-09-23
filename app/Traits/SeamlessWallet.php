@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\CustomerGames;
 use App\Models\Games;
 use App\Models\Transactions;
+use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
 
@@ -236,7 +237,8 @@ trait SeamlessWallet
 
         foreach ($transactions as $item) {
             // Obtener Identificador del Juego con respecto al cliente
-            $gameID = 1;
+            $gameID = CustomerGames::getCustomerGameID($customer, $item->game);
+
             // Enviar informacion al cliente afiliado por una url externa
             $transactionResponse = $this->transferMoney(
                 $customer,
@@ -250,13 +252,12 @@ trait SeamlessWallet
             );
 
             if (isset($transactionResponse->Error) && $transactionResponse->Error) {
-                return ['Error' => $transactionResponse->Error];
+                Log::error("Error al procesar la transacion: '{$item->id}': {$transactionResponse->Error}");
             }
 
             if ($transactionResponse) {
                 // Cambiar status si la respuesta es exitosa
-                Transactions::where('code', $item->id)->update(['status' => 1]);
-                return true;
+                Transactions::where('code', $item->id)->update(['status' => 1, 'processing_data' => Carbon::now('America/Caracas')]);
             }
         }
     }
