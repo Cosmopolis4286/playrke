@@ -25,8 +25,8 @@ return new class extends Migration
             $table->string('logo', 35)->nullable();
             $table->string('link_route', 255)->nullable();
             $table->string('token', 36)->nullable();
-            $table->string('customer_key', 255)->nullable();
-            $table->string('security_key', 288)->nullable();
+            $table->text('customer_key')->nullable();
+            $table->text('security_key')->nullable();
             $table->boolean('status')->default(0);
             $table->timestamps();
 

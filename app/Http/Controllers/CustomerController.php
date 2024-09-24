@@ -217,12 +217,12 @@ class CustomerController extends Controller
                 Session::flash('message', 'La información fue actualizada correctamente');
             } else {
                 // Manejar caso donde no se encuentra el cliente
-                Session::flash('error', 'No se encontró el cliente');
+                Session::flash('msg-error', 'No se encontró el cliente');
             }
         } catch (\Exception $e) {
             DB::rollBack();
             // Captura cualquier excepción lanzada durante el proceso de actualización
-            Session::flash('error', 'Hubo un problema al actualizar la información del cliente: ' . $e->getMessage());
+            Session::flash('msg-error', 'Hubo un problema al actualizar la información del cliente: ' . $e->getMessage());
         }
 
         return redirect()->back();

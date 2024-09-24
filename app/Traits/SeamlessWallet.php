@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Models\Customer;
 use App\Models\CustomerGames;
+use App\Models\CustomerUser;
 use App\Models\Games;
 use App\Models\Transactions;
 use Carbon\Carbon;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Log;
 
 trait SeamlessWallet
 {
+    use CustomerTrait;
+
     private function getCustomerKey($customerID)
     {
         $customer = Customer::getById($customerID, ['customer_key', 'security_key']);
@@ -87,7 +90,7 @@ trait SeamlessWallet
 
         // Realizar la solicitud HTTP POST con tiempos de espera extendidos
         try {
-            $response = $client->post("http://{$linkRoute}/{$action}", [
+            $response = $client->post("{$linkRoute}/{$action}", [
                 'headers' => $headers,
                 'body' => $dataJson,
                 'timeout' => 30,           // Tiempo máximo de espera de la respuesta en segundos
@@ -98,6 +101,7 @@ trait SeamlessWallet
             return json_decode($response->getBody()->getContents());
         } catch (\Exception $e) {
             // Manejar errores
+            dd($e->getMessage());
             Log::error('Error en la solicitud HTTP: ' . $e->getMessage());
             return null;
         }
@@ -164,28 +168,7 @@ trait SeamlessWallet
 
         return $response;
     }
-
-    public function handleCustomerUserSession($customerID, $userToken)
-    {
-        $customerResponse = $this->getUserInfoFromCustomer($customerID, $userToken);
-
-        if (isset($customerResponse->Error)) {
-            return ['Error' => $customerResponse->Error];
-        }
-
-        // Crear la variable de sesión 'CustomerUser'
-        session()->put('CUSTU', encrypt([$customerResponse->Data->ID, $userToken]));
-        session()->put(
-            'CCCUSTU',
-            encrypt([
-                $customerResponse->Data->Country,
-                $customerResponse->Data->DefaultCurrencyCode
-            ])
-        );
-
-        return true;
-    }
-
+  
     public function getTransaction($game, $customerID, $user)
     {
         // Obtener la marca de tiempo fuera del bucle

@@ -20,7 +20,7 @@ class CreateCustomerUsersTable extends Migration
             $table->string('token', 255);
             $table->string('country', 3)->nullable();
             $table->string('coin', 15);
-            $table->timestamp('first_entry');
+            $table->timestamp('last_activity');
             $table->timestamps();
 
             $table->foreign('customer')->references('id')->on('customers')->onDelete('cascade')->onUpdate('cascade');

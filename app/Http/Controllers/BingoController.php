@@ -25,9 +25,6 @@ use App\Models\PlayerLink;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
-use App\Models\Transactions;
-use App\Models\User;
-use App\Models\UserType;
 use App\Traits\BingoTrait;
 use App\Traits\CustomerTrait;
 use App\Traits\Filters;
@@ -35,10 +32,8 @@ use App\Traits\GameTrait;
 use App\Traits\RouteRKE;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
 
 class BingoController extends Controller
 {
@@ -141,16 +136,16 @@ class BingoController extends Controller
     public function gamesRoomsCustomer($customerToken, $userToken, $coin = '')
     {
         // Vista para todas las salas disponibles o en juego de un cliente 
-        $response = $this->validateCustomer($customerToken, $userToken);
+        $customer = $this->validateCustomer($customerToken, $userToken);
 
-        if (isset($response['Error'])) {
-            return response()->json(['message' => $response['Error']], 404);
+        if (isset($customer['Error'])) {
+            return response()->json(['message' => $customer['Error']], 404);
         }
 
-        if (!$coin) $coin = decrypt(session('CCCUSTU'))[0];
+        if (!$coin) $coin = CustomerUser::getValueByToken($customer, $userToken, 'coin');
 
         // Obtener informacion de la vista del cliente
-        $viewData = self::getGamesRoomsView('customer', $response, $coin);
+        $viewData = self::getGamesRoomsView('customer', $customer, $coin);
 
         // Retorna a vista con la informacion del cliente
         return $viewData ? view($viewData[0])->with($viewData[1])
@@ -243,20 +238,12 @@ class BingoController extends Controller
             case 'customer':
 
                 $customer = $data['customer'];
-                $playerUser = decrypt(session('CUSTU'))[0];
-                $countryCoin = decrypt(session('CCCUSTU'));
 
-                $coinID = $countryCoin[1];
+                $user = CustomerUser::getByToken($customer, $data['userToken'], ['id', 'coin']);
+
+                $playerUser = $user->id;
+                $coinID = $user->coin;
                 $coinSym = $coinID;
-
-                if (!CustomerUser::existsUserByCustomer($customer, $playerUser)) {
-                    $this->registerUserByCustomer(
-                        $customer,
-                        $playerUser,
-                        $countryCoin[0],
-                        $coinID
-                    );
-                }
 
                 // Obtener informacion de Sala
                 $room = BingoRoom::where('customer', $customer)->where('encrypted', $data['room'])
@@ -427,6 +414,7 @@ class BingoController extends Controller
     public function inGameCustomer($customerToken, $userToken, $room, $dateFilter = 'today')
     {
         // Vista para el juego de un cliente especifico
+
         // Validar Informacion de cliente-user y crear variabales de session
         $response = $this->validateCustomer($customerToken, $userToken);
 
@@ -437,7 +425,8 @@ class BingoController extends Controller
         // Obtener informacion de la vista del cliente
         $viewData = self::getGameInfo('customer', [
             'customer' => $response,
-            'room' => $room
+            'room' => $room,
+            'userToken' => $userToken
         ], $dateFilter);
 
         // Retorna a vista con la informacion del cliente
