@@ -27,6 +27,7 @@
 
 @section('scripts')
     <script src="{{ asset('js/crypto-js.min.js') }}"></script>
+    <script src="{{ asset('js/time-functions.js') }}"></script>
     <script>
         const preRoute = '{{ asset('') }}';
         const encrypted = '<?php echo $room->encrypted; ?>';
@@ -39,7 +40,7 @@
         const startTime = Number('<?php echo $startTime; ?>');
         const encrypt = JSON.parse('<?php echo json_encode($encrypt); ?>');
         const soundNext = $('#next')[0];
-        const soundWin = $("#winner")[0];
+        const soundWin = $('#winner')[0];
         const images = [];
         const restChips = JSON.parse('<?php echo json_encode($chipsRest); ?>');
         var lastSixChips = JSON.parse('<?php echo json_encode($lastSixChips); ?>');
@@ -52,6 +53,7 @@
         soundWin.muted = true;
     </script>
     <script src="{{ asset('js/games/bingo/auto-marked.js') }}"></script>
+    {{-- <script src="{{ asset('js/game-bingo.js') }}"></script> --}}
     <script>
         var loaderChip = true;
         var loadTimeServ = false;
@@ -78,11 +80,6 @@
             if (evt.target.tagName.toLowerCase() === 'img') {
                 evt.preventDefault();
             }
-        });
-
-        document.addEventListener("keydown", (e) => {
-            e.preventDefault();
-            if (e.keyCode === 123) return false;
         });
 
         // document.addEventListener("contextmenu", e => e.preventDefault());
@@ -182,7 +179,9 @@
                         )
                     );
                 });
+
                 autoMarked();
+
                 if (status == 3) processChips();
 
                 resolve(); // Resuelve la promesa
@@ -331,7 +330,7 @@
                     }
                 }, 1000);
             }
-            if (status < 3) {
+            if (status == 2) {
                 // Mostrar el modal si el estado de la sala es menor a 3
                 $('#modal-info-draw-title').text(convertAndDisplay(startTime));
                 $("#modal-info-draw").modal('show');
@@ -530,7 +529,6 @@
             }
         });
     </script>
-    <script src="{{ asset('js/time-functions.js') }}"></script>
     @if ($room->status > 2)
         <script src="{{ asset('js/crypt.js') }}"></script>
         <script>
@@ -657,5 +655,4 @@
             });
         </script>
     @endif
-    {{-- <script src="{{ asset('js/game-bingo.js') }}"></script> --}}
 @endsection

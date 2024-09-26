@@ -188,7 +188,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'seller', 'as' =
 //Vendedor/Agencia/Taquilla
 Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 'seller.'], function () {
     Route::get('bingocash/carton/generate', [SellerController::class, 'cartonGenerate'])->name('cartonGenerate');
-    Route::post('bingocash/carton/generate/store', [SellerController::class, 'generateCarton'])->name('generateCarton');
+    Route::post('bingocash/carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
     Route::get('bingocash/carton/get/price/{roomID}', [SellerController::class, 'getCtnPrice'])->name('getCtnPrice');
     Route::get('bingocash/get/exchange-rate/{country}', [SellerController::class, 'getExchangeRate'])->name('getExchangeRate');
     Route::post('bingocash/player/get/player', [SellerController::class, 'getPlayer'])->name('getPlayer');

@@ -416,34 +416,6 @@ class SellerController extends Controller
         }
     }
 
-    public function generateCarton(Request $request)
-    {
-        if (!$request->room) {
-            return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
-        }
-
-        $data = [
-            'room' => $request->room ?? null,
-            'seller' => true,
-            'country' => $request->country ?? null,
-            'playerPhone' => $request->phone ?? null,
-            'playerName' => $request->name ?? null,
-            'playerLastname' => $request->last_name ?? null,
-            'numOfCtns' => $request->num_ctns ?? 0
-        ];
-
-        $response = $this->handleCartonStore($data);
-
-        if (!$response['Error']) {
-            Session::flash('message', 'Proceso efectuado con exito');
-            Session::flash('PJLink',  $response);
-
-            return redirect()->back();
-        } else {
-            return redirect()->back()->with('message', "Ha ocurrido un error: {$response['Error']}")->with('type', 'warning');
-        }
-    }
-
     public function getPaymentCommerceDetails($coin)
     {
         try {

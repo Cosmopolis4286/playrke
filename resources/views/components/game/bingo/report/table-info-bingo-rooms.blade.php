@@ -94,7 +94,16 @@
                                     data-type="2" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i> </button>
                                 @if ($room->status == 1)
-                                    @if (strtotime("{$room->date} {$room->time}") > time())
+                                    @php
+                                        $roomDateTime = \Carbon\Carbon::createFromFormat(
+                                            'Y-m-d H:i',
+                                            "{$room->date} {$room->time}",
+                                            'America/Caracas',
+                                        );
+                                        $currentDateTime = \Carbon\Carbon::now('America/Caracas');
+                                    @endphp
+
+                                    @if ($roomDateTime->greaterThan($currentDateTime))
                                         <button class="btn-{{ $name }} btn btn-sm btn-success" data-type="5"
                                             data-id="{{ encrypt($room->id) }}" title="Publicar">
                                             <i class="fa-solid fa-circle-up"></i>

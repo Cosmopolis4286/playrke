@@ -34,6 +34,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 class BingoController extends Controller
 {
@@ -204,6 +205,12 @@ class BingoController extends Controller
                     $data['playerLastname'] = $request->last_name ?? null;
                 }
             }
+        } else {
+            $data['seller'] = true;
+            $data['country'] = $request->country ?? null;
+            $data['playerPhone'] = $request->phone ?? null;
+            $data['playerName'] = $request->name ?? null;
+            $data['playerLastname'] = $request->last_name ?? null;
         }
 
         $cartonStore = $this->handleCartonStore($data);
@@ -221,8 +228,14 @@ class BingoController extends Controller
                 }
             }
 
-            $jackpot = $this->convertPrizeValue($roomId, $coin);
-            return response()->json(['jackpot' => $jackpot, 'msg_type' => 'info', 'message' => 'Proceso efectuado con exito']);
+            if (isset($userType)) {
+                $jackpot = $this->convertPrizeValue($roomId, $coin);
+                return response()->json(['jackpot' => $jackpot, 'msg_type' => 'info', 'message' => 'Proceso efectuado con exito']);
+            } else {
+                Session::flash('message', 'Proceso efectuado con exito');
+                Session::flash('PJLink',  $cartonStore);
+                return redirect()->back();
+            }
         } else {
             return response()->json(['msg_type' => 'warning', 'message' => "Ha ocurrido un error: {$cartonStore['Error']}"]);
         }
@@ -232,7 +245,7 @@ class BingoController extends Controller
     {
         date_default_timezone_set('America/Caracas');
 
-        $valColumnData = null;
+        $columnVal = null;
 
         switch ($type) {
             case 'customer':
@@ -254,13 +267,13 @@ class BingoController extends Controller
 
                 $roomId = $room->id;
 
-                $columnData = 'player_user';
-                $valColumnData = CustomerUser::getValueByUserId($customer, $playerUser, 'id');
+                $columnName = 'player_user';
+                $columnVal = CustomerUser::getValueByUserId($customer, $playerUser, 'id');
                 $sellerType = 'rke';
 
                 $moreViewData = [
                     'custLogo' => Customer::getValueById($customer, 'logo'),
-                    'player' => encrypt($valColumnData)
+                    'player' => encrypt($columnVal)
                 ];
 
                 if ($room->status == 2) {
@@ -275,14 +288,14 @@ class BingoController extends Controller
             case 'commerce':
 
                 $moreViewData = [];
-                $columnData = 'player_link';
+                $columnName = 'player_link';
 
                 if (isset($data['PJLink'])) {
                     $roomId = PlayerLink::getValueByLink($data['PJLink'], 'room');
 
                     $player = PlayerLink::select('id', 'country', 'link')->where('room', $roomId)->first();
 
-                    $valColumnData = $player->id;
+                    $columnVal = $player->id;
 
                     $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
 
@@ -292,10 +305,15 @@ class BingoController extends Controller
                     $moreViewData['player'] = $player->link;
                 } else {
                     $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
-                    $moreViewData['player'] = null;
-                    $moreViewData['saleLink'] = true;
                     $coinID = 1;
                     $coinSym = 'USDT';
+
+                    $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($data['commerce'], 1);
+                    $coinsAvailable = Coin::getCoinsById($commerceCoinsAvailable, ['id', 'symbol', 'long_name']);
+
+                    $moreViewData['player'] = null;
+                    $moreViewData['saleLink'] = true;
+                    $moreViewData['coinsAvailable'] = $coinsAvailable;
                 }
 
                 $room = BingoRoom::getRoomById($roomId, ['status', 'all_for_one', 'ctn_price']);
@@ -331,12 +349,12 @@ class BingoController extends Controller
         // Obtener valor formateado del bote
         $jackpot = $this->convertPrizeValue($roomId, $coinID);
 
-        if ($valColumnData) {
+        if ($columnVal) {
             // Obtener Cartones del jugador
-            $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, $columnData, $valColumnData);
+            $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, $columnName, $columnVal);
         }
 
-        $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $valColumnData, $columnData) : [];
+        $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $columnVal) : [];
 
         $vanDraw = ($room->status > 2) ?
             BingoDraw::where(['room' => $roomId, 'win' => 1])->select('id', 'chip')->first() : [];
@@ -506,10 +524,10 @@ class BingoController extends Controller
         return ['', '', time()];
     }
 
-    public function getResult($room, $value, $column = '')
+    public function getResult($room, $columnVal)
     {
         // Obtener la información de los ganadores
-        $winnersInfo = self::getInfoWinners($room, $column, $value);
+        $winnersInfo = self::getInfoWinners($room, $columnVal);
 
         // Encriptar los datos de los ganadores
         $encryptedData = self::encryptData($winnersInfo, env('JSON_ENCRYPTION_KEY'));

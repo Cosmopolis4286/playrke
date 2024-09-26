@@ -62,10 +62,12 @@
                                             <sapn class="input-group-text" for="coin">Moneda</span>
                                         </div>
                                         <select class="custom-select" id="coin">
-                                            <option selected>Seleccione</option>
-                                            <option value="1">One</option>
-                                            <option value="2">Two</option>
-                                            <option value="3">Three</option>
+                                            <option selected>Seleccionar</option>
+                                            @foreach ($coinsAvailable as $item)
+                                                <option value="{{ $item->id }}">
+                                                    {{ $item->long_name }} ({{ $item->symbol }})
+                                                </option>
+                                            @endforeach
                                         </select>
                                     </div>
                                 </div>
