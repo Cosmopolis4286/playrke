@@ -168,12 +168,13 @@ class BingoController extends Controller
             $userType = ($request->user_type == 'comm') ? 'commerce' : 'customer';
             $userTypeVal = decrypt($request->user_type_val);
 
+            $coin = decrypt($request->coin);
+
             if ($userType == 'customer') {
 
-                $userToken = decrypt(session('CUSTU'));
-                $coin = decrypt(session('CCCUSTU'))[1];
+                $token = decrypt($request->token);
 
-                $customerResponse = $this->getUserBalanceFromCustomer($userTypeVal, $userToken, $coin);
+                $customerResponse = $this->getUserBalanceFromCustomer($userTypeVal, $token, $coin);
 
                 if (isset($customerResponse->Error)) {
                     return ['Error' => $customerResponse->Error];
@@ -181,22 +182,19 @@ class BingoController extends Controller
 
                 $room = BingoRoom::getRoomByEncrypted($data['room'], ['id', 'ctn_price']);
 
-                $roomId = $room->id;
-
                 if ($customerResponse->Data[0]->Amount < $data['numOfCtns'] * $room->ctn_price) {
                     // Validar saldo disponible
-                    return redirect()->back()->with('message', 'Saldo insuficiente')->with('type', 'warning');
+                    return ['Error' => 'Saldo insuficiente'];
                 }
 
+                $roomId = $room->id;
                 $data['customer'] = $userTypeVal;
                 $data['playerUser'] = decrypt($request->player) ?? null;
             } else {
                 $data['commerce'] = $userTypeVal;
                 $data['PJLink'] =  $request->player ?? null;
 
-                $player = PlayerLink::getByLink($data['PJLink'], ['room', 'coin']);
-                $roomId = $player->room;
-                $coin = $player->coin;
+                $roomId = PlayerLink::getValueByLink($data['PJLink'], 'room');
 
                 if ($request->user_in_game) {
                     $data['country'] = $request->country ?? null;
@@ -217,18 +215,18 @@ class BingoController extends Controller
 
         if (!isset($cartonStore['Error'])) {
 
-            if ($userType == 'customer') {
-                DB::beginTransaction();
-                try {
-                    // Validar transacciones del cliente
-                    $this->validateTransaction($userTypeVal);
-                } catch (\Exception $e) {
-                    DB::rollBack();
-                    Log::error('Ha ocurrido un error: ' . $e->getMessage());
-                }
-            }
-
             if (isset($userType)) {
+                if ($userType == 'customer') {
+                    DB::beginTransaction();
+                    try {
+                        // Validar transacciones del cliente
+                        $this->validateTransaction($userTypeVal);
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        Log::error('Ha ocurrido un error: ' . $e->getMessage());
+                    }
+                }
+
                 $jackpot = $this->convertPrizeValue($roomId, $coin);
                 return response()->json(['jackpot' => $jackpot, 'msg_type' => 'info', 'message' => 'Proceso efectuado con exito']);
             } else {
@@ -252,12 +250,6 @@ class BingoController extends Controller
 
                 $customer = $data['customer'];
 
-                $user = CustomerUser::getByToken($customer, $data['userToken'], ['id', 'coin']);
-
-                $playerUser = $user->id;
-                $coinID = $user->coin;
-                $coinSym = $coinID;
-
                 // Obtener informacion de Sala
                 $room = BingoRoom::where('customer', $customer)->where('encrypted', $data['room'])
                     ->select('id', 'status', 'ctn_price')->whereIn('status', [2, 3, 4])->first();
@@ -267,13 +259,19 @@ class BingoController extends Controller
 
                 $roomId = $room->id;
 
+                $user = CustomerUser::getByToken($customer, $data['userToken'], ['id', 'coin']);
+
                 $columnName = 'player_user';
-                $columnVal = CustomerUser::getValueByUserId($customer, $playerUser, 'id');
+                $columnVal = $user->id;
+                $coinID = $user->coin;
+                $coinSym = $coinID;
+
                 $sellerType = 'rke';
 
                 $moreViewData = [
                     'custLogo' => Customer::getValueById($customer, 'logo'),
-                    'player' => encrypt($columnVal)
+                    'player' => encrypt($columnVal),
+                    'token' => encrypt($data['userToken'])
                 ];
 
                 if ($room->status == 2) {

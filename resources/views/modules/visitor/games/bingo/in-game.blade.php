@@ -541,6 +541,7 @@
         <script>
             let userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
             let coinID = '<?php echo json_encode($coinID); ?>';
+            let token = '<?php echo json_encode($token ?? null); ?>';
             let ctnPrice = Number('<?php echo $ctnPrice; ?>');
             let type = '<?php echo $sellerType; ?>';
             let info = false;
@@ -631,6 +632,8 @@
                         user_type: type,
                         user_type_val: userTypeVal,
                         player: player,
+                        token: token,
+                        coin: coinID,
                         num_ctns: $("#num-ctns").val()
                     },
                     beforeSend: function() {

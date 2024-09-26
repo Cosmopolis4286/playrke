@@ -30,7 +30,7 @@ $("form").on("submit", function () {
 function copyInfo(text, elem = false) {
     if (!elem) elem = $("#info-to-copy");
     navigator.clipboard.writeText(elem.val());
-    showToast('success', text);
+    showToast(text,'success');
 }
 
 function deleteSessionFlash(arr = []) {
