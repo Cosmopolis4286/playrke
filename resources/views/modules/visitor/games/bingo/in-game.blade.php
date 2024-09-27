@@ -107,7 +107,7 @@
                 $('#icon-volume').toggleClass('fa-volume-high fa-volume-xmark');
                 actSound = 1;
                 soundNext.muted = false;
-                showToast('info', '¡Sonido Activado!', 1);
+                showToast('¡Sonido Activado!', 'info', 1);
             }
         });
 
@@ -129,7 +129,7 @@
                 soundNext.muted = !soundNext.muted;
                 actSound = soundNext.muted ? 2 : 1;
 
-                showToast('info', soundNext.muted ? '¡Sonido Desactivado!' : '¡Sonido Activado!', 1);
+                showToast(soundNext.muted ? '¡Sonido Desactivado!' : '¡Sonido Activado!', 'info', 1);
 
                 $('#icon-volume').removeClass('fa-volume-high fa-volume-xmark')
                     .addClass(soundNext.muted ? 'fa-volume-xmark' : 'fa-volume-high');
@@ -541,7 +541,6 @@
         <script>
             let userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
             let coinID = '<?php echo json_encode($coinID); ?>';
-            let token = '<?php echo json_encode($token ?? null); ?>';
             let ctnPrice = Number('<?php echo $ctnPrice; ?>');
             let type = '<?php echo $sellerType; ?>';
             let info = false;
@@ -612,11 +611,11 @@
                 if (type == 'comm') {
                     if (!$("#purchase-code").val()) {
                         $("#purchase-code").focus();
-                        return showToast('warning', 'Ingrese el Código de Compra');
+                        return showToast('Ingrese el Código de Compra', 'warning');
                     }
 
                     if (!$("#payment-proof").val()) {
-                        return showToast('warning', 'Cargue el Comprobante');
+                        return showToast('Cargue el Comprobante', 'warning');
                     }
                 }
 
@@ -632,7 +631,6 @@
                         user_type: type,
                         user_type_val: userTypeVal,
                         player: player,
-                        token: token,
                         coin: coinID,
                         num_ctns: $("#num-ctns").val()
                     },
@@ -641,7 +639,7 @@
                     },
                     success: function(data) {
 
-                        showToast(data.msg_type, data.message);
+                        showToast(data.message, data.msg_type);
 
                         if (data.jackpot) {
                             $("#jackpot-amount").text(data.jackpot);

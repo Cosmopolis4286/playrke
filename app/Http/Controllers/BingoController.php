@@ -165,6 +165,7 @@ class BingoController extends Controller
         }
 
         if ($request->user_type) {
+
             $userType = ($request->user_type == 'comm') ? 'commerce' : 'customer';
             $userTypeVal = decrypt($request->user_type_val);
 
@@ -172,9 +173,11 @@ class BingoController extends Controller
 
             if ($userType == 'customer') {
 
-                $token = decrypt($request->token);
+                $player = decrypt($request->player);
 
-                $customerResponse = $this->getUserBalanceFromCustomer($userTypeVal, $token, $coin);
+                $user = CustomerUser::getById($userTypeVal, $player, ['user_id', 'token']);
+
+                $customerResponse = $this->getUserBalanceFromCustomer($userTypeVal, [$user->user_id, $user->token], $coin);
 
                 if (isset($customerResponse->Error)) {
                     return ['Error' => $customerResponse->Error];
@@ -189,7 +192,7 @@ class BingoController extends Controller
 
                 $roomId = $room->id;
                 $data['customer'] = $userTypeVal;
-                $data['playerUser'] = decrypt($request->player) ?? null;
+                $data['playerUser'] = $player ?? null;
             } else {
                 $data['commerce'] = $userTypeVal;
                 $data['PJLink'] =  $request->player ?? null;
@@ -216,6 +219,7 @@ class BingoController extends Controller
         if (!isset($cartonStore['Error'])) {
 
             if (isset($userType)) {
+
                 if ($userType == 'customer') {
                     DB::beginTransaction();
                     try {
@@ -235,7 +239,7 @@ class BingoController extends Controller
                 return redirect()->back();
             }
         } else {
-            return response()->json(['msg_type' => 'warning', 'message' => "Ha ocurrido un error: {$cartonStore['Error']}"]);
+            return response()->json(['type' => 'warning', 'message' => "Ha ocurrido un error: {$cartonStore['Error']}"]);
         }
     }
 
@@ -271,7 +275,6 @@ class BingoController extends Controller
                 $moreViewData = [
                     'custLogo' => Customer::getValueById($customer, 'logo'),
                     'player' => encrypt($columnVal),
-                    'token' => encrypt($data['userToken'])
                 ];
 
                 if ($room->status == 2) {

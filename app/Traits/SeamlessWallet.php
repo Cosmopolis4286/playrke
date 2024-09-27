@@ -101,7 +101,6 @@ trait SeamlessWallet
             return json_decode($response->getBody()->getContents());
         } catch (\Exception $e) {
             // Manejar errores
-            dd($e->getMessage());
             Log::error('Error en la solicitud HTTP: ' . $e->getMessage());
             return null;
         }
@@ -168,7 +167,7 @@ trait SeamlessWallet
 
         return $response;
     }
-  
+
     public function getTransaction($game, $customerID, $user)
     {
         // Obtener la marca de tiempo fuera del bucle
@@ -186,7 +185,7 @@ trait SeamlessWallet
         return $uniqueId;
     }
 
-    public function registerTransaction($game = [], $customer, $clientUser, $roomCode, $type, $amount, $status = 0)
+    public function registerTransaction($game = [], $customer, $clientUser, $betId, $type, $amount, $status = 0)
     {
         try {
 
@@ -197,7 +196,7 @@ trait SeamlessWallet
                 'user_id' => $clientUser,
                 'game' => $game[0],
                 'game_mode' => $game[1],
-                'bet_id' => $roomCode,
+                'bet_id' => $betId,
                 'code' => $code, // transaction_id
                 'transaction_type' => $type,
                 'amount' => $amount,

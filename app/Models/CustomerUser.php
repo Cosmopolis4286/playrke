@@ -9,14 +9,29 @@ class CustomerUser extends Model
     protected $table = "customer_users";
     protected $fillable = ['customer', 'user_id', 'token', 'country', 'coin', 'last_activity'];
 
-    public static function getByToken($customer, $token, $fields = ['*'])
+    public static function getById($customer, $id, $fields = ['*'])
     {
-        return self::select($fields)->Where('customer', $customer)->where('token', $token)->first();
+        return self::select($fields)->Where('customer', $customer)->where('id', $id)->first();
+    }
+
+    public static function getValueById($customer, $id, $value)
+    {
+        return self::Where('customer', $customer)->where('user_id', $id)->value($value);
+    }
+
+    public static function getByUserId($customer, $userId, $fields = ['*'])
+    {
+        return self::select($fields)->Where('customer', $customer)->where('user_id', $userId)->first();
     }
 
     public static function getValueByUserId($customer, $userId, $value)
     {
         return self::Where('customer', $customer)->where('user_id', $userId)->value($value);
+    }
+
+    public static function getByToken($customer, $token, $fields = ['*'])
+    {
+        return self::select($fields)->Where('customer', $customer)->where('token', $token)->first();
     }
 
     public static function getValueByToken($customer, $token, $value)

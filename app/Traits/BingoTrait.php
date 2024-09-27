@@ -537,7 +537,7 @@ trait BingoTrait
                     [1, 1],
                     $customer,
                     $playerUser,
-                    BingoRoom::getValueById($roomID, 'code_uuid'),
+                    BingoRoom::getValueById($roomID, 'code_uuid') ?? 'TEST',
                     'BET',
                     $totalAmountCtns
                 );
@@ -573,10 +573,10 @@ trait BingoTrait
         $commerce = $data['commerce'] ?? null;
         $seller = $data['seller'] ?? null;
 
-        if ($commerce || $seller) {  // Si la venta es procesada por un comercio o vendedor
+        if ($commerce || $seller) {
+            // Si la venta es procesada por un comercio o vendedor
             $PJLink = $data['PJLink'] ?? null;
             $playerPhone = $data['playerPhone'] ?? null;
-            $playerUser = $data['playerUser'] ?? null;
 
             if ($seller) $seller = $this->seller(['id', 'commerce']);
 
@@ -646,7 +646,7 @@ trait BingoTrait
 
             if ($customer) {
                 $dataCtns['customer'] = $customer;
-                $dataCtns['playerUser'] = $playerUser;
+                $dataCtns['playerUser'] = $data['playerUser'] ?? null;
             }
 
             if ($commerce || $seller) {
@@ -930,6 +930,7 @@ trait BingoTrait
                     'serial_prize' => $serialPrize,
                     'close_room' => Carbon::now('America/Caracas')->timestamp
                 ]);
+
                 $USDPrize = $jackpotPrize / $winnersCount;
             }
 
@@ -941,6 +942,9 @@ trait BingoTrait
             // Generar seriales ganadores si hay jugadores no ganadores
             if ($generateSerials) {
                 $this->handleSerialWinners($roomID); // Ejecutar Obtener Seriales Ganadores
+            } else {
+                // Cambiar Status Premios Pagados
+                BingoRoom::where('id', $roomID)->update(['paid_win' => 1]);
             }
 
             DB::commit();
@@ -1023,26 +1027,26 @@ trait BingoTrait
         return $infoPlayer;
     }
 
-    public function handleSerialWinners($room) // Obtener Seriales Ganadores
+    public function handleSerialWinners($roomID) // Obtener Seriales Ganadores
     {
-        $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($room, 2);
+        $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2);
 
         if ($getWinners) return false;
 
-        $chpVn = BingoDraw::where('room', $room)->where('status', 1)->value('id');
+        $chpVn = BingoDraw::where('room', $roomID)->where('status', 1)->value('id');
 
-        $chipSrt = BingoDraw::where('room', $room)->where('id', '<', $chpVn)->pluck('chip')->toArray();
+        $chipSrt = BingoDraw::where('room', $roomID)->where('id', '<', $chpVn)->pluck('chip')->toArray();
 
         // Definir valor $column
-        $column = BingoRoom::getValueById($room, 'customer') ? 'player_user' : 'player_link';
+        $column = BingoRoom::getValueById($roomID, 'customer') ? 'player_user' : 'player_link';
 
         // Obtener los IDs del los jugadores ganadores del Jackpot
-        $jackpotWinners = BingoPrizeCtns::getWinnersIDsByPrizeType($room, 1, $column);
+        $jackpotWinners = BingoPrizeCtns::getWinnersIDsByPrizeType($roomID, 1, $column);
 
         // Filtrar los  cartones excluyendo los cartones de los ganadores del jackpot
-        $ctnsPlayer = BingoCtns::where('room', $room)->whereNotIn($column, $jackpotWinners)->get();
+        $ctnsPlayer = BingoCtns::where('room', $roomID)->whereNotIn($column, $jackpotWinners)->get();
 
-        $countSerials = BingoRoomConfig::getValueByRoom($room, 'num_serials');
+        $countSerials = BingoRoomConfig::getValueByRoom($roomID, 'num_serials');
 
         // Filtrar los registros en $ctnsPlayer que contienen $chpVn->chip y tienen 23 aciertos
         $filteredCtns = $ctnsPlayer->filter(function ($ctn) use ($chipSrt, $column, $countSerials, &$countCtns, &$uniquePlayers) {
@@ -1110,13 +1114,15 @@ trait BingoTrait
         $arrSerialsPlayers = $filteredCtns->pluck('serial')->toArray();
 
         $ctnSerials = BingoCtns::whereIn('serial', $arrSerialsPlayers)
-            ->where('room', $room)->get(['id', 'commerce', 'seller', 'player_user', 'player_link', 'coin', 'lot']);
+            ->where('room', $roomID)->get(['id', 'commerce', 'seller', 'player_user', 'player_link', 'coin', 'lot']);
 
-        $USDPrize = BingoRoom::getSerialPrize($room) / count($arrSerialsPlayers);
+        $USDPrize = BingoRoom::getSerialPrize($roomID) / count($arrSerialsPlayers);
 
         try {
-            $registerPrizeCtn = $this->registerPrizeCtn($ctnSerials, 2, $USDPrize, $room);
+            $registerPrizeCtn = $this->registerPrizeCtn($ctnSerials, 2, $USDPrize, $roomID);
             if (!$registerPrizeCtn) DB::rollBack();
+            // Cambiar Status Premios Pagados
+            BingoRoom::where('id', $roomID)->update(['paid_win' => 1]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al crear ganador o actualizar estado: ' . $e->getMessage());
@@ -1273,7 +1279,7 @@ trait BingoTrait
 
             $getWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 1);
 
-            if (!$getWinnersJackpot) {
+            if ($getWinnersJackpot == 0) {
                 $this->handleJackpotWinners($room->id);
             }
 
