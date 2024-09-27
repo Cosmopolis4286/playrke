@@ -9,14 +9,14 @@ class CustomerUser extends Model
     protected $table = "customer_users";
     protected $fillable = ['customer', 'user_id', 'token', 'country', 'coin', 'last_activity'];
 
-    public static function getById($customer, $id, $fields = ['*'])
+    public static function getById($id, $fields = ['*'])
     {
-        return self::select($fields)->Where('customer', $customer)->where('id', $id)->first();
+        return self::select($fields)->where('id', $id)->first();
     }
 
-    public static function getValueById($customer, $id, $value)
+    public static function getValueById($id, $value)
     {
-        return self::Where('customer', $customer)->where('user_id', $id)->value($value);
+        return self::where('id', $id)->value($value);
     }
 
     public static function getByUserId($customer, $userId, $fields = ['*'])

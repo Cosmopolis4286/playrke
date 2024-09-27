@@ -23,7 +23,7 @@ return new class extends Migration
             $table->integer('player_user')->nullable();
             $table->unsignedBigInteger('player_link')->nullable();
             $table->unsignedBigInteger('lot');
-            $table->unsignedBigInteger('coin');
+            $table->string('coin', 15);
             $table->string('serial', 20);
             $table->string('b1', 2);
             $table->string('b2', 2);

@@ -25,7 +25,7 @@ return new class extends Migration
             $table->unsignedBigInteger('lot');
             $table->unsignedBigInteger('ctn');
             $table->unsignedBigInteger('prize_type');
-            $table->unsignedBigInteger('coin');
+            $table->string('coin', 15);
             $table->double('amount');
             $table->boolean('status')->default(0);
             $table->timestamps();

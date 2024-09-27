@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('time', 10);
             $table->integer('unix_time')->nullable();
             $table->unsignedBigInteger('country')->nullable();
-            $table->unsignedBigInteger('coin')->nullable();
+            $table->string('coin', 15)->nullable();
             $table->timestamp('publication_date')->nullable();
             $table->double('ctn_price');
             $table->integer('players')->default(0);
@@ -47,7 +47,6 @@ return new class extends Migration
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('subsidiary')->references('id')->on('subsidiaries');
             $table->foreign('country')->references('id')->on('countries');
-            $table->foreign('coin')->references('id')->on('coins');
         });
     }
 

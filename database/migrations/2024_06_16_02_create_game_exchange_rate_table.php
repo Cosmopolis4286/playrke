@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('room');
-            $table->string('coin', 6);
+            $table->string('coin', 15);
             $table->double('exchange_rate');
             $table->timestamps();
 

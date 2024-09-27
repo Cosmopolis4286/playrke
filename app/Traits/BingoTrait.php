@@ -16,6 +16,7 @@ use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomUser;
 use App\Models\Coin;
 use App\Models\CoinGameRoom;
+use App\Models\CustomerUser;
 use App\Models\GameExchangeRate;
 use App\Models\ExchangeRate;
 use App\Models\PlayerLink;
@@ -539,6 +540,7 @@ trait BingoTrait
                     $playerUser,
                     BingoRoom::getValueById($roomID, 'code_uuid') ?? 'TEST',
                     'BET',
+                    $coin,
                     $totalAmountCtns
                 );
 
@@ -591,9 +593,10 @@ trait BingoTrait
             $playerLastname = $data['playerLastname'] ?? $player->lastname;
             $arrInitials = $this->initialCharacters([$playerName, $playerLastname]);
             $serialText = $arrInitials[0] . $arrInitials[1];
+        } else {
+            $playerUser = $data['playerUser'];
+            $coin = $customer ? CustomerUser::getValueById($playerUser, 'coin') : null;
         }
-
-        $coin = $customer ? $room->coin : null;
 
         DB::beginTransaction();
 
@@ -646,7 +649,7 @@ trait BingoTrait
 
             if ($customer) {
                 $dataCtns['customer'] = $customer;
-                $dataCtns['playerUser'] = $data['playerUser'] ?? null;
+                $dataCtns['playerUser'] = $playerUser ?? null;
             }
 
             if ($commerce || $seller) {
@@ -788,6 +791,7 @@ trait BingoTrait
                             $ctn->player_user,
                             $roomUUID,
                             'WIN',
+                            $ctn->coin,
                             $prizeWn
                         );
 

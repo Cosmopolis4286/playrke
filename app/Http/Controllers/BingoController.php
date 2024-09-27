@@ -175,7 +175,7 @@ class BingoController extends Controller
 
                 $player = decrypt($request->player);
 
-                $user = CustomerUser::getById($userTypeVal, $player, ['user_id', 'token']);
+                $user = CustomerUser::getById($player, ['user_id', 'token']);
 
                 $customerResponse = $this->getUserBalanceFromCustomer($userTypeVal, [$user->user_id, $user->token], $coin);
 
@@ -225,7 +225,9 @@ class BingoController extends Controller
                     try {
                         // Validar transacciones del cliente
                         $this->validateTransaction($userTypeVal);
+                        DB::commit();
                     } catch (\Exception $e) {
+                        dd($e->getMessage());
                         DB::rollBack();
                         Log::error('Ha ocurrido un error: ' . $e->getMessage());
                     }
