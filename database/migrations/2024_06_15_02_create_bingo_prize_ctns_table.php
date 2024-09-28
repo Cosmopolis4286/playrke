@@ -39,7 +39,6 @@ return new class extends Migration
             $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
             $table->foreign('ctn')->references('id')->on('bingo_ctns');
             $table->foreign('prize_type')->references('id')->on('game_prizes')->onUpdate('cascade');
-            $table->foreign('coin')->references('id')->on('coins');
 
             // Índice compuesto
             $table->index(['room', 'commerce']);

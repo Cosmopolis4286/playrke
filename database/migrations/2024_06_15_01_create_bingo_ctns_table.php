@@ -58,7 +58,6 @@ return new class extends Migration
             $table->foreign('player_link')->references('id')->on('player_link');
             $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
-            $table->foreign('coin')->references('id')->on('coins');
 
             // Índice compuesto
             $table->index(['room', 'commerce']);

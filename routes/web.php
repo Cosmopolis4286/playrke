@@ -86,6 +86,9 @@ Route::post('/clear-flash-messages', function (Request $request) {
     return response()->json(['status' => 'success']);
 })->name('clear.flash.messages');
 
+// Obtener hora del servidor
+Route::get('get/RKETIMESERV/{timeZone?}', [InformationController::class, 'getTimeServer'])->name('info.getTimeServer');
+
 Route::group(['middleware' => 'auth', 'prefix' => 'image', 'as' => 'image.'], function () {
     Route::get('payments/prizes/{filename}', [FileController::class, 'showImagePaymentPrizeCtns'])->name('show-image-payment-prize-ctns');
     Route::get('payments/{filename}', [FileController::class, 'showImagePaymentCtns'])->name('show-image-payment-ctns');
@@ -430,8 +433,8 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('cust/{cust}/room/{room}', [BingoController::class, 'outGameCustomer'])->name('out-game-customer');
 
     // Procesar Compra de Cartones
-    Route::post('carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
-
+    Route::post('carton/generate/store', [BingoController::class, 'player'])->name('generateCarton');
+    Route::put('status/{id}', [BingoController::class, 'changeStatusRoom'])->name('change-status');
     Route::get('getDraw/{room}', [BingoController::class, 'getDraw'])->name('getDraw');
     Route::get('get/chips/{room}', [BingoController::class, 'getChips'])->name('getChips');
     Route::get('get/result/{room}/{value}/{column?}', [BingoController::class, 'getResult'])->name('getResult');

@@ -6,12 +6,10 @@
                     <img class="purchase-ctns__img" src="{{ asset('img/cofre.png') }}" alt="">
                 </div>
                 <div class="purchase-ctns__coin">
-                    <div id="purchase-ctns__coin-value">
-                        <div class="purchase-ctns__coin-text">Bote:</div>
-                        <small id="purchase-ctns__coin-label">USDT</small>
-                    </div>
+                    <div id="purchase-ctns__coin-text"></div>
                     <div id="purchase-ctns__coin-number">
-                        <span id="jackpot-amount">1</span>
+                        <small id="purchase-ctns__coin-label" class="purchase-ctns__coin-label"></small>
+                        <span id="jackpot-amount"></span>
                     </div>
                 </div>
             </div>
@@ -28,16 +26,16 @@
         </div>
         <div class="purchase-ctns__body bg-light p-1">
             @isset($record)
-            <div class="purchase-ctns__game-room-info">
-                <div id="game-room-info__details">
-                    <i class="fa-solid fa-circle-info"></i>
-                    Info. del Juego
+                <div class="purchase-ctns__game-room-info">
+                    <div id="game-room-info__details">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Info. del Juego
+                    </div>
+                    <div class="game-room-info__players">
+                        <span id="game-room-info__players-count"></span>
+                        <i class="fa-solid fa-users"></i>
+                    </div>
                 </div>
-                <div class="game-room-info__players">
-                    <span id="game-room-info__players-count"></span>
-                    <i class="fa-solid fa-users"></i>
-                </div>
-            </div>
             @endisset
             <div class="purchase-ctns__body-form">
                 <div id="purchase-ctns__body-form-section-left">
@@ -56,14 +54,14 @@
                         </div>
                     </div>
                     <span class="form-text-total">Total:</span>
-                    <small>USDT</small><span id="total-amount"></span>
+                    <small class="purchase-ctns__coin-label"></small>
+                    <span id="total-amount"></span>
                 </div>
                 <div id="purchase-ctns__body-form-section-right"></div>
             </div>
         </div>
         <div class="card-footer bg-light text-center">
-            <button type="button" id="btn-container-purchase-close"
-                class="mr-1 btn btn-secondary">Cancelar</button>
+            <button type="button" id="btn-container-purchase-close" class="mr-1 btn btn-secondary">Cancelar</button>
             <button type="button" id="btn-purchase-ctns" class="btn btn-primary">Comprar</button>
         </div>
     </div>

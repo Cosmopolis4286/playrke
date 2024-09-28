@@ -8,6 +8,12 @@ body {
 @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Braah+One&display=swap');
 
+#container-spinner {
+    position: absolute;
+    right: 0;
+    display: none;
+}
+
 #container-text-game-rooms {
     display: flex;
     justify-content: center;
@@ -28,7 +34,7 @@ body {
     top: 0%;
     left: 50%;
     transform: translate(-50%, 27%);
-    z-index: 9999;
+    z-index: 99999;
     min-width: 300px;
     max-width: 360px;
 }
@@ -71,7 +77,7 @@ body {
     display: flex;
     padding: 1.15%;
     border-top-left-radius: 6px;
-    background: linear-gradient(to bottom, #0b4cfde3, #124bc5);
+    background: linear-gradient(to bottom, #084aff, #0e43b4);
 }
 
 .purchase-ctns__jackpot-img {
@@ -101,41 +107,33 @@ body {
 #purchase-ctns__coin-value {
     display: flex;
     align-items: center;
-    height: 50%;
 }
 
-.purchase-ctns__coin-text {
+#purchase-ctns__coin-text {
     display: flex;
     align-items: center;
-    height: 50%;
-    font-size: 15.6px;
-    margin-right: 3px;
+    font-size: 15.5px;
     color: rgb(255, 255, 255);
     font-weight: 500;
 }
 
-#purchase-ctns__coin-value small {
+#purchase-ctns__coin-number {
     display: flex;
     align-items: center;
-    height: 50%;
-    padding-top: 1px;
-    font-size: 14px;
+    font-size: 24px;
+}
+
+#purchase-ctns__coin-label {
+    display: flex;
+    align-items: center;
     color: rgb(219, 219, 219);
     font-weight: 600;
+    font-size: 15px;
+    margin-right: 1.5%;
 }
 
-#purchase-ctns__coin-number {
-    height: 50%;
-    display: flex;
-    align-items: center;
-    font-size: 23px;
+#jackpot-amount {
     color: rgb(255, 230, 0);
-}
-
-#purchase-ctns__coin small {
-    margin-left: 1.5px;
-    justify-content: flex-end;
-    font-size: 16px;
 }
 
 .purchase-ctns__date {
