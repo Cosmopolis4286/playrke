@@ -4,19 +4,6 @@
 <link rel="stylesheet" href="{{ asset('css/bingocash-game-rooms.css') }}">@endsection
 
 @section('content')
-<style>
-    /* Modal Compra */
-#container-purchase-ctns {
-    display: none;
-    position: absolute;
-    top: 0%;
-    left: 50%;
-    transform: translate(-50%, 27%);
-    z-index: 9999;
-    min-width: 300px;
-    max-width: 460px;
-}
-</style>
     <div class="col-12">
         <div id="container-spinner">
             <div class="spinner-border text-primary" role="status">
@@ -25,21 +12,20 @@
         </div>
         <div id="container-text-game-rooms">
             <span id="text-game-rooms">SALAS DE JUEGO</span>
-
             {{-- <a class="mt-n1 badge badge-primary"
-                href="{{ route('bingo.commerce-game-rooms', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
-                Cambiar a <b>{{ $coinSym }}</b>
-            </a> --}}
+                    href="{{ route('bingo.commerce-game-rooms', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
+                    Cambiar a <b>{{ $coinSym }}</b>
+                </a> --}}
         </div>
         @include('components.game.bingo.layout.container-purchase-ctns', [
             'routeName' => 'commerce.getBingoWinnersByCommerce',
         ])
     </div><br>
-    <div class="col-12 mt-2">
-        <div class="row justify-content-center">
+    <div class="col-12 w-100 pb-4">
+        <div class="row justify-content-center" style="gap: 2.75rem;">
             @foreach ($rooms as $key => $room)
                 <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
-                    <div class="card-game-room" data-room="{{ $room->encrypted }}">
+                    <div class="card-game-room" data-room="{{ $room->encrypted }}" data-status="{{ $room->status }}">
                         <div id="bg_tx{{ $room->encrypt }}" class="card-game-room__time">
                             {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
                         </div>
@@ -57,12 +43,18 @@
                         <img class="card-game-room__room-image" src="{{ asset('img/bg/estelar_fd.png') }}" alt="IMG">
                         <div class="container-card-game-room__jackpot">
                             <span class="card-game-room__jackpot-text">
-                                {{ $room->type_boat == 1 ? 'Bote:' : ($room->type_boat == 2 ? 'Premio:' : '') }}
+                                {{ $room->Config->jackpot_type == 1 ? 'Bote:' : 'Premio:' }}
                             </span>
                             <div class="card-game-room__jackpot-amount">
-                                @if ($room->jackpot_prize > 0)
-                                    <img style="width:24px; margin-bottom:1px;" src="{{ asset('imgSystem/tether.svg') }}">
-                                    <span id='montRoom{{ $room->id }}'>{{ number_format($room->jackpot, 2) }}</span>
+                                @if ($room->jackpot_prize > 0 || $room->Config->jackpot_type != 1)
+                                    <h3>
+                                        <span id="jackpot-room_{{ $room->encrypted }}">
+                                            {{ number_format($room->jackpot, 2) }}
+                                        </span>
+                                        <small id="coin-symbol-room_{{ $room->encrypted }}">
+                                            {{ $coinSym }}
+                                        </small>
+                                    </h3>
                                 @else
                                     <h3>ESPERANDO</h3>
                                 @endif
@@ -81,42 +73,26 @@
 
 @section('scripts')
     <script>
-        function c_tmsvr() {
-            $.ajax({
-                url: "{{ route('info.getTimeServer') }}",
-                headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
-                },
-                method: 'get',
-                dataType: 'json',
-                success: function(data) {
-                    now = new Date(data);
-                }
-            });
-            c_timer = 1;
-        }
-        window.onblur = function() {
-            v_rtn = 1;
-        }
-        window.onfocus = function() {
-            if (v_rtn == 1) {
-                c_timer = 0;
-                c_tmsvr();
-            }
-        }
-    </script>
-    <script src=""></script>
-    <script>
+        const userType = '<?php echo json_encode($userType); ?>';
+        const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
+        const coin = '<?php echo json_encode($coin); ?>';
+        const player = '<?php echo json_encode($player); ?>';
+
         let isLogin = false;
         let purchase = false;
+        let room = false;
         let ctnPrice = 0;
         let numCtns = 1;
 
         $(document).on("click", ".card-game-room", function() {
             // Obtener informacion de Sala al hacer click en ella
+            if ($(this).data('status') != 2) return;
+
+            room = $(this).data('room');
+
             $.ajax({
                 url: `{{ route('bingo.getInfoByEncrypt', ['id' => ':id', 'mode' => ':mode']) }}`
-                    .replace(':id', $(this).data('room'))
+                    .replace(':id', room)
                     .replace(':mode', 'game-rooms'),
                 method: 'GET',
                 dataType: 'json',
@@ -169,29 +145,28 @@
                 url: `{{ route('bingocash.generateCarton') }}`,
                 method: 'POST',
                 data: {
-                    room: ,
-                    coin: ,
+                    room,
+                    coin,
                     num_ctns: numCtns,
-                    user_type,
-                    user_type_val,
-                    player: ,
-                    user_in_game:
+                    user_type: userType,
+                    user_type_val: userTypeVal,
+                    player
                 },
                 dataType: 'json',
                 beforeSend: function() {
-                    $('#container-spinner-purchase-ctns').show();
+                    $('#loader-btn-purchase-ctns').show();
                 },
                 success: function(res) {
-                    const room = res.room;
-
-                    location.reload(); //Refrescar Pagina
+                    location.reload(); // Refrescar página
                 },
                 error: function(error) {
-                    console.log(error);
-                    $('#container-spinner-purchase-ctns').hide();
-
+                    console.error(error);
+                },
+                complete: function() {
+                    $('#loader-btn-purchase-ctns').hide();
                 }
             });
+
         });
 
         function handleTotalAmount(quantity) {
@@ -239,7 +214,6 @@
             // Inicializamos el botón de disminuir según el valor actual del input
             btnDown.toggle(+input.val() > min);
         });
-
 
         function handleWaitingTime() {
             // Manejador de tiempo de espera
@@ -324,34 +298,6 @@
             }
         }
 
-        //let timer = setInterval(handleWaitingTime, 1000);
-
-        function handleRoomStatus(room) {
-            // Manejador de Status de Sala
-            $.ajax({
-                url: `{{ route('bingocash.change-status') }}`,
-                headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
-                },
-                method: 'POST',
-                data: {
-                    id: room
-                },
-                dataType: 'json',
-                success: function(data) {
-                    if (data['van'] == 1) {
-                        window.location.href = 'room/' + id_sala;
-                    }
-                    if (data['rfs'].length > 0) {
-                        $.each(data['rfs'], function(key, value) {
-                            $("#bg_rm" + value).hide();
-                            if ($("#id_bing").val() == value) {
-                                $("#mc_buy").hide();
-                            }
-                        });
-                    }
-                }
-            });
-        }
+        // let timer = setInterval(handleWaitingTime, 1000);
     </script>
 @endsection

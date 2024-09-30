@@ -33,10 +33,10 @@ body {
     position: absolute;
     top: 0%;
     left: 50%;
-    transform: translate(-50%, 27%);
-    z-index: 99999;
-    min-width: 300px;
-    max-width: 360px;
+    transform: translate(-50%, 40.5%);
+    z-index: 9999;
+    min-width: 305px;
+    max-width: 480px;
 }
 
 .purchase-ctns__header {
@@ -270,10 +270,10 @@ input[type=number] {
     flex-direction: column;
     position: relative;
     cursor: pointer;
-    width: 228px;
-    padding: 4.5px;
+    width: 226px;
+    padding: 4.75px;
     /* box-shadow: 0px 4px 14px 0px rgba(34, 88, 204, 0.493); */
-    border-radius: 14px;
+    border-radius: 13px;
     background: linear-gradient(180deg, #2af598 0%, #009efd 100%);
     /* Efecto Pulso */
     /* animation: pulse;
@@ -281,16 +281,17 @@ input[type=number] {
     animation-iteration-count: infinite; */
 }
 
+/* Contenedor Cronometro */
+
 .card-game-room__time {
     background-color: #333;
     color: whitesmoke;
     border-radius: 10px;
-    height: 32px;
-    font-size: 17px;
-    font-weight: 600;
-    width: 124px;
+    height: 40px;
+    font-weight: 500;
+    width: 71%;
     position: absolute;
-    padding: 0 5px;
+    padding: 0 2.25%;
     top: -0.25%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -299,14 +300,38 @@ input[type=number] {
     justify-content: center;
 }
 
+.card-game-room__time-column {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 17.5px;
+    width: 100%;
+    max-height: 100%;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.time-column-number {
+    font-size: 100%;
+    height: 50%;
+}
+
+.time-column-text {
+    font-size: 64%;
+    height: 50%;
+}
+
+/* Contenedor Cronometro */
+
 .card-game-room__game-mode {
     color: rgb(255, 240, 240);
     font-weight: 500;
-    border-radius: 8px;
-    width: 82.5%;
+    border-radius: 6px;
+    width: 82%;
     height: 25px;
     text-align: center;
-    background: linear-gradient(to bottom, #941725e8, #631209e8);
+    background: linear-gradient(to bottom, #8d1523f5, #580e06f1);
     position: absolute;
     top: 14.5%;
     left: 50%;
@@ -341,10 +366,10 @@ input[type=number] {
 }
 
 .card-game-room__room-image {
-    border-top-left-radius: 10%;
-    border-top-right-radius: 10%;
+    border-top-left-radius: 11.5px;
+    border-top-right-radius: 11.5px;
     width: 100%;
-    background-color: rgb(216, 236, 255) !important;
+    background-color: rgb(212, 234, 255) !important;
 }
 
 .container-card-game-room__jackpot {
@@ -353,16 +378,16 @@ input[type=number] {
     justify-content: center;
     align-items: center;
     width: 100%;
-    border-bottom-left-radius: 14px;
-    border-bottom-right-radius: 14px;
+    border-bottom-left-radius: 11.5px;
+    border-bottom-right-radius: 11.5px;
     background-color: rgb(216, 236, 255) !important;
 }
 
 .card-game-room__jackpot-text {
-    margin-top: -3.25px;
-    font-size: 15px;
+    margin-top: -2.15%;
+    font-size: 16px;
     font-weight: 600;
-    margin-bottom: 1%;
+    margin-bottom: 0.75%;
 }
 
 .card-game-room__jackpot-amount {
@@ -377,27 +402,27 @@ input[type=number] {
 .card-game-room__ctn-price {
     text-align: center;
     width: 55%;
-    color: #000b24;
-    font-weight: 500;
+    color: #00091d;
+    font-weight: 600;
     font-size: 14px;
-    background-color: rgb(182, 235, 241);
-    margin-bottom: 7.5%;
+    background-color: rgb(189, 225, 255);
+    margin-bottom: 7.75%;
     border-radius: 4px;
 }
 
 .card-game-room__status {
-    width: 75%;
-    padding-top: 2px;
-    background: linear-gradient(360deg, rgba(226, 192, 25, 0.966) 0%, rgba(243, 240, 54, 0.986)100.2%);
+    width: 74%;
+    background: linear-gradient(360deg, rgba(243, 207, 26, 0.966) 0%, rgba(243, 240, 54, 0.986)100.2%);
     border-radius: 9px;
+    padding-top: -2.15%;
     position: absolute;
-    bottom: -9.25%;
+    bottom: -7%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-transform: uppercase;
     text-align: center;
     letter-spacing: 0.8px;
     font-weight: 600;
-    font-size: 12px;
+    font-size: 11.85px;
     color: rgb(0, 0, 0);
 }

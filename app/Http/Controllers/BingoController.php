@@ -32,6 +32,7 @@ use App\Traits\GameTrait;
 use App\Traits\RouteRKE;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
@@ -68,7 +69,7 @@ class BingoController extends Controller
         return $room;
     }
 
-    private function getGamesRoomsView($userType, $userID, $coin)
+    private function getGamesRoomsView($userType, $userID, $data = [])
     {
         // Obtener infomacion de Salas de Juego (CARDS)
         switch ($userType) {
@@ -76,12 +77,18 @@ class BingoController extends Controller
 
                 break;
             case 'commerce': // Comercio
-                $coinSym = Coin::getValue($coin, 'symbol');
+                $coinID = $data['coin'];
+                $coinSym = Coin::getValue($coinID, 'symbol');
+
+                $player = Auth::id();
 
                 $moreViewData = ['wallet' => $this->Wallet($this->user()->id)];
                 break;
             case 'customer': // Cliente
-                $coinSym = $coin;
+                $coinID = $data['coin'];
+                $coinSym = $coinID;
+
+                $player = $data['player'];
                 break;
 
             default:
@@ -89,7 +96,10 @@ class BingoController extends Controller
                 break;
         }
 
-        $rooms = BingoRoom::select(
+        $rooms = BingoRoom::with(['Config' => function ($query) {
+            $query->select('room', 'jackpot_type');
+        }])->select(
+            'id',
             $userType,
             'subsidiary',
             'status',
@@ -101,13 +111,17 @@ class BingoController extends Controller
             'players',
             'jackpot_prize',
             'ctns',
-            'encrypted',
+            'encrypted'
         )->where($userType, $userID)->whereIn('status', [2, 3])->get();
 
         $viewData = [
             'title' => 'Bingo Salas de Juego',
             'coinSym' => $coinSym,
-            'rooms' => $rooms
+            'coin' => encrypt($coinID),
+            'rooms' => $rooms,
+            'userType' => $userType,
+            'userTypeVal' => $userID,
+            'player' => encrypt($player)
         ];
 
         if (isset($moreViewData)) {
@@ -129,7 +143,7 @@ class BingoController extends Controller
 
         $coin = decrypt($coin);
 
-        $viewData = self::getGamesRoomsView('commerce', $commerce, $coin);
+        $viewData = self::getGamesRoomsView('commerce', $commerce, ['coin' => $coin]);
 
         return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }
@@ -143,10 +157,12 @@ class BingoController extends Controller
             return response()->json(['message' => $customer['Error']], 404);
         }
 
-        if (!$coin) $coin = CustomerUser::getValueByToken($customer, $userToken, 'coin');
+        $player = CustomerUser::getById($customer, $userToken, ['id', 'coin']);
+
+        if (!$coin) $coin = $player->coin;
 
         // Obtener informacion de la vista del cliente
-        $viewData = self::getGamesRoomsView('customer', $customer, $coin);
+        $viewData = self::getGamesRoomsView('customer', $customer, ['player' => $player->id, 'coin' => $coin]);
 
         // Retorna a vista con la informacion del cliente
         return $viewData ? view($viewData[0])->with($viewData[1])
@@ -166,7 +182,7 @@ class BingoController extends Controller
 
         if ($request->user_type) {
 
-            $userType = ($request->user_type == 'comm') ? 'commerce' : 'customer';
+            $userType = $request->user_type;
             $userTypeVal = decrypt($request->user_type_val);
 
             $coin = decrypt($request->coin);
@@ -799,8 +815,19 @@ class BingoController extends Controller
         }
     }
 
-    public function changeStatusRoom($id) {
+    public function changeStatusRoom($id)
+    {
         // Manejador de Status de Salas de Juego
+        $room = BingoRoom::getRoomById($id, ['id', 'customer', 'commerce', 'status']);
+
+        $status = $room->status == 2 ? 3 : 4;
+
+        BingoRoom::where('id', $id)->update(['status' => $status]);
+
+        $column = $room->customer ? 'customer' : 'commerce';
+        $columnValue = $room->customer ?? $room->commerce;
+
+        return response()->json(['room' => $room]);
     }
 
     public function getInfo($id)

@@ -539,10 +539,10 @@
     @endif
     @if ($room->status == 2)
         <script>
-            let userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
-            let coinID = '<?php echo json_encode($coinID); ?>';
-            let ctnPrice = Number('<?php echo $ctnPrice; ?>');
-            let type = '<?php echo $sellerType; ?>';
+            const userType = '<?php echo $sellerType; ?>';
+            const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
+            const coinID = '<?php echo json_encode($coinID); ?>';
+            const ctnPrice = Number('<?php echo $ctnPrice; ?>');
             let info = false;
             let amount = ctnPrice;
         </script>
@@ -628,7 +628,7 @@
                     dataType: 'json',
                     data: {
                         room: encrypted,
-                        user_type: type,
+                        user_type: userType
                         user_type_val: userTypeVal,
                         player: player,
                         coin: coinID,

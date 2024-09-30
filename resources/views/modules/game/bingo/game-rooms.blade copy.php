@@ -1798,3 +1798,30 @@
         }
     </script>
 @endsection --}}
+// function handleRoomStatus(room) {
+        //     // Manejador de Status de Sala
+        //     $.ajax({
+        //         url: `{{ route('bingocash.change-status') }}`,
+        //         headers: {
+        //             'X-CSRF-TOKEN': $("#token").val()
+        //         },
+        //         method: 'POST',
+        //         data: {
+        //             id: room
+        //         },
+        //         dataType: 'json',
+        //         success: function(data) {
+        //             if (data['van'] == 1) {
+        //                 window.location.href = 'room/' + id_sala;
+        //             }
+        //             if (data['rfs'].length > 0) {
+        //                 $.each(data['rfs'], function(key, value) {
+        //                     $("#bg_rm" + value).hide();
+        //                     if ($("#id_bing").val() == value) {
+        //                         $("#mc_buy").hide();
+        //                     }
+        //                 });
+        //             }
+        //         }
+        //     });
+        // }
