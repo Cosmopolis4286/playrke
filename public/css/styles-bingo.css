@@ -11,6 +11,11 @@
     --gray-950: #030712;
 }
 
+body {
+    background: url(../img/body/space.png) !important;
+    font-family: 'Poppins', sans-serif !important;
+}
+
 #cont-loader {
     display: flex;
     align-items: center;
@@ -59,9 +64,15 @@
     max-height: 93.5%;
 }
 
-body {
-    background: url(../img/body/space.png) !important;
-    font-family: 'Poppins', sans-serif !important;
+#text-check-bingo {
+    position: absolute;
+    display: none;
+    bottom: 3.15%;
+    left: 3.15%;
+    transform: translate(-3.15%, -3.15%);
+    font-weight: 600;
+    color: #f8fafc;
+    z-index: 999;
 }
 
 .zoom {

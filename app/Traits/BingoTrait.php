@@ -274,15 +274,17 @@ trait BingoTrait
 
         $room = BingoRoom::getRoomByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
 
-        $startTime = $this->convertToUnixTimestamp($room->date, $room->time);
+        // Obtener tiempo de salida de la ficha bandera
+        $chpVnTime = BingoDraw::where('win', 1)->where('room', $room->id)->value('time');
 
-        if ($room->status == 3 && $startTime <= time()) {
-            BingoRoom::where('id', $room->id)->update(['status' => 4]);
+        if ($room->status == 3 && ($chpVnTime && $chpVnTime <= time())) {
+            $room->update(['status' => 4]);
         }
 
+        //Obtener Conteo de Ganadores
         $getWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 1);
 
-        if (!$getWinnersJackpot && $room->status == 4) $this->handleJackpotWinners($room->id);
+        if (!$getWinnersJackpot) $this->handleJackpotWinners($room->id);
 
         $jackpotWinners = $this->getWinnersJackpot($room->id, $columnVal);
 

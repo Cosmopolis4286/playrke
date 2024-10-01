@@ -26,13 +26,13 @@
             @foreach ($rooms as $key => $room)
                 <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
                     <div class="card-game-room" data-room="{{ $room->encrypted }}" data-status="{{ $room->status }}">
-                        <div id="bg_tx{{ $room->encrypt }}" class="card-game-room__time">
+                        <div id="start-time_{{ $room->encrypt }}" class="card-game-room__time">
                             {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
                         </div>
                         <span class="card-game-room__game-mode">Modo: Cartón Lleno</span>
                         @if ($room->ctns > 0)
                             <div class="card-game-room__number-of-ctns" title="Mis Cartones">
-                                +<span class="num_ct">{{ $room->ctns }}</span>
+                                <span>+{{ $room->ctns }}</span>
                             </div>
                         @endif
                         @if ($room->auto_mc == 1)
@@ -77,12 +77,61 @@
         const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
         const coin = '<?php echo json_encode($coin); ?>';
         const player = '<?php echo json_encode($player); ?>';
+        let rooms = '<?php echo json_encode($dateTimeRooms); ?>';
 
         let isLogin = false;
         let purchase = false;
         let room = false;
+        let arrRooms = [];
         let ctnPrice = 0;
         let numCtns = 1;
+
+        // function c_tmsvr() {
+        //     $.ajax({
+        //         url: "{{ route('info.getTimeServer') }}",
+        //         headers: {
+        //             'X-CSRF-TOKEN': $("#token").val()
+        //         },
+        //         method: 'get',
+        //         dataType: 'json',
+        //         success: function(data) {
+        //             now = new Date(data);
+        //         }
+        //     });
+        //     c_timer = 1;
+        // }
+        // window.onblur = function() {
+        //     v_rtn = 1;
+        // }
+        // window.onfocus = function() {
+        //     if (v_rtn == 1) {
+        //         c_timer = 0;
+        //         c_tmsvr();
+        //     }
+        // }
+
+        function getDateTimeRooms() {
+            const url =
+                "{{ route('bingo.get-datetime-rooms', ['userType' => ':userType', 'userID' => ':userID', 'coin' => ':coin']) }}"
+                .replace(':userType', userType)
+                .replace(':userID', userTypeVal)
+                .replace(':coin', coin);
+
+            $.getJSON(url, {
+                    'X-CSRF-TOKEN': $("#token").val()
+                })
+                .done(res => {
+                    res.forEach(value => {
+                        arrRooms.push(value.id);
+                        $(`#bg_in${value.id}`).val(`${value.date} ${value.time}`);
+                    });
+                })
+                .fail(err => {
+                    console.error("Error fetching data:", err);
+                });
+        }
+
+        $(document).ready(() => rooms.length && getDateTimeRooms());
 
         $(document).on("click", ".card-game-room", function() {
             // Obtener informacion de Sala al hacer click en ella
@@ -216,87 +265,92 @@
         });
 
         function handleWaitingTime() {
-            // Manejador de tiempo de espera
-            if (id_elems.length > 0) {
-                id_elems.forEach(function(elem, ind, array) {
-                    var end = new Date($("#bg_in" + elem).val());
-                    var bing_end = new Date($("#bg_in" + elem).val());
-                    new Date(bing_end + (bing_end.setSeconds(bing_end.getSeconds() + 620)));
-                    if (c_timer == 0) {
-                        c_tmsvr();
-                    }
-                    distance = end - now;
-                    var days = Math.floor(distance / _day);
-                    var hours = Math.floor((distance % _day) / _hour);
-                    var minutes = Math.floor((distance % _hour) / _minute);
-                    var seconds = Math.floor((distance % _minute) / _second);
 
-                    if (c_timer == 1) {
-                        if (distance <= 0) {
-                            if ($("#bg_in_sts" + elem) != 1) {
-                                if (bing_end - now > 0) {
-                                    $("#bg_tx" + elem).html(
-                                        '<span style="font-size:15px; letter-spacing: 0.25px;">EN JUEGO</span>'
-                                    );
-                                } else {
-                                    $("#bg_tx" + elem).html(
-                                        '<span style="font-size:14px; letter-spacing: 0.25px;">FINALIZADA</span>'
-                                    );
-                                }
-                                $("#t_bg_hour" + elem).html('No disponible');
-                                $("#bg_in_sts" + elem).val(1);
-                                handleRoomStatus(elem);
-                            }
-                        } else {
-                            if (days == 0) {
-                                if (hours == 0) {
-                                    if (minutes == 0) {
-                                        if (seconds != 0) {
-                                            $("#bg_tx" + elem).html('<div class="time_dt">' + '<span>' + seconds +
-                                                '</span>' + '<span class="tx_time">SEG</span>' + '</div>');
-                                        }
-                                    } else {
-                                        $("#bg_tx" + elem).html(
-                                            '<div class="time_dt">' + '<span>' + minutes +
-                                            '</span>' + '<span class="tx_time">MIN</span>' + '</div>' +
-                                            '<div class="time_dt">' + '<span>' + seconds +
-                                            '</span>' + '<span class="tx_time">SEG</span>' + '</div>');
-                                    }
-                                } else {
-                                    $("#bg_tx" + elem).html(
-                                        '<div class="time_dt">' + '<span>' + hours + '</span>' +
-                                        '<span class="tx_time">HRS</span>' + '</div>' +
-                                        '<div class="time_dt tm_minutes">' + '<span>' + minutes +
-                                        '</span>' + '<span class="tx_time">MIN</span>' + '</div>' +
-                                        '<div class="time_dt">' + '<span>' + seconds +
-                                        '</span>' + '<span class="tx_time">SEG</span>' + '</div>');
-                                    if (minutes == 0) {
-                                        $('.tm_minutes').hide()
-                                    }
-                                }
-                            } else {
-                                $("#bg_tx" + elem).html(
-                                    '<div class="time_dt">' + '<span>' + days +
-                                    '</span>' + '<span class="tx_time">DIAS</span>' + '</div>' +
-                                    '<div class="time_dt tm_hours">' + '<span>' + hours + '</span>' +
-                                    '<span class="tx_time">HRS</span>' + '</div>' +
-                                    '<div class="time_dt  tm_minutes">' + '<span>' + minutes +
-                                    '</span>' + '<span class="tx_time">MIN</span>' + '</div>' +
-                                    '<div class="time_dt">' + '<span>' + seconds +
-                                    '</span>' + '<span class="tx_time">SEG</span>' + '</div>');
-                                if (hours == 0) {
-                                    $('.tm_hours').hide();
-                                }
-                                if (minutes == 0) {
-                                    $('.tm_minutes').hide()
-                                }
-                            }
-                        }
-                    }
-                });
-                now.setMilliseconds(1000);
-            }
         }
+
+        // function handleWaitingTime() {
+        //     // Manejador de tiempo de espera
+        //     if (id_elems.length > 0) {
+        //         id_elems.forEach(function(elem, ind, array) {
+        //             var end = new Date($("#bg_in" + elem).val());
+        //             var bing_end = new Date($("#bg_in" + elem).val());
+        //             new Date(bing_end + (bing_end.setSeconds(bing_end.getSeconds() + 620)));
+        //             if (c_timer == 0) {
+        //                 c_tmsvr();
+        //             }
+        //             distance = end - now;
+        //             var days = Math.floor(distance / _day);
+        //             var hours = Math.floor((distance % _day) / _hour);
+        //             var minutes = Math.floor((distance % _hour) / _minute);
+        //             var seconds = Math.floor((distance % _minute) / _second);
+
+        //             if (c_timer == 1) {
+        //                 if (distance <= 0) {
+        //                     if ($("#bg_in_sts" + elem) != 1) {
+        //                         if (bing_end - now > 0) {
+        //                             $("#start-time_" + elem).html(
+        //                                 '<span style="font-size:15px; letter-spacing: 0.25px;">EN JUEGO</span>'
+        //                             );
+        //                         } else {
+        //                             $("#start-time_" + elem).html(
+        //                                 '<span style="font-size:14px; letter-spacing: 0.25px;">FINALIZADA</span>'
+        //                             );
+        //                         }
+        //                         $("#t_bg_hour" + elem).html('No disponible');
+        //                         $("#bg_in_sts" + elem).val(1);
+        //                         handleRoomStatus(elem);
+        //                     }
+        //                 } else {
+        //                     if (days == 0) {
+        //                         if (hours == 0) {
+        //                             if (minutes == 0) {
+        //                                 if (seconds != 0) {
+        //                                     $("#start-time_" + elem).html('<div class="time_dt">' + '<span>' +
+        //                                         seconds +
+        //                                         '</span>' + '<span class="tx_time">SEG</span>' + '</div>');
+        //                                 }
+        //                             } else {
+        //                                 $("#start-time_" + elem).html(
+        //                                     '<div class="time_dt">' + '<span>' + minutes +
+        //                                     '</span>' + '<span class="tx_time">MIN</span>' + '</div>' +
+        //                                     '<div class="time_dt">' + '<span>' + seconds +
+        //                                     '</span>' + '<span class="tx_time">SEG</span>' + '</div>');
+        //                             }
+        //                         } else {
+        //                             $("#start-time_" + elem).html(
+        //                                 '<div class="time_dt">' + '<span>' + hours + '</span>' +
+        //                                 '<span class="tx_time">HRS</span>' + '</div>' +
+        //                                 '<div class="time_dt tm_minutes">' + '<span>' + minutes +
+        //                                 '</span>' + '<span class="tx_time">MIN</span>' + '</div>' +
+        //                                 '<div class="time_dt">' + '<span>' + seconds +
+        //                                 '</span>' + '<span class="tx_time">SEG</span>' + '</div>');
+        //                             if (minutes == 0) {
+        //                                 $('.tm_minutes').hide()
+        //                             }
+        //                         }
+        //                     } else {
+        //                         $("#start-time_" + elem).html(
+        //                             '<div class="time_dt">' + '<span>' + days +
+        //                             '</span>' + '<span class="tx_time">DIAS</span>' + '</div>' +
+        //                             '<div class="time_dt tm_hours">' + '<span>' + hours + '</span>' +
+        //                             '<span class="tx_time">HRS</span>' + '</div>' +
+        //                             '<div class="time_dt  tm_minutes">' + '<span>' + minutes +
+        //                             '</span>' + '<span class="tx_time">MIN</span>' + '</div>' +
+        //                             '<div class="time_dt">' + '<span>' + seconds +
+        //                             '</span>' + '<span class="tx_time">SEG</span>' + '</div>');
+        //                         if (hours == 0) {
+        //                             $('.tm_hours').hide();
+        //                         }
+        //                         if (minutes == 0) {
+        //                             $('.tm_minutes').hide()
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         });
+        //         now.setMilliseconds(1000);
+        //     }
+        // }
 
         // let timer = setInterval(handleWaitingTime, 1000);
     </script>

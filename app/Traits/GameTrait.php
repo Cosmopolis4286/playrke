@@ -59,17 +59,15 @@ trait GameTrait
     public function convertToUnixTimestamp($date, $time)
     {
         // Concatenar fecha y hora en un solo string
-        $dateTime = $date . ' ' . $time;
+        $dateTime = "{$date} {$time}";
         // Convertir a timestamp Unix
-        $unixTimestamp = strtotime($dateTime);
-
-        return $unixTimestamp;
+        return strtotime($dateTime);
     }
 
     public function convertValueByGame($game, $roomID, $value, $type = 'string', $coin = '')
     {
         switch ($game) {
-            case 'BINGO': 
+            case 'BINGO':
                 $room = BingoRoom::getRoomById($roomID, ['customer', 'status']);
                 break;
 

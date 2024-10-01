@@ -113,7 +113,6 @@
         }
 
         $(".exitRm").click(() => window.location.href = "{{ route('login') }}" && $("#modal-info-winners").modal('hide'));
-        $(".exitRmS").click(() => $("#cont-ctn-award-winning").hide() && $("#modal-info-winners").modal('hide'));
 
         $(document).on("click", "#btn-close-carton-awarded", function() {
             $("#cont-ctn-award-winning").hide();

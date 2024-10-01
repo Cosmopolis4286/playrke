@@ -19,7 +19,7 @@
         </div>
     </div>
     @if ($room->status == 2)
-        @include('components.game.bingo.layout.modal-info-draw', ['sellerType' => $sellerType])
+        @include('components.game.bingo.layout.modal-info-draw', ['userType' => $userType ?? null])
     @elseif($room->status >= 3)
         @include('components.game.bingo.layout.modal-info-winners')
     @endif
@@ -117,8 +117,10 @@
             // }, 10000);
         }
 
-        $(".exitRm").click(() => window.location.href = "{{ route('login') }}" && $("#modal-info-winners").modal('hide'));
-        $(".exitRmS").click(() => $("#cont-ctn-award-winning").hide() && $("#modal-info-winners").modal('hide'));
+        // Salir de la sala
+        $(document).on("click", ".leave-room", function() {
+            // window.location.href = "{{ route('login') }}" && $("#modal-info-winners").modal('hide'));
+        });
 
         $(document).on("click", "#btn-close-carton-awarded", function() {
             $("#cont-ctn-award-winning").hide();
@@ -244,7 +246,7 @@
             if (status == 3) getGameData();
         };
 
-        // Ajustar tamano de las casillas
+        // Ajustar tamaño de las casillas
         $(document).ready(function() {
             function adjustHeightBoxes() {
                 let widthNumberBox = $('.number-box').first().width();
@@ -260,7 +262,6 @@
                 adjustHeightBoxes();
             });
         });
-        // Ajustar tamano de las casillas
 
         $(document).on("click", ".cont-arrow-history-chips", function() {
             renderChipsView(allChips, $(this).data('move'));
@@ -384,9 +385,10 @@
 
                 // Verificar condición para mostrar el resultado
                 if (newChip == chpLast) {
-                    $('#cont_tx_check_bing').show();
+                    $('#text-check-bingo').show();
                     endWin = 1;
-                    getResult();
+                    showWinners(infoGame, chpLast);
+                    //getResult();
                 }
             }
         }
@@ -489,18 +491,18 @@
             });
         }
 
-        function getResult() {
-            try {
-                const res = $.getJSON(`${preRoute}bingocash/get/result/${encrypted}/${player}`, {
-                    '_token': $("#token").val()
-                });
-                showWinners(res, chpLast);
-                $("#btn-view-winners").prop('disabled', false);
-                $('#cont_tx_check_bing').hide();
-            } catch (error) {
-                console.log("Error:", error);
-            }
-        }
+        // function getResult() {
+        //     try {
+        //         const res = $.getJSON(`${preRoute}bingocash/get/result/${encrypted}/${player}`, {
+        //             '_token': $("#token").val()
+        //         });
+        //         showWinners(res, chpLast);
+        //         $("#btn-view-winners").prop('disabled', false);
+        //         $('#text-check-bingo').hide();
+        //     } catch (error) {
+        //         console.log("Error:", error);
+        //     }
+        // }
 
         $(document).on("click", "#btn-view-winners", function() {
             $("#modal-info-winners").modal('show');
@@ -509,7 +511,6 @@
         $(async function() {
             try {
                 if (lastSixChips.length) {
-                    // Asegúrate de que estas funciones devuelvan promesas si necesitan ejecutarse en paralelo
                     console.log(lastSixChips);
                     console.log(allChips);
                     await Promise.all([
@@ -539,7 +540,7 @@
     @endif
     @if ($room->status == 2)
         <script>
-            const userType = '<?php echo $sellerType; ?>';
+            const userType = '<?php echo $userType; ?>';
             const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
             const coinID = '<?php echo json_encode($coinID); ?>';
             const ctnPrice = Number('<?php echo $ctnPrice; ?>');
@@ -559,7 +560,7 @@
             }
 
             function setAmount(amount) {
-                if (type == 'comm') $("#sent-amount").text(`${coinSym} ${amount}`);
+                if (userType == 'commerce') $("#sent-amount").text(`${coinSym} ${amount}`);
                 $("#total-amount").text(`${coinSym} ${amount}`);
             }
 
@@ -568,7 +569,7 @@
                     $("#ctn-price-coin-symbol").text(coinSym);
                     $("#ctn-price-amount").text(ctnPrice);
 
-                    if (type == 'comm') {
+                    if (userType == 'commerce') {
                         $.getJSON(`{{ url('commerce/getPaymentCommerceDetails') }}/${userTypeVal}/${coinID}`, {
                                 '_token': "{{ csrf_token() }}"
                             })
@@ -608,7 +609,7 @@
                     $("#num-ctns").val(1);
                 }
 
-                if (type == 'comm') {
+                if (userType == 'commerce') {
                     if (!$("#purchase-code").val()) {
                         $("#purchase-code").focus();
                         return showToast('Ingrese el Código de Compra', 'warning');
@@ -628,7 +629,7 @@
                     dataType: 'json',
                     data: {
                         room: encrypted,
-                        user_type: userType
+                        user_type: userType,
                         user_type_val: userTypeVal,
                         player: player,
                         coin: coinID,

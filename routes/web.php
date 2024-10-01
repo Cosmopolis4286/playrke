@@ -403,9 +403,11 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 
     Route::get('game-rooms/cust/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('customer-game-rooms');
 
-    Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
+    Route::put('status/{id}', [BingoController::class, 'changeStatusRoom'])->name('change-status');
+    Route::get('getDateTimeRooms/{userType}/{userID}/{coin?}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
+    Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
     Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');
     Route::put('replay/{id}', [BingoController::class, 'replay'])->name('replay');
@@ -434,7 +436,6 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
     // Procesar Compra de Cartones
     Route::post('carton/generate/store', [BingoController::class, 'player'])->name('generateCarton');
-    Route::put('status/{id}', [BingoController::class, 'changeStatusRoom'])->name('change-status');
     Route::get('getDraw/{room}', [BingoController::class, 'getDraw'])->name('getDraw');
     Route::get('get/chips/{room}', [BingoController::class, 'getChips'])->name('getChips');
     Route::get('get/result/{room}/{value}/{column?}', [BingoController::class, 'getResult'])->name('getResult');

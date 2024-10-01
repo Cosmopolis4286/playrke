@@ -54,6 +54,16 @@ class BingoController extends Controller
         // broadcast(new BingoOFF_GetRoomInfo(now()->format('H:i:s'), $room->encrypted));
     }
 
+    public function getDateTimeRooms($userType, $userID, $coin = '')
+    {
+        $query = BingoRoom::select('encrypted', 'status', 'date', 'time')
+            ->where($userType, $userID)->whereIn('status', [2, 3]);
+
+        if ($coin) $query = $query->where('coin', decrypt($coin));
+
+        return $query->get();
+    }
+
     private function getRoomGame($query, $dateFilter)
     {
         $dateFilters = [$dateFilter, 'yesterday', 'tomorrow'];
@@ -119,6 +129,7 @@ class BingoController extends Controller
             'coinSym' => $coinSym,
             'coin' => encrypt($coinID),
             'rooms' => $rooms,
+            'dateTimeRooms' => $this->getDateTimeRooms($userType, $userID, encrypt($coinID)),
             'userType' => $userType,
             'userTypeVal' => $userID,
             'player' => encrypt($player)
@@ -261,13 +272,13 @@ class BingoController extends Controller
         }
     }
 
-    private function getGameInfo($type, $data = [], $dateFilter = 'today')
+    private function getGameInfo($userType, $data = [], $dateFilter = 'today')
     {
         date_default_timezone_set('America/Caracas');
 
         $columnVal = null;
 
-        switch ($type) {
+        switch ($userType) {
             case 'customer':
 
                 $customer = $data['customer'];
@@ -288,15 +299,14 @@ class BingoController extends Controller
                 $coinID = $user->coin;
                 $coinSym = $coinID;
 
-                $sellerType = 'rke';
-
                 $moreViewData = [
                     'custLogo' => Customer::getValueById($customer, 'logo'),
                     'player' => encrypt($columnVal),
                 ];
 
                 if ($room->status == 2) {
-                    $moreViewData['userType'] = encrypt('customer');
+                    $connection = ['cust', 'off'];
+                    $moreViewData['userType'] = 'customer';
                     $moreViewData['userTypeVal'] = encrypt($customer);
                     $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomId, $room->ctn_price, 'float');
                     $moreViewData['customerName'] = Customer::getValueById($customer, 'name');
@@ -336,10 +346,11 @@ class BingoController extends Controller
                 }
 
                 $room = BingoRoom::getRoomById($roomId, ['status', 'all_for_one', 'ctn_price']);
-                $sellerType = 'comm';
 
-                if ($type == 'commerce' && $room->status == 2) {
-                    $moreViewData['userType'] = encrypt('commerce');
+                $connection = ['comm', 'off'];
+
+                if ($userType == 'commerce' && $room->status == 2) {
+                    $moreViewData['userType'] = 'commerce';
                     $moreViewData['userTypeVal'] = encrypt($data['commerce']);
                     $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomId, $room->ctn_price, 'float', $coinID);
                 }
@@ -413,7 +424,7 @@ class BingoController extends Controller
             'infoGame' => $infoGame,
             'timeServ' => time(),
             'encryptionKey' => env('JSON_ENCRYPTION_KEY'),
-            'sellerType' => $sellerType
+            'connection' => $connection
         ];
 
         if ($room->status == 2) $viewData['coinID'] = encrypt($coinID);

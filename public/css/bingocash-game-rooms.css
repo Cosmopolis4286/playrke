@@ -286,7 +286,7 @@ input[type=number] {
 .card-game-room__time {
     background-color: #333;
     color: whitesmoke;
-    border-radius: 10px;
+    border-radius: 12px;
     height: 40px;
     font-weight: 500;
     width: 71%;
@@ -327,7 +327,7 @@ input[type=number] {
 .card-game-room__game-mode {
     color: rgb(255, 240, 240);
     font-weight: 500;
-    border-radius: 6px;
+    border-radius: 8px;
     width: 82%;
     height: 25px;
     text-align: center;
@@ -416,7 +416,7 @@ input[type=number] {
     border-radius: 9px;
     padding-top: -2.15%;
     position: absolute;
-    bottom: -7%;
+    bottom: -6.5%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-transform: uppercase;

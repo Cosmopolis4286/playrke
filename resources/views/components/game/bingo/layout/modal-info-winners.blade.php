@@ -145,7 +145,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary exitRm">Continuar</button>
+                <button type="button" class="btn btn-primary leave-room">Continuar</button>
             </div>
         </div>
     </div>
