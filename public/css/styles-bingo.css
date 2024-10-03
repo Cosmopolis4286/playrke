@@ -376,7 +376,8 @@ body {
     align-items: center;
 }
 
-.number-box {
+.number-box,
+.number-box-view-ctn {
     position: relative;
     font-size: 112%;
     display: flex;

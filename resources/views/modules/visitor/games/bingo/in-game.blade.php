@@ -20,7 +20,7 @@
     </div>
     @if ($room->status == 2)
         @include('components.game.bingo.layout.modal-info-draw', ['userType' => $userType ?? null])
-    @elseif($room->status >= 3)
+    @elseif($room->status > 2)
         @include('components.game.bingo.layout.modal-info-winners')
     @endif
 @endsection
@@ -246,15 +246,19 @@
             if (status == 3) getGameData();
         };
 
-        // Ajustar tamaño de las casillas
         $(document).ready(function() {
+            // Ajustar tamaño de las casillas
             function adjustHeightBoxes() {
                 let widthNumberBox = $('.number-box').first().width();
                 $('.number-box').height(widthNumberBox);
                 $('.container-carton').css('visibility', 'visible');
+
+                if (status > 2 && ('#modal-info-winners').length) {
+                    let widthNumberBoxViewCtn = $('.number-box-wiew-ctn').first().width();
+                    $('.number-box-wiew-ctn').height(widthNumberBoxViewCtn);
+                }
             }
 
-            // Llama a la función al cargar la página
             adjustHeightBoxes();
 
             // Llama a la función cada vez que se redimensiona la ventana
@@ -339,6 +343,7 @@
         }
 
         async function getNewChip(newChip) {
+
             if (newChip != undefined && !lastSixChips.includes(newChip)) {
 
                 const arrDrawImg = $('.img-chip');
@@ -387,7 +392,10 @@
                 if (newChip == chpLast) {
                     $('#text-check-bingo').show();
                     endWin = 1;
-                    showWinners(infoGame, chpLast);
+                    infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
+                    setTimeout(() => {
+                        showWinners(infoGame, chpLast);
+                    }, 3000);
                     //getResult();
                 }
             }
@@ -424,6 +432,7 @@
         function showWinners(arrInfo, chipWin) {
 
             if (loaderChip) $('#cont-loader').hide();
+            if (status == 3) $('#text-check-bingo').hide();
 
             const arrSizeJackpot = arrInfo.jackpotWinners.size;
             const arrSizeSerials = arrInfo.serialsWinners.size;
@@ -511,8 +520,6 @@
         $(async function() {
             try {
                 if (lastSixChips.length) {
-                    console.log(lastSixChips);
-                    console.log(allChips);
                     await Promise.all([
                         handleLatestChips(lastSixChips),
                         renderChipsView(allChips)
@@ -532,10 +539,10 @@
     </script>
     @if ($room->status > 2)
         <script src="{{ asset('js/crypt.js') }}"></script>
+    @endif
+    @if ($room->status > 3)
         <script>
-            if (endWin == 1) {
-                infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
-            }
+            infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
         </script>
     @endif
     @if ($room->status == 2)

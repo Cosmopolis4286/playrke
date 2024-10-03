@@ -21,6 +21,7 @@ use App\Models\GameExchangeRate;
 use App\Models\ExchangeRate;
 use App\Models\PlayerLink;
 use App\Models\Seller;
+use App\Models\Transactions;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -549,6 +550,33 @@ trait BingoTrait
                 if (!$transaction) {
                     DB::rollBack();
                     return ['Error' => 'Error al registrar la transacción'];
+                }
+
+                $transactionResponse = $this->transferMoney(
+                    $transaction->customer,
+                    $transaction->game,
+                    $transaction->user_id,
+                    $transaction->bet_id,
+                    $transaction->coin,
+                    $transaction->amount,
+                    $transaction->code,
+                    $transaction->transaction_type
+                );
+
+                // Verificar si la respuesta contiene un error
+                if (isset($transactionResponse->Error) && $transactionResponse->Error) {
+                    DB::rollBack();
+                    Log::error("Error al procesar la transacción hacia el cliente: '{$transaction->id}': {$transactionResponse->Error}");
+                    return ['Error' => 'Error al registrar la transacción hacia el cliente'];
+                }
+
+                if ($transactionResponse) {
+                    // Actualizar la transacción si es exitosa
+                    Transactions::where('id', $transaction->id)->update([
+                        'status' => 1,
+                        'processing_data' => Carbon::now('America/Caracas'),
+                        'updated_at' => now(),
+                    ]);
                 }
             }
 

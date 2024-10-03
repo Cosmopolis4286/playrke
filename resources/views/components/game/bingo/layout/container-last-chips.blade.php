@@ -4,7 +4,7 @@
             <div id="loader-last-chips"></div>
         </div>
     </div>
-    @if (isset($gameMode) && $gameMode == 1)
+    @if (isset($gameMode) && $gameMode == 1 && $room->status == 3)
         <div id="text-check-bingo">Comprobando si hay "BINGO"</div>
     @endif
 </div>

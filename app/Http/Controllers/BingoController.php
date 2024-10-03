@@ -268,7 +268,11 @@ class BingoController extends Controller
                 return redirect()->back();
             }
         } else {
-            return response()->json(['type' => 'warning', 'message' => "Ha ocurrido un error: {$cartonStore['Error']}"]);
+            if (isset($userType)) {
+                return response()->json(['type' => 'warning', 'message' => "Ha ocurrido un error: {$cartonStore['Error']}"]);
+            } else {
+                return redirect()->back()->with(['type' => 'warning', 'message' => "Ha ocurrido un error: {$cartonStore['Error']}"]);
+            }
         }
     }
 
@@ -397,13 +401,10 @@ class BingoController extends Controller
             BingoDraw::where('room', $roomId)->where('time', '>', time())
             ->where('id', '<=', $vanDraw->id)->orderBy('chip')->pluck('chip')->sort()->toArray() : [];
 
-        $allChips = ($room->status > 2) ?
-            BingoDraw::where('room', $roomId)->where('id', '<=', $vanDraw->id)
-            ->where('time', '<', time())->orderByDesc('id')->pluck('chip')->toArray() : [];
 
         $codeEncrypt = ($room->status == 3) ? BingoDrawCode::where('room', $roomId)->pluck('sym')->toArray() : [];
 
-        $lastSixChips = $this->getChips($room->encrypted);
+        $dataChips = $this->getChips($room->encrypted);
 
         $viewData = [
             'title' => 'BingoCash',
@@ -417,13 +418,12 @@ class BingoController extends Controller
             'sort' => $sort,
             'encrypt' => $codeEncrypt,
             'key' => env('JSON_ENCRYPTION_KEY'),
-            'lastSixChips' => $lastSixChips[0],
-            'lastPostChip' => $lastSixChips[1],
-            'allChips' => $allChips,
+            'lastSixChips' => $dataChips['lastSixChips'],
+            'lastPostChip' => $dataChips['lastPostChip'],
+            'allChips' => $dataChips['allChips'],
             'vanDraw' => $vanDraw ? $vanDraw->chip : '',
             'infoGame' => $infoGame,
             'timeServ' => time(),
-            'encryptionKey' => env('JSON_ENCRYPTION_KEY'),
             'connection' => $connection
         ];
 
@@ -525,33 +525,43 @@ class BingoController extends Controller
         date_default_timezone_set('America/Caracas');
 
         $room = BingoRoom::getRoomByEncrypted($room, ['id', 'status']);
+
+        if (!$room) ['Error' => 'Sala no encontrada'];
+
         $roomId = $room->id;
 
         if ($roomId) {
-            $vanDraw = BingoDraw::where('room', $roomId)->where('win', 1)->first();
-            if ($vanDraw) {
+
+            $chipVanID = BingoDraw::where('room', $roomId)->where('win', 1)->value('id');
+
+            if ($chipVanID) {
+
                 $lastSixChips = ($room->status > 2) ?
                     BingoDraw::where('room', $roomId)->where('time', '<=', time())
-                    ->where('id', '<=', $vanDraw->id)->orderByDesc('id')->take(7)->pluck('chip')->toArray() : [];
+                    ->where('id', '<=', $chipVanID)->orderByDesc('id')->take(7)->pluck('chip')->toArray() : [];
 
                 $sizeArr = count($lastSixChips);
 
-                $lastPos = false;
                 if ($sizeArr > 1) {
+
                     $sort = BingoDraw::where('room', $roomId)->where('time', '<=', time())
-                        ->where('id', '<=', $vanDraw->id)->pluck('chip')->toArray();
+                        ->where('id', '<=', $chipVanID)->pluck('chip')->toArray();
 
                     $lastPos = array_search($lastSixChips[$sizeArr - 1], $sort);
+
                     array_pop($lastSixChips);
                 }
 
-                $allChips =  BingoDraw::where('room', $roomId)->where('id', '<=', $vanDraw->id)
-                    ->where('time', '<', time())->orderByDesc('id')->pluck('chip')->toArray();
+                $allChips =  BingoDraw::where('room', $roomId)->where('id', '<=', $chipVanID)
+                    ->where('time', '<=', time())->orderByDesc('id')->pluck('chip')->toArray();
 
-                return [$lastSixChips, $lastPos !== false ? $lastPos : 0, time(), $allChips];
+                return [
+                    'lastSixChips' => $lastSixChips,
+                    'lastPostChip' => $lastPos ?? 0,
+                    'allChips' => $allChips
+                ];
             }
         }
-        return ['', '', time()];
     }
 
     public function getResult($room, $columnVal)
@@ -756,6 +766,7 @@ class BingoController extends Controller
                 ]);
 
                 DB::commit();
+                return redirect()->back()->with('message', 'Sala creada con éxito')->with('type', 'success');
             } catch (\Exception $e) {
                 dd($e->getMessage());
                 DB::rollBack();
@@ -845,7 +856,7 @@ class BingoController extends Controller
     {
         $id = decrypt($id);
 
-        $room = BingoRoom::where('id', $id)->select('game_mode', 'date', 'time', 'ctn_price', 'jackpot')->firstOrFail();
+        $room = BingoRoom::where('id', $id)->select('game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->firstOrFail();
 
         $roomConfig = BingoRoomConfig::where('room', $id)
             ->select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')->firstOrFail();

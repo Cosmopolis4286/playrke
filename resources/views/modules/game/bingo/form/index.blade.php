@@ -50,6 +50,10 @@
     <script>
         const name = '<?php echo $name; ?>';
         const userType = '<?php echo $userType; ?>';
+        // const country = $("#country");
+        // const coin = $("#coin");
+        const jackpotType = $("#jackpot-type");
+        const gameMode = $("#game-mode");
         const arrCoins = JSON.parse('<?php echo json_encode($coins); ?>');
         const arrJackpotType = JSON.parse('<?php echo json_encode($jackpotType); ?>')
         const arrGameModes = JSON.parse('<?php echo json_encode($gameModes); ?>')
@@ -76,14 +80,10 @@
         });
 
         function insertInfo(type, data = '') {
-            // const country = $("#country");
-            // const coin = $("#coin");
-            const jackpotType = $("#jackpot-type");
-            const gameMode = $("#game-mode");
 
             gameMode.prop({
-                disabled: type == 2 && data.room.jackpot != 0,
-                required: !(type == 2 && data.room.jackpot != 0)
+                disabled: type == 2 && data.room.players,
+                required: !(type == 2 && data.room.players)
             });
 
             $("#jackpot-type, #game-mode").empty(); // Limpia las opciones existentes
@@ -105,7 +105,7 @@
 
             if (type == 1) {
                 jackpotType.append(`<option value="" selected>Seleccionar:</option>`);
-                gameMode.append(`<option value="" selected>Seleccionar:</option>`)
+                if (arrGameModes.length > 1) gameMode.append(`<option value="" selected>Seleccionar:</option>`)
             }
 
             $.each(arrJackpotType, function(index, item) {

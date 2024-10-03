@@ -145,6 +145,11 @@ trait SeamlessWallet
             return ['Error' => "No existe el ID de Juego del cliente [{$customerID}]"];
         }
 
+        if (!is_array($userToken)) {
+            $player = CustomerUser::getById($userToken, ['user_id', 'token']);
+            $userToken = [$player->user_id, $player->token];
+        }
+
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
             "Ticks" => "0000000",
@@ -160,7 +165,6 @@ trait SeamlessWallet
             "AdditionalData" => json_encode($additionalData) ?? "{}"
         ]);
 
-        dd($dataJson);
         // Llamada al método globalGuzzle
         $response = $this->globalGuzzle($customerID, $dataJson, 'TransferMoney');
 
@@ -209,7 +213,7 @@ trait SeamlessWallet
                 'status' => $status
             ]);
 
-            return [$transaction->bet_id, $transaction->code];
+            return $transaction;
         } catch (\Exception $e) {
             dd($e->getMessage());
             //throw $th;
@@ -263,8 +267,6 @@ trait SeamlessWallet
                         'processing_data' => Carbon::now('America/Caracas'),
                         'updated_at' => now(),
                     ]);
-                } else {
-                    Log::warning("Transacción no completada para: '{$item->id}'");
                 }
             } catch (\Exception $e) {
                 // Manejo de excepciones inesperadas
