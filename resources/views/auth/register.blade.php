@@ -88,6 +88,7 @@
     </div>
 @endsection
 @section('scripts')
+    @vite('resources/js/rke/register.js')
     <script>
         const list = $('#dropdown_list');
         const dropdownSelect = $('#dropdown_select');
@@ -109,5 +110,4 @@
             list.hide();
         }
     </script>
-    <script src="{{ asset('js/register.js') }}"></script>
 @endsection

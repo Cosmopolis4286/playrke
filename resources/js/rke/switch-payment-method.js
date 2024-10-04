@@ -18,3 +18,5 @@ function switchPaymentMethod(code, data = '') {
             break;
     }
 }
+
+window.switchPaymentMethod = switchPaymentMethod;

@@ -1,4 +1,4 @@
-var toastInExecution = false;
+let toastInExecution = false;
 
 const Toast = Swal.mixin({
     toast: true,
@@ -50,3 +50,7 @@ function showToastOptionBtns(text, icon, confirmButtonText, form, routeTemplate,
         }
     });
 }
+
+// Exponer las funciones al objeto window
+window.showToast = showToast;
+window.showToastOptionBtns = showToastOptionBtns;

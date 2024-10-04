@@ -1,3 +1,7 @@
+// rke-functions.js
+console.log('rke-functions.js cargado');
+
+// Funciones del módulo
 function ajaxStart() {
     $('#loader, #loader-sm').show();
     $('.btn').prop('disabled', true);
@@ -7,30 +11,20 @@ function ajaxStop() {
     $('#loader, #loader-sm').hide();
     $('.btn:not([data-block])').prop('disabled', false);
 }
+
 // Manejador global para iniciar la animación del cargador en peticiones AJAX
-$(document).ajaxStart(function () {
-    ajaxStart();
-});
+$(document).ajaxStart(ajaxStart);
 
 // Manejador global para detener la animación del cargador en peticiones AJAX
-$(document).ajaxStop(function () {
-    ajaxStop();
-});
+$(document).ajaxStop(ajaxStop);
 
 // Manejador para iniciar la animación del cargador al enviar formularios
-$(document).on("submit", "form", function () {
-    ajaxStart();
-});
-
-// Manejador para iniciar la animación del cargador al enviar formularios
-$("form").on("submit", function () {
-    ajaxStart();
-});
+$(document).on("submit", "form", ajaxStart);
 
 function copyInfo(text, elem = false) {
     if (!elem) elem = $("#info-to-copy");
     navigator.clipboard.writeText(elem.val());
-    showToast(text,'success');
+    showToast(text, 'success');
 }
 
 function deleteSessionFlash(arr = []) {
@@ -43,10 +37,8 @@ function deleteSessionFlash(arr = []) {
         data: {
             message_keys: arr // Array de nombres de mensajes flash a eliminar
         },
-        success: function (response) {
-        },
-        error: function (xhr, status, error) {
-        }
+        success: function (response) { },
+        error: function (xhr, status, error) { }
     });
 }
 
@@ -67,13 +59,15 @@ function submitForm(formName, requiredFields = []) {
     }
 }
 
-let modalName;
-let insert = update = false;
-let encryptedId;
-let extraInfo;
+let extraInfo = false;
+
+// Función para establecer el valor de extraInfo
+function setExtraInfo(value) {
+    extraInfo = value;
+}
 
 function formCRUD(elem, name, title, route, otherCasesMap = '') {
-    modalName = $(`#modal-${name}`);
+    const modalName = $(`#modal-${name}`);
     const modalLabel = $(`#modal-${name}-label`);
     const formName = $(`#form-${name}`);
     formName[0].reset();
@@ -81,6 +75,8 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
     formName.find('input[name="_method"]').remove();
 
     let type;
+    let encryptedId;
+
     if (!Array.isArray(elem)) {
         const data = elem.data();
         type = data.type;
@@ -95,21 +91,18 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
 
     switch (type) {
         case 1:
-            modalLabel.text(`Registar ${title}`);
+            modalLabel.text(`Registrar ${title}`);
             formName.attr('action', `${route}/create`);
-
-            insertInfo(type) // type, data = '';
+            insertInfo(type); // type, data = '';
             break;
         case 2:
             modalLabel.text(`Editar ${title}`);
-
             formName.attr('action', `${route}/update/${encryptedId}`)
                 .append('<input type="hidden" name="_method" value="PUT">');
-
-            getInfo(route, encryptedId) // ID encryptado;
+            getInfo(route, encryptedId); // ID encriptado;
             break;
         case 3:
-            deleteInfo(encryptedId); // ID encryptado;
+            deleteInfo(encryptedId); // ID encriptado;
             break;
         default:
             if (otherCasesMap[type]) {
@@ -135,3 +128,11 @@ function getInfo(route, id) {
     });
 }
 
+// Exponer las funciones al objeto window
+window.ajaxStart = ajaxStart;
+window.ajaxStop = ajaxStop;
+window.copyInfo = copyInfo;
+window.deleteSessionFlash = deleteSessionFlash;
+window.submitForm = submitForm;
+window.formCRUD = formCRUD;
+window.getInfo = getInfo;

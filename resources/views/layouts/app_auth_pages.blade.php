@@ -18,6 +18,8 @@
     <title>PlayRKE - @yield('title')</title>
 </head>
 
+@vite(['resources/js/rke/rke-functions.js', 'resources/js/rke/toast-notify.js'])
+
 <body>
     <main id="containerFirst">
         <img id="bgImg" src="{{ asset('img/body/wall9.jpg') }}">
@@ -52,7 +54,6 @@
 
     <script src="https://www.google.com/recaptcha/api.js"></script>
     <script src="{{ asset('js/jquery-3.6.4.min.js') }}"></script>
-    <script src="{{ asset('js/rke-functions.js') }}" defer></script>
     <script src="{{ asset('js/Bootstrap/popper.min.js') }}"></script>
     <script src="{{ asset('js/Bootstrap/bootstrap.min.js') }}"></script>
     <script src="{{ asset('js/notyf.min.js') }}"></script>

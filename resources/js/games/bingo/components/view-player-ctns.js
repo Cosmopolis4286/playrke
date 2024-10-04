@@ -6,3 +6,5 @@ $(document).on("click", ".show-ctns", function () {
     const PJLink = $(this).data('player_link');
     goToCtns(PJLink, commerce);
 });
+
+window.goToCtns = goToCtns;

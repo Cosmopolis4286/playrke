@@ -1,14 +1,40 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
+import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator'; // Importa correctamente
 
 export default defineConfig({
     plugins: [
         laravel({
             input: [
-                'resources/css/app.css',
                 'resources/js/app.js',
+                'resources/js/rke/toast-notify.js',
+                'resources/js/rke/register.js',
+                'resources/js/rke/rke-crypt.js',
+                'resources/js/rke/rke-functions.js',
+                'resources/js/rke/switch-payment-method.js',
+                'resources/js/rke/payment-confirm-button.js',
+
+                'resources/css/app.css',
             ],
             refresh: true,
+        }),
+        obfuscatorPlugin({
+            include: [
+                'resources/js/app.js',
+                'resources/js/rke/toast-notify.js',
+                'resources/js/rke/register.js',
+                'resources/js/rke/rke-crypt.js',
+                'resources/js/rke/rke-functions.js',
+                'resources/js/rke/switch-payment-method.js',
+                'resources/js/rke/payment-confirm-button.js'
+            ],
+            exclude: [/node_modules/],
+            apply: "build", // Aplica solo en el build de producción
+            debugger: false, // Habilita protección de depuración
+            options: {
+                debugProtection: false, // Opciones adicionales para proteger el código
+                // Agrega más opciones si es necesario
+            },
         }),
     ],
 });

@@ -20,3 +20,8 @@ function decryptJson(encryptedText, secretKeyBase64) {
     const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
     return JSON.parse(decryptedText); // Convierte la cadena JSON a un objeto
 }
+
+// Exponer las funciones al objeto window
+window.generateRandomIV = generateRandomIV;
+window.encryptJson = encryptJson;
+window.decryptJson = decryptJson;

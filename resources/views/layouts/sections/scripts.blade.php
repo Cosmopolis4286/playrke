@@ -12,17 +12,18 @@
 <script src="{{ asset('js/DataTables/dataTables.responsive.js') }}"></script>
 <script src="{{ asset('js/DataTables/responsive.bootstrap4.js') }}"></script>
 <script src="{{ asset('js/sweetalert2.all.min.js') }}"></script>
-<script src="{{ asset('js/toast-notify.js') }}"></script>
-<script src="{{ asset('js/rke-functions.js') }}"></script>
 <script src="{{ asset('template/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
 <script src="{{ asset('template/dist/js/adminlte.js') }}"></script>
+
 <script>
-    if ("{{ Session::has('message') }}") {
-        const message = {!! json_encode(Session::get('message')) !!};
-        const icon = {!! json_encode(Session::get('type')) !!} || 'success';
-        const html = `<div style="font-size: 15px;">${message}</div>`;
-        showToast(html, icon);
-    }
+    $(document).ready(function() {
+        if ("{{ Session::has('message') }}") {
+            const message = {!! json_encode(Session::get('message')) !!};
+            const icon = {!! json_encode(Session::get('type')) !!} || 'success';
+            const html = `<div style="font-size: 15px;">${message}</div>`;
+            showToast(html, icon);
+        }
+    });
 
     $(document).on('click', '#change-password', function() {
         $('#modal-change-password').modal('show');
@@ -59,4 +60,5 @@
         $(this).val(phoneNumber);
     });
 </script>
+
 @yield('scripts')
