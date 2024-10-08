@@ -21,6 +21,7 @@ trait GameTrait
     {
         try {
             $exchangeRates = ExchangeRate::all();
+            
             $timestamp = $this->getTimestamp();
 
             $coins = $exchangeRates->pluck('coin')->unique();
