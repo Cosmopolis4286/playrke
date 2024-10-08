@@ -65,3 +65,5 @@ function countdownt(startTime) {
         $('#cont-M').toggle(minutes !== 0);
     }
 }
+
+window.convertAndDisplay = convertAndDisplay;

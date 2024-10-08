@@ -155,7 +155,8 @@
     @endcomponent
 @endsection
 @section('scripts')
-    <script src="{{ asset('js/time-functions.js') }}"></script>
+    @vite('resources/js/rke/time-functions.js')
+    {{-- <script src="{{ asset('js/time-functions.js') }}"></script> --}}
     <script>
         const room = $("#room");
         const rooms = {!! json_encode($rooms) !!};

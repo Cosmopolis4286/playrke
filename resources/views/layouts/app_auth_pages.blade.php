@@ -18,8 +18,6 @@
     <title>PlayRKE - @yield('title')</title>
 </head>
 
-@vite(['resources/js/rke/rke-functions.js', 'resources/js/rke/toast-notify.js'])
-
 <body>
     <main id="containerFirst">
         <img id="bgImg" src="{{ asset('img/body/wall9.jpg') }}">

@@ -214,7 +214,7 @@
         }
 
         const otherCasesMap = {
-            4: function() {
+            4: function(encryptedId) {
                 showToastOptionBtns(
                     'Deseas cambiar el status de este Comercio',
                     'question',
@@ -224,7 +224,7 @@
                     encryptedId
                 );
             },
-            5: function() {
+            5: function(encryptedId) {
                 showToastOptionBtns(
                     'Generar Nueva Contraseña a este Comercio',
                     'info',

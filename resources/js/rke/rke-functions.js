@@ -1,5 +1,4 @@
 // rke-functions.js
-console.log('rke-functions.js cargado');
 
 // Funciones del módulo
 function ajaxStart() {
@@ -62,21 +61,27 @@ function submitForm(formName, requiredFields = []) {
 let extraInfo = false;
 
 // Función para establecer el valor de extraInfo
-function setExtraInfo(value) {
-    extraInfo = value;
+function setVariable(name, value) {
+    if (params.hasOwnProperty(name)) {
+        params[name] = value;
+    } else {
+        console.error(`Variable ${name} no existe.`);
+    }
 }
 
 function formCRUD(elem, name, title, route, otherCasesMap = '') {
     const modalName = $(`#modal-${name}`);
     const modalLabel = $(`#modal-${name}-label`);
     const formName = $(`#form-${name}`);
+
     formName[0].reset();
     formName.find('select').empty();
     formName.find('input[name="_method"]').remove();
 
-    let type;
-    let encryptedId;
+    let type = false;
+    let encryptedId = '';
 
+    // Si `elem` no es un array, extrae los datos de `elem`
     if (!Array.isArray(elem)) {
         const data = elem.data();
         type = data.type;
@@ -85,6 +90,7 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
             encryptedId = encodeURIComponent(JSON.stringify(encryptedId));
         }
     } else {
+        // Si `elem` es un array, usa sus valores
         type = elem[0];
         encryptedId = elem[1];
     }
@@ -93,20 +99,26 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
         case 1:
             modalLabel.text(`Registrar ${title}`);
             formName.attr('action', `${route}/create`);
-            insertInfo(type); // type, data = '';
+            insertInfo(type); // Llama a `insertInfo` sin datos adicionales
             break;
+
         case 2:
             modalLabel.text(`Editar ${title}`);
             formName.attr('action', `${route}/update/${encryptedId}`)
                 .append('<input type="hidden" name="_method" value="PUT">');
-            getInfo(route, encryptedId); // ID encriptado;
+            getInfo(route, encryptedId); // Obtén la información con el ID encriptado
             break;
+
         case 3:
-            deleteInfo(encryptedId); // ID encriptado;
+            deleteInfo(encryptedId); // Llama a `deleteInfo` con el ID encriptado
             break;
+
         default:
+            // Verifica si el `type` está mapeado en `otherCasesMap` y si es una función
             if (otherCasesMap[type]) {
-                otherCasesMap[type](); // Ejecutar la función correspondiente
+                otherCasesMap[type](encryptedId); // Pasa `encryptedId` como argumento
+            } else {
+                console.error(`Tipo de caso no manejado: ${type}`);
             }
             break;
     }

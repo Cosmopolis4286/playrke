@@ -61,4 +61,6 @@
     });
 </script>
 
+@vite(['resources/js/rke/rke-functions.js', 'resources/js/rke/toast-notify.js'])
+
 @yield('scripts')

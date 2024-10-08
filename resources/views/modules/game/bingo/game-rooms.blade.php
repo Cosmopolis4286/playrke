@@ -82,7 +82,10 @@
         let isLogin = false;
         let purchase = false;
         let room = false;
-        let arrRooms = [];
+        let arrRooms = {
+            id: [],
+            dateTime: []
+        };
         let ctnPrice = 0;
         let numCtns = 1;
 
@@ -122,8 +125,8 @@
                 })
                 .done(res => {
                     res.forEach(value => {
-                        arrRooms.push(value.id);
-                        $(`#bg_in${value.id}`).val(`${value.date} ${value.time}`);
+                        arrRooms.id.push(value.id);
+                        arrRooms.dateTime.push(`${value.date} ${value.time}`);
                     });
                 })
                 .fail(err => {
@@ -219,7 +222,6 @@
         });
 
         function handleTotalAmount(quantity) {
-            // Manejador de Monto Total = Multiplica la cantidad actual por el precio
             const total = quantity * ctnPrice;
             numCtns = quantity;
 

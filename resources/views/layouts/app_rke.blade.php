@@ -2,7 +2,6 @@
 <html lang="en">
 
 @include('layouts.sections.head')
-{{-- @vite('resources/js/app.js') --}}
 
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
     <div class="wrapper">

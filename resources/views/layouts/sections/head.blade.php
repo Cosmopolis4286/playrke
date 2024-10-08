@@ -19,4 +19,3 @@
     @yield('styles')
     <title>PlayRKE - @yield('title')</title>
 </head>
-@vite(['resources/js/rke/rke-functions.js', 'resources/js/rke/toast-notify.js'])

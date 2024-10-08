@@ -37,6 +37,8 @@
     <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
+    @vite('resources/js/games/bingo/components/view-player-ctns.js')
+    @vite('resources/js/games/bingo/components/payment-confirm-button.js')
     <script>
         function getPaymentCommerceDetails(commerce, coin) {
             $.getJSON(`{{ asset('') }}commerce/getPaymentCommerceDetails/${commerce}/${coin}`, {
@@ -119,6 +121,6 @@
             };
         });
     </script>
-    <script src="{{ asset('js/components/view-player-ctns.js') }}"></script>
-    <script src="{{ asset('js/components/payment-confirm-button.js') }}"></script>
+    {{-- <script src="{{ asset('js/components/view-player-ctns.js') }}"></script> --}}
+    {{-- <script src="{{ asset('js/components/payment-confirm-button.js') }}"></script> --}}
 @endsection

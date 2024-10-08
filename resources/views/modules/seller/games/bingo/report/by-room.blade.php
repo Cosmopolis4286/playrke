@@ -72,8 +72,9 @@
     <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
+    @vite('resources/js/games/bingo/components/view-player-ctns.js')
     <script>
         const commerce = '<?php echo $commerce; ?>'
     </script>
-    <script src="{{ asset('js/components/view-player-ctns.js') }}"></script>
+    {{-- <script src="{{ asset('js/components/view-player-ctns.js') }}"></script> --}}
 @endsection

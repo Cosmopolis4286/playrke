@@ -11,8 +11,10 @@ export default defineConfig({
                 'resources/js/rke/register.js',
                 'resources/js/rke/rke-crypt.js',
                 'resources/js/rke/rke-functions.js',
+                'resources/js/rke/time-functions.js',
                 'resources/js/rke/switch-payment-method.js',
                 'resources/js/rke/payment-confirm-button.js',
+                'resources/js/games/bingo/components/view-player-ctns.js',
 
                 'resources/css/app.css',
             ],
@@ -25,8 +27,10 @@ export default defineConfig({
                 'resources/js/rke/register.js',
                 'resources/js/rke/rke-crypt.js',
                 'resources/js/rke/rke-functions.js',
+                'resources/js/rke/time-functions.js',
                 'resources/js/rke/switch-payment-method.js',
-                'resources/js/rke/payment-confirm-button.js'
+                'resources/js/rke/payment-confirm-button.js',
+                'resources/js/games/bingo/components/view-player-ctns.js'
             ],
             exclude: [/node_modules/],
             apply: "build", // Aplica solo en el build de producción

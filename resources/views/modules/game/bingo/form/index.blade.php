@@ -60,6 +60,7 @@
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
+
             if (val > 1) {
                 container.removeClass('hide-elem');
             } else {
@@ -76,48 +77,33 @@
             if ($(this).data('type') == 1) {
                 extraInfo = userType;
             }
-            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap)
+            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap);
         });
 
         function insertInfo(type, data = '') {
-
             gameMode.prop({
                 disabled: type == 2 && data.room.players,
                 required: !(type == 2 && data.room.players)
             });
 
-            $("#jackpot-type, #game-mode").empty(); // Limpia las opciones existentes
-            // Countries
-            // if (type == 1) country.append(`<option value="" selected>Seleccionar:</option>`);
-
-            // $.each(arrCountries, function(index, item) {
-            //     const isSelected = (type == 2 && item.id == data.country) ? 'selected' : '';
-            //     country.append(`<option value="${item.id}" ${isSelected}>${item.name}</option>`);
-            // });
-            // // Coins
-            // if (type == 1) coin.append(`<option value="" selected>Seleccionar:</option>`);
-
-            // $.each(arrCoins, function(index, item) {
-            //     const isSelected = (type == 2 && item.id == data.coin) ? 'selected' : '';
-            //     coin.append(`<option value="${item.id}" ${isSelected}>(${item.name}) ${item.long_info}</option>`);
-            // });
-            // jackpotType
+            jackpotType.empty();
+            gameMode.empty();
 
             if (type == 1) {
                 jackpotType.append(`<option value="" selected>Seleccionar:</option>`);
-                if (arrGameModes.length > 1) gameMode.append(`<option value="" selected>Seleccionar:</option>`)
+                if (arrGameModes.length > 1) {
+                    gameMode.append(`<option value="" selected>Seleccionar:</option>`);
+                }
             }
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
-                jackpotType.append(
-                    `<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                jackpotType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             $.each(arrGameModes, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
-                gameMode.append(
-                    `<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             if (type == 1) {
@@ -141,11 +127,10 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name,
-                [
-                    'date', 'time', 'game-mode', 'ctn-price',
-                    'val-serials', 'commerce-commission', 'jackpot-type'
-                ]);
+            submitForm(name, [
+                'date', 'time', 'game-mode', 'ctn-price',
+                'val-serials', 'commerce-commission', 'jackpot-type'
+            ]);
         });
 
         function deleteInfo(encryptedId) {
@@ -160,7 +145,7 @@
         }
 
         const otherCasesMap = {
-            4: function() {
+            4: function(encryptedId) {
                 showToastOptionBtns(
                     'Repetir esta sala cada 24h',
                     'question',
@@ -170,7 +155,7 @@
                     encryptedId
                 );
             },
-            5: function() {
+            5: function(encryptedId) {
                 showToastOptionBtns(
                     'Se publicará esta sala al público',
                     'info',
@@ -180,9 +165,9 @@
                     encryptedId
                 );
             },
-            6: function() {
+            6: function(encryptedId) {
                 showToastOptionBtns(
-                    'El jackpot de esta sala sera reembolsado',
+                    'El jackpot de esta sala será reembolsado',
                     'warning',
                     'Sí, reembolsar',
                     '#form-other-options',
@@ -190,9 +175,9 @@
                     encryptedId
                 );
             },
-            7: function() {
+            7: function(encryptedId) {
                 showToastOptionBtns(
-                    'Deseas copiar la informacion esta sala',
+                    'Deseas copiar la información de esta sala',
                     'question',
                     'Sí, copiar',
                     '#form-other-options',

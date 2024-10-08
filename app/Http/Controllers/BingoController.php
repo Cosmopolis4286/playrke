@@ -56,6 +56,8 @@ class BingoController extends Controller
 
     public function getDateTimeRooms($userType, $userID, $coin = '')
     {
+        //dd($userType, $userID, $coin);
+
         $query = BingoRoom::select('encrypted', 'status', 'date', 'time')
             ->where($userType, $userID)->whereIn('status', [2, 3]);
 
@@ -288,8 +290,9 @@ class BingoController extends Controller
                 $customer = $data['customer'];
 
                 // Obtener informacion de Sala
-                $room = BingoRoom::where('customer', $customer)->where('encrypted', $data['room'])
-                    ->select('id', 'status', 'ctn_price')->whereIn('status', [2, 3, 4])->first();
+                $room = BingoRoom::select('id', 'status', 'ctn_price')
+                    ->where('customer', $customer)->where('encrypted', $data['room'])
+                    ->whereIn('status', [2, 3, 4])->first();
 
                 // Si la sala no existe 
                 if (!$room) return false;
@@ -320,7 +323,6 @@ class BingoController extends Controller
             case 'all';
             case 'commerce':
 
-                $moreViewData = [];
                 $columnName = 'player_link';
 
                 if (isset($data['PJLink'])) {
@@ -335,7 +337,7 @@ class BingoController extends Controller
                     $coinID = $coin->id;
                     $coinSym = $coin->symbol;
 
-                    $moreViewData['player'] = $player->link;
+                    $moreViewData = ['player' => $player->link];
                 } else {
                     $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
                     $coinID = 1;
@@ -344,9 +346,11 @@ class BingoController extends Controller
                     $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($data['commerce'], 1);
                     $coinsAvailable = Coin::getCoinsById($commerceCoinsAvailable, ['id', 'symbol', 'long_name']);
 
-                    $moreViewData['player'] = null;
-                    $moreViewData['saleLink'] = true;
-                    $moreViewData['coinsAvailable'] = $coinsAvailable;
+                    $moreViewData = [
+                        'player' => null,
+                        'saleLink' => true,
+                        'coinsAvailable' => $coinsAvailable
+                    ];
                 }
 
                 $room = BingoRoom::getRoomById($roomId, ['status', 'all_for_one', 'ctn_price']);
@@ -358,10 +362,9 @@ class BingoController extends Controller
                     $moreViewData['userTypeVal'] = encrypt($data['commerce']);
                     $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomId, $room->ctn_price, 'float', $coinID);
                 }
-
                 break;
             default:
-                return redirect('/');
+                return false;
                 break;
         }
 
@@ -391,7 +394,7 @@ class BingoController extends Controller
         $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $columnVal) : [];
 
         $vanDraw = ($room->status > 2) ?
-            BingoDraw::where(['room' => $roomId, 'win' => 1])->select('id', 'chip')->first() : [];
+            BingoDraw::select('id', 'chip')->where(['room' => $roomId, 'win' => 1])->first() : [];
 
         $sort = ($room->status == 3) ?
             BingoDraw::where('room', $roomId)->where('id', '<=', $vanDraw->id)
@@ -444,15 +447,15 @@ class BingoController extends Controller
         return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }
 
-    public function inGameCommerce($commerce, $PJLink) //
+    public function inGameCommerce($commerce, $PJLink)
     {
         // Vista para el juego de un comercio especifico
         $commerceID = PlayerLink::getValueByLink($PJLink, 'commerce');
 
         // Validar el codigo de comercio
-        $comerceIDByUUID = Commerce::getByCodeUUID($commerce, 'id');
+        $comerceIDByUUID = Commerce::getValueByCodeUUID($commerce, 'id');
 
-        if ($comerceIDByUUID->id != $commerceID) return redirect('/');
+        if ($comerceIDByUUID != $commerceID) return redirect('/');
 
         $viewData = self::getGameInfo('commerce', ['commerce' => $commerceID, 'PJLink' => $PJLink]);
 
@@ -633,7 +636,10 @@ class BingoController extends Controller
                 $returnBtn = false;
                 $routeName = 'bingo.all-customer-rooms';
 
-                $moreViewData = ['customer' => true];
+                $moreViewData = [
+                    'customer' => true,
+                    'userToken' => Customer::getValueById($userID, 'token')
+                ];
 
                 break;
 
@@ -658,10 +664,6 @@ class BingoController extends Controller
             }
         ])->where($userType, $userID)->orderByDesc('date')
             ->orderByDesc('time')->orderBy('status')->get();
-
-        $userToken = $userType == 'customer'
-            ? Customer::getValueById($userID, 'token')
-            : Commerce::getValueById($userID, 'code_uuid');
 
         $viewData = [
             'layout' => $connection ? 'layouts.app_rke_off' : 'layouts.app_rke',
@@ -856,10 +858,10 @@ class BingoController extends Controller
     {
         $id = decrypt($id);
 
-        $room = BingoRoom::where('id', $id)->select('game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->firstOrFail();
+        $room = BingoRoom::select('game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->where('id', $id)->firstOrFail();
 
-        $roomConfig = BingoRoomConfig::where('room', $id)
-            ->select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')->firstOrFail();
+        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
+            ->where('room', $id)->firstOrFail();
 
         return response()->json(['room' => $room, 'config' => $roomConfig]);
     }
@@ -870,10 +872,11 @@ class BingoController extends Controller
 
         if (!$roomID) return response()->json(['Error' => 'Sala no encontrada']);
 
-        $room = BingoRoom::where('id', $roomID)->select('game_mode', 'date', 'time', 'ctn_price', 'coin', 'jackpot')->firstOrFail();
+        $room = BingoRoom::select('game_mode', 'date', 'time', 'ctn_price', 'coin', 'jackpot')
+            ->where('id', $roomID)->firstOrFail();
 
-        $roomConfig = BingoRoomConfig::where('room', $roomID)
-            ->select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')->firstOrFail();
+        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
+            ->where('room', $roomID)->firstOrFail();
 
         if ($mode) {
 
