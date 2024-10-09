@@ -12,7 +12,9 @@
                 @include('components.game.bingo.layout.container-bingo-info')
                 @include('components.game.bingo.layout.container-history-chips')
                 <div class="container mt-1">
-                    @include('components.game.bingo.layout.cartons')
+                    @if (!empty($cartons))
+                        @include('components.game.bingo.layout.cartons')
+                    @endif
                 </div>
             </div>
             @include('components.game.bingo.layout.sounds')
@@ -27,7 +29,8 @@
 
 @section('scripts')
     <script src="{{ asset('js/crypto-js.min.js') }}"></script>
-    <script src="{{ asset('js/time-functions.js') }}"></script>
+    @vite('resources/js/rke/time-functions.js')
+    {{-- <script src="{{ asset('js/time-functions.js') }}"></script> --}}
     <script>
         const preRoute = '{{ asset('') }}';
         const encrypted = '<?php echo $room->encrypted; ?>';
@@ -43,24 +46,44 @@
         const soundWin = $('#winner')[0];
         const images = [];
         const restChips = JSON.parse('<?php echo json_encode($chipsRest); ?>');
-        var lastSixChips = JSON.parse('<?php echo json_encode($lastSixChips); ?>');
-        var timeServ = Number('<?php echo $timeServ; ?>');
-        var allChips = JSON.parse('<?php echo json_encode($allChips); ?>');
-        var allChipsSet = new Set(allChips);
-        var infoGame = JSON.parse('<?php echo json_encode($infoGame); ?>');
+        let lastSixChips = JSON.parse('<?php echo json_encode($lastSixChips); ?>');
+        let timeServ = Number('<?php echo $timeServ; ?>');
+        let allChips = JSON.parse('<?php echo json_encode($allChips); ?>');
+        let allChipsSet = new Set(allChips);
+        let infoGame = JSON.parse('<?php echo json_encode($infoGame); ?>');
 
         soundNext.muted = true;
         soundWin.muted = true;
     </script>
-    <script src="{{ asset('js/games/bingo/auto-marked.js') }}"></script>
-    {{-- <script src="{{ asset('js/game-bingo.js') }}"></script> --}}
+
+    @if ($room->status == 2)
+        <script>
+            const userType = '<?php echo $userType; ?>';
+            const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
+            const coinID = '<?php echo json_encode($coinID); ?>';
+            const ctnPrice = Number('<?php echo $ctnPrice; ?>');
+            let info = false;
+            let amount = ctnPrice;
+        </script>
+
+        @vite(['resources/js/rke/components/switch-payment-method.js', 'resources/js/games/bingo/components/bingo-off-buy-ctns.js'])
+        {{-- <script src="{{ asset('js/rke/components/switch-payment-method.js') }}"></script>
+        <script src="{{ asset('js/games/bingo/components/bingo-buy-ctns.js') }}"></script> --}}
+    @endif
+
+    @if ($room->status > 2)
+        @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/auto-marked.js'])
+        {{-- <script src="{{ asset('js/games/bingo/auto-marked.js') }}"></script> --}}
+        {{-- <script src="{{ asset('js/crypt.js') }}"></script> --}}
+        {{-- <script src="{{ asset('js/game-bingo.js') }}"></script> --}}
+    @endif
     <script>
-        var loaderChip = true;
-        var loadTimeServ = false;
-        var vanChange = 0;
-        var actSound = 0;
-        var endWin = (arrDraw.length && (status === 2 || status === 3)) ? 0 : (status >= 4 ? 1 : 0);
-        var sizeCarrsel;
+        let loaderChip = true;
+        let loadTimeServ = false;
+        let vanChange = 0;
+        let actSound = 0;
+        let endWin = (arrDraw.length && (status === 2 || status === 3)) ? 0 : (status >= 4 ? 1 : 0);
+        let sizeCarrsel;
 
         if (restChips.length) {
             for (const chip of restChips) {
@@ -113,17 +136,17 @@
 
         function endGame() {
             // setTimeout(() => {
-            //     window.location.href = "{{ route('login') }}";
+            //     window.location.href = closingRoute;
             // }, 10000);
         }
 
         // Salir de la sala
         $(document).on("click", ".leave-room", function() {
-            // window.location.href = "{{ route('login') }}" && $("#modal-info-winners").modal('hide'));
+            $("#modal-info-winners").modal('hide');
         });
 
         $(document).on("click", "#btn-close-carton-awarded", function() {
-            $("#cont-ctn-award-winning").hide();
+            $("#cont-ctn-award-winning").data('status', false).hide();
         });
 
         $('#cont_icon_volume').click(function() {
@@ -246,24 +269,28 @@
             if (status == 3) getGameData();
         };
 
-        $(document).ready(function() {
-            // Ajustar tamaño de las casillas
-            function adjustHeightBoxes() {
-                let widthNumberBox = $('.number-box').first().width();
-                $('.number-box').height(widthNumberBox);
-                $('.container-carton').css('visibility', 'visible');
+        // Ajustar tamaño de las casillas
+        function adjustHeightBoxesCtnAward() {
+            let widthNumberBoxViewCtn = $('.number-box-view-ctn').first().width();
+            $('.number-box-view-ctn').height(widthNumberBoxViewCtn);
+        }
 
-                if (status > 2 && ('#modal-info-winners').length) {
-                    let widthNumberBoxViewCtn = $('.number-box-wiew-ctn').first().width();
-                    $('.number-box-wiew-ctn').height(widthNumberBoxViewCtn);
-                }
-            }
+        function adjustHeightBoxes() {
+            let widthNumberBox = $('.number-box').first().width();
+            $('.number-box').height(widthNumberBox);
+            $('.container-carton').css('visibility', 'visible');
+        }
+
+        $(document).ready(function() {
+            if (!player) return false;
 
             adjustHeightBoxes();
-
             // Llama a la función cada vez que se redimensiona la ventana
             $(window).resize(function() {
                 adjustHeightBoxes();
+                if (status > 2 && $('#cont-ctn-award-winning').data('status') == true) {
+                    adjustHeightBoxesCtnAward();
+                }
             });
         });
 
@@ -392,9 +419,8 @@
                 if (newChip == chpLast) {
                     $('#text-check-bingo').show();
                     endWin = 1;
-                    infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
                     setTimeout(() => {
-                        showWinners(infoGame, chpLast);
+                        showWinners(decryptJson(infoGame, '<?php echo $key; ?>'), chpLast);
                     }, 3000);
                     //getResult();
                 }
@@ -491,8 +517,9 @@
                     ctn.forEach((elem, ind) => $(`#ctn-vchip${ind}`).html(elem));
                     $("#ctn-player-name").text(playerName);
                     $("#serial-ctn").text('Serial: ' + serialCtn);
-                    $("#cont-ctn-award-winning").show();
+                    $("#cont-ctn-award-winning").data('status', true).show();
                     getViewCtn = false;
+                    adjustHeightBoxesCtnAward();
                 },
                 error: function(xhr, status, error) {
                     console.error("Error en la solicitud:", error);
@@ -526,7 +553,7 @@
                     ]);
 
                     if (status > 3) {
-                        showWinners(infoGame, chpLast);
+                        showWinners(decryptJson(infoGame, '<?php echo $key; ?>'), chpLast);
                         $("#btn-view-winners").prop('disabled', false);
                     }
                 } else {
@@ -537,131 +564,4 @@
             }
         });
     </script>
-    @if ($room->status > 2)
-        <script src="{{ asset('js/crypt.js') }}"></script>
-    @endif
-    @if ($room->status > 3)
-        <script>
-            infoGame = decryptJson(infoGame, '<?php echo $key; ?>');
-        </script>
-    @endif
-    @if ($room->status == 2)
-        <script>
-            const userType = '<?php echo $userType; ?>';
-            const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
-            const coinID = '<?php echo json_encode($coinID); ?>';
-            const ctnPrice = Number('<?php echo $ctnPrice; ?>');
-            let info = false;
-            let amount = ctnPrice;
-        </script>
-        <script src="{{ asset('js/components/switch-payment-method.js') }}"></script>
-        <script src="{{ asset('js/games/bingo/bingo-buy-ctns.js') }}"></script>
-        <script>
-            function toggleModalInfo() {
-                $("#card-form-buy-ctns").toggleClass('hide-elem');
-                $("#cont-btn-buy-ctns, #game-clock").toggle();
-            }
-
-            function toggleSpinnerBtn() {
-                $("#spinner-btn-buy-ctns-confirm").toggleClass('hide-elem');
-            }
-
-            function setAmount(amount) {
-                if (userType == 'commerce') $("#sent-amount").text(`${coinSym} ${amount}`);
-                $("#total-amount").text(`${coinSym} ${amount}`);
-            }
-
-            $(document).on("click", "#cont-btn-buy-ctns", function() {
-                if (!info) {
-                    $("#ctn-price-coin-symbol").text(coinSym);
-                    $("#ctn-price-amount").text(ctnPrice);
-
-                    if (userType == 'commerce') {
-                        $.getJSON(`{{ url('commerce/getPaymentCommerceDetails') }}/${userTypeVal}/${coinID}`, {
-                                '_token': "{{ csrf_token() }}"
-                            })
-                            .done(res => {
-                                const data = res.data;
-
-                                setAmount(amount);
-                                $("#commerce-name").text(name);
-
-                                if (true) {
-                                    switchPaymentMethod(data.code, data);
-                                    $("#commerce-details").removeClass('hide-elem');
-                                }
-                            })
-                            .fail((jqXHR, textStatus, errorThrown) => {
-                                console.error('Error:', textStatus, errorThrown);
-                            });
-                    } else {
-                        setAmount(amount);
-                    }
-                }
-                toggleModalInfo();
-            });
-
-            $(document).on("change", "#num-ctns", function() {
-                amount = ctnPrice * $(this).val();
-                setAmount(amount);
-            });
-
-            $(document).on("click", "#btn-cancel-buy-ctns", function() {
-                toggleModalInfo();
-            });
-
-            $(document).on("click", "#btn-buy-ctns-confirm", function() {
-
-                if (!$("#num-ctns").val()) {
-                    $("#num-ctns").val(1);
-                }
-
-                if (userType == 'commerce') {
-                    if (!$("#purchase-code").val()) {
-                        $("#purchase-code").focus();
-                        return showToast('Ingrese el Código de Compra', 'warning');
-                    }
-
-                    if (!$("#payment-proof").val()) {
-                        return showToast('Cargue el Comprobante', 'warning');
-                    }
-                }
-
-                $.ajax({
-                    url: "{{ route('bingocash.generateCarton') }}",
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    type: 'post',
-                    dataType: 'json',
-                    data: {
-                        room: encrypted,
-                        user_type: userType,
-                        user_type_val: userTypeVal,
-                        player: player,
-                        coin: coinID,
-                        num_ctns: $("#num-ctns").val()
-                    },
-                    beforeSend: function() {
-                        toggleSpinnerBtn();
-                    },
-                    success: function(data) {
-
-                        showToast(data.message, data.msg_type);
-
-                        if (data.jackpot) {
-                            $("#jackpot-amount").text(data.jackpot);
-                            setTimeout(function() {
-                                location.reload();
-                            }, 3000);
-                        }
-
-                        toggleSpinnerBtn();
-                        toggleModalInfo();
-                    },
-                    error: function() {}
-                });
-            });
-        </script>
-    @endif
 @endsection

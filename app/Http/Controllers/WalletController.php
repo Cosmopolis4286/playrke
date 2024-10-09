@@ -232,7 +232,7 @@ class WalletController extends Controller
         $comp_rt = Transactions_BPay::where('user', $user)->latest()->first();
 
         if ($comp_rt == null || $comp_rt->status == 1) {
-            if ($wallet->saldo >= $monto_rt) {
+            if ($wallet->balance >= $monto_rt) {
                 if ($limits[3]->valor && $monto_rt <= $limits[6]->valor) {
                     $retiro = new Transactions_BPay;
                     $retiro->tipo = 2;
@@ -296,7 +296,7 @@ class WalletController extends Controller
         $min_bs = $CommerceExchangeRate->CommerceExchangeRate_RKE * $limits[4]->valor;
         $max_bs = $CommerceExchangeRate->CommerceExchangeRate_RKE * $limits[5]->valor;
         if ($comp_rt == null || $comp_rt->status == 1) {
-            if ($wallet->saldo >= $monto_rt) {
+            if ($wallet->balance >= $monto_rt) {
                 if ($monto_rt <= $max_bs && $monto_rt >= $min_bs && $monto_rt <= $max_bs) {
                     $retiro = new Transactions_VES;
                     $retiro->fecha = Carbon::now()->format('Y-m-d');
@@ -308,9 +308,9 @@ class WalletController extends Controller
                     $retiro->status = 1;
                     $retiro->motivo = 2;
                     DB::table('Wallets')->where("usuario_id", $user)
-                        ->update(['saldo' => $wallet->saldo - $monto_rt]);
+                        ->update(['saldo' => $wallet->balance - $monto_rt]);
                     DB::table('Wallets')->where("usuario_id", 1)
-                        ->update(['usdt' => $walletADM->saldo + $com_rt]);
+                        ->update(['usdt' => $walletADM->balance + $com_rt]);
                     $retiro->save();
                     return redirect()->route('Wallet.index');
                 }
@@ -354,7 +354,7 @@ class WalletController extends Controller
         $min_bs = $CommerceExchangeRate->CommerceExchangeRate_RKE * $limits[4]->valor;
         $max_bs = $CommerceExchangeRate->CommerceExchangeRate_RKE * $limits[5]->valor;
         if ($comp_rt == null || $comp_rt->status == 1) {
-            if ($wallet->saldo >= $monto_rt) {
+            if ($wallet->balance >= $monto_rt) {
                 if ($monto_rt <= $max_bs && $monto_rt >= $min_bs && $monto_rt <= $max_bs) {
                     $retiro = new Transactions_CLP;
                     $retiro->fecha = Carbon::now()->format('Y-m-d');
@@ -366,9 +366,9 @@ class WalletController extends Controller
                     $retiro->status = 1;
                     $retiro->motivo = 2;
                     DB::table('Wallets')->where("usuario_id", $user)
-                        ->update(['saldo' => $wallet->saldo - $monto_rt]);
+                        ->update(['saldo' => $wallet->balance - $monto_rt]);
                     DB::table('Wallets')->where("usuario_id", 1)
-                        ->update(['usdt' => $walletADM->saldo + $com_rt]);
+                        ->update(['usdt' => $walletADM->balance + $com_rt]);
                     $retiro->save();
                     return redirect()->route('Wallet.index');
                 }
@@ -502,20 +502,20 @@ class WalletController extends Controller
         } else {
             if (in_array($request->username, $users)) {
                 if ($request->moneda == 1) {
-                    if (($wallet->saldo - ($request->monto + $comision)) > (2 * $CommerceExchangeRate->CommerceExchangeRate_RKE)) {
-                        if ($wallet->saldo >= ($request->monto + $comision) && $request->monto >= (1.5 * $CommerceExchangeRate->CommerceExchangeRate_RKE)) {
+                    if (($wallet->balance - ($request->monto + $comision)) > (2 * $CommerceExchangeRate->CommerceExchangeRate_RKE)) {
+                        if ($wallet->balance >= ($request->monto + $comision) && $request->monto >= (1.5 * $CommerceExchangeRate->CommerceExchangeRate_RKE)) {
                             $emisor = User::where('username', auth()->user()->username)->first();
                             $receptor = User::where('username', $request->username)->first();
                             $wallet_receptor = Wallet::where("usuario_id", $receptor->id)->first();
                             $walletADM = Wallet::where("usuario_id", 1)->first();
                             Wallet::where("usuario_id", $emisor->id)->update([
-                                'saldo' => $wallet->saldo = $wallet->saldo - $request->monto - $comision
+                                'saldo' => $wallet->balance = $wallet->balance - $request->monto - $comision
                             ]);
                             Wallet::where("usuario_id", $receptor->id)->update([
-                                'saldo' => $wallet_receptor->saldo + $request->monto
+                                'saldo' => $wallet_receptor->balance + $request->monto
                             ]);
                             Wallet::where("usuario_id", $receptor->id)->update([
-                                'saldo' => $walletADM->saldo + $comision
+                                'saldo' => $walletADM->balance + $comision
                             ]);
                             return redirect()->back()->with($message = array('message' => 'Operación exitosa', 'exito' => 1));
                         } else {
@@ -558,9 +558,9 @@ class WalletController extends Controller
         $comp_quest = DB::table('triv_indv_user')->where('id_user', $user)
             ->where('lose_win', null)->orderBy('nm_quest', 'desc')->first();
         if ($comp_quest == null || $comp_quest->lose_win == null) {
-            if ($wallet->saldo >= $request->aps_triv) {
+            if ($wallet->balance >= $request->aps_triv) {
                 DB::table("Wallets")->where('usuario_id', $user)
-                    ->update(['saldo' =>  $wallet->saldo - $request->aps_triv]);
+                    ->update(['saldo' =>  $wallet->balance - $request->aps_triv]);
                 $quser_type = DB::table('triv_indv_user')->where('id_user', $user)
                     ->where('lose_win', '!=', null)->pluck('id_quest')->toArray();
                 $triv_indv = DB::table('triv_indv_quest')->pluck('id')->toArray();
@@ -618,7 +618,7 @@ class WalletController extends Controller
             if ($wallet->coin == 1) {
                 $wallety = $wallet->usdt;
             } else {
-                $wallety = $wallet->saldo;
+                $wallety = $wallet->balance;
             }
             if ($wallety >= $request->aps_triv) {
                 if (count($all_bets) > 0) {
@@ -652,7 +652,7 @@ class WalletController extends Controller
                     ->update(['usdt' =>  $wallet->usdt - $request->aps_triv]);
             } else {
                 DB::table("Wallets")->where('usuario_id', $user)
-                    ->update(['saldo' =>  $wallet->saldo - $request->aps_triv]);
+                    ->update(['saldo' =>  $wallet->balance - $request->aps_triv]);
             }
         }
         $quser_type = DB::table('triv_indv_user')->where('id_user', $user)
@@ -699,8 +699,8 @@ class WalletController extends Controller
                 DB::table("Wallets")->where('usuario_id', $user)->update(['usdt' =>  $wallet->usdt - $rest]);
                 DB::table("Wallets")->where('usuario_id', 1)->update(['usdt' =>  $walletADM->usdt - $rest]);
             } else {
-                DB::table("Wallets")->where('usuario_id', $user)->update(['saldo' =>  $wallet->saldo - $rest]);
-                DB::table("Wallets")->where('usuario_id', 1)->update(['saldo' =>  $walletADM->saldo - $rest]);
+                DB::table("Wallets")->where('usuario_id', $user)->update(['saldo' =>  $wallet->balance - $rest]);
+                DB::table("Wallets")->where('usuario_id', 1)->update(['saldo' =>  $walletADM->balance - $rest]);
             }
             $wn_ghosts = DB::table('wn_ghosts')->where('game', 2)->where('id_game', $id)->first();
             if ($wn_ghosts == null) {

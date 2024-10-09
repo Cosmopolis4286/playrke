@@ -80,7 +80,7 @@ class TransbankController extends Controller
                 $buy->update();
                 $wallet = DB::table('Wallets')->where("usuario_id", $buy->session_id)->first();
                 DB::table('Wallets')->where("usuario_id", $wallet->usuario_id)
-                    ->update(['saldo' => $wallet->saldo + $response->amount]);
+                    ->update(['saldo' => $wallet->balance + $response->amount]);
                 Transactions_CLP::where('buyOrder', $response->buyOrder)
                     ->where('user', $response->sessionId)->update([
                         'vci' => $response->vci, 'accounting_date' => $response->accountingDate,

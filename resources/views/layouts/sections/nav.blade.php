@@ -44,7 +44,7 @@
                 @else
                     <span class="info-box-number" style="color:#BCB9C6;">
                         <span style="color:#228B22;">{{ $wallet->Coin->symbol }}
-                        </span>{{ number_format($wallet->saldo, 2, ',', '.') }}
+                        </span>{{ number_format($wallet->balance, 2, ',', '.') }}
                     </span>
                 @endif
             </a>

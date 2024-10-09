@@ -55,8 +55,8 @@
                                 <div class="col-6 col-md-4">
                                     <label class="lb_in">Saldo disponible</label>
                                     <div class="form-control" id="saldo_mone">Bs
-                                        {{ number_format($wallet->saldo, 2) }}</div>
-                                    <input type="hidden" name="saldo_mone" value="{{ $wallet->saldo }}">
+                                        {{ number_format($wallet->balance, 2) }}</div>
+                                    <input type="hidden" name="saldo_mone" value="{{ $wallet->balance }}">
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <label class="lb_in">Monto de retiro</label>
@@ -67,14 +67,14 @@
                                             data-val-range="Monto no permitido." data-val="true"
                                             data-val-range-min="{{ $min_dp_bs }}"
                                             data-val-range-max="{{ $limits[5]->valor * $CommerceExchangeRate->CommerceExchangeRate_RKE }}"
-                                            onKeyUp="if(this.value<{{ $min_dp_bs }}&&{{ $wallet->saldo }}>={{ $min_dp_bs }})
+                                            onKeyUp="if(this.value<{{ $min_dp_bs }}&&{{ $wallet->balance }}>={{ $min_dp_bs }})
                                                 {this.value='{{ $min_dp_bs }}';}
-                                                else if(this.value>{{ $wallet->saldo }}&&{{ $wallet->saldo }}>={{ $limits[5]->valor * $CommerceExchangeRate->CommerceExchangeRate_RKE }})
+                                                else if(this.value>{{ $wallet->balance }}&&{{ $wallet->balance }}>={{ $limits[5]->valor * $CommerceExchangeRate->CommerceExchangeRate_RKE }})
                                                 {this.value='{{ number_format($limits[5]->valor * $CommerceExchangeRate->CommerceExchangeRate_RKE, 2) }}'}
-                                                else if(this.value>{{ $wallet->saldo }}&&{{ $wallet->saldo }}<{{ $limits[5]->valor * $CommerceExchangeRate->CommerceExchangeRate_RKE }})
-                                                {this.value='{{ number_format($wallet->saldo, 2) }}'}
-                                                else if(this.value<{{ $min_dp_bs }}&&{{ $wallet->saldo }}<{{ $min_dp_bs }})
-                                                {this.value='{{ number_format($wallet->saldo, 2) }}'}">
+                                                else if(this.value>{{ $wallet->balance }}&&{{ $wallet->balance }}<{{ $limits[5]->valor * $CommerceExchangeRate->CommerceExchangeRate_RKE }})
+                                                {this.value='{{ number_format($wallet->balance, 2) }}'}
+                                                else if(this.value<{{ $min_dp_bs }}&&{{ $wallet->balance }}<{{ $min_dp_bs }})
+                                                {this.value='{{ number_format($wallet->balance, 2) }}'}">
                                     </div>
                                     <div id="com"style="color: green;"></div>
                                     <span data-valmsg-for="monto" data-valmsg-replace="true" style="color: red;">
@@ -130,7 +130,7 @@
         });
         $("#monto").click(function() {
             let init = setTimeout(function refres() {
-                var saldo = {{ $wallet->saldo }},
+                var saldo = {{ $wallet->balance }},
                     com_rt = @json($limits[3]->valor);
                 var valor = document.getElementsByName("monto")[0].value,
                     com_rt = ((valor * com_rt) / 100).toFixed(2);

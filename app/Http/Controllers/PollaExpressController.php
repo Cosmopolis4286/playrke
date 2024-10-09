@@ -285,7 +285,7 @@ class PollaExpressController extends Controller
                     ->update(['usdt' => $walleuser_type->usdt + $return_balance]);
             } else {
                 Wallet::where("usuario_id", $value->user)
-                    ->update(['saldo' => $walleuser_type->saldo + $return_balance]);
+                    ->update(['saldo' => $walleuser_type->balance + $return_balance]);
             }
             //Comprobar el historial de jugadas
             HistGame::where('game', 1)->where('room', $request->id)

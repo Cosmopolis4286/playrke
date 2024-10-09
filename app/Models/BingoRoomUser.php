@@ -89,4 +89,10 @@ class BingoRoomUser extends Model
     {
         return self::where('room', $room)->where('winner', 0)->count();
     }
+
+    public static function existsPlayerInRoom($room, $creator, $player)
+    {
+        return self::where('room', $room)->where($creator[0], $creator[1])
+            ->where($player[0], $player[1])->exists();
+    }
 }

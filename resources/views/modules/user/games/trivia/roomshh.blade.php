@@ -335,7 +335,7 @@
             var ftime = $(this).data('ftemp');
             document.getElementById('cat').value = ftime;
             setInterval(run_timer, 1000);
-            saldo = Number(@json($wallet->saldo));
+            saldo = Number(@json($wallet->balance));
             price = Number($(this).data('precio'));
             if ($(this).data('action') == "0") {
                 if (saldo >= price) {

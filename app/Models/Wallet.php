@@ -6,18 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class Wallet extends Model
 {
-    protected $table = "wallets"; 
-    protected $fillable = ['coin', 'balance', 'usdt', 'user']; 
+    protected $table = "wallets";
+    protected $fillable = ['coin', 'balance', 'usdt', 'user'];
 
     // Relación con el usuario
     public function User()
     {
-        return $this->belongsTo(User::class, 'user'); // Relación pertenece a un usuario
+        return $this->belongsTo(User::class, 'user');
     }
 
     // Relación con la moneda (coin)
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin'); // Relación pertenece a una moneda (coin)
+        return $this->belongsTo(Coin::class, 'coin');
+    }
+
+    public static function getValue($user, $value)
+    {
+        return self::where('user', $user)->value($value);
     }
 }

@@ -121,6 +121,4 @@
             };
         });
     </script>
-    {{-- <script src="{{ asset('js/components/view-player-ctns.js') }}"></script> --}}
-    {{-- <script src="{{ asset('js/components/payment-confirm-button.js') }}"></script> --}}
 @endsection

@@ -22,6 +22,7 @@ use App\Models\ExchangeRate;
 use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\Transactions;
+use App\Models\Wallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -600,33 +601,40 @@ trait BingoTrait
             ->where('encrypted', $data['room'])->first();
 
         if ($room->status > 2) {
-            return redirect()->back()->with('message', 'Sala no disponible');
+            return ['Error' => 'Sala no disponible'];
         }
 
         $roomID = $room->id;
+        $connection = $data['connection'] ?? false;
         $country = $data['country'] ?? null;
         $customer = $data['customer'] ?? null;
         $commerce = $data['commerce'] ?? null;
         $seller = $data['seller'] ?? null;
 
         if ($commerce || $seller) {
-            // Si la venta es procesada por un comercio o vendedor
-            $PJLink = $data['PJLink'] ?? null;
-            $playerPhone = $data['playerPhone'] ?? null;
 
-            if ($seller) $seller = $this->seller(['id', 'commerce']);
+            if ($connection) { // Online
+                $playerUser = $data['playerUser'];
+                $coin = Wallet::getValue($playerUser, 'coin');
+            } else { // Offline
+                // Si la venta es procesada por un comercio o vendedor
+                $PJLink = $data['PJLink'] ?? null;
+                $playerPhone = $data['playerPhone'] ?? null;
 
-            $player = PlayerLink::select('id', 'name', 'lastname', 'link')
-                ->where('game', 1)->where('room', $roomID)
-                ->where(function ($query) use ($playerPhone, $PJLink) {
-                    $query->where('phone', $playerPhone)
-                        ->orWhere('link', $PJLink);
-                })->first();
+                if ($seller) $seller = $this->seller(['id', 'commerce']);
 
-            $playerName = $data['playerName'] ?? $player->name;
-            $playerLastname = $data['playerLastname'] ?? $player->lastname;
-            $arrInitials = $this->initialCharacters([$playerName, $playerLastname]);
-            $serialText = $arrInitials[0] . $arrInitials[1];
+                $player = PlayerLink::select('id', 'name', 'lastname', 'link')
+                    ->where('game', 1)->where('room', $roomID)
+                    ->where(function ($query) use ($playerPhone, $PJLink) {
+                        $query->where('phone', $playerPhone)
+                            ->orWhere('link', $PJLink);
+                    })->first();
+
+                $playerName = $data['playerName'] ?? $player->name;
+                $playerLastname = $data['playerLastname'] ?? $player->lastname;
+                $arrInitials = $this->initialCharacters([$playerName, $playerLastname]);
+                $serialText = $arrInitials[0] . $arrInitials[1];
+            }
         } else {
             $playerUser = $data['playerUser'];
             $coin = $customer ? CustomerUser::getValueById($playerUser, 'coin') : null;
@@ -638,38 +646,55 @@ trait BingoTrait
 
             if ($commerce || $seller) {
 
-                $coin = $seller ? Coin::getByIdIdOfCountry($country) : $player->coin;
-                $commerceID = $seller->commerce ?? $commerce;
-                $sellerID = $seller->id ?? null;
+                if ($connection) {  // Online
+                    //Comprobar si el usuario esta inscrito en la sala
+                    $existsPlayer = BingoRoomUser::existsPlayerInRoom(
+                        $roomID,
+                        ['commerce', $commerce],
+                        ['player_user', $playerUser]
+                    );
 
-                if (!$player) {
-                    $PJLink = $this->createPlayerLink(1);
-                    $playerDocument = null;
-
-                    $arrDataPlayer = [
-                        'game' => 1,
-                        'room' => $roomID,
-                        'commerce' => $commerceID,
-                        'seller' => $sellerID,
-                        'country' => $country,
-                        'coin' => $coin,
-                        'link' => $PJLink,
-                        'name' => $playerName,
-                        'lastname' => $playerLastname,
-                        'identification' => $playerDocument,
-                        'phone' => $playerPhone
-                    ];
-
-                    $player = $this->createPlayerLinkInfo($arrDataPlayer);
+                    if (!$existsPlayer) {
+                        // Registrar nuevo jugador
+                        BingoRoomUser::create([
+                            'room' => $roomID,
+                            'commerce' => $commerce,
+                            'player_user' => $playerUser,
+                        ]);
+                    }
+                } else { // Offline
+                    $coin = $seller ? Coin::getByIdIdOfCountry($country) : $player->coin;
+                    $sellerID = $seller->id ?? null;
 
                     if (!$player) {
-                        DB::rollBack();
-                        Log::error('Hubo un error al crear la información del jugador');
-                        return false;
+                        $PJLink = $this->createPlayerLink(1);
+                        $playerDocument = null;
+
+                        $arrDataPlayer = [
+                            'game' => 1,
+                            'room' => $roomID,
+                            'commerce' => $commerce,
+                            'seller' => $sellerID,
+                            'country' => $country,
+                            'coin' => $coin,
+                            'link' => $PJLink,
+                            'name' => $playerName,
+                            'lastname' => $playerLastname,
+                            'identification' => $playerDocument,
+                            'phone' => $playerPhone
+                        ];
+
+                        $player = $this->createPlayerLinkInfo($arrDataPlayer);
+
+                        if (!$player) {
+                            DB::rollBack();
+                            Log::error('Hubo un error al crear la información del jugador');
+                            return false;
+                        }
+                    } else {
+                        if (!$PJLink) $PJLink = $player->link;
+                        $player = $player->id ?? null;
                     }
-                } else {
-                    if (!$PJLink) $PJLink = $player->link;
-                    $player = $player->id ?? null;
                 }
             }
 
@@ -688,21 +713,22 @@ trait BingoTrait
 
             if ($commerce || $seller) {
                 if ($commerce) {
-                    $dataCtns['commerce'] = $commerceID ?? null;
+                    $dataCtns['commerce'] = $commerce ?? null;
+                    if ($connection) $dataCtns['playerUser'] = $playerUser;
                 }
 
                 if ($seller) {
                     $dataCtns['seller'] = $sellerID ?? null;
                 }
 
-                $dataCtns['PJLink'] = $player;
+                if (!$connection) $dataCtns['PJLink'] = $player;
             }
-
+            dd($dataCtns);
             $responseCtns = $this->cartonStore($dataCtns);
 
             if (!isset($responseCtns['Error'])) {
                 DB::commit();
-                return $seller ? $this->getPlayerGameLink($commerceID, $PJLink, $room->all_for_one) : true;
+                return $seller ? $this->getPlayerGameLink($commerce, $PJLink, $room->all_for_one) : true;
             } else {
                 DB::rollBack();
                 return $responseCtns;

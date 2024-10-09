@@ -52,17 +52,17 @@
                             <div id="saldos" class="saldos">
                                 @if ($pais == 234)
                                     <span id="s-bs" class="info-box-number">
-                                        {{ $wallet->name }} {{ number_format($wallet->saldo, 2) }}</span>
+                                        {{ $wallet->name }} {{ number_format($wallet->balance, 2) }}</span>
                                     <span id="s-usd" style="display: none;" class="info-box-number">
                                         @if ($CommerceExchangeRate->CommerceExchangeRate_RKE > 0)
-                                            US$ {{ number_format($wallet->saldo / $CommerceExchangeRate->CommerceExchangeRate_RKE, 2) }}
+                                            US$ {{ number_format($wallet->balance / $CommerceExchangeRate->CommerceExchangeRate_RKE, 2) }}
                                         @else
-                                            US$ {{ number_format($wallet->saldo) }}
+                                            US$ {{ number_format($wallet->balance) }}
                                         @endif
                                     </span>
                                 @else
                                     <span class="info-box-number">
-                                        {{ $wallet->name }}{{ number_format($wallet->saldo, 2) }}</span>
+                                        {{ $wallet->name }}{{ number_format($wallet->balance, 2) }}</span>
                                 @endif
                             </div>
                         </div>

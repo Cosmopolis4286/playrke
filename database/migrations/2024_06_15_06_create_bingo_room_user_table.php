@@ -30,7 +30,6 @@ return new class extends Migration
             $table->foreign('commerce')->references('id')->on('commerces');
             $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('subsidiary')->references('id')->on('subsidiaries')->onUpdate('cascade');
-            $table->foreign('player_user')->references('id')->on('customer_users');
             $table->foreign('player_link')->references('id')->on('player_link');
         });
     }

@@ -13,6 +13,7 @@ class PlayerLink extends Model
     'commerce',
     'subsidiary',
     'seller',
+    'user',
     'link',
     'country',
     'coin',
@@ -46,6 +47,11 @@ class PlayerLink extends Model
   public function Seller()
   {
     return $this->belongsTo(Seller::class, 'seller');
+  }
+
+  public function User()
+  {
+    return $this->belongsTo(User::class, 'user');
   }
 
   public function Room()

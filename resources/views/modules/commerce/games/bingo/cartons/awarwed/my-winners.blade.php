@@ -40,7 +40,6 @@
     @vite('resources/js/games/bingo/components/view-player-ctns.js')
     @vite('resources/js/games/bingo/components/payment-confirm-button.js')
     @vite('resources/js/games/bingo/components/switch-payment-method.js')
-    {{-- <script src="{{ asset('js/components/switch-payment-method.js') }}"></script> --}}
     <script>
         const name = '{{ $name }}';
 
@@ -70,6 +69,4 @@
             });
         });
     </script>
-    {{-- <script src="{{ asset('js/components/view-player-ctns.js') }}"></script>
-    <script src="{{ asset('js/components/payment-confirm-button.js') }}"></script> --}}
 @endsection

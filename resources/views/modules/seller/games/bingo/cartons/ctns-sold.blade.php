@@ -104,7 +104,7 @@
 @endsection
 
 @section('scripts')
-    <script src="{{ asset('js/components/switch-payment-method.js') }}"></script>
+    @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/rke/payment-confirm-button.js'])
     <script>
         const name = '{{ $name }}';
         const coin = '{{ encrypt($coinId) }}';
@@ -151,5 +151,4 @@
             getPaymentCommerceDetails();
         });
     </script>
-    <script src="{{ asset('js/components/payment-confirm-button.js') }}"></script>
 @endsection

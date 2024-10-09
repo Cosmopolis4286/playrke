@@ -35,11 +35,11 @@
                                 <span>+{{ $room->ctns }}</span>
                             </div>
                         @endif
-                        @if ($room->auto_mc == 1)
+                        {{-- @if ($room->auto_mc == 1)
                             <div class="card-game-room__auto-marker" title="Tienes el Automarcador">
                                 <i class="fa-solid fa-check-to-slot"></i>
                             </div>
-                        @endif
+                        @endif --}}
                         <img class="card-game-room__room-image" src="{{ asset('img/bg/estelar_fd.png') }}" alt="IMG">
                         <div class="container-card-game-room__jackpot">
                             <span class="card-game-room__jackpot-text">
@@ -49,7 +49,7 @@
                                 @if ($room->jackpot_prize > 0 || $room->Config->jackpot_type != 1)
                                     <h3>
                                         <span id="jackpot-room_{{ $room->encrypted }}">
-                                            {{ number_format($room->jackpot, 2) }}
+                                            {{ number_format($room->jackpot_prize, 2) }}
                                         </span>
                                         <small id="coin-symbol-room_{{ $room->encrypted }}">
                                             {{ $coinSym }}
@@ -77,10 +77,9 @@
         const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
         const coin = '<?php echo json_encode($coin); ?>';
         const player = '<?php echo json_encode($player); ?>';
-        let rooms = '<?php echo json_encode($dateTimeRooms); ?>';
+        const rooms = '<?php echo json_encode($dateTimeRooms); ?>';
 
         let isLogin = false;
-        let purchase = false;
         let room = false;
         let arrRooms = {
             id: [],
@@ -153,8 +152,7 @@
                 },
                 success: function(res) {
                     const room = res.room;
-                    isLogin = res.isLogin;
-                    purchase = false;
+                    isLogin = Number(res.isLogin);
                     ctnPrice = room.ctnPrice;
                     numCtns = 1;
 
@@ -182,7 +180,7 @@
         });
 
         function validateUserBalance(total = 0) {
-            if (!purchase || isLogin < total) {
+            if (isLogin < total) {
                 showToast('Saldo Insuficiente', 'warning');
                 return false;
             }
@@ -196,13 +194,17 @@
             $.ajax({
                 url: `{{ route('bingocash.generateCarton') }}`,
                 method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': $("#token").val()
+                },
                 data: {
                     room,
                     coin,
                     num_ctns: numCtns,
                     user_type: userType,
                     user_type_val: userTypeVal,
-                    player
+                    player,
+                    connection: true,
                 },
                 dataType: 'json',
                 beforeSend: function() {
@@ -228,7 +230,6 @@
             if (isLogin && !validateUserBalance(total)) return;
 
             $('#total-amount').text(total);
-            purchase = true;
         }
 
         $('.quantity').each(function() {

@@ -133,7 +133,7 @@ class BingoController extends Controller
             'rooms' => $rooms,
             'dateTimeRooms' => $this->getDateTimeRooms($userType, $userID, encrypt($coinID)),
             'userType' => $userType,
-            'userTypeVal' => $userID,
+            'userTypeVal' => encrypt($userID),
             'player' => encrypt($player)
         ];
 
@@ -189,20 +189,25 @@ class BingoController extends Controller
             'numOfCtns' => $request->num_ctns ?? 0
         ];
 
-        if (!$data['room']) {
-            return redirect()->back()->with('message', 'Ha ocurrido un error, sala no encontrada')->with('type', 'warning');
+        $room = BingoRoom::getRoomByEncrypted($data['room'], ['id', 'ctn_price']);
+
+        if (!$room) {
+            return redirect()->back()->with('message', 'Sala no encontrada')->with('type', 'warning');
         }
 
-        if ($request->user_type) {
+        $roomId = $room->id;
+        $userType = $request->user_type;
 
-            $userType = $request->user_type;
+        if ($userType) {
+
+            $connection = $request->connection ?? false;
+            $data['connection'] = $connection;
+
             $userTypeVal = decrypt($request->user_type_val);
-
             $coin = decrypt($request->coin);
+            $player = decrypt($request->player);
 
             if ($userType == 'customer') {
-
-                $player = decrypt($request->player);
 
                 $user = CustomerUser::getById($player, ['user_id', 'token']);
 
@@ -212,27 +217,27 @@ class BingoController extends Controller
                     return ['Error' => $customerResponse->Error];
                 }
 
-                $room = BingoRoom::getRoomByEncrypted($data['room'], ['id', 'ctn_price']);
-
                 if ($customerResponse->Data[0]->Amount < $data['numOfCtns'] * $room->ctn_price) {
                     // Validar saldo disponible
                     return ['Error' => 'Saldo insuficiente'];
                 }
 
-                $roomId = $room->id;
                 $data['customer'] = $userTypeVal;
                 $data['playerUser'] = $player ?? null;
             } else {
                 $data['commerce'] = $userTypeVal;
-                $data['PJLink'] =  $request->player ?? null;
 
-                $roomId = PlayerLink::getValueByLink($data['PJLink'], 'room');
+                if ($connection == true) {
+                    $data['playerUser'] = $player;
+                } else {
+                    $data['PJLink'] =  $player ?? null;
 
-                if ($request->user_in_game) {
-                    $data['country'] = $request->country ?? null;
-                    $data['playerPhone'] = $request->phone ?? null;
-                    $data['playerName'] = $request->name ?? null;
-                    $data['playerLastname'] = $request->last_name ?? null;
+                    if ($request->user_in_game) {
+                        $data['country'] = $request->country ?? null;
+                        $data['playerPhone'] = $request->phone ?? null;
+                        $data['playerName'] = $request->name ?? null;
+                        $data['playerLastname'] = $request->last_name ?? null;
+                    }
                 }
             }
         } else {
@@ -426,8 +431,7 @@ class BingoController extends Controller
             'allChips' => $dataChips['allChips'],
             'vanDraw' => $vanDraw ? $vanDraw->chip : '',
             'infoGame' => $infoGame,
-            'timeServ' => time(),
-            'connection' => $connection
+            'timeServ' => time()
         ];
 
         if ($room->status == 2) $viewData['coinID'] = encrypt($coinID);
@@ -1051,7 +1055,7 @@ class BingoController extends Controller
                     ->update(['usdt' => $walleuser_type->usdt + $return_balance]);
             } else {
                 Wallet::where("usuario_id", $value->user)
-                    ->update(['saldo' => $walleuser_type->saldo + $return_balance]);
+                    ->update(['saldo' => $walleuser_type->balance + $return_balance]);
             }
 
             //Comprobar el historial de jugadas

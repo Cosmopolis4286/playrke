@@ -42,13 +42,13 @@ class RecargasController extends Controller
         if ($recarga->status == 1) {
             $recarga->status = 2;
             $wallet = Wallet::where("usuario_id", $recarga->user)->first();
-            $wallet->saldo = $wallet->saldo + $recarga->monto;
+            $wallet->balance = $wallet->balance + $recarga->monto;
 
             $sld_freeze = SaldoCongelado::where("user",  $recarga->user)
                 ->where('coin', 2)->where('status', 0)->get();
             if (count($sld_freeze) > 0) {
                 foreach ($sld_freeze as $saldoC) {
-                    $wallet->saldo = $wallet->saldo + $saldoC->monto;
+                    $wallet->balance = $wallet->balance + $saldoC->monto;
                     $saldoC->status = 1;
                     $saldoC->save();
                 }
@@ -139,13 +139,13 @@ class RecargasController extends Controller
         if ($recarga->status == 1) {
             $recarga->status = 2;
             $wallet = Wallet::where("usuario_id", $recarga->user)->first();
-            $wallet->saldo = $wallet->saldo + $recarga->monto;
+            $wallet->balance = $wallet->balance + $recarga->monto;
 
             $sld_freeze = SaldoCongelado::where("user",  $recarga->user)
                 ->where('coin', 1)->where('status', 0)->get();
             if (count($sld_freeze) > 0) {
                 foreach ($sld_freeze as $saldoC) {
-                    $wallet->saldo = $wallet->saldo + $saldoC->monto;
+                    $wallet->balance = $wallet->balance + $saldoC->monto;
                     $saldoC->status = 1;
                     $saldoC->save();
                 }

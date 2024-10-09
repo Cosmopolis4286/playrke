@@ -703,7 +703,7 @@ class TriviaController extends Controller
         DB::table('triv_indv_cdin')->where('id_user', $user)->orderBy('id', 'desc')
             ->update(['start' => 2, 'c_half' => 2, 'use_half' => 0]);
         $wallet_admin = Wallet::where('usuario_id', 1)->first();
-        Wallet::where("usuario_id", 1)->update(['saldo' => $wallet_admin->saldo + $cdin->bet]);
+        Wallet::where("usuario_id", 1)->update(['saldo' => $wallet_admin->balance + $cdin->bet]);
         DB::table('triv_indv_user')->where('id_triv', $cdin->id)
             ->where('nm_quest', $request->nm_quest)->update(['lose_win' => 1]);
         $this->clear_quest($cdin->id);
@@ -736,7 +736,7 @@ class TriviaController extends Controller
                 DB::table('triv_indv_cdin')->where('id_user', $user)->orderBy('id', 'desc')
                     ->update(['start' => 2, 'end_triv' => time()]);
                 DB::table('Wallets')->where('usuario_id', $user)
-                    ->update(['saldo' => $wallet->saldo + $triv->multi * $cdin->bet]);
+                    ->update(['saldo' => $wallet->balance + $triv->multi * $cdin->bet]);
                 DB::table('triv_indv_user')->where('id_triv', $cdin->id)
                     ->where('nm_quest', $request->nm_quest)->update(['lose_win' => 3]);
                 $this->clear_quest($cdin->id);
@@ -744,7 +744,7 @@ class TriviaController extends Controller
             }
         } else {
             $wallet_admin = Wallet::where('usuario_id', 1)->first();
-            Wallet::where("usuario_id", 1)->update(['saldo' => $wallet_admin->saldo + $cdin->bet]);
+            Wallet::where("usuario_id", 1)->update(['saldo' => $wallet_admin->balance + $cdin->bet]);
             DB::table('triv_indv_user')->where('id_triv', $cdin->id)
                 ->where('nm_quest', $request->nm_quest)->update(['lose_win' => 2]);
             DB::table('triv_indv_cdin')->where('id_user', $user)->orderBy('id', 'desc')
@@ -788,9 +788,9 @@ class TriviaController extends Controller
             $cdin = DB::table('triv_indv_cdin')->where('id_user', $user)->orderBy('id', 'desc')->first();
             $prize = $triv->multi * $cdin->bet;
             $wallet_admin = Wallet::where('usuario_id', 1)->first();
-            Wallet::where("usuario_id", 1)->update(['saldo' => $wallet_admin->saldo - ($prize - $cdin->bet)]);
+            Wallet::where("usuario_id", 1)->update(['saldo' => $wallet_admin->balance - ($prize - $cdin->bet)]);
             DB::table('Wallets')->where('usuario_id', $user)
-                ->update(['saldo' => $wallet->saldo + $prize]);
+                ->update(['saldo' => $wallet->balance + $prize]);
             DB::table('triv_indv_cdin')->where('id_user', $user)->orderBy('id', 'desc')
                 ->update(['start' => 2, 'c_half' => 2, 'use_half' => 0, 'sure' => 1]);
             DB::table('triv_indv_user')->where('id_triv', $cdin->id)
@@ -1173,7 +1173,7 @@ class TriviaController extends Controller
                                 ->update(['usdt' => $wallet->usdt + $awards]);
                         } else {
                             Wallet::where("usuario_id", $value)
-                                ->update(['saldo' => $wallet->saldo + $awards]);
+                                ->update(['saldo' => $wallet->balance + $awards]);
                         }
                         DB::table('hist_games')->where('user', $value)->where('game', 2)
                             ->where('coin', $trivia->coin)->where('id_game', $id)
@@ -1189,7 +1189,7 @@ class TriviaController extends Controller
                     ->update(['usdt' => $walletADM->usdt + $com_ghost]);
             } else {
                 Wallet::where("usuario_id", 1)->where('user_type', 2)
-                    ->update(['saldo' => $walletADM->saldo + $com_ghost]);
+                    ->update(['saldo' => $walletADM->balance + $com_ghost]);
             }
 
             $this->bonus_rand($id); // Repartir bonus aleatorio
@@ -1219,7 +1219,7 @@ class TriviaController extends Controller
             }
             foreach ($pj_bonus as $key => $value) {
                 $wallet = Wallet::where('usuario_id', $value)->first();
-                Wallet::where("usuario_id", $value)->update(['saldo' => $wallet->saldo + $prize]);
+                Wallet::where("usuario_id", $value)->update(['saldo' => $wallet->balance + $prize]);
             }
         }
     }
@@ -1483,7 +1483,7 @@ class TriviaController extends Controller
                 DB::table('extras_user')->where('user', $user)->update(['lives' => $ext->lives - 1]);
                 $datos = $this->Question($id);
                 echo json_encode(array(
-                    'rv' => 1, 'mn' => number_format($wallet->saldo, 2),
+                    'rv' => 1, 'mn' => number_format($wallet->balance, 2),
                     'xyz_w' => $datos['respt_inc'], 'pr' => $datos['qtions'],
                     'question' => $datos['respuesta'], 'van' => 5,
                     'numpp' => $datos['numpp'], 'img' => $datos['img']
@@ -1505,9 +1505,9 @@ class TriviaController extends Controller
         $ext = DB::table('extras')->where('id', 3)->first();
         $ext_u = DB::table('extras_user')->where('user', $user)->first();
         if ($ext_u->lives == null || $ext_u->lives <= 0) {
-            if ($wallet->saldo >= $ext->price) {
+            if ($wallet->balance >= $ext->price) {
                 DB::table('Wallets')->where('usuario_id', $user)
-                    ->update(['saldo' => $wallet->saldo - $ext->price]);
+                    ->update(['saldo' => $wallet->balance - $ext->price]);
                 DB::table('extras_user')->where('user', $user)
                     ->update(['lives' => $ext_u->lives + 1]);
                 $this->revive($id);

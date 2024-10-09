@@ -10,7 +10,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div id="cont-ctn-award-winning">
+                <div id="cont-ctn-award-winning" data-status="false">
                     <div class="card">
                         <div class="card-header py-1">
                             <h6 class="card-title d-inline m-0">Cartón Ganador</h6>

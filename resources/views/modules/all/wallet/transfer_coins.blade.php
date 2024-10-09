@@ -71,7 +71,7 @@
                             <div class="col-md-6">
                                 <label class="lb_in">Saldo Disponible</label>
                                 <input id="Wallet" type="text" name="Wallet" class="form-control"
-                                    value="{{ $wallet->name }} {{ number_format($wallet->saldo, 2) }}"
+                                    value="{{ $wallet->name }} {{ number_format($wallet->balance, 2) }}"
                                     style="pointer-events: none;">
                             </div>
                             <div class="col-md-6">
