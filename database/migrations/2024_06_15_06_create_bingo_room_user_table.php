@@ -22,6 +22,7 @@ return new class extends Migration
             $table->unsignedBigInteger('seller')->nullable();
             $table->integer('player_user')->nullable();
             $table->unsignedBigInteger('player_link')->nullable();
+            $table->integer('ctns', 3);
             $table->string('winner', 1)->default(0);
             $table->timestamps();
 

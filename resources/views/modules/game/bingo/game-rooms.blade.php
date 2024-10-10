@@ -20,8 +20,8 @@
         @include('components.game.bingo.layout.container-purchase-ctns', [
             'routeName' => 'commerce.getBingoWinnersByCommerce',
         ])
-    </div><br>
-    <div class="col-12 w-100 pb-4">
+    </div>
+    <div class="col-12 w-100 mt-4 pb-4">
         <div class="row justify-content-center" style="gap: 2.75rem;">
             @foreach ($rooms as $key => $room)
                 <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
@@ -30,12 +30,12 @@
                             {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
                         </div>
                         <span class="card-game-room__game-mode">Modo: Cartón Lleno</span>
-                        @if ($room->ctns > 0)
+                        @if (count($room->PlayersRoom))
                             <div class="card-game-room__number-of-ctns" title="Mis Cartones">
-                                <span>+{{ $room->ctns }}</span>
+                                <span>+{{ $room->PlayersRoom[0]->ctns }}</span>
                             </div>
                         @endif
-                        {{-- @if ($room->auto_mc == 1)
+                        {{-- @if ($room->PlayersRoom[0]->auto_mc)
                             <div class="card-game-room__auto-marker" title="Tienes el Automarcador">
                                 <i class="fa-solid fa-check-to-slot"></i>
                             </div>
@@ -204,7 +204,7 @@
                     user_type: userType,
                     user_type_val: userTypeVal,
                     player,
-                    connection: true,
+                    is_login: true,
                 },
                 dataType: 'json',
                 beforeSend: function() {

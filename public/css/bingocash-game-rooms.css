@@ -239,16 +239,6 @@ body {
     padding-left: 1px;
 }
 
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-input[type=number] {
-    -moz-appearance: textfield;
-}
-
 .quantity input {
     width: 45px;
     text-align: center;
@@ -260,6 +250,16 @@ input[type=number] {
 
 .quantity input:focus {
     outline: 0;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
 }
 
 /* Card Game-Rooms */
@@ -344,17 +344,15 @@ input[type=number] {
     justify-content: center;
     align-items: center;
     position: absolute;
-    color: #e0b700;
-    top: 57.3%;
-    left: 102%;
-    transform: translate(-50%, -50%);
-    background: linear-gradient(to bottom, rgb(1, 56, 160), rgba(0, 44, 126, 0.975));
-    width: 20.2%;
-    height: 25.8px;
-    padding-top: 0.9px;
-    padding-right: 1px;
-    border-radius: 7px;
-    font-size: 18px;
+    color: #ffffff;
+    top: 50%;
+    left: 100%;
+    background: linear-gradient(to bottom, rgb(0, 60, 172), rgb(0, 44, 126));
+    width: 19.5%;
+    height: 28px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 107%;
     text-transform: uppercase;
 }
 

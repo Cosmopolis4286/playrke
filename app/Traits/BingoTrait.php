@@ -339,21 +339,22 @@ trait BingoTrait
 
         try {
 
-            $coin = $arrCtn['coin'];
-            $numOfCtns = $arrCtn['numOfCtns'];
-            $PJLink = $arrCtn['PJLink'] ?? null;
-
             $customer = $arrCtn['customer'] ?? null;
             $commerce = $arrCtn['commerce'] ?? null;
             $seller = $arrCtn['seller'] ?? null;
             $playerUser = $arrCtn['playerUser'] ?? null;
+            $PJLink = $arrCtn['PJLink'] ?? null;
 
-            $totalAmountCtns = $numOfCtns * $room->ctn_price;
+            $gameMode = $room->game_mode;
+            $coin = $arrCtn['coin'];
+            $numOfCtns = $arrCtn['numOfCtns'];
+
+            $totalSaleAmount = $numOfCtns * $room->ctn_price;
+            $saleAmount = $totalSaleAmount;
             $comSaleSellerCtns = 0;
-            $saleAmount = $totalAmountCtns;
             $exchangeRate = 1;
 
-            if ($room->game_mode == 2 && $commerce || $seller) {
+            if ($gameMode > 1  && $commerce || $seller) {
                 // Conversión de Moneda para obtener valor de venta
                 $exchangeRate = ExchangeRate::getLastValueByCoin($coin);
                 $totalSaleCtns = $numOfCtns * $exchangeRate;
@@ -385,12 +386,12 @@ trait BingoTrait
                 'seller' => $seller,
                 'room' => $roomID,
                 'coin' => $coin,
-                'exchange_rate' => $exchangeRate ?? 1,
+                'exchange_rate' => $exchangeRate,
                 'player_user' => $playerUser,
                 'player_link' => $PJLink,
                 'status' => 0,
                 'ctns' => $numOfCtns,
-                'sale_amount' => $saleAmount ?? $totalAmountCtns,
+                'sale_amount' => $saleAmount ?? $totalSaleAmount,
             ]);
 
             $lotID = $ctnsLot->id; // ID de Lote de Cartones
@@ -492,8 +493,8 @@ trait BingoTrait
             BingoCtns::insert($recordsToInsert);
 
             // Determinar la columna y el ID del jugador según el modo de juego
-            $playerColumn = ($room->game_mode == 1) ? 'player_user' : 'player_link';
-            $playerID = ($room->game_mode == 1) ? $playerUser : $PJLink;
+            $playerColumn = ($room->game_mode == 2) ? 'player_link' : 'player_user';
+            $playerID = ($room->game_mode == 2) ? $PJLink : $playerUser;
 
             // Preparar los datos para buscar o crear el registro
             $searchCriteria = ['room' => $roomID, $playerColumn => $playerID];
@@ -512,8 +513,19 @@ trait BingoTrait
                 $room->increment('players');
             }
 
+            // Anexar cantidad de cartones al usuario 
+            $roomUser->ctns += $numOfCtns;
+
+            if ($gameMode > 1) { // Si es diferente a offline 
+                // Determinar la columna de saldo en función de la moneda
+                $columnBalance = $coin == 1 ? 'usdt' : 'balance';
+
+                // Descontar monto del saldo del usuario
+                Wallet::where('user', $roomUser->user)->decrement($columnBalance, 4);
+            }
+
             // Actualización del bote acumulado y otras métricas de la sala
-            $convertedJackpot = number_format($saleAmount / $exchangeRate ?? 1, 3, '.');
+            $convertedJackpot = number_format($saleAmount / $exchangeRate, 3, '.');
             $boatAcum = ($arrCtn['jackpotType'] == 1) ? $convertedJackpot : (($arrCtn['jackpotType'] == 2) ? 0 : null);
             $jackpot = $room->jackpot + $boatAcum;
             $comCommerce = ($jackpot * BingoRoomConfig::getValueByRoom($roomID, 'room_commn') / 100);
@@ -521,7 +533,7 @@ trait BingoTrait
 
             // Preparar los datos para actualizar la sala
             $updateData = [
-                'all_sale' => $room->all_sale + $totalAmountCtns,
+                'all_sale' => $room->all_sale + $totalSaleAmount,
                 'jackpot' => $jackpot,
                 'jackpot_prize' => $jackpot,
                 'ctns' => $room->ctns + $numOfCtns
@@ -549,7 +561,7 @@ trait BingoTrait
                     BingoRoom::getValueById($roomID, 'code_uuid') ?? 'TEST',
                     'BET',
                     $coin,
-                    $totalAmountCtns
+                    $totalSaleAmount
                 );
 
                 if (!$transaction) {
@@ -605,7 +617,7 @@ trait BingoTrait
         }
 
         $roomID = $room->id;
-        $connection = $data['connection'] ?? false;
+        $isLogin = $data['isLogin'] ?? false;
         $country = $data['country'] ?? null;
         $customer = $data['customer'] ?? null;
         $commerce = $data['commerce'] ?? null;
@@ -613,7 +625,7 @@ trait BingoTrait
 
         if ($commerce || $seller) {
 
-            if ($connection) { // Online
+            if ($isLogin) { // Usuario en Session
                 $playerUser = $data['playerUser'];
                 $coin = Wallet::getValue($playerUser, 'coin');
             } else { // Offline
@@ -646,7 +658,7 @@ trait BingoTrait
 
             if ($commerce || $seller) {
 
-                if ($connection) {  // Online
+                if ($isLogin) {  // Online
                     //Comprobar si el usuario esta inscrito en la sala
                     $existsPlayer = BingoRoomUser::existsPlayerInRoom(
                         $roomID,
@@ -714,16 +726,16 @@ trait BingoTrait
             if ($commerce || $seller) {
                 if ($commerce) {
                     $dataCtns['commerce'] = $commerce ?? null;
-                    if ($connection) $dataCtns['playerUser'] = $playerUser;
+                    if ($isLogin) $dataCtns['playerUser'] = $playerUser;
                 }
 
                 if ($seller) {
                     $dataCtns['seller'] = $sellerID ?? null;
                 }
 
-                if (!$connection) $dataCtns['PJLink'] = $player;
+                if (!$isLogin) $dataCtns['PJLink'] = $player;
             }
-            dd($dataCtns);
+
             $responseCtns = $this->cartonStore($dataCtns);
 
             if (!isset($responseCtns['Error'])) {
@@ -968,6 +980,8 @@ trait BingoTrait
 
         // Obtener IDs de los cartones ganadores
         $arrCtnWin = $filteredCtns->pluck('id');
+
+        dd($arrCtnWin);
 
         // Obtener información de los cartones ganadores
         $playerCtn = BingoCtns::where('room', $roomID)->whereIn('id', $arrCtnWin)

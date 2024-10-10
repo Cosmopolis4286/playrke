@@ -49,4 +49,16 @@ trait Filters
         // Retornar la primera moneda disponible o el coinId original
         return in_array($coinId, $coins) ? $coinId : ($coins[0] ?? $coinId);
     }
+
+    public function handleViewData($viewData)
+    {
+        // Manjador de Informacio de Vista
+        if (isset($viewData['error'])) {
+            response()->json(['message' => 'Ocurrió un error'], 404);
+        } elseif (isset($viewData['redirect'])) {
+            return redirect($viewData['redirect'] ?? '/');
+        }
+
+        return  view($viewData['route'])->with($viewData['data']);
+    }
 }

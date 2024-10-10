@@ -83,6 +83,9 @@ class BingoController extends Controller
 
     private function getGamesRoomsView($userType, $userID, $data = [])
     {
+        // Verificar Cierre de Salas
+        $this->checkRoomClosure();
+
         // Obtener infomacion de Salas de Juego (CARDS)
         switch ($userType) {
             case 'admin': // Admin
@@ -110,6 +113,9 @@ class BingoController extends Controller
 
         $rooms = BingoRoom::with(['Config' => function ($query) {
             $query->select('room', 'jackpot_type');
+        }, 'PlayersRoom' => function ($query) {
+            $query->select('room', 'player_user', 'ctns')
+                ->where('player_user', Auth::id());
         }])->select(
             'id',
             $userType,
@@ -125,6 +131,14 @@ class BingoController extends Controller
             'ctns',
             'encrypted'
         )->where($userType, $userID)->whereIn('status', [2, 3])->get();
+
+        // Redirigir si no hay salas disponibles
+        if (!count($rooms)) {
+            return ['redirect' => route('bingo.all-commerce-rooms', [
+                'coin' => encrypt($coinID),
+                'user' => encrypt(Auth::id())
+            ])];
+        }
 
         $viewData = [
             'title' => 'Bingo Salas de Juego',
@@ -142,7 +156,7 @@ class BingoController extends Controller
         }
 
         // Retorna ruta y datos
-        return ['modules.game.bingo.game-rooms', $viewData];
+        return ['route' => 'modules.game.bingo.game-rooms', 'data' => $viewData];
     }
 
     public function gamesRoomsAdmin() {}
@@ -158,7 +172,8 @@ class BingoController extends Controller
 
         $viewData = self::getGamesRoomsView('commerce', $commerce, ['coin' => $coin]);
 
-        return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
+        // Retorna a vista con la informacion 
+        return $this->handleViewData($viewData);
     }
 
     public function gamesRoomsCustomer($customerToken, $userToken, $coin = '')
@@ -177,9 +192,8 @@ class BingoController extends Controller
         // Obtener informacion de la vista del cliente
         $viewData = self::getGamesRoomsView('customer', $customer, ['player' => $player->id, 'coin' => $coin]);
 
-        // Retorna a vista con la informacion del cliente
-        return $viewData ? view($viewData[0])->with($viewData[1])
-            : response()->json(['message' => 'Ocurrió un error'], 404);
+        // Retorna a vista con la informacion 
+        return $this->handleViewData($viewData);
     }
 
     public function generateCarton(Request $request)
@@ -200,8 +214,8 @@ class BingoController extends Controller
 
         if ($userType) {
 
-            $connection = $request->connection ?? false;
-            $data['connection'] = $connection;
+            $isLogin = $request->is_login ?? false;
+            $data['isLogin'] = $isLogin;
 
             $userTypeVal = decrypt($request->user_type_val);
             $coin = decrypt($request->coin);
@@ -227,7 +241,7 @@ class BingoController extends Controller
             } else {
                 $data['commerce'] = $userTypeVal;
 
-                if ($connection == true) {
+                if ($isLogin == true) {
                     $data['playerUser'] = $player;
                 } else {
                     $data['PJLink'] =  $player ?? null;
@@ -317,7 +331,7 @@ class BingoController extends Controller
                 ];
 
                 if ($room->status == 2) {
-                    $connection = ['cust', 'off'];
+                    $isLogin = ['cust', 'off'];
                     $moreViewData['userType'] = 'customer';
                     $moreViewData['userTypeVal'] = encrypt($customer);
                     $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomId, $room->ctn_price, 'float');
@@ -360,7 +374,7 @@ class BingoController extends Controller
 
                 $room = BingoRoom::getRoomById($roomId, ['status', 'all_for_one', 'ctn_price']);
 
-                $connection = ['comm', 'off'];
+                $isLogin = ['comm', 'off'];
 
                 if ($userType == 'commerce' && $room->status == 2) {
                     $moreViewData['userType'] = 'commerce';
@@ -608,7 +622,7 @@ class BingoController extends Controller
     }
 
     // CRUD //     
-    public function getGameRoomsInfo($userType, $userID, $coin, $connection = false) //  Lista Salas CRUD de Juego
+    public function getGameRoomsInfo($userType, $userID, $coin, $isLogin = false) //  Lista Salas CRUD de Juego
     {
         switch ($userType) {
             case 'admin': // Admin
@@ -670,7 +684,7 @@ class BingoController extends Controller
             ->orderByDesc('time')->orderBy('status')->get();
 
         $viewData = [
-            'layout' => $connection ? 'layouts.app_rke_off' : 'layouts.app_rke',
+            'layout' => $isLogin ? 'layouts.app_rke_off' : 'layouts.app_rke',
             'title' => 'Salas de Bingo',
             'name' => 'bingocash',
             'returnBtn' => $returnBtn ?? true,
@@ -876,7 +890,7 @@ class BingoController extends Controller
 
         if (!$roomID) return response()->json(['Error' => 'Sala no encontrada']);
 
-        $room = BingoRoom::select('game_mode', 'date', 'time', 'ctn_price', 'coin', 'jackpot')
+        $room = BingoRoom::select('game_mode', 'date', 'time', 'ctn_price', 'coin', 'jackpot_prize')
             ->where('id', $roomID)->firstOrFail();
 
         $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
@@ -895,7 +909,7 @@ class BingoController extends Controller
             $room = [
                 'dateTime' => [$room->date, $room->time],
                 'coin' => $coin,
-                'jackpotAmount' => $room->jackpot,
+                'jackpotAmount' => number_format($room->jackpot_prize, 2, '.'),
                 'jackpotType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
                 'ctnPrice' => $room->ctn_price
             ];
