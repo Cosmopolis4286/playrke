@@ -72,74 +72,81 @@
 @endsection
 
 @section('scripts')
+    {{-- @vite('resources/js/rke/format-date-time.js') --}}
     <script>
         const userType = '<?php echo json_encode($userType); ?>';
         const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
         const coin = '<?php echo json_encode($coin); ?>';
         const player = '<?php echo json_encode($player); ?>';
-        const rooms = '<?php echo json_encode($dateTimeRooms); ?>';
 
+        let rooms = '<?php echo json_encode($dateTimeRooms); ?>';
         let isLogin = false;
         let room = false;
-        let arrRooms = {
-            id: [],
-            dateTime: []
-        };
-        let ctnPrice = 0;
-        let numCtns = 1;
+        let ctnPrice = 1;
+        let numCtns = 0;
+        let total = 0;
+        let inView = true;
 
-        // function c_tmsvr() {
-        //     $.ajax({
-        //         url: "{{ route('info.getTimeServer') }}",
-        //         headers: {
-        //             'X-CSRF-TOKEN': $("#token").val()
-        //         },
-        //         method: 'get',
-        //         dataType: 'json',
-        //         success: function(data) {
-        //             now = new Date(data);
-        //         }
-        //     });
-        //     c_timer = 1;
-        // }
-        // window.onblur = function() {
-        //     v_rtn = 1;
-        // }
-        // window.onfocus = function() {
-        //     if (v_rtn == 1) {
-        //         c_timer = 0;
-        //         c_tmsvr();
-        //     }
-        // }
+        window.onblur = function() {
+            inView = false;
+        }
+
+        window.onfocus = function() {
+            if (!inView) {
+                inView = true;
+                getDateTimeRooms();
+            }
+        }
 
         function getDateTimeRooms() {
             const url =
-                "{{ route('bingo.get-datetime-rooms', ['userType' => ':userType', 'userID' => ':userID', 'coin' => ':coin']) }}"
-                .replace(':userType', userType)
-                .replace(':userID', userTypeVal)
-                .replace(':coin', coin);
+                "{{ route('bingo.get-datetime-rooms', ['userType' => ':userType', 'userID' => ':userID']) }}"
+                .replace(':userType', userType).replace(':userID', userTypeVal)
 
             $.getJSON(url, {
                     'X-CSRF-TOKEN': $("#token").val()
                 })
                 .done(res => {
-                    res.forEach(value => {
-                        arrRooms.id.push(value.id);
-                        arrRooms.dateTime.push(`${value.date} ${value.time}`);
-                    });
+                    console.log(res);
+                    // res.forEach(value => {
+                    //     arrRooms.id.push(value.id);
+                    //     arrRooms.dateTime.push(`${value.date} ${value.time}`);
+                    // });
                 })
                 .fail(err => {
                     console.error("Error fetching data:", err);
                 });
         }
 
-        $(document).ready(() => rooms.length && getDateTimeRooms());
+        function formatDateTime(date, time, timeZone = '-04:00') {
+            // Crear un objeto Date con la fecha y hora proporcionadas
+            const fullDateTime = new Date(`${date}T${time}${timeZone}`);
+
+            // Formatear la fecha en formato "dd/mm/yy"
+            const formattedDate = fullDateTime.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit',
+            });
+
+            // Convertir la hora a la zona horaria local del equipo
+            let formattedTime = fullDateTime.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+            });
+
+            // Mostrar la fecha y la hora formateadas en los elementos correspondientes
+            $('#text-date').text(formattedDate);
+            $('#text-time').text(formattedTime);
+        }
 
         $(document).on("click", ".card-game-room", function() {
             // Obtener informacion de Sala al hacer click en ella
             if ($(this).data('status') != 2) return;
 
             room = $(this).data('room');
+            total = 0;
 
             $.ajax({
                 url: `{{ route('bingo.getInfoByEncrypt', ['id' => ':id', 'mode' => ':mode']) }}`
@@ -159,10 +166,8 @@
                     $('#purchase-ctns__coin-text').text(room.jackpotType);
                     $('.purchase-ctns__coin-label').text(room.coin);
                     $('#jackpot-amount').text(room.jackpotAmount);
-                    $('#text-date').text(room.dateTime[0]);
-                    $('#text-time').text(room.dateTime[1]);
-
-                    $('#total-amount').text(ctnPrice);
+                    formatDateTime(room.dateTime[0], room.dateTime[1]);
+                    handleTotalAmount(numCtns);
 
                     $('#container-spinner').hide();
                     $('#container-purchase-ctns').show();
@@ -211,7 +216,10 @@
                     $('#loader-btn-purchase-ctns').show();
                 },
                 success: function(res) {
-                    location.reload(); // Refrescar página
+                    showToast(res.message, res.msg_type);
+                    setTimeout(function() {
+                        location.reload();
+                    }, 3250);
                 },
                 error: function(error) {
                     console.error(error);
@@ -223,9 +231,8 @@
 
         });
 
-        function handleTotalAmount(quantity) {
-            const total = quantity * ctnPrice;
-            numCtns = quantity;
+        function handleTotalAmount(numCtns) {
+            total = (numCtns * ctnPrice).toFixed(2);
 
             if (isLogin && !validateUserBalance(total)) return;
 
@@ -268,6 +275,8 @@
         });
 
         function handleWaitingTime() {
+
+
 
         }
 

@@ -58,7 +58,7 @@
             </div>
             <div id="purchase-ctns__body-form-section-right"></div>
         </div>
-        <div class="card-footer bg-light text-center">
+        <div class="purchase-ctns__footer card-footer bg-light text-center">
             <button type="button" id="btn-container-purchase-close" class="mr-1 btn btn-secondary">Cancelar</button>
             <button type="button" id="btn-purchase-ctns" class="btn btn-primary">Comprar
                 <span id="loader-btn-purchase-ctns" class="spinner-border spinner-border-sm" role="status"

@@ -69,6 +69,11 @@ class BingoRoomUser extends Model
         return self::select($fields)->where($column, $value)->first();
     }
 
+    public static function getValueByColumn($room, $column, $columValue, $value)
+    {
+        return self::where('room', $room)->where($column, $columValue)->first($value);
+    }
+
     public static function getPlayerCountByRoom($room, $condition = ['!=', ''])
     {
         // Verifica que el formato de la condición sea válido

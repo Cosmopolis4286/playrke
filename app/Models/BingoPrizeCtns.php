@@ -105,9 +105,9 @@ class BingoPrizeCtns extends Model
         return self::where('ctn', $ctnId)->value($value);
     }
 
-    public static function getWinnersIDsByPrizeType($room, $prizeType, $colum)
+    public static function getWinnersIDsByPrizeType($room, $prizeType, $column)
     {
-        return self::where(['room' => $room, 'prize_type' => $prizeType])->pluck($colum);
+        return self::where(['room' => $room, 'prize_type' => $prizeType])->pluck($column);
     }
 
     public static function getWinnersCountByPrizeType($room, $prizeType)

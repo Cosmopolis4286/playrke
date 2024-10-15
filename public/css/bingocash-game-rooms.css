@@ -46,6 +46,11 @@ body {
     width: 100%;
 }
 
+.purchase-ctns__footer {
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+}
+
 .purchase-ctns__body {
     position: relative;
     height: auto;
@@ -76,7 +81,7 @@ body {
     height: 100%;
     display: flex;
     padding: 1.15%;
-    border-top-left-radius: 6px;
+    border-top-left-radius: 7px;
     background: linear-gradient(to bottom, #084aff, #0e43b4);
 }
 
@@ -102,6 +107,7 @@ body {
     width: 78%;
     height: 100%;
     margin-left: 2.5px;
+    line-height: 135%;
 }
 
 #purchase-ctns__coin-value {
@@ -138,7 +144,7 @@ body {
 
 .purchase-ctns__date {
     position: relative;
-    width: 34%;
+    width: auto;
     border-top-right-radius: 7px;
     height: 100%;
     padding: 1.5%;
@@ -260,6 +266,8 @@ input[type=number]::-webkit-outer-spin-button {
 
 input[type=number] {
     -moz-appearance: textfield;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 /* Card Game-Rooms */
@@ -345,11 +353,13 @@ input[type=number] {
     align-items: center;
     position: absolute;
     color: #ffffff;
+    padding-top: 1.1%;
     top: 50%;
     left: 100%;
+    transform: translate(-50%, -50%);
     background: linear-gradient(to bottom, rgb(0, 60, 172), rgb(0, 44, 126));
-    width: 19.5%;
-    height: 28px;
+    width: 18%;
+    height: 26px;
     border-radius: 8px;
     font-weight: 500;
     font-size: 107%;

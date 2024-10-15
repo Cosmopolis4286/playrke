@@ -25,6 +25,7 @@ use App\Models\PlayerLink;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
+use App\Models\ExchangeRate;
 use App\Traits\BingoTrait;
 use App\Traits\CustomerTrait;
 use App\Traits\Filters;
@@ -54,16 +55,10 @@ class BingoController extends Controller
         // broadcast(new BingoOFF_GetRoomInfo(now()->format('H:i:s'), $room->encrypted));
     }
 
-    public function getDateTimeRooms($userType, $userID, $coin = '')
+    public function getDateTimeRooms($userType, $userID)
     {
-        //dd($userType, $userID, $coin);
-
-        $query = BingoRoom::select('encrypted', 'status', 'date', 'time')
-            ->where($userType, $userID)->whereIn('status', [2, 3]);
-
-        if ($coin) $query = $query->where('coin', decrypt($coin));
-
-        return $query->get();
+        return BingoRoom::select('encrypted', 'status', 'date', 'time')
+            ->where($userType, decrypt($userID))->whereIn('status', [2, 3])->get();
     }
 
     private function getRoomGame($query, $dateFilter)
@@ -145,7 +140,7 @@ class BingoController extends Controller
             'coinSym' => $coinSym,
             'coin' => encrypt($coinID),
             'rooms' => $rooms,
-            'dateTimeRooms' => $this->getDateTimeRooms($userType, $userID, encrypt($coinID)),
+            'dateTimeRooms' => $this->getDateTimeRooms($userType, encrypt($userID)),
             'userType' => $userType,
             'userTypeVal' => encrypt($userID),
             'player' => encrypt($player)
@@ -214,12 +209,13 @@ class BingoController extends Controller
 
         if ($userType) {
 
-            $isLogin = $request->is_login ?? false;
-            $data['isLogin'] = $isLogin;
-
             $userTypeVal = decrypt($request->user_type_val);
             $coin = decrypt($request->coin);
             $player = decrypt($request->player);
+
+            $isLogin = $request->is_login ?? false;
+            $data['isLogin'] = $isLogin;
+            $data['coin'] = $coin;
 
             if ($userType == 'customer') {
 
@@ -243,6 +239,17 @@ class BingoController extends Controller
 
                 if ($isLogin == true) {
                     $data['playerUser'] = $player;
+
+                    // Determinar la columna de saldo en función de la moneda
+                    $columnBalance = $coin == 1 ? 'usdt' : 'balance';
+                    $exchangeRate = ExchangeRate::getLastValueByCoin($coin);
+
+                    $saleAmount = ($room->ctn_price * $exchangeRate) * $data['numOfCtns'];
+                    $balance = Wallet::getValue($player, $columnBalance);
+
+                    if ($balance < $saleAmount) {
+                        return ['Error' => 'Saldo Insuficiente'];
+                    }
                 } else {
                     $data['PJLink'] =  $player ?? null;
 
@@ -282,7 +289,7 @@ class BingoController extends Controller
                 }
 
                 $jackpot = $this->convertPrizeValue($roomId, $coin);
-                return response()->json(['jackpot' => $jackpot, 'msg_type' => 'info', 'message' => 'Proceso efectuado con exito']);
+                return response()->json(['jackpot' => $jackpot, 'msg_type' => 'success', 'message' => 'Proceso efectuado con exito']);
             } else {
                 Session::flash('message', 'Proceso efectuado con exito');
                 Session::flash('PJLink',  $cartonStore);
