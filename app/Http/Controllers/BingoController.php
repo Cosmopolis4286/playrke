@@ -31,6 +31,7 @@ use App\Traits\CustomerTrait;
 use App\Traits\Filters;
 use App\Traits\GameTrait;
 use App\Traits\RouteRKE;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
@@ -143,8 +144,11 @@ class BingoController extends Controller
             'dateTimeRooms' => $this->getDateTimeRooms($userType, encrypt($userID)),
             'userType' => $userType,
             'userTypeVal' => encrypt($userID),
-            'player' => encrypt($player)
+            'player' => encrypt($player),
+            'timestamp' => Carbon::now('America/Caracas')->timestamp
         ];
+
+        if ($coinID == 1) $viewData['USDT'] = true;
 
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);
@@ -867,16 +871,10 @@ class BingoController extends Controller
     public function changeStatusRoom($id)
     {
         // Manejador de Status de Salas de Juego
-        $room = BingoRoom::getRoomById($id, ['id', 'customer', 'commerce', 'status']);
 
-        $status = $room->status == 2 ? 3 : 4;
+        //BingoRoom::where('id', $id)->update(['status' => $status]);
 
-        BingoRoom::where('id', $id)->update(['status' => $status]);
-
-        $column = $room->customer ? 'customer' : 'commerce';
-        $columnValue = $room->customer ?? $room->commerce;
-
-        return response()->json(['room' => $room]);
+        //return response()->json(['room' => $room]);
     }
 
     public function getInfo($id)
@@ -891,7 +889,7 @@ class BingoController extends Controller
         return response()->json(['room' => $room, 'config' => $roomConfig]);
     }
 
-    public function getInfoByEncrypt($id, $mode = '')
+    public function getInfoByEncrypt($id, $mode = '', $coin = '')
     {
         $roomID = BingoRoom::getRoomValueByEncrypted($id, 'id');
 
@@ -905,12 +903,16 @@ class BingoController extends Controller
 
         if ($mode) {
 
-            if (BingoRoom::getValueById($roomID, 'customer')) {
+            $customer = BingoRoom::getValueById($roomID, 'customer');
+
+            if ($customer) {
                 $isLogin = false;
                 $coin = $room->coin;
+                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($customer, $coin);
             } else {
-                $isLogin = $this->wallet()->balance;
+                $isLogin = (decrypt($coin) == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
                 $coin = Coin::getValue($room->coin, 'symbol');
+                $exchangeRate = ExchangeRate::getValue($coin);
             }
 
             $room = [
@@ -921,7 +923,7 @@ class BingoController extends Controller
                 'ctnPrice' => $room->ctn_price
             ];
 
-            return response()->json(['room' => $room, 'isLogin' => $isLogin]);
+            return response()->json(['room' => $room, 'exchangeRate' => $exchangeRate ?? 1, 'isLogin' => $isLogin]);
         }
 
         return response()->json(['room' => $room, 'config' => $roomConfig]);

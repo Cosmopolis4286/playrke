@@ -144,7 +144,7 @@ body {
 
 .purchase-ctns__date {
     position: relative;
-    width: auto;
+    width: 34%;
     border-top-right-radius: 7px;
     height: 100%;
     padding: 1.5%;

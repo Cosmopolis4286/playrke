@@ -404,7 +404,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('game-rooms/cust/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('customer-game-rooms');
 
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
-    Route::get('getInfoByEncrypt/{id}/{mode?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
+    Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::put('status/{id}', [BingoController::class, 'changeStatusRoom'])->name('change-status');
     Route::get('getDateTimeRooms/{userType}/{userID}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
     Route::post('create', [BingoController::class, 'create'])->name('create');

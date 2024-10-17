@@ -23,28 +23,18 @@
         </li>
         <li class="nav-item" title="Mi Perfil">
             <a href="{{ route('wallet.index') }}" title="Monedero">
-                @if (Route::is(
-                        'wallet.index',
-                        'wallet.create',
-                        'trivia.rooms_usdt',
-                        'trivia.show_usdt',
-                        'bingo.rooms_usdt',
-                        'wallet.transfer_usdt',
-                        'wallet.createBlock',
-                        'wallet.createBPay',
-                        'wallet.retiroBlock',
-                        'wallet.retiroBPay'))
-                    <img src="{{ asset('imgSystem/tether.svg') }}" alt="PlayRKE" class="mr-1 mb-1 brand-image"
+                @if (isset($USDT))
+                    <img src="{{ asset('imgSystem/tether.svg') }}" alt="PlayRKE" class="mb-1 brand-image"
                         style="max-height:13.5px;">
                     <span style="font-size:15px;color:#228B22">
                         <span class="info-box-number" style="color:#BCB9C6;">
                             {{ number_format($wallet->usdt, 2) }}
-                        </span>
+                        </span><small>USDT</small>
                     </span>
                 @else
                     <span class="info-box-number" style="color:#BCB9C6;">
-                        <span style="color:#228B22;">{{ $wallet->Coin->symbol }}
-                        </span>{{ number_format($wallet->balance, 2, ',', '.') }}
+                        <span style="color:#228B22;">{{ $wallet->Coin->symbol }}</span>
+                        {{ number_format($wallet->balance, 2, ',', '.') }}
                     </span>
                 @endif
             </a>
