@@ -16,7 +16,7 @@
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
                         <i class="fas fa-plus-square"></i> Crear
                     </button>
-                    <a href="{{ $activeRooms > 0 ? route('bingo.commerce-game-rooms', ['user' => encrypt(Auth::id()), 'coin' => encrypt($coin)]) : '#' }}"
+                    <a href="{{ $activeRooms > 0 ? route('bingo.' . $userType . '-game-rooms', ['user' => encrypt(Auth::id()), 'coin' => encrypt($coin)]) : '#' }}"
                         class="ml-1 btn btn-sm btn-primary {{ $activeRooms > 0 ? '' : 'disabled' }}">
                         <i class="fas fa-hat-wizard"></i> Ver Salas
                     </a>

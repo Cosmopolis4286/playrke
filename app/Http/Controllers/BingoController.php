@@ -58,8 +58,13 @@ class BingoController extends Controller
 
     public function getDateTimeRooms($userType, $userID)
     {
-        return BingoRoom::select('encrypted', 'status', 'date', 'time')
+        $rooms = BingoRoom::select('encrypted', 'status', 'date', 'time')
             ->where($userType, decrypt($userID))->whereIn('status', [2, 3])->get();
+
+        return [
+            'rooms' => $rooms,
+            'timestamp' => Carbon::now('America/Caracas')->timestamp * 1000
+        ];
     }
 
     private function getRoomGame($query, $dateFilter)
@@ -100,6 +105,7 @@ class BingoController extends Controller
                 $coinSym = $coinID;
 
                 $player = $data['player'];
+                $userToken = $data['userToken'];
                 break;
 
             default:
@@ -141,11 +147,12 @@ class BingoController extends Controller
             'coinSym' => $coinSym,
             'coin' => encrypt($coinID),
             'rooms' => $rooms,
-            'dateTimeRooms' => $this->getDateTimeRooms($userType, encrypt($userID)),
+            'dateTimeRooms' => $this->getDateTimeRooms($userType, encrypt($userID))['rooms'],
             'userType' => $userType,
             'userTypeVal' => encrypt($userID),
             'player' => encrypt($player),
-            'timestamp' => Carbon::now('America/Caracas')->timestamp
+            'userToken' => $userToken ?? null,
+            'timestamp' => Carbon::now('America/Caracas')->timestamp * 1000
         ];
 
         if ($coinID == 1) $viewData['USDT'] = true;
@@ -189,7 +196,7 @@ class BingoController extends Controller
         if (!$coin) $coin = $player->coin;
 
         // Obtener informacion de la vista del cliente
-        $viewData = self::getGamesRoomsView('customer', $customer, ['player' => $player->id, 'coin' => $coin]);
+        $viewData = self::getGamesRoomsView('customer', $customer, ['userToken' => $userToken, 'player' => $player->id, 'coin' => $coin]);
 
         // Retorna a vista con la informacion 
         return $this->handleViewData($viewData);
@@ -468,10 +475,14 @@ class BingoController extends Controller
         return ['modules.visitor.games.bingo.in-game', $viewData];
     }
 
-    public function inGame($PJLink)
+    public function inGame($player, $room = '')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        $viewData = self::getGameInfo('all', ['commerce' => 'RKE', 'PJLink' => $PJLink]);
+        $commerce = BingoRoom::getRoomValueByEncrypted($room, 'commerce');
+
+        $userType = $commerce != 'RKE' ?  'commerce' : 'all';
+
+        $viewData = self::getGameInfo($userType, ['commerce' => $commerce, 'player' => $player]);
 
         return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }

@@ -2,13 +2,7 @@
 @section('title', 'BingoCash')
 @section('styles')
 <link rel="stylesheet" href="{{ asset('css/bingocash-game-rooms.css') }}">@endsection
-<style>
-    .start-time__text {
-        font-size: 14.5px;
-        letter-spacing: 0.25px;
-        text-transform: uppercase;
-    }
-</style>
+
 @section('content')
     <div class="col-12">
         <div id="container-spinner">
@@ -31,8 +25,9 @@
         <div class="row justify-content-center" style="gap: 2.75rem;">
             @foreach ($rooms as $key => $room)
                 <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
-                    <div class="card-game-room" data-room="{{ $room->encrypted }}" data-status="{{ $room->status }}">
-                        <div id="start-time_{{ $room->encrypt }}" class="card-game-room__time">
+                    <div class="card-game-room" id="card-game-room_{{ $room->encrypted }}"
+                        data-room="{{ $room->encrypted }}" data-status="{{ $room->status }}">
+                        <div id="start-time_{{ $room->encrypted }}" class="card-game-room__time">
                             {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
                         </div>
                         <span class="card-game-room__game-mode">Modo: Cartón Lleno</span>
@@ -65,7 +60,9 @@
                                     <h3>ESPERANDO</h3>
                                 @endif
                             </div>
-                            <span class="card-game-room__ctn-price">Cartón: {{ $room->ctn_price }} USDT</span>
+                            <span class="card-game-room__ctn-price">
+                                Cartón: {{ $room->ctn_price }} {{ $coinSym }}
+                            </span>
                             <span class="card-game-room__status" id="card-game-room__status_{{ $room->id }}">
                                 {{ $room->status == 2 ? 'Comprar cartones' : 'No disponible' }}
                             </span>
@@ -83,8 +80,10 @@
         const userType = '<?php echo json_encode($userType); ?>';
         const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
         const coin = '<?php echo json_encode($coin); ?>';
-        const player = '<?php echo json_encode($player); ?>';
+        const player = @json($player);
+        const userToken = '<?php echo json_encode($userToken); ?>';
 
+        let timestamp = new Date(@json($timestamp));
         let rooms = JSON.parse('<?php echo $dateTimeRooms; ?>');
         let arrRooms = [];
         let isLogin = false;
@@ -114,7 +113,8 @@
                     'X-CSRF-TOKEN': $("#token").val()
                 })
                 .done(res => {
-                    getArrRooms(res);
+                    timestamp = res.timestamp;
+                    getArrRooms(res.rooms);
                 })
                 .fail(err => {
                     console.error("Error fetching data:", err);
@@ -285,62 +285,89 @@
             btnDown.toggle(+input.val() > min);
         });
 
-        let timestamp = '<?php echo json_encode($timestamp); ?>';
         const _second = 1000;
         const _minute = _second * 60;
         const _hour = _minute * 60;
         const _day = _hour * 24;
 
-        function handleWaitingTime() {
+        function formatTime(value, label, className = '') {
+            return `<div class="card-game-room__time-column ${className}"><span class="column-datetime__count">${value}</span><span class="column-datetime__text">${label}</span></div>`;
+        }
+
+        function handleWaitingTime(arrRooms) {
             if (!arrRooms.length) return; // Si no hay salas, salir
 
-            const formatTime = (value, label, className) =>
-                `<div class="${className}"><span>${value}</span><span class="start-time__datetime">${label}</span></div>`;
-
             arrRooms.forEach(elem => {
-
                 const roomID = elem.id;
                 const end = new Date(elem.dateTime);
-                const distance = end - timestamp;
+                const difference = end - timestamp;
 
                 // Si el tiempo ha terminado
-                if (distance <= 0) {
-                    //handleRoomStatus(roomID);
-                    $(`#card-game-room__status_${roomID}`).text('No disponible');
-                    $(`#start-time_${roomID}`).html('<span class="start-time__text">En Juego</span>');
-                    return; // Salir de la iteración actual
+                if (difference <= 0) {
+                    $(`#card-game-room_${roomID}`).data('status', 3);
+                    updateRoomStatus(roomID, 'No disponible', '<span class="start-time__text">En Juego</span>');
+
+                    // Redirigir a la sala
+                    if (userTypeVal == 'commerce') {
+                        window.location.href =
+                            `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
+                            .replace(':player', player).replace(':roomID', roomID);
+                    } else {
+                        window.location.href =
+                            `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
+                            .replace(':cust', userTypeVal)
+                            .replace(':userToken', userToken)
+                            .replace(':roomID', roomID);
+
+                        return;
+                    }
                 }
 
-                // Tiempo restante
-                const days = Math.floor(distance / _day);
-                const hours = Math.floor((distance % _day) / _hour);
-                const minutes = Math.floor((distance % _hour) / _minute);
-                const seconds = Math.floor((distance % _minute) / _second);
+                // Obtener los componentes del tiempo restante
+                const timeRemaining = getTimeRemaining(difference);
 
-                // Crear el texto a mostrar según el tiempo restante
+                // Formatear el texto a mostrar
                 let displayText = '';
+                if (timeRemaining.days > 0) displayText += formatTime(timeRemaining.days, 'DIAS', 'count-days');
+                if (timeRemaining.hours > 0) displayText += formatTime(timeRemaining.hours, 'HRS',
+                    'count-hours');
+                if (timeRemaining.minutes > 0) displayText += formatTime(timeRemaining.minutes, 'MIN',
+                    'count-minutes');
+                displayText += formatTime(timeRemaining.seconds, 'SEG');
 
-                if (days > 0) {
-                    displayText += formatTime(days, 'DIAS', 'count-days');
-                }
-                if (hours > 0) {
-                    displayText += formatTime(hours, 'HRS', 'count-hours');
-                }
-                if (minutes > 0) {
-                    displayText += formatTime(minutes, 'MIN', 'count-minutes');
-                }
-
-                displayText += formatTime(seconds, 'SEG');
-
-                $(`#start-time_${roomID}`).html(displayText);
-                $(".count-hours").toggle(hours > 0);
-                $(".count-minutes").toggle(minutes > 0);
+                // Actualizar el DOM solo si ha cambiado
+                updateRoomStatus(roomID, null, displayText, timeRemaining.hours > 0, timeRemaining.minutes > 0);
             });
+
+            timestamp.setMilliseconds(timestamp.getMilliseconds() + 1000); // Incrementar 1 segundo en el timestamp
+        }
+
+        // Función que obtiene el tiempo restante desglosado
+        function getTimeRemaining(difference) {
+            return {
+                days: Math.floor(difference / _day),
+                hours: Math.floor((difference % _day) / _hour),
+                minutes: Math.floor((difference % _hour) / _minute),
+                seconds: Math.floor((difference % _minute) / _second)
+            };
+        }
+
+        // Función que actualiza el estado y tiempo restante de la sala
+        function updateRoomStatus(roomID, statusText = null, timeText = null, showHours = false, showMinutes = false) {
+            if (statusText) $(`#card-game-room__status_${roomID}`).text(statusText);
+
+            if (timeText && $(`#start-time_${roomID}`).html() !== timeText) {
+                $(`#start-time_${roomID}`).html(timeText);
+            }
+
+            // Mostrar u ocultar horas y minutos si aplica
+            $(`#start-time_${roomID} .count-hours`).toggle(showHours);
+            $(`#start-time_${roomID} .count-minutes`).toggle(showMinutes);
         }
 
         if (rooms.length) {
             getArrRooms(rooms);
-            setInterval(handleWaitingTime, 1000);
+            setInterval(() => handleWaitingTime(arrRooms), 1000); // Pasar arrRooms como parámetro a la función
         }
     </script>
 @endsection
