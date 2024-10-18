@@ -45,7 +45,7 @@
                         <div class="quant quantity-down">
                             <i class="fa-solid fa-minus"></i>
                         </div>
-                        <input id="num-ctns" type="number" step="1" max="25" min="1"
+                        <input id="num-ctns" type="number" step="1" max="30" min="1"
                             value="1">
                         <div class="quant quantity-up">
                             <i class="fa-solid fa-plus"></i>

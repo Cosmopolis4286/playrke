@@ -61,7 +61,7 @@
                                 @endif
                             </div>
                             <span class="card-game-room__ctn-price">
-                                Cartón: {{ $room->ctn_price }} {{ $coinSym }}
+                                Cartón: {{ $room->ctn_price * $exchangeRate }} {{ $coinSym }}
                             </span>
                             <span class="card-game-room__status" id="card-game-room__status_{{ $room->id }}">
                                 {{ $room->status == 2 ? 'Comprar cartones' : 'No disponible' }}
@@ -77,11 +77,11 @@
 @section('scripts')
     {{-- @vite('resources/js/rke/format-date-time.js') --}}
     <script>
-        const userType = '<?php echo json_encode($userType); ?>';
+        const userType = '<?php echo $userType; ?>';
         const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
         const coin = '<?php echo json_encode($coin); ?>';
         const player = @json($player);
-        const userToken = '<?php echo json_encode($userToken); ?>';
+        const userToken = '<?php echo $userToken; ?>';
 
         let timestamp = new Date(@json($timestamp));
         let rooms = JSON.parse('<?php echo $dateTimeRooms; ?>');
@@ -104,6 +104,23 @@
             }
         }
 
+        $(document).on('input', '#num-ctns', function() {
+            // Filtrar caracteres no numéricos
+            $(this).val($(this).val().replace(/[^0-9]/g, ''));
+
+            // Limitar a dos dígitos
+            if ($(this).val().length > 2) {
+                $(this).val($(this).val().slice(0, 2));
+            }
+
+            let value = parseInt($(this).val(), 10);
+            if (value < 1) {
+                $(this).val(1);
+            } else if (value > 30) {
+                $(this).val(30);
+            }
+        });
+
         function getDateTimeRooms() {
             const url =
                 "{{ route('bingo.get-datetime-rooms', ['userType' => ':userType', 'userID' => ':userID']) }}"
@@ -113,7 +130,7 @@
                     'X-CSRF-TOKEN': $("#token").val()
                 })
                 .done(res => {
-                    timestamp = res.timestamp;
+                    timestamp = new Date(res.timestamp);
                     getArrRooms(res.rooms);
                 })
                 .fail(err => {
@@ -252,17 +269,18 @@
 
         $('.quantity').each(function() {
             const spinner = $(this),
-                input = spinner.find('input[type="number"]'),
+                input = $('#num-ctns'),
                 btnUp = spinner.find('.quantity-up'),
                 btnDown = spinner.find('.quantity-down'),
                 min = parseFloat(input.attr('min')) || 0,
-                max = parseFloat(input.attr('max')) || Infinity,
+                max = parseFloat(input.attr('max')) || 30,
                 step = parseFloat(input.attr('step')) || 1;
 
             const updateInput = (newValue) => {
                 if (isLogin && !validateUserBalance()) return;
                 input.val(newValue).trigger('change');
                 btnDown.toggle(newValue > min);
+                btnUp.toggle(newValue < max);
                 handleTotalAmount(newValue);
             };
 
@@ -281,7 +299,6 @@
                 }
             });
 
-            // Inicializamos el botón de disminuir según el valor actual del input
             btnDown.toggle(+input.val() > min);
         });
 
@@ -330,10 +347,10 @@
                 let displayText = '';
                 if (timeRemaining.days > 0) displayText += formatTime(timeRemaining.days, 'DIAS', 'count-days');
                 if (timeRemaining.hours > 0) displayText += formatTime(timeRemaining.hours, 'HRS',
-                    'count-hours');
+                    'cnt-hours');
                 if (timeRemaining.minutes > 0) displayText += formatTime(timeRemaining.minutes, 'MIN',
-                    'count-minutes');
-                displayText += formatTime(timeRemaining.seconds, 'SEG');
+                    'cnt-minutes');
+                displayText += formatTime(timeRemaining.seconds, 'SEG', 'cnt-seconds');
 
                 // Actualizar el DOM solo si ha cambiado
                 updateRoomStatus(roomID, null, displayText, timeRemaining.hours > 0, timeRemaining.minutes > 0);

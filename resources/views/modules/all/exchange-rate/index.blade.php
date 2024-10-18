@@ -95,7 +95,12 @@
     <script>
         const name = '<?php echo $name; ?>';
         const valChange = $("#val-change");
-        let coinID, customer, valChangeMax, valChangeMin, coinName, update = false;
+        let coinID;
+        let customer;
+        let valChangeMax;
+        let valChangeMin;
+        let coinName;
+        let update = false;
         extraInfo = '<?php echo $name; ?>';
     </script>
     @if (isset($cusToken))

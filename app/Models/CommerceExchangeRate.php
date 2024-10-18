@@ -24,13 +24,9 @@ class CommerceExchangeRate extends Model
         return self::with('Coin')->where('id', $id)->select($fields)->first();
     }
 
-    public static function getCommerceCoinValue($coin, $commerce, $value = 'exchange_rate')
+    public static function getCommerceCoinValue($commerce, $coin, $value = 'exchange_rate')
     {
-        $query = self::where('coin', $coin);
-
-        if ($commerce) $query->where('commerce', $commerce);
-        
-        return $query->value($value);
+        return self::where('commerce', $commerce)->where('coin', $coin)->value($value);
     }
 
     public static function getAllExchangeRates()

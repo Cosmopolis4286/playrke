@@ -300,6 +300,7 @@ class ExchangeRateController extends Controller
     {
         $data = json_decode(urldecode($data), true);
         $exchangeRateID = decrypt($data[0]);
+        dd($data);
 
         switch ($data[1]) {
             case 'commerce':

@@ -16,7 +16,7 @@
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
                         <i class="fas fa-plus-square"></i> Crear
                     </button>
-                    <a href="{{ $activeRooms > 0 ? route('bingo.' . $userType . '-game-rooms', ['user' => encrypt(Auth::id()), 'coin' => encrypt($coin)]) : '#' }}"
+                    <a href="{{ $activeRooms > 0 ? $GMRoute : '#' }}"
                         class="ml-1 btn btn-sm btn-primary {{ $activeRooms > 0 ? '' : 'disabled' }}">
                         <i class="fas fa-hat-wizard"></i> Ver Salas
                     </a>
@@ -25,7 +25,7 @@
                     <div class="tab-pane fade show active">
                         @component('components.game.bingo.report.table-info-bingo-rooms', [
                             'userType' => $userType,
-                            'userID' => $userToken,
+                            'userID' => $userID,
                             'name' => $name,
                             'routeRKE' => $routeRKE,
                             'rooms' => $rooms,
@@ -41,7 +41,7 @@
     @component('components.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['user' => [$userToken, $userType]])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['user' => [$userToken ?? null, $userType]])->render(),
     ])
     @endcomponent
     @include('components.form-other-options')

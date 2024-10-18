@@ -23,13 +23,21 @@
                 @php
                     date_default_timezone_set('America/Caracas');
 
+                    $roomID = $room->encrypted;
+
                     if ($userType == 'customer') {
-                        $roomRoute = "{$routeRKE}bingocash/cust/{$userID}/room/{$room->encrypted}";
+                        $roomRoute = route('bingocash.out-game-customer', [
+                            'cust' => encrypt($userID),
+                            'room' => $roomID,
+                        ]);
                     } else {
                         if ($room->all_for_one == 1) {
-                            $roomRoute = "{$routeRKE}bingocash/game/today";
+                            $roomRoute = route('bingocash.out-game-rke', ['dateFilter' => 'today']);
                         } else {
-                            $roomRoute = "{$routeRKE}bingocash/comm/{$userID}/room/{$room->encrypted}";
+                            $roomRoute = route('bingocash.out-game-commerce', [
+                                'commerce' => encrypt($userID),
+                                'room' => $roomID,
+                            ]);
                         }
                     }
 

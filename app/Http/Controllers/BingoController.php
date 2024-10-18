@@ -95,14 +95,15 @@ class BingoController extends Controller
             case 'commerce': // Comercio
                 $coinID = $data['coin'];
                 $coinSym = Coin::getValue($coinID, 'symbol');
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($userID, $coinID);
 
                 $player = Auth::id();
-
                 $moreViewData = ['wallet' => $this->Wallet($this->user()->id)];
                 break;
             case 'customer': // Cliente
                 $coinID = $data['coin'];
                 $coinSym = $coinID;
+                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($userID, $coinID);
 
                 $player = $data['player'];
                 $userToken = $data['userToken'];
@@ -146,6 +147,7 @@ class BingoController extends Controller
             'title' => 'Bingo Salas de Juego',
             'coinSym' => $coinSym,
             'coin' => encrypt($coinID),
+            'exchangeRate' => $exchangeRate ?? 1,
             'rooms' => $rooms,
             'dateTimeRooms' => $this->getDateTimeRooms($userType, encrypt($userID))['rooms'],
             'userType' => $userType,
@@ -315,7 +317,7 @@ class BingoController extends Controller
         }
     }
 
-    private function getGameInfo($userType, $data = [], $dateFilter = 'today')
+    private function getGameInfo($userType, $data = [])
     {
         date_default_timezone_set('America/Caracas');
 
@@ -502,7 +504,7 @@ class BingoController extends Controller
         return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }
 
-    public function inGameCustomer($customerToken, $userToken, $room, $dateFilter = 'today')
+    public function inGameCustomer($customerToken, $userToken, $room)
     {
         // Vista para el juego de un cliente especifico
 
@@ -518,7 +520,7 @@ class BingoController extends Controller
             'customer' => $response,
             'room' => $room,
             'userToken' => $userToken
-        ], $dateFilter);
+        ]);
 
         // Retorna a vista con la informacion del cliente
         return $viewData ? view($viewData[0])->with($viewData[1])
@@ -530,18 +532,18 @@ class BingoController extends Controller
         // Vista del el juego solo para comprar [TODOS]
         $viewData = self::getGameInfo('all', ['commerce' => 'RKE'], $dateFilter);
 
-        return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
+        return $viewData ? view($viewData[0])->with($viewData[1]) : redirect()->back();
     }
 
     public function outGameCommerce($commerce, $room)
     {
         // Vista del el juego para un comercio especifico solo para comprar
-        $commerce = Commerce::getByCodeUUID($commerce, 'id');
+        $commerce = Commerce::getValueByCodeUUID($commerce, 'id') ?? decrypt($commerce);
 
         // Redireccionar al Login si no hay coincidencia    
-        if (!$commerce) return redirect('/');
+        if (!$commerce) return redirect()->back();
 
-        $viewData = self::getGameInfo('commerce', ['commerce' => $commerce->id, 'room' => $room]);
+        $viewData = self::getGameInfo('commerce', ['commerce' => $commerce, 'room' => $room]);
 
         return $viewData ? view($viewData[0])->with($viewData[1]) : redirect('/');
     }
@@ -573,38 +575,35 @@ class BingoController extends Controller
 
         $roomId = $room->id;
 
-        if ($roomId) {
+        $chipVanID = BingoDraw::where('room', $roomId)->where('win', 1)->value('id');
 
-            $chipVanID = BingoDraw::where('room', $roomId)->where('win', 1)->value('id');
+        if ($chipVanID) {
 
-            if ($chipVanID) {
+            $lastSixChips = ($room->status > 2) ?
+                BingoDraw::where('room', $roomId)->where('time', '<=', time())
+                ->where('id', '<=', $chipVanID)->orderByDesc('id')->take(7)->pluck('chip')->toArray() : [];
 
-                $lastSixChips = ($room->status > 2) ?
-                    BingoDraw::where('room', $roomId)->where('time', '<=', time())
-                    ->where('id', '<=', $chipVanID)->orderByDesc('id')->take(7)->pluck('chip')->toArray() : [];
+            $sizeArr = count($lastSixChips);
 
-                $sizeArr = count($lastSixChips);
+            if ($sizeArr > 1) {
 
-                if ($sizeArr > 1) {
+                $sort = BingoDraw::where('room', $roomId)->where('time', '<=', time())
+                    ->where('id', '<=', $chipVanID)->pluck('chip')->toArray();
 
-                    $sort = BingoDraw::where('room', $roomId)->where('time', '<=', time())
-                        ->where('id', '<=', $chipVanID)->pluck('chip')->toArray();
+                $lastPos = array_search($lastSixChips[$sizeArr - 1], $sort);
 
-                    $lastPos = array_search($lastSixChips[$sizeArr - 1], $sort);
-
-                    array_pop($lastSixChips);
-                }
-
-                $allChips =  BingoDraw::where('room', $roomId)->where('id', '<=', $chipVanID)
-                    ->where('time', '<=', time())->orderByDesc('id')->pluck('chip')->toArray();
-
-                return [
-                    'lastSixChips' => $lastSixChips,
-                    'lastPostChip' => $lastPos ?? 0,
-                    'allChips' => $allChips
-                ];
+                array_pop($lastSixChips);
             }
+
+            $allChips =  BingoDraw::where('room', $roomId)->where('id', '<=', $chipVanID)
+                ->where('time', '<=', time())->orderByDesc('id')->pluck('chip')->toArray();
         }
+
+        return [
+            'lastSixChips' => $lastSixChips ?? [],
+            'lastPostChip' => $lastPos ?? 0,
+            'allChips' => $allChips ?? []
+        ];
     }
 
     public function getResult($room, $columnVal)
@@ -652,34 +651,34 @@ class BingoController extends Controller
             case 'commerce': // Comercio
 
                 $coinSym = Coin::getValue($coin, 'symbol');
-                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($userID, $coin) ?: 1;
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($userID, $coin);
 
                 $coins = CommerceExchangeRate::getCoinsByCommerce($userID);
                 $coins[] = 1; // ID Coin (USDT)
                 $coins = Coin::getCoinsById($coins);
 
+                $routeName = 'bingo.all-commerce-rooms';
+                $GMRoute =  route('bingo.commerce-game-rooms', ['user' => encrypt(Auth::id()), 'coin' => encrypt($coin)]);
+
                 $moreViewData = [
                     'wallet' => $this->Wallet($this->user()->id),
                     'countries' => Country::getAllAvailableCountries()
                 ];
-
-                $routeName = 'bingo.all-commerce-rooms';
-
                 break;
             case 'customer': // Cliente
 
                 $custCoin = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
-                $coinSym = $custCoin->coin;
-                $exchangeRate = $custCoin->exchange_rate ?: 1;
+                $coinSym = $coin;
+                $exchangeRate = $custCoin->exchange_rate;
                 $coins = CustomerExchangeRate::getCoinsIDsByCustomer($userID);
 
                 $returnBtn = false;
-                $routeName = 'bingo.all-customer-rooms';
+                $token = Customer::getValueById($userID, 'token');
 
-                $moreViewData = [
-                    'customer' => true,
-                    'userToken' => Customer::getValueById($userID, 'token')
-                ];
+                $routeName = 'bingo.all-customer-rooms';
+                $GMRoute =  route('bingo.customer-game-rooms', ['user' => $token, 'coin' => $coin]);
+
+                $moreViewData = ['customer' => true, 'userToken' => $token];
 
                 break;
 
@@ -714,12 +713,12 @@ class BingoController extends Controller
             'routeRKE' => $this->getRouteRKE(),
             'userType' => $userType,
             'userID' => $userID,
-            'userToken' => $userToken ?? false,
             'coins' => $coins,
             'coin' => $coin,
             'coinSym' => $coinSym,
-            'exchangeRate' => $exchangeRate,
+            'exchangeRate' => $exchangeRate ?? 1,
             'rooms' => $rooms,
+            'GMRoute' => $GMRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
             'jackpotType' => JackpotType::all(),
             'gameModes' => GameModes::all()->forget(0)
