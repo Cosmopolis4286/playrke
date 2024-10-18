@@ -60,6 +60,10 @@ function submitForm(formName, requiredFields = []) {
 
 let extraInfo = false;
 
+function setExtraInfo(value) {
+    extraInfo = value;
+}
+
 // Función para establecer el valor de extraInfo
 function setVariable(name, value) {
     if (params.hasOwnProperty(name)) {
@@ -145,6 +149,7 @@ window.ajaxStart = ajaxStart;
 window.ajaxStop = ajaxStop;
 window.copyInfo = copyInfo;
 window.deleteSessionFlash = deleteSessionFlash;
+window.setExtraInfo = setExtraInfo;
 window.submitForm = submitForm;
 window.formCRUD = formCRUD;
 window.getInfo = getInfo;

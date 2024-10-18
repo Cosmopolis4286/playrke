@@ -48,12 +48,8 @@ class CustomerExchangeRate extends Model
         return $query->pluck('coin')->unique()->toArray();
     }
 
-    public static function getCoinsIDsByCustomer($customer, $status = '')
+    public static function getCoinsIDsByCustomer($customer, $status = 1)
     {
-        $query = self::select('id', 'coin')->where('customer', $customer);
-
-        if ($status) $query->where('status', $status);
-
-        return $query->get();
+        return self::select('id', 'coin')->where('customer', $customer)->where('status', $status)->get();
     }
 }

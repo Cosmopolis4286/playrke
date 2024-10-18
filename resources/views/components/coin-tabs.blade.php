@@ -10,7 +10,7 @@
                         isset($dateFilter) ? ['dateFilter' => $dateFilter] : [],
                         isset($room) ? ['room' => $room] : [],
                         ['user' => !$userToken ? encrypt(Auth::id()) : $userToken],
-                        ['coin' => !$userToken ? encrypt($item->id) : $item->id],
+                        ['coin' => encrypt($item->id)],
                     ),
                 ) }}"
                 role="tab" aria-controls="{{ $item->id }}{{ $item->symbol ?? $item->coin }}"

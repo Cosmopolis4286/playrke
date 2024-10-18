@@ -22,7 +22,7 @@ class ExchangeRateController extends Controller
     public function index($userType, $userID = '')
     {
         switch ($userType) {
-            case 'cust': //customer
+            case 'customer': //customer
                 $customer = Customer::getValueByToken($userID, 'id');
 
                 if (!$customer) return response()->json(['message' => 'Token del cliente no existe'], 404);
@@ -300,7 +300,6 @@ class ExchangeRateController extends Controller
     {
         $data = json_decode(urldecode($data), true);
         $exchangeRateID = decrypt($data[0]);
-        dd($data);
 
         switch ($data[1]) {
             case 'commerce':

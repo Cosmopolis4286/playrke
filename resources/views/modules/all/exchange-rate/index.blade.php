@@ -101,7 +101,9 @@
         let valChangeMin;
         let coinName;
         let update = false;
-        extraInfo = '<?php echo $name; ?>';
+        $(document).ready(function() {
+            setExtraInfo(@json($userType));
+        })
     </script>
     @if (isset($cusToken))
         <script>
@@ -148,7 +150,6 @@
         <script>
             const arrCoins = JSON.parse('<?php echo json_encode($coins); ?>');
             const coins = $("#coin");
-            console.log(arrCoins);
             coinID = coins;
 
             function insertInfo(type, data = '') {

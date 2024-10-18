@@ -92,6 +92,7 @@
         let numCtns = 0;
         let total = 0;
         let inView = true;
+        let inCourse = false;
 
         window.onblur = function() {
             inView = false;
@@ -172,7 +173,7 @@
 
         $(document).on("click", ".card-game-room", function() {
             // Obtener informacion de Sala al hacer click en ella
-            if ($(this).data('status') != 2) return;
+            if ($(this).data('status') != 2 || inCourse) return;
 
             room = $(this).data('room');
             total = 0;
@@ -183,6 +184,7 @@
                 method: 'GET',
                 dataType: 'json',
                 beforeSend: function() {
+                    inCourse = true;
                     $('#container-spinner').show();
                 },
                 success: function(res) {
@@ -203,6 +205,9 @@
                 error: function(error) {
                     console.log(error);
                     $('#container-spinner').hide();
+                },
+                complete: function() {
+                    inCourse = false;
                 }
             });
         });

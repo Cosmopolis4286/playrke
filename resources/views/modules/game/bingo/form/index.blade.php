@@ -103,7 +103,10 @@
 
             $.each(arrGameModes, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
-                gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+
+                if (userType === 'customer' && item.id === 1 || userType !== 'customer') {
+                    gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                }
             });
 
             if (type == 1) {
