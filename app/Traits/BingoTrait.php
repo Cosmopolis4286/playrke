@@ -1334,18 +1334,21 @@ trait BingoTrait
 
             foreach ($rooms as $room) {
 
+                $roomID = $room->id;
+
                 if (time() < $room->unix_date) continue;
 
-                $existsCtns = BingoCtns::getCountCtnByRoom($room->id);
-
-                if ($existsCtns) {
-                    $winChip = BingoDraw::getWinningChip($room->id) ?? $this->newDraw($room->id);
+                $existsCtns = BingoCtns::getCountCtnByRoom($roomID);
+                $existsPlayers = BingoRoomUser::getPlayerCountByRoom($roomID);
+               
+                if ($existsCtns && $existsPlayers) {
+                    $winChip = BingoDraw::getWinningChip($roomID) ?? $this->newDraw($roomID);
                     $status = ($winChip->time <= time()) ? 4 : 3;
                 } else {
                     $status = 1; //N/D Borrador
                 }
 
-                BingoRoom::where('id', $room->id)->update(['status' => $status]);
+                BingoRoom::where('id', $roomID)->update(['status' => $status]);
             }
         }
 

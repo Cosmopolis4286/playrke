@@ -50,11 +50,15 @@ trait Filters
         return in_array($coinId, $coins) ? $coinId : ($coins[0] ?? $coinId);
     }
 
-    public function handleViewData($viewData)
+    public function handleViewData($viewData, $userType='')
     {
         // Manjador de Informacio de Vista
         if (isset($viewData['error'])) {
-            response()->json(['message' => 'Ocurrió un error'], 404);
+            if ($userType === 'customer') {
+                response()->json(['message' => 'Ocurrió un error'], 404);
+            } else {
+                return redirect($viewData['redirect'] ?? '/');
+            }
         } elseif (isset($viewData['redirect'])) {
             return redirect($viewData['redirect'] ?? '/');
         }

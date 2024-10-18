@@ -181,7 +181,7 @@ class BingoController extends Controller
         $viewData = self::getGamesRoomsView('commerce', $commerce, ['coin' => $coin]);
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData);
+        return $this->handleViewData($viewData, 'commerce');
     }
 
     public function gamesRoomsCustomer($customerToken, $userToken, $coin = '')
@@ -201,7 +201,7 @@ class BingoController extends Controller
         $viewData = self::getGamesRoomsView('customer', $customer, ['userToken' => $userToken, 'player' => $player->id, 'coin' => $coin]);
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData);
+        return $this->handleViewData($viewData, 'customer');
     }
 
     public function generateCarton(Request $request)
@@ -379,15 +379,23 @@ class BingoController extends Controller
                     $moreViewData = ['player' => $player->link];
                 } else {
                     $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
-                    $coinID = 1;
-                    $coinSym = 'USDT';
+
+                    if ($data['player']) {
+                        $coinID = 1;
+                        $coinSym = 'USDT';
+                        $saleLink = false;
+                    } else {
+                        $coinID = 1;
+                        $coinSym = 'USDT';
+                        $saleLink = true;
+                    }
 
                     $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($data['commerce'], 1);
                     $coinsAvailable = Coin::getCoinsById($commerceCoinsAvailable, ['id', 'symbol', 'long_name']);
 
                     $moreViewData = [
-                        'player' => null,
-                        'saleLink' => true,
+                        'player' => decrypt($data['player']) ?? false,
+                        'saleLink' => $saleLink,
                         'coinsAvailable' => $coinsAvailable
                     ];
                 }
@@ -420,7 +428,7 @@ class BingoController extends Controller
                 'encrypted'
             ])->where('id', $roomId)->first();
 
-        if (!in_array($room->status, [2, 3, 4])) return false;
+        if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
         // Obtener valor formateado del bote
         $jackpot = $this->convertPrizeValue($roomId, $coinID);
@@ -484,10 +492,10 @@ class BingoController extends Controller
 
         $userType = $commerce != 'RKE' ?  'commerce' : 'all';
 
-        $viewData = self::getGameInfo($userType, ['commerce' => $commerce, 'player' => $player]);
+        $viewData = self::getGameInfo($userType, ['commerce' => $commerce, 'player' => $player, 'room' => $room]);
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData);
+        return $this->handleViewData($viewData, 'commerce');
     }
 
     public function inGameCommerce($commerce, $PJLink)
@@ -503,7 +511,7 @@ class BingoController extends Controller
         $viewData = self::getGameInfo('commerce', ['commerce' => $commerceID, 'PJLink' => $PJLink]);
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData);
+        return $this->handleViewData($viewData, 'commerce');
     }
 
     public function inGameCustomer($customerToken, $userToken, $room)
@@ -525,7 +533,7 @@ class BingoController extends Controller
         ]);
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData);
+        return $this->handleViewData($viewData, 'customer');
     }
 
     public function outGame($dateFilter = 'today')
@@ -534,7 +542,7 @@ class BingoController extends Controller
         $viewData = self::getGameInfo('all', ['commerce' => 'RKE'], $dateFilter);
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData);
+        return $this->handleViewData($viewData, 'commerce');
     }
 
     public function outGameCommerce($commerce, $room)
@@ -548,7 +556,7 @@ class BingoController extends Controller
         $viewData = self::getGameInfo('commerce', ['commerce' => $commerce, 'room' => $room]);
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData);
+        return $this->handleViewData($viewData, 'commerce');
     }
 
     private function hasPurchasedCartons($phone)
@@ -648,6 +656,8 @@ class BingoController extends Controller
     // CRUD //     
     public function getGameRoomsInfo($userType, $userID, $coin) //  Lista Salas CRUD de Juego
     {
+        $this->checkRoomClosure();
+
         switch ($userType) {
             case 'admin': // Admin
                 break;
@@ -695,8 +705,6 @@ class BingoController extends Controller
 
         // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
         // $jackpotType = JackpotType::getByIds($gameJackpotType);
-
-        $this->checkRoomClosure();
 
         $rooms = BingoRoom::with([
             'Config.JackpotType',
@@ -746,7 +754,7 @@ class BingoController extends Controller
         $viewData = $this->getGameRoomsInfo('commerce', $commerceId, decrypt($coin));
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData);
+        return $this->handleViewData($viewData, 'commerce');
     }
 
     public function allCustomerRooms($customer, $coin = '')
@@ -767,7 +775,7 @@ class BingoController extends Controller
         $viewData = $this->getGameRoomsInfo('customer', $customerId, decrypt($coin));
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData);
+        return $this->handleViewData($viewData, 'customer');
     }
 
     public function create(Request $request)
@@ -858,6 +866,7 @@ class BingoController extends Controller
             $updateData = [
                 'date' => $newDate,
                 'time' => $newTime,
+                'unix_date' => $unixDate,
                 'country' => $country,
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,

@@ -61,9 +61,11 @@
                                 @endif
                             </div>
                             <span class="card-game-room__ctn-price">
-                                Cartón: {{ $room->ctn_price * $exchangeRate }} {{ $coinSym }}
+                                Cartón: <span id="ctn-price_{{ $room->encrypted }}">
+                                    {{ $room->ctn_price * $exchangeRate }}
+                                </span> {{ $coinSym }}
                             </span>
-                            <span class="card-game-room__status" id="card-game-room__status_{{ $room->id }}">
+                            <span class="card-game-room__status" id="card-game-room__status_{{ $room->encrypted }}">
                                 {{ $room->status == 2 ? 'Comprar cartones' : 'No disponible' }}
                             </span>
                         </div>
@@ -80,6 +82,7 @@
         const userType = '<?php echo $userType; ?>';
         const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
         const coin = '<?php echo json_encode($coin); ?>';
+        const exchangeRate = @json($exchangeRate);
         const player = @json($player);
         const userToken = '<?php echo $userToken; ?>';
 
@@ -198,6 +201,12 @@
                     $('#jackpot-amount').text(room.jackpotAmount);
                     formatDateTime(room.dateTime[0], room.dateTime[1]);
                     handleTotalAmount(numCtns);
+
+                    $(`#jackpot-room_${room}`).text(room.jackpotAmount);
+
+                    if (exchangeRate != res.exchangeRate) {
+                        $(`#ctn-price_${room}`).text(ctnPrice);
+                    }
 
                     $('#container-spinner').hide();
                     $('#container-purchase-ctns').show();
@@ -326,14 +335,17 @@
 
                 // Si el tiempo ha terminado
                 if (difference <= 0) {
-                    $(`#card-game-room_${roomID}`).data('status', 3);
-                    updateRoomStatus(roomID, 'No disponible', '<span class="start-time__text">En Juego</span>');
+                    let status = $(`#card-game-room_${roomID}`).data('status');
 
+                    if (status == 2) {
+                        $(`#card-game-room_${roomID}`).data('status', 3);
+                        updateRoomStatus(roomID, 'No disponible', '<span class="start-time__text">En Juego</span>');
+                    }
                     // Redirigir a la sala
-                    if (userTypeVal == 'commerce') {
-                        window.location.href =
-                            `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
-                            .replace(':player', player).replace(':roomID', roomID);
+                    if (userType == 'commerce') {
+                        // window.location.href =
+                        //     `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
+                        //     .replace(':player', player).replace(':roomID', roomID);
                     } else {
                         window.location.href =
                             `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
@@ -343,22 +355,22 @@
 
                         return;
                     }
+                } else {
+                    // Obtener los componentes del tiempo restante
+                    const timeRemaining = getTimeRemaining(difference);
+
+                    // Formatear el texto a mostrar
+                    let displayText = '';
+                    if (timeRemaining.days > 0) displayText += formatTime(timeRemaining.days, 'DIAS', 'count-days');
+                    if (timeRemaining.hours > 0) displayText += formatTime(timeRemaining.hours, 'HRS',
+                        'cnt-hours');
+                    if (timeRemaining.minutes > 0) displayText += formatTime(timeRemaining.minutes, 'MIN',
+                        'cnt-minutes');
+                    displayText += formatTime(timeRemaining.seconds, 'SEG', 'cnt-seconds');
+
+                    // Actualizar el DOM solo si ha cambiado
+                    updateRoomStatus(roomID, null, displayText, timeRemaining.hours > 0, timeRemaining.minutes > 0);
                 }
-
-                // Obtener los componentes del tiempo restante
-                const timeRemaining = getTimeRemaining(difference);
-
-                // Formatear el texto a mostrar
-                let displayText = '';
-                if (timeRemaining.days > 0) displayText += formatTime(timeRemaining.days, 'DIAS', 'count-days');
-                if (timeRemaining.hours > 0) displayText += formatTime(timeRemaining.hours, 'HRS',
-                    'cnt-hours');
-                if (timeRemaining.minutes > 0) displayText += formatTime(timeRemaining.minutes, 'MIN',
-                    'cnt-minutes');
-                displayText += formatTime(timeRemaining.seconds, 'SEG', 'cnt-seconds');
-
-                // Actualizar el DOM solo si ha cambiado
-                updateRoomStatus(roomID, null, displayText, timeRemaining.hours > 0, timeRemaining.minutes > 0);
             });
 
             timestamp.setMilliseconds(timestamp.getMilliseconds() + 1000); // Incrementar 1 segundo en el timestamp
@@ -382,6 +394,7 @@
                 $(`#start-time_${roomID}`).html(timeText);
             }
 
+            //console.log(roomID, statusText, timeText, showHours, showMinutes);
             // Mostrar u ocultar horas y minutos si aplica
             $(`#start-time_${roomID} .count-hours`).toggle(showHours);
             $(`#start-time_${roomID} .count-minutes`).toggle(showMinutes);
