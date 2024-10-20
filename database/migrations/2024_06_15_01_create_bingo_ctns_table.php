@@ -49,7 +49,8 @@ return new class extends Migration
             $table->string('o3', 2);
             $table->string('o4', 2);
             $table->string('o5', 2);
-            $table->timestamp('created_at')->nullable();
+            $table->string('hash', 64);
+            $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('customer')->references('id')->on('customers');

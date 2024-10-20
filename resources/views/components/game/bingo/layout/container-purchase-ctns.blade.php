@@ -42,12 +42,12 @@
                 <div class="purchase-ctns__body-form-num-ctns">
                     <span>Cantidad</span>
                     <div class="quantity">
-                        <div class="quant quantity-down">
+                        <div id="quantity-down" class="quant quantity-down">
                             <i class="fa-solid fa-minus"></i>
                         </div>
-                        <input id="num-ctns" type="number" step="1" max="30" min="1"
-                            value="1">
-                        <div class="quant quantity-up">
+                        <input id="num-ctns" type="number" step="1" max="30" min="1" value="1"
+                            maxlength="2">
+                        <div id="quantity-up" class="quant quantity-up">
                             <i class="fa-solid fa-plus"></i>
                         </div>
                     </div>

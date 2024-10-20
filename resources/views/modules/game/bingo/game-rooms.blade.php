@@ -178,12 +178,12 @@
             // Obtener informacion de Sala al hacer click en ella
             if ($(this).data('status') != 2 || inCourse) return;
 
-            room = $(this).data('room');
+            roomID = $(this).data('room');
             total = 0;
 
             $.ajax({
                 url: `{{ route('bingo.getInfoByEncrypt', ['id' => ':id', 'mode' => ':mode', 'coin' => ':coin']) }}`
-                    .replace(':id', room).replace(':mode', 'game-rooms').replace(':coin', coin),
+                    .replace(':id', roomID).replace(':mode', 'game-rooms').replace(':coin', coin),
                 method: 'GET',
                 dataType: 'json',
                 beforeSend: function() {
@@ -202,10 +202,10 @@
                     formatDateTime(room.dateTime[0], room.dateTime[1]);
                     handleTotalAmount(numCtns);
 
-                    $(`#jackpot-room_${room}`).text(room.jackpotAmount);
+                    $(`#jackpot-room_${roomID}`).text(room.jackpotAmount);
 
                     if (exchangeRate != res.exchangeRate) {
-                        $(`#ctn-price_${room}`).text(ctnPrice);
+                        $(`#ctn-price_${roomID}`).text(ctnPrice);
                     }
 
                     $('#container-spinner').hide();
@@ -245,7 +245,7 @@
                     'X-CSRF-TOKEN': $("#token").val()
                 },
                 data: {
-                    room,
+                    room: roomID,
                     coin,
                     num_ctns: numCtns,
                     user_type: userType,
@@ -270,7 +270,6 @@
                     $('#loader-btn-purchase-ctns').hide();
                 }
             });
-
         });
 
         function handleTotalAmount(numCtns) {
@@ -281,102 +280,119 @@
             $('#total-amount').text(total);
         }
 
-        $('.quantity').each(function() {
-            const spinner = $(this),
-                input = $('#num-ctns'),
-                btnUp = spinner.find('.quantity-up'),
-                btnDown = spinner.find('.quantity-down'),
-                min = parseFloat(input.attr('min')) || 0,
-                max = parseFloat(input.attr('max')) || 30,
-                step = parseFloat(input.attr('step')) || 1;
+        // Manejador de Cantidad de Ctns
+        const input = $('#num-ctns');
+        const btnUp = $('#quantity-up');
+        const btnDown = $('#quantity-down');
+        const min = parseFloat(input.attr('min')) || 0;
+        const max = parseFloat(input.attr('max')) || 30;
+        const step = parseFloat(input.attr('step')) || 1;
 
-            const updateInput = (newValue) => {
-                if (isLogin && !validateUserBalance()) return;
-                input.val(newValue).trigger('change');
-                btnDown.toggle(newValue > min);
-                btnUp.toggle(newValue < max);
-                handleTotalAmount(newValue);
-            };
+        const updateInput = (newValue) => {
+            if (isLogin && !validateUserBalance()) return;
+            input.val(newValue).trigger('change');
+            btnDown.toggle(newValue > min);
+            btnUp.toggle(newValue < max);
+            handleTotalAmount(newValue);
+        };
 
-            // Manejadores de clic para incrementar y decrementar
-            btnUp.click(() => {
-                let currentVal = +input.val();
-                if (currentVal < max) {
-                    updateInput(Math.min(currentVal + step, max)); // Incrementa el valor
-                }
-            });
+        // Función para manejar clics
+        const handleButtonClick = (increment) => {
+            let currentVal = +input.val();
+            const newValue = increment ? Math.min(currentVal + step, max) : Math.max(currentVal - step, min);
+            if (newValue !== currentVal) updateInput(newValue);
+        };
 
-            btnDown.click(() => {
-                let currentVal = +input.val();
-                if (currentVal > min) {
-                    updateInput(Math.max(currentVal - step, min)); // Decrementa el valor
-                }
-            });
+        // Manejadores de clic para incrementar y decrementar
+        btnUp.click(() => handleButtonClick(true));
+        btnDown.click(() => handleButtonClick(false));
 
-            btnDown.toggle(+input.val() > min);
-        });
+        // Inicializa la visibilidad de los botones
+        btnDown.toggle(+input.val() > min);
+        // Manejador de Cantidad de Ctns
 
         const _second = 1000;
         const _minute = _second * 60;
         const _hour = _minute * 60;
         const _day = _hour * 24;
 
-        function formatTime(value, label, className = '') {
-            return `<div class="card-game-room__time-column ${className}"><span class="column-datetime__count">${value}</span><span class="column-datetime__text">${label}</span></div>`;
+        // Formato de tiempo
+        function formatTime(value, label, className, key) {
+            return `<div class="card-game-room__time-column ${className}"><span id="${className}_${key}" class="column-datetime__count">${value}</span><span class="column-datetime__text">${label}</span></div>`;
         }
 
-        function handleWaitingTime(arrRooms) {
-            if (!arrRooms.length) return; // Si no hay salas, salir
+        // Actualizar tiempo solo si ha cambiado
+        function setTimeRemaining(key, timeRemaining) {
+            const units = ['days', 'hours', 'minutes', 'seconds'];
+            units.forEach(unit => {
+                const element = $(`#cnt-${unit}_${key}`);
+                const newValue = timeRemaining[unit];
+                if (element.length && element.text() != newValue) {
+                    element.text(newValue);
+                }
+            });
+        }
 
-            arrRooms.forEach(elem => {
+        // Mostrar/ocultar días, horas, minutos según su disponibilidad
+        function toggleTimeVisibility(roomID, timeRemaining) {
+            $(`#start-time_${roomID} .cnt-days`).toggle(timeRemaining.days > 0);
+            $(`#start-time_${roomID} .cnt-hours`).toggle(timeRemaining.hours > 0);
+            $(`#start-time_${roomID} .cnt-minutes`).toggle(timeRemaining.minutes > 0);
+        }
+
+        // Procesar tiempo restante para cada sala
+        function handleWaitingTime(arrRooms) {
+            if (!arrRooms.length) return;
+
+            arrRooms.forEach((elem, key) => {
                 const roomID = elem.id;
                 const end = new Date(elem.dateTime);
                 const difference = end - timestamp;
 
                 // Si el tiempo ha terminado
                 if (difference <= 0) {
-                    let status = $(`#card-game-room_${roomID}`).data('status');
-
+                    const status = $(`#card-game-room_${roomID}`).data('status');
                     if (status == 2) {
                         $(`#card-game-room_${roomID}`).data('status', 3);
                         updateRoomStatus(roomID, 'No disponible', '<span class="start-time__text">En Juego</span>');
                     }
-                    // Redirigir a la sala
-                    if (userType == 'commerce') {
-                        // window.location.href =
-                        //     `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
-                        //     .replace(':player', player).replace(':roomID', roomID);
-                    } else {
-                        window.location.href =
-                            `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
-                            .replace(':cust', userTypeVal)
-                            .replace(':userToken', userToken)
-                            .replace(':roomID', roomID);
 
-                        return;
-                    }
-                } else {
-                    // Obtener los componentes del tiempo restante
-                    const timeRemaining = getTimeRemaining(difference);
+                    // Redirigir a la sala según el tipo de usuario
+                    const route = userType == 'commerce' ?
+                        `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
+                        .replace(':player', player).replace(':roomID', roomID) :
+                        `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
+                        .replace(':cust', userTypeVal).replace(':userToken', userToken).replace(':roomID', roomID);
 
-                    // Formatear el texto a mostrar
-                    let displayText = '';
-                    if (timeRemaining.days > 0) displayText += formatTime(timeRemaining.days, 'DIAS', 'count-days');
-                    if (timeRemaining.hours > 0) displayText += formatTime(timeRemaining.hours, 'HRS',
-                        'cnt-hours');
-                    if (timeRemaining.minutes > 0) displayText += formatTime(timeRemaining.minutes, 'MIN',
-                        'cnt-minutes');
-                    displayText += formatTime(timeRemaining.seconds, 'SEG', 'cnt-seconds');
-
-                    // Actualizar el DOM solo si ha cambiado
-                    updateRoomStatus(roomID, null, displayText, timeRemaining.hours > 0, timeRemaining.minutes > 0);
+                    window.location.href = route;
+                    return;
                 }
+
+                // Obtener tiempo restante
+                const timeRemaining = getTimeRemaining(difference);
+
+                // Verificar si no existe cnt-seconds en el DOM
+                if (!$(`#start-time_${roomID} .cnt-seconds`).length) {
+                    let displayText = '';
+                    if (timeRemaining.days > 0) displayText += formatTime(timeRemaining.days, 'DIAS', 'cnt-days',
+                        key);
+                    if (timeRemaining.hours > 0) displayText += formatTime(timeRemaining.hours, 'HRS', 'cnt-hours',
+                        key);
+                    if (timeRemaining.minutes > 0) displayText += formatTime(timeRemaining.minutes, 'MIN',
+                        'cnt-minutes', key);
+                    displayText += formatTime(timeRemaining.seconds, 'SEG', 'cnt-seconds', key);
+
+                    updateRoomStatus(roomID, null, displayText);
+                } else {
+                    setTimeRemaining(key, timeRemaining); // Actualizar valores existentes
+                }
+                toggleTimeVisibility(roomID, timeRemaining); // Mostrar/ocultar días, horas, minutos
             });
 
-            timestamp.setMilliseconds(timestamp.getMilliseconds() + 1000); // Incrementar 1 segundo en el timestamp
+            timestamp.setMilliseconds(timestamp.getMilliseconds() + 1000); // Incrementar 1 segundo
         }
 
-        // Función que obtiene el tiempo restante desglosado
+        // Obtener el tiempo restante
         function getTimeRemaining(difference) {
             return {
                 days: Math.floor(difference / _day),
@@ -386,23 +402,18 @@
             };
         }
 
-        // Función que actualiza el estado y tiempo restante de la sala
-        function updateRoomStatus(roomID, statusText = null, timeText = null, showHours = false, showMinutes = false) {
+        // Actualizar el estado y tiempo restante de la sala
+        function updateRoomStatus(roomID, statusText = null, timeText = null) {
             if (statusText) $(`#card-game-room__status_${roomID}`).text(statusText);
-
             if (timeText && $(`#start-time_${roomID}`).html() !== timeText) {
                 $(`#start-time_${roomID}`).html(timeText);
             }
-
-            //console.log(roomID, statusText, timeText, showHours, showMinutes);
-            // Mostrar u ocultar horas y minutos si aplica
-            $(`#start-time_${roomID} .count-hours`).toggle(showHours);
-            $(`#start-time_${roomID} .count-minutes`).toggle(showMinutes);
         }
 
+        // Iniciar el intervalo si hay salas
         if (rooms.length) {
             getArrRooms(rooms);
-            setInterval(() => handleWaitingTime(arrRooms), 1000); // Pasar arrRooms como parámetro a la función
+            setInterval(() => handleWaitingTime(arrRooms), 1000); // Ejecutar cada segundo
         }
     </script>
 @endsection

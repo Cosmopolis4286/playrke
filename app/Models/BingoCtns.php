@@ -43,6 +43,7 @@ class BingoCtns extends Model
         'o3',
         'o4',
         'o5',
+        'hash',
         'created_at'
     ];
 
@@ -100,5 +101,10 @@ class BingoCtns extends Model
     static function getCountCtnByRoom($room)
     {
         return self::where('room', $room)->count();
+    }
+
+    static function existsCartonHashRoom($room, $hash)
+    {
+        return self::where('room', $room)->where('hash', $hash)->exists();
     }
 }

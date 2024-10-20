@@ -381,8 +381,10 @@ class BingoController extends Controller
                     $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
 
                     if ($data['player']) {
-                        $coinID = 1;
-                        $coinSym = 'USDT';
+                        $player = decrypt($data['player']);
+                        $coinID = Wallet::getValue($player, 'coin') ?? 1;
+
+                        $coinSym = Coin::getValue($coinID, 'symbol');
                         $saleLink = false;
                     } else {
                         $coinID = 1;
@@ -394,7 +396,7 @@ class BingoController extends Controller
                     $coinsAvailable = Coin::getCoinsById($commerceCoinsAvailable, ['id', 'symbol', 'long_name']);
 
                     $moreViewData = [
-                        'player' => decrypt($data['player']) ?? false,
+                        'player' => $player ?? false,
                         'saleLink' => $saleLink,
                         'coinsAvailable' => $coinsAvailable
                     ];
@@ -864,6 +866,7 @@ class BingoController extends Controller
             $coin = $request->coin ?? 1;
 
             $updateData = [
+                'game_mode' => $request->game_mode,
                 'date' => $newDate,
                 'time' => $newTime,
                 'unix_date' => $unixDate,
@@ -937,17 +940,17 @@ class BingoController extends Controller
 
         if ($mode) {
 
-            $customer = BingoRoom::getValueById($roomID, 'customer');
+            $creator = BingoRoom::getRoomById($roomID, ['customer', 'commerce']);
 
-            if ($customer) {
+            if ($creator->customer) {
                 $isLogin = false;
                 $coin = $room->coin;
-                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($customer, $coin);
+                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creator->customer, $coin);
             } else {
                 $coin = decrypt($coin);
                 $isLogin = ($coin == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator->commerce, $coin);
                 $coin = Coin::getValue($coin, 'symbol');
-                $exchangeRate = ExchangeRate::getValue($coin);
             }
 
             $room = [
