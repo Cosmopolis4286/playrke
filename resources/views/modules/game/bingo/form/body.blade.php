@@ -12,7 +12,7 @@
         <label for="game-mode">Modo de Juego*</label>
         <select id="game-mode" name="game_mode" class="form-control form-info"></select>
     </div>
-    <input type="hidden" name="user" value="{{ json_encode($user) }}">
+    <input type="hidden" name="user" value="{{ json_encode($creator) }}">
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label class="country">Pais*</label>
         <select id="country" name="country" class="form-control form-info" required></select>

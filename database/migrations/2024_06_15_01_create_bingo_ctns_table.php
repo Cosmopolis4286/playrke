@@ -20,6 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('seller')->nullable();
+            $table->unsignedBigInteger('room_user');
             $table->integer('player_user')->nullable();
             $table->unsignedBigInteger('player_link')->nullable();
             $table->unsignedBigInteger('lot');
@@ -58,6 +59,7 @@ return new class extends Migration
             $table->foreign('subsidiary')->references('id')->on('subsidiaries');
             $table->foreign('player_link')->references('id')->on('player_link');
             $table->foreign('seller')->references('id')->on('sellers');
+            $table->foreign('room_user')->references('id')->on('bingo_rooms_user');
             $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
 
             // Índice compuesto

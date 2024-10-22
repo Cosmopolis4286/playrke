@@ -64,7 +64,7 @@
             let info = false;
             let amount = ctnPrice;
         </script>
-        @vite(['resources/js/rke/components/switch-payment-method.js', 'resources/js/games/bingo/components/bingo-off-buy-ctns.js'])
+        @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/components/bingo-off-buy-ctns.js'])
     @endif
 
     @if ($room->status > 2)

@@ -41,7 +41,7 @@
     @component('components.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['user' => [$userToken ?? null, $userType]])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['creator' => [$userID ?? null, $userType]])->render(),
     ])
     @endcomponent
     @include('components.form-other-options')

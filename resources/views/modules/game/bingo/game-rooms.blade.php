@@ -92,7 +92,7 @@
         let isLogin = false;
         let room = false;
         let ctnPrice = 1;
-        let numCtns = 0;
+        let numCtns = 1;
         let total = 0;
         let inView = true;
         let inCourse = false;
@@ -200,7 +200,7 @@
                     $('.purchase-ctns__coin-label').text(room.coin);
                     $('#jackpot-amount').text(room.jackpotAmount);
                     formatDateTime(room.dateTime[0], room.dateTime[1]);
-                    handleTotalAmount(numCtns);
+                    handleTotalAmount();
 
                     $(`#jackpot-room_${roomID}`).text(room.jackpotAmount);
 
@@ -272,7 +272,7 @@
             });
         });
 
-        function handleTotalAmount(numCtns) {
+        function handleTotalAmount() {
             total = (numCtns * ctnPrice).toFixed(2);
 
             if (isLogin && !validateUserBalance(total)) return;
@@ -293,7 +293,8 @@
             input.val(newValue).trigger('change');
             btnDown.toggle(newValue > min);
             btnUp.toggle(newValue < max);
-            handleTotalAmount(newValue);
+            numCtns = newValue;
+            handleTotalAmount();
         };
 
         // Función para manejar clics
@@ -358,13 +359,13 @@
                     }
 
                     // Redirigir a la sala según el tipo de usuario
-                    const route = userType == 'commerce' ?
-                        `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
-                        .replace(':player', player).replace(':roomID', roomID) :
-                        `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
-                        .replace(':cust', userTypeVal).replace(':userToken', userToken).replace(':roomID', roomID);
+                    // const route = userType == 'commerce' ?
+                    //     `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
+                    //     .replace(':player', player).replace(':roomID', roomID) :
+                    //     `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
+                    //     .replace(':cust', userTypeVal).replace(':userToken', userToken).replace(':roomID', roomID);
 
-                    window.location.href = route;
+                    // window.location.href = route;
                     return;
                 }
 

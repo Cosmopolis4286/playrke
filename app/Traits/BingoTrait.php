@@ -15,7 +15,6 @@ use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomUser;
 use App\Models\Coin;
-use App\Models\CoinGameRoom;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\GameExchangeRate;
@@ -275,7 +274,7 @@ trait BingoTrait
         } while (BingoRoom::where('id', $room)->where('status', 3)->exists());
     }
 
-    public function getInfoWinners($room, $columnVal)
+    public function getInfoWinners($room)
     {
         date_default_timezone_set('America/Caracas');
 
@@ -893,12 +892,12 @@ trait BingoTrait
                 // Si el room tiene un customer 
                 if ($ctn->customer) {
                     $record['customer'] = $ctn->customer;
-                    $record['player_user'] = $ctn->player_user;
                 } else {
                     $record['commerce'] = $ctn->commerce;
                     $record['seller'] = $ctn->seller;
                     $record['player_link'] = $ctn->player_link;
                 }
+                $record['player_user'] = $ctn->player_user;
 
                 // Añadimos el registro al array de inserciones
                 $recordsToInsert[] = $record;
@@ -959,11 +958,12 @@ trait BingoTrait
         }
     }
 
-    private function getCoinByPlayer($column, $value)
+    private function getCoinByPlayer($creator, $column, $value)
     {
+        dd($column, $value);
         switch ($column) {
             case 'player_user':
-                # code...
+                //$coin = Bing
                 break;
             case 'player_link':
                 $country = PlayerLink::getValueById($value, 'country');
@@ -977,6 +977,44 @@ trait BingoTrait
         return $coin;
     }
 
+    public function getWinnersData($roomID, $prizeType)
+    {
+        $room = BingoRoom::select('customer', 'serial_prize')
+            ->where('id', $roomID)->where('status', 4)->first();
+
+        if (!$room) return ['Error' => 'Sala no disponible'];
+
+        // Definir valor $column
+        $column = $room->customer ? 'player_user' : 'player_link';
+
+        $relation = match ($column) {
+            'player_user' => $room->customer ? 'CustomerUser' : 'User',
+            default => 'PlayerLink',
+        };
+
+        // Obtener todos los ganadores por seriales 
+        $winners = BingoRoomUser::with($relation, 'WinCtns')
+            ->whereHas('WinCtns', function ($query) use ($prizeType) {
+                $query->where('prize_type', $prizeType);
+            })->where('room', $roomID)->where('winner', '>', 0)->get();
+
+        $numWinners = $winners->count(); // Contar todos los ganadores
+
+        // Verificar si el jugador específico está entre los ganadores
+        $winPlayer = $winners->firstWhere($column, $columnVal);
+
+        // Obtener el país del jugador y la moneda correspondiente
+        $coin = $this->getCoinByPlayer($column, $columnVal);
+
+        return [
+            'room' => $room,
+            'winners' => $winners,
+            'numWinners' => $numWinners,
+            'winPlayer' => $winPlayer,
+            'coin' => $coin
+        ];
+    }
+
     public function handleJackpotWinners($roomID)
     {
         // Obtener la información de la sala
@@ -985,9 +1023,10 @@ trait BingoTrait
             ->where('id', $roomID)->firstOrFail();
 
         // Verificar si ya hay ganadores del premio mayor
-        $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
+        $prizeCtns = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
+        $winners = BingoRoomUser::getWinnersCountByRoom($roomID);
 
-        if ($getWinners) return false; // Ya existen cartones premiados (jackpot)
+        if ($prizeCtns && $winners) return false; // Ya existen cartones premiados (jackpot)
 
         // Obtener el último chip sorteado
         $chpVn = BingoDraw::select('id', 'chip')->where('win', 1)->where('room', $roomID)->first();
@@ -1114,39 +1153,19 @@ trait BingoTrait
         if ($room->customer) $this->validateTransaction($room->customer);
     }
 
-    public function getWinnersJackpot($roomID, $columnVal)
+    public function getWinnersJackpot($roomID)
     {
-        $room = BingoRoom::select('customer', 'jackpot_prize')
-            ->where('id', $roomID)->where('status', 4)->first();
+        $data = $this->getWinnersData($roomID, 1);
 
-        if (!$room) return false;
+        if (isset($data['Error'])) return $data['Error'];
 
-        // Definir valor $column
-        $column = $room->customer ? 'player_user' : 'player_link';
-
-        $relation = match ($column) {
-            'player_user' => $room->customer ? 'CustomerUser' : 'User',
-            default => 'PlayerLink',
-        };
-
-        // Obtener todos los ganadores del jackpot
-        $winners = BingoRoomUser::with($relation, 'WinCtns')
-            ->whereHas('WinCtns', function ($query) {
-                $query->where('prize_type', 1);
-            })->where('room', $roomID)->where('winner', '>', 0)->get();
-
-        $numWinners = $winners->count(); // Contar todos los ganadores
+        // Declarar varaiables
+        $winners = $data['winners'];
+        $numWinners = $data['numWinners'];
+        $winPlayer = $data['winPlayer'];
+        $coin = $data['coin'];
 
         if ($numWinners == 0) $this->handleJackpotWinners($roomID);
-
-        // Verificar si el jugador específico está entre los ganadores
-        $winPlayer = $winners->firstWhere($column, $columnVal);
-
-        // Obtener el país del jugador y la moneda correspondiente
-        $coin = $this->getCoinByPlayer($column, $columnVal);
-
-        // Calcular valor del Jackpot con respecto a la moneda
-        $boat = $room->jackpot_prize * GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
 
         // Calcular la ganancia por jugador y formatearla
         $boat = $this->convertPrizeValue($roomID, $coin, 'float');
@@ -1284,37 +1303,21 @@ trait BingoTrait
         }
     }
 
-    public function getWinnersSerials($roomID, $columnVal) // Obtener Seriales Ganadores
+    public function getWinnersSerials($roomID) // Obtener Seriales Ganadores
     {
-        $room = BingoRoom::select('customer', 'serial_prize')
-            ->where('id', $roomID)->where('status', 4)->first();
+        $data = $this->getWinnersData($roomID, 2);
 
-        if (!$room) return false;
+        if (isset($data['Error'])) return $data['Error'];
 
-        // Definir valor $column
-        $column = $room->customer ? 'player_user' : 'player_link';
-
-        $relation = match ($column) {
-            'player_user' => $room->customer ? 'CustomerUser' : 'User',
-            default => 'PlayerLink',
-        };
-
-        // Obtener todos los ganadores por seriales 
-        $winners = BingoRoomUser::with($relation, 'WinCtns')
-            ->whereHas('WinCtns', function ($query) {
-                $query->where('prize_type', 2);
-            })->where('room', $roomID)->where('winner', '>', 0)->get();
-
-        $numWinners = $winners->count(); // Contar todos los ganadores
-
-        // Verificar si el jugador específico está entre los ganadores
-        $winPlayer = $winners->firstWhere($column, $columnVal);
-
-        // Obtener el país del jugador y la moneda correspondiente
-        $coin = $this->getCoinByPlayer($column, $columnVal);
+        // Declarar varaiables
+        $serialPrize = $data['room']->serial_prize;
+        $winners = $data['winners'];
+        $numWinners = $data['numWinners'];
+        $winPlayer = $data['winPlayer'];
+        $coin = $data['coin'];
 
         // Calcular valor del monto a repartir en Seriales
-        $boat = $room->serial_prize * GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
+        $boat = $serialPrize * GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
 
         // Calcular la ganancia por jugador y formatearla
         $formattedNumber = number_format($boat / $numWinners, 3, ',', '.');

@@ -71,7 +71,7 @@ class BingoRoomUser extends Model
 
     public static function getValueByColumn($room, $column, $columValue, $value)
     {
-        return self::where('room', $room)->where($column, $columValue)->first($value);
+        return self::where('room', $room)->where($column, $columValue)->value($value);
     }
 
     public static function getPlayerCountByRoom($room, $condition = ['!=', ''])

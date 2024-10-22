@@ -401,7 +401,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('game-rooms/comm/{user}/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
         ->middleware(['auth', 'customer-commerce'])->name('commerce-game-rooms');
 
-    Route::get('game-rooms/cust/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('customer-game-rooms');
+    Route::get('game-rooms/cust/{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('customer-game-rooms');
 
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
