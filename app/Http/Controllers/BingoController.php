@@ -58,7 +58,7 @@ class BingoController extends Controller
 
     public function getDateTimeRooms($userType, $userID)
     {
-        $rooms = BingoRoom::select('encrypted', 'status', 'date', 'time')
+        $rooms = BingoRoom::select('encrypted', 'status', 'unix_date')
             ->where($userType, decrypt($userID))->whereIn('status', [2, 3])->get();
 
         return [
@@ -343,9 +343,10 @@ class BingoController extends Controller
                     $user = CustomerUser::getByToken($customer, $data['userToken'], ['id', 'coin']);
                     $coinID = $user->coin;
                     $coinSym = $coinID;
+                    $player = $user->id;
 
-                    $moreViewData['playerID'] = 1;
-                    $moreViewData['player'] = encrypt($user->id);
+                    $moreViewData['playerID'] = BingoRoomUser::getValueByColumn($room->id, 'player_user', $player, 'id');
+                    $moreViewData['player'] = encrypt($player);
                 } else {
                     $coinID = $data['coin'];
                     $coinSym = $data['coin'];
@@ -373,7 +374,10 @@ class BingoController extends Controller
                     $coinID = $coin->id;
                     $coinSym = $coin->symbol;
 
-                    $moreViewData = ['playerID' => $player->link, 'player' => $player->link];
+                    $moreViewData = [
+                        'playerID' => BingoRoomUser::getValueByColumn($room->id, 'player_user', $player, 'id'),
+                        'player' => $player->link
+                    ];
                 } else {
                     $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
 
@@ -951,7 +955,7 @@ class BingoController extends Controller
 
         if (!$roomID) return response()->json(['Error' => 'Sala no encontrada']);
 
-        $room = BingoRoom::select('game_mode', 'date', 'time', 'ctn_price', 'coin', 'jackpot_prize')
+        $room = BingoRoom::select('game_mode', 'unix_date', 'ctn_price', 'coin', 'jackpot_prize')
             ->where('id', $roomID)->firstOrFail();
 
         $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
@@ -973,7 +977,7 @@ class BingoController extends Controller
             }
 
             $room = [
-                'dateTime' => [$room->date, $room->time],
+                'dateTime' => $room->unix_date,
                 'coin' => $coin,
                 'jackpotAmount' => number_format($room->jackpot_prize, 2, '.'),
                 'jackpotType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',

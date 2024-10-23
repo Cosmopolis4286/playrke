@@ -22,6 +22,7 @@ use App\Models\ExchangeRate;
 use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\Transactions;
+use App\Models\User;
 use App\Models\Wallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -292,10 +293,10 @@ trait BingoTrait
 
         if (!$getWinnersJackpot) $this->handleJackpotWinners($room->id);
 
-        $jackpotWinners = $this->getWinnersJackpot($room->id, $columnVal);
+        $jackpotWinners = $this->getWinnersJackpot($room->id);
 
         $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 2)) ?
-            $this->getWinnersSerials($room->id, $columnVal) : [];
+            $this->getWinnersSerials($room->id) : [];
 
         $prizeSerialVal = BingoRoomConfig::getValueByRoom($room->id, 'val_serials');
 
@@ -360,17 +361,16 @@ trait BingoTrait
     }
 
     // Función para crear el lote de cartones
-    private function createCtnsLot($arrCtn, $roomID, $coin, $saleAmount, $PJLink, $playerUser)
+    private function createCtnsLot($arrCtn, $roomID, $coin, $saleAmount, $roomUser)
     {
         return BingoCtnsLot::create([
             'customer' => $arrCtn['customer'] ?? null,
             'commerce' => $arrCtn['commerce'] ?? null,
             'seller' => $arrCtn['seller'] ?? null,
+            'room_user' => $roomUser,
             'room' => $roomID,
             'coin' => $coin,
             'exchange_rate' => 1,
-            'player_user' => $playerUser,
-            'player_link' => $PJLink,
             'status' => 0,
             'ctns' => $arrCtn['numOfCtns'],
             'sale_amount' => $saleAmount,
@@ -445,6 +445,7 @@ trait BingoTrait
             'customer' => $arrCtn['customer'] ?? null,
             'commerce' => $arrCtn['commerce'] ?? null,
             'seller' => $arrCtn['seller'] ?? null,
+            'room_user' => $arrCtn['roomUser'],
             'player_user' => $arrCtn['playerUser'] ?? null,
             'player_link' => $arrCtn['PJLink'] ?? null,
             'coin' => $arrCtn['coin'],
@@ -493,20 +494,21 @@ trait BingoTrait
                 'commerce' => $arrCtn['commerce'] ?? null,
                 'seller' => $arrCtn['seller'] ?? null,
                 'player_user' => $playerUser ?? null,
-                'player_link' => $arrCtn['PJLink'] ?? null
+                'player_link' => $arrCtn['PJLink'] ?? null,
+                'ctns' => $arrCtn['numOfCtns']
             ];
 
             $roomUser = BingoRoomUser::firstOrCreate(
                 ['room' => $room->id, $playerColumn => $playerID],
                 $defaultValues
             );
-
+            dd($defaultValues);
             if ($roomUser->wasRecentlyCreated) {
                 $room->increment('players');
             }
             // Anexar cantidad de cartones al usuario 
             $roomUser->increment('ctns', $arrCtn['numOfCtns']);
-            return true;
+            return $roomUser->id;
         } catch (\Exception $e) {
             Log::error('Error al registar o actualizar los datos del usuario: ' . $e->getMessage());
             return false;
@@ -634,14 +636,17 @@ trait BingoTrait
                 $comSaleSellerCtns = $salesData['comSaleSellerCtns'];
             }
 
+            // Registrar o actualizar el usuario en la sala
+            $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);
+
             // Crear lote de cartones
-            $lotID = $this->createCtnsLot($arrCtn, $roomID, $coin, $totalSaleAmount, $PJLink, $playerUser);
+            $lotID = $this->createCtnsLot($arrCtn, $roomID, $coin, $totalSaleAmount, $roomUser);
+
+            // Anexar atributo al array
+            $arrCtn['roomUser'] = $roomUser;
 
             // Generar y almacenar los cartones de bingo
             $this->generateAndStoreCtns($arrCtn, $numOfCtns, $roomID, $lotID);
-
-            // Registrar o actualizar el usuario en la sala
-            $this->registerOrUpdateRoomUser($room, $arrCtn);
 
             // Si no es modo offline y el creador es un comercio, actualizar la billetera del jugador
             if ($gameMode != 2 && $commerce) {
@@ -674,6 +679,7 @@ trait BingoTrait
             DB::commit();
             return true;
         } catch (\Exception $e) {
+            dd($e->getMessage());
             DB::rollBack();
             Log::error('Error al crear los cartones: ' . $e->getMessage());
             return ['Error' => 'Error al crear los cartones'];
@@ -729,57 +735,39 @@ trait BingoTrait
 
         try {
 
-            if ($commerce || $seller) {
+            if (($commerce || $seller) && !$isLogin) {
 
-                if ($isLogin) {  // Online
-                    //Comprobar si el usuario esta inscrito en la sala
-                    $existsPlayer = BingoRoomUser::existsPlayerInRoom(
-                        $roomID,
-                        ['commerce', $commerce],
-                        ['player_user', $playerUser]
-                    );
+                $coin = $seller ? Coin::getByIdIdOfCountry($country) : $player->coin;
+                $sellerID = $seller->id ?? null;
 
-                    if (!$existsPlayer) {
-                        // Registrar nuevo jugador
-                        BingoRoomUser::create([
-                            'room' => $roomID,
-                            'commerce' => $commerce,
-                            'player_user' => $playerUser,
-                        ]);
-                    }
-                } else { // Offline
-                    $coin = $seller ? Coin::getByIdIdOfCountry($country) : $player->coin;
-                    $sellerID = $seller->id ?? null;
+                if (!$player) {
+                    $PJLink = $this->createPlayerLink(1);
+                    $playerDocument = null;
+
+                    $arrDataPlayer = [
+                        'game' => 1,
+                        'room' => $roomID,
+                        'commerce' => $commerce,
+                        'seller' => $sellerID,
+                        'country' => $country,
+                        'coin' => $coin,
+                        'link' => $PJLink,
+                        'name' => $playerName,
+                        'lastname' => $playerLastname,
+                        'identification' => $playerDocument,
+                        'phone' => $playerPhone
+                    ];
+
+                    $player = $this->createPlayerLinkInfo($arrDataPlayer);
 
                     if (!$player) {
-                        $PJLink = $this->createPlayerLink(1);
-                        $playerDocument = null;
-
-                        $arrDataPlayer = [
-                            'game' => 1,
-                            'room' => $roomID,
-                            'commerce' => $commerce,
-                            'seller' => $sellerID,
-                            'country' => $country,
-                            'coin' => $coin,
-                            'link' => $PJLink,
-                            'name' => $playerName,
-                            'lastname' => $playerLastname,
-                            'identification' => $playerDocument,
-                            'phone' => $playerPhone
-                        ];
-
-                        $player = $this->createPlayerLinkInfo($arrDataPlayer);
-
-                        if (!$player) {
-                            DB::rollBack();
-                            Log::error('Hubo un error al crear la información del jugador');
-                            return false;
-                        }
-                    } else {
-                        if (!$PJLink) $PJLink = $player->link;
-                        $player = $player->id ?? null;
+                        DB::rollBack();
+                        Log::error('Hubo un error al crear la información del jugador');
+                        return false;
                     }
+                } else {
+                    if (!$PJLink) $PJLink = $player->link;
+                    $player = $player->id ?? null;
                 }
             }
 
@@ -820,8 +808,8 @@ trait BingoTrait
             }
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
             Log::error('Error al crear la información del jugador: ' . $e->getMessage());
+            dd($e->getMessage());
             return false;
         }
     }
@@ -952,8 +940,8 @@ trait BingoTrait
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
             Log::error('Error al crear ganador o actualizar estado: ' . $e->getMessage());
+            dd($e->getMessage());
             return false;
         }
     }
@@ -1031,20 +1019,11 @@ trait BingoTrait
         // Obtener el último chip sorteado
         $chpVn = BingoDraw::select('id', 'chip')->where('win', 1)->where('room', $roomID)->first();
 
-        // Si la Ficha Ganadora no fue registrada
-        if (!$chpVn) {
-            $chpVn = $this->chipWin($roomID);
-        }
-
         // Obtener todos los chips sorteados hasta el último
         $chipsDraw = BingoDraw::where('room', $roomID)->where('id', '<=', $chpVn->id)->pluck('chip')->toArray();
 
         // Obtener todos los cartones únicos de la sala
-        $ctnsPlayer = BingoCtns::where('room', $roomID)
-            ->where(function ($query) {
-                $query->where('player_user', '<>', '')
-                    ->orWhere('player_link', '<>', '');
-            })->distinct('serial')->get();
+        $ctnsPlayer = BingoCtns::where('room', $roomID)->distinct('serial')->get();
 
         // Inicializar array de jugadores únicos
         $uniquePlayers = ['playerUser' => [], 'playerLink' => []];
@@ -1348,48 +1327,57 @@ trait BingoTrait
         return $infoPlayer;
     }
 
+    // Obtener Informacion de un carton especifico
     public function getCtnWin($ctn)
     {
-        $ctn = BingoCtns::with('PlayerLink')->where('id', $ctn)->first();
+        // Obtener el cartón junto con la relación PlayerLink
+        $ctn = BingoCtns::with('PlayerLink')->find($ctn);
 
-        if ($ctn) {
-            $allCtn = [
-                $ctn->b1,
-                $ctn->b2,
-                $ctn->b3,
-                $ctn->b4,
-                $ctn->b5,
-                $ctn->i1,
-                $ctn->i2,
-                $ctn->i3,
-                $ctn->i4,
-                $ctn->i5,
-                $ctn->n1,
-                $ctn->n2,
-                $ctn->n3,
-                $ctn->n4,
-                $ctn->g1,
-                $ctn->g2,
-                $ctn->g3,
-                $ctn->g4,
-                $ctn->g5,
-                $ctn->o1,
-                $ctn->o2,
-                $ctn->o3,
-                $ctn->o4,
-                $ctn->o5
-            ];
+        // Si no se encuentra el cartón, retornar false
+        if (!$ctn) return false;
 
-            $playerName = $ctn->PlayerLink->name;
-            $playerLastName = $this->initialCharacters($ctn->PlayerLink->lastname);
+        // Obtener los números del cartón en un solo array
+        $allCtn = [
+            $ctn->b1,
+            $ctn->b2,
+            $ctn->b3,
+            $ctn->b4,
+            $ctn->b5,
+            $ctn->i1,
+            $ctn->i2,
+            $ctn->i3,
+            $ctn->i4,
+            $ctn->i5,
+            $ctn->n1,
+            $ctn->n2,
+            $ctn->n3,
+            $ctn->n4,
+            $ctn->g1,
+            $ctn->g2,
+            $ctn->g3,
+            $ctn->g4,
+            $ctn->g5,
+            $ctn->o1,
+            $ctn->o2,
+            $ctn->o3,
+            $ctn->o4,
+            $ctn->o5
+        ];
 
-            return [
-                'ctn' => $allCtn,
-                'playerName' => $playerName . ' ' . $playerLastName,
-                'serialCtn' => $ctn->serial
-            ];
+        // Obtener el nombre del jugador si existe
+        $fullName = '';
+        if ($ctn->PlayerLink) {
+            $fullName = $ctn->PlayerLink->name . ' ' . $this->initialCharacters($ctn->PlayerLink->lastname);
+        } elseif ($ctn->commerce) {
+            $fullName = User::getValueById($ctn->player_user, 'username');
         }
-        return null;
+
+        // Retornar los datos del cartón
+        return [
+            'ctn' => $allCtn,
+            'playerName' => $fullName,
+            'serialCtn' => $ctn->serial
+        ];
     }
 
     public function checkRoomClosure($room = '')

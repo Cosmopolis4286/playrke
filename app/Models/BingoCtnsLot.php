@@ -17,8 +17,7 @@ class BingoCtnsLot extends Model
         'commerce',
         'subsidiary',
         'seller',
-        'player_user',
-        'player_link',
+        'room_user',
         'status'
     ];
 

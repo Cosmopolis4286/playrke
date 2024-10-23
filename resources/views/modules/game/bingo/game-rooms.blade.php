@@ -146,14 +146,14 @@
             data.forEach((value, index) => {
                 arrRooms[index] = {
                     id: value.encrypted,
-                    dateTime: `${value.date} ${value.time}`
+                    dateTime: value.unix_date
                 };
             });
         }
 
-        function formatDateTime(date, time, timeZone = '-04:00') {
-            // Crear un objeto Date con la fecha y hora proporcionadas
-            const fullDateTime = new Date(`${date}T${time}${timeZone}`);
+        function formatDateTime(unixTimestamp) {
+            // Crear un objeto Date utilizando el timestamp en milisegundos
+            const fullDateTime = new Date(unixTimestamp * 1000); // Convertir el timestamp de segundos a milisegundos
 
             // Formatear la fecha en formato "dd/mm/yy"
             const formattedDate = fullDateTime.toLocaleDateString('en-GB', {
@@ -173,6 +173,7 @@
             $('#text-date').text(formattedDate);
             $('#text-time').text(formattedTime);
         }
+
 
         $(document).on("click", ".card-game-room", function() {
             // Obtener informacion de Sala al hacer click en ella
@@ -199,7 +200,7 @@
                     $('#purchase-ctns__coin-text').text(room.jackpotType);
                     $('.purchase-ctns__coin-label').text(room.coin);
                     $('#jackpot-amount').text(room.jackpotAmount);
-                    formatDateTime(room.dateTime[0], room.dateTime[1]);
+                    formatDateTime(room.dateTime);
                     handleTotalAmount();
 
                     $(`#jackpot-room_${roomID}`).text(room.jackpotAmount);
@@ -347,7 +348,7 @@
 
             arrRooms.forEach((elem, key) => {
                 const roomID = elem.id;
-                const end = new Date(elem.dateTime);
+                const end = new Date(elem.dateTime * 1000);
                 const difference = end - timestamp;
 
                 // Si el tiempo ha terminado
@@ -359,13 +360,13 @@
                     }
 
                     // Redirigir a la sala según el tipo de usuario
-                    // const route = userType == 'commerce' ?
-                    //     `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
-                    //     .replace(':player', player).replace(':roomID', roomID) :
-                    //     `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
-                    //     .replace(':cust', userTypeVal).replace(':userToken', userToken).replace(':roomID', roomID);
+                    const route = userType == 'commerce' ?
+                        `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
+                        .replace(':player', player).replace(':roomID', roomID) :
+                        `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
+                        .replace(':cust', userTypeVal).replace(':userToken', userToken).replace(':roomID', roomID);
 
-                    // window.location.href = route;
+                    window.location.href = route;
                     return;
                 }
 

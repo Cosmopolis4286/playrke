@@ -14,6 +14,7 @@ class BingoPrizeCtns extends Model
         'commerce',
         'subsidiary',
         'seller',
+        'room_user',
         'player_user',
         'player_link',
         'ctn',
