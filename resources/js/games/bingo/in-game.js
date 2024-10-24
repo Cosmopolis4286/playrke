@@ -153,7 +153,7 @@ function renderChipsView(arr, arrow) {
         for (let i = posChip; i < arr.length && sizeCrrsel < sizeCarrsel; i++) {
             const chip = arr[i];
             const elemHtml =
-                `<img class="img-fluid" src="{{ asset('img/bg/chips') }}/${chip}.png" alt="${chip}">`;
+                `<img class="img-fluid" src="${preRoute}img/bg/chips/${chip}.png" alt="${chip}">`;
             infoHtml += elemHtml;
             arrCrrselChips.push(chip);
             sizeCrrsel++;
@@ -347,7 +347,7 @@ function getWinners(arrInfo, arrSize) {
 
         content +=
             `<div class="col-4 my-1 cont-win-info">
-                    <button class="cont-win-img" type="button" onclick="viewCtn(${arrInfo.ctns[i]})" title="Ver Cartón">
+                    <button class="cont-win-img" type="button" onclick="viewCtn(${arrInfo.ctn[i]})" title="Ver Cartón">
                         <i class="eye-icon fa-solid fa-eye"></i>
                         <img class="user-img" src="${preRoute}imgSystem/imgUsers/${img}">
                     </button>

@@ -551,7 +551,7 @@ class SellerController extends Controller
 
         $winners = $winnersQuery->where('seller', $seller->id)->where('coin', $coinId)->get();
 
-        $coins = $this->getSellerCoins($seller->id, $dateFilter, ['PlayerLink', 'WinCtns']);
+        $coins = $this->getSellerCoins($seller->id, $dateFilter, ['PlayerLink', 'PrizeCtns']);
 
         $routCtns = $this->getRouteRKE();
 

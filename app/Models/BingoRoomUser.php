@@ -54,14 +54,19 @@ class BingoRoomUser extends Model
         return $this->belongsTo(CustomerUser::class, 'player_user', 'id');
     }
 
+    public function PlayerUser()
+    {
+        return $this->belongsTo(User::class, 'player_user', 'id');
+    }
+
     public function PlayerLink()
     {
         return $this->belongsTo(PlayerLink::class, 'player_link', 'id');
     }
 
-    public function WinCtns()
+    public function PrizeCtns()
     {
-        return $this->hasMany(BingoPrizeCtns::class, 'player_link', 'player_link');
+        return $this->hasMany(BingoPrizeCtns::class, 'room_user', 'id');
     }
 
     public static function getByColumn($column, $value, $fields = ['*'])

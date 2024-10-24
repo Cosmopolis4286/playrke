@@ -335,9 +335,7 @@ class BingoController extends Controller
 
                 $roomId = $room->id;
 
-                $moreViewData = [
-                    'custLogo' => Customer::getValueById($customer, 'logo'),
-                ];
+                $moreViewData = ['custLogo' => Customer::getValueById($customer, 'logo')];
 
                 if (isset($data['userToken'])) {
                     $user = CustomerUser::getByToken($customer, $data['userToken'], ['id', 'coin']);
@@ -375,7 +373,7 @@ class BingoController extends Controller
                     $coinSym = $coin->symbol;
 
                     $moreViewData = [
-                        'playerID' => BingoRoomUser::getValueByColumn($room->id, 'player_user', $player, 'id'),
+                        'playerID' => BingoRoomUser::getValueByColumn($roomId, 'player_link', $player, 'id'),
                         'player' => $player->link
                     ];
                 } else {
@@ -401,6 +399,10 @@ class BingoController extends Controller
                         'saleLink' => $saleLink,
                         'coinsAvailable' => $coinsAvailable
                     ];
+
+                    if (isset($data['player'])) {
+                        $moreViewData['playerID'] = BingoRoomUser::getValueByColumn($roomId, 'player_user', $player, 'id');
+                    }
                 }
 
                 $room = BingoRoom::getRoomById($roomId, ['status', 'all_for_one', 'ctn_price']);
@@ -437,11 +439,13 @@ class BingoController extends Controller
         $jackpot = $this->convertPrizeValue($roomId, $coinID);
 
         if (isset($moreViewData['playerID'])) {
+            // Definir variable relacion ID sala-juagador
+            $roomUser = $moreViewData['playerID'];
             // Obtener Cartones del ID jugador-sala
             $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, 'room_user', $moreViewData['playerID']);
         }
 
-        $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted) : [];
+        $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $roomUser ?? null) : [];
 
         $vanDraw = ($room->status > 2) ?
             BingoDraw::select('id', 'chip')->where(['room' => $roomId, 'win' => 1])->first() : [];
@@ -453,7 +457,6 @@ class BingoController extends Controller
         $chipsRest = ($room->status == 3) ?
             BingoDraw::where('room', $roomId)->where('time', '>', time())
             ->where('id', '<=', $vanDraw->id)->orderBy('chip')->pluck('chip')->sort()->toArray() : [];
-
 
         $codeEncrypt = ($room->status == 3) ? BingoDrawCode::where('room', $roomId)->pluck('sym')->toArray() : [];
 
@@ -490,6 +493,7 @@ class BingoController extends Controller
 
     public function inGame($player, $room = '')
     {
+        dd($player, $room);
         // Vista para el juego de la venta conjunta de todos los comercios
         $commerce = BingoRoom::getRoomValueByEncrypted($room, 'commerce');
 
@@ -620,10 +624,10 @@ class BingoController extends Controller
         ];
     }
 
-    public function getResult($roomID)
+    public function getResult($roomID, $roomUser)
     {
         // Obtener la información de los ganadores
-        $winnersInfo = self::getInfoWinners($roomID);
+        $winnersInfo = self::getInfoWinners($roomID, $roomUser);
 
         // Encriptar los datos de los ganadores
         $encryptedData = self::encryptData($winnersInfo, env('JSON_ENCRYPTION_KEY'));

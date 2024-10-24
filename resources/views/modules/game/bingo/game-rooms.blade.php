@@ -342,6 +342,8 @@
             $(`#start-time_${roomID} .cnt-minutes`).toggle(timeRemaining.minutes > 0);
         }
 
+        let waitingTime = false;
+
         // Procesar tiempo restante para cada sala
         function handleWaitingTime(arrRooms) {
             if (!arrRooms.length) return;
@@ -367,6 +369,9 @@
                         .replace(':cust', userTypeVal).replace(':userToken', userToken).replace(':roomID', roomID);
 
                     window.location.href = route;
+                    if (waitingTime) {
+                        clearInterval(waitingTime); // Limpiar el intervalo previo si existe
+                    }
                     return;
                 }
 
@@ -415,7 +420,7 @@
         // Iniciar el intervalo si hay salas
         if (rooms.length) {
             getArrRooms(rooms);
-            setInterval(() => handleWaitingTime(arrRooms), 1000); // Ejecutar cada segundo
+            waitingTime = setInterval(() => handleWaitingTime(arrRooms), 1000); // Ejecutar cada segundo
         }
     </script>
 @endsection

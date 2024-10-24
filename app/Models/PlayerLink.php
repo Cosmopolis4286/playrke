@@ -69,7 +69,7 @@ class PlayerLink extends Model
     return $this->belongsTo(BingoCtns::class, 'id', 'player_link');
   }
 
-  public function WinCtns()
+  public function PrizeCtns()
   {
     return $this->hasMany(BingoPrizeCtns::class, 'player_link', 'id');
   }
