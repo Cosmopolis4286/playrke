@@ -29,6 +29,7 @@
                             'name' => $name,
                             'routeRKE' => $routeRKE,
                             'rooms' => $rooms,
+                            'coin' => $coin,
                             'coinSym' => $coinSym,
                             'exchangeRate' => $exchangeRate,
                         ])

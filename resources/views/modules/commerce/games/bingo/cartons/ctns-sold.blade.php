@@ -28,7 +28,6 @@
                                         <th>Vendedor</th>
                                         <th>Moneda</th>
                                         <th>#CTN</th>
-                                        {{-- <th>Total</th> --}}
                                         <th>Venta</th>
                                         <th>Creación</th>
                                         <th>Status</th>

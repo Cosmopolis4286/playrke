@@ -190,12 +190,12 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'seller', 'as' =
 
 //Vendedor/Agencia/Taquilla
 Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 'seller.'], function () {
+    Route::get('getPaymentCommerceDetails/{coin}', [SellerController::class, 'getPaymentCommerceDetails'])->name('getPaymentCommerceDetails');
     Route::get('bingocash/carton/generate', [SellerController::class, 'cartonGenerate'])->name('cartonGenerate');
     Route::post('bingocash/carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
     Route::get('bingocash/carton/get/price/{roomID}', [SellerController::class, 'getCtnPrice'])->name('getCtnPrice');
     Route::get('bingocash/get/exchange-rate/{country}', [SellerController::class, 'getExchangeRate'])->name('getExchangeRate');
     Route::post('bingocash/player/get/player', [SellerController::class, 'getPlayer'])->name('getPlayer');
-    Route::get('getPaymentCommerceDetails/{coin}', [SellerController::class, 'getPaymentCommerceDetails'])->name('getPaymentCommerceDetails');
     Route::get('bingocash/carton/sold/{coin}/{dateFilter?}', [SellerController::class, 'ctnsSold'])->name('ctnsSold');
     Route::get('bingocash/player/cartons/{PJLink}{room}', [SellerController::class, 'showPlayerCartons'])->name('showPlayerCartons');
     Route::get('bingocash/carton/awarded/{coin}/{dateFilter?}', [SellerController::class, 'ctnsAwarded'])->name('ctnsAwarded');
@@ -361,30 +361,6 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
     Route::get('refresh', [TriviaController::class, 'refresh_pvp'])->name('refresh');
 });
 
-Route::group(['middleware' => ['auth'], 'prefix' => 'bingo', 'as' => 'bingo.'], function () {
-    // Route::get('getInfo', [BingoOLDController::class, 'updateInfo'])->name('getInfoRoom');
-    // Route::post('myprofit', [BingoOLDController::class, 'myprofit'])->name('myprofit');
-    // Route::get('winners', [BingoOLDController::class, 'winners'])->name('winners');
-    // Route::post('store', [BingoOLDController::class, 'store'])->name('store');
-    // Route::post('update', [BingoOLDController::class, 'update'])->name('update');
-    // Route::post('replay', [BingoOLDController::class, 'replay'])->name('replay');
-    // Route::post('publish', [BingoOLDController::class, 'publish'])->name('publish');
-    // Route::post('delete', [BingoOLDController::class, 'delete'])->name('delete');
-    // Route::post('refund_room', [BingoOLDController::class, 'refund_room'])->name('refund_room');
-    // Route::get('time_serv', [BingoOLDController::class, 'time_serv'])->name('time_serv');
-    // Route::get('timer/{id}', [BingoOLDController::class, 'timer'])->name('timer');
-    // Route::get('status/{id}', [BingoOLDController::class, 'changeStatusRoom'])->name('status');
-    // Route::post('players', [BingoOLDController::class, 'consult_players'])->name('consult_players');
-    // Route::post('carton/store', [BingoOLDController::class, 'carton_store'])->name('carton_store');
-    // Route::get('room/{id}', [BingoOLDController::class, 'game'])->name('game');
-    // Route::get('viewCtn/{ctnId}', [BingoOLDController::class, 'view_ctn'])->name('viewCtn');
-    // Route::post('check', [BingoOLDController::class, 'check_ctn'])->name('check_ctn');
-    // Route::get('penalty/{id_rm}/{id_user}', [BingoOLDController::class, 'penalty'])->name('penalty');
-    // Route::get('info/{id}', [BingoOLDController::class, 'info_win'])->name('info_win');
-    // Route::get('get/chips/{id}', [BingoOLDController::class, 'get/chips'])->name('get/chips');
-    // Route::post('end', [BingoOLDController::class, 'end_game'])->name('end_game');
-});
-
 Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 
     Route::get('rooms/admin/{user}/{coin?}', [BingoController::class, 'allRooms'])
@@ -396,7 +372,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('rooms/cust/{user}/{coin?}', [BingoController::class, 'allCustomerRooms'])->name('all-customer-rooms');
 
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
-        ->middleware(['auth', 'customer-cogeneratemmerce'])->name('admin-game-rooms');
+        ->middleware(['auth', 'customer-commerce'])->name('admin-game-rooms');
 
     Route::get('game-rooms/comm/{user}/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
         ->middleware(['auth', 'customer-commerce'])->name('commerce-game-rooms');
@@ -432,7 +408,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
     // Rutas Jugador/Cliente
     Route::get('cust/{cust}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('in-game-customer');
-    Route::get('cust/{cust}/room/{room}', [BingoController::class, 'outGameCustomer'])->name('out-game-customer');
+    Route::get('cust/{cust}/room/{room}/{coin}', [BingoController::class, 'outGameCustomer'])->name('out-game-customer');
 
     // Procesar Compra de Cartones
     Route::post('carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');

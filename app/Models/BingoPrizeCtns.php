@@ -118,11 +118,13 @@ class BingoPrizeCtns extends Model
 
     public static function getPendingPaymentsCountByCommerce($commerce)
     {
-        return self::where('commerce', $commerce)->where('status', '<', 2)->count();
+        return self::where('commerce', $commerce)
+            ->where('player_link', '<>', '')->where('status', '<', 2)->count();
     }
 
     public static function getPendingPaymentsCountExcludingCommerce($commerce)
     {
-        return self::whereNot('commerce', $commerce)->where('status', '<>', 3)->count();
+        return self::whereNot('commerce', $commerce)
+            ->where('player_link', '<>', '')->where('status', '<>', 3)->count();
     }
 }

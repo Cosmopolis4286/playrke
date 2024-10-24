@@ -9,7 +9,7 @@
                     array_merge(
                         isset($dateFilter) ? ['dateFilter' => $dateFilter] : [],
                         isset($room) ? ['room' => $room] : [],
-                        ['user' => !$userToken ? encrypt(Auth::id()) : $userToken],
+                        ['user' => !isset($userToken) || !$userToken ? encrypt(Auth::id()) : $userToken],
                         ['coin' => encrypt($item->id)],
                     ),
                 ) }}"

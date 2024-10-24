@@ -18,6 +18,8 @@ class BingoCtnsLot extends Model
         'subsidiary',
         'seller',
         'room_user',
+        'player_user',
+        'player_link',
         'status'
     ];
 

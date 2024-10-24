@@ -1,11 +1,11 @@
-@extends('layouts.app_rke')
+@extends($layout)
 @section('title', 'BingoCash')
 @section('styles')
 <link rel="stylesheet" href="{{ asset('css/bingocash-game-rooms.css') }}">@endsection
 
 @section('content')
-    <div class="col-12">
-        <div id="container-spinner">
+    <div class="col-12 @if ($layout === 'layouts.app_rke_off') mt-2 @endif">
+        <div id="container-spinner" class="mt-1">
             <div class="spinner-border text-primary" role="status">
                 <span class="sr-only"></span>
             </div>
@@ -17,9 +17,7 @@
                     Cambiar a <b>{{ $coinSym }}</b>
                 </a> --}}
         </div>
-        @include('components.game.bingo.layout.container-purchase-ctns', [
-            'routeName' => 'commerce.getBingoWinnersByCommerce',
-        ])
+        @include('components.game.bingo.layout.container-purchase-ctns')
     </div>
     <div class="col-12 w-100 mt-4 pb-4">
         <div class="row justify-content-center" style="gap: 2.75rem;">
@@ -84,7 +82,7 @@
         const coin = '<?php echo json_encode($coin); ?>';
         const exchangeRate = @json($exchangeRate);
         const player = @json($player);
-        const userToken = '<?php echo $userToken; ?>';
+        const userToken = @json($userToken ?? null);
 
         let timestamp = new Date(@json($timestamp));
         let rooms = JSON.parse('<?php echo $dateTimeRooms; ?>');
@@ -177,6 +175,7 @@
 
         $(document).on("click", ".card-game-room", function() {
             // Obtener informacion de Sala al hacer click en ella
+
             if ($(this).data('status') != 2 || inCourse) return;
 
             roomID = $(this).data('room');
@@ -237,7 +236,7 @@
 
         $(document).on("click", "#btn-purchase-ctns", function() {
             // Procesar compra de cartones
-            if (isLogin && !validateUserBalance()) return;
+            if ((isLogin && !validateUserBalance()) || !player) return;
 
             $.ajax({
                 url: `{{ route('bingocash.generateCarton') }}`,

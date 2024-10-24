@@ -361,13 +361,15 @@ trait BingoTrait
     }
 
     // Función para crear el lote de cartones
-    private function createCtnsLot($arrCtn, $roomID, $coin, $saleAmount, $roomUser)
+    private function createCtnsLot($arrCtn, $roomID, $coin, $saleAmount)
     {
         return BingoCtnsLot::create([
             'customer' => $arrCtn['customer'] ?? null,
             'commerce' => $arrCtn['commerce'] ?? null,
             'seller' => $arrCtn['seller'] ?? null,
-            'room_user' => $roomUser,
+            'room_user' => $arrCtn['roomUser'],
+            'player_user' => $arrCtn['playerUser'] ?? null,
+            'player_link' => $arrCtn['PJLink'] ?? null,
             'room' => $roomID,
             'coin' => $coin,
             'exchange_rate' => 1,
@@ -639,11 +641,11 @@ trait BingoTrait
             // Registrar o actualizar el usuario en la sala
             $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);
 
-            // Crear lote de cartones
-            $lotID = $this->createCtnsLot($arrCtn, $roomID, $coin, $totalSaleAmount, $roomUser);
-
             // Anexar atributo al array
             $arrCtn['roomUser'] = $roomUser;
+
+            // Crear lote de cartones
+            $lotID = $this->createCtnsLot($arrCtn, $roomID, $coin, $totalSaleAmount);
 
             // Generar y almacenar los cartones de bingo
             $this->generateAndStoreCtns($arrCtn, $numOfCtns, $roomID, $lotID);

@@ -29,6 +29,7 @@
                         $roomRoute = route('bingocash.out-game-customer', [
                             'cust' => encrypt($userID),
                             'room' => $roomID,
+                            'coin' => encrypt($coin),
                         ]);
                     } else {
                         if ($room->all_for_one == 1) {

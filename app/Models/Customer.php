@@ -53,8 +53,13 @@ class Customer extends Model
     return self::where('token', $token)->value($value);
   }
 
-  public static function existsValue($colum, $value)
+  public static function existsCustomerById($id)
   {
-    return self::where($colum, $value)->exists();
+    return self::where('id', $id)->exists();
+  }
+
+  public static function existsValue($column, $value)
+  {
+    return self::where($column, $value)->exists();
   }
 }

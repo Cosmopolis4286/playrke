@@ -21,6 +21,8 @@ return new class extends Migration
             $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('seller')->nullable();
             $table->unsignedBigInteger('room_user');
+            $table->integer('player_user')->nullable();
+            $table->unsignedBigInteger('player_link')->nullable();
             $table->string('coin', 15);
             $table->double('exchange_rate');
             $table->integer('ctns');
@@ -34,6 +36,7 @@ return new class extends Migration
             $table->foreign('subsidiary')->references('id')->on('subsidiaries');
             $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('room_user')->references('id')->on('bingo_rooms_user');
+            $table->foreign('player_link')->references('id')->on('player_link');
 
             $table->index(['room', 'commerce']);
         });

@@ -44,13 +44,15 @@ trait CustomerTrait
             return ['Error' => 'Token del cliente no existe'];
         }
 
-        // Consultar información de usuario y crear variables de sesión
-        $customerSessionService = new CustomerSessionService();
-        $response = $customerSessionService->handleCustomerUserSession($customerId, $userToken);
+        if ($customerToken != $userToken) {
+            // Consultar información de usuario y crear variables de sesión
+            $customerSessionService = new CustomerSessionService();
+            $response = $customerSessionService->handleCustomerUserSession($customerId, $userToken);
 
-        // Verificar si existe el usuario por su token
-        if (isset($response['Error'])) {
-            return ['Error' => $response['Error']];
+            // Verificar si existe el usuario por su token
+            if (isset($response['Error'])) {
+                return ['Error' => $response['Error']];
+            }
         }
 
         return $customerId;

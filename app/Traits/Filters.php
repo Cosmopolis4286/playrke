@@ -50,12 +50,12 @@ trait Filters
         return in_array($coinId, $coins) ? $coinId : ($coins[0] ?? $coinId);
     }
 
-    public function handleViewData($viewData, $userType='')
+    public function handleViewData($viewData, $userType = '')
     {
         // Manjador de Informacio de Vista
         if (isset($viewData['error'])) {
             if ($userType === 'customer') {
-                response()->json(['message' => 'Ocurrió un error'], 404);
+                return response()->json(['Error' => $viewData['error']], 404);
             } else {
                 return redirect($viewData['redirect'] ?? '/');
             }
@@ -63,6 +63,6 @@ trait Filters
             return redirect($viewData['redirect'] ?? '/');
         }
 
-        return  view($viewData['route'])->with($viewData['data']);
+        return view($viewData['route'])->with($viewData['data']);
     }
 }

@@ -383,6 +383,7 @@ class CommerceController extends Controller
 
         // Verificar la existencia de la moneda
         $coinId = $this->existsCoin(BingoCtnsLot::where('commerce', $commerce), $coinId, $dateFilter);
+
         // if ($coinId != $coin) {
         //     return redirect()->route('commerce.reportSalesRooms', ['dateFilter' => $dateFilter, 'coin' => encrypt($coin)]);
         // }
@@ -673,7 +674,7 @@ class CommerceController extends Controller
             }
         ])->whereHas('Room', function ($query) {
             $query->where('status', '<', 5)->with('CtnsLot');
-        })->whereHas('GameExchangeRate');
+        })->whereHas('Seller')->whereHas('GameExchangeRate');
 
         if (!$others) {
             $winnersQuery->where('commerce', $commerce);
@@ -727,14 +728,13 @@ class CommerceController extends Controller
 
         $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
             ->whereHas('Room', function ($query) use ($commerce) {
-                $query->where('commerce', $commerce)
-                    ->whereIn('status', [2, 3, 4])->where('paid_win', 0);
+                $query->where('commerce', $commerce)->whereIn('status', [2, 3, 4]);
             });
 
         $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
-        $ctnsSold = $ctnsSoldQuery->where('coin', $coin)
-            ->where('commerce', $commerce)->orderBy('status')->orderByDesc('id')->get();
+        $ctnsSold = $ctnsSoldQuery->where('coin', $coin)->where('commerce', $commerce)
+            ->whereHas('Seller')->orderBy('status')->orderByDesc('id')->get();
 
         $coins = $this->getCommerceCoins($commerce, $dateFilter, ['CtnsLot', 'Coin']);
 

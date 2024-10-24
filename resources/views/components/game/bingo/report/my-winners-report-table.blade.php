@@ -28,23 +28,39 @@
                         {{ \Carbon\Carbon::parse($win->Room->date)->format('d/m/y') }}<br>
                         {{ $win->Room->time }} <small>GMT-4</small>
                     </td>
-                    <td>{{ $win->Seller->name }}</td>
-                    <td>{{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}</td>
-                    <td>{{ $win->PlayerLink->Country->name }}</td>
+                    <td>
+                        @if ($win->Seller)
+                            {{ $win->Seller->name }}
+                        @else
+                            No Aplica
+                        @endif
+                    </td>
+                    <td>
+                        @if ($win->PlayerLink)
+                            {{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}
+                        @endif
+                    </td>
+                    <td>
+                        @if ($win->PlayerLink)
+                            {{ $win->PlayerLink->Country->name }}
+                        @endif
+                    </td>
                     <td>{{ $win->Coin->long_name }}</td>
                     <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount }}</td>
                     <td>{{ $win->Prize->description }}</td>
                     <td>
-                        @if ($win->status == 0)
-                            <span class="badge bg-dark">Pendiente</span>
-                        @elseif($win->status == 1)
-                            <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[0]->payment_proof]) }}"
-                                title="Ver Comprobante" target="_blank">
-                                <span class="badge bg-primary">Liberado</span></a>
-                        @elseif($win->status == 2)
-                            <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[1]->payment_proof]) }}"
-                                title="Ver Comprobante" target="_blank">
-                                <span class="badge bg-success">Pagado</span></a>
+                        @if ($win->PlayerLink)
+                            @if ($win->status == 0)
+                                <span class="badge bg-dark">Pendiente</span>
+                            @elseif($win->status == 1)
+                                <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[0]->payment_proof]) }}"
+                                    title="Ver Comprobante" target="_blank">
+                                    <span class="badge bg-primary">Liberado</span></a>
+                            @elseif($win->status == 2)
+                                <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[1]->payment_proof]) }}"
+                                    title="Ver Comprobante" target="_blank">
+                                    <span class="badge bg-success">Pagado</span></a>
+                            @endif
                         @endif
                     </td>
                     <td>
@@ -56,10 +72,12 @@
                                     Notificar
                                 </button>
                             @endif
-                            <button class="show-ctns btn btn-sm bg-secondary"
-                                data-player_link="{{ $win->PlayerLink->link }}">
-                                <i class="mr-1 fa-solid fa-eye"></i>
-                            </button>
+                            @if ($win->PlayerLink)
+                                <button class="show-ctns btn btn-sm bg-secondary"
+                                    data-player_link="{{ $win->PlayerLink->link }}">
+                                    <i class="mr-1 fa-solid fa-eye"></i>
+                                </button>
+                            @endif
                         </div>
                     </td>
                 </tr>
