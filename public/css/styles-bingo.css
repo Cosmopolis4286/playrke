@@ -356,6 +356,15 @@ body {
     background-color: rgb(226, 235, 255);
 }
 
+.container-view-carton {
+    width: auto;
+    margin-bottom: -1%;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background-color: rgb(226, 235, 255);
+}
+
 .section-letter {
     position: relative;
     display: flex;

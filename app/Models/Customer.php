@@ -9,6 +9,7 @@ class Customer extends Model
   protected $table = "customers";
   protected $fillable = [
     'name',
+    'description',
     'country',
     'user',
     'phone',
@@ -16,6 +17,7 @@ class Customer extends Model
     'all_in',
     'brand',
     'product',
+    'logo',
     'link_route',
     'token',
     'customer_key',

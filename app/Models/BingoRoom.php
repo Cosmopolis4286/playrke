@@ -32,7 +32,8 @@ class BingoRoom extends Model
     'ctns',
     'close_room',
     'encrypted',
-    'code_uuid'
+    'code_uuid',
+    'random_key'
   ];
 
   public function GameMode()
@@ -105,7 +106,7 @@ class BingoRoom extends Model
     return self::where('id', $room)->value($value);
   }
 
-  public static function getRoomValueByEncrypted($room, $value)
+  public static function getValueByEncrypted($room, $value)
   {
     return self::where('encrypted', $room)->value($value);
   }

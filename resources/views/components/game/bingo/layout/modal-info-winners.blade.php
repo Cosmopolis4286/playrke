@@ -19,7 +19,7 @@
                             </button>
                         </div>
                         <div class="card-body">
-                            <div class="card container-carton mb-n1">
+                            <div class="card container-view-carton">
                                 <div class="section-letter">
                                     <div class="number-box-letter"><b>B</b></div>
                                     <div class="number-box-view-ctn">

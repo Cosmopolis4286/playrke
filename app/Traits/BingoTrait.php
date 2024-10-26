@@ -973,7 +973,7 @@ trait BingoTrait
         // Obtener todos los ganadores por tipo de premio 
         $winners = BingoRoomUser::with([
             'PrizeCtns' => function ($query) {
-                $query->select('room_user', 'prize_type');
+                $query->select('room_user', 'prize_type', 'ctn');
             }
         ])->whereHas('PrizeCtns', function ($query) use ($prizeType) {
             $query->where('prize_type', $prizeType);

@@ -102,7 +102,7 @@ class BingoController extends Controller
 
                 $isCreator = Commerce::getValueByUserId($player, 'id');
 
-                $player = !$isCreator ? encrypt($player) : false;
+                $player = !$isCreator ? false : encrypt($player);
 
                 $moreViewData = ['player' => $player, 'wallet' => $this->Wallet($this->user()->id)];
                 break;
@@ -117,7 +117,7 @@ class BingoController extends Controller
 
                 $isCreator = Customer::getValueByToken($player, 'id');
 
-                $player = !$isCreator ? encrypt($player) : false;
+                $player = !$isCreator ? false : encrypt($player);
 
                 $moreViewData = ['player' => $player, 'userToken' => $data['userToken']];
                 break;
@@ -393,7 +393,7 @@ class BingoController extends Controller
                         'player' => $player->link
                     ];
                 } else {
-                    $roomId = BingoRoom::getRoomValueByEncrypted($data['room'], 'id');
+                    $roomId = BingoRoom::getValueByEncrypted($data['room'], 'id');
 
                     if (isset($data['player'])) {
                         $player = decrypt($data['player']);
@@ -489,7 +489,7 @@ class BingoController extends Controller
             'cartons' => $ctns ?? [],
             'sort' => $sort,
             'encrypt' => $codeEncrypt,
-            'key' => env('JSON_ENCRYPTION_KEY'),
+            'random' => BingoRoom::getValueById($roomId, 'random_key'),
             'lastSixChips' => $dataChips['lastSixChips'],
             'lastPostChip' => $dataChips['lastPostChip'],
             'allChips' => $dataChips['allChips'],
@@ -511,7 +511,7 @@ class BingoController extends Controller
     {
         dd($player, $room);
         // Vista para el juego de la venta conjunta de todos los comercios
-        $commerce = BingoRoom::getRoomValueByEncrypted($room, 'commerce');
+        $commerce = BingoRoom::getValueByEncrypted($room, 'commerce');
 
         $userType = $commerce != 'RKE' ?  'commerce' : 'all';
 
@@ -659,8 +659,11 @@ class BingoController extends Controller
         // Obtener la información de los ganadores
         $winnersInfo = self::getInfoWinners($roomID, $roomUser);
 
+        // Llave de Encriptacion
+        $randomKey = BingoRoom::getValueByEncrypted($roomID, 'random_key');
+
         // Encriptar los datos de los ganadores
-        $encryptedData = self::encryptData($winnersInfo, env('JSON_ENCRYPTION_KEY'));
+        $encryptedData = self::encryptData($winnersInfo, $randomKey);
 
         // Retornar los datos encriptados
         return $encryptedData;
@@ -860,7 +863,8 @@ class BingoController extends Controller
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
                 'jackpot' => $boat,
-                'encrypted' => $this->generateUniqueCode('bingo_rooms')
+                'encrypted' => $this->generateUniqueCode('bingo_rooms'),
+                'random_key' => base64_encode(random_bytes(32))
             ];
 
             if ($creator[1] == 'commerce') {
@@ -987,7 +991,7 @@ class BingoController extends Controller
 
     public function getInfoByEncrypt($id, $mode = '', $coin = '')
     {
-        $roomID = BingoRoom::getRoomValueByEncrypted($id, 'id');
+        $roomID = BingoRoom::getValueByEncrypted($id, 'id');
 
         if (!$roomID) return response()->json(['Error' => 'Sala no encontrada']);
 
@@ -1003,8 +1007,9 @@ class BingoController extends Controller
 
             if ($creator->customer) {
                 $isLogin = false;
-                $coin = $room->coin;
-                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creator->customer, $coin);
+                $custCoin = CustomerExchangeRate::getById(decrypt($coin), ['coin', 'exchange_rate']);
+                $coin = $custCoin->coin;
+                $exchangeRate = $custCoin->exchange_rate;
             } else {
                 $coin = decrypt($coin);
                 $isLogin = ($coin == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
@@ -1045,7 +1050,8 @@ class BingoController extends Controller
             'coin' => $coin,
             'ctn_price' => $existingRoom->ctn_price,
             'jackpot' => $boat,
-            'encrypted' => $this->generateUniqueCode('bingo_rooms')
+            'encrypted' => $this->generateUniqueCode('bingo_rooms'),
+            'random_key' => base64_encode(random_bytes(32))
         ];
 
         if ($existingRoom->commerce) {

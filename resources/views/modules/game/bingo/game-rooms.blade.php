@@ -77,15 +77,15 @@
 @section('scripts')
     {{-- @vite('resources/js/rke/format-date-time.js') --}}
     <script>
-        const userType = '<?php echo $userType; ?>';
-        const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
-        const coin = '<?php echo json_encode($coin); ?>';
-        const exchangeRate = @json($exchangeRate);
+        const userType = '{{ $userType }}';
+        const userTypeVal = @json($userTypeVal);
+        const coin = @json($coin);
+        const exchangeRate = '{{ $exchangeRate }}';
         const player = @json($player);
         const userToken = @json($userToken ?? null);
 
         let timestamp = new Date(@json($timestamp));
-        let rooms = JSON.parse('<?php echo $dateTimeRooms; ?>');
+        let rooms = @json($dateTimeRooms);
         let arrRooms = [];
         let isLogin = false;
         let room = false;
@@ -242,7 +242,7 @@
                 url: `{{ route('bingocash.generateCarton') }}`,
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 data: {
                     room: roomID,

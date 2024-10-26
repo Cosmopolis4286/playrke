@@ -1,12 +1,13 @@
 @extends('layouts.app_rke_off')
-@section('title', $title)
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/styles-bingo.css') }}">
 @endsection
+@section('title', $title)
 
 @section('content')
     <div class="row">
         <div class="col-12 col-lg-9 col-xl-10 pb-2 m-auto">
+            <input type="hidden" id="random" value="{{ $random }}">
             @include('components.game.bingo.layout.container-last-chips')
             <div class="container">
                 @include('components.game.bingo.layout.container-bingo-info')
@@ -32,41 +33,39 @@
     @vite('resources/js/rke/time-functions.js')
     <script>
         const preRoute = '{{ asset('') }}';
-        const encrypted = '<?php echo $room->encrypted; ?>';
-        const status = '<?php echo $room->status; ?>';
-        const coinSym = '<?php echo $coinSym; ?>';
-        const valSongs = '<?php echo $room->val_songs; ?>';
+        const logo = `{{ $custLogo ?? 'imgSystem/imgUsers/rke.png' }}`;
+        const encrypted = '{{ $room->encrypted }}';
+        const roomStatus = '{{ $room->status }}';
+        const coinSym = '{{ $coinSym }}';
+        const valSongs = '{{ $room->val_songs }}';
+        const chpLast = Number('{{ $vanDraw }}');
+        const startTime = Number('{{ $startTime }}');
+        const player = @json($player);
         const arrDraw = JSON.parse('<?php echo json_encode($sort); ?>');
-        const chpLast = Number('<?php echo $vanDraw; ?>');
-        const player = '<?php echo json_encode($player); ?>';
-        const startTime = Number('<?php echo $startTime; ?>');
         const encrypt = JSON.parse('<?php echo json_encode($encrypt); ?>');
-        const soundNext = $('#next')[0];
-        const soundWin = $('#winner')[0];
         const images = [];
         const restChips = JSON.parse('<?php echo json_encode($chipsRest); ?>');
-        let lastSixChips = JSON.parse('<?php echo json_encode($lastSixChips); ?>');
-        let timeServ = Number('<?php echo $timeServ; ?>');
-        let allChips = JSON.parse('<?php echo json_encode($allChips); ?>');
-        let allChipsSet = new Set(allChips);
-        let infoGame = JSON.parse('<?php echo json_encode($infoGame); ?>');
-
+        const soundNext = $('#next')[0];
+        const soundWin = $('#winner')[0];
         soundNext.muted = true;
         soundWin.muted = true;
+        let lastSixChips = @json($lastSixChips);
+        let timeServ = Number('{{ $timeServ }}');
+        let allChips = @json($allChips);
+        let allChipsSet = new Set(allChips);
+        let infoGame = "{{ $infoGame }}";
     </script>
-
     @if ($room->status == 2)
         <script>
-            const userType = '<?php echo $userType; ?>';
-            const userTypeVal = '<?php echo json_encode($userTypeVal); ?>';
-            const coinID = '<?php echo json_encode($coinID); ?>';
-            const ctnPrice = Number('<?php echo $ctnPrice; ?>');
+            const userType = '{{ $userType }}';
+            const userTypeVal = @json($userTypeVal);
+            const coinID = @json($coinID);
+            const ctnPrice = Number('{{ $ctnPrice }}');
             let info = false;
             let amount = ctnPrice;
         </script>
         @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/components/bingo-off-buy-ctns.js'])
     @endif
-
     @if ($room->status > 2)
         <script>
             let loaderChip = true;

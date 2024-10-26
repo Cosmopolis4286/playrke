@@ -31,7 +31,7 @@ function handleResize(e) {
         sizeCarrsel = 8;
     }
 
-    if (allChips.length && status > 2) {
+    if (allChips.length && roomStatus > 2) {
         renderChipsView(allChips);
     }
 }
@@ -39,7 +39,7 @@ function handleResize(e) {
 window.addEventListener('resize', handleResize, true);
 
 document.body.addEventListener('click', function () {
-    if (actSound == 0 && endWin == 0 && lastSixChips && status == 3) {
+    if (actSound == 0 && endWin == 0 && lastSixChips && roomStatus == 3) {
         $('#icon-volume').toggleClass('fa-volume-high fa-volume-xmark');
         actSound = 1;
         soundNext.muted = false;
@@ -120,7 +120,7 @@ function handleLatestChips(latestChips) {
 
         autoMarked();
 
-        if (status == 3) processChips();
+        if (roomStatus == 3) processChips();
 
         resolve(); // Resuelve la promesa
     });
@@ -179,7 +179,7 @@ window.onblur = () => {
 };
 
 window.onfocus = function () {
-    if (status == 3) getGameData();
+    if (roomStatus == 3) getGameData();
 };
 
 // Ajustar tamaño de las casillas
@@ -191,17 +191,19 @@ function adjustHeightBoxesCtnAward() {
 function adjustHeightBoxes() {
     let widthNumberBox = $('.number-box').first().width();
     $('.number-box').height(widthNumberBox);
-    $('.container-carton').css('visibility', 'visible');
 }
 
 $(document).ready(function () {
+
     if (!player) return false;
 
     adjustHeightBoxes();
+    $('.container-carton').css('visibility', 'visible');
+
     // Llama a la función cada vez que se redimensiona la ventana
     $(window).resize(function () {
         adjustHeightBoxes();
-        if (status > 2 && $('#cont-ctn-award-winning').data('status') == true) {
+        if (roomStatus > 2 && $('#cont-ctn-award-winning').data('status') == true) {
             adjustHeightBoxesCtnAward();
         }
     });
@@ -235,7 +237,7 @@ function decryptChp(code) {
 let count = 0;
 
 function checkExitOfToken() {
-    if (status != 3) return;
+    if (roomStatus != 3) return;
 
     for (let i = count; i < arrDraw.length; i++) {
         const chipTime = +arrDraw[i].time;
@@ -275,12 +277,14 @@ function processChips() {
             }
         }, 1000);
     }
-    if (status == 2) {
+    if (roomStatus == 2) {
         // Mostrar el modal si el estado de la sala es menor a 3
         $('#modal-info-draw-title').text(convertAndDisplay(startTime));
         $("#modal-info-draw").modal('show');
     }
 }
+
+const r4nd0m = $('#random').val();
 
 async function getNewChip(newChip) {
 
@@ -291,7 +295,7 @@ async function getNewChip(newChip) {
         if (actSound === 1) soundNext.play();
         if (arrDrawImg.length) $(`#${arrDrawImg[0].id}`).removeClass('zoom');
 
-        if (loaderChip && status > 2) {
+        if (loaderChip && roomStatus > 2) {
             $('#cont-loader').hide();
             loaderChip = false;
         }
@@ -299,9 +303,9 @@ async function getNewChip(newChip) {
         // Crear el nuevo elemento de chip
         const newChipHtml =
             `<div class="cont-img-chip">
-                        <img id="chp_${newChip}" class="img-chip zoom hide-chip"
-                        alt="${newChip}" src="${preRoute}img/bg/chips/${newChip}.png" />
-                    </div>`;
+                <img id="chp_${newChip}" class="img-chip zoom hide-chip"
+                alt="${newChip}" src="${preRoute}img/bg/chips/${newChip}.png">
+            </div>`;
 
         // Añadir el nuevo chip
         $('#cont-last-chips').prepend(newChipHtml);
@@ -333,7 +337,7 @@ async function getNewChip(newChip) {
             $('#text-check-bingo').show();
             endWin = 1;
             setTimeout(() => {
-                showWinners(decryptJson(infoGame, '<?php echo $key; ?>'), chpLast);
+                showWinners(decryptJson(infoGame, r4nd0m), chpLast);
             }, 3000);
             //getResult();
         }
@@ -343,13 +347,14 @@ async function getNewChip(newChip) {
 function getWinners(arrInfo, arrSize) {
     let content = '';
     for (let i = 0; i < arrSize; i++) {
-        let img = arrInfo.foto[i] || 'rke.png';
+
+        let img = arrInfo.photo ? `imgSystem/imgUsers/${arrInfo.photo[i]}` : logo;
 
         content +=
             `<div class="col-4 my-1 cont-win-info">
-                    <button class="cont-win-img" type="button" onclick="viewCtn(${arrInfo.ctn[i]})" title="Ver Cartón">
+                    <button class="cont-win-img" type="button" data-id="${arrInfo.ctn[i]}" title="Ver Cartón">
                         <i class="eye-icon fa-solid fa-eye"></i>
-                        <img class="user-img" src="${preRoute}imgSystem/imgUsers/${img}">
+                        <img class="user-img" src="${preRoute}${img}">
                     </button>
                     <div class="winner-info-text fw-bold badge badge-success">${arrInfo.name[i]}</div>
                     <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy">${coinSym} ${arrInfo.gain[i]}</div>
@@ -369,9 +374,10 @@ function showSeriaslWinners(arr, size) {
 }
 
 function showWinners(arrInfo, chipWin) {
+    console.log(arrInfo);
 
     if (loaderChip) $('#cont-loader').hide();
-    if (status == 3) $('#text-check-bingo').hide();
+    if (roomStatus == 3) $('#text-check-bingo').hide();
 
     const arrSizeJackpot = arrInfo.jackpotWinners.size;
     const arrSizeSerials = arrInfo.serialsWinners.size;
@@ -408,12 +414,10 @@ function showWinners(arrInfo, chipWin) {
 
 let getViewCtn = false;
 
-function viewCtn(ctnId) {
-    if (getViewCtn) {
-        return;
-    }
+$(document).on("click", ".cont-win-img", function () {
+    if (getViewCtn) return;
     $.get({
-        url: `${preRoute}bingocash/viewCtn/${ctnId}`,
+        url: `${preRoute}bingocash/viewCtn/${$(this).data('id')}`,
         dataType: 'json',
         data: {
             '_token': $("#token").val()
@@ -431,14 +435,15 @@ function viewCtn(ctnId) {
             $("#ctn-player-name").text(playerName);
             $("#serial-ctn").text('Serial: ' + serialCtn);
             $("#cont-ctn-award-winning").data('status', true).show();
-            getViewCtn = false;
             adjustHeightBoxesCtnAward();
         },
         error: function (xhr, status, error) {
             console.error("Error en la solicitud:", error);
+        }, complete: function () {
+            getViewCtn = false;
         }
     });
-}
+});
 
 // function getResult() {
 //     try {
@@ -465,8 +470,8 @@ $(async function () {
                 renderChipsView(allChips)
             ]);
 
-            if (status > 3) {
-                showWinners(decryptJson(infoGame, '<?php echo $key; ?>'), chpLast);
+            if (roomStatus > 3) {
+                showWinners(decryptJson(infoGame, r4nd0m), chpLast);
                 $("#btn-view-winners").prop('disabled', false);
             }
         } else {

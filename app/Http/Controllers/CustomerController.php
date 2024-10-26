@@ -79,6 +79,12 @@ class CustomerController extends Controller
         return ['customerKey' => $customerKey, 'securityKey' => $securityKey];
     }
 
+    private function saveLogo($logo)
+    {
+        // Guardar logo del cliente si existe y crear carpeta personalizada 
+
+    }
+
     public function create(Request $request) /// Registar Comercializadoras
     {
         if (!in_array($this->user()->user_type, [2])) {
@@ -112,11 +118,14 @@ class CustomerController extends Controller
 
             $keys = $this->getEncryptionKeyForClient($request->customer_key);
 
+            $logo = $request->logo ? $this->saveLogo($request->logo) : null;
+
             $customer = Customer::create([
                 'name' => $request->name,
                 'country' => $request->country,
                 'phone' => $request->phone,
                 'user' => $newUser->id,
+                'logo' => $logo,
                 'link_route' => $request->api_route,
                 'token' => $this->getCodeUUID(),
                 'customer_key' => $keys['customerKey'],
@@ -191,10 +200,13 @@ class CustomerController extends Controller
                     return redirect()->back()->withErrors($validator)->withInput();
                 }
 
+                $logo = $request->logo ? $this->saveLogo($request->logo) : null;
+
                 $data = [
                     'name' => $request->name,
                     'country' => $request->country,
                     'phone' => $request->phone,
+                    'logo' => $logo,
                     'link_route' => $request->api_route
                 ];
 
