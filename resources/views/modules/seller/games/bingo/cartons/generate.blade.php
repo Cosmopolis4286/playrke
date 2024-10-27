@@ -156,20 +156,19 @@
 @endsection
 @section('scripts')
     @vite('resources/js/rke/time-functions.js')
-    {{-- <script src="{{ asset('js/time-functions.js') }}"></script> --}}
     <script>
         const room = $("#room");
-        const rooms = {!! json_encode($rooms) !!};
+        const rooms = @json($rooms);
         const numCtns = $("#num-ctns");
         const country = $("#country");
         const sellerCommn = Number('<?php echo $commn; ?>');
         const form = $("#form-ctns");
         const btnGenerate = $("#btn-generate-ctn");
-        var roomVal;
-        var ctnPrice;
-        var jackpotRoom;
-        var playerInfo = '';
-        var playerInGame = false;
+        let roomVal = '';
+        let ctnPrice = 1;
+        let jackpotRoom;
+        let playerInfo = '';
+        let playerInGame = false;
 
         if ("{{ Session::has('PJLink') }}") {
             $("#info-to-copy").val({!! json_encode(Session::get('PJLink')) !!});
@@ -240,10 +239,10 @@
             }
         }
 
-        function getInfo(country) {
-            const url = `{{ asset('') }}seller/bingocash/get/exchange-rate/${country}`;
+        function getExchange(country) {
             $.getJSON({
-                url: url,
+                url: `{{ route('seller.getExchangeRate', ['country' => ':country']) }}`
+                    .replace(':country', country),
                 data: {
                     '_token': $("#token").val()
                 },
@@ -304,7 +303,7 @@
             $(".info-player").toggleClass('hide-elem', countryVal === '');
             const country = countryVal || 0;
 
-            if (countryVal) getInfo(country);
+            if (countryVal) getExchange(country);
         });
 
         function insertCountries(arr) {

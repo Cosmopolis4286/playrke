@@ -80,13 +80,13 @@ trait PlayerLinkTrait
         }
     }
 
-    public function getPlayerGameLink($commerceID, $PJLink, $allForOne)
+    public function getGameLinkByPlayer($commerceID, $PJLink, $allForOne)
     {
-        $baseRoute = $this->getRouteRKE() . "bingocash/";
-
-        $code = Commerce::getValueById($commerceID, 'code_rke') ??
-            Commerce::getValueById($commerceID, 'code_uuid');
-
-        return $baseRoute . ($allForOne == 0 ? "comm/$code/$PJLink" : $PJLink);
+        if ($allForOne == 1) {
+            return $PJLink;
+        } else {
+            $commerceCode = Commerce::getValueById($commerceID, 'code_uuid');
+            return route('bingocash.in-game-commerce', ['commerce' => $commerceCode, 'player' => $PJLink]);
+        }
     }
 }

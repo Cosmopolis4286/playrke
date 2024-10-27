@@ -690,7 +690,8 @@ trait BingoTrait
 
     public function handleCartonStore($data)
     {
-        $room = BingoRoom::with('Config')->select('id', 'coin', 'all_for_one', 'status')
+        $room = BingoRoom::with(['Config:room,jackpot_type'])
+            ->select('id', 'all_for_one', 'status')
             ->where('encrypted', $data['room'])->first();
 
         if ($room->status > 2) {
@@ -698,23 +699,20 @@ trait BingoTrait
         }
 
         $roomID = $room->id;
+
         $isLogin = $data['isLogin'] ?? false;
-        $country = $data['country'] ?? null;
-        $customer = $data['customer'] ?? null;
+        $data['room'] = $roomID;
+        $coin = $data['coin'];
         $commerce = $data['commerce'] ?? null;
         $seller = $data['seller'] ?? null;
 
         if ($commerce || $seller) {
 
-            if ($isLogin) { // Usuario en Session
-                $playerUser = $data['playerUser'];
-                $coin = $data['coin'];
-            } else { // Offline
+            if (!$isLogin) { // Usuario en Session
+
                 // Si la venta es procesada por un comercio o vendedor
                 $PJLink = $data['PJLink'] ?? null;
                 $playerPhone = $data['playerPhone'] ?? null;
-
-                if ($seller) $seller = $this->seller(['id', 'commerce']);
 
                 $player = PlayerLink::select('id', 'name', 'lastname', 'link')
                     ->where('game', 1)->where('room', $roomID)
@@ -728,9 +726,6 @@ trait BingoTrait
                 $arrInitials = $this->initialCharacters([$playerName, $playerLastname]);
                 $serialText = $arrInitials[0] . $arrInitials[1];
             }
-        } else {
-            $playerUser = $data['playerUser'];
-            $coin = $customer ? CustomerUser::getValueById($playerUser, 'coin') : null;
         }
 
         DB::beginTransaction();
@@ -739,24 +734,21 @@ trait BingoTrait
 
             if (($commerce || $seller) && !$isLogin) {
 
-                $coin = $seller ? Coin::getByIdIdOfCountry($country) : $player->coin;
-                $sellerID = $seller->id ?? null;
-
                 if (!$player) {
+
                     $PJLink = $this->createPlayerLink(1);
-                    $playerDocument = null;
 
                     $arrDataPlayer = [
                         'game' => 1,
                         'room' => $roomID,
                         'commerce' => $commerce,
-                        'seller' => $sellerID,
-                        'country' => $country,
+                        'seller' => $seller,
+                        'country' => $data['country'],
                         'coin' => $coin,
                         'link' => $PJLink,
                         'name' => $playerName,
                         'lastname' => $playerLastname,
-                        'identification' => $playerDocument,
+                        'identification' => null,
                         'phone' => $playerPhone
                     ];
 
@@ -773,37 +765,14 @@ trait BingoTrait
                 }
             }
 
-            $dataCtns = [
-                'room' => $roomID,
-                'numOfCtns' => $data['numOfCtns'],
-                'jackpotType' => $room->Config->jackpot_type,
-                'coin' => $coin,
-                'initials' => $serialText ?? 'RKE'
-            ];
+            $data['jackpotType'] = $room->Config->jackpot_type;
+            $data['initials'] = $serialText ?? 'RKE';
 
-            if ($customer) {
-                $dataCtns['customer'] = $customer;
-                $dataCtns['playerUser'] = $playerUser ?? null;
-            }
-
-            if ($commerce || $seller) {
-                if ($commerce) {
-                    $dataCtns['commerce'] = $commerce ?? null;
-                    if ($isLogin) $dataCtns['playerUser'] = $playerUser;
-                }
-
-                if ($seller) {
-                    $dataCtns['seller'] = $sellerID ?? null;
-                }
-
-                if (!$isLogin) $dataCtns['PJLink'] = $player;
-            }
-
-            $responseCtns = $this->cartonStore($dataCtns);
+            $responseCtns = $this->cartonStore($data);
 
             if (!isset($responseCtns['Error'])) {
                 DB::commit();
-                return $seller ? $this->getPlayerGameLink($commerce, $PJLink, $room->all_for_one) : true;
+                return $seller ? $this->getGameLinkByPlayer($commerce, $PJLink, $room->all_for_one) : true;
             } else {
                 DB::rollBack();
                 return $responseCtns;
@@ -971,13 +940,10 @@ trait BingoTrait
         if (!$room) return ['Error' => 'Sala no disponible'];
 
         // Obtener todos los ganadores por tipo de premio 
-        $winners = BingoRoomUser::with([
-            'PrizeCtns' => function ($query) {
-                $query->select('room_user', 'prize_type', 'ctn');
-            }
-        ])->whereHas('PrizeCtns', function ($query) use ($prizeType) {
-            $query->where('prize_type', $prizeType);
-        })->where('room', $roomID)->where('winner', '>', 0)->get();
+        $winners = BingoRoomUser::with(['PrizeCtns:room_user,prize_type,ctn'])
+            ->whereHas('PrizeCtns', function ($query) use ($prizeType) {
+                $query->where('prize_type', $prizeType);
+            })->where('room', $roomID)->where('winner', '>', 0)->get();
 
         if ($playerID) {
             // Verificar si el jugador específico está entre los ganadores
@@ -1048,7 +1014,7 @@ trait BingoTrait
     public function handleJackpotWinners($roomID)
     {
         // Obtener la información de la sala
-        $room = BingoRoom::with('Config')
+        $room = BingoRoom::with((['Config:room,val_serials']))
             ->select('id', 'customer', 'jackpot', 'jackpot_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 

@@ -62,7 +62,7 @@ $(document).on("click", "#btn-close-carton-awarded", function () {
     $("#cont-ctn-award-winning").data('status', false).hide();
 });
 
-$('#cont_icon_volume').click(function () {
+$('#btn-volume').click(function () {
     if (actSound === 1 || actSound === 2) {
         soundNext.muted = !soundNext.muted;
         actSound = soundNext.muted ? 2 : 1;
@@ -267,20 +267,14 @@ function processChips() {
                 return;
             }
 
-            // Incrementar `timeServ` y realizar conteo regresivo
+            // Incrementar `timeServ
             timeServ++;
-            countdownt(startTime);
 
             // Recargar la página si el tiempo es igual
             if (startTime === timeServ) {
                 location.reload();
             }
         }, 1000);
-    }
-    if (roomStatus == 2) {
-        // Mostrar el modal si el estado de la sala es menor a 3
-        $('#modal-info-draw-title').text(convertAndDisplay(startTime));
-        $("#modal-info-draw").modal('show');
     }
 }
 
@@ -374,20 +368,19 @@ function showSeriaslWinners(arr, size) {
 }
 
 function showWinners(arrInfo, chipWin) {
-    console.log(arrInfo);
 
     if (loaderChip) $('#cont-loader').hide();
     if (roomStatus == 3) $('#text-check-bingo').hide();
 
     const arrSizeJackpot = arrInfo.jackpotWinners.size;
-    const arrSizeSerials = arrInfo.serialsWinners.size;
+    const arrSizeSerials = arrInfo.serialsWinners.size ?? 0;
 
     const countWinners = arrSizeJackpot + arrSizeSerials;
 
     if (countWinners === 0) {
         $("#cont-info-winners").hide() && $('#sin_wn').show();
     } else {
-        $('#count-winners').html(countWinners);
+        $('#count-winners').html(`<b>${countWinners}</b>`);
 
         const chpWinSrc = `${preRoute}img/bg/chips/${chipWin}.png`;
         $("#last-win-chip").attr({
@@ -408,6 +401,8 @@ function showWinners(arrInfo, chipWin) {
     }
 
     if (endWin === 1) $('#com_bin').hide() && endGame();
+
+    $('#draw-date').text(convertAndDisplay(startTime));
 
     $("#modal-info-winners").modal('show');
 }

@@ -59,6 +59,12 @@ function countdownt(startTime) {
     // Si la cuenta regresiva ha terminado, muestra un mensaje
     if (distance <= 0) {
         $('#game-clock').html("¡La cuenta regresiva ha terminado!");
+        if (waitingTime) {
+            clearInterval(waitingTime);
+            setTimeout(function () {
+                location.reload();
+            }, 3000);
+        }
     } else {
         if (days == 0) $('#cont-D').hide();
         $('#cont-H').toggle(hours !== 0);
@@ -67,3 +73,4 @@ function countdownt(startTime) {
 }
 
 window.convertAndDisplay = convertAndDisplay;
+window.countdownt = countdownt;

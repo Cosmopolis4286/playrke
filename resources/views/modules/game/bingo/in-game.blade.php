@@ -1,4 +1,4 @@
-@extends('layouts.app_rke_off')
+@extends($layout)
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/styles-bingo.css') }}">
 @endsection
@@ -38,33 +38,34 @@
         const roomStatus = '{{ $room->status }}';
         const coinSym = '{{ $coinSym }}';
         const valSongs = '{{ $room->val_songs }}';
-        const chpLast = Number('{{ $vanDraw }}');
-        const startTime = Number('{{ $startTime }}');
-        const player = @json($player);
-        const arrDraw = JSON.parse('<?php echo json_encode($sort); ?>');
-        const encrypt = JSON.parse('<?php echo json_encode($encrypt); ?>');
         const images = [];
-        const restChips = JSON.parse('<?php echo json_encode($chipsRest); ?>');
+        const chpLast = @json($vanDraw);
+        const startTime = @json($startTime);
+        const player = @json($player);
+        const arrDraw = @json($sort);
+        const encrypt = @json($encrypt);
+        const restChips = @json($chipsRest);
         const soundNext = $('#next')[0];
         const soundWin = $('#winner')[0];
         soundNext.muted = true;
         soundWin.muted = true;
         let lastSixChips = @json($lastSixChips);
-        let timeServ = Number('{{ $timeServ }}');
+        let timeServ = @json($timeServ);
         let allChips = @json($allChips);
         let allChipsSet = new Set(allChips);
-        let infoGame = "{{ $infoGame }}";
+        let infoGame = @json($infoGame);
     </script>
     @if ($room->status == 2)
         <script>
             const userType = '{{ $userType }}';
             const userTypeVal = @json($userTypeVal);
             const coinID = @json($coinID);
-            const ctnPrice = Number('{{ $ctnPrice }}');
+            const ctnPrice = @json($ctnPrice);
+            let waitingTime = false;
             let info = false;
             let amount = ctnPrice;
         </script>
-        @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/components/bingo-off-buy-ctns.js'])
+        @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/components/bingo-out-buy-ctns.js'])
     @endif
     @if ($room->status > 2)
         <script>

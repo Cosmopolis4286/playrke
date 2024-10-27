@@ -12,12 +12,13 @@ export default defineConfig({
                 'resources/js/rke/rke-crypt.js',
                 'resources/js/rke/rke-functions.js',
                 'resources/js/rke/time-functions.js',
+                'resources/js/rke/format-date-time-unix.js',
                 'resources/js/rke/switch-payment-method.js',
                 'resources/js/rke/payment-confirm-button.js',
                 'resources/js/games/bingo/in-game.js',
                 'resources/js/games/bingo/auto-marked.js',
                 'resources/js/games/bingo/components/view-player-ctns.js',
-                'resources/js/games/bingo/components/bingo-off-buy-ctns.js'
+                'resources/js/games/bingo/components/bingo-out-buy-ctns.js'
             ],
             refresh: true,
         }),
@@ -29,12 +30,13 @@ export default defineConfig({
                 'resources/js/rke/rke-crypt.js',
                 'resources/js/rke/rke-functions.js',
                 'resources/js/rke/time-functions.js',
+                'resources/js/rke/format-date-time-unix.js',
                 'resources/js/rke/switch-payment-method.js',
                 'resources/js/rke/payment-confirm-button.js',
                 'resources/js/games/bingo/in-game.js',
                 'resources/js/games/bingo/auto-marked.js',
                 'resources/js/games/bingo/components/view-player-ctns.js',
-                'resources/js/games/bingo/components/bingo-off-buy-ctns.js'
+                'resources/js/games/bingo/components/bingo-out-buy-ctns.js'
             ],
             exclude: [/node_modules/],
             apply: "build", // Aplica solo en el build de producción

@@ -403,7 +403,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('room/{room}', [BingoController::class, 'outGame'])->name('out-game-rke');
 
     // Ruta /Jugador/Comercio Especifico
-    Route::get('comm/{commerce}/player/{PlayerLink}/{room?}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
+    Route::get('comm/{commerce}/player/{player}/{room?}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
     Route::get('comm/{commerce}/room/{room}', [BingoController::class, 'outGameCommerce'])->name('out-game-commerce');
 
     // Rutas Jugador/Cliente
@@ -422,7 +422,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 // PollaExpress -Jugador-
 Route::group(['prefix' => 'pollaexpress', 'as' => 'pollaexpress.'], function () {
     Route::get('getDraw/{room}', [PollaExpressController::class, 'getDraw'])->name('getDraw');
-    Route::get('{PlayerLink}', [PollaExpressController::class, 'game'])->name('game');
+    Route::get('{player}', [PollaExpressController::class, 'game'])->name('game');
     Route::get('get/chips/{room}', [PollaExpressController::class, 'getChips'])->name('getChips');
     Route::get('getResult/{room}/{PJLink}', [PollaExpressController::class, 'getResult'])->name('getResult');
     Route::get('viewCtn/{ctnId}', [PollaExpressController::class, 'viewCtn'])->name('viewCtn');

@@ -104,6 +104,15 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
     });
 });
 
+if (roomStatus == 2) {
+    $('#modal-info-draw-title').text(convertAndDisplay(startTime));
+    waitingTime = setInterval(() => {
+        countdownt(startTime);
+        timeServ++;
+    }, 1000);
+    $("#modal-info-draw").modal('show');
+}
+
 window.toggleModalInfo = toggleModalInfo;
 window.toggleSpinnerBtn = toggleSpinnerBtn;
 window.setAmount = setAmount;

@@ -121,10 +121,9 @@
                         </div>
                     </div>
                 </div>
+                <h6>Inicio del Sorteo:</h6>
                 <div class="d-flex">
-                    <div>
-                        <h6>Inicio del Sorteo:</h6> {{ $room->date }} {{ $room->time }} <small>GTM-4</small>
-                    </div>
+                    <div id="draw-date"></div>
                     <div class="clearfix" id="loaderCtn" style="display: none">
                         <div class="spinner-border text-primary float-left" role="status">
                             <span class="sr-only">Loading...</span>

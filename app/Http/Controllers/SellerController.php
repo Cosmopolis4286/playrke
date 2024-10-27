@@ -388,7 +388,10 @@ class SellerController extends Controller
     public function getExchangeRate($country)
     {
         $coin = Coin::getCoinByCountry($country, ['id', 'symbol']);
-        $exchangeRate = ExchangeRate::getLastValueByCoin($coin->id);
+        $commerce = Seller::getValueByUserId(Auth::id(), 'commerce');
+
+        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin->id);
+
         return json_encode(array('sym' => $coin->symbol, 'value' => $exchangeRate));
     }
 
@@ -400,7 +403,7 @@ class SellerController extends Controller
             ->where('phone', $request->player_info)->where('game', 1)->where('room', $room)->first();
 
         if ($player) {
-            $route = $this->getPlayerGameLink($room->commerce, $player->id, $room->all_for_one);
+            $route = $this->getGameLinkByPlayer($room->commerce, $player->id, $room->all_for_one);
 
             // $IdType = DocumentType::where('id', $request->typeID)->first();
             $ctnsPlayer = BingoCtns::where('player_link', $player->id)->where('room', $room)->count();

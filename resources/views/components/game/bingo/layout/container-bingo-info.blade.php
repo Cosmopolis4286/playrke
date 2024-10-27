@@ -27,7 +27,8 @@
                     {{-- <button disabled type="button" id="btn-view-history-chips" class="btn btn-sm btn-primary">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </button> --}}
-                    <button type="button" id="cont_icon_volume" class="btn btn-sm btn-secondary">
+                    <button type="button" id="btn-volume" class="btn btn-sm btn-secondary"
+                        @if ($room->status != 3) disabled @endif>
                         <i id="icon-volume" class="fa-solid fa-volume-xmark"></i>
                     </button>
                     <input id="val-icon-volume" type="hidden" value="0">

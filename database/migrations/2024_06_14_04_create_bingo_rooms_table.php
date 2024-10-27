@@ -38,7 +38,6 @@ return new class extends Migration
             $table->integer('close_room')->nullable();
             $table->string('encrypted', 18)->unique();
             $table->string('code_uuid', 36)->nullable()->unique();
-            $table->string('random_key', 44);
             $table->timestamps();
 
             // Definición de las claves foráneas
