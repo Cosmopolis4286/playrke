@@ -3,13 +3,12 @@
 @section('content')
     <div class="col-md-8 m-auto">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('includes.card-header')
             <div class="card-body">
-                @component('components.directory-tabs', [
+                @include('includes.directory-tabs', [
                     'countries' => $countries,
                     'countryCode' => $countryCode,
                 ])
-                @endcomponent
                 <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
                     <i class="fas fa-plus-square mr-1"></i>{{ $paymentType }}</button>
                 <div class="table-responsive mt-3">
@@ -29,7 +28,7 @@
                                     <td>{{ $pix->ChavePix->value }}</td>
                                     <td>{{ $pix->pix_key_value }}</td>
                                     <td>
-                                        @component('components.btn-group', [
+                                        @include('includes.btn-group', [
                                             'name' => $name,
                                             'dataId' => encrypt($pix->id),
                                             'buttons' => [
@@ -45,7 +44,6 @@
                                                 ],
                                             ],
                                         ])
-                                        @endcomponent
                                     </td>
                                 </tr>
                             @endforeach
@@ -55,12 +53,11 @@
             </div>
         </div>
     </div>
-    @component('components.modal-form', [
+    @include('includes.modal-form', [
         'name' => $name,
         'dataForm' => view('modules.all.directory.br.form')->render(),
     ])
-    @endcomponent
-    @include('components.form-other-options')
+    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
@@ -154,7 +151,7 @@
 
             getBanks(type, data);
         }
-        
+
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, ['pix-key', 'pix-key-value']);
         });

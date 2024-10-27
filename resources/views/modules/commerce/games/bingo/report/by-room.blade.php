@@ -3,15 +3,14 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('components.card-header', ['title' => $title, 'cardTitle' => $cardTitle])
+            @include('includes.card-header', ['title' => $title, 'cardTitle' => $cardTitle])
             <div class="card-body">
-                @component('components.coin-tabs', [
+                @include('includes.coin-tabs', [
                     'coins' => $coins,
                     'routeName' => 'commerce.reportSalesByRoom',
                     'room' => $room,
                     'coin' => $coin,
                 ])
-                @endcomponent
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-2">

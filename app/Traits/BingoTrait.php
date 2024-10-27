@@ -32,7 +32,7 @@ trait BingoTrait
 {
     use UserVal, EncryptRKE, GameTrait, RouteRKE, PlayerLinkTrait, SeamlessWallet;
 
-    public function newDraw($room, $PJLinkWin = '')
+    public function newDraw($room, $roomUser = '')
     {
         date_default_timezone_set('America/Caracas');
 
@@ -89,9 +89,9 @@ trait BingoTrait
                 DB::rollBack();
                 throw $th;
             }
-        } else if ($sort && $PJLinkWin && $this->user()->user_type == 2) {
+        } else if ($sort && $roomUser && $this->user()->user_type == 2) {
 
-            $ctn = BingoCtns::where('room', $room)->where('player_link', $PJLinkWin)->inRandomOrder()->first();
+            $ctn = BingoCtns::where('room', $room)->where('id', $roomUser)->inRandomOrder()->first();
 
             if (!$ctn) return false;
 
@@ -163,7 +163,7 @@ trait BingoTrait
         }
 
         $winChip = BingoDraw::getWinningChip($room);
-        if (!$winChip || $PJLinkWin) return $this->chipWin($room);
+        if (!$winChip || $roomUser) return $this->chipWin($room);
 
         return false;
     }
@@ -361,7 +361,7 @@ trait BingoTrait
     }
 
     // Función para crear el lote de cartones
-    private function createCtnsLot($arrCtn, $roomID, $coin, $saleAmount)
+    private function createCtnsLot($arrCtn, $saleAmount)
     {
         return BingoCtnsLot::create([
             'customer' => $arrCtn['customer'] ?? null,
@@ -369,9 +369,9 @@ trait BingoTrait
             'seller' => $arrCtn['seller'] ?? null,
             'room_user' => $arrCtn['roomUser'],
             'player_user' => $arrCtn['playerUser'] ?? null,
-            'player_link' => $arrCtn['PJLink'] ?? null,
-            'room' => $roomID,
-            'coin' => $coin,
+            'player_link' => $arrCtn['playerLink'] ?? null,
+            'room' => $arrCtn['room'],
+            'coin' => $arrCtn['coin'],
             'exchange_rate' => 1,
             'status' => 0,
             'ctns' => $arrCtn['numOfCtns'],
@@ -380,14 +380,14 @@ trait BingoTrait
     }
 
     // Función optimizada para generar y almacenar cartones de bingo usando hash
-    private function generateAndStoreCtns($arrCtn, $numOfCtns, $roomID, $lotID)
+    private function generateAndStoreCtns($arrCtn, $lotID)
     {
         try {
             // Iniciales del cartón
             $initials = $arrCtn['initials'];
 
             // Obtener el último número de cartón creado
-            $numLastCtn = BingoCtns::getLastCtnCreated($roomID)?->id ?? 0;
+            $numLastCtn = BingoCtns::getLastCtnCreated($arrCtn['room'])?->id ?? 0;
 
             // Array para insertar registros en una sola operación
             $recordsToInsert = [];
@@ -395,7 +395,7 @@ trait BingoTrait
             // Usar un set para evitar duplicados dentro del mismo lote
             $generatedHashes = [];
 
-            for ($x = 1; $x <= $numOfCtns; $x++) {
+            for ($x = 1; $x <= $arrCtn['numOfCtns']; $x++) {
                 // Generar nuevo cartón de bingo
                 $nwCtn = $this->generateCompleteBingoCard();
 
@@ -403,12 +403,12 @@ trait BingoTrait
                 $cartonHash = hash('sha256', implode('-', $nwCtn));
 
                 // Verificar si el hash ya existe en la base de datos o dentro del mismo lote generado
-                if (!BingoCtns::existsCartonHashRoom($roomID, $cartonHash) && !isset($generatedHashes[$cartonHash])) {
+                if (!BingoCtns::existsCartonHashRoom($arrCtn['room'], $cartonHash) && !isset($generatedHashes[$cartonHash])) {
                     $numLastCtn++;
                     $serialCtn = "$initials-$numLastCtn";
 
                     // Preparar el cartón para la inserción
-                    $recordsToInsert[] = $this->prepareCtnRecord($arrCtn, $roomID, $lotID, $nwCtn, $serialCtn, $cartonHash);
+                    $recordsToInsert[] = $this->prepareCtnRecord($arrCtn, $lotID, $nwCtn, $serialCtn, $cartonHash);
 
                     // Añadir el hash a los hashes generados en este ciclo
                     $generatedHashes[$cartonHash] = true;
@@ -440,16 +440,16 @@ trait BingoTrait
     }
 
     // Función para preparar el registro del cartón con hash
-    private function prepareCtnRecord($arrCtn, $roomID, $lotID, $nwCtn, $serialCtn, $cartonHash)
+    private function prepareCtnRecord($arrCtn, $lotID, $nwCtn, $serialCtn, $cartonHash)
     {
         return [
-            'room' => $roomID,
+            'room' => $arrCtn['room'],
             'customer' => $arrCtn['customer'] ?? null,
             'commerce' => $arrCtn['commerce'] ?? null,
             'seller' => $arrCtn['seller'] ?? null,
             'room_user' => $arrCtn['roomUser'],
             'player_user' => $arrCtn['playerUser'] ?? null,
-            'player_link' => $arrCtn['PJLink'] ?? null,
+            'player_link' => $arrCtn['playerLink'] ?? null,
             'coin' => $arrCtn['coin'],
             'lot' => $lotID,
             'serial' => $serialCtn,
@@ -487,16 +487,17 @@ trait BingoTrait
     private function registerOrUpdateRoomUser($room, $arrCtn)
     {
         try {
-            $playerUser = $arrCtn['playerUser'];
+            $playerUser = $arrCtn['playerUser'] ?? null;
+
             $playerColumn = $playerUser ? 'player_user' : 'player_link';
-            $playerID = $playerUser ?? $arrCtn['PJLink'];
+            $playerID = $playerUser ?? $arrCtn['playerLink'];
 
             $defaultValues = [
                 'room' => $arrCtn['room'],
                 'commerce' => $arrCtn['commerce'] ?? null,
                 'seller' => $arrCtn['seller'] ?? null,
-                'player_user' => $playerUser ?? null,
-                'player_link' => $arrCtn['PJLink'] ?? null,
+                'player_user' => $playerUser,
+                'player_link' => $arrCtn['playerLink'] ?? null,
                 'ctns' => $arrCtn['numOfCtns']
             ];
 
@@ -507,11 +508,14 @@ trait BingoTrait
 
             if ($roomUser->wasRecentlyCreated) {
                 $room->increment('players');
+            } else {
+                // Anexar cantidad de cartones al usuario 
+                $roomUser->increment('ctns', $arrCtn['numOfCtns']);
             }
-            // Anexar cantidad de cartones al usuario 
-            $roomUser->increment('ctns', $arrCtn['numOfCtns']);
+
             return $roomUser->id;
         } catch (\Exception $e) {
+            dd($e->getMessage());
             Log::error('Error al registar o actualizar los datos del usuario: ' . $e->getMessage());
             return false;
         }
@@ -619,17 +623,16 @@ trait BingoTrait
             $commerce = $arrCtn['commerce'] ?? null;
             $seller = $arrCtn['seller'] ?? null;
             $playerUser = $arrCtn['playerUser'] ?? null;
-            $PJLink = $arrCtn['PJLink'] ?? null;
-            $gameMode = $room->game_mode;
             $coin = $arrCtn['coin'];
             $numOfCtns = $arrCtn['numOfCtns'];
+            $gameMode = $room->game_mode;
 
             $exchangeRate = $customer ? CustomerExchangeRate::getCustomerCoinValue($customer, $coin) : 1;
             $comSaleSellerCtns = 0;
             $totalSaleAmount = $numOfCtns * $room->ctn_price;
             $saleAmount = $totalSaleAmount;
 
-            if ($room->game_mode != 1 && ($commerce || $seller)) {
+            if ($gameMode != 1 && ($commerce || $seller)) {
                 // Calcular monto total de venta y comisiones
                 $salesData = $this->calculateTotalSale($numOfCtns, $room, $coin, $seller, $commerce);
 
@@ -645,10 +648,10 @@ trait BingoTrait
             $arrCtn['roomUser'] = $roomUser;
 
             // Crear lote de cartones
-            $lotID = $this->createCtnsLot($arrCtn, $roomID, $coin, $totalSaleAmount);
+            $lotID = $this->createCtnsLot($arrCtn, $totalSaleAmount);
 
             // Generar y almacenar los cartones de bingo
-            $this->generateAndStoreCtns($arrCtn, $numOfCtns, $roomID, $lotID);
+            $this->generateAndStoreCtns($arrCtn, $lotID);
 
             // Si no es modo offline y el creador es un comercio, actualizar la billetera del jugador
             if ($gameMode != 2 && $commerce) {
@@ -675,7 +678,7 @@ trait BingoTrait
 
             // Generar un nuevo sorteo si aplica
             if (isset($arrCtn['ctnWin'])) {
-                $this->newDraw($room, $PJLink);
+                $this->newDraw($roomID, $roomUser);
             }
 
             DB::commit();
@@ -708,17 +711,16 @@ trait BingoTrait
 
         if ($commerce || $seller) {
 
-            if (!$isLogin) { // Usuario en Session
-
+            if (!$isLogin) { // Usuario Fuera de Sesion
                 // Si la venta es procesada por un comercio o vendedor
-                $PJLink = $data['PJLink'] ?? null;
+                $playerLink = $data['playerLink'] ?? null;
                 $playerPhone = $data['playerPhone'] ?? null;
 
                 $player = PlayerLink::select('id', 'name', 'lastname', 'link')
                     ->where('game', 1)->where('room', $roomID)
-                    ->where(function ($query) use ($playerPhone, $PJLink) {
+                    ->where(function ($query) use ($playerPhone, $playerLink) {
                         $query->where('phone', $playerPhone)
-                            ->orWhere('link', $PJLink);
+                            ->orWhere('id', $playerLink);
                     })->first();
 
                 $playerName = $data['playerName'] ?? $player->name;
@@ -736,7 +738,7 @@ trait BingoTrait
 
                 if (!$player) {
 
-                    $PJLink = $this->createPlayerLink(1);
+                    $playerLink = $this->createPlayerLink(1);
 
                     $arrDataPlayer = [
                         'game' => 1,
@@ -745,7 +747,7 @@ trait BingoTrait
                         'seller' => $seller,
                         'country' => $data['country'],
                         'coin' => $coin,
-                        'link' => $PJLink,
+                        'link' => $playerLink,
                         'name' => $playerName,
                         'lastname' => $playerLastname,
                         'identification' => null,
@@ -760,19 +762,23 @@ trait BingoTrait
                         return false;
                     }
                 } else {
-                    if (!$PJLink) $PJLink = $player->link;
                     $player = $player->id ?? null;
+                    $playerLink = $player->link ?? null;
                 }
             }
 
+            $data['playerLink'] = $player;
             $data['jackpotType'] = $room->Config->jackpot_type;
             $data['initials'] = $serialText ?? 'RKE';
+
+            // Eliminar Valores innecesarios
+            unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastname']);
 
             $responseCtns = $this->cartonStore($data);
 
             if (!isset($responseCtns['Error'])) {
                 DB::commit();
-                return $seller ? $this->getGameLinkByPlayer($commerce, $PJLink, $room->all_for_one) : true;
+                return $seller ? $this->getGameLinkByPlayer($commerce, $playerLink, $room->all_for_one) : true;
             } else {
                 DB::rollBack();
                 return $responseCtns;

@@ -3,8 +3,8 @@ function goToCtns(player, mainSeller) {
 }
 
 $(document).on("click", ".show-ctns", function () {
-    const PJLink = $(this).data('player_link');
-    goToCtns(PJLink, commerce);
+    const playerLink = $(this).data('player_link');
+    goToCtns(playerLink, commerce);
 });
 
 window.goToCtns = goToCtns;

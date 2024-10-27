@@ -3,21 +3,19 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('includes.card-header')
             <div class="card-body">
-                @component('components.coin-tabs', [
+                @include('includes.coin-tabs', [
                     'coins' => $coins,
                     'routeName' => 'seller.ctnsAwarded',
                     'coin' => $coinId,
                     'dateFilter' => $dateFilter,
                 ])
-                @endcomponent
-                @component('components.date-filter-buttons', [
+                @include('includes.date-filter-buttons', [
                     'routeName' => 'seller.ctnsAwarded',
                     'dateFilter' => $dateFilter,
                     'coin' => $coinId,
                 ])
-                @endcomponent
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-3">
@@ -127,17 +125,16 @@
             </form>
         </div>
     </div>
-    @component('components.modal-payment-info', [
+    @include('includes.modal-payment-info', [
         'name' => $name,
         'title' => 'Notificar Pago',
         'formId' => 'ctn-payment',
         'formRoute' => route('seller.notifyPaymentPrizeWinningCtn'),
     ])
-    @endcomponent
     <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
-    @vite(['resources/js/games/bingo/components/view-player-ctns.js', 'resources/js/games/bingo/components/payment-confirm-button.js'])
+    @vite(['resources/js/games/bingo/includes/view-player-ctns.js', 'resources/js/games/bingo/includes/payment-confirm-button.js'])
     <script>
         const name = '{{ $name }}';
 

@@ -4,20 +4,20 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('includes.card-header')
             <div class="card-body">
-                @include('components.winners-ctns-tabs', [
+                @include('includes.winners-ctns-tabs', [
                     'isCommerce' => false,
                     'countWinnersByCommerce' => $countWinnersByCommerce,
                     'countWinnersOtherCommerces' => $countWinnersOtherCommerces,
                 ])
-                @include('components.date-filter-buttons', [
+                @include('includes.date-filter-buttons', [
                     'routeName' => 'commerce.getBingoWinnersByOtherCommerces',
                     'dateFilter' => $dateFilter,
                 ])
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        @include('components.game.bingo.report.other-winners-report-table', [
+                        @include('includes.game.bingo.report.other-winners-report-table', [
                             'winnersData' => $winnersData,
                             'commerce' => $commerce,
                             'wallet' => $wallet,
@@ -27,18 +27,17 @@
             </div>
         </div>
     </div>
-    @component('components.modal-payment-info', [
+    @include('includes.modal-payment-info', [
         'name' => $name,
         'title' => 'Notificar Pago',
         'formId' => 'ctn-payment',
         'formRoute' => route('commerce.notifyPaymentPrizeWinningCtn'),
     ])
-    @endcomponent
     <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
-    @vite('resources/js/games/bingo/components/view-player-ctns.js')
-    @vite('resources/js/games/bingo/components/payment-confirm-button.js')
+    @vite('resources/js/games/bingo/includes/view-player-ctns.js')
+    @vite('resources/js/games/bingo/includes/payment-confirm-button.js')
     <script>
         function getPaymentCommerceDetails(commerce, coin) {
             $.getJSON(`{{ asset('') }}commerce/getPaymentCommerceDetails/${commerce}/${coin}`, {

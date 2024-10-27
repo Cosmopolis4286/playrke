@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12 @if (isset($cusToken)) p-2 @endif">
         <div class="card">
-            @include('components.card-header', ['title' => $title, 'returnBtn' => $returnBtn])
+            @include('includes.card-header')
             <div class="card-body">
                 @if (count($coins) > 0 || isset($cusToken))
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
@@ -83,12 +83,11 @@
             </div>
         </div>
     </div>
-    @component('components.modal-form', [
+    @include('includes.modal-form', [
         'name' => $name,
         'dataForm' => view('modules.all.exchange-rate.form', ['cusToken' => $cusToken ?? false])->render(),
     ])
-    @endcomponent
-    @include('components.form-other-options')
+    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/just-validate/dist/just-validate.production.min.js"></script>

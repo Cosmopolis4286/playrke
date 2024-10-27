@@ -17,7 +17,7 @@
                     Cambiar a <b>{{ $coinSym }}</b>
                 </a> --}}
         </div>
-        @include('components.game.bingo.layout.container-purchase-ctns')
+        @include('includes.game.bingo.layout.container-purchase-ctns')
     </div>
     <div class="col-12 w-100 mt-4 pb-4">
         <div class="row justify-content-center" style="gap: 2.75rem;">

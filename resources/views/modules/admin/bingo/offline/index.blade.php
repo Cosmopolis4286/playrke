@@ -3,15 +3,13 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @component('components.card-header', ['title' => $title])
-            @endcomponent
+            @include('includes.card-header')
             <div class="card-body">
-                @component('components.coin-tabs', [
+                @include('includes.coin-tabs', [
                     'coins' => $coins,
                     'routeName' => 'seller.reportSalesRoom',
                     'coin' => $coin,
                 ])
-                @endcomponent
                 <div class="btn-group" role="group" aria-label="Basic example">
                     <button type="button" class="btnBingo btn btn-sm btn-success" data-type="1">
                         <i class="fas fa-plus-square"></i> Crear
@@ -90,9 +88,8 @@
                                                             data-type="2" data-id="{{ encrypt($room->id) }}">
                                                             <i class="fa-solid fa-pen-to-square"></i> </button>
                                                         @if ($room->status == 1)
-                                                            <button class="btnBingo btn btn-sm btn-success"
-                                                                data-type="5" data-id="{{ encrypt($room->id) }}"
-                                                                title="Publicar">
+                                                            <button class="btnBingo btn btn-sm btn-success" data-type="5"
+                                                                data-id="{{ encrypt($room->id) }}" title="Publicar">
                                                                 <i class="fa-solid fa-circle-up"></i>
                                                             </button>
                                                             <button class="btnBingo btn btn-sm btn-danger" data-type="3"
@@ -107,9 +104,8 @@
                                                         @endif
                                                     @else
                                                         @if ($room->replay == 0)
-                                                            <button class="btnBingo btn btn-sm btn-secondary"
-                                                                data-type="4" data-id="{{ encrypt($room->id) }}"
-                                                                title="Repetir">
+                                                            <button class="btnBingo btn btn-sm btn-secondary" data-type="4"
+                                                                data-id="{{ encrypt($room->id) }}" title="Repetir">
                                                                 <i class="fa-solid fa-repeat"></i>
                                                             </button>
                                                         @endif

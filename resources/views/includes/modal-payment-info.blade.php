@@ -1,4 +1,4 @@
- {{-- resources/views/components/modal-copy-info.blade.php --}}
+ {{-- resources/views/includes/modal-payment-info.blade.php --}}
  <div class="modal fade" id="modal-{{ $name }}" tabindex="-1" role="dialog"
      aria-labelledby="{{ $name }}Label" aria-hidden="true" data-backdrop="static" data-keyboard="false">
      <div class="modal-dialog modal-sm" role="document">
@@ -10,16 +10,14 @@
                  </button>
              </div>
              <div class="modal-body">
-                 <div class="input-group">
-                     <input type="text" id="info-to-copy" class="form-control" aria-label="Recipient's username"
-                         aria-describedby="btn-copy" readonly>
-                     <div class="input-group-append">
-                         <button class="btn btn-primary" type="button" id="btn-copy">Copiar</button>
-                     </div>
-                 </div>
+                 <form id="form-{{ $formId }}" action="{{ $formRoute }}" method="POST"
+                     enctype="multipart/form-data">@csrf
+                     @include('includes.info-payment-form', ['notifyAll' => true])
+                 </form>
              </div>
              <div class="modal-footer">
-                 <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cerrar</button>
+                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                 <button type="button" id="btn-payment-confirm" class="btn btn-primary">Notificar</button>
              </div>
          </div>
      </div>

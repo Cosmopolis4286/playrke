@@ -135,7 +135,7 @@
                                 <div class="input-group-prepend">
                                     <span class="input-group-text" id="basic-addon1">PlayerLink</span>
                                 </div>
-                                <input type="text" name="PJLink" class="form-control" aria-label="PlayerLink"
+                                <input type="text" name="playerLink" class="form-control" aria-label="PlayerLink"
                                     aria-describedby="basic-addon1">
                             </div>
                         </div>

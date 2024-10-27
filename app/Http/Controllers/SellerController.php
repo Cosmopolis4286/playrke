@@ -660,9 +660,9 @@ class SellerController extends Controller
         }
     }
 
-    public function getPlayerInfo($PJLink) // Obtención de la información jugador
+    public function getPlayerInfo($playerLink) // Obtención de la información jugador
     {
-        $player = PlayerLink::where('link', $PJLink)
+        $player = PlayerLink::where('link', $playerLink)
             ->select(['type_id', 'identification', 'phone'])->first();
         if ($player) return json_encode($player);
     }

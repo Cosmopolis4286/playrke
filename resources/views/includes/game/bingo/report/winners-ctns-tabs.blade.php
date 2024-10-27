@@ -1,4 +1,4 @@
-{{-- resources/views/components/winners-ctns-tabs.blade.php  --}}
+{{-- resources/views/includes/winners-ctns-tabs.blade.php  --}}
 <ul class="nav nav-tabs mt-n2 mb-2" id="myTab" role="tablist">
     <a id="only-my-winners-tab" class="nav-link @if ($isCommerce == true) active @endif"
         href="{{ route('commerce.getBingoWinnersByCommerce', ['dateFilter' => 'today']) }}" role="tab"

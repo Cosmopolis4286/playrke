@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12 col-lg-7 m-auto">
         <div class="card">
-            @include('components.card-header', ['title' => $user->username])
+            @include('includes.card-header', ['title' => $user->username])
             <div class="card-body">
                 @if ($user->user_type == 1 || $user->user_type == 2)
                     @if ($wallet->coin == 1)

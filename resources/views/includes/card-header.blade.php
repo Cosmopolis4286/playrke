@@ -1,4 +1,4 @@
-<!-- resources/views/components/card-header.blade.php -->
+<!-- resources/views/includes/card-header.blade.php -->
 <div class="card-header">
     <div class="d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center">

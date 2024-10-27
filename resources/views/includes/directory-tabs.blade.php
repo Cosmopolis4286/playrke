@@ -1,4 +1,4 @@
-{{-- resources/views/components/directory-tabs.blade.php --}}
+{{-- resources/views/includes/directory-tabs.blade.php --}}
 <ul class="nav nav-tabs mt-n2 mb-3" id="myTab" role="tablist">
     @foreach ($countries as $item)
         <li class="nav-item">

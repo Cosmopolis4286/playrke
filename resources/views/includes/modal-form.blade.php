@@ -1,4 +1,4 @@
- {{-- resources/views/components/modal-form.blade.php --}}
+ {{-- resources/views/includes/modal-form.blade.php --}}
 <div class="modal fade" id="modal-{{ $name }}" tabindex="-1" role="dialog"
     aria-labelledby="modal-{{ $name }}-label" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-{{ $size ?? 'sm' }}" role="document">

@@ -80,13 +80,13 @@ trait PlayerLinkTrait
         }
     }
 
-    public function getGameLinkByPlayer($commerceID, $PJLink, $allForOne)
+    public function getGameLinkByPlayer($commerceID, $playerLink, $allForOne)
     {
         if ($allForOne == 1) {
-            return $PJLink;
+            return $playerLink;
         } else {
             $commerceCode = Commerce::getValueById($commerceID, 'code_uuid');
-            return route('bingocash.in-game-commerce', ['commerce' => $commerceCode, 'player' => $PJLink]);
+            return route('bingocash.in-game-commerce', ['commerce' => $commerceCode, 'player' => $playerLink]);
         }
     }
 }

@@ -4,20 +4,20 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('includes.card-header')
             <div class="card-body">
-                @include('components.game.bingo.report.winners-ctns-tabs', [
+                @include('includes.game.bingo.report.winners-ctns-tabs', [
                     'isCommerce' => true,
                     'countWinnersByCommerce' => $countWinnersByCommerce,
                     'countWinnersOtherCommerces' => $countWinnersOtherCommerces,
                 ])
-                @include('components.date-filter-buttons', [
+                @include('includes.date-filter-buttons', [
                     'routeName' => 'commerce.getBingoWinnersByCommerce',
                     'dateFilter' => $dateFilter,
                 ])
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        @include('components.game.bingo.report.my-winners-report-table', [
+                        @include('includes.game.bingo.report.my-winners-report-table', [
                             'winners' => $winners,
                             'paymentsOtherCommerces' => $paymentsOtherCommerces,
                             'wallet' => $wallet,
@@ -27,19 +27,18 @@
             </div>
         </div>
     </div>
-    @component('components.modal-payment-info', [
+    @include('includes.modal-payment-info', [
         'name' => $name,
         'title' => 'Notificar Pago',
         'formId' => 'ctn-payment',
         'formRoute' => route('commerce.notifyPaymentPrizeWinningCtn'),
     ])
-    @endcomponent
     <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
-    @vite('resources/js/games/bingo/components/view-player-ctns.js')
-    @vite('resources/js/games/bingo/components/payment-confirm-button.js')
-    @vite('resources/js/games/bingo/components/switch-payment-method.js')
+    @vite('resources/js/games/bingo/includes/view-player-ctns.js')
+    @vite('resources/js/games/bingo/includes/payment-confirm-button.js')
+    @vite('resources/js/games/bingo/includes/switch-payment-method.js')
     <script>
         const name = '{{ $name }}';
 

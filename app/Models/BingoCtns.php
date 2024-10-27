@@ -94,9 +94,9 @@ class BingoCtns extends Model
             ->get(['id', 'b1', 'b2', 'b3', 'b4', 'b5', 'i1', 'i2', 'i3', 'i4', 'i5', 'n1', 'n2', 'n3', 'n4', 'g1', 'g2', 'g3', 'g4', 'g5', 'o1', 'o2', 'o3', 'o4', 'o5']);
     }
 
-    static function getCtnSerialByPlayerInRoom($room, $PJLink)
+    static function getCtnSerialByPlayerInRoom($room, $playerLink)
     {
-        return self::where('room', $room)->where('player_link', $PJLink)->value('serial');
+        return self::where('room', $room)->where('player_link', $playerLink)->value('serial');
     }
 
     static function getCtnSerialByRoomUser($roomUser)

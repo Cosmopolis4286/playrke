@@ -1,4 +1,4 @@
-<!-- resources/views/components/info-payment-form.blade.php -->
+<!-- resources/views/includes/info-payment-form.blade.php -->
 @isset($notifyAll)
     <h6 id="notify-all" class="hide-elem">Toda la venta pendiente sera notificada</h6>
 @endisset

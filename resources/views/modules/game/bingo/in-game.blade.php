@@ -8,23 +8,23 @@
     <div class="row">
         <div class="col-12 col-lg-9 col-xl-10 pb-2 m-auto">
             <input type="hidden" id="random" value="{{ $random }}">
-            @include('components.game.bingo.layout.container-last-chips')
+            @include('includes.game.bingo.layout.container-last-chips')
             <div class="container">
-                @include('components.game.bingo.layout.container-bingo-info')
-                @include('components.game.bingo.layout.container-history-chips')
+                @include('includes.game.bingo.layout.container-bingo-info')
+                @include('includes.game.bingo.layout.container-history-chips')
                 <div class="container mt-1">
                     @if (!empty($cartons))
-                        @include('components.game.bingo.layout.cartons')
+                        @include('includes.game.bingo.layout.cartons')
                     @endif
                 </div>
             </div>
-            @include('components.game.bingo.layout.sounds')
+            @include('includes.game.bingo.layout.sounds')
         </div>
     </div>
     @if ($room->status == 2)
-        @include('components.game.bingo.layout.modal-info-draw', ['userType' => $userType ?? null])
+        @include('includes.game.bingo.layout.modal-info-draw')
     @elseif($room->status > 2)
-        @include('components.game.bingo.layout.modal-info-winners')
+        @include('includes.game.bingo.layout.modal-info-winners')
     @endif
 @endsection
 
@@ -65,7 +65,7 @@
             let info = false;
             let amount = ctnPrice;
         </script>
-        @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/components/bingo-out-buy-ctns.js'])
+        @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'])
     @endif
     @if ($room->status > 2)
         <script>

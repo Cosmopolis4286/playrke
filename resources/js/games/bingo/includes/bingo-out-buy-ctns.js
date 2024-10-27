@@ -104,14 +104,35 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
     });
 });
 
-if (roomStatus == 2) {
+function adjustHeightBoxes() {
+    let widthNumberBox = $('.number-box').first().width();
+    $('.number-box').height(widthNumberBox);
+}
+
+$(document).ready(function () {
+
+    if (roomStatus != 2) return;
+
+    adjustHeightBoxes();
+    $('.container-carton').css('visibility', 'visible');
+
+    // Llama a la función cada vez que se redimensiona la ventana
+    $(window).resize(function () {
+        adjustHeightBoxes();
+        if (roomStatus > 2 && $('#cont-ctn-award-winning').data('status') == true) {
+            adjustHeightBoxesCtnAward();
+        }
+    });
+
+    $('.container-carton').css('visibility', 'visible');
     $('#modal-info-draw-title').text(convertAndDisplay(startTime));
     waitingTime = setInterval(() => {
         countdownt(startTime);
         timeServ++;
     }, 1000);
     $("#modal-info-draw").modal('show');
-}
+
+});
 
 window.toggleModalInfo = toggleModalInfo;
 window.toggleSpinnerBtn = toggleSpinnerBtn;

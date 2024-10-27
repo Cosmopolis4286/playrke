@@ -1,4 +1,4 @@
-{{-- resources/views/components/modal-info-draw.blade.php  --}}
+{{-- resources/views/includes/modal-info-draw.blade.php  --}}
 <div class="modal fade" id="modal-info-draw" tabindex="-1" role="dialog" aria-labelledby="modal-info-drawLabel"
     aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-sm mx-auto" role="document" style="max-width: 325px">

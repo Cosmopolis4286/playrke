@@ -3,15 +3,14 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('components.card-header', ['title' => $title, 'returnBtn' => $returnBtn])
+            @include('includes.card-header')
             <div class="card-body">
-                @component('components.coin-tabs', [
+                @include('includes.coin-tabs', [
                     'coins' => $coins,
                     'routeName' => $routeName,
                     'coin' => $coin,
                     'userToken' => $userToken ?? false,
                 ])
-                @endcomponent
                 <div class="d-flex justify-content-between">
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
                         <i class="fas fa-plus-square"></i> Crear
@@ -23,7 +22,7 @@
                 </div>
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @component('components.game.bingo.report.table-info-bingo-rooms', [
+                        @include('includes.game.bingo.report.table-info-bingo-rooms', [
                             'userType' => $userType,
                             'userID' => $userID,
                             'name' => $name,
@@ -33,24 +32,22 @@
                             'coinSym' => $coinSym,
                             'exchangeRate' => $exchangeRate,
                         ])
-                        @endcomponent
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    @component('components.modal-form', [
+    @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
         'dataForm' => view('modules.game.bingo.form.body', ['creator' => [$userID ?? null, $userType]])->render(),
     ])
-    @endcomponent
-    @include('components.form-other-options')
+    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script>
-        const name = '<?php echo $name; ?>';
-        const userType = '<?php echo $userType; ?>';
+        const name = '{{ $name }}';
+        const userType = '{{ $userType }}';
         // const country = $("#country");
         // const coin = $("#coin");
         const jackpotType = $("#jackpot-type");

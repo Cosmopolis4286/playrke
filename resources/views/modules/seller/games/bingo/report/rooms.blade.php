@@ -3,21 +3,19 @@
 @section('content')
     <div class="col">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('includes.card-header')
             <div class="card-body">
-                @component('components.coin-tabs', [
+                @include('includes.coin-tabs', [
                     'routeName' => 'seller.reportSalesRooms',
                     'dateFilter' => $dateFilter,
                     'coin' => $coinId,
                     'coins' => $coins,
                 ])
-                @endcomponent
-                @component('components.date-filter-buttons', [
+                @include('includes.date-filter-buttons', [
                     'routeName' => 'seller.reportSalesRooms',
                     'dateFilter' => $dateFilter,
                     'coin' => $coinId,
                 ])
-                @endcomponent
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-3">

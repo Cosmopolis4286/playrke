@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            <div class="card-body">@include('components.info.terms')</div>
+            <div class="card-body">@include('includes.info.terms')</div>
         </div>
     </div>
 @endsection

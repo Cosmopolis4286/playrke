@@ -17,8 +17,8 @@ export default defineConfig({
                 'resources/js/rke/payment-confirm-button.js',
                 'resources/js/games/bingo/in-game.js',
                 'resources/js/games/bingo/auto-marked.js',
-                'resources/js/games/bingo/components/view-player-ctns.js',
-                'resources/js/games/bingo/components/bingo-out-buy-ctns.js'
+                'resources/js/games/bingo/includes/view-player-ctns.js',
+                'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'
             ],
             refresh: true,
         }),
@@ -35,8 +35,8 @@ export default defineConfig({
                 'resources/js/rke/payment-confirm-button.js',
                 'resources/js/games/bingo/in-game.js',
                 'resources/js/games/bingo/auto-marked.js',
-                'resources/js/games/bingo/components/view-player-ctns.js',
-                'resources/js/games/bingo/components/bingo-out-buy-ctns.js'
+                'resources/js/games/bingo/includes/view-player-ctns.js',
+                'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'
             ],
             exclude: [/node_modules/],
             apply: "build", // Aplica solo en el build de producción

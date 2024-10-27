@@ -3,21 +3,19 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('includes.card-header')
             <div class="card-body">
-                @component('components.coin-tabs', [
+                @include('includes.coin-tabs', [
                     'routeName' => 'seller.ctnsSold',
                     'dateFilter' => $dateFilter,
                     'coin' => $coinId,
                     'coins' => $coins,
                 ])
-                @endcomponent
-                @component('components.date-filter-buttons', [
+                @include('includes.date-filter-buttons', [
                     'routeName' => 'seller.ctnsSold',
                     'dateFilter' => $dateFilter,
                     'coin' => $coinId,
                 ])
-                @endcomponent
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @if ($ctnsSold->count() > 1 && $pendingCtns > 1)
@@ -91,13 +89,12 @@
                         </div>
                     </div>
                 </div>
-                @component('components.modal-payment-info', [
+                @include('includes.modal-payment-info', [
                     'name' => $name,
                     'title' => 'Notificar Pago',
                     'formId' => 'ctn-payment',
                     'formRoute' => route('seller.ctnsLotPayment'),
                 ])
-                @endcomponent
             </div>
         </div>
     </div>

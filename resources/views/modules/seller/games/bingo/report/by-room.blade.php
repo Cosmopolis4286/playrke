@@ -3,24 +3,22 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('includes.card-header')
             <div class="card-body">
-                @component('components.coin-tabs', [
+                @include('includes.coin-tabs', [
                     'routeName' => 'seller.reportSalesByRoom',
                     'dateFilter' => $dateFilter,
                     'room' => $generateUniqueCodeed,
                     'coin' => $coinId,
                     'coins' => $coins,
                 ])
-                @endcomponent
-                @component('components.date-filter-buttons', [
+                @include('includes.date-filter-buttons', [
                     'routeName' => 'seller.reportSalesByRoom',
                     'dateFilter' => $dateFilter,
                     'room' => $generateUniqueCodeed,
                     'coin' => $coinId,
                     'coins' => $coins,
                 ])
-                @endcomponent
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-3">
@@ -72,8 +70,8 @@
     <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
-    @vite('resources/js/games/bingo/components/view-player-ctns.js')
+    @vite('resources/js/games/bingo/includes/view-player-ctns.js')
     <script>
-        const commerce = '<?php echo $commerce; ?>'
+        const commerce = '{{ $commerce }}'
     </script>
 @endsection

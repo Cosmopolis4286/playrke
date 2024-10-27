@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('includes.card-header')
             <div class="card-body">
                 <button id="btn-{{ $name }}-insert" class="btn btn-sm btn-primary btn-{{ $name }}"
                     type="button" data-type="1">
@@ -45,7 +45,7 @@
                                     <td>{{ $seller->commn }}%</td>
                                     <td>{{ $seller->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                     <td>
-                                        @component('components.btn-group', [
+                                        @include('includes.btn-group', [
                                             'name' => $name,
                                             'dataId' => encrypt($seller->id),
                                             'buttons' => [
@@ -71,7 +71,6 @@
                                                 ],
                                             ],
                                         ])
-                                        @endcomponent
                                     </td>
                                 </tr>
                             @endforeach
@@ -81,18 +80,16 @@
             </div>
         </div>
     </div>
-    @component('components.modal-form', [
+    @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
         'dataForm' => view('modules.commerce.sellers.form', ['countriesCommerce' => $countriesCommerce])->render(),
     ])
-    @endcomponent
-    @component('components.modal-copy-info', [
+    @include('includes.modal-copy-info', [
         'name' => 'copy-passw',
         'title' => 'Contraseña Vendedor',
     ])
-    @endcomponent
-    @include('components.form-other-options')
+    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>

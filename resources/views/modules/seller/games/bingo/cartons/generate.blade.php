@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-md-9 col-lg-6 m-auto" style="max-width:535px">
         <div class="card">
-            @include('components.card-header', ['title' => $title])
+            @include('includes.card-header')
             @if ($status == 1)
                 <div class="card-body mt-n2">
                     <form id="form-ctns" action="{{ route('seller.generateCarton') }}" method="POST">@csrf
@@ -148,11 +148,10 @@
             @endif
         </div>
     </div>
-    @component('components.modal-copy-info', [
+    @include('includes.modal-copy-info', [
         'name' => 'copy-link',
         'title' => 'Link de Acceso Jugador',
     ])
-    @endcomponent
 @endsection
 @section('scripts')
     @vite('resources/js/rke/time-functions.js')
@@ -170,8 +169,8 @@
         let playerInfo = '';
         let playerInGame = false;
 
-        if ("{{ Session::has('PJLink') }}") {
-            $("#info-to-copy").val({!! json_encode(Session::get('PJLink')) !!});
+        if ("{{ Session::has('playerLink') }}") {
+            $("#info-to-copy").val({!! json_encode(Session::get('playerLink')) !!});
             setTimeout(function() {
                 $("#modal-copy-link").modal('show');
             }, 3000);

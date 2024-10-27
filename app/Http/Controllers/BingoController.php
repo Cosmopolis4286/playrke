@@ -282,7 +282,7 @@ class BingoController extends Controller
                         return ['Error' => 'Saldo Insuficiente'];
                     }
                 } else {
-                    $data['PJLink'] =  $player ?? null;
+                    $data['playerLink'] =  $player ?? null;
 
                     if ($request->user_in_game) {
                         $data['country'] = $request->country ?? null;
@@ -328,7 +328,7 @@ class BingoController extends Controller
                 return response()->json(['jackpot' => $jackpot, 'msg_type' => 'success', 'message' => 'Proceso efectuado con exito']);
             } else {
                 Session::flash('message', 'Proceso efectuado con exito');
-                Session::flash('PJLink',  $cartonStore);
+                Session::flash('playerLink',  $cartonStore);
                 return redirect()->back();
             }
         } else {
@@ -386,8 +386,8 @@ class BingoController extends Controller
             case 'all';
             case 'commerce':
 
-                if (isset($data['PJLink'])) {
-                    $roomId = PlayerLink::getValueByLink($data['PJLink'], 'room');
+                if (isset($data['playerLink'])) {
+                    $roomId = PlayerLink::getValueByLink($data['playerLink'], 'room');
 
                     if (!$roomId) return ['error' => 'Sala no encontrada'];
 
@@ -401,7 +401,7 @@ class BingoController extends Controller
                     $coinSym = $coin->symbol;
 
                     $moreViewData = [
-                        'playerID' => BingoRoomUser::getValueByColumn($roomId, 'player_link', $player, 'id'),
+                        'playerID' => BingoRoomUser::getValueByColumn($roomId, 'player_link', $player->id, 'id'),
                         'player' => $player->link
                     ];
                 } else {
@@ -468,13 +468,6 @@ class BingoController extends Controller
         // Obtener valor formateado del bote
         $jackpot = $this->convertPrizeValue($roomId, $coinID);
 
-        if (isset($moreViewData['playerID'])) {
-            // Definir variable relacion ID sala-juagador
-            $roomUser = $moreViewData['playerID'];
-            // Obtener Cartones del ID jugador-sala
-            $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, 'room_user', $moreViewData['playerID']);
-        }
-
         $vanDraw = ($room->status > 2) ?
             BingoDraw::select('id', 'chip')->where(['room' => $roomId, 'win' => 1])->first() : [];
 
@@ -491,6 +484,13 @@ class BingoController extends Controller
         $dataChips = $this->getChips($room->encrypted);
 
         $randomKey = base64_encode(random_bytes(32));
+
+        if (isset($moreViewData['playerID'])) {
+            // Definir variable relacion ID sala-juagador
+            $roomUser = $moreViewData['playerID'];
+            // Obtener Cartones del ID jugador-sala
+            $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, 'room_user', $roomUser);
+        }
 
         $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $roomUser ?? null, $randomKey) : [];
 
@@ -538,17 +538,17 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, 'commerce');
     }
 
-    public function inGameCommerce($commerce, $PJLink)
+    public function inGameCommerce($commerce, $playerLink)
     {
         // Vista para el juego de un comercio especifico
-        $commerceID = PlayerLink::getValueByLink($PJLink, 'commerce');
+        $commerceID = PlayerLink::getValueByLink($playerLink, 'commerce');
 
         // Validar el codigo de comercio
         $comerceIDByUUID = Commerce::getValueByCodeUUID($commerce, 'id');
 
         if ($comerceIDByUUID != $commerceID) return redirect('/');
 
-        $viewData = self::getGameInfo('commerce', ['commerce' => $commerceID, 'PJLink' => $PJLink]);
+        $viewData = self::getGameInfo('commerce', ['commerce' => $commerceID, 'playerLink' => $playerLink]);
 
         // Retorna a vista con la informacion 
         return $this->handleViewData($viewData, 'commerce');
@@ -1208,11 +1208,11 @@ class BingoController extends Controller
 
     public function actWn(Request $request)
     {
-        $PJLink = $request->PJLink;
+        $playerLink = $request->playerLink;
 
-        if (PlayerLink::where('link', $PJLink)->exists()) {
-            $room = PlayerLink::where('link', $PJLink)->value('room');
-            $this->newDraw($room, $PJLink);
+        if (PlayerLink::where('link', $playerLink)->exists()) {
+            $room = PlayerLink::where('link', $playerLink)->value('room');
+            $this->newDraw($room, $playerLink);
             return redirect()->back()->with('message', 'Carton Ganador Generado');
         } else {
             return redirect()->back()->with('message', 'El PlayerLink no existe');

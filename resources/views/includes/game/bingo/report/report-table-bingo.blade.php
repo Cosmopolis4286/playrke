@@ -1,4 +1,4 @@
-<!-- resources/views/components/report-table.blade.php -->
+<!-- resources/views/includes/report-table.blade.php -->
 <div class="table-responsive mt-2">
     <table class="table table-striped table-bordered my-2 w-100">
         <thead>

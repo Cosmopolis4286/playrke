@@ -1,4 +1,4 @@
-{{-- resources/views/components/my-winners-report-table.blade.php  --}}
+{{-- resources/views/includes/my-winners-report-table.blade.php  --}}
 <div class="table-responsive mt-3">
     <table class="table table-striped table-bordered my-2 w-100">
         <thead>

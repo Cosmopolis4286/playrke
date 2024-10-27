@@ -1,4 +1,4 @@
-{{-- resources/views/components/coin-tabs.blade.php  --}}
+{{-- resources/views/includes/coin-tabs.blade.php  --}}
 <ul class="nav nav-tabs mt-n2 mb-2" id="myTab" role="tablist">
     @foreach ($coins as $item)
         <li class="nav-item">

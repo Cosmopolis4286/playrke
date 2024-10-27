@@ -1,3 +1,4 @@
+{{-- components.game.bingo.layout.cartons --}}
 <div class="row">
     @foreach ($cartons as $ctn)
         <div class="col-6 col-sm-4 col-xl-3 my-1 notranslate" translate="no">

@@ -9,6 +9,6 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 });
 
 Broadcast::channel('bingocash.{encrypted}', function ($encrypted) {
-    // Verifica si el valor de PJLink existe en tu base de datos
+    // Verifica si el valor de playerLink existe en tu base de datos
     return BingoRoom::where('encrypted', $encrypted)->exists();
 });

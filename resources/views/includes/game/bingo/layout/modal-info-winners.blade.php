@@ -1,4 +1,4 @@
-{{-- resources/views/components/modal-info-winners.blade.php  --}}
+{{-- resources/views/includes/modal-info-winners.blade.php  --}}
 <div class="modal fade" id="modal-info-winners" tabindex="-1" role="dialog" aria-labelledby="modal-info-winnersLabel"
     aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-sm mx-auto" role="document" style="max-width: 320px">
