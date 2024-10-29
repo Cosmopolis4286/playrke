@@ -129,7 +129,7 @@
                 .replace(':userType', userType).replace(':userID', userTypeVal)
 
             $.getJSON(url, {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
                 .done(res => {
                     timestamp = new Date(res.timestamp);
@@ -218,7 +218,7 @@
                 url: `{{ route('bingocash.generateCarton') }}`,
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'X-CSRF-TOKEN': $('#5K3_70K').val()
                 },
                 data: {
                     room: roomID,

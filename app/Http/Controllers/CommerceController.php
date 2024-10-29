@@ -583,7 +583,6 @@ class CommerceController extends Controller
 
         $wallet = $this->wallet();
         $commerce = $this->commerce()->id;
-        $routCtns = $this->getRouteRKE();
 
         // Obtener los datos de los ganadores
         $winners = $this->getWinnersData($commerce, $dateFilter);
@@ -599,6 +598,7 @@ class CommerceController extends Controller
 
         // Obtener las monedas asociadas al comercio
         $coins = $this->getByIdsForCommerce($commerce);
+        $commerce = Commerce::getValueById($commerce, 'code_uuid');
 
         return view(
             'modules.commerce.games.bingo.cartons.awarwed.my-winners',
@@ -607,12 +607,12 @@ class CommerceController extends Controller
                 'name',
                 'wallet',
                 'dateFilter',
+                'commerce',
                 'winners',
                 'paymentsOtherCommerces',
                 'countWinnersOtherCommerces',
                 'countWinnersByCommerce',
-                'coins',
-                'routCtns'
+                'coins'
             )
         );
     }
@@ -624,7 +624,6 @@ class CommerceController extends Controller
 
         $wallet = $this->wallet();
         $commerce = $this->commerce()->id;
-        $routCtns = $this->getRouteRKE();
 
         // Obtener los datos de los ganadores
         $winnersData = $this->getWinnersData($commerce, $dateFilter, true);
@@ -649,8 +648,7 @@ class CommerceController extends Controller
                 'winnersData',
                 'countWinnersOtherCommerces',
                 'countWinnersByCommerce',
-                'coins',
-                'routCtns'
+                'coins'
             )
         );
     }

@@ -939,7 +939,7 @@ trait BingoTrait
 
     public function getWinnersData($roomID, $prizeType, $playerID = '')
     {
-        $room = BingoRoom::select('serial_prize')->where('id', $roomID)->where('status', 4)->first();
+        $room = BingoRoom::select('serial_prize')->where('id', $roomID)->first();
 
         if (!$room) return ['Error' => 'Sala no disponible'];
 
@@ -1442,7 +1442,6 @@ trait BingoTrait
                 'payment_proof' => $payment[10],
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp
-
             ];
         }
         // Inserción masiva en la base de datos

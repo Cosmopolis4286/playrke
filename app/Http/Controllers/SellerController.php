@@ -472,7 +472,6 @@ class SellerController extends Controller
 
     public function ctnsSold($coin, $dateFilter = "today") //Cartones Vendidos Salas Actuales Status 2 o 3
     {
-        $wallet = $this->wallet();
         $seller = $this->seller(['id', 'commerce']);
 
         $coinId = decrypt($coin);
@@ -487,7 +486,7 @@ class SellerController extends Controller
             }
         ])->whereHas('Room', function ($query) use ($seller) {
             $query->where('commerce', $seller->commerce)
-                ->where('status', '>', 1)->where('paid_win', 0);
+                ->where('status', '>=', 2);
         })->whereHas('ComSellerRoom');
 
         $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
@@ -509,7 +508,7 @@ class SellerController extends Controller
         return view('modules/seller/games/bingo/cartons/ctns-sold')->with([
             'title' => 'Cartones Vendidos',
             'name' => 'notify-payment-ctns-off',
-            'wallet' => $wallet,
+            'wallet' => $this->wallet(),
             'seller' => encrypt($seller->id),
             'allPendingCtnSale' => $allPendingCtnSale,
             'pendingCtns' => $pendingCtns,
@@ -554,13 +553,13 @@ class SellerController extends Controller
 
         $winners = $winnersQuery->where('seller', $seller->id)->where('coin', $coinId)->get();
 
-        $coins = $this->getSellerCoins($seller->id, $dateFilter, ['PlayerLink', 'PrizeCtns']);
+        $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
 
-        $routCtns = $this->getRouteRKE();
+        $coins = $this->getSellerCoins($seller->id, $dateFilter, ['PlayerLink', 'PrizeCtns']);
 
         return view(
             'modules.seller.games.bingo.cartons.awarwed',
-            compact('title', 'name', 'wallet', 'winners', 'coinId', 'dateFilter', 'coin', 'coins', 'routCtns')
+            compact('title', 'name', 'wallet', 'commerce', 'winners', 'coinId', 'dateFilter', 'coin', 'coins')
         );
     }
 
@@ -766,6 +765,7 @@ class SellerController extends Controller
         if (!count($playersRoom)) return redirect()->back();
 
         $title = 'Reporte de Sala';
+        $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
         $wallet = $this->wallet();
 
         // Realizar los cálculos de CTNs 
@@ -790,11 +790,9 @@ class SellerController extends Controller
 
         $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
 
-        $routCtns = $this->getRouteRKE();
-
         return view(
             'modules.seller.games.bingo.report.by-room',
-            compact('title', 'wallet', 'commerce', 'generateUniqueCodeed', 'playersRoom', 'dateFilter', 'coins', 'coin', 'coinId', 'routCtns', 'totalCtnsPurchased', 'totalCtnsByRoom')
+            compact('title', 'cardTitle', 'wallet', 'commerce', 'generateUniqueCodeed', 'playersRoom', 'dateFilter', 'coins', 'coin', 'coinId', 'totalCtnsPurchased', 'totalCtnsByRoom')
         );
     }
 
@@ -823,12 +821,11 @@ class SellerController extends Controller
 
     //     $coins = Coin::getCoinsById($coinsCommerce);
 
-    //     $routCtns = $this->getRouteRKE();
     //     $coin = Coin::getById($coin);
 
     //     return view(
     //         'modules.seller.games.bingo.report.by-room',
-    //         compact('title', 'wallet', 'room', 'playersRoom', 'coin', 'coin', 'coins', 'routCtns')
+    //         compact('title', 'wallet', 'room', 'playersRoom', 'coin', 'coin', 'coins')
     //     );
     // }
 

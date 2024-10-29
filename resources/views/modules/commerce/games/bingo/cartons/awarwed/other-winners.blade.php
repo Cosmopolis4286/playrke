@@ -17,11 +17,7 @@
                 ])
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.other-winners-report-table', [
-                            'winnersData' => $winnersData,
-                            'commerce' => $commerce,
-                            'wallet' => $wallet,
-                        ])
+                        @include('includes.game.bingo.report.other-winners-report-table')
                     </div>
                 </div>
             </div>
@@ -33,15 +29,13 @@
         'formId' => 'ctn-payment',
         'formRoute' => route('commerce.notifyPaymentPrizeWinningCtn'),
     ])
-    <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
-    @vite('resources/js/games/bingo/includes/view-player-ctns.js')
     @vite('resources/js/games/bingo/includes/payment-confirm-button.js')
     <script>
         function getPaymentCommerceDetails(commerce, coin) {
             $.getJSON(`{{ asset('') }}commerce/getPaymentCommerceDetails/${commerce}/${coin}`, {
-                    '_token': $("#token").val()
+                    '_token': $("#5K3_70K").val()
                 })
                 .done(data => {
                     if (!allNotifyCtn) {

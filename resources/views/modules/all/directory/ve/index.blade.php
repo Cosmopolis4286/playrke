@@ -62,18 +62,17 @@
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        const name = '<?php echo $name; ?>';
-        const paymentType = '<?php echo $paymentType; ?>';
-        const arrDocumentType = JSON.parse('<?php echo json_encode($documentType); ?>');
-        const arrBanks = JSON.parse('<?php echo json_encode($banks); ?>');
-
-        $("#phone").mask("00000000000");
+        const name = '{{ $name }}';
+        const paymentType = '{{ $paymentType }}';
+        const arrDocumentType = @json($documentType);
+        const arrBanks = @json($banks);
 
         $(document).on("click", `.btn-${name}`, function() {
             formCRUD($(this), name, 'Pago Movil', '{{ asset('') }}pagomovil')
         });
 
         $(document).ready(function() {
+            $("#phone").mask("00000000000");
             $('#bank').select2({
                 theme: 'bootstrap4',
                 placeholder: "Selecciona una opción",
@@ -110,7 +109,7 @@
             submitForm(name, ['document-type', 'document-val', 'bank', 'phone']);
         });
 
-        function deleteInfo() {
+        function deleteInfo(encryptedId) {
             showToastOptionBtns(
                 `Este ${paymentType} será eliminado definitivamente`,
                 'info',

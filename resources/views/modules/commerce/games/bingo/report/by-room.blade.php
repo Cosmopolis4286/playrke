@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('includes.card-header', ['title' => $title, 'cardTitle' => $cardTitle])
+            @include('includes.card-header', ['cardTitle' => $cardTitle])
             <div class="card-body">
                 @include('includes.coin-tabs', [
                     'coins' => $coins,

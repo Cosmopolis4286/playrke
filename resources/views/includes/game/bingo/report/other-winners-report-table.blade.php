@@ -50,8 +50,7 @@
                             @if ($win->PlayerGame->winner == 1)
                                 @if ($win->commerce == $commerce)
                                     <button type="button" class="btn btn-danger btn-sm notify-ctn-payment"
-                                        title="Notificar Pago" data-payment_type="1"
-                                        data-count_commerce=""
+                                        title="Notificar Pago" data-payment_type="1" data-count_commerce=""
                                         data-coin_sym="{{ $win->Coin->name }}" data-prize_amount="{{ $win->amount }}"
                                         data-ctn='{{ encrypt($win->ctn) }}'>
                                         Notificar
@@ -66,10 +65,10 @@
                                     </button>
                                 @endif
                             @endif
-                            <button class="show-ctns btn btn-sm bg-secondary"
-                                data-player_link="{{ $win->PlayerLink->link }}">
-                                <i class="mr-1 fa-solid fa-eye"></i>
-                            </button>
+                            <a class="btn btn-sm bg-primary show-ctns" target="_blank"
+                                href="{{ route('bingocash.in-game-commerce', ['commerce' => $commerce, 'player' => $win->PlayerLink->link]) }}">
+                                <i class="mr-1 fa-solid fa-eye"></i>CTNs
+                            </a>
                         </div>
                     </td>
                 </tr>

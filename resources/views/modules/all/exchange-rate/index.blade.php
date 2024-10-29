@@ -92,7 +92,7 @@
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/just-validate/dist/just-validate.production.min.js"></script>
     <script>
-        const name = '<?php echo $name; ?>';
+        const name = '{{ $name }}';
         const valChange = $("#val-change");
         let coinID;
         let customer;
@@ -180,7 +180,7 @@
                 $.getJSON({
                     url: url,
                     data: {
-                        '_token': $("#token").val()
+                        '_token': $("#5K3_70K").val()
                     },
                     success: function(data) {
                         const coinValue = parseFloat(data.toFixed(2));

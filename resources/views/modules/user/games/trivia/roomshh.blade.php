@@ -239,7 +239,7 @@
             $.ajax({
                 url: '{{ asset('') }}trivia/timer/' + @json($wallet->coin),
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 method: 'get',
                 dataType: 'json',
@@ -304,7 +304,7 @@
             $.ajax({
                 url: "{{ asset('') }}trivia/status/1",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 method: 'get',
                 dataType: 'json',

@@ -58,7 +58,7 @@ $("#bt_transk").click(function (e) {
         $.ajax({
             url: "{{ route('transbank.createCLP') }}",
             headers: {
-                'X-CSRF-TOKEN': $("#token").val()
+                'X-CSRF-TOKEN': $("#5K3_70K").val()
             },
             type: 'GET',
             dataType: 'json',

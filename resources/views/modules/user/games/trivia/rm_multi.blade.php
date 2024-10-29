@@ -479,7 +479,7 @@
                     $.ajax({
                         url: "{{ asset('') }}trivia/update_info/" + @json($trivia->id),
                         headers: {
-                            'X-CSRF-TOKEN': $("#token").val()
+                            'X-CSRF-TOKEN': $("#5K3_70K").val()
                         },
                         type: 'GET',
                         dataType: 'json',
@@ -513,7 +513,7 @@
                 $.ajax({
                     url: "{{ route('trivia.start') }}",
                     headers: {
-                        'X-CSRF-TOKEN': $("#token").val()
+                        'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
                     type: 'post',
                     dataType: 'json',
@@ -589,7 +589,7 @@
                     $.ajax({
                         url: "{{ route('trivia.respuestas') }}",
                         headers: {
-                            'X-CSRF-TOKEN': $("#token").val()
+                            'X-CSRF-TOKEN': $("#5K3_70K").val()
                         },
                         type: 'post',
                         dataType: 'json',
@@ -714,7 +714,7 @@
                     $.ajax({
                         url: "{{ route('trivia.comond_rest') }}",
                         headers: {
-                            'X-CSRF-TOKEN': $("#token").val()
+                            'X-CSRF-TOKEN': $("#5K3_70K").val()
                         },
                         type: 'post',
                         dataType: 'json',
@@ -778,7 +778,7 @@
                 $.ajax({
                     url: "{{ route('trivia.liveUp') }}",
                     headers: {
-                        'X-CSRF-TOKEN': $("#token").val()
+                        'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
                     type: 'post',
                     dataType: 'json',
@@ -802,7 +802,7 @@
                     $.ajax({
                         url: "{{ route('trivia.united') }}",
                         headers: {
-                            'X-CSRF-TOKEN': $("#token").val()
+                            'X-CSRF-TOKEN': $("#5K3_70K").val()
                         },
                         type: 'post',
                         dataType: 'json',

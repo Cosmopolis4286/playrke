@@ -208,7 +208,7 @@
             $.ajax({
                 url: '{{ asset('') }}trivia/timer/1',
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 method: 'get',
                 dataType: 'json',
@@ -294,7 +294,7 @@
         function getStatusRoom(room) {
             vanConsult = 1;
             $.getJSON(`{{ asset('') }}trivia/${room}/status`, {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
                 .done(function(data) {
                     vanConsult = 0;

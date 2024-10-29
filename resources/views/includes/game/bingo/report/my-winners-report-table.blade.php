@@ -73,10 +73,10 @@
                                 </button>
                             @endif
                             @if ($win->PlayerLink)
-                                <button class="show-ctns btn btn-sm bg-secondary"
-                                    data-player_link="{{ $win->PlayerLink->link }}">
-                                    <i class="mr-1 fa-solid fa-eye"></i>
-                                </button>
+                                <a class="btn btn-sm bg-primary show-ctns" target="_blank"
+                                    href="{{ route('bingocash.in-game-commerce', ['commerce' => $commerce, 'player' => $win->PlayerLink->link]) }}">
+                                    <i class="mr-1 fa-solid fa-eye"></i>CTNs
+                                </a>
                             @endif
                         </div>
                     </td>

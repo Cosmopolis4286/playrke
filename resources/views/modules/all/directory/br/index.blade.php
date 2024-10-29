@@ -62,19 +62,18 @@
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        const name = '<?php echo $name; ?>';
-        const paymentType = '<?php echo $paymentType; ?>';
+        const name = '{{ $name }}';
+        const paymentType = '{{ $paymentType }}';
         const bank = $("#bank");
-        const arrPixKeys = JSON.parse('<?php echo json_encode($pixKeys); ?>');
+        const arrPixKeys = @json($pixKeys);
         let banks = [];
-
-        $("#phone").mask("00000000000");
 
         $(document).on("click", `.btn-${name}`, function() {
             formCRUD($(this), name, 'Pix', '{{ asset('') }}pix')
         });
 
         $(document).ready(function() {
+            $("#phone").mask("00000000000");
             $('#bank').select2({
                 theme: 'bootstrap4',
                 placeholder: "Selecciona una opción",
@@ -83,8 +82,8 @@
         });
 
         $(document).on("change", "#bank", function() {
+            const selectedBank = Number($(this).val());
             let bankInfo = {};
-            let selectedBank = Number($(this).val());
 
             $.each(banks, function(index, item) {
                 if (selectedBank == item.code) {
@@ -117,11 +116,10 @@
             if (banks.length) {
                 insertBanks(type, data);
             } else {
-                const url = '{{ asset('') }}pix/get/banks';
                 $.getJSON({
-                    url: url,
+                    url: "{{ route('pix.getBanks') }}",
                     data: {
-                        '_token': $("#token").val()
+                        '_token': $("#5K3_70K").val()
                     },
                     success: function(res) {
                         banks = res;
@@ -156,7 +154,7 @@
             submitForm(name, ['pix-key', 'pix-key-value']);
         });
 
-        function deleteInfo() {
+        function deleteInfo(encryptedId) {
             showToastOptionBtns(
                 `Este ${paymentType} será eliminado definitivamente`,
                 'info',

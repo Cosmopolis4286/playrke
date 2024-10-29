@@ -5,9 +5,7 @@
 
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
     <div class="wrapper">
-        <!-- CSRF Token -->
-        <input type="hidden" id="token" value="{{ csrf_token() }}">
-
+        <input type="hidden" id="#5K3_70K" value="{{ csrf_token() }}">
         <!-- Navbar -->
         @include('layouts.sections.nav')
 

@@ -260,7 +260,7 @@
             $.ajax({
                 url: "{{ route('yankenpo.select_ppt') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 method: 'post',
                 dataType: 'json',
@@ -277,7 +277,7 @@
             $.ajax({
                 url: "{{ route('yankenpo.check_ppt') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 method: 'post',
                 dataType: 'json',

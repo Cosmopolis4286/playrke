@@ -221,7 +221,7 @@
             $.ajax({
                 url: "{{ route('bingo.time_serv') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 method: 'get',
                 dataType: 'json',
@@ -319,7 +319,7 @@
                 $.ajax({
                     url: "{{ route('bingo.consult_players') }}",
                     headers: {
-                        'X-CSRF-TOKEN': $("#token").val()
+                        'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
                     method: 'post',
                     data: {
@@ -457,7 +457,7 @@
 
         function rm_timer() {
             $.getJSON("{{ asset('') }}bingocash/timer/1", {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
                 .done(res => res.forEach(value => {
                     id_elems.push(value.id);
@@ -469,7 +469,7 @@
             $.ajax({
                 url: "{{ route('bingo.time_serv') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 method: 'get',
                 dataType: 'json',
@@ -576,7 +576,7 @@
             $.ajax({
                 url: "{{ asset('') }}bingocash/status/" + id_sala,
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 method: 'get',
                 dataType: 'json',

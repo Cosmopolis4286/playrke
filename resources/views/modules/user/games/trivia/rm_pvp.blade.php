@@ -149,7 +149,6 @@
                     <audio id="s_inct">
                         <source src="{{ asset('sounds/trivia/' . $sound_trv[2]->file) }}" type="audio/mp3">
                     </audio>
-                    <input type="hidden" id="token" value="{{ csrf_token() }}">
                     <div class="fnd-pq run_gm">
                         <div class="show_gm">
                             <div class="ct_qst">
@@ -501,7 +500,7 @@
             $.ajax({
                 url: "{{ route('triv_in.spy') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 type: 'post',
                 dataType: 'json',
@@ -532,7 +531,7 @@
             $.ajax({
                 url: "{{ route('triv_in.time_retire') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 type: 'post',
                 dataType: 'json'
@@ -659,7 +658,7 @@
                 $.ajax({
                     url: "{{ route('triv_in.anwers') }}",
                     headers: {
-                        'X-CSRF-TOKEN': $("#token").val()
+                        'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
                     type: 'post',
                     dataType: 'json',
@@ -690,7 +689,7 @@
             $.ajax({
                 url: "{{ route('triv_in.retire') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 type: 'post',
                 dataType: 'json',
@@ -728,7 +727,7 @@
             $.ajax({
                 url: "{{ route('triv_in.start') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 type: 'post',
                 dataType: 'json',
@@ -748,7 +747,7 @@
                 $.ajax({
                     url: "{{ route('triv_in.c_half') }}",
                     headers: {
-                        'X-CSRF-TOKEN': $("#token").val()
+                        'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
                     type: 'post',
                     dataType: 'json',
@@ -767,7 +766,7 @@
             $.ajax({
                 url: "{{ route('triv_in.end_time') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 type: 'post',
                 dataType: 'json',

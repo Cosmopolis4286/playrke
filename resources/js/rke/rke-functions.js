@@ -31,7 +31,7 @@ function deleteSessionFlash(arr = []) {
         url: "{{ route('clear.flash.messages') }}",
         type: 'POST',
         headers: {
-            'X-CSRF-TOKEN': $("#token").val()
+            'X-CSRF-TOKEN': $("#5K3_70K").val()
         },
         data: {
             message_keys: arr // Array de nombres de mensajes flash a eliminar
@@ -133,7 +133,7 @@ function getInfo(route, id) {
     $.getJSON({
         url: url,
         data: {
-            '_token': $("#token").val()
+            '_token': $("#5K3_70K").val()
         },
         success: function (data) {
             insertInfo(2, data);

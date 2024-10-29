@@ -487,7 +487,7 @@
         window.onfocus = function() {
             if (vanChange === 1 && endWin === 0) {
                 $.getJSON(`{{ asset('') }}bingocash/get/chips/${idRmBing}`, {
-                        '_token': $("#token").val()
+                        '_token': $("#5K3_70K").val()
                     })
                     .done(data => {
                         vanChange = 0;
@@ -761,7 +761,7 @@
             $.post({
                 url: "{{ route('bingo.check_ctn') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 dataType: 'json',
                 data: {
@@ -872,7 +872,7 @@
         async function viewCtn(ctnId) {
             try {
                 const res = await $.getJSON(`{{ asset('') }}bingocash/viewCtn/${ctnId}`, {
-                    '_token': $("#token").val()
+                    '_token': $("#5K3_70K").val()
                 });
 
                 const {
@@ -895,7 +895,7 @@
                     $.get({
                         url: `{{ asset('') }}bingocash/info/${idRmBing}`,
                         headers: {
-                            'X-CSRF-TOKEN': $("#token").val()
+                            'X-CSRF-TOKEN': $("#5K3_70K").val()
                         },
                         dataType: 'json',
                         beforeSend: () => {

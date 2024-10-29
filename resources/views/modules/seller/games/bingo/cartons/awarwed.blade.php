@@ -82,10 +82,10 @@
                                                                 Notificar
                                                             </button>
                                                         @endif
-                                                        <button type="button" class="show-ctns btn btn-sm btn-dark"
-                                                            data-player_link="{{ $win->PlayerLink->link }}">
-                                                            <i class="fa-solid fa-eye"></i>
-                                                        </button>
+                                                        <a class="btn btn-sm bg-primary show-ctns" target="_blank"
+                                                            href="{{ route('bingocash.in-game-commerce', ['commerce' => $commerce, 'player' => $win->PlayerLink->link]) }}">
+                                                            <i class="mr-1 fa-solid fa-eye"></i>CTNs
+                                                        </a>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -131,10 +131,9 @@
         'formId' => 'ctn-payment',
         'formRoute' => route('seller.notifyPaymentPrizeWinningCtn'),
     ])
-    <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
-    @vite(['resources/js/games/bingo/includes/view-player-ctns.js', 'resources/js/games/bingo/includes/payment-confirm-button.js'])
+    @vite('resources/js/games/bingo/includes/payment-confirm-button.js')
     <script>
         const name = '{{ $name }}';
 

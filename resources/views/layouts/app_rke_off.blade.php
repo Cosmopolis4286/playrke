@@ -4,7 +4,10 @@
 
 <body>
     @include('sweetalert::alert')
-    <main class="container">@yield('content')</main>
+    <main class="container">
+        <input type="hidden" id="#5K3_70K" value="{{ csrf_token() }}">
+        @yield('content')
+    </main>
     @include('layouts.sections.scripts')
 </body>
 

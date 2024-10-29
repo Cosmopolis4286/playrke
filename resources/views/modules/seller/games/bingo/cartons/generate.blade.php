@@ -243,7 +243,7 @@
                 url: `{{ route('seller.getExchangeRate', ['country' => ':country']) }}`
                     .replace(':country', country),
                 data: {
-                    '_token': $("#token").val()
+                    '_token': $("#5K3_70K").val()
                 },
                 success: function(data) {
                     convertCurrency(data);
@@ -265,7 +265,7 @@
                     url: `{{ route('seller.getCtnPrice', ['roomID' => ':id']) }}`
                         .replace(':id', roomVal),
                     headers: {
-                        'X-CSRF-TOKEN': $("#token").val()
+                        'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
                     success: function(data) {
                         const {
@@ -328,7 +328,7 @@
             $.post({
                 url: "{{ route('seller.getPlayer') }}",
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 data: {
                     room: roomVal,

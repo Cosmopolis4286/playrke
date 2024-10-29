@@ -70,7 +70,7 @@
                     url: pageUrl,
                     method: 'GET',
                     headers: {
-                        'X-CSRF-TOKEN': $("#token").val()
+                        'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
                     success: function(response) {
                         $(".modal-body").html(response);

@@ -17,11 +17,7 @@
                 ])
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.my-winners-report-table', [
-                            'winners' => $winners,
-                            'paymentsOtherCommerces' => $paymentsOtherCommerces,
-                            'wallet' => $wallet,
-                        ])
+                        @include('includes.game.bingo.report.my-winners-report-table')
                     </div>
                 </div>
             </div>
@@ -33,12 +29,9 @@
         'formId' => 'ctn-payment',
         'formRoute' => route('commerce.notifyPaymentPrizeWinningCtn'),
     ])
-    <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
 @endsection
 @section('scripts')
-    @vite('resources/js/games/bingo/includes/view-player-ctns.js')
-    @vite('resources/js/games/bingo/includes/payment-confirm-button.js')
-    @vite('resources/js/games/bingo/includes/switch-payment-method.js')
+    @vite(['resources/js/games/bingo/includes/switch-payment-method.js', 'resources/js/games/bingo/includes/payment-confirm-button.js'])
     <script>
         const name = '{{ $name }}';
 

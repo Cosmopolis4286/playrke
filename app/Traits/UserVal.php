@@ -43,20 +43,21 @@ trait UserVal
 
     public function getAvailableCountries($user)
     {
-        $userType = User::getValueById($user, 'user_type');
+        $userTypeID = User::getValueById($user, 'user_type');
+        $userType = UserType::getValueById($userTypeID, 'prefix');
 
         switch ($userType) {
-            case 1: // Jugador
+            case 'user': // Jugador
                 $countries = [User::getValueById($user, 'country')];
                 break;
-            case 2: // Admin
+            case 'admin': // Admin
                 # code...
                 break;
-            case 3: // Comercio
+            case 'commerce': // Comercio
                 $commerce = Commerce::getValueByUserId($user, 'id');
                 $countries = CommerceCountriesCoins::getAvailableCountries($commerce);
                 break;
-            case 4: // Vendedor
+            case 'seller': // Vendedor
                 $seller = Seller::getValueByUserId($user, 'id');
                 $countries = SellerCountriesCoins::getAvailableCountries($seller);
                 break;

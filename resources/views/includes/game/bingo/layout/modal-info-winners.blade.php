@@ -124,9 +124,9 @@
                 <h6>Inicio del Sorteo:</h6>
                 <div class="d-flex">
                     <div id="draw-date"></div>
-                    <div class="clearfix" id="loaderCtn" style="display: none">
-                        <div class="spinner-border text-primary float-left" role="status">
-                            <span class="sr-only">Loading...</span>
+                    <div class="clearfix ml-2 mt-1" id="loaderCtn" style="display: none">
+                        <div class="spinner-border spinner-border-sm text-primary float-left" role="status">
+                            <span class="sr-only"></span>
                         </div>
                     </div>
                 </div>

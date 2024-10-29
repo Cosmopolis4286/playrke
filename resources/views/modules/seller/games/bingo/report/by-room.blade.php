@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('includes.card-header')
+            @include('includes.card-header', ['cardTitle' => $cardTitle])
             <div class="card-body">
                 @include('includes.coin-tabs', [
                     'routeName' => 'seller.reportSalesByRoom',
@@ -45,10 +45,10 @@
                                             <td>{{ $player->CtnsLot->sum('ctns') }}</td>
                                             <td>{{ $player->Coin->symbol }} {{ $player->ctns_purchased }}</td>
                                             <td>
-                                                <button class="btn btn-sm bg-primary show-ctns"
-                                                    data-player_link="{{ $player->link }}">
+                                                <a class="btn btn-sm bg-primary show-ctns" target="_blank"
+                                                    href="{{ route('bingocash.in-game-commerce', ['commerce' => $commerce, 'player' => $player->link]) }}">
                                                     <i class="mr-1 fa-solid fa-eye"></i>CTNs
-                                                </button>
+                                                </a>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -67,11 +67,4 @@
             </div>
         </div>
     </div>
-    <input disabled type="hidden" id="rout-rke" value="{{ $routCtns }}">
-@endsection
-@section('scripts')
-    @vite('resources/js/games/bingo/includes/view-player-ctns.js')
-    <script>
-        const commerce = '{{ $commerce }}'
-    </script>
 @endsection

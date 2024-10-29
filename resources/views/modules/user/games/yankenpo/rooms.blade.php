@@ -396,7 +396,7 @@
             $.ajax({
                 url: "../bingo/status/" + id_sala,
                 headers: {
-                    'X-CSRF-TOKEN': $("#token").val()
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 method: 'get',
                 dataType: 'json',

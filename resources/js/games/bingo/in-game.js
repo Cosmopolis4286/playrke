@@ -78,13 +78,13 @@ async function getGameData() {
     if (vanChange === 1 && endWin === 0) {
         try {
             const data = await $.getJSON(`${preRoute}bingocash/get/chips/${encrypted}`, {
-                '_token': $("#token").val()
+                '_token': $("#5K3_70K").val()
             });
 
             await Promise.all([
                 handleLatestChips(data.lastSixChips),
                 renderChipsView(data.allChips),
-                timeServ = Number(data.timeServ),
+                //timeServ = Number(data.timeServ),
                 vanChange = 0
             ]);
 
@@ -115,8 +115,7 @@ function handleLatestChips(latestChips) {
         });
 
         autoMarked();
-
-        if (roomStatus == 3) processChips();
+        processChips();
 
         resolve(); // Resuelve la promesa
     });
@@ -233,45 +232,37 @@ function decryptChp(code) {
 let count = 0;
 
 function checkExitOfToken() {
-    if (roomStatus != 3) return;
-
+    // Itera desde `count` hasta el final de `arrDraw`
     for (let i = count; i < arrDraw.length; i++) {
         const chipTime = +arrDraw[i].time;
 
+        // Verifica si `chipTime` es válido y menor o igual a `timeServ`
         if (chipTime && chipTime <= timeServ) {
             const nextChip = decryptChp(arrDraw[i].code);
 
+            // Solo llama a `getNewChip` si el chip aún no está en `allChipsSet`
             if (!allChipsSet.has(nextChip)) {
-                count = i + 1;
+                count = i + 1; // Actualiza el índice
                 getNewChip(nextChip);
+                break; // Sale del bucle al encontrar el primer chip válido
             }
         }
     }
 }
 
 function processChips() {
-    if (endWin === 0) {
+    if (endWin && roomStatus != 3) return;
+
+    const intervalId = setInterval(() => {
         checkExitOfToken();
-
-        // Usar setInterval para verificar condiciones periódicamente
-        const intervalId = setInterval(() => {
-
-            checkExitOfToken();
-            // Verificar condiciones de parada de manera eficiente
-            if (lastSixChips.includes(chpLast) || endWin === 1) {
-                clearInterval(intervalId);
-                return;
-            }
-
-            // Incrementar `timeServ
-            timeServ++;
-
-            // Recargar la página si el tiempo es igual
-            if (startTime === timeServ) {
-                location.reload();
-            }
-        }, 1000);
-    }
+        // Condiciones de parada
+        if (lastSixChips.includes(chpLast) || endWin === 1) {
+            clearInterval(intervalId);
+            if (startTime === timeServ) location.reload();
+            return;
+        }
+        timeServ++;
+    }, 1000);
 }
 
 const r4nd0m = $('#random').val();
@@ -411,7 +402,7 @@ $(document).on("click", ".cont-win-img", function () {
         url: `${preRoute}bingocash/viewCtn/${$(this).data('id')}`,
         dataType: 'json',
         data: {
-            '_token': $("#token").val()
+            '_token': $("#5K3_70K").val()
         },
         beforeSend: function () {
             getViewCtn = true;
@@ -439,7 +430,7 @@ $(document).on("click", ".cont-win-img", function () {
 // function getResult() {
 //     try {
 //         const res = $.getJSON(`${preRoute}bingocash/get/result/${encrypted}/${player}`, {
-//             '_token': $("#token").val()
+//             '_token': $("#5K3_70K").val()
 //         });
 //         showWinners(res, chpLast);
 //         $("#btn-view-winners").prop('disabled', false);

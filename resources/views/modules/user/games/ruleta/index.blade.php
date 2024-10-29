@@ -504,7 +504,7 @@
                 $.ajax({
                     url: "{{ route('ruleta.store') }}",
                     headers: {
-                        'X-CSRF-TOKEN': $("#token").val()
+                        'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
                     type: 'post',
                     dataType: 'json',
