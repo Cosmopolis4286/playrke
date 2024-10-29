@@ -61,7 +61,6 @@
             const userTypeVal = @json($userTypeVal);
             const coinID = @json($coinID);
             const ctnPrice = @json($ctnPrice);
-            let waitingTime = false;
             let info = false;
             let amount = ctnPrice;
         </script>

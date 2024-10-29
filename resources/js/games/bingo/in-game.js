@@ -81,15 +81,11 @@ async function getGameData() {
                 '_token': $("#token").val()
             });
 
-            const [chipData, , serverTime, chips] = data;
-
-            ///timeServ = Number(serverTime);
-            vanChange = 0;
-            allChips = chips;
-
             await Promise.all([
-                handleLatestChips(chipData),
-                renderChipsView(allChips)
+                handleLatestChips(data.lastSixChips),
+                renderChipsView(data.allChips),
+                timeServ = Number(data.timeServ),
+                vanChange = 0
             ]);
 
         } catch (error) {

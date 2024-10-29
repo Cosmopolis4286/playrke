@@ -19,7 +19,6 @@ class BingoCtns extends Model
         'coin',
         'lot',
         'serial',
-        'created_at',
         'b1',
         'b2',
         'b3',

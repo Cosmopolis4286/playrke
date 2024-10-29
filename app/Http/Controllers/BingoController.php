@@ -667,7 +667,8 @@ class BingoController extends Controller
         return [
             'lastSixChips' => $lastSixChips ?? [],
             'lastPostChip' => $lastPos ?? 0,
-            'allChips' => $allChips ?? []
+            'allChips' => $allChips ?? [],
+            'timeServ' => time()
         ];
     }
 
@@ -931,7 +932,7 @@ class BingoController extends Controller
         $unixDate = strtotime("{$newDate} {$newTime}");
 
         if ($unixDate < time()) {
-            return redirect()->back()->with('message', 'Fecha/Hora no disponible')->with('type', 'warning');
+            return redirect()->back()->with('message', 'Fecha/Hora no permitidas')->with('type', 'warning');
         }
 
         DB::beginTransaction();
@@ -1122,7 +1123,7 @@ class BingoController extends Controller
         $unixDate = strtotime($publicationDate);
 
         if ($unixDate < time()) {
-            return redirect()->back()->with('message', 'Fecha/Hora no disponible')->with('type', 'warning');
+            return redirect()->back()->with('message', 'Fecha/Hora no perimitidas')->with('type', 'warning');
         }
 
         DB::beginTransaction();
