@@ -11,9 +11,7 @@ trait CustomerTrait
 {
     public function registerUserByCustomer($customer, $userID, $token, $country, $coin)
     {
-        date_default_timezone_set('America/Caracas');
-
-        DB::beginTransaction();
+                DB::beginTransaction();
 
         try {
 

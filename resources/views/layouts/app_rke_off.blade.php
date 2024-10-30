@@ -5,7 +5,7 @@
 <body>
     @include('sweetalert::alert')
     <main class="container">
-        <input type="hidden" id="#5K3_70K" value="{{ csrf_token() }}">
+        <input type="hidden" id="5K3_70K" value="{{ csrf_token() }}">
         @yield('content')
     </main>
     @include('layouts.sections.scripts')

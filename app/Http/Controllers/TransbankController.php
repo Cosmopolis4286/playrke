@@ -27,7 +27,7 @@ class TransbankController extends Controller
     {
         $last_transk = Transbank::orderByDesc('id')->first();
         if ($last_transk == null || $last_transk->status > 1) {
-            date_default_timezone_set('America/Caracas');
+
             if ($last_transk == null) {
                 $last_transk = 1;
             } else {

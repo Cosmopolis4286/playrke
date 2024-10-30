@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\TriviaMulti;
 use App\Models\User;
+use App\Models\UserType;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
 
@@ -24,26 +25,21 @@ class HomeController extends Controller
         $wallet = $this->wallet($user->id);
         $title = 'Tablero';
 
-        // // Obtener el código del país asociado al usuario
-        // $country = User::where('id', Auth::id())->value('country');
-        // session('countryCode', Country::getCountryById($country));
-
-        // dd(session('countryCode'));
-
-        // Datos comunes
         $data = [
             'title' => $title,
             'wallet' => $wallet,
             'exchangeRate' => $exchangeRate,
         ];
 
+        $userType = UserType::getValueById($user->user_type, 'prefix');
+
         // Datos específicos según el tipo de usuario
-        switch ($user->user_type) {
-            case 1: // Jugador
+        switch ($userType) {
+            case 'user': // Jugador
                 $view = 'modules/user/widgets/index';
                 break;
 
-            case 2: // Super Admin
+            case 'admin': // Super Admin
                 $data = array_merge($data, [
                     'mmoney' => $this->mmoney(),
                     // 'mmoneyUSDT' => $this->mmoneyUSDT(),
@@ -56,7 +52,7 @@ class HomeController extends Controller
                 $view = 'modules/admin/widgets/index';
                 break;
 
-            case 3: // Bancas
+            case 'commerce': // Bancas
                 $data = array_merge($data, [
                     'mmoney' => $this->mmoney(),
                     'mmoneyUSDT' => $this->mmoneyUSDT(),
@@ -66,7 +62,7 @@ class HomeController extends Controller
                 $view = 'modules/commerce/widgets/index';
                 break;
 
-            case 4: // Taquilleros/Vendedor
+            case 'seller': // Taquilleros/Vendedor
                 $data = array_merge($data, [
                     'mmoney' => $this->mmoney(),
                     'mmoneyUSDT' => $this->mmoneyUSDT(),
@@ -95,12 +91,6 @@ class HomeController extends Controller
 
         return view($view)->with($data);
     }
-
-
-    // public function upd_ts(Request $request)
-    // {
-    //     DB::table("ExchangeRates")->update(['ExchangeRate_RKE' => $request->ts_bcv, 'fecha' => $request->fecha]);
-    // }
 
     public  function mmoney()
     {

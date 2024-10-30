@@ -12,17 +12,12 @@ use Illuminate\Support\Facades\Log;
 
 trait GameTrait
 {
-    public function getTimestamp()
-    {
-        return Carbon::now('America/Caracas');
-    }
-
     public function insertGameExchangeRate($room, $game, $gameMode = '')
     {
         try {
             $exchangeRates = ExchangeRate::all();
-            
-            $timestamp = $this->getTimestamp();
+
+            $timestamp = Carbon::now();
 
             $coins = $exchangeRates->pluck('coin')->unique();
 

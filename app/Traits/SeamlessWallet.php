@@ -264,7 +264,7 @@ trait SeamlessWallet
                     // Actualizar la transacción si es exitosa
                     Transactions::where('id', $item->id)->update([
                         'status' => 1,
-                        'processing_data' => Carbon::now('America/Caracas'),
+                        'processing_data' => Carbon::now(),
                         'updated_at' => now(),
                     ]);
                 }

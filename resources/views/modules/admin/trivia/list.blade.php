@@ -38,7 +38,6 @@
                                             <div class="na_card">{{ $trivia->nombre }}</div>
                                         </div>
                                         @php
-                                            date_default_timezone_set('America/Caracas');
                                             $fech = date('Y-m-d');
                                             $hora = date('h:i A', time());
                                             $nuevahora = date('h:i A', strtotime($trivia->hora));

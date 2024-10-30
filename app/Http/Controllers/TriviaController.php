@@ -194,7 +194,6 @@ class TriviaController extends Controller
             ->where('room', $room)->orderByDesc('num_quest')->first();
 
         $van_time_run = $triv_signs->num_quest * 13;
-        date_default_timezone_set('America/Caracas');
         $hour_serv = strtotime(date('Y-m-d H:i'));
         $hour_count = strtotime('+' . $van_time_run . 'second', strtotime($triv->fecha . ' ' . $triv->hora));
 
@@ -419,7 +418,6 @@ class TriviaController extends Controller
 
     public function changeStatusRoom($room)
     {
-        date_default_timezone_set('America/Caracas');
         $arrEndRoom = [];
         $roomsAlone = DB::table("triv_multi")->whereIn('status', [2, 3])->get();
         $triviaUser = DB::table('triv_multi_user')->where('room', $room)->where('lose_win', 1)->count();
@@ -686,7 +684,7 @@ class TriviaController extends Controller
             DB::table('triv_indv_cdin')->where('id_user', $user)
                 ->orderBy('id', 'desc')->update(['init_triv' => time(), 'start' => 1]);
         }
-        date_default_timezone_set('America/Caracas');
+
         $round = DB::table('triv_indv_user')->where('id_user', $user)
             ->where('lose_win', null)->first();
         DB::table('triv_indv_user')->where('id', $round->id)
@@ -1226,7 +1224,6 @@ class TriviaController extends Controller
 
     public function discount_off()
     {
-        date_default_timezone_set('America/Caracas');
         $data = date("h:i:s A");
         $time = strtotime('+30 minute', strtotime($data));
         $dsc_tv = DB::table('discount_triv')->first();
@@ -1253,7 +1250,6 @@ class TriviaController extends Controller
 
     public function end_gm($id)
     {
-        date_default_timezone_set('America/Caracas');
         DB::table('triv_multi_user')->where('room', $id)
             ->where('user', auth()->user()->id)->update(['end_gm' => time()]);
     }
@@ -1278,7 +1274,7 @@ class TriviaController extends Controller
 
     public function update_info($room)
     {
-        date_default_timezone_set('America/Caracas');
+        date_default_timezone_set('');
         $trivia = TriviaMulti::where('id', $room)->first();
         if ($trivia->signs == 0) {
             $this->QuestSendTelegram($room);
@@ -1440,7 +1436,6 @@ class TriviaController extends Controller
 
     public function start(Request $request)
     {
-        date_default_timezone_set('America/Caracas');
         $user = auth()->user()->id;
         $room = $request->id;
         $datos = $this->Question($room);
@@ -1531,14 +1526,12 @@ class TriviaController extends Controller
 
     public function fin_trivia($id_triv)
     {
-        date_default_timezone_set('America/Caracas');
         $triv_multi = TriviaMulti::where('id', $id_triv)->first();
         $dataTime = strtotime('+320 second', strtotime($triv_multi->fecha . $triv_multi->hora));
     }
 
     public function fin_pre($id)
     {
-        date_default_timezone_set('America/Caracas');
         $fin_int = time() + 25;
         DB::table('triv_multi_user')->where('room', $id)
             ->where('user', auth()->user()->id)->update(['fin_qt' => $fin_int]);

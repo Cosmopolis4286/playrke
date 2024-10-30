@@ -21,8 +21,6 @@
             @endphp
             @foreach ($rooms as $room)
                 @php
-                    date_default_timezone_set('America/Caracas');
-
                     $roomID = $room->encrypted;
 
                     if ($userType == 'customer') {
@@ -107,9 +105,8 @@
                                         $roomDateTime = \Carbon\Carbon::createFromFormat(
                                             'Y-m-d H:i',
                                             "{$room->date} {$room->time}",
-                                            'America/Caracas',
                                         );
-                                        $currentDateTime = \Carbon\Carbon::now('America/Caracas');
+                                        $currentDateTime = \Carbon\Carbon::now();
                                     @endphp
 
                                     @if ($roomDateTime->greaterThan($currentDateTime))

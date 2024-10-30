@@ -64,7 +64,7 @@ class BingoController extends Controller
 
         return [
             'rooms' => $rooms,
-            'timestamp' => Carbon::now('America/Caracas')->timestamp * 1000
+            'timestamp' => Carbon::now()->timestamp * 1000
         ];
     }
 
@@ -168,7 +168,7 @@ class BingoController extends Controller
             'dateTimeRooms' => $this->getDateTimeRooms($userType, encrypt($userID))['rooms'],
             'userType' => $userType,
             'userTypeVal' => encrypt($userID),
-            'timestamp' => Carbon::now('America/Caracas')->timestamp * 1000
+            'timestamp' => Carbon::now()->timestamp * 1000
         ];
 
         if ($coin == 1) $viewData['USDT'] = true;
@@ -342,8 +342,6 @@ class BingoController extends Controller
 
     private function getGameInfo($userType, $data = [])
     {
-        date_default_timezone_set('America/Caracas');
-
         switch ($userType) {
             case 'customer':
 
@@ -508,11 +506,10 @@ class BingoController extends Controller
             'encrypt' => $codeEncrypt,
             'random' => $randomKey,
             'lastSixChips' => $dataChips['lastSixChips'],
-            'lastPostChip' => $dataChips['lastPostChip'],
             'allChips' => $dataChips['allChips'],
             'vanDraw' => $vanDraw ? $vanDraw->chip : '',
             'infoGame' => $infoGame,
-            'timeServ' => time()
+            'timeServ' => $dataChips['timeServ']
         ];
 
         if ($room->status == 2) $viewData['coinID'] = encrypt($coinID);
@@ -526,7 +523,6 @@ class BingoController extends Controller
 
     public function inGame($player, $room = '')
     {
-        dd($player, $room);
         // Vista para el juego de la venta conjunta de todos los comercios
         $commerce = BingoRoom::getValueByEncrypted($room, 'commerce');
 
@@ -632,41 +628,23 @@ class BingoController extends Controller
 
     public function getChips($room)
     {
-        date_default_timezone_set('America/Caracas');
-
         $room = BingoRoom::getRoomByEncrypted($room, ['id', 'status']);
 
         if (!$room) ['Error' => 'Sala no encontrada'];
 
-        $roomId = $room->id;
-
-        $chipVanID = BingoDraw::where('room', $roomId)->where('win', 1)->value('id');
+        $chipVanID = BingoDraw::where('room', $room->id)->where('win', 1)->value('id');
 
         if ($chipVanID) {
-
-            $lastSixChips = ($room->status > 2) ?
-                BingoDraw::where('room', $roomId)->where('time', '<=', time())
-                ->where('id', '<=', $chipVanID)->orderByDesc('id')->take(7)->pluck('chip')->toArray() : [];
-
-            $sizeArr = count($lastSixChips);
-
-            if ($sizeArr > 1) {
-
-                $sort = BingoDraw::where('room', $roomId)->where('time', '<=', time())
-                    ->where('id', '<=', $chipVanID)->pluck('chip')->toArray();
-
-                $lastPos = array_search($lastSixChips[$sizeArr - 1], $sort);
-
-                array_pop($lastSixChips);
-            }
-
-            $allChips =  BingoDraw::where('room', $roomId)->where('id', '<=', $chipVanID)
+            // Realizamos una única consulta para obtener todas las fichas en las condiciones especificadas
+            $allChips = BingoDraw::where('room', $room->id)->where('id', '<=', $chipVanID)
                 ->where('time', '<=', time())->orderByDesc('id')->pluck('chip')->toArray();
+
+            // Si el estado de la sala es mayor a 2, tomamos los primeros seis elementos de $allChips como $lastSixChips
+            $lastSixChips = ($room->status > 2) ? array_slice($allChips, 0, 6) : [];
         }
 
         return [
             'lastSixChips' => $lastSixChips ?? [],
-            'lastPostChip' => $lastPos ?? 0,
             'allChips' => $allChips ?? [],
             'timeServ' => time()
         ];
@@ -889,8 +867,6 @@ class BingoController extends Controller
                 $createData['code_uuid'] = $this->getCodeUUID('BingoRoom');
             }
 
-            date_default_timezone_set('America/Caracas');
-
             DB::beginTransaction();
 
             try {
@@ -922,8 +898,6 @@ class BingoController extends Controller
 
     public function update(Request $request, $id)
     {
-        date_default_timezone_set('America/Caracas');
-
         $id = decrypt($id);
         $room = BingoRoom::findOrFail($id);
 
@@ -1075,8 +1049,6 @@ class BingoController extends Controller
             $createData['code_uuid'] = $this->getCodeUUID('BingoRoom');
         }
 
-        date_default_timezone_set('America/Caracas');
-
         DB::beginTransaction();
 
         try {
@@ -1115,8 +1087,6 @@ class BingoController extends Controller
 
     public function publish($id)
     {
-        date_default_timezone_set('America/Caracas');
-
         // Desencripta el ID y busca el registro correspondiente.
         $bingoRoom = BingoRoom::findOrFail(decrypt($id));
         $publicationDate = "{$bingoRoom->date} {$bingoRoom->time}";

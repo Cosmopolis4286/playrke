@@ -90,7 +90,6 @@ class SellerController extends Controller
     private function insertOtherCoins($seller, $otherCoins)
     {
         if (!empty($otherCoins) && is_array($otherCoins)) {
-            date_default_timezone_set('America/Caracas');
             // Obtener las monedas seleccionadas y prepararlas para la inserción
             $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
             $timestamp = now();
@@ -137,8 +136,6 @@ class SellerController extends Controller
         if (!in_array($this->user()->user_type, [2, 3])) {
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
-
-        date_default_timezone_set('America/Caracas');
 
         DB::beginTransaction();
 
@@ -878,8 +875,6 @@ class SellerController extends Controller
 
     private function notifyAllPendingCtns($seller, $newFileName)
     {
-        date_default_timezone_set('America/Caracas');
-
         $allPendingCtns = BingoCtns::with('Lot')
             ->whereHas('Lot', function ($query) use ($seller) {
                 $query->where(['seller' => $seller, 'status' => 0]);

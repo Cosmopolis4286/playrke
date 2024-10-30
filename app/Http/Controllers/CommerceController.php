@@ -92,8 +92,6 @@ class CommerceController extends Controller
     {
         if (!empty($otherCoins) && is_array($otherCoins)) {
 
-            date_default_timezone_set('America/Caracas');
-
             // Obtener las monedas seleccionadas y prepararlas para la inserción
             $otherCoins = Coin::getCoinsById($otherCoins);
             $coinsToCreate = [];
@@ -145,8 +143,6 @@ class CommerceController extends Controller
         if ($existsCodeRKE) {
             return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
         }
-
-        date_default_timezone_set('America/Caracas');
 
         DB::beginTransaction();
 

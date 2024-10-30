@@ -35,9 +35,7 @@ trait BingoTrait
 
     public function newDraw($room, $roomUser = '')
     {
-        date_default_timezone_set('America/Caracas');
-
-        $sort = BingoDraw::where('room', $room)->count() === 75;
+                $sort = BingoDraw::where('room', $room)->count() === 75;
 
         if (!$sort) {
             $this->encryptDraw('bingo_draw_code', $room);
@@ -171,9 +169,7 @@ trait BingoTrait
 
     public function chipWin($room)
     {
-        date_default_timezone_set('America/Caracas');
-
-        DB::beginTransaction();
+                DB::beginTransaction();
 
         try {
             // Actualizar el estado de las fichas que cumplen la condición
@@ -258,9 +254,7 @@ trait BingoTrait
 
     public function recorrersorteo($room)
     {
-        date_default_timezone_set('America/Caracas');
-
-        $encrypted = BingoRoom::getValueById($room, 'encrypted');
+                $encrypted = BingoRoom::getValueById($room, 'encrypted');
 
         $result = false;
         do {
@@ -278,9 +272,7 @@ trait BingoTrait
 
     public function getInfoWinners($room, $roomUser)
     {
-        date_default_timezone_set('America/Caracas');
-
-        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
+                $room = BingoRoom::getRoomByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
 
         // Obtener tiempo de salida de la ficha bandera
         $chpVnTime = BingoDraw::where('win', 1)->where('room', $room->id)->value('time');
@@ -596,7 +588,7 @@ trait BingoTrait
                 // Actualizar la transacción si es exitosa
                 Transactions::where('id', $transaction->id)->update([
                     'status' => 1,
-                    'processing_data' => Carbon::now('America/Caracas'),
+                    'processing_data' => Carbon::now(),
                     'updated_at' => now(),
                 ]);
             }
@@ -608,9 +600,7 @@ trait BingoTrait
 
     public function cartonStore($arrCtn)
     {
-        date_default_timezone_set('America/Caracas');
-
-        $roomID = $arrCtn['room'];
+                $roomID = $arrCtn['room'];
         $this->checkRoomClosure($roomID);
 
         $room = $this->getRoomDetails($roomID);
@@ -821,9 +811,7 @@ trait BingoTrait
 
     private function registerPrizeCtn($roomID, $cartons, $prizeType, $USDValue)
     {
-        date_default_timezone_set('America/Caracas');
-
-        $recordsToInsert = [];
+                $recordsToInsert = [];
         $playersToUpdate = [];
 
         foreach ($cartons as $ctn) {
@@ -1112,7 +1100,7 @@ trait BingoTrait
                 BingoRoom::where('id', $roomID)->update([
                     'jackpot_prize' => $jackpotPrize,
                     'serial_prize' => $serialPrize,
-                    'close_room' => Carbon::now('America/Caracas')->timestamp
+                    'close_room' => Carbon::now()->timestamp
                 ]);
 
                 $USDPrize = $jackpotPrize / $winnersCount;
@@ -1341,9 +1329,7 @@ trait BingoTrait
 
     public function checkRoomClosure($room = '')
     {
-        date_default_timezone_set('America/Caracas');
-
-        $query = BingoRoom::whereIn('status', [2, 3]);
+                $query = BingoRoom::whereIn('status', [2, 3]);
 
         if ($room) $query = $query->where('id', $room);
 
@@ -1379,9 +1365,7 @@ trait BingoTrait
 
     public function hideRoom() // Validar Salas Finalizadas
     {
-        date_default_timezone_set('America/Caracas');
-
-        $rooms = BingoRoom::where('status', 4)->get(['id', 'customer', 'date', 'time']);
+                $rooms = BingoRoom::where('status', 4)->get(['id', 'customer', 'date', 'time']);
 
         if (!count($rooms)) return true;
 
@@ -1450,9 +1434,7 @@ trait BingoTrait
 
     function registerCartonPayment($operation, $room, $commerce, $seller, $playerLink, $paymentType, $lot, $coin, $amount, $paymentImage = '')
     {
-        date_default_timezone_set('America/Caracas');
-
-        return BingoCtnsPayment::create([
+                return BingoCtnsPayment::create([
             'operation' => $operation,
             'room' => $room,
             'commerce' => $commerce,
@@ -1468,9 +1450,7 @@ trait BingoTrait
 
     function registerPrizeCartonPayment($prizeCtn, $operation, $room, $commerce, $seller, $playerLink, $sender, $prizeType, $lot, $ctn, $coin, $amount, $paymentImage = '')
     {
-        date_default_timezone_set('America/Caracas');
-
-        return BingoPrizeCtnsPayment::create([
+                return BingoPrizeCtnsPayment::create([
             'prize_ctn' => $prizeCtn,
             'operation' => $operation,
             'room' => $room,

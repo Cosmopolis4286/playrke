@@ -91,8 +91,6 @@ class CustomerController extends Controller
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
 
-        date_default_timezone_set('America/Caracas');
-
         DB::beginTransaction();
 
         try {

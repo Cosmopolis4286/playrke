@@ -45,7 +45,6 @@ class InformationController extends Controller
     public function getTimeServer($timeZone = 'America/Caracas')
     {
         date_default_timezone_set($timeZone);
-
         return time();
     }
 }
