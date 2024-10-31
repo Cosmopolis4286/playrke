@@ -29,7 +29,7 @@ class CreateTransactionsTable extends Migration
             $table->timestamps();
 
             $table->foreign('customer')->references('id')->on('customers')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('user_id')->references('id')->on('customer_users')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('user_id')->references('id')->on('customers_users')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('game')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('game_mode')->references('id')->on('game_modes');
         });

@@ -62,9 +62,9 @@
                                             <sapn class="input-group-text" for="coin">Moneda</span>
                                         </div>
                                         <select class="custom-select" id="coin">
-                                            <option selected>Seleccionar</option>
+                                            <option value="" disabled selected>Seleccionar</option>
                                             @foreach ($coinsAvailable as $item)
-                                                <option value="{{ $item->id }}">
+                                                <option value="{{ encrypt($item->id) }}">
                                                     {{ $item->long_name }} ({{ $item->symbol }})
                                                 </option>
                                             @endforeach

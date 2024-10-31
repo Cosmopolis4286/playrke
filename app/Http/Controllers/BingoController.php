@@ -200,25 +200,38 @@ class BingoController extends Controller
 
     public function gamesRoomsCustomer($customerToken, $userToken, $coin = '')
     {
-        // Vista para todas las salas disponibles o en juego de un cliente 
-        if ($customerToken != $userToken) {
+        // Si el token del cliente es diferente del token del usuario, se valida el cliente
+        if ($customerToken !== $userToken) {
             $customer = $this->validateCustomer($customerToken, $userToken);
 
+            // Verifica si hubo error en la validación del cliente
             if (isset($customer['Error'])) {
                 return response()->json(['message' => $customer['Error']], 404);
             }
 
             $player = CustomerUser::getById($customer, $userToken, ['id', 'coin']);
-            if (!$coin) $coin = $player->coin;
+            $coin = $coin ? decrypt($coin) : $player->coin;
+
+            // Redirecciona si el valor de moneda no está disponible tras desencriptar
+            if (!$coin) {
+                return redirect()->route(
+                    'bingo.game-rooms-customer',
+                    ['customer' => $customer, 'user' => $userToken, 'coin' => encrypt($player->coin)]
+                );
+            }
         } else {
             $customer = Customer::getValueByToken($customerToken, 'id');
             $coin = decrypt($coin);
         }
 
-        // Obtener informacion de la vista del cliente
-        $viewData = self::getGamesRoomsView('customer', $customer, ['userToken' => $userToken, 'player' => $player ?? $customer, 'coin' => $coin ?? '']);
+        // Obtiene la información de vista del cliente
+        $viewData = self::getGamesRoomsView('customer', $customer, [
+            'userToken' => $userToken,
+            'player' => $player ?? $customer,
+            'coin' => $coin
+        ]);
 
-        // Retorna a vista con la informacion 
+        // Retorna la vista con la información
         return $this->handleViewData($viewData, 'customer');
     }
 
@@ -250,17 +263,22 @@ class BingoController extends Controller
 
             if ($userType == 'customer') {
 
-                $user = CustomerUser::getById($player, ['user_id', 'token']);
+                $user = CustomerUser::getById($player, ['user_id', 'token', 'coin']);
+                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($userTypeVal, $user->coin);
 
                 $customerResponse = $this->getUserBalanceFromCustomer($userTypeVal, [$user->user_id, $user->token], $coin);
 
                 if (isset($customerResponse->Error)) {
-                    return ['Error' => $customerResponse->Error];
+                    Log::error('Ha ocurrido un error al generar Carton del Cliente/Jugador: ' . $customerResponse->Error);
+                    return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error en la solicitud']);
                 }
 
-                if ($customerResponse->Data[0]->Amount < $data['numOfCtns'] * $room->ctn_price) {
+                // Monto total a pagar 
+                $amountPay = $data['numOfCtns'] * $room->ctn_price * $exchangeRate;
+
+                if ($customerResponse->Data[0]->Amount < $amountPay) {
                     // Validar saldo disponible
-                    return ['Error' => 'Saldo insuficiente'];
+                    return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
                 }
 
                 $data['customer'] = $userTypeVal;
@@ -505,7 +523,7 @@ class BingoController extends Controller
             'sort' => $sort,
             'encrypt' => $codeEncrypt,
             'random' => $randomKey,
-            'lastSixChips' => $dataChips['lastSixChips'],
+            'latestChips' => $dataChips['lastSixChips'],
             'allChips' => $dataChips['allChips'],
             'vanDraw' => $vanDraw ? $vanDraw->chip : '',
             'infoGame' => $infoGame,
@@ -705,7 +723,7 @@ class BingoController extends Controller
                 $coins = Coin::getCoinsById($coins);
 
                 $routeName = 'bingo.all-commerce-rooms';
-                $GMRoute =  route('bingo.commerce-game-rooms', ['user' => encrypt(Auth::id()), 'coin' => encrypt($coin)]);
+                $GMRoute =  route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt($coin)]);
 
                 $moreViewData = [
                     'wallet' => $this->Wallet($this->user()->id),
@@ -726,7 +744,7 @@ class BingoController extends Controller
 
                 $routeName = 'bingo.all-customer-rooms';
                 $GMRoute =  route(
-                    'bingo.customer-game-rooms',
+                    'bingo.game-rooms-customer',
                     ['customer' => $token, 'user' => $token, 'coin' => encrypt($coin)]
                 );
 

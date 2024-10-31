@@ -2,9 +2,7 @@
 
 namespace App\Traits;
 
-use App\Models\Commerce;
 use App\Models\User;
-use App\Models\UUIDCodes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -115,13 +113,14 @@ trait EncryptRKE
         return $uniqueId;
     }
 
-    function generateBase64Key($length = 32) {
+    function generateBase64Key($length = 32)
+    {
         // Generar bytes aleatorios
         $randomBytes = random_bytes($length);
-        
+
         // Codificar los bytes en base64
         $base64Key = base64_encode($randomBytes);
-        
+
         // Retornar la clave en formato Base64
         return $base64Key;
     }

@@ -6,7 +6,7 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
-                'resources/js/app.js',
+                //'resources/js/app.js',
                 'resources/js/rke/toast-notify.js',
                 'resources/js/rke/register.js',
                 'resources/js/rke/rke-crypt.js',
@@ -23,7 +23,7 @@ export default defineConfig({
         }),
         obfuscatorPlugin({
             include: [
-                'resources/js/app.js',
+                //'resources/js/app.js',
                 'resources/js/rke/toast-notify.js',
                 'resources/js/rke/register.js',
                 'resources/js/rke/rke-crypt.js',

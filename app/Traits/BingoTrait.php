@@ -35,7 +35,7 @@ trait BingoTrait
 
     public function newDraw($room, $roomUser = '')
     {
-                $sort = BingoDraw::where('room', $room)->count() === 75;
+        $sort = BingoDraw::where('room', $room)->count() === 75;
 
         if (!$sort) {
             $this->encryptDraw('bingo_draw_code', $room);
@@ -169,7 +169,7 @@ trait BingoTrait
 
     public function chipWin($room)
     {
-                DB::beginTransaction();
+        DB::beginTransaction();
 
         try {
             // Actualizar el estado de las fichas que cumplen la condición
@@ -254,7 +254,7 @@ trait BingoTrait
 
     public function recorrersorteo($room)
     {
-                $encrypted = BingoRoom::getValueById($room, 'encrypted');
+        $encrypted = BingoRoom::getValueById($room, 'encrypted');
 
         $result = false;
         do {
@@ -272,7 +272,7 @@ trait BingoTrait
 
     public function getInfoWinners($room, $roomUser)
     {
-                $room = BingoRoom::getRoomByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
+        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
 
         // Obtener tiempo de salida de la ficha bandera
         $chpVnTime = BingoDraw::where('win', 1)->where('room', $room->id)->value('time');
@@ -600,7 +600,7 @@ trait BingoTrait
 
     public function cartonStore($arrCtn)
     {
-                $roomID = $arrCtn['room'];
+        $roomID = $arrCtn['room'];
         $this->checkRoomClosure($roomID);
 
         $room = $this->getRoomDetails($roomID);
@@ -811,7 +811,7 @@ trait BingoTrait
 
     private function registerPrizeCtn($roomID, $cartons, $prizeType, $USDValue)
     {
-                $recordsToInsert = [];
+        $recordsToInsert = [];
         $playersToUpdate = [];
 
         foreach ($cartons as $ctn) {
@@ -1329,7 +1329,7 @@ trait BingoTrait
 
     public function checkRoomClosure($room = '')
     {
-                $query = BingoRoom::whereIn('status', [2, 3]);
+        $query = BingoRoom::whereIn('status', [2, 3]);
 
         if ($room) $query = $query->where('id', $room);
 
@@ -1365,7 +1365,7 @@ trait BingoTrait
 
     public function hideRoom() // Validar Salas Finalizadas
     {
-                $rooms = BingoRoom::where('status', 4)->get(['id', 'customer', 'date', 'time']);
+        $rooms = BingoRoom::where('status', 4)->get(['id', 'customer', 'date', 'time']);
 
         if (!count($rooms)) return true;
 
@@ -1434,7 +1434,7 @@ trait BingoTrait
 
     function registerCartonPayment($operation, $room, $commerce, $seller, $playerLink, $paymentType, $lot, $coin, $amount, $paymentImage = '')
     {
-                return BingoCtnsPayment::create([
+        return BingoCtnsPayment::create([
             'operation' => $operation,
             'room' => $room,
             'commerce' => $commerce,
@@ -1450,7 +1450,7 @@ trait BingoTrait
 
     function registerPrizeCartonPayment($prizeCtn, $operation, $room, $commerce, $seller, $playerLink, $sender, $prizeType, $lot, $ctn, $coin, $amount, $paymentImage = '')
     {
-                return BingoPrizeCtnsPayment::create([
+        return BingoPrizeCtnsPayment::create([
             'prize_ctn' => $prizeCtn,
             'operation' => $operation,
             'room' => $room,

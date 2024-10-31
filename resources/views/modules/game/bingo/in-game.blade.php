@@ -49,7 +49,7 @@
         const soundWin = $('#winner')[0];
         soundNext.muted = true;
         soundWin.muted = true;
-        let lastSixChips = @json($lastSixChips);
+        let latestChips = @json($latestChips);
         let timeServ = @json($timeServ);
         let allChips = @json($allChips);
         let allChipsSet = new Set(allChips);
@@ -61,7 +61,9 @@
             const userTypeVal = @json($userTypeVal);
             const coinID = @json($coinID);
             const ctnPrice = @json($ctnPrice);
-            let info = false;
+            const commerceDetailsURL =
+                `{{ route('commerce.getPaymentCommerceDetails', ['commerce' => ':commerce', 'coin' => ':coin']) }}`;
+            const generateCartonURL = `{{ route('bingocash.generateCarton') }}`;
             let amount = ctnPrice;
         </script>
         @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'])

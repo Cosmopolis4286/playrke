@@ -39,7 +39,7 @@ function handleResize(e) {
 window.addEventListener('resize', handleResize, true);
 
 document.body.addEventListener('click', function () {
-    if (actSound == 0 && endWin == 0 && lastSixChips && roomStatus == 3) {
+    if (actSound == 0 && endWin == 0 && latestChips && roomStatus == 3) {
         $('#icon-volume').toggleClass('fa-volume-high fa-volume-xmark');
         actSound = 1;
         soundNext.muted = false;
@@ -75,17 +75,22 @@ $('#btn-volume').click(function () {
 });
 
 async function getGameData() {
-    if (vanChange === 1 && endWin === 0) {
+    if (vanChange && endWin === 0) {
         try {
             const data = await $.getJSON(`${preRoute}bingocash/get/chips/${encrypted}`, {
                 '_token': $("#5K3_70K").val()
             });
 
+            // Redefinir variables
+            latestChips = data.latestChips;
+            allChips = data.allChips;
+            timeServ = Number(data.timeServ);
+            vanChange = false;
+            processChips();
+
             await Promise.all([
-                handleLatestChips(data.lastSixChips),
-                renderChipsView(data.allChips),
-                //timeServ = Number(data.timeServ),
-                vanChange = 0
+                handleLatestChips(),
+                renderChipsView()
             ]);
 
         } catch (error) {
@@ -94,7 +99,7 @@ async function getGameData() {
     }
 }
 
-function handleLatestChips(latestChips) {
+function handleLatestChips() {
     return new Promise((resolve) => {
 
         $("#cont-last-chips").empty();
@@ -170,7 +175,7 @@ function renderChipsView(arr, arrow) {
 }
 
 window.onblur = () => {
-    vanChange = 1;
+    vanChange = true;
 };
 
 window.onfocus = function () {
@@ -229,11 +234,9 @@ function decryptChp(code) {
     return +numDecrypt;
 }
 
-let count = 0;
-
 function checkExitOfToken() {
     // Itera desde `count` hasta el final de `arrDraw`
-    for (let i = count; i < arrDraw.length; i++) {
+    for (let i = 0; i < arrDraw.length; i++) {
         const chipTime = +arrDraw[i].time;
 
         // Verifica si `chipTime` es válido y menor o igual a `timeServ`
@@ -242,26 +245,26 @@ function checkExitOfToken() {
 
             // Solo llama a `getNewChip` si el chip aún no está en `allChipsSet`
             if (!allChipsSet.has(nextChip)) {
-                count = i + 1; // Actualiza el índice
+                console.log('nextChip', nextChip);
                 getNewChip(nextChip);
-                break; // Sale del bucle al encontrar el primer chip válido
+                arrDraw.splice(i, 1);
+                break; //
             }
         }
     }
 }
 
 function processChips() {
-    if (endWin && roomStatus != 3) return;
+    if (endWin) return;
 
     const intervalId = setInterval(() => {
-        checkExitOfToken();
-        // Condiciones de parada
-        if (lastSixChips.includes(chpLast) || endWin === 1) {
+        if (latestChips.includes(chpLast) || endWin === 1 || vanChange) {
             clearInterval(intervalId);
-            if (startTime === timeServ) location.reload();
             return;
         }
+        if (roomStatus == 3) checkExitOfToken();
         timeServ++;
+        console.log('timeServ', timeServ);
     }, 1000);
 }
 
@@ -269,7 +272,7 @@ const r4nd0m = $('#random').val();
 
 async function getNewChip(newChip) {
 
-    if (newChip != undefined && !lastSixChips.includes(newChip)) {
+    if (newChip != undefined && !latestChips.includes(newChip)) {
 
         const arrDrawImg = $('.img-chip');
 
@@ -299,11 +302,11 @@ async function getNewChip(newChip) {
         // Eliminar el chip más antiguo si hay 6 chips
         if (arrDrawImg.length === 6) {
             $(`#${arrDrawImg[5].id}`).remove();
-            lastSixChips.pop();
+            latestChips.pop();
         }
 
         // Actualizar los chips actuales y el set
-        lastSixChips.unshift(Number(newChip));
+        latestChips.unshift(Number(newChip));
         allChips.unshift(Number(newChip));
         allChipsSet = new Set(allChips);
 
@@ -446,9 +449,10 @@ $(document).on("click", "#btn-view-winners", function () {
 
 $(async function () {
     try {
-        if (lastSixChips.length) {
+        console.log('latestChips', latestChips);
+        if (latestChips.length) {
             await Promise.all([
-                handleLatestChips(lastSixChips),
+                handleLatestChips(latestChips),
                 renderChipsView(allChips)
             ]);
 

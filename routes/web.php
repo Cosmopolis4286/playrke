@@ -372,12 +372,12 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('rooms/cust/{user}/{coin?}', [BingoController::class, 'allCustomerRooms'])->name('all-customer-rooms');
 
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
-        ->middleware(['auth', 'customer-commerce'])->name('admin-game-rooms');
+        ->middleware(['auth', 'customer-commerce'])->name('game-rooms-admin');
 
     Route::get('game-rooms/comm/{user}/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
-        ->middleware(['auth', 'customer-commerce'])->name('commerce-game-rooms');
+        ->middleware(['auth', 'customer-commerce'])->name('game-rooms-commerce');
 
-    Route::get('game-rooms/cust/{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('customer-game-rooms');
+    Route::get('game-rooms/cust/{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('game-rooms-customer');
 
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');

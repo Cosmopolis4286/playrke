@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateCustomerUsersTable extends Migration
+class CreateCustomersUsersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,7 +13,7 @@ class CreateCustomerUsersTable extends Migration
      */
     public function up()
     {
-        Schema::create('customer_users', function (Blueprint $table) {
+        Schema::create('customers_users', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('customer');
             $table->string('user_id');
@@ -29,10 +29,10 @@ class CreateCustomerUsersTable extends Migration
 
     public function down()
     {
-        Schema::table('customer_users', function (Blueprint $table) {
+        Schema::table('customers_users', function (Blueprint $table) {
             $table->dropForeign(['country']);
             $table->dropForeign(['customer']);
         });
-        Schema::dropIfExists('customer_users');
+        Schema::dropIfExists('customers_users');
     }
 }

@@ -18,6 +18,7 @@ use App\Models\BingoRoom;
 use App\Models\BingoRoomConfig;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
+use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\SellerCountriesCoins;
 use App\Models\UserType;
@@ -700,11 +701,19 @@ class CommerceController extends Controller
 
     public function getPaymentCommerceDetails($commerce, $coin)
     {
-        $commerce = Commerce::getById(decrypt($commerce), ['name', 'user']);
-        // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda desencriptada
-        $data = $this->getPaymentDetailsByUserId($commerce->user, decrypt($coin));
+        $commerceID = decrypt($commerce);
+        $coin = decrypt($coin);
 
-        if ($data) return response()->json(['data' => $data, 'name' => $commerce->name]);
+        $commerce = Commerce::getById($commerceID, ['name', 'user']);
+        // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda desencriptada
+        $paymentDetails = $this->getPaymentDetailsByUserId($commerce->user, $coin);
+
+        if (!$paymentDetails) return response()->json([]);
+
+        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerceID, $coin);
+        $commerce = $commerce->name;
+
+        return response()->json(compact('commerce', 'paymentDetails', 'exchangeRate'));
     }
 
     public function ctnsSold($coin, $dateFilter = "today")

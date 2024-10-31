@@ -136,7 +136,7 @@ trait UserVal
                 return response()->json(['error' => 'Usuario no encontrado.'], 404);
             }
 
-            if (!in_array($user->user_type, [2, 3, 4])) {
+            if (!in_array($user->user_type, [2, 3, 5])) {
                 return response()->json(['error' => 'Tipo de usuario no válido.'], 400);
             }
 

@@ -11,7 +11,7 @@ trait CustomerTrait
 {
     public function registerUserByCustomer($customer, $userID, $token, $country, $coin)
     {
-                DB::beginTransaction();
+        DB::beginTransaction();
 
         try {
 

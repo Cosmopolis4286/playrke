@@ -1,3 +1,9 @@
+
+let symbolSale = coinSym;
+let coinSale = '';
+let ctnPriceSale = ctnPrice;
+let numCtns = $("#num-ctns").val() ?? 1;
+
 function toggleModalInfo() {
     $("#card-form-buy-ctns").toggleClass('hide-elem');
     $("#cont-btn-buy-ctns, #game-clock").toggle();
@@ -7,44 +13,57 @@ function toggleSpinnerBtn() {
     $("#spinner-btn-buy-ctns-confirm").toggleClass('hide-elem');
 }
 
-function setAmount(amount) {
-    if (userType == 'commerce') $("#sent-amount").text(`${coinSym} ${amount}`);
-    $("#total-amount").text(`${coinSym} ${amount}`);
+function setAmount() {
+    const formattedAmount = (amount).toFixed(2);
+
+    if (userType === 'commerce') $("#sent-amount").text(`${symbolSale} ${formattedAmount}`);
+    $("#total-amount").text(`${symbolSale} ${formattedAmount}`);
 }
 
-$(document).on("click", "#cont-btn-buy-ctns", function () {
-    if (!info) {
-        $("#ctn-price-coin-symbol").text(coinSym);
-        $("#ctn-price-amount").text(ctnPrice);
+function getCommerceDetails(coinSale) {
+    const url = commerceDetailsURL.replace(':commerce', userTypeVal).replace(':coin', coinSale);
+    $.getJSON(url, { _token: $("#5K3_70K").val() })
+        .done((response) => {
+            const { commerce, paymentDetails, exchangeRate } = response;
 
-        if (userType == 'commerce') {
-            $.getJSON(`{{ url('commerce/getPaymentCommerceDetails') }}/${userTypeVal}/${coinID}`, {
-                '_token': "{{ csrf_token() }}"
-            })
-                .done(res => {
-                    const data = res.data;
+            if (paymentDetails) {
+                symbolSale = paymentDetails.coin;
+                ctnPriceSale = ctnPrice * exchangeRate;
+                amount = ctnPriceSale * numCtns;
+                setAmount();
+                $("#commerce-name").text(commerce);
+                switchPaymentMethod(paymentDetails.code, paymentDetails);
+                $("#commerce-details").removeClass('hide-elem');
+            } else {
+                console.error('Error: Datos de pago no disponibles');
+            }
+        })
+        .fail((jqXHR, textStatus, errorThrown) => {
+            console.error(`Error: ${textStatus}`, errorThrown);
+            // Manejar el error adecuadamente
+        });
+}
 
-                    setAmount(amount);
-                    $("#commerce-name").text(name);
+function handleAmount() {
+    $("#ctn-price-coin-symbol").text(symbolSale);
+    $("#ctn-price-amount").text(ctnPrice);
+}
 
-                    if (true) {
-                        switchPaymentMethod(data.code, data);
-                        $("#commerce-details").removeClass('hide-elem');
-                    }
-                })
-                .fail((jqXHR, textStatus, errorThrown) => {
-                    console.error('Error:', textStatus, errorThrown);
-                });
-        } else {
-            setAmount(amount);
-        }
-    }
-    toggleModalInfo();
+$(document).on("change", "#coin", function () {
+    coinSale = $(this).val();
+    if (coinSale) getCommerceDetails(coinSale);
 });
 
 $(document).on("change", "#num-ctns", function () {
-    amount = ctnPrice * $(this).val();
-    setAmount(amount);
+    numCtns = $(this).val();
+    amount = ctnPriceSale * numCtns;
+    console.log(ctnPrice);
+    setAmount();
+});
+
+$(document).on("click", "#cont-btn-buy-ctns", function () {
+    handleAmount();
+    toggleModalInfo();
 });
 
 $(document).on("click", "#btn-cancel-buy-ctns", function () {
@@ -52,11 +71,6 @@ $(document).on("click", "#btn-cancel-buy-ctns", function () {
 });
 
 $(document).on("click", "#btn-buy-ctns-confirm", function () {
-
-    if (!$("#num-ctns").val()) {
-        $("#num-ctns").val(1);
-    }
-
     if (userType == 'commerce') {
         if (!$("#purchase-code").val()) {
             $("#purchase-code").focus();
@@ -69,9 +83,9 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
     }
 
     $.ajax({
-        url: "{{ route('bingocash.generateCarton') }}",
+        url: generateCartonURL,
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            'X-CSRF-TOKEN': $("#5K3_70K").val()
         },
         type: 'post',
         dataType: 'json',
@@ -81,7 +95,7 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
             user_type_val: userTypeVal,
             player: player,
             coin: coinID,
-            num_ctns: $("#num-ctns").val()
+            num_ctns: numCtns
         },
         beforeSend: function () {
             toggleSpinnerBtn();
@@ -132,12 +146,12 @@ function countdownt(startTime) {
 
     // Si la cuenta regresiva ha terminado, muestra un mensaje
     if (distance <= 0) {
-        $('#game-clock').html("¡La cuenta regresiva ha terminado!");
+        $('#game-clock').html("<small>¡La cuenta regresiva ha terminado!</small>");
         if (waitingTime) {
             clearInterval(waitingTime);
             setTimeout(function () {
                 location.reload();
-            }, 3000);
+            }, 2500);
         }
     } else {
         if (days == 0) $('#cont-D').hide();
@@ -173,4 +187,3 @@ $(document).ready(function () {
 
 window.toggleModalInfo = toggleModalInfo;
 window.toggleSpinnerBtn = toggleSpinnerBtn;
-window.setAmount = setAmount;
