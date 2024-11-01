@@ -274,9 +274,9 @@ class BingoController extends Controller
                 }
 
                 // Monto total a pagar 
-                $amountPay = $data['numOfCtns'] * $room->ctn_price * $exchangeRate;
+                $saleAmount = $room->ctn_price * $exchangeRate * $data['numOfCtns'];
 
-                if ($customerResponse->Data[0]->Amount < $amountPay) {
+                if ($customerResponse->Data[0]->Amount < $saleAmount) {
                     // Validar saldo disponible
                     return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
                 }
@@ -291,13 +291,13 @@ class BingoController extends Controller
 
                     // Determinar la columna de saldo en función de la moneda
                     $columnBalance = $coin == 1 ? 'usdt' : 'balance';
-                    $exchangeRate = ExchangeRate::getLastValueByCoin($coin);
+                    $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($userTypeVal, $coin);
 
-                    $saleAmount = ($room->ctn_price * $exchangeRate) * $data['numOfCtns'];
+                    $saleAmount = $room->ctn_price * $exchangeRate * $data['numOfCtns'];
                     $balance = Wallet::getValue($player, $columnBalance);
 
                     if ($balance < $saleAmount) {
-                        return ['Error' => 'Saldo Insuficiente'];
+                        return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
                     }
                 } else {
                     $data['playerLink'] =  $player ?? null;
@@ -336,14 +336,14 @@ class BingoController extends Controller
                         $this->validateTransaction($userTypeVal);
                         DB::commit();
                     } catch (\Exception $e) {
-                        dd($e->getMessage());
                         DB::rollBack();
-                        Log::error('Ha ocurrido un error: ' . $e->getMessage());
+                        Log::error('Ha ocurrido un error durante la transacción: ' . $e->getMessage());
+                        return response()->json(['type' => 'warning', 'message' => 'Error en la transacción']);
                     }
                 }
 
                 $jackpot = $this->convertPrizeValue($roomId, $coin);
-                return response()->json(['jackpot' => $jackpot, 'msg_type' => 'success', 'message' => 'Proceso efectuado con exito']);
+                return response()->json(['jackpot' => $jackpot, 'type' => 'success', 'message' => 'Proceso efectuado con exito']);
             } else {
                 Session::flash('message', 'Proceso efectuado con exito');
                 Session::flash('playerLink',  $cartonStore);
