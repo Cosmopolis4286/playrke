@@ -88,9 +88,9 @@
             gameMode.empty();
 
             if (type == 1) {
-                jackpotType.append(`<option value="" selected>Seleccionar:</option>`);
+                jackpotType.append(`<option value="" disabled selected>Seleccionar:</option>`);
                 if (arrGameModes.length > 1) {
-                    gameMode.append(`<option value="" selected>Seleccionar:</option>`);
+                    gameMode.append(`<option value="" disabled selected>Seleccionar:</option>`);
                 }
             }
 

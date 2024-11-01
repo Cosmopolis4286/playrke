@@ -211,7 +211,7 @@
                                 <div class="col-sm-6">
                                     <label class="lb_in">Pais</label>
                                     <select name="coin" name="coin" class="form-control" required>
-                                        <option value="">Seleccionar:</option>
+                                        <option value=""disabled selected>Seleccionar:</option>
                                             <option value="29">Brasil</option>
                                             <option value="234">Venezuela</option>
                                     </select>
@@ -219,7 +219,7 @@
                                 <div class="col-sm-6">
                                     <label class="lb_in">Moneda</label>
                                     <select name="coin" name="coin" class="form-control" required>
-                                        <option value="">Seleccionar:</option>
+                                        <option value="" disabled selected>Seleccionar:</option>
                                         @foreach ($coins as $coin)
                                             <option value="{{ $coin->id }}">{{ $coin->name }}</option>
                                         @endforeach

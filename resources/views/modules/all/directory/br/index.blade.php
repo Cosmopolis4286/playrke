@@ -101,7 +101,7 @@
         });
 
         function insertBanks(type, data = '') {
-            if (type == 1) bank.append(`<option value="" selected>Seleccionar:</option>`);
+            if (type == 1) bank.append(`<option value="" disabled selected>Seleccionar:</option>`);
 
             $.each(banks, function(index, item) {
                 const isSelected = (type == 2 && item.code == data.bank) ? 'selected' : '';
@@ -137,7 +137,7 @@
 
             $("#pix-key, #bank").empty();
 
-            if (type == 1) pixKey.append(`<option value="" selected>Seleccionar:</option>`);
+            if (type == 1) pixKey.append(`<option value=""  disabled selected>Seleccionar:</option>`);
 
             /// Tipo Documento
             $.each(arrPixKeys, function(index, item) {

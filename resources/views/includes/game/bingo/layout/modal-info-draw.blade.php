@@ -88,7 +88,7 @@
                             @if ($userType == 'commerce')
                                 <div class="form-group">
                                     <input type="text" class="form-control" id="purchase-code" name="purchase_code"
-                                        placeholder="Código de Compra" required>
+                                        placeholder="Código de Compra" required maxlength="8">
                                     <span class="mt-2 badge badge-light" style="cursor: pointer; font-size: 11.5px;">
                                         ¿No tienes un código de compra?</span>
                                 </div>

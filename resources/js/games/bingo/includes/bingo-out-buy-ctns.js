@@ -17,6 +17,7 @@ function setAmount() {
     const formattedAmount = (amount).toFixed(2);
 
     if (userType === 'commerce') $("#sent-amount").text(`${symbolSale} ${formattedAmount}`);
+
     $("#total-amount").text(`${symbolSale} ${formattedAmount}`);
 }
 
@@ -30,6 +31,10 @@ function getCommerceDetails(coinSale) {
                 symbolSale = paymentDetails.coin;
                 ctnPriceSale = ctnPrice * exchangeRate;
                 amount = ctnPriceSale * numCtns;
+
+                $("#ctn-price-coin-symbol").text(symbolSale);
+                $("#ctn-price-amount").text((amount).toFixed(2));
+
                 setAmount();
                 $("#commerce-name").text(commerce);
                 switchPaymentMethod(paymentDetails.code, paymentDetails);

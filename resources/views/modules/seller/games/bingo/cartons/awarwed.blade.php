@@ -133,7 +133,7 @@
     ])
 @endsection
 @section('scripts')
-    @vite('resources/js/games/bingo/includes/payment-confirm-button.js')
+    @vite('resources/js/rke/payment-confirm-button.js')
     <script>
         const name = '{{ $name }}';
 

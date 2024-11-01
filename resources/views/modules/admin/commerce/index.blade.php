@@ -168,7 +168,7 @@
             update = false;
             $('#username, #email').attr('readonly', false);
 
-            if (type == 1) country.append(`<option value="" selected>Seleccionar:</option>`);
+            if (type == 1) country.append(`<option value="" disabled selected>Seleccionar:</option>`);
 
             $.each(arrCountries, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.commerce.country) ? 'selected' : '';

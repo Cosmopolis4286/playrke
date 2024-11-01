@@ -93,7 +93,7 @@
                 documentType.append(`<option value="${IDType.id}" ${isSelected}>${IDType.value}</option>`);
             });
 
-            if (type == 1) listBanks.append(`<option value="" selected>Seleccionar:</option>`);
+            if (type == 1) listBanks.append(`<option value="" disabled selected>Seleccionar:</option>`);
             /// Obtener Bancos
             $.each(arrBanks, function(index, bank) {
                 const isSelected = (type == 2 && bank.id == data.bank) ? 'selected' : '';

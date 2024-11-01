@@ -255,7 +255,7 @@ class BingoController extends Controller
 
             $userTypeVal = decrypt($request->user_type_val);
             $coin = decrypt($request->coin);
-            $player = decrypt($request->player);
+            $player = !empty($request->player) ? decrypt($request->player) : null;
 
             $isLogin = $request->is_login ?? false;
             $data['isLogin'] = $isLogin;
@@ -443,7 +443,7 @@ class BingoController extends Controller
                     $coinsAvailable = Coin::getCoinsById($commerceCoinsAvailable, ['id', 'symbol', 'long_name']);
 
                     $moreViewData = [
-                        'player' => $player ?? false,
+                        'player' => $player ?? '',
                         'saleLink' => $saleLink,
                         'coinsAvailable' => $coinsAvailable
                     ];

@@ -160,7 +160,7 @@
         const rooms = @json($rooms);
         const numCtns = $("#num-ctns");
         const country = $("#country");
-        const sellerCommn = Number('<?php echo $commn; ?>');
+        const sellerCommn = @json($commn);
         const form = $("#form-ctns");
         const btnGenerate = $("#btn-generate-ctn");
         let roomVal = '';
@@ -187,14 +187,30 @@
         $("#phone").mask("00000000000");
 
         $(function() {
-            room.append(`<option value="" selected>Seleccionar fecha:</option>`);
+            room.append(`<option value="" disabled selected>Seleccionar fecha:</option>`);
+
+            // Crear los grupos de opciones
+            let privateGroup = $('<optgroup label="Salas Privadas"></optgroup>');
+            //let publicGroup = $('<optgroup label="Salas Públicas"></optgroup>');
+
             // Iterar sobre los elementos rooms
             $.each(rooms, function(index, item) {
                 // Convertir la fecha a un formato legible
                 let formattedDate = convertAndDisplay(item.unix_date);
                 // Formatear la opción con la fecha y la hora
-                room.append(`<option value="${item.encrypted}">${formattedDate}</option>`);
+                let option = `<option value="${item.encrypted}">${formattedDate}</option>`;
+
+                // Agregar a los grupos correspondientes
+                // if (!item.is_private) { // Asegúrate de que `is_private` exista en tus datos
+                privateGroup.append(option);
+                // } else {
+                // publicGroup.append(option);
+                //}
             });
+
+            // Anexar los grupos al elemento select
+            room.append(privateGroup);
+            //room.append(publicGroup);
 
             room.prop('disabled', false);
         });
@@ -306,7 +322,7 @@
         });
 
         function insertCountries(arr) {
-            country.empty().append('<option value="">Selecciona el País:</option>');
+            country.empty().append('<option value="" disabled selected>Selecciona el País:</option>');
 
             arr.forEach(item => {
                 country.append(`<option value="${item.id}">${item.name}</option>`);

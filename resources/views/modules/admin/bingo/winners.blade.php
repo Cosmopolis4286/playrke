@@ -149,7 +149,7 @@
                                 <div class="col-sm-6">
                                     <label class="lb_in">Moneda</label>
                                     <select name="coin" name="coin" class="form-control" required>
-                                        <option value="">Seleccionar:</option>
+                                        <option value="" disabled selected>Seleccionar</option>
                                         @foreach ($coins as $coin)
                                             <option value="{{ $coin->id }}">{{ $coin->name }}</option>
                                         @endforeach
@@ -167,13 +167,12 @@
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="lb_in">Comision</label>
-                                    <input type="number"name="val_com" class="form-control" placeholder="%Com"
-                                        required>
+                                    <input type="number"name="val_com" class="form-control" placeholder="%Com" required>
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="lb_in">Tipo jackpot</label>
                                     <select name="type_boat" class="type_boat form-control" required>
-                                        <option value="">Seleccionar:</option>
+                                        <option value="" disabled selected>Seleccionar</option>
                                         <option value="0">Acumulativo</option>
                                         <option value="1">Valor Fijo</option>
                                     </select>
@@ -228,7 +227,7 @@
                                 <div class="col-sm-6 coin_div">
                                     <label class="lb_in">Moneda</label>
                                     <select name="coin" id="coin" class="form-control">
-                                        <option value="">Seleccionar:</option>
+                                        <option value="" disabled selected>Seleccionar</option>
                                         @foreach ($coins as $coin)
                                             <option value="{{ $coin->id }}">{{ $coin->name }}</option>
                                         @endforeach
@@ -252,7 +251,7 @@
                                 <div class="col-sm-6 type_boat_div">
                                     <label class="lb_in">Tipo jackpot</label>
                                     <select name="type_boat" class="type_boat form-control">
-                                        <option value="">Seleccionar:</option>
+                                        <option value="" disabled selected>Seleccionar</option>
                                         <option value="0">Acumulativo</option>
                                         <option value="1">Valor Fijo</option>
                                     </select>

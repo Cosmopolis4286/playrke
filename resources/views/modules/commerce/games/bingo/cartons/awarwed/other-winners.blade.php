@@ -31,7 +31,7 @@
     ])
 @endsection
 @section('scripts')
-    @vite('resources/js/games/bingo/includes/payment-confirm-button.js')
+    @vite('resources/js/rke/payment-confirm-button.js')
     <script>
         function getPaymentCommerceDetails(commerce, coin) {
             $.getJSON(`{{ asset('') }}commerce/getPaymentCommerceDetails/${commerce}/${coin}`, {
