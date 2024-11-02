@@ -28,7 +28,8 @@ class DatabaseSeeder extends Seeder
             JackpotTypeSeeder::class,
             GameJackpotTypeSeeder::class,
             PixKeysSeeder::class,
-            SettingsSeeder::class
+            SettingsSeeder::class,
+            UsersSeeder::class
         ]);
     }
 }

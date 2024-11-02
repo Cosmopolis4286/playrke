@@ -42,18 +42,14 @@
     </div>
     <div class="form-group col-12">
         <label for="customer-key">Llave de Conexión*</label>
-        <input type="text" id="customer-key" name="customer_key" class="form-control" required
-            value="{{ old('customer_key') }}">
+        <div class="input-group">
+            <input type="text" id="customer-key" name="customer_key" class="form-control" required
+                value="{{ old('customer_key') }}">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" id="button-addon2">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
+            </div>
+        </div>
     </div>
-    {{-- <div class="form-group col-sm-6">
-        <label for="coin">Moneda*</label>
-        <input type="text" id="coin-text" class="form-control" disabled />
-        <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}" />
-    </div>
-    <div id="cont-other-coins" class="form-group col-sm hide-elem">
-        <label for="other-coins">Otras Monedas:</label>
-        <select multiple id="other-coins" name="other_coins[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
-            class="select2 form-control">
-        </select>
-    </div> --}}
 </div>

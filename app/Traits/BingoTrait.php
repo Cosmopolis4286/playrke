@@ -356,7 +356,9 @@ trait BingoTrait
     // Función para crear el lote de cartones
     private function createCtnsLot($arrCtn, $exchangeRate, $saleAmount)
     {
-        return BingoCtnsLot::create([
+        $currentTime = now();
+
+        return BingoCtnsLot::insertGetId([
             'customer' => $arrCtn['customer'] ?? null,
             'commerce' => $arrCtn['commerce'] ?? null,
             'seller' => $arrCtn['seller'] ?? null,
@@ -369,7 +371,9 @@ trait BingoTrait
             'status' => 0,
             'ctns' => $arrCtn['numOfCtns'],
             'sale_amount' => $saleAmount,
-        ])->id;
+            'created_at' => $currentTime,
+            'updated_at' => $currentTime,
+        ]);
     }
 
     // Función optimizada para generar y almacenar cartones de bingo usando hash

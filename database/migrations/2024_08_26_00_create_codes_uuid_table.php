@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('code_uuid', function (Blueprint $table) {
+        Schema::create('uuid_codes', function (Blueprint $table) {
             $table->id();
-            $table->string('code_uuid', 36);
+            $table->string('code', 36);
             $table->unsignedBigInteger('user_type');
             $table->boolean('status')->default(1);
             $table->timestamps();
 
-            $table->foreign('user_type')->references('id')->on('user_type')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('user_type')->references('id')->on('user_type')->onUpdate('cascade');
         });
     }
 
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('code_uuids');
+        Schema::dropIfExists('uuid_codes');
     }
 };

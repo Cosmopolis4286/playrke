@@ -4,7 +4,7 @@
  @section('body')
      <li class="nav-item has-treeview">
          <a href="{{ route('directory.index', ['countryCode' => strtolower(session('countryCode'))]) }}"
-             class="nav-link  {{ !Route::is('directory.index') ?: 'active' }}">
+             class="nav-link {{ !Route::is('directory.index') ?: 'active' }}">
              <i class="nav-icon fas fa-university"></i>
              <p>Directorio</p>
          </a>
@@ -20,21 +20,21 @@
          <ul class="nav nav-treeview">
              <li class="nav-item">
                  <a href="{{ route('seller.cartonGenerate') }}"
-                     class="nav-link  {{ !Route::is('seller.cartonGenerate') ?: 'active' }}">
+                     class="nav-link {{ !Route::is('seller.cartonGenerate') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Generar Cartón</p>
                  </a>
              </li>
              <li class="nav-item">
                  <a href="{{ route('seller.ctnsSold', ['dateFilter' => 'today', 'coin' => encrypt($wallet->Coin->id)]) }}"
-                     class="nav-link  {{ !Route::is('seller.ctnsSold') ?: 'active' }}">
+                     class="nav-link {{ !Route::is('seller.ctnsSold') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Vendidos</p>
                  </a>
              </li>
              <li class="nav-item">
                  <a href="{{ route('seller.ctnsAwarded', ['dateFilter' => 'today', 'coin' => encrypt($wallet->Coin->id)]) }}"
-                     class="nav-link  {{ !Route::is('seller.ctnsAwarded') ?: 'active' }}">
+                     class="nav-link {{ !Route::is('seller.ctnsAwarded') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Premiados</p>
                  </a>
@@ -43,7 +43,7 @@
      </li>
      <li class="nav-item has-treeview ">
          <a href="{{ route('seller.reportSalesRooms', ['dateFilter' => 'today', 'coin' => encrypt($wallet->Coin->id)]) }}"
-             class="nav-link  {{ !Route::is('seller.reportSalesRoom') ?: 'active' }}">
+             class="nav-link {{ !Route::is('seller.reportSalesRoom') ?: 'active' }}">
              <i class="nav-icon fa-solid fa-money-check-dollar"></i>
              <p>Reporte de Ventas</p>
          </a>

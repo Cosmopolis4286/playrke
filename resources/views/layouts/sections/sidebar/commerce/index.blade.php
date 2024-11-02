@@ -35,7 +35,7 @@
             @if (Auth::user()->user_type == 3)
                 <li class="nav-item">
                     <a href="{{ route('bingo.all-commerce-rooms', ['coin' => encrypt(1), 'user' => encrypt(Auth::id())]) }}"
-                        title="Salas Bingo" class="nav-link">
+                        title="Salas Bingo" class="nav-link {{ !Route::is('bingo.all-commerce-rooms') ?: 'active' }}">
                         <i class="fa-solid fa-caret-right nav-icon"></i>
                         <p>Salas</p>
                     </a>
@@ -43,21 +43,22 @@
             @endif
             <li class="nav-item">
                 <a href="{{ route('commerce.getBingoWinnersByCommerce', ['dateFilter' => 'today']) }}" title="Ganadores"
-                    class="nav-link">
+                    class="nav-link {{ !Route::is('commerce.getBingoWinnersByCommerce') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Ganadores</p>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('commerce.ctnsSold', ['coin' => encrypt($wallet->Coin->id)]) }}" title="Cartones Vendidos"
-                    class="nav-link">
+                <a href="{{ route('commerce.ctnsSold', ['coin' => encrypt($wallet->Coin->id)]) }}"
+                    title="Cartones Vendidos" class="nav-link {{ !Route::is('commerce.ctnsSold') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Cartones</p>
                 </a>
             </li>
             <li class="nav-item">
                 <a href="{{ route('commerce.reportSalesRooms', ['dateFilter' => 'today', 'coin' => encrypt($wallet->Coin->id)]) }}"
-                    title="Reporte de Ventas" class="nav-link"> <i class="fa-solid fa-caret-right nav-icon"></i>
+                    title="Reporte de Ventas" class="nav-link {{ !Route::is('commerce.reportSalesRooms') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Reporte de Ventas</p>
                 </a>
             </li>
