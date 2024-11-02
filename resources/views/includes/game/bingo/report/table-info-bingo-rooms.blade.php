@@ -34,7 +34,7 @@
                             $roomRoute = route('bingocash.out-game-rke', ['dateFilter' => 'today']);
                         } else {
                             $roomRoute = route('bingocash.out-game-commerce', [
-                                'commerce' => encrypt($userID),
+                                'commerce' => $commerceUUID,
                                 'room' => $roomID,
                             ]);
                         }

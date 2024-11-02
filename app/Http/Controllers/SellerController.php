@@ -329,7 +329,7 @@ class SellerController extends Controller
 
         $this->checkRoomClosure();
 
-        $rooms = BingoRoom::select('encrypted', 'unix_date')
+        $rooms = BingoRoom::select('encrypted', 'all_for_one', 'unix_date')
             ->where('status', 2)->where('game_mode', 2)->where(function ($query) use ($seller) {
                 $query->where('commerce', $seller->commerce)
                     ->orWhere('all_for_one', 1);

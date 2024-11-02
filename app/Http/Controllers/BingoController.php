@@ -27,6 +27,7 @@ use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\ExchangeRate;
 use App\Models\Seller;
+use App\Models\UserPurchaseCodes;
 use App\Traits\BingoTrait;
 use App\Traits\CustomerTrait;
 use App\Traits\Filters;
@@ -300,6 +301,15 @@ class BingoController extends Controller
                         return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
                     }
                 } else {
+                    if ($request->purchase_code) {
+                        // Verificar si el Codigo de Compra es Valido
+                        $purchaseCode = UserPurchaseCodes::existsPurchaseCode($request->purchase_code);
+
+                        if (!$purchaseCode) {
+                            return response()->json(['type' => 'warning', 'message' => 'Codigo de Compra no existe']);
+                        }
+                    }
+
                     $data['playerLink'] =  $player ?? null;
 
                     if ($request->user_in_game) {
@@ -599,13 +609,25 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, 'commerce');
     }
 
-    public function outGameCommerce($commerce, $room = '', $coin = '')
+    public function outGameCommerce($commerce, $room = '')
     {
         // Vista del el juego para un comercio especifico solo para comprar
         $commerce = Commerce::getValueByCodeUUID($commerce, 'id') ?? decrypt($commerce);
 
         // Redireccionar al Login si no hay coincidencia    
         if (!$commerce) return redirect()->back();
+
+        if (!$room) {
+            // Redirecciona si no se envio un ID de sala
+            return redirect()->route('bingocash.out-game-commerce', ['commerce' => $commerce, 'room' => $room]);
+        } else {
+
+            $roomCommerce = BingoRoom::getRoomByEncrypted($room, ['id', 'commerce']);
+
+            if (!$roomCommerce || ($roomCommerce && $roomCommerce->commerce != $commerce)) {
+                if (!$commerce) return redirect()->back();
+            }
+        }
 
         $viewData = self::getGameInfo('commerce', ['commerce' => $commerce, 'room' => $room]);
 
@@ -726,6 +748,7 @@ class BingoController extends Controller
                 $GMRoute =  route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt($coin)]);
 
                 $moreViewData = [
+                    'commerceUUID' => Commerce::getValueById($userID, 'code_uuid'),
                     'wallet' => $this->Wallet($this->user()->id),
                     'countries' => Country::getAllAvailableCountries()
                 ];

@@ -110,6 +110,11 @@ class BingoRoom extends Model
     return self::where('encrypted', $room)->value($value);
   }
 
+  public static function existsRoom($room)
+  {
+    return self::where('id', $room)->exists();
+  }
+
   public static function getSerialPrize($room)
   {
     return self::where('id', $room)->value('serial_prize');

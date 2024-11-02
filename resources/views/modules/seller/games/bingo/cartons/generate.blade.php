@@ -187,31 +187,31 @@
         $("#phone").mask("00000000000");
 
         $(function() {
+            // Agregar la opción predeterminada
             room.append(`<option value="" disabled selected>Seleccionar fecha:</option>`);
 
+            // Verificar si hay elementos en rooms
+            if (!rooms.length) return;
+
             // Crear los grupos de opciones
-            let privateGroup = $('<optgroup label="Salas Privadas"></optgroup>');
-            //let publicGroup = $('<optgroup label="Salas Públicas"></optgroup>');
+            const privateGroup = $('<optgroup label="Salas Privadas"></optgroup>');
+            const publicGroup = $('<optgroup label="Salas Públicas"></optgroup>');
 
             // Iterar sobre los elementos rooms
             $.each(rooms, function(index, item) {
                 // Convertir la fecha a un formato legible
-                let formattedDate = convertAndDisplay(item.unix_date);
-                // Formatear la opción con la fecha y la hora
-                let option = `<option value="${item.encrypted}">${formattedDate}</option>`;
+                const formattedDate = convertAndDisplay(item.unix_date);
+                // Crear la opción con la fecha y hora
+                const option = `<option value="${item.encrypted}">${formattedDate}</option>`;
 
-                // Agregar a los grupos correspondientes
-                // if (!item.is_private) { // Asegúrate de que `is_private` exista en tus datos
-                privateGroup.append(option);
-                // } else {
-                // publicGroup.append(option);
-                //}
+                // Anexar al grupo correspondiente basado en all_for_one
+                (item.all_for_one == 0 ? privateGroup : publicGroup).append(option);
             });
 
-            // Anexar los grupos al elemento select
-            room.append(privateGroup);
-            //room.append(publicGroup);
+            // Anexar los grupos al select
+            room.append(privateGroup, publicGroup);
 
+            // Habilitar el selector después de la carga de opciones
             room.prop('disabled', false);
         });
 

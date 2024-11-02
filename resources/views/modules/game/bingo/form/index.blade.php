@@ -22,16 +22,7 @@
                 </div>
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.table-info-bingo-rooms', [
-                            'userType' => $userType,
-                            'userID' => $userID,
-                            'name' => $name,
-                            'routeRKE' => $routeRKE,
-                            'rooms' => $rooms,
-                            'coin' => $coin,
-                            'coinSym' => $coinSym,
-                            'exchangeRate' => $exchangeRate,
-                        ])
+                        @include('includes.game.bingo.report.table-info-bingo-rooms')
                     </div>
                 </div>
             </div>
@@ -52,9 +43,9 @@
         // const coin = $("#coin");
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
-        const arrCoins = JSON.parse('<?php echo json_encode($coins); ?>');
-        const arrJackpotType = JSON.parse('<?php echo json_encode($jackpotType); ?>')
-        const arrGameModes = JSON.parse('<?php echo json_encode($gameModes); ?>')
+        const arrCoins = @json($coins);
+        const arrJackpotType = @json($jackpotType);
+        const arrGameModes = @json($gameModes);
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");

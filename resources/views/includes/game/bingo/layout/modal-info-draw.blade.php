@@ -37,7 +37,7 @@
                                     <div class="col-12 mt-1 text-center">
                                         <label for="payment-proof">Cargar Comprobante:</label>
                                         <input type="file" id="payment-proof" class="form-control-file"
-                                            name="payment_proof" accept="image/png, image/jpeg" required>
+                                            accept="image/png, image/jpeg" required>
                                     </div>
                                 </div>
                                 <hr>
@@ -77,9 +77,8 @@
                                     <div class="input-group-prepend">
                                         <span class="input-group-text" id="basic-addon1">Cantidad</span>
                                     </div>
-                                    <input type="number" class="form-control" id="num-ctns" name="num_ctns"
-                                        title="Cantidad a Comprar" step="1" value="1" min="1"
-                                        max="35" required>
+                                    <input type="number" class="form-control" id="num-ctns" title="Cantidad a Comprar"
+                                        step="1" value="1" min="1" max="35" required>
                                 </div>
                                 <div class="ml-1 d-flex mt-1 mb-n2">
                                     <b class="mr-1">Total:</b><span id="total-amount"></span>
@@ -87,7 +86,7 @@
                             </div>
                             @if ($userType == 'commerce')
                                 <div class="form-group">
-                                    <input type="text" class="form-control" id="purchase-code" name="purchase_code"
+                                    <input type="text" class="form-control" id="purchase-code"
                                         placeholder="Código de Compra" required maxlength="8">
                                     <span class="mt-2 badge badge-light" style="cursor: pointer; font-size: 11.5px;">
                                         ¿No tienes un código de compra?</span>

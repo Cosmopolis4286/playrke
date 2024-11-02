@@ -13,4 +13,9 @@ class UserPurchaseCodes extends Model
     {
         return self::where('id', $id)->value($value);
     }
+
+    public static function existsPurchaseCode($code)
+    {
+        return self::where('code', $code)->exists();
+    }
 }

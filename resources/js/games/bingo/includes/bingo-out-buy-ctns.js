@@ -62,12 +62,12 @@ $(document).on("change", "#coin", function () {
 $(document).on("change", "#num-ctns", function () {
     numCtns = $(this).val();
     amount = ctnPriceSale * numCtns;
-    console.log(ctnPrice);
     setAmount();
 });
 
 $(document).on("click", "#cont-btn-buy-ctns", function () {
     handleAmount();
+    setAmount();
     toggleModalInfo();
 });
 
@@ -76,14 +76,21 @@ $(document).on("click", "#btn-cancel-buy-ctns", function () {
 });
 
 $(document).on("click", "#btn-buy-ctns-confirm", function () {
-    if (userType == 'commerce') {
-        if (!$("#purchase-code").val()) {
-            $("#purchase-code").focus();
-            return showToast('Ingrese el Código de Compra', 'warning');
+    if (userType === 'commerce') {
+
+        if (!coinSale) {
+            $('#coin').focus();
+            return showToast('Selecione una moneda', 'warning');
         }
 
         if (!$("#payment-proof").val()) {
+            $('#payment-proof').focus();
             return showToast('Cargue el Comprobante', 'warning');
+        }
+
+        if (!$("#purchase-code").val()) {
+            $("#purchase-code").focus();
+            return showToast('Ingrese el Código de Compra', 'warning');
         }
     }
 
@@ -99,8 +106,9 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
             user_type: userType,
             user_type_val: userTypeVal,
             player: player,
-            coin: coinID,
-            num_ctns: numCtns
+            coin: coinSale,
+            num_ctns: numCtns,
+            purchase_code: $('#purchase-code').val() || ''
         },
         beforeSend: function () {
             toggleSpinnerBtn();
