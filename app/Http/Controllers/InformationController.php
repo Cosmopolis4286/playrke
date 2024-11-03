@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Models\UserType;
 use App\Traits\UserVal;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,20 +14,17 @@ class InformationController extends Controller
 
     public function terms()
     {
-        $wallet = $this->Wallet(Auth::id());
-        return view('modules.all.info-rke.terms', compact('wallet'));
+        return view('modules.all.info-rke.terms', with(['wallet' => $this->Wallet(Auth::id())]));
     }
 
     public function about()
     {
-        $wallet = $this->Wallet(Auth::id());
-        return view('modules.all.info-rke.about', compact('wallet'));
+        return view('modules.all.info-rke.about', with(['wallet' => $this->Wallet(Auth::id())]));
     }
 
     public function privacy()
     {
-        $wallet = $this->Wallet(Auth::id());
-        return view('modules.all.info-rke.privacy', compact('wallet'));
+        return view('modules.all.info-rke.privacy', with(['wallet' => $this->Wallet(Auth::id())]));
     }
 
     public function helpCenter()
@@ -36,10 +35,13 @@ class InformationController extends Controller
         );
     }
 
-    public function pds()
+    public function powerOfKnowledge()
     {
-        $wallet = $this->Wallet(Auth::id());
-        return view('modules.all.info-rke.pds', compact('wallet'));
+        $userType = User::getValueById(Auth::id(), 'user_type');
+
+        if ($userType != 1) return redirect()->back();
+
+        return view('modules.all.info-rke.power-of-knowledge', with(['wallet' => $this->Wallet(Auth::id())]));
     }
 
     public function getTimeServer($timeZone = 'America/Caracas')

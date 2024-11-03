@@ -118,7 +118,7 @@ class CustomerController extends Controller
 
             $logo = $request->logo ? $this->saveLogo($request->logo) : null;
 
-            $customer = Customer::create([
+            $customerToken = Customer::create([
                 'name' => $request->name,
                 'country' => $request->country,
                 'phone' => $request->phone,
@@ -129,11 +129,11 @@ class CustomerController extends Controller
                 'customer_key' => $keys['customerKey'],
                 'security_key' => $keys['securityKey'],
                 'status' => 1
-            ]);
+            ])->token;
 
             // Registrar Code UUID
             UUIDCodes::create([
-                'code' => $customer->code_uuid,
+                'code_uuid' => $customerToken,
                 'user_type' => UserType::getValueByPrefix('customer', 'id')
             ]);
 
@@ -144,8 +144,8 @@ class CustomerController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
             Log::error('Error general: ' . $e->getMessage());
+            dd($e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
 

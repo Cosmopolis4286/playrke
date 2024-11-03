@@ -3,7 +3,7 @@
 @section('user-type', 'Admin')
 @section('body')
     <li class="nav-item has-treeview">
-        <a href="#" class="nav-link {{ !Route::is('admin.customers', 'admin.commerce') ?: 'active' }} ">
+        <a href="#" class="nav-link {{ !Route::is('admin.customers', 'admin.commerces') ?: 'active' }} ">
             <i class="fa-solid fa-users-gear nav-icon"></i>
             <p>Usuarios
                 <i class="right fas fa-angle-left"></i>

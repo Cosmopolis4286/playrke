@@ -11,21 +11,21 @@
     </li>
     <li class="nav-item has-treeview">
         <a href="{{ route('exchange-rate.index', ['userType' => 'commerce']) }}" title="Tasa de Cambio"
-            class="nav-link  {{ !Route::is('commerce.exchangeRate') ?: 'active' }}">
+            class="nav-link  {{ !Route::is('exchange-rate.index') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-circle-dollar-to-slot"></i>
             <p>Conversión</p>
         </a>
     </li>
     <li class="nav-item has-treeview">
         <a href="{{ route('commerce.sellers') }}" title="Mis Vendedores"
-            class="nav-link {{ !Route::is('commerce.sellers') }}">
+            class="nav-link {{ !Route::is('commerce.sellers') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-comments-dollar"></i>
             <p>Vendedores</p>
         </a>
     </li>
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('bingo.all-commerce-rooms', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('bingo.all-commerce-rooms', 'commerce.getBingoWinnersByCommerce', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>

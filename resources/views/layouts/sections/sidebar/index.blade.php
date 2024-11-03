@@ -41,9 +41,9 @@
                         <p>Ayuda <i class="right fas fa-angle-left"></i></p>
                     </a>
                     <ul class="nav nav-treeview">
-                        <li class="nav-item ">
+                        <li class="nav-item">
                             <a href="{{ route('info.help-center') }}"
-                                class="nav-link {{ !Route::is('info.help-center') ?: 'active' }}">
+                                class="nav-link {{ Route::is('info.help-center') ? 'active' : '' }}">
                                 <i class="fa-solid fa-caret-right nav-icon"></i>
                                 <p>FAQ</p>
                             </a>
@@ -72,13 +72,15 @@
                                 <p>Acerca de PlayRKE</p>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="{{ route('info.pds') }}" title="El Poder del Saber"
-                                class="nav-link {{ !Route::is('info.pds') ?: 'active' }}">
-                                <i class="fa-solid fa-caret-right nav-icon"></i>
-                                <p>El Poder del Saber</p>
-                            </a>
-                        </li>
+                        @if ($userTypePrefix === 'user')
+                            <li class="nav-item">
+                                <a href="{{ route('info.power-of-knowledge') }}" title="El Poder del Saber"
+                                    class="nav-link {{ !Route::is('info.pds') ?: 'active' }}">
+                                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                                    <p>El Poder del Saber</p>
+                                </a>
+                            </li>
+                        @endif
                         <li class="nav-item">
                             <a href="{{ route('info.terms') }}" title="Términos y Condiciones"
                                 class="nav-link {{ !Route::is('info.terms') ?: 'active' }}">

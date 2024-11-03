@@ -42,7 +42,7 @@ Route::get('/', function () {
     return view('auth.login', compact('register'));
 });
 
-Route::get('/info/{page}', function ($page) {
+Route::get('get/info/{page}', function ($page) {
     $validPages = ['terms', 'about', 'privacy'];
 
     if (in_array($page, $validPages)) {
@@ -107,7 +107,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'info', 'as' => 'info.'], fu
     Route::get('about', [InformationController::class, 'about'])->name('about');
     Route::get('privacy', [InformationController::class, 'privacy'])->name('privacy');
     Route::get('help-center', [InformationController::class, 'helpCenter'])->name('help-center');
-    Route::get('pds', [InformationController::class, 'pds'])->name('pds');
+    Route::get('power-of-knowledge', [InformationController::class, 'powerOfKnowledge'])->name('power-of-knowledge');
 });
 
 Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'limits', 'as' => 'limits.'], function () {

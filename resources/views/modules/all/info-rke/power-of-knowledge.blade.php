@@ -1,12 +1,12 @@
 @extends ('layouts.app_rke')
 @section('title', 'El Poder del Saber')
 @section('content')
-    <div class="card mb-3 m-auto" style="max-width: 818px;">
+    <div class="card mb-3 m-auto" style="max-width: 825px;">
         <div class="card-body">
-            <div style="display: flex; justify-content:center;">
+            <div class="d-flex justify-content-center">
                 <img src="{{ asset('img/pds.png') }}" class="cold pds-if">
             </div>
-            <p align="center">PlayRKE se reserva el derecho de realizar cualquier tipo de modificación en el sitio
+            <p class="text-center">PlayRKE se reserva el derecho de realizar cualquier tipo de modificación en el sitio
                 web en cualquier momento y sin previo aviso, el usuario acepta dichas modificaciones una vez creada su
                 cuenta. Esta sección definirá las funcionalidades y el alcance que tendrá la aplicación o juego EL PODER
                 DEL SABER, propiedad intelectual de PlayRKE.</p>
@@ -48,7 +48,7 @@
             <p>Para unirse o participar en algún juego con dinero real, el usuario tiene que utilizar saldo de
                 su Wallet. En caso de no tener saldo disponible, este tendrá que realizar una recarga o depósito a
                 través de cualquier método disponible en la plataforma. [<a
-                    href="{{ route('info.terminos') }}">Ver&nbsp<b>7.3</b></a>]</p>
+                    href="{{ route('info.terms') }}">Ver&nbsp<b>7.3</b></a>]</p>
             <hr>
             <h6><b>PREMIOS Y MÁS</b></h6>
             <p>Después de terminado el juego, los premios y bonificaciones serán cargados al Wallet de los usuarios
@@ -57,7 +57,7 @@
             <li>Regla N° 9. <b>“</b>El nombre de usuario de los primeros tres ganadores será publicado al final del
                 juego<b>”</b>.</li>
             <hr>
-            <div class="mt-4" align="center">
+            <div class="mt-4 text-center">
                 <span class="end_pds">“Las reglas y condiciones de uso, están sujetas a cambios en el futuro incluso sin
                     previo aviso”</span><br>
                 <span class="endf_pds">Este documento se actualizó por última vez el 20 de febrero del 2023.</span>

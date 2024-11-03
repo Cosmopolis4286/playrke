@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class UUIDCodes extends Model
 {
     protected $table = "uuid_codes";
-    protected $fillable = ['code', 'user_type', 'status'];
+    protected $fillable = ['code_uuid', 'user_type', 'status'];
 
     public function UserType()
     {
@@ -16,6 +16,6 @@ class UUIDCodes extends Model
 
     public static function existsCode($code)
     {
-        return self::where('code', $code)->exists();
+        return self::where('code_uuid', $code)->exists();
     }
 }

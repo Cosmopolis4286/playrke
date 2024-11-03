@@ -176,7 +176,7 @@ class CommerceController extends Controller
                 'status' => 1,
                 'user' => $newUser->id,
                 'code_rke' => $this->replaceLettersWithNumbers($codeRKE),
-                'code_uuid' => $this->getCodeUUID()
+                'code_uuid' => $this->getCodeUUID('Commerce')
             ]);
 
             // Registar moneda Principal
@@ -209,7 +209,7 @@ class CommerceController extends Controller
 
             // Registrar Code UUID
             UUIDCodes::create([
-                'code' => $commerce->code_uuid,
+                'code_uuid' => $commerce->code_uuid,
                 'user_type' => UserType::getValueByPrefix('commerce', 'id')
             ]);
 
@@ -230,7 +230,7 @@ class CommerceController extends Controller
     public function getInfo($id) // Obtener Info Comercializadora
     {
         $id = decrypt($id);
-        $commerce = Commerce::getById($id, ['name', 'country', 'coin', 'phone']);
+        $commerce = Commerce::getById($id, ['name', 'country', 'coin', 'phone', 'code_rke']);
         $otherCoins = CommerceCountriesCoins::getAvailableCoins($id);
         $user = User::getById(Commerce::getValueById($id, 'user'), ['username', 'email']);
 

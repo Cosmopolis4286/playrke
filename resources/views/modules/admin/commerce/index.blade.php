@@ -177,12 +177,13 @@
             });
 
             if (type == 2) {
-                let commerce = data.commerce;
-                let otherCoins = data.other_coins;
-                let user = data.user;
+                const commerce = data.commerce;
+                const otherCoins = data.other_coins;
+                const user = data.user;
 
                 $('#name').val(commerce.name);
                 $('#phone').val(commerce.phone);
+                $('#code-rke').val(commerce.code_rke);
                 update = true;
                 country.trigger('change');
                 insertOtherCoins(otherCoins)

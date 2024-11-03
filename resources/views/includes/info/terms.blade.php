@@ -94,19 +94,6 @@
 <p><b>11.2.</b> Las transacciones sólo serán procesadas y recibidas en Tether (USDT) red TRC20. El monto mínimo de depósito es 2 USDT.</p>
 <p><b>11.3.</b> El monto mínimo de retiro es 10 USDT. Ademas, el costo de envío a la red Blockchain (0.8 USDT) se descuenta de su saldo.</p>
 
-<!--<h4>12. PAGOS EN CHILE (PESOS CHILENOS)</h4>
-<p><b>12.1.</b> En Venezuela, las transacciones en moneda local (Bolívares Bs.) serán procesadas mediante Pago Móvil, Transferencia Inmediata y/o Interbancarias.</p>
-<p><b>12.2.</b> Toda transacción está sujeta al tipo de cambio Bs/ USD publicado por el Banco Central de Venezuela (BCV).</p>
-<p><b>12.3.</b> El monto mínimo de depósito es $0.70, recibidos y procesados a su valor en moneda local, al tipo de cambio vigente. Todas las solicitudes de depósito se procesan en un lapso no mayor a 45 minutos.</p>
-<p><b>12.4.</b> La cantidad máxima que un usuario puede depositar por día/24 horas es de $600 (o el equivalente en su moneda local). Todo depósito que supere dicha cantidad máxima podrá ser cancelado y devuelto por PlayRKE. No obstante, cualquier costo de comisión bancaria por retorno del depósito será pagado por usted, y por lo tanto descontado de los fondos enviados.</p>
-<p><b>12.5.</b> El monto mínimo de retiro es $10 a su valor en moneda local, al tipo de cambio vigente.</p>
-<p><b>12.6.</b> Los retiros de fondos hacia cuentas bancarias de terceros no están permitidos. Solo se permiten a cuentas donde el usuario sea el propietario legítimo.</p>
-<p><b>12.7.</b> Si existe cualquier incoherencia por parte del usuario, al cargar y enviar los datos exactos de sus depósitos realizados, esto a cualquiera de las cuentas bancarias o demás métodos de depósito disponibles y relacionados con PlayRKE; su depósito podrá ser rechazado o su saldo congelado, según sea el caso.</p>
-<p><b>12.8.</b> Al realizar un depósito/recarga a su cuenta (Wallet) mediante Transferencias Interbancarias; tendrá que esperar un plazo no mayor a 48 horas, para que así su transacción sea verificada y posteriormente procesada.</p>
-<p><b>12.9.</b> PlayRKE comprobará cada depósito o recarga realizada, el usuario tiene que suministrar la referencia bancaria (número de referencia) de su transacción.</p>
-<p><b>12.10.</b> Si el usuario ingresa 2 referencias bancarias inválidas o incorrectas, en un periodo menor a diez horas, sin excepción su cuenta será suspendida y no podrá utilizar o acceder a nuestros servicios durante 24 horas.</p>-->
-
-
 <h4>12. PAGOS EN VENEZUELA (BOLIVARES)</h4>
 <p><b>12.1.</b> En Venezuela, las transacciones en moneda local (Bolívares Bs.) serán procesadas mediante Pago Móvil, Transferencia Inmediata y/o Interbancarias.</p>
 <p><b>12.2.</b> Toda transacción está sujeta al tipo de cambio Bs/ USD publicado por el Banco Central de Venezuela (BCV).</p>
