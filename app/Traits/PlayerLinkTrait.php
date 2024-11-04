@@ -83,7 +83,7 @@ trait PlayerLinkTrait
     public function getGameLinkByPlayer($commerceID, $playerLink, $allForOne)
     {
         if ($allForOne == 1) {
-            return $playerLink;
+            return route('bingocash.in-game-rke', ['player' => $playerLink]);
         } else {
             $commerceCode = Commerce::getValueById($commerceID, 'code_uuid');
             return route('bingocash.in-game-commerce', ['commerce' => $commerceCode, 'player' => $playerLink]);

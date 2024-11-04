@@ -60,7 +60,7 @@ trait GameTrait
         return strtotime($dateTime);
     }
 
-    public function convertValueByGame($game, $roomID, $value, $type = 'string', $coin = '')
+    public function convertValueByGame($game, $roomID, $data, $type = 'string')
     {
         switch ($game) {
             case 'BINGO':
@@ -72,15 +72,14 @@ trait GameTrait
                 break;
         }
 
-        if (!$room->customer) {
-            $exchangeRate = ($room->status == 2)
-                ? ExchangeRate::getLastValueByCoin($coin)
-                : GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
-        }
+        // Definir Tasa de Cambio de acuerdo al estatus de la sala
+        $exchangeRate = ($room->status == 2)
+            ? ExchangeRate::getLastValueByCoin($coin)
+            : GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
 
         $amount = $value * ($exchangeRate ?? 1);
 
-        if ($type == 'string') {
+        if ($type === 'string') {
             // Formatear como cadena y eliminar ceros y comas finales
             return rtrim(number_format($amount, 2, ',', '.'), '0,');
         } else {

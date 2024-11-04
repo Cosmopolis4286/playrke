@@ -16,13 +16,13 @@ function toggleSpinnerBtn() {
 function setAmount() {
     const formattedAmount = (amount).toFixed(2);
 
-    if (userType === 'commerce') $("#sent-amount").text(`${symbolSale} ${formattedAmount}`);
+    if (creatorType === 'commerce') $("#sent-amount").text(`${symbolSale} ${formattedAmount}`);
 
     $("#total-amount").text(`${symbolSale} ${formattedAmount}`);
 }
 
 function getCommerceDetails(coinSale) {
-    const url = commerceDetailsURL.replace(':commerce', userTypeVal).replace(':coin', coinSale);
+    const url = commerceDetailsURL.replace(':commerce', creatorID).replace(':coin', coinSale);
     $.getJSON(url, { _token: $("#5K3_70K").val() })
         .done((response) => {
             const { commerce, paymentDetails, exchangeRate } = response;
@@ -76,7 +76,7 @@ $(document).on("click", "#btn-cancel-buy-ctns", function () {
 });
 
 $(document).on("click", "#btn-buy-ctns-confirm", function () {
-    if (userType === 'commerce') {
+    if (creatorType === 'commerce') {
 
         if (!coinSale) {
             $('#coin').focus();
@@ -103,8 +103,8 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
         dataType: 'json',
         data: {
             room: encrypted,
-            user_type: userType,
-            user_type_val: userTypeVal,
+            user_type: creatorType,
+            user_type_val: creatorID,
             player: player,
             coin: coinSale,
             num_ctns: numCtns,

@@ -24,11 +24,11 @@ class Commerce
             return redirect()->route('login')->with('error', 'Por favor, inicie sesión para continuar.');
         }
 
-        $userType = Auth::user()->user_type;
+        $creatorType = Auth::user()->user_type;
         $allowedPrefixes = ['admin', 'commerce'];
 
         // Verificar si el tipo de usuario es permitido
-        if (in_array(UserType::getValueById($userType, 'prefix'), $allowedPrefixes)) {
+        if (in_array(UserType::getValueById($creatorType, 'prefix'), $allowedPrefixes)) {
             return $next($request); // Permite el acceso al siguiente middleware o ruta
         }
 

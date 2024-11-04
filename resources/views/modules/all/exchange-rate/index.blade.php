@@ -101,7 +101,7 @@
         let coinName;
         let update = false;
         $(document).ready(function() {
-            setExtraInfo(@json($userType));
+            setExtraInfo(@json($creatorType));
         })
     </script>
     @if (isset($cusToken))

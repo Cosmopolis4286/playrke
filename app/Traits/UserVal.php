@@ -43,10 +43,10 @@ trait UserVal
 
     public function getAvailableCountries($user)
     {
-        $userTypeID = User::getValueById($user, 'user_type');
-        $userType = UserType::getValueById($userTypeID, 'prefix');
+        $creatorTypeID = User::getValueById($user, 'user_type');
+        $creatorType = UserType::getValueById($creatorTypeID, 'prefix');
 
-        switch ($userType) {
+        switch ($creatorType) {
             case 'user': // Jugador
                 $countries = [User::getValueById($user, 'country')];
                 break;
@@ -71,9 +71,9 @@ trait UserVal
 
     public function getAvailableCoins($user)
     {
-        $userType = UserType::getValueById(User::getValueById($user, 'user_type'), 'prefix');
+        $creatorType = UserType::getValueById(User::getValueById($user, 'user_type'), 'prefix');
 
-        switch ($userType) {
+        switch ($creatorType) {
             case 'user': // Jugador
                 $coins = [User::getValueById($user, 'country')];
                 break;

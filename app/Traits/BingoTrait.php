@@ -759,8 +759,8 @@ trait BingoTrait
                         return false;
                     }
                 } else {
-                    $player = $player->id ?? null;
                     $playerLink = $player->link ?? null;
+                    $player = $player->id ?? null;
                 }
             }
 
@@ -788,29 +788,18 @@ trait BingoTrait
         }
     }
 
-    public function convertPrizeValue($roomID, $coin, $type = 'string')
+    public function convertPrizeValue($roomID, $coin)
     {
-        $room = BingoRoom::getRoomById($roomID, ['customer', 'status']);
+        $room = BingoRoom::getRoomById($roomID, ['commerce', 'customer', 'jackpot_prize']);
 
-        $jackpotPrize = BingoRoom::getValueById($roomID, 'jackpot_prize');
+        $creatorType = $room->commerce ? 'commerce' : 'customer';
+        $creatorID = $room->commerce ? $room->commerce : $room->customer;
 
-        if (!$room->customer) {
-            $exchangeRate = ($room->status == 2)
-                ? ExchangeRate::getLastValueByCoin($coin)
-                : GameExchangeRate::getGameExchangeRateValue(1, $roomID, $coin);
+        $creator = ['type' => $creatorType, 'id' => $creatorID];
 
-            if (!$exchangeRate) $this->insertGameExchangeRate($roomID, 1);
-        }
+        $data = ['coin' => $coin, 'value' => $room->jackpot_prize, 'creator' => $creator];
 
-        $jackpot = $jackpotPrize * ($exchangeRate ?? 1);
-
-        if ($type == 'string') {
-            // Formatear como cadena y eliminar ceros y comas finales
-            return $jackpot == 0 ? '0.00' : rtrim(number_format($jackpot, 2, ',', '.'), '0,');
-        } else {
-            // Devolver como número de punto flotante
-            return (float) $jackpot;
-        }
+        return $this->convertValueByGame('BINGO', $roomID, $data);
     }
 
     private function registerPrizeCtn($roomID, $cartons, $prizeType, $USDValue)

@@ -1,8 +1,8 @@
 @php
-    $userTypePrefix = \App\Models\UserType::getValueById(Auth::user()->user_type, 'prefix');
+    $creatorTypePrefix = \App\Models\UserType::getValueById(Auth::user()->user_type, 'prefix');
 @endphp
 
-@switch($userTypePrefix)
+@switch($creatorTypePrefix)
     @case('user')
         @includeIf('layouts.sections.sidebar.user.index')
     @break
@@ -25,5 +25,5 @@
     @break
 
     @default
-        {{-- Código a ejecutar si $userTypePrefix no coincide con ningún caso --}}
+        {{-- Código a ejecutar si $creatorTypePrefix no coincide con ningún caso --}}
 @endswitch

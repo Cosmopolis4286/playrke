@@ -124,7 +124,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment', 'as' => 'payment.
 
 // Tasa de Cambio/ExhangeRate
 Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function () {
-    Route::get('all/{userType}/{userID?}', [ExchangeRateController::class, 'index'])->name('index');
+    Route::get('all/{creatorType}/{userID?}', [ExchangeRateController::class, 'index'])->name('index');
     Route::post('create', [ExchangeRateController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [ExchangeRateController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
@@ -382,7 +382,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::put('status/{id}', [BingoController::class, 'changeStatusRoom'])->name('change-status');
-    Route::get('getDateTimeRooms/{userType}/{userID}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
+    Route::get('getDateTimeRooms/{creatorType}/{userID}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
     Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');
@@ -400,7 +400,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
     // Rutas Jugador/Comercio TODOS
     Route::get('player/{player}/{room?}', [BingoController::class, 'inGame'])->name('in-game-rke');
-    Route::get('room/{room?}', [BingoController::class, 'outGame'])->name('out-game-rke');
+    Route::get('room/{room}/{commerce?}', [BingoController::class, 'outGame'])->name('out-game-rke');
 
     // Ruta /Jugador/Comercio Especifico
     Route::get('comm/{commerce}/player/{player}/{room?}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');

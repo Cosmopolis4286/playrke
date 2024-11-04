@@ -8,19 +8,16 @@
         <label for="time">Hora*</label>
         <input type="time" id="time" name="time" class="form-control form-info" required>
     </div>
+    <div id="container-room-type" class="form-group col-sm-6 col-md-4">
+        <label for="room-type">Tipo de Sala*</label>
+        <select id="room-type" name="room_type" class="form-control form-info"
+            aria-label="Seleccionar tipo de sala"></select>
+    </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="game-mode">Modo de Juego*</label>
         <select id="game-mode" name="game_mode" class="form-control form-info"></select>
     </div>
     <input type="hidden" name="user" value="{{ json_encode($creator) }}">
-    {{-- <div class="form-group col-sm-6 col-md-4">
-        <label class="country">Pais*</label>
-        <select id="country" name="country" class="form-control form-info" required></select>
-    </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="coin">Moneda*</label>
-        <select id="coin" name="coin" class="form-control form-info" required></select>
-    </div> --}}
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
         <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
@@ -40,8 +37,8 @@
     {{-- @endisset --}}
     <div class="form-group col-sm-6 col-md-4">
         <label for="val-serials">%Seriales</label>
-        <input type="number" value="2" min="2" max="15" step="0.05" id="val-serials" name="val_serials"
-            class="form-control form-info" placeholder="Ingrese valor" required>
+        <input type="number" value="2" min="2" max="15" step="0.05" id="val-serials"
+            name="val_serials" class="form-control form-info" placeholder="Ingrese valor" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="num-serials">#Max. Seriales</label>
@@ -58,7 +55,7 @@
         <select id="jackpot-type" name="jackpot_type" class="form-control form-info" required></select>
     </div>
     <div id="cont-fixed-jackpot-value" class="form-group col-sm-6 col-md-4 hide-elem">
-        <label for="fixed-jackpot-value">Ingrese Valor Fijo:</label>
+        <label for="fixed-jackpot-value">Valor Fijo*</label>
         <input type="number" id="fixed-jackpot-value" name="fixed_jackpot_value" class="form-control form-info"
             placeholder="Ingresar Monto" step="0.05" min="50" max="5000">
     </div>

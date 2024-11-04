@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\UserType;
 use App\Traits\UserVal;
 use Illuminate\Support\Facades\Auth;
 
@@ -37,9 +36,9 @@ class InformationController extends Controller
 
     public function powerOfKnowledge()
     {
-        $userType = User::getValueById(Auth::id(), 'user_type');
+        $creatorType = User::getValueById(Auth::id(), 'user_type');
 
-        if ($userType != 1) return redirect()->back();
+        if ($creatorType != 1) return redirect()->back();
 
         return view('modules.all.info-rke.power-of-knowledge', with(['wallet' => $this->Wallet(Auth::id())]));
     }

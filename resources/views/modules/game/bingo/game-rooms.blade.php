@@ -77,8 +77,8 @@
 @section('scripts')
     @vite('resources/js/rke/format-date-time-unix.js')
     <script>
-        const userType = '{{ $userType }}';
-        const userTypeVal = @json($userTypeVal);
+        const creatorType = '{{ $creatorType }}';
+        const creatorID = @json($creatorID);
         const coin = @json($coin);
         const exchangeRate = '{{ $exchangeRate }}';
         const player = @json($player);
@@ -125,8 +125,8 @@
 
         function getDateTimeRooms() {
             const url =
-                "{{ route('bingo.get-datetime-rooms', ['userType' => ':userType', 'userID' => ':userID']) }}"
-                .replace(':userType', userType).replace(':userID', userTypeVal)
+                "{{ route('bingo.get-datetime-rooms', ['creatorType' => ':creatorType', 'userID' => ':userID']) }}"
+                .replace(':creatorType', creatorType).replace(':userID', creatorID)
 
             $.getJSON(url, {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
@@ -224,8 +224,8 @@
                     room: roomID,
                     coin,
                     num_ctns: numCtns,
-                    user_type: userType,
-                    user_type_val: userTypeVal,
+                    user_type: creatorType,
+                    user_type_val: creatorID,
                     player,
                     is_login: true,
                 },
@@ -337,11 +337,11 @@
                     }
 
                     // Redirigir a la sala según el tipo de usuario
-                    const route = userType == 'commerce' ?
+                    const route = creatorType == 'commerce' ?
                         `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
                         .replace(':player', player).replace(':roomID', roomID) :
                         `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
-                        .replace(':cust', userTypeVal).replace(':userToken', userToken).replace(':roomID', roomID);
+                        .replace(':cust', creatorID).replace(':userToken', userToken).replace(':roomID', roomID);
 
                     window.location.href = route;
                     if (waitingTime) {

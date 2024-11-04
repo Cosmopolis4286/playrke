@@ -188,10 +188,14 @@
 
         $(function() {
             // Agregar la opción predeterminada
-            room.append(`<option value="" disabled selected>Seleccionar fecha:</option>`);
+            room.append('<option value="" disabled selected>Seleccionar Sala:</option>');
 
             // Verificar si hay elementos en rooms
             if (!rooms.length) return;
+
+            // Inicializar contadores de salas privadas y públicas
+            let hasPrivateRooms = false;
+            let hasPublicRooms = false;
 
             // Crear los grupos de opciones
             const privateGroup = $('<optgroup label="Salas Privadas"></optgroup>');
@@ -204,12 +208,19 @@
                 // Crear la opción con la fecha y hora
                 const option = `<option value="${item.encrypted}">${formattedDate}</option>`;
 
-                // Anexar al grupo correspondiente basado en all_for_one
-                (item.all_for_one == 0 ? privateGroup : publicGroup).append(option);
+                // Anexar al grupo correspondiente y marcar que el grupo tiene al menos una sala
+                if (item.all_for_one == 0) {
+                    privateGroup.append(option);
+                    hasPrivateRooms = true;
+                } else {
+                    publicGroup.append(option);
+                    hasPublicRooms = true;
+                }
             });
 
-            // Anexar los grupos al select
-            room.append(privateGroup, publicGroup);
+            // Anexar los grupos al select solo si contienen al menos una opción
+            if (hasPrivateRooms) room.append(privateGroup);
+            if (hasPublicRooms) room.append(publicGroup);
 
             // Habilitar el selector después de la carga de opciones
             room.prop('disabled', false);
@@ -364,7 +375,6 @@
                         country.val(infoPlayer.country);
                         $('#name').val(infoPlayer.name);
                         $('#last-name').val(infoPlayer.lastname);
-                        // $('#cont_type_id').html(data.IdType).show();
                         $('#type_id').hide();
                         $('#identification').val(infoPlayer.identification);
                         $('#cont-phone').text(infoPlayer.phone).removeClass('hide-elem');

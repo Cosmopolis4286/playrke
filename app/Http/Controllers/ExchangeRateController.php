@@ -19,9 +19,9 @@ class ExchangeRateController extends Controller
 {
     use UserVal;
 
-    public function index($userType, $userID = '')
+    public function index($creatorType, $userID = '')
     {
-        switch ($userType) {
+        switch ($creatorType) {
             case 'customer': //customer
                 $customer = Customer::getValueByToken($userID, 'id');
 
@@ -64,7 +64,7 @@ class ExchangeRateController extends Controller
             'title' => 'Tasas de Cambio',
             'name' => 'currency',
             'returnBtn' => $returnBtn ?? true,
-            'userType' => $userType,
+            'creatorType' => $creatorType,
             'coins' => $coins ?? [],
             'exchangeRate' => $exchangeRate
         ];

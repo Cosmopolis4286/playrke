@@ -57,8 +57,8 @@
     </script>
     @if ($room->status == 2)
         <script>
-            const userType = '{{ $userType }}';
-            const userTypeVal = @json($userTypeVal);
+            const creatorType = '{{ $creatorType }}';
+            const creatorID = @json($creatorID);
             const coinID = @json($coinID);
             const ctnPrice = @json($ctnPrice);
             const commerceDetailsURL =

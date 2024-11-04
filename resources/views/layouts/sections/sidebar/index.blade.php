@@ -72,7 +72,7 @@
                                 <p>Acerca de PlayRKE</p>
                             </a>
                         </li>
-                        @if ($userTypePrefix === 'user')
+                        @if ($creatorTypePrefix === 'user')
                             <li class="nav-item">
                                 <a href="{{ route('info.power-of-knowledge') }}" title="El Poder del Saber"
                                     class="nav-link {{ !Route::is('info.pds') ?: 'active' }}">

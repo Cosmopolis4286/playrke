@@ -31,10 +31,10 @@ class HomeController extends Controller
             'exchangeRate' => $exchangeRate,
         ];
 
-        $userType = UserType::getValueById($user->user_type, 'prefix');
+        $creatorType = UserType::getValueById($user->user_type, 'prefix');
 
         // Datos específicos según el tipo de usuario
-        switch ($userType) {
+        switch ($creatorType) {
             case 'user': // Jugador
                 $view = 'modules/user/widgets/index';
                 break;

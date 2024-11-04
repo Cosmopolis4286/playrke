@@ -31,19 +31,19 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['creator' => [$userID ?? null, $userType]])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['creator' => [$userID ?? null, $creatorType]])->render(),
     ])
     @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script>
         const name = '{{ $name }}';
-        const userType = '{{ $userType }}';
-        // const country = $("#country");
-        // const coin = $("#coin");
+        const creatorType = '{{ $creatorType }}';
+        const roomType = $("#room-type");
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
+        const arrRoomType = @json($roomType);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
 
@@ -64,7 +64,7 @@
 
         $(document).on("click", `.btn-${name}`, function() {
             if ($(this).data('type') == 1) {
-                extraInfo = userType;
+                extraInfo = creatorType;
             }
             formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap);
         });
@@ -79,12 +79,25 @@
             gameMode.empty();
 
             if (type == 1) {
+                if (creatorType === 'commerce' && arrRoomType.length) {
+                    roomType.append(`<option value="" disabled selected>Seleccionar:</option>`);
+                } else {
+                    $('#container-room-type').hide();
+                    roomType.prop('required', false);
+                }
+
                 jackpotType.append(`<option value="" disabled selected>Seleccionar:</option>`);
                 if (arrGameModes.length > 1) {
                     gameMode.append(`<option value="" disabled selected>Seleccionar:</option>`);
                 }
             }
 
+            if (creatorType === 'commerce' && arrRoomType.length) {
+                $.each(arrRoomType, function(index, item) {
+                    const isSelected = (type == 2 && item.id == data.room.all_for_one) ? 'selected' : '';
+                    roomType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                });
+            }
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
                 jackpotType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
@@ -93,7 +106,7 @@
             $.each(arrGameModes, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
 
-                if (userType === 'customer' && item.id === 1 || userType !== 'customer') {
+                if (creatorType === 'customer' && item.id === 1 || creatorType !== 'customer') {
                     gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
                 }
             });
