@@ -13,15 +13,17 @@ class GameExchangeRate extends Model
     {
         return $this->belongsTo(Games::class, 'game');
     }
-  
+
     public function Coin()
     {
         return $this->belongsTo(Coin::class, 'coin');
     }
 
-    public static function getGameExchangeRateValue($game, $room, $coin, $value = 'exchange_rate')
+    public static function getGameExchangeRateValue($gameName, $room, $coin, $value = 'exchange_rate')
     {
-        return self::where('game', $game)->where('room', $room)->where('coin', $coin)->value($value);
+        $gameID = Games::getValueByName($gameName);
+
+        return self::where('game', $gameID)->where('room', $room)->where('coin', $coin)->value($value);
     }
 
     public static function getCountGameExchangeRate($game, $room)

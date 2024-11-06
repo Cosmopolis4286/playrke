@@ -817,11 +817,11 @@ trait BingoTrait
             if (!BingoPrizeCtns::existsPrizeCtn($roomID, 1, $playerColumn, $playerColumnVal)) {
 
                 // Verificar y obtener el tipo de cambio
-                $exchangeRate = GameExchangeRate::getGameExchangeRateValue(1, $roomID, $cartons[0]->coin) ?? 1;
+                $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $cartons[0]->coin) ?? 1;
 
                 if (!$exchangeRate) {
                     $this->insertGameExchangeRate($roomID, 1);
-                    $exchangeRate = GameExchangeRate::getGameExchangeRateValue(1, $roomID, $cartons[0]->coin);
+                    $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $cartons[0]->coin);
                 }
 
                 $prizeWn = number_format($USDValue * $exchangeRate, 3, '.', '');
@@ -1003,7 +1003,7 @@ trait BingoTrait
             ->select('id', 'customer', 'jackpot', 'jackpot_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 
-            dd($room);
+        dd($room);
 
         // Verificar si ya hay ganadores del premio mayor
         $prizeCtns = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
@@ -1255,7 +1255,7 @@ trait BingoTrait
         if (isset($data['Error'])) return $data['Error'];
 
         // Obtener tasa de cambio de la sala
-        $gameExchangeRate = GameExchangeRate::getGameExchangeRateValue(1, $roomID, $data['coin']);
+        $gameExchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $data['coin']);
 
         // Calcular el bote de seriales de la sala con respecto a la moneda del jugador
         $jackpot = $data['serialPrize'] * $gameExchangeRate;

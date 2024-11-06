@@ -21,7 +21,7 @@
                     <div class="card-header py-1">COMPRAR CARTONES</div>
                     <section id="form-buy-ctns">
                         <div class="card-body py-2">
-                            @if ($creatorType == 'commerce')
+                            @if ($creatorType !== 'customer')
                                 <div id="commerce-details" class="row hide-elem">
                                     <div class="col-12">
                                         <h5 class="mb-2">¿Enviaste <span id="sent-amount"></span>?</h5>
@@ -42,7 +42,7 @@
                                 </div>
                                 <hr>
                             @endif
-                            @if ($creatorType == 'customer')
+                            @if ($creatorType === 'customer')
                                 <div class="col-12 mb-2">
                                     {{-- <img class="mr-1" src="{{ asset('img/cofre.png') }}"
                                 style="width: 28px; height:28px" alt="{{ $customerName }}"> --}}
@@ -84,7 +84,7 @@
                                     <b class="mr-1">Total:</b><span id="total-amount"></span>
                                 </div>
                             </div>
-                            @if ($creatorType == 'commerce')
+                            @if ($creatorType === 'commerce')
                                 <div class="form-group">
                                     <input type="text" class="form-control" id="purchase-code"
                                         placeholder="Código de Compra" required maxlength="8">

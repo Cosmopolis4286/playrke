@@ -13,4 +13,9 @@ class Games extends Model
     {
         return self::select($fields)->where('id', $id)->first();
     }
+
+    public static function getValueByName($name, $value = 'id')
+    {
+        return self::where('name', strtoupper($name))->value($value);
+    }
 }

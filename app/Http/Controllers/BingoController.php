@@ -256,7 +256,7 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'Sala no encontrada')->with('type', 'warning');
         }
 
-        $roomId = $room->id;
+        $roomID = $room->id;
         $creator = $request->user_type;
 
         if ($creator) {
@@ -359,7 +359,7 @@ class BingoController extends Controller
                     }
                 }
 
-                $jackpot = $this->convertPrizeValue($roomId, $coin);
+                $jackpot = $this->convertPrizeValue($roomID, $coin);
                 return response()->json(['jackpot' => $jackpot, 'type' => 'success', 'message' => 'Proceso efectuado con exito']);
             } else {
                 Session::flash('message', 'Proceso efectuado con exito');
@@ -390,7 +390,7 @@ class BingoController extends Controller
                 // Si la sala no existe 
                 if (!$room) return ['error' => 'Sala no encontrada'];
 
-                $roomId = $room->id;
+                $roomID = $room->id;
 
                 $isLogin = false;
 
@@ -410,7 +410,6 @@ class BingoController extends Controller
                 }
 
                 if ($room->status == 2) {
-                    $moreViewData['creatorID'] = encrypt($creatorID);
                     $moreViewData['customerName'] = Customer::getValueById($creatorID, 'name');
                 }
 
@@ -422,13 +421,13 @@ class BingoController extends Controller
 
                 if (isset($data['playerLink'])) {
 
-                    $roomId = PlayerLink::getValueByLink($data['playerLink'], 'room');
+                    $roomID = PlayerLink::getValueByLink($data['playerLink'], 'room');
 
-                    if (!$roomId) return ['error' => 'Sala no encontrada'];
+                    if (!$roomID) return ['error' => 'Sala no encontrada'];
 
                     $isLogin = false;
 
-                    $player = PlayerLink::select('id', 'country', 'link')->where('room', $roomId)->first();
+                    $player = PlayerLink::select('id', 'country', 'link')->where('room', $roomID)->first();
 
                     $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
 
@@ -436,13 +435,13 @@ class BingoController extends Controller
                     $coinSym = $coin->symbol;
 
                     $moreViewData = [
-                        'playerID' => BingoRoomUser::getValueByColumn($roomId, 'player_link', $player->id, 'id'),
+                        'playerID' => BingoRoomUser::getValueByColumn($roomID, 'player_link', $player->id, 'id'),
                         'player' => $player->link
                     ];
                 } else {
-                    $roomId = BingoRoom::getValueByEncrypted($data['room'], 'id');
+                    $roomID = BingoRoom::getValueByEncrypted($data['room'], 'id');
 
-                    if (!$roomId) return ['error' => 'Sala no encontrada'];
+                    if (!$roomID) return ['error' => 'Sala no encontrada'];
 
                     if (isset($data['player'])) {
                         $isLogin = true;
@@ -468,15 +467,11 @@ class BingoController extends Controller
                     ];
 
                     if (isset($data['player'])) {
-                        $moreViewData['playerID'] = BingoRoomUser::getValueByColumn($roomId, 'player_user', $player, 'id');
+                        $moreViewData['playerID'] = BingoRoomUser::getValueByColumn($roomID, 'player_user', $player, 'id');
                     }
                 }
 
-                $room = BingoRoom::getRoomById($roomId, ['status', 'all_for_one', 'ctn_price']);
-
-                if ($creator['type'] === 'commerce' && $room->status == 2) {
-                    $moreViewData['creatorID'] = encrypt($data['commerce']);
-                }
+                $room = BingoRoom::getRoomById($roomID, ['status', 'all_for_one', 'ctn_price']);
                 break;
             default:
                 return false;
@@ -484,31 +479,33 @@ class BingoController extends Controller
         }
 
         // Verificar Cierre de Sala
-        $this->checkRoomClosure($roomId);
+        $this->checkRoomClosure($roomID);
 
-        $room = BingoRoom::select(['status', 'date', 'time', 'jackpot_prize', 'encrypted'])->where('id', $roomId)->first();
+        $room = BingoRoom::select(['status', 'date', 'time', 'encrypted'])->where('id', $roomID)->first();
 
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
         // Definir precio del carton 
-        $dataCtnPrice = ['coin' => $coinID, 'value' => $room->ctn_price, 'creator' => $creator];
-        $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomId, $dataCtnPrice, 'float');
+        $ctnPrice = BingoRoom::getValueById($roomID, 'ctn_price');
+
+        $dataCtnPrice = ['coin' => $coinID, 'value' => $ctnPrice, 'creator' => $creator];
+        $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomID, $dataCtnPrice, 'float');
 
         // Obtener valor formateado del bote
-        $jackpot = $this->convertPrizeValue($room, $coinID);
+        $jackpot = $this->convertPrizeValue($roomID, $coinID);
 
         $vanDraw = ($room->status > 2) ?
-            BingoDraw::select('id', 'chip')->where(['room' => $roomId, 'win' => 1])->first() : [];
+            BingoDraw::select('id', 'chip')->where(['room' => $roomID, 'win' => 1])->first() : [];
 
         $sort = ($room->status == 3) ?
-            BingoDraw::where('room', $roomId)->where('id', '<=', $vanDraw->id)
+            BingoDraw::where('room', $roomID)->where('id', '<=', $vanDraw->id)
             ->where('time', '>', time())->get(['code', 'time']) : [];
 
         $chipsRest = ($room->status == 3) ?
-            BingoDraw::where('room', $roomId)->where('time', '>', time())
+            BingoDraw::where('room', $roomID)->where('time', '>', time())
             ->where('id', '<=', $vanDraw->id)->orderBy('chip')->pluck('chip')->sort()->toArray() : [];
 
-        $codeEncrypt = ($room->status == 3) ? BingoDrawCode::where('room', $roomId)->pluck('sym')->toArray() : [];
+        $codeEncrypt = ($room->status == 3) ? BingoDrawCode::where('room', $roomID)->pluck('sym')->toArray() : [];
 
         $dataChips = $this->getChips($room->encrypted);
 
@@ -518,7 +515,7 @@ class BingoController extends Controller
             // Definir variable relacion ID sala-juagador
             $roomUser = $moreViewData['playerID'];
             // Obtener Cartones del ID jugador-sala
-            $ctns = BingoCtns::getCtnsByPlayerInRoom($roomId, 'room_user', $roomUser);
+            $ctns = BingoCtns::getCtnsByPlayerInRoom($roomID, 'room_user', $roomUser);
         }
 
         $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $roomUser ?? null, $randomKey) : [];
@@ -526,8 +523,10 @@ class BingoController extends Controller
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'BingoCash',
+            'creatorType' => $creator['type'],
+            'creatorID' => encrypt($creatorID),
             'room' => $room,
-            'jackpotType' => BingoRoomConfig::getValueByRoom($roomId, 'jackpot_type'),
+            'jackpotType' => BingoRoomConfig::getValueByRoom($roomID, 'jackpot_type'),
             'coinSym' => $coinSym,
             'jackpot' => $jackpot,
             'startTime' => $this->convertToUnixTimestamp($room->date, $room->time),
@@ -548,8 +547,6 @@ class BingoController extends Controller
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);
         }
-
-        dd($viewData);
 
         return ['route' => 'modules.game.bingo.in-game', 'data' => $viewData];
     }
