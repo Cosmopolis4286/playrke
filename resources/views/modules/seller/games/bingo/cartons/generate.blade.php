@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             @if ($status == 1)
-                <div class="card-body mt-n2">
+                <div class="card-body">
                     <form id="form-ctns" action="{{ route('seller.generateCarton') }}" method="POST">@csrf
                         <div class="row">
                             <div class="form-group col-9 col-sm-5">
@@ -72,7 +72,7 @@
                                         ¡Este usuario esta participando!
                                     </h6>
                                 </div>
-                                <div id="cont-info-player" class="col-12 col-md-8 hide-elem">
+                                <div id="cont-info-player" class="col-12 col-md-9 hide-elem">
                                     <label class="mb-n1">Cartones comprados: <b id="player-ctns"></b></label>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <label for="copy-player-link" class="mt-2" style="min-width: 120px;">Link de
@@ -140,9 +140,9 @@
                     </button>
                 </div>
             @else
-                <div class="container mt-2">
-                    <div class="alert alert-info alert-dismissible" role="alert">
-                        No puedes vender cartones, comunicate con tu Comercializadora
+                <div class="card-body">
+                    <div class="alert alert-info alert-dismissible text-center" role="alert">
+                        ¡No puedes vender cartones, contacta a tu gestor!
                     </div>
                 </div>
             @endif
@@ -163,7 +163,7 @@
         const sellerCommn = @json($commn);
         const form = $("#form-ctns");
         const btnGenerate = $("#btn-generate-ctn");
-        let roomVal = '';
+        let roomID = '';
         let ctnPrice = 1;
         let jackpotRoom;
         let playerInfo = '';
@@ -241,7 +241,7 @@
             let totalsellerCommn = formatNumber(total * (sellerCommn / 100));
             let jackpotAmount = formatNumber((total - totalsellerCommn));
 
-            if (roomVal) {
+            if (roomID) {
                 $(".coin-symbol").text($("#coin").val());
                 $("#tx-total-amount").html(total);
                 $("#tx-seller-commn").html(totalsellerCommn);
@@ -282,15 +282,15 @@
         }
 
         room.on("change", function() {
-            roomVal = $(this).val();
+            roomID = $(this).val();
 
-            if (!roomVal) {
+            if (!roomID) {
                 $(".coin-symbol, .sale-info").empty();
                 $(".ctn-player-info, #cont-tx-jackpot-room").addClass('hide-elem');
             } else {
                 $.getJSON({
                     url: `{{ route('seller.getCtnPrice', ['roomID' => ':id']) }}`
-                        .replace(':id', roomVal),
+                        .replace(':id', roomID),
                     headers: {
                         'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
@@ -318,7 +318,7 @@
         });
 
         numCtns.on("change", function() {
-            if (roomVal) calculateSale();;
+            if (roomID) calculateSale();;
         })
 
         country.on("change", function() {
@@ -333,7 +333,7 @@
         });
 
         function insertCountries(arr) {
-            country.empty().append('<option value="" disabled selected>Selecciona el País:</option>');
+            country.empty().append('<option value="" selected>Seleccionar País:</option>');
 
             arr.forEach(item => {
                 country.append(`<option value="${item.id}">${item.name}</option>`);
@@ -351,23 +351,24 @@
             }
         });
 
-        function getPlayer() {
+        function getPlayer(playerID) {
             $.post({
                 url: "{{ route('seller.getPlayer') }}",
                 headers: {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 data: {
-                    room: roomVal,
+                    game: 'BINGO',
+                    room: roomID,
                     country: country.val(),
-                    player_info: playerInfo,
+                    player_info: playerID,
                 },
                 dataType: 'json',
                 beforeSend: function() {
                     btnGenerate.prop('disabled', true);
                 },
                 success: function(data) {
-                    if (data.van == 1) {
+                    if (data.response) {
                         const infoPlayer = data.infoPlayer;
                         showToast('warning', 'Este usuario está participando');
                         $('#name, #last-name, #type_id, #identification, #phone').prop('required', false);
@@ -401,14 +402,7 @@
 
         btnGenerate.on("click", function() {
             if (!playerInGame) {
-                if (country.val() == 234 && $("#identification").val() && $("#type_id").val()) {
-                    playerInfo = $("#phone").val();
-                    // playerInfo = $("#type_id").val() + $("#identification").val();
-                    getPlayer();
-                } else if (country != 234 && $("#phone").val()) {
-                    playerInfo = $("#phone").val();
-                    getPlayer();
-                }
+                getPlayer($("#phone").val());
             } else {
                 form.submit();
             }

@@ -269,7 +269,7 @@ class BingoController extends Controller
             $data['isLogin'] = $isLogin;
             $data['coin'] = $coin;
 
-            if ($creator == 'customer') {
+            if ($creator === 'customer') {
 
                 $user = CustomerUser::getById($player, ['user_id', 'token', 'coin']);
                 $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $user->coin);
@@ -346,7 +346,7 @@ class BingoController extends Controller
 
             if (isset($creator)) {
 
-                if ($creator == 'customer') {
+                if ($creator === 'customer') {
                     DB::beginTransaction();
                     try {
                         // Validar transacciones del cliente
@@ -605,13 +605,13 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function outGame($dateFilter = 'today')
+    public function outGame($room = '', $creator = '')
     {
         // Vista del el juego solo para comprar [TODOS]
 
-        $creator = ['type' => 'customer', 'id' => ''];
+        $creator = ['type' => 'RKE', 'id' => $creator];
 
-        $viewData = self::getGameInfo($creator, [], $dateFilter);
+        $viewData = self::getGameInfo($creator, ['room' => $room]);
 
         // Retorna a vista con la informacion 
         return $this->handleViewData($viewData, $creator['type']);
@@ -925,7 +925,7 @@ class BingoController extends Controller
                 'all_for_one' => $request->room_type ?? 0
             ];
 
-            if ($creator[1] == 'commerce') {
+            if ($creator[1] === 'commerce') {
                 $createData['commerce'] = $creator[0];
                 $createData['subsidiary'] = $request->subsidiary ?? null;
             } else {

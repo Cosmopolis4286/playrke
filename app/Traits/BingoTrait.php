@@ -1003,6 +1003,8 @@ trait BingoTrait
             ->select('id', 'customer', 'jackpot', 'jackpot_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 
+            dd($room);
+
         // Verificar si ya hay ganadores del premio mayor
         $prizeCtns = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
         $winners = BingoRoomUser::getWinnersCountByRoom($roomID);

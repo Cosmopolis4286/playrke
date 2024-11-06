@@ -31,7 +31,7 @@
                         ]);
                     } else {
                         if ($room->all_for_one == 1) {
-                            $roomRoute = route('bingocash.out-game-rke', ['dateFilter' => 'today']);
+                            $roomRoute = route('bingocash.out-game-rke', ['room' => $roomID]);
                         } else {
                             $roomRoute = route('bingocash.out-game-commerce', [
                                 'commerce' => $commerceUUID,

@@ -394,25 +394,29 @@ class SellerController extends Controller
 
     public function getPlayer(Request $request)
     {
-        $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'commerce', 'all_for_one']);
+        switch ($request->game) {
+            case 'BINGO':
+                $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'commerce', 'all_for_one']);
 
-        $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
-            ->where('phone', $request->player_info)->where('game', 1)->where('room', $room)->first();
+                $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
+                    ->where(['phone' => $request->player_info, 'game' => 1, 'room' => $room->id])->first();
 
-        if ($player) {
-            $route = $this->getGameLinkByPlayer($room->commerce, $player->id, $room->all_for_one);
+                if (!$player)  return response()->json(['response' => false]);
 
-            // $IdType = DocumentType::where('id', $request->typeID)->first();
-            $ctnsPlayer = BingoCtns::where('player_link', $player->id)->where('room', $room)->count();
+                $route = $this->getGameLinkByPlayer($room->commerce, $player->link, $room->all_for_one);
+                $ctnsPlayer = BingoCtns::where(['player_link' => $player->id, 'room' => $room->id])->count();
 
-            return response()->json(array(
-                'van' => 1,
-                'infoPlayer' => $player,
-                /*'IdType' => $IdType->info_ident,*/
-                'ctnsLink' => [$ctnsPlayer, $player->link, $route]
-            ));
-        } else {
-            return response()->json(array('van' => 0));
+                return response()->json([
+                    'response' => true,
+                    'infoPlayer' => $player,
+                    'ctnsLink' => [$ctnsPlayer, $player->link, $route]
+                ]);
+
+                break;
+
+            default:
+                # code...
+                break;
         }
     }
 
