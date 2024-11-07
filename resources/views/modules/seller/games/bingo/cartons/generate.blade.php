@@ -351,7 +351,7 @@
             }
         });
 
-        function getPlayer(playerID) {
+        function getPlayer(playerInfo) {
             $.post({
                 url: "{{ route('seller.getPlayer') }}",
                 headers: {
@@ -361,7 +361,7 @@
                     game: 'BINGO',
                     room: roomID,
                     country: country.val(),
-                    player_info: playerID,
+                    player_info: playerInfo,
                 },
                 dataType: 'json',
                 beforeSend: function() {

@@ -42,13 +42,13 @@
         const chpLast = @json($vanDraw);
         const startTime = @json($startTime);
         const player = @json($player);
-        const arrDraw = @json($sort);
         const encrypt = @json($encrypt);
         const restChips = @json($chipsRest);
         const soundNext = $('#next')[0];
         const soundWin = $('#winner')[0];
         soundNext.muted = true;
         soundWin.muted = true;
+        let arrDraw = @json($sort);
         let latestChips = @json($latestChips);
         let timeServ = @json($timeServ);
         let allChips = @json($allChips);

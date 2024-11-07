@@ -99,6 +99,12 @@ trait GameTrait
         // Definir valor final o monto
         $amount = $data['value'] * ($exchangeRate ?? 1);
 
+        return $this->formatAmount($amount, $type);
+    }
+
+    public function formatAmount($amount, $type)
+    {
+        // Formatear monto/valor de acuerdo al tipo
         if ($type === 'string') {
             // Formatear como cadena y eliminar ceros y comas finales
             return rtrim(number_format($amount, 2, ',', '.'), '0,');

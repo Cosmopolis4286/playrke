@@ -402,7 +402,7 @@ class BingoController extends Controller
                     $coinSym = $coinID;
                     $player = $user->id;
 
-                    $moreViewData['playerID'] = BingoRoomUser::getValueByColumn($room->id, 'player_user', $player, 'id');
+                    $roomUser = BingoRoomUser::getValueByColumn($room->id, 'player_user', $player, 'id');
                     $moreViewData['player'] = encrypt($player);
                 } else {
                     $coinID = $data['coin'];
@@ -428,16 +428,14 @@ class BingoController extends Controller
                     $isLogin = false;
 
                     $player = PlayerLink::select('id', 'country', 'link')->where('room', $roomID)->first();
+                    $roomUser =  BingoRoomUser::getValueByColumn($roomID, 'player_link', $player->id, 'id');
 
                     $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
-
                     $coinID = $coin->id;
                     $coinSym = $coin->symbol;
 
-                    $moreViewData = [
-                        'playerID' => BingoRoomUser::getValueByColumn($roomID, 'player_link', $player->id, 'id'),
-                        'player' => $player->link
-                    ];
+                    $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($creatorID, 1);
+                    $coinsAvailable = Coin::getCoinsById($commerceCoinsAvailable, ['id', 'symbol', 'long_name']);
                 } else {
                     $roomID = BingoRoom::getValueByEncrypted($data['room'], 'id');
 
@@ -447,31 +445,27 @@ class BingoController extends Controller
                         $isLogin = true;
                         $player = decrypt($data['player']);
                         $coinID = Wallet::getValue($player, 'coin') ?? 1;
-
                         $coinSym = Coin::getValue($coinID, 'symbol');
-                        $saleLink = false;
+
+                        $roomUser =  BingoRoomUser::getValueByColumn($roomID, 'player_user', $player, 'id');
                     } else {
                         $isLogin = false;
                         $coinID = 1;
                         $coinSym = 'USDT';
-                        $saleLink = true;
 
                         $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($creatorID, 1);
                         $coinsAvailable = Coin::getCoinsById($commerceCoinsAvailable, ['id', 'symbol', 'long_name']);
                     }
-
-                    $moreViewData = [
-                        'player' => $player ?? '',
-                        'saleLink' => $saleLink,
-                        'coinsAvailable' => $coinsAvailable ?? []
-                    ];
-
-                    if (isset($data['player'])) {
-                        $moreViewData['playerID'] = BingoRoomUser::getValueByColumn($roomID, 'player_user', $player, 'id');
-                    }
                 }
 
                 $room = BingoRoom::getRoomById($roomID, ['status', 'all_for_one', 'ctn_price']);
+
+                $moreViewData = [
+                    'player' => $player,
+                    'saleLink' => true,
+                    'coinsAvailable' => $coinsAvailable ?? []
+                ];
+
                 break;
             default:
                 return false;
@@ -511,9 +505,7 @@ class BingoController extends Controller
 
         $randomKey = base64_encode(random_bytes(32));
 
-        if (isset($moreViewData['playerID'])) {
-            // Definir variable relacion ID sala-juagador
-            $roomUser = $moreViewData['playerID'];
+        if (isset($roomUser)) {
             // Obtener Cartones del ID jugador-sala
             $ctns = BingoCtns::getCtnsByPlayerInRoom($roomID, 'room_user', $roomUser);
         }
@@ -535,7 +527,7 @@ class BingoController extends Controller
             'sort' => $sort,
             'encrypt' => $codeEncrypt,
             'random' => $randomKey,
-            'latestChips' => $dataChips['lastSixChips'],
+            'latestChips' => $dataChips['latestChips'],
             'allChips' => $dataChips['allChips'],
             'vanDraw' => $vanDraw ? $vanDraw->chip : '',
             'infoGame' => $infoGame,
@@ -634,10 +626,12 @@ class BingoController extends Controller
             }
         }
 
-        $viewData = self::getGameInfo('commerce', ['commerce' => $commerce, 'room' => $room]);
+        $creator = ['type' => 'commerce', 'id' => $commerce];
+
+        $viewData = self::getGameInfo($creator, ['room' => $room]);
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData, 'commerce');
+        return $this->handleViewData($viewData, $creator['type']);
     }
 
     public function outGameCustomer($customer, $room, $coin)
@@ -648,10 +642,12 @@ class BingoController extends Controller
         // Redireccionar a la vista anterior   
         if (!$customer) return redirect()->back();
 
-        $viewData = self::getGameInfo('customer', ['customer' => $customer, 'room' => $room, 'coin' => decrypt($coin)]);
+        $creator = ['type' => 'customer', 'id' => $customer];
+
+        $viewData = self::getGameInfo($creator, ['room' => $room, 'coin' => decrypt($coin)]);
 
         // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData, 'customer');
+        return $this->handleViewData($viewData, $creator['type']);
     }
 
     private function hasPurchasedCartons($phone)
@@ -684,12 +680,12 @@ class BingoController extends Controller
             $allChips = BingoDraw::where('room', $room->id)->where('id', '<=', $chipVanID)
                 ->where('time', '<=', time())->orderByDesc('id')->pluck('chip')->toArray();
 
-            // Si el estado de la sala es mayor a 2, tomamos los primeros seis elementos de $allChips como $lastSixChips
-            $lastSixChips = ($room->status > 2) ? array_slice($allChips, 0, 6) : [];
+            // Si el estado de la sala es mayor a 2, tomamos los primeros seis elementos de $allChips como $latestChips
+            $latestChips = ($room->status > 2) ? array_slice($allChips, 0, 6) : [];
         }
 
         return [
-            'lastSixChips' => $lastSixChips ?? [],
+            'latestChips' => $latestChips ?? [],
             'allChips' => $allChips ?? [],
             'timeServ' => time()
         ];
@@ -980,7 +976,6 @@ class BingoController extends Controller
             $coin = $request->coin ?? 1;
 
             $updateData = [
-                'game_mode' => $request->game_mode,
                 'date' => $newDate,
                 'time' => $newTime,
                 'unix_date' => $unixDate,

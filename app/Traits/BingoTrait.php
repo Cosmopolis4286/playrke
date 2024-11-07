@@ -14,12 +14,10 @@ use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomUser;
-use App\Models\Coin;
 use App\Models\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\GameExchangeRate;
-use App\Models\ExchangeRate;
 use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\Transactions;
@@ -46,41 +44,41 @@ trait BingoTrait
             $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
             $existingChips = BingoDraw::where('room', $room)->pluck('chip');
 
+            $chips = [];
+            $chp = 1;
+            $inserts = [];
+            $lastDrawTime = BingoDraw::where('room', $room)->orderByDesc('id')->value('time') ?? $dataTime;
+            $currentTimestamp = now();
+
+            while ($chp <= 75) {
+                do {
+                    $rnd = mt_rand(1, 75);
+                } while (in_array($rnd, $chips) || $existingChips->contains($rnd));
+
+                $numEncoded = collect(str_split($rnd))
+                    ->map(fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '')
+                    ->implode('');
+
+                $timeIncrement = $chp === 1 ? 8 : 9;
+                $currentDrawTime = $lastDrawTime + $timeIncrement;
+
+                $inserts[] = [
+                    "chip" => $rnd,
+                    "code" => $numEncoded,
+                    "room" => $room,
+                    "time" => $currentDrawTime,
+                    "created_at" => $currentTimestamp,
+                    "updated_at" => $currentTimestamp
+                ];
+
+                $chips[] = $rnd;
+                $lastDrawTime = $currentDrawTime;
+                $chp++;
+            }
+
             DB::beginTransaction();
 
             try {
-                $chips = [];
-                $chp = 1;
-                $inserts = [];
-                $lastDrawTime = BingoDraw::where('room', $room)->orderByDesc('id')->value('time') ?? $dataTime;
-                $currentTimestamp = now();
-
-                while ($chp <= 75) {
-                    do {
-                        $rnd = mt_rand(1, 75);
-                    } while (in_array($rnd, $chips) || $existingChips->contains($rnd));
-
-                    $numEncoded = collect(str_split($rnd))
-                        ->map(fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '')
-                        ->implode('');
-
-                    $timeIncrement = $chp === 1 ? 8 : 9;
-                    $currentDrawTime = $lastDrawTime + $timeIncrement;
-
-                    $inserts[] = [
-                        "chip" => $rnd,
-                        "code" => $numEncoded,
-                        "room" => $room,
-                        "time" => $currentDrawTime,
-                        "created_at" => $currentTimestamp,
-                        "updated_at" => $currentTimestamp
-                    ];
-
-                    $chips[] = $rnd;
-                    $lastDrawTime = $currentDrawTime;
-                    $chp++;
-                }
-
                 BingoDraw::insert($inserts); // Inserción masiva
                 DB::commit();
                 return $this->chipWin($room);
@@ -788,7 +786,7 @@ trait BingoTrait
         }
     }
 
-    public function convertPrizeValue($roomID, $coin)
+    public function convertPrizeValue($roomID, $coin, $type = 'string')
     {
         $room = BingoRoom::getRoomById($roomID, ['commerce', 'customer', 'jackpot_prize']);
 
@@ -799,7 +797,7 @@ trait BingoTrait
 
         $data = ['coin' => $coin, 'value' => $room->jackpot_prize, 'creator' => $creator];
 
-        return $this->convertValueByGame('BINGO', $roomID, $data);
+        return $this->convertValueByGame('BINGO', $roomID, $data, $type);
     }
 
     private function registerPrizeCtn($roomID, $cartons, $prizeType, $USDValue)
@@ -942,16 +940,16 @@ trait BingoTrait
         }
 
         return [
-            'serialPrize' => $room->serialPrize,
+            'serialPrize' => $room->serial_prize,
             'winners' => $winners,
             'winPlayer' => $winPlayer ?? false,
             'coin' => $coin ?? 1
         ];
     }
 
-    public function getArrayWinnersData($winPlayer, $winners, $jackpot, $prizeType = 'Jackpot')
+    public function getArrayWinnersData($winPlayer, $winners, $jackpot, $prizeType = 'jackpot')
     {
-        // Calcular la ganancia por ganador
+        // Calcular la ganancia de acuerdo a la cantidad de ganadores
         $gain = rtrim(rtrim(number_format($jackpot / count($winners), 3, ',', '.'), '0'), ',');
 
         // Definir array para guardar información
@@ -963,7 +961,7 @@ trait BingoTrait
             $playerName = BingoCtns::getCtnSerialByRoomUser($player->id);
             // Obtener nombre o identificador del jugador
             if (!$player->customer) {
-                if ($prizeType === 'Jackpot') {
+                if ($prizeType === 'jackpot') {
                     if ($player->player_user) {
                         $playerName = User::getValueById($player->player_user, 'username');
                     } else {
@@ -1002,8 +1000,6 @@ trait BingoTrait
         $room = BingoRoom::with((['Config:room,val_serials']))
             ->select('id', 'customer', 'jackpot', 'jackpot_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
-
-        dd($room);
 
         // Verificar si ya hay ganadores del premio mayor
         $prizeCtns = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
@@ -1258,9 +1254,9 @@ trait BingoTrait
         $gameExchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $data['coin']);
 
         // Calcular el bote de seriales de la sala con respecto a la moneda del jugador
-        $jackpot = $data['serialPrize'] * $gameExchangeRate;
+        $serialAmount = $this->formatAmount($data['serialPrize'] * $gameExchangeRate, 'float');
 
-        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $jackpot, 'serial');
+        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $serialAmount, 'serial');
     }
 
     // Obtener Informacion de un carton especifico (encriptado)
