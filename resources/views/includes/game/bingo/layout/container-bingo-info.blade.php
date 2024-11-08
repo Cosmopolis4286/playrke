@@ -31,7 +31,6 @@
                         @if ($room->status != 3) disabled @endif>
                         <i id="icon-volume" class="fa-solid fa-volume-xmark"></i>
                     </button>
-                    <input id="val-icon-volume" type="hidden" value="0">
                 </div>
             </div>
         </div>

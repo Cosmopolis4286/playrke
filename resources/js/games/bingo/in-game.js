@@ -87,10 +87,7 @@ async function getGameData() {
             timeServ = Number(data.timeServ);
             vanChange = false;
 
-            await Promise.all([
-                renderChipsView(allChips),
-                handleLatestChips(latestChips),
-            ]);
+            handleLatestChips(latestChips);
 
         } catch (error) {
             console.error("Error al obtener los datos del juego:", error);
@@ -99,22 +96,20 @@ async function getGameData() {
 }
 
 function handleLatestChips(latestChips) {
-    console.log('handleLatestChips', latestChips);
-
     // Asegurarse de que el contenedor está vacío antes de añadir contenido
     const $container = $("#cont-last-chips").empty();
 
     // Generar el HTML para los chips
     const chipsHtml = latestChips.slice(0, 6).map((elem, ind) => {
         return `<div class="cont-img-chip">
-            <img id="chp_${elem}" class="img-chip${ind === 0 ? ' zoom' : ''}" alt="${elem}" src="${preRoute}img/bg/chips/${elem}.png">
-        </div>`;
+                <img id="chp_${elem}" class="img-chip${ind === 0 ? ' zoom' : ''}" alt="${elem}" src="${preRoute}img/bg/chips/${elem}.png">
+            </div>`;
     }).join(''); // Unir los elementos para crear una sola cadena
 
     // Insertar todo el HTML generado de una vez en el contenedor
     $container.html(chipsHtml);
 
-    // Ejecuta funciones adicionales después de modificar el DOM
+    renderChipsView(allChips);
     autoMarked();
     processChips();
 }
@@ -162,6 +157,7 @@ function renderChipsView(arr, arrow) {
 
     return true;
 }
+
 
 window.onblur = () => {
     vanChange = true;
@@ -224,27 +220,20 @@ function decryptChp(code) {
 }
 
 function checkExitOfToken() {
-    // Filtramos los chips que ya han sido procesados y que no necesitan ser verificados
-    const validChips = arrDraw.filter(chip => {
-        const chipTime = +chip.time; // Convertir el tiempo a número
+    for (let i = 0; i < arrDraw.length; i++) {
+        const chip = arrDraw[i];
+        const chipTime = +chip.time;
 
-        // Verificar si el chip tiene un tiempo válido y está listo para salir
-        return chipTime && chipTime <= timeServ;
-    });
+        // Verificamos si el chip tiene un tiempo válido y está listo para salir
+        if (chipTime && chipTime <= timeServ) {
+            const nextChip = decryptChp(chip.code);
 
-    // Si no hay chips para procesar, terminamos la función
-    if (validChips.length === 0) return;
-
-    // Iteramos sobre los chips válidos
-    for (const chip of validChips) {
-        const nextChip = decryptChp(chip.code);
-
-        // Si el chip no ha sido procesado, lo procesamos
-        if (!allChipsSet.has(nextChip)) {
-            console.log('nextChip', nextChip);
-            getNewChip(nextChip);
-            arrDraw = arrDraw.filter(item => item.code !== chip.code); // Elimina el chip procesado
-            break; // Detenemos la ejecución después de procesar el primer chip válido
+            // Si el chip no ha sido procesado, lo procesamos
+            if (!allChipsSet.has(nextChip)) {
+                arrDraw.splice(i, 1);
+                getNewChip(nextChip);
+                break;
+            }
         }
     }
 }
@@ -273,56 +262,53 @@ function processChips() {
 
 const r4nd0m = $('#random').val();
 
-async function getNewChip(newChip) {
-
+function getNewChip(newChip) {
     if (newChip != undefined && !latestChips.includes(newChip)) {
-
         const arrDrawImg = $('.img-chip');
+        const $contLastChips = $('#cont-last-chips');
+        const $contLoader = $('#cont-loader');
 
+        // Reproducir sonido y actualizar el efecto de zoom en el último chip
         if (actSound === 1) soundNext.play();
-        if (arrDrawImg.length) $(`#${arrDrawImg[0].id}`).removeClass('zoom');
+        if (arrDrawImg.length) $(arrDrawImg[0]).removeClass('zoom');
 
+        // Ocultar loader si la sala está activa
         if (loaderChip && roomStatus > 2) {
-            $('#cont-loader').hide();
+            $contLoader.hide();
             loaderChip = false;
         }
 
-        // Crear el nuevo elemento de chip
-        const newChipHtml =
-            `<div class="cont-img-chip">
-                <img id="chp_${newChip}" class="img-chip zoom hide-chip"
-                alt="${newChip}" src="${preRoute}img/bg/chips/${newChip}.png">
+        // Crear y añadir el nuevo chip
+        const newChipHtml = `
+            <div class="cont-img-chip">
+                <img id="chp_${newChip}" class="img-chip zoom hide-chip" alt="${newChip}"
+                src="${preRoute}img/bg/chips/${newChip}.png">
             </div>`;
+        $contLastChips.prepend(newChipHtml);
 
-        // Añadir el nuevo chip
-        $('#cont-last-chips').prepend(newChipHtml);
-
-        // Manejar el evento de carga de la imagen
+        // Añadir clase `show-chip` al cargar la imagen
         $(`#chp_${newChip}`).on('load', function () {
             $(this).addClass('show-chip');
         });
 
-        // Eliminar el chip más antiguo si hay 6 chips
+        // Eliminar el chip más antiguo si ya hay 6 en pantalla
         if (arrDrawImg.length === 6) {
-            $(`#${arrDrawImg[5].id}`).remove();
+            $(arrDrawImg[5]).remove();
             latestChips.pop();
         }
 
+        // Actualizar arrays y Set de chips
         newChip = Number(newChip);
-
-        // Actualizar los chips actuales y el set
         latestChips.unshift(newChip);
         allChips.unshift(newChip);
-        allChipsSet.add(allChips);
+        allChipsSet.add(newChip);
 
         // Ejecutar funciones en paralelo
-        await Promise.all([
-            autoMarked(),
-            renderChipsView(allChips)
-        ]);
+        renderChipsView(allChips);
+        autoMarked();
 
-        // Verificar condición para mostrar el resultado
-        if (newChip == chpLast) {
+        // Mostrar ganadores si es el último chip
+        if (newChip === chpLast) {
             $('#text-check-bingo').show();
             endWin = 1;
             setTimeout(() => {
@@ -398,6 +384,8 @@ function showWinners(arrInfo, chipWin) {
 
     $('#draw-date').text(convertAndDisplay(startTime));
 
+    $("#btn-view-winners").prop('disabled', false);
+
     $("#modal-info-winners").modal('show');
 }
 
@@ -435,28 +423,22 @@ $(document).on("click", ".cont-win-img", function () {
 });
 
 $(document).on("click", "#btn-view-winners", function () {
+    if (!endWin) return;
     $("#modal-info-winners").modal('show');
 });
 
-$(async function () {
+$(function () {
     if (!latestChips.length) {
         processChips();
         return;
     }
 
     try {
-        console.log('latestChips', latestChips);
-
-        // Ejecuta ambas funciones en paralelo
-        await Promise.all([
-            renderChipsView(allChips),
-            handleLatestChips(latestChips)
-        ]);
+        handleLatestChips(latestChips);
 
         // Verifica el estado de la sala para mostrar los ganadores
         if (roomStatus > 3) {
             showWinners(decryptJson(infoGame, r4nd0m), chpLast);
-            $("#btn-view-winners").prop('disabled', false);
         }
     } catch (error) {
         console.error("Error en la inicialización:", error);

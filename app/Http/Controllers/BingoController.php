@@ -421,21 +421,22 @@ class BingoController extends Controller
 
                 if (isset($data['playerLink'])) {
 
-                    $roomID = PlayerLink::getValueByLink($data['playerLink'], 'room');
+                    $player = $data['playerLink'];
+
+                    $roomID = PlayerLink::getValueByLink($player, 'room');
 
                     if (!$roomID) return ['error' => 'Sala no encontrada'];
 
                     $isLogin = false;
 
-                    $player = PlayerLink::select('id', 'country', 'link')->where('room', $roomID)->first();
-                    $roomUser =  BingoRoomUser::getValueByColumn($roomID, 'player_link', $player->id, 'id');
+                    $playerLink = PlayerLink::select('id', 'country', 'link')->where('room', $roomID)->first();
+                    $roomUser =  BingoRoomUser::getValueByColumn($roomID, 'player_link', $playerLink->id, 'id');
 
-                    $coin = Coin::getCoinByCountry($player->country, ['id', 'symbol']);
+                    $coin = Coin::getCoinByCountry($playerLink->country, ['id', 'symbol']);
                     $coinID = $coin->id;
                     $coinSym = $coin->symbol;
 
-                    $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($creatorID, 1);
-                    $coinsAvailable = Coin::getCoinsById($commerceCoinsAvailable, ['id', 'symbol', 'long_name']);
+                    $coinsAvailable = Coin::getById($coinID, ['id', 'symbol', 'long_name']);
                 } else {
                     $roomID = BingoRoom::getValueByEncrypted($data['room'], 'id');
 
@@ -446,6 +447,8 @@ class BingoController extends Controller
                         $player = decrypt($data['player']);
                         $coinID = Wallet::getValue($player, 'coin') ?? 1;
                         $coinSym = Coin::getValue($coinID, 'symbol');
+
+                        $coinsAvailable = Coin::getById($coinID, ['id', 'symbol', 'long_name']);
 
                         $roomUser =  BingoRoomUser::getValueByColumn($roomID, 'player_user', $player, 'id');
                     } else {
@@ -461,7 +464,7 @@ class BingoController extends Controller
                 $room = BingoRoom::getRoomById($roomID, ['status', 'all_for_one', 'ctn_price']);
 
                 $moreViewData = [
-                    'player' => $player,
+                    'player' => $player ?? false,
                     'saleLink' => true,
                     'coinsAvailable' => $coinsAvailable ?? []
                 ];
@@ -540,7 +543,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.in-game', 'data' => $viewData];
+               return ['route' => 'modules.game.bingo.in-game', 'data' => $viewData];
     }
 
     public function inGame($player, $room = '')

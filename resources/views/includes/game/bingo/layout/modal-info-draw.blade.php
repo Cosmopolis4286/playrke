@@ -61,14 +61,20 @@
                                         <div class="input-group-prepend">
                                             <sapn class="input-group-text" for="coin">Moneda</span>
                                         </div>
-                                        <select class="custom-select" id="coin">
-                                            <option value="" disabled selected>Seleccionar</option>
-                                            @foreach ($coinsAvailable as $item)
-                                                <option value="{{ encrypt($item->id) }}">
-                                                    {{ $item->long_name }} ({{ $item->symbol }})
-                                                </option>
-                                            @endforeach
-                                        </select>
+                                        @if (!$player)
+                                            <select class="custom-select" id="coin">
+                                                <option value="" disabled selected>Seleccionar</option>
+                                                @foreach ($coinsAvailable as $item)
+                                                    <option value="{{ encrypt($item->id) }}">
+                                                        {{ $item->long_name }} ({{ $item->symbol }})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            <div class="form-control text-left">{{ $coinsAvailable->long_name }}
+                                                ({{ $coinsAvailable->symbol }})</div>
+                                            <input type="hidden" id="coin" value="{{ encrypt($coinsAvailable->id) }}">
+                                        @endif
                                     </div>
                                 </div>
                             @endisset
