@@ -31,7 +31,9 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['creator' => [$userID ?? null, $creatorType]])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', [
+            'creator' => [$userID ?? null, $creatorType],
+        ])->render(),
     ])
     @include('includes.form-other-options')
 @endsection
@@ -70,13 +72,19 @@
         });
 
         function insertInfo(type, data = '') {
-            gameMode.prop({
-                disabled: type == 2 && data.room.players,
-                required: !(type == 2 && data.room.players)
+            const isDisabled = type === 2 && data.room.players;
+            const isRequired = !isDisabled;
+
+            // Aplica las propiedades y vacía los elementos `gameMode` y `roomType`
+            [gameMode, roomType].forEach(element => {
+                element.prop({
+                    disabled: isDisabled,
+                    required: isRequired
+                }).empty();
             });
 
+            // Vacía `jackpotType`
             jackpotType.empty();
-            gameMode.empty();
 
             if (type == 1) {
                 if (creatorType === 'commerce' && arrRoomType.length) {

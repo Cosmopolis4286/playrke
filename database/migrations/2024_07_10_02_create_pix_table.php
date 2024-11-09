@@ -15,6 +15,7 @@ return new class extends Migration
     {
         Schema::create('pix', function (Blueprint $table) {
             $table->id();
+            $table->string('name', 35)->nullable();
             $table->unsignedBigInteger('bank');
             $table->unsignedBigInteger('pix_key');
             $table->string('pix_key_value', 50);

@@ -1,4 +1,8 @@
 <div class="form-group">
+    <label for="name">Nombre</label>
+    <input type="text" class="form-control" id="name" name="name">
+</div>
+<div class="form-group">
     <label for="pix-key">Tipo*</label>
     <select required class="form-control" id="pix-key" name="pix_key"></select>
 </div>

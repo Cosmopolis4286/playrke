@@ -950,7 +950,8 @@ trait BingoTrait
     public function getArrayWinnersData($winPlayer, $winners, $jackpot, $prizeType = 'jackpot')
     {
         // Calcular la ganancia de acuerdo a la cantidad de ganadores
-        $gain = rtrim(rtrim(number_format($jackpot / count($winners), 3, ',', '.'), '0'), ',');
+        $decimals = count($winners) > 1 ? 3 : 2;
+        $gain = rtrim(rtrim(number_format($jackpot / max(1, count($winners)), $decimals, ',', '.'), '0'), ',');
 
         // Definir array para guardar información
         $infoPlayer = ['size' => 0, 'name' => [], 'gain' => [], 'ctn' => []];

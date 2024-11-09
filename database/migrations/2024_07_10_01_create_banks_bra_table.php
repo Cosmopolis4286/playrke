@@ -16,7 +16,6 @@ return new class extends Migration
         Schema::create('banks_bra', function (Blueprint $table) {
             $table->id();
             $table->string('name', 40);
-            $table->unsignedBigInteger('code');
             $table->string('full_name', 60);
             $table->string('ispb', 8);
             $table->timestamps();

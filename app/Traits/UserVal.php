@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
+use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PagoMovil;
 use App\Models\Pix;
@@ -100,31 +101,57 @@ trait UserVal
         return $coins;
     }
 
-    public function checkBankDirectoriesExistence($user, $coins)
+    public function checkBankDirectoriesExistence($userType, $userID, $coins)
     {
-        $coinsNotDirectories = [];
+        $coinsWithDirectories = [];
+        $user = Auth::id();
 
         foreach ($coins as $coin) {
             switch ($coin) {
                 case 2:
                     // Bs (Venezuela) PagoMovil
                     $pagomovil = PagoMovil::where('user', $user)->exists();
-                    if (!$pagomovil) $coinsNotDirectories[] = $coin;
+                    if ($pagomovil) $coinsWithDirectories[] = $coin;
                     break;
                 case 3:
                     // R$ (Brasil) Pix
                     $pix = Pix::where('user', $user)->exists();
-                    if (!$pix) $coinsNotDirectories[] = $coin;
+                    if ($pix) $coinsWithDirectories[] = $coin;
                     break;
                 case 4:
                     // $ (Colombia) Pix
-                    $coinsNotDirectories[] = $coin;
+                    $coinsWithDirectories[] = $coin;
                     break;
                 default:
                     return response()->json(['error' => 'Tipo de moneda no soportado.'], 400);
             }
         }
-        return $coinsNotDirectories;
+
+        switch ($userType) {
+            case 'commerce':
+                DB::beginTransaction();
+
+                try {
+                    $query = CommerceExchangeRate::where('commerce', $userID);
+
+                    if (!empty($coinsWithDirectories)) {
+                        // status => 1 Con directorio registrado
+                        $query->whereIn('coin', $coins)->update(['status' => 1]);
+                    } else {
+                        // status => 2 Sin directorio registrado
+                        $query->update(['status' => 2]);
+                    }
+
+                    DB::commit();
+                } catch (\Throwable $th) {
+                    DB::rollBack();
+                    Log::error("Error al cambiar el estado de las monedas sin directorios: {$th->getMessage()}");
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
     public function getPaymentDetailsByUserId($user, $coin)

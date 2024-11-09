@@ -15,6 +15,7 @@
                     <table class="table table-striped table-bordered my-2 w-100">
                         <thead>
                             <tr>
+                                <th>Nombre</th>
                                 <th>Banco</th>
                                 <th>Tipo</th>
                                 <th>Chave</th>
@@ -24,6 +25,7 @@
                         <tbody>
                             @foreach ($pixs as $pix)
                                 <tr>
+                                    <td>{{ $pix->name }}</td>
                                     <td>{{ $pix->Bank->name }}</td>
                                     <td>{{ $pix->ChavePix->value }}</td>
                                     <td>{{ $pix->pix_key_value }}</td>
@@ -82,15 +84,14 @@
         });
 
         $(document).on("change", "#bank", function() {
-            const selectedBank = Number($(this).val());
+            const selectedBank = $(this).val();
             let bankInfo = {};
 
             $.each(banks, function(index, item) {
-                if (selectedBank == item.code) {
+                if (selectedBank == item.ispb) {
                     bankInfo = {
                         ispb: item.ispb,
                         name: item.name,
-                        code: item.code,
                         full_name: item.fullName
                     };
                 }
@@ -104,10 +105,12 @@
             if (type == 1) bank.append(`<option value="" disabled selected>Seleccionar:</option>`);
 
             $.each(banks, function(index, item) {
-                const isSelected = (type == 2 && item.code == data.bank) ? 'selected' : '';
+                const isSelected = (type == 2 && item.ispb == data.bank) ? 'selected' : '';
                 bank.append(
-                    `<option value="${item.code}" ${isSelected}>${item.name}</option>`);
+                    `<option value="${item.ispb}" ${isSelected}>${item.name}</option>`);
             });
+
+            bank.trigger('change');
 
             $(`#modal-${name}`).modal('show');
         }

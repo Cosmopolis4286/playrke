@@ -1,6 +1,6 @@
 
 let symbolSale = coinSym;
-let coinSale = '';
+let coinSale = player ? $('#coin').val() : '';
 let ctnPriceSale = ctnPrice;
 let numCtns = $("#num-ctns").val() ?? 1;
 
@@ -196,6 +196,12 @@ $(document).ready(function () {
     }, 1000);
     $("#modal-info-draw").modal('show');
 
+});
+
+$(document).ready(function () {
+    if (player && coinSale) {
+        getCommerceDetails(coinSale);
+    }
 });
 
 window.toggleModalInfo = toggleModalInfo;

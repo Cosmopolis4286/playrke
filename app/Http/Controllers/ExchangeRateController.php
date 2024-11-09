@@ -35,22 +35,17 @@ class ExchangeRateController extends Controller
                 break;
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user']);
-                $commerceID = $commerce->id;
+
+                $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce->id);
+
+                $this->checkBankDirectoriesExistence('commerce', $commerce->id, $commerceCoins);
 
                 $coins = Coin::whereIn('id', $this->getAvailableCoins($commerce->user))
-                    ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($commerceID) {
-                        $query->where('commerce', $commerceID);
+                    ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($commerce) {
+                        $query->where('commerce', $commerce->id);
                     })->get(['id', 'symbol', 'long_name']);
 
-                $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerceID, 1);
-
-                $coinsNotDirectories = $this->checkBankDirectoriesExistence($commerce->user, $commerceCoins);
-
-                if (count($coinsNotDirectories)) {
-                    $this->changeStatusByExchangeRateWithoutDirectories($coinsNotDirectories, $commerceID);
-                }
-
-                $exchangeRate = CommerceExchangeRate::where('commerce', $commerceID)->get();
+                $exchangeRate = CommerceExchangeRate::where('commerce', $commerce->id)->get();
 
                 $moreViewData = ['layout' => 'layouts.app_rke', 'wallet' => $this->wallet()];
                 break;
@@ -320,23 +315,5 @@ class ExchangeRateController extends Controller
     public function getLastValueByCoin($coin)
     {
         return ExchangeRate::getLastValueByCoin($coin) ?? 1;
-    }
-
-    public function changeStatusByExchangeRateWithoutDirectories($coins, $user)
-    {
-        DB::beginTransaction();
-
-        try {
-            if (count($coins)) {
-                // status => 2 Sin directorio registrado
-                CommerceExchangeRate::where('commerce', $user)->whereIn('coin', $coins)->update(['status' => 2]);
-            } else {
-                CommerceExchangeRate::where('commerce', $user)->update(['status' => 1]);
-            }
-            DB::commit();
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            Log::error('Error al cambiar el estado de las monedas sin directorios: ' . $th->getMessage());
-        }
     }
 }

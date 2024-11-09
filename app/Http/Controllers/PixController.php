@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banks_BRA;
-use App\Models\DocumentType;
 use Illuminate\Http\Request;
 use App\Models\Pix;
 use App\Models\PixKeys;
 use App\Traits\UserVal;
 use Exception;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PixController extends Controller
@@ -31,13 +31,16 @@ class PixController extends Controller
 
     private function insertNewBank($infoBank)
     {
-        $arr = json_decode($infoBank);
+        $bank = json_decode($infoBank);
+        $ISPB = $bank->ispb;
 
-        $existsBank = Banks_BRA::getByCode($arr->code);
+        if (Banks_BRA::existsISPB($ISPB)) return;
 
-        if (!$existsBank) Banks_BRA::create([
-            'name' => $arr->name, 'code' => $arr->code,
-            'full_name' => $arr->full_name, 'ispb' => $arr->ispb
+        Banks_BRA::create([
+            'name' => $bank->name,
+            'code' => $bank->code,
+            'full_name' => $bank->full_name,
+            'ispb' => $ISPB
         ]);
     }
 
@@ -48,54 +51,65 @@ class PixController extends Controller
         try {
             $this->insertNewBank($request->arr_bank);
 
-            $existPix = Pix::getValuePixKey($request->pix_key_value);
+            $pixKey = $request->pix_key;
+            $pixKeyVal = $request->pix_key_value;
 
-            if (!$existPix) {
-                Pix::create([
-                    'bank' => $request->bank,
-                    'pix_key' => $request->pix_key,
-                    'pix_key_value' => $request->pix_key_value,
-                    'user' => auth()->id()
-                ]);
-
-                DB::commit();
-
+            if (Pix::existsPixKey($pixKey, $pixKeyVal)) {
                 return redirect()->back()->with([
-                    'message' => 'Pix registrado con éxito',
-                    'type' => 'success',
+                    'message' => 'Esta Chave Pix ya se encuentra registrada',
+                    'type' => 'warning',
                 ]);
             }
 
+            Pix::create([
+                'name' => $request->name,
+                'bank' => $request->bank,
+                'pix_key' => $request->pix_key,
+                'pix_key_value' => $request->pix_key_value,
+                'user' => Auth::id()
+            ]);
+
+            DB::commit();
+
             return redirect()->back()->with([
-                'message' => 'Esta Chave Pix ya se encuentra registrada',
-                'type' => 'warning',
+                'message' => 'Pix registrado con éxito',
+                'type' => 'success',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-
             dd($e->getMessage());
-
             return redirect()->back()->with([
                 'message' => 'Ocurrió un error al registrar el Pix.' . $e->getMessage() . 'Inténtalo de nuevo.',
-                'type' => 'error',
+                'type' => 'warning',
             ]);
         }
     }
 
     public function update(Request $request, $id)
     {
-        $this->insertNewBank($request->arr_bank);
-
         DB::beginTransaction();
 
         try {
+
+            $this->insertNewBank($request->arr_bank);
+
+            $pixKey = $request->pix_key;
+            $pixKeyVal = $request->pix_key_value;
+
+            if (Pix::existsPixKey($pixKey, $pixKeyVal)) {
+                return redirect()->back()->with([
+                    'message' => 'Esta Chave Pix ya se encuentra registrada',
+                    'type' => 'warning',
+                ]);
+            }
+
             $pix = Pix::findOrFail(decrypt($id));
 
             $pix->update([
+                'name' => $request->name,
                 'bank' => $request->bank,
-                'pix_key' => $request->pix_key,
-                'pix_key_value' => $request->pix_key_value,
-                'user' => auth()->id()
+                'pix_key' => $pixKey,
+                'pix_key_value' => $pixKeyVal
             ]);
 
             DB::commit();
@@ -108,7 +122,7 @@ class PixController extends Controller
             DB::rollBack();
             return redirect()->back()->with([
                 'message' => 'Ha ocurrido un error al actualizar el Pix. Inténtalo de nuevo.',
-                'type' => 'error',
+                'type' => 'warning',
             ]);
         }
     }
@@ -121,7 +135,7 @@ class PixController extends Controller
 
     public function getInfo($id)
     {
-        return Pix::where('id', decrypt($id))->first(['bank', 'pix_key', 'pix_key_value']);
+        return Pix::getById(decrypt($id), ['name', 'bank', 'pix_key', 'pix_key_value']);
     }
 
     public function getBanks()
