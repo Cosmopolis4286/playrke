@@ -224,7 +224,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'banco', 'as' => 'banco.'], 
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'pagomovil', 'as' => 'pagomovil.'], function () {
     Route::get('', [PagoMovilController::class, 'index'])->name('index');
-    Route::get('add', [PagoMovilController::class, 'create'])->name('create');
+    Route::get('add', [PagoMovilController::class, 'add'])->name('add');
     Route::get('pagomovil/{id}', [PagoMovilController::class, 'edit'])->name('edit');
     Route::post('create', [PagoMovilController::class, 'create'])->name('create');
     Route::put('update/{id}', [PagoMovilController::class, 'update'])->name('update');

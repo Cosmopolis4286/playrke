@@ -23,13 +23,9 @@ return new class extends Migration
             $table->timestamps();
 
             // Foreign keys
-            $table->foreign('bank')->references('code')->on('banks_bra');
+            $table->foreign('bank')->references('id')->on('banks_bra');
             $table->foreign('pix_key')->references('id')->on('pix_keys');
             $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
-
-            Schema::table('banks_bra', function (Blueprint $table) {
-                $table->index('code');
-            });
         });
     }
 

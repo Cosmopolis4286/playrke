@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator'; 
+import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator';
 
 export default defineConfig({
     plugins: [
@@ -20,7 +20,7 @@ export default defineConfig({
                 'resources/js/rke/switch-payment-method.js',
                 'resources/js/rke/payment-confirm-button.js',
                 'resources/js/games/bingo/in-game.js',
-                'resources/js/games/bingo/auto-marked.js',
+                'resources/js/games/bingo/includes/auto-marked.js',
                 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'
             ],
             refresh: true,
@@ -37,7 +37,7 @@ export default defineConfig({
                 'resources/js/rke/switch-payment-method.js',
                 'resources/js/rke/payment-confirm-button.js',
                 'resources/js/games/bingo/in-game.js',
-                'resources/js/games/bingo/auto-marked.js',
+                'resources/js/games/bingo/includes/auto-marked.js',
                 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'
             ],
             exclude: [/node_modules/],

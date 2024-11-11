@@ -1,12 +1,11 @@
-body {
-    background: url(../img/body/space.png) !important;
-}
-
-/*Fonts*/
 @import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Braah+One&display=swap');
+
+body {
+    background: url(../img/body/space.png) !important;
+}
 
 #container-spinner {
     position: absolute;
