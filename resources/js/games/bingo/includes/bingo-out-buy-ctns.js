@@ -28,8 +28,8 @@ function getCommerceDetails(coinSale) {
             const { commerce, paymentDetails, exchangeRate } = response;
 
             if (paymentDetails) {
+                if (!player) ctnPriceSale = ctnPrice * exchangeRate;
                 symbolSale = paymentDetails.coin;
-                ctnPriceSale = ctnPrice * exchangeRate;
                 amount = ctnPriceSale * numCtns;
 
                 $("#ctn-price-coin-symbol").text(symbolSale);

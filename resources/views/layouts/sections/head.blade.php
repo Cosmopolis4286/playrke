@@ -8,12 +8,12 @@
     <link rel="stylesheet" href="{{ asset('template/plugins/fontawesome/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('template/plugins/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
     <link rel="stylesheet" href="{{ asset('template/dist/css/adminlte.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <link rel="stylesheet" href="{{ asset('css/DataTables/dataTables.bootstrap4.css') }}">
     <link rel="stylesheet" href="{{ asset('css/DataTables/responsive.bootstrap4.css') }}">
     <link rel="stylesheet" href="{{ asset('css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/select2-bootstrap4.css') }}">
     <link rel="stylesheet" href="{{ asset('css/animate.min.css') }}">
+    @vite('resources/css/rke/styles.css')
 
     @yield('styles')
     <title>PlayRKE - @yield('title')</title>

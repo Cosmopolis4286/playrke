@@ -1,7 +1,6 @@
 @extends($layout)
+@section('styles')@vite('resources/css/games/bingo/bingo-game-rooms.css')@endsection
 @section('title', 'BingoCash')
-@section('styles')
-<link rel="stylesheet" href="{{ asset('css/bingocash-game-rooms.css') }}">@endsection
 
 @section('content')
     <div class="col-12 @if ($layout === 'layouts.app_rke_off') mt-2 @endif">

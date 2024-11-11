@@ -1,11 +1,15 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator'; // Importa correctamente
+import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator'; 
 
 export default defineConfig({
     plugins: [
         laravel({
             input: [
+                'resources/css/rke/styles.css',
+                'resources/css/rke/auth-pages.css',
+                'resources/css/games/bingo/bingo-game-rooms.css',
+                'resources/css/games/bingo/bingo-in-game.css',
                 //'resources/js/app.js',
                 'resources/js/rke/toast-notify.js',
                 'resources/js/rke/register.js',

@@ -67,7 +67,7 @@ class FileController extends Controller
             }
 
             $newFileName = time() . '.' . $image->getClientOriginalExtension();
-            $image->storeAs('public/' . $rout . '/', $newFileName);
+            $image->storeAs('private/' . $rout . '/', $newFileName);
             self::resizeImage($rout, $newFileName);
 
             return $newFileName;

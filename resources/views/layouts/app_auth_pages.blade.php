@@ -11,10 +11,9 @@
     <meta name="description"
         content="Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online. Gana rápido y retira seguro con PlayRKE.">
     <link rel="icon" href="{{ asset('img/fav.ico') }}" sizes="192x192">
-    <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/auth-pages.css') }}">
     <link rel="stylesheet" href="{{ asset('css/notyf.min.css') }}">
     <link rel="stylesheet" href="{{ asset('template/plugins/fontawesome/css/all.min.css') }}">
+    @vite(['resources/css/rke/styles.css', 'resources/css/rke/auth-pages.css'])
     <title>PlayRKE - @yield('title')</title>
 </head>
 

@@ -1,7 +1,5 @@
 @extends($layout)
-@section('styles')
-    <link rel="stylesheet" href="{{ asset('css/styles-bingo.css') }}">
-@endsection
+@section('styles')@vite('resources/css/games/bingo/bingo-in-game.css')@endsection
 @section('title', $title)
 
 @section('content')
@@ -31,7 +29,7 @@
     @vite('resources/js/rke/time-functions.js')
     <script>
         const preRoute = '{{ asset('') }}';
-        const logo = `{{ $custLogo ?? 'imgSystem/imgUsers/rke.png' }}`;
+        const logo = `{{ $custLogo ?? 'img/rke.png' }}`;
         const encrypted = '{{ $room->encrypted }}';
         const roomStatus = '{{ $room->status }}';
         const coinSym = '{{ $coinSym }}';
@@ -75,6 +73,6 @@
             let endWin = (arrDraw.length && (roomStatus === 2 || roomStatus === 3)) ? 0 : (roomStatus >= 4 ? 1 : 0);
             let sizeCarrsel;
         </script>
-        @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
+        @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
     @endif
 @endsection

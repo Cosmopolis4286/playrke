@@ -322,7 +322,7 @@ function getWinners(arrInfo, arrSize) {
     let content = '';
     for (let i = 0; i < arrSize; i++) {
 
-        let img = arrInfo.photo ? `imgSystem/imgUsers/${arrInfo.photo[i]}` : logo;
+        let img = arrInfo.photo ? `private/user/img/${arrInfo.photo[i]}` : logo;
 
         content +=
             `<div class="col-4 my-1 cont-win-info">
