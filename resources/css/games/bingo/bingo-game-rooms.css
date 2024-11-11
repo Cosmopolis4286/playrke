@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Braah+One&display=swap');
 
 body {
-    background: url(../img/body/space.png) !important;
+    background: url('/resources/img/body/space.png') !important;
 }
 
 #container-spinner {

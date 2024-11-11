@@ -411,7 +411,9 @@ button,
 [type=button],
 [type=reset],
 [type=submit] {
-  -webkit-appearance: button;
+  -webkit-appearance: button; 
+  -moz-appearance: button;   
+  appearance: button;       
 }
 
 button:not(:disabled),
@@ -470,7 +472,9 @@ progress {
 
 [type=search] {
   outline-offset: -2px;
-  -webkit-appearance: none;
+  -webkit-appearance: none;  
+  -moz-appearance: none;     
+  appearance: none;          
 }
 
 [type=search]::-webkit-search-decoration {
@@ -12077,12 +12081,18 @@ a.text-dark:focus {
   text-transform: uppercase;
 }
 
-/**/
 .wm-e {
   font-size: 20.96px;
+  font-weight: bold;
   background: linear-gradient(to top, #000428, #004e92);
   -webkit-background-clip: text;
+  background-clip: text;
   color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.wm-e:hover {
+  background: linear-gradient(to top, #004e92, #000428);
 }
 
 .pds-if {
