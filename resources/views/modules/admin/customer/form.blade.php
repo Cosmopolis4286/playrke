@@ -46,7 +46,7 @@
             <input type="text" id="customer-key" name="customer_key" class="form-control" required
                 value="{{ old('customer_key') }}">
             <div class="input-group-append">
-                <button class="btn btn-outline-secondary" type="button" id="button-addon2">
+                <button class="btn btn-outline-secondary" type="button" id="btn-change-customer-key">
                     <i class="fa-solid fa-rotate"></i>
                 </button>
             </div>

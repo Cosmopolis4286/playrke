@@ -24,7 +24,7 @@ class Admin
         }
 
         // Verificar si el usuario es de tipo 2 (admin)
-        if (UserType::getValueById(Auth::user()->user_type, 'prefix') == 'admin') {
+        if (UserType::getValueById(Auth::user()->user_type, 'prefix') === 'admin') {
             return $next($request); // Permite el acceso al siguiente middleware o ruta
         }
 

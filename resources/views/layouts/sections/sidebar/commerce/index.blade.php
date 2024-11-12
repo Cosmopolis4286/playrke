@@ -32,15 +32,13 @@
             </p>
         </a>
         <ul class="nav nav-treeview">
-            @if (Auth::user()->user_type == 3)
-                <li class="nav-item">
-                    <a href="{{ route('bingo.all-commerce-rooms', ['coin' => encrypt(1), 'user' => encrypt(Auth::id())]) }}"
-                        title="Salas Bingo" class="nav-link {{ !Route::is('bingo.all-commerce-rooms') ?: 'active' }}">
-                        <i class="fa-solid fa-caret-right nav-icon"></i>
-                        <p>Salas</p>
-                    </a>
-                </li>
-            @endif
+            <li class="nav-item">
+                <a href="{{ route('bingo.all-commerce-rooms', ['coin' => encrypt(1), 'user' => encrypt(Auth::id())]) }}"
+                    title="Salas Bingo" class="nav-link {{ !Route::is('bingo.all-commerce-rooms') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Salas</p>
+                </a>
+            </li>
             <li class="nav-item">
                 <a href="{{ route('commerce.getBingoWinnersByCommerce', ['dateFilter' => 'today']) }}" title="Ganadores"
                     class="nav-link {{ !Route::is('commerce.getBingoWinnersByCommerce') ?: 'active' }}">

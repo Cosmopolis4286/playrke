@@ -108,7 +108,7 @@ class BingoController extends Controller
 
                 $player = !$isCreator ? false : encrypt($player);
 
-                $moreViewData = ['player' => $player, 'wallet' => $this->Wallet($this->user()->id)];
+                $moreViewData = ['player' => $player, 'wallet' => $this->wallet()];
                 break;
             case 'customer': // Cliente
 
@@ -757,7 +757,7 @@ class BingoController extends Controller
 
                 $moreViewData = [
                     'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
-                    'wallet' => $this->Wallet($this->user()->id),
+                    'wallet' => $this->wallet(),
                     'countries' => Country::getAllAvailableCountries()
                 ];
 

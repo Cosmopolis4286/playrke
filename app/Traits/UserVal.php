@@ -22,14 +22,19 @@ use Illuminate\Support\Facades\Log;
 
 trait UserVal
 {
-    public function user()
+    public function user(array $fields = ['*'])
     {
-        return Auth::user();
+        $userId = Auth::id();
+
+        if (!$userId) return null;
+
+        return User::select($fields)->find($userId);
     }
 
-    public function wallet()
+    public function wallet($userID = '')
     {
-        return Wallet::with('Coin')->where("user", Auth::id())->first();
+        if ($userID) $userID = Auth::id();
+        return Wallet::with('Coin')->where("user", $userID)->first();
     }
 
     public function commerce($fields = ['*'])

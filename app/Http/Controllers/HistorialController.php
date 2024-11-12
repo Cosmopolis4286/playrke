@@ -17,7 +17,7 @@ class HistorialController extends Controller
 
     public function index()
     {
-        $user = $this->user();
+        $user = $this->user(['id']);
         $wallet = $this->Wallet($user->id);
         if ($user->user_type == 2) {
             $hist_games = HistGame::join('monedas', 'monedas.id', 'hist_games.coin')

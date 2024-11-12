@@ -16,7 +16,7 @@ class PagoMovilController extends Controller
 
     public function index()
     {
-        $user = $this->user()->id;
+        $user = $this->user(['id']);
         $wallet = $this->Wallet($user);
 
         if ($wallet->coin != 2) return redirect()->back();
@@ -28,7 +28,7 @@ class PagoMovilController extends Controller
 
     public function list() // Falta Ajustar
     {
-        $user = $this->user()->id;
+        $user = $this->user(['id']);
         $wallet = $this->Wallet($user);
         $banks = Banks_VEN::All();
         $codTelfVe = CodTef::All();
@@ -56,7 +56,7 @@ class PagoMovilController extends Controller
                 'document' => $documentVal,
                 'phone' => $phone,
                 'bank' => $bank,
-                'user' => $this->user()->id
+                'user' => $this->user(['id'])
             ]);
             return redirect()->back()->with('message', 'Registro exitoso')->with('type', 'success');
         } else {

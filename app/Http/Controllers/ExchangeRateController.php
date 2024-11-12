@@ -19,11 +19,11 @@ class ExchangeRateController extends Controller
 {
     use UserVal;
 
-    public function index($creatorType, $userID = '')
+    public function index($creatorType, $creatorID = '')
     {
         switch ($creatorType) {
             case 'customer': //customer
-                $customer = Customer::getValueByToken($userID, 'id');
+                $customer = Customer::getValueByToken($creatorID, 'id');
 
                 if (!$customer) return response()->json(['message' => 'Token del cliente no existe'], 404);
 
@@ -31,7 +31,7 @@ class ExchangeRateController extends Controller
 
                 $returnBtn = false;
 
-                $moreViewData = ['layout' => 'layouts.app_rke_off', 'cusToken' => $userID];
+                $moreViewData = ['cusToken' => $creatorID];
                 break;
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user']);
@@ -47,7 +47,9 @@ class ExchangeRateController extends Controller
 
                 $exchangeRate = CommerceExchangeRate::where('commerce', $commerce->id)->get();
 
-                $moreViewData = ['layout' => 'layouts.app_rke', 'wallet' => $this->wallet()];
+                $isLogin = true;
+
+                $moreViewData = ['wallet' => $this->wallet()];
                 break;
 
             default:
@@ -56,6 +58,7 @@ class ExchangeRateController extends Controller
         }
 
         $viewData = [
+            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Tasas de Cambio',
             'name' => 'currency',
             'returnBtn' => $returnBtn ?? true,
@@ -124,16 +127,6 @@ class ExchangeRateController extends Controller
             Log::error('Error al registar la tasa de cambio: ' . $e->getMessage());
             return redirect()->back()->with('message', 'Error al registar la tasa de cambio')->with('type', 'warning');
         }
-
-        // DB::beginTransaction();
-
-        // try {
-        //     $this->checkExchangeRate($coin);
-        //     DB::commit();
-        // } catch (\Exception $e) {
-        //     DB::rollBack();
-        //     Log::error('Error al actualizar la tasa de cambio general');
-        // }
     }
 
     public function update(Request $request, $data)

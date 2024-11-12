@@ -54,7 +54,7 @@ function submitForm(formName, requiredFields = []) {
     if (isValid) {
         $(`#form-${formName}`).submit();
     } else {
-        showToast('warning', 'Toda la información es requerida');
+        showToast('Toda la información es requerida', 'warning');
     }
 }
 

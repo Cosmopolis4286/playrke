@@ -20,8 +20,8 @@
         @includeIf('layouts.sections.sidebar.seller.index')
     @break
 
-    @case('provider')
-        @includeIf('layouts.sections.sidebar.provider.index')
+    @case('customer')
+        @includeIf('layouts.sections.sidebar.customer.index')
     @break
 
     @default

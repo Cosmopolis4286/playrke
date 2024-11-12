@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\UserType;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,8 +24,10 @@ class Provider
             return redirect()->route('login')->with('error', 'Por favor, inicie sesión para continuar.');
         }
 
+        $allowedPrefixes = ['admin', 'provider'];
+
         // Verificar si el usuario es de tipo 2 (admin) o tipo 5 (proveedor)
-        if (Auth::user()->user_type == 2 || Auth::user()->user_type == 5) {
+        if (in_array(UserType::getValueById(Auth::user()->user_type, 'prefix'), $allowedPrefixes)) {
             return $next($request); // Permite el acceso al siguiente middleware o ruta
         }
 

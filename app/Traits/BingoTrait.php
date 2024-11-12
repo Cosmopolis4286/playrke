@@ -86,7 +86,7 @@ trait BingoTrait
                 DB::rollBack();
                 throw $th;
             }
-        } else if ($sort && $roomUser && $this->user()->user_type == 2) {
+        } else if ($sort && $roomUser && $this->user(['user_type']) == 2) {
 
             $ctn = BingoCtns::where('room', $room)->where('id', $roomUser)->inRandomOrder()->first();
 

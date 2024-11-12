@@ -64,12 +64,14 @@ class TriviaController extends Controller
 
         if ($sounds->id != 1) {
             DB::table('audio_tri')->insertGetId([
-                'track' => $name_track, 'correct' => $name_scorrect,
+                'track' => $name_track,
+                'correct' => $name_scorrect,
                 'incorrect' => $name_sincorrect
             ]);
         } else {
             DB::table('audio_tri')->update([
-                'track' => $name_track, 'correct' => $name_scorrect,
+                'track' => $name_track,
+                'correct' => $name_scorrect,
                 'incorrect' => $name_sincorrect
             ]);
         }
@@ -310,7 +312,8 @@ class TriviaController extends Controller
         if ($response && $response['ok']) {
             if ($triv_signs == null) {
                 DB::table('triv_multi_signs')->insert([
-                    'room' => $room, 'num_quest' => $num_quest
+                    'room' => $room,
+                    'num_quest' => $num_quest
                 ]);
                 TriviaMulti::where('room', $room)->update(['signs' => 0]);
             }
@@ -320,7 +323,8 @@ class TriviaController extends Controller
 
     public function allRooms()
     {
-        $user = $this->user();
+        $user = $this->user(['id', 'user_type']);
+
         if ($user->user_type == 2) {
             $wallet = $this->Wallet($user->id);
             $title = 'Salas de Bingo';
@@ -332,7 +336,7 @@ class TriviaController extends Controller
 
     public function roomshh($coinSym)
     {
-        $user = $this->user();
+        $user = $this->user(['id']);
         $wallet = $this->Wallet($user->id);
         $coin = 0;
         if (!$coinSym == 'USDT')  $coin = $wallet->Coin->id;
@@ -391,7 +395,7 @@ class TriviaController extends Controller
     }
     public function rooms($coinSym)
     {
-        $user = $this->user();
+        $user = $this->user(['id']);
         $wallet = $this->Wallet($user->id);
         $coinRoom = $coinSym;
         $coin = strtoupper($coinSym) == 'USDT' ? 1 : $wallet->Coin->id;
@@ -401,14 +405,21 @@ class TriviaController extends Controller
         $trivMulti = TriviaMulti::with(['PlayersRoom' => function ($query) use ($user) {
             $query->where('user', $user->id);
         }])->select([
-            'id', 'status', 'date', 'time', 'coin',
-            'price', 'players', 'type_boat', 'jackpot', 'imagen'
+            'id',
+            'status',
+            'date',
+            'time',
+            'coin',
+            'price',
+            'players',
+            'type_boat',
+            'jackpot',
+            'imagen'
         ])->whereIn('status', [2, 3])->where('coin', $coin)->get();
 
         $date = now()->toDateTimeString();
         return view('modules.user.trivia.rooms', compact('user', 'wallet', 'date', 'coin', 'trivMulti', 'coinRoom'));
     }
-
 
     public function timer($id)
     {
@@ -454,7 +465,7 @@ class TriviaController extends Controller
         $coin = Coin::where('name', $coinSym)->first();
         if (!$coin) return redirect()->back();
 
-        $user = $this->user();
+        $user = $this->user(['id']);
         $wallet = $this->Wallet($user->id);
 
         $game = TriviaMulti::with(['PlayersRoom'])
@@ -662,8 +673,10 @@ class TriviaController extends Controller
         }
         $ar_half[$rda_p] = $questions->opc_3;
         return array(
-            'respt_inc' => $ar_half, 'nm_quest' => $nm_qt->nm_quest,
-            'questions' => $questions->question, 'answers' => $array,
+            'respt_inc' => $ar_half,
+            'nm_quest' => $nm_qt->nm_quest,
+            'questions' => $questions->question,
+            'answers' => $array,
             'img' => $questions->img
         );
     }
@@ -769,8 +782,12 @@ class TriviaController extends Controller
             ->orderBy('id', 'desc')->update(['mdl_retire' => 0]);
         $quest = $this->rand_quest($id);
         echo json_encode(array(
-            'van' => 1, 'xyz_w' => $quest['respt_inc'], 'quest' => $quest['questions'],
-            'answers' => $quest['answers'], 'nm_qt' => $quest['nm_quest'], 'img' => $quest['img']
+            'van' => 1,
+            'xyz_w' => $quest['respt_inc'],
+            'quest' => $quest['questions'],
+            'answers' => $quest['answers'],
+            'nm_qt' => $quest['nm_quest'],
+            'img' => $quest['img']
         ));
     }
 
@@ -812,9 +829,7 @@ class TriviaController extends Controller
     // FIN TRIVIA INDIVIDUAL
 
     // INCIO TRIVIA PVP
-    public function refresh_pvp()
-    {
-    }
+    public function refresh_pvp() {}
     public function room_pvp()
     {
         $user = auth()->user()->id;
@@ -1146,8 +1161,12 @@ class TriviaController extends Controller
             $array_ri[$rda_p] = $value->option_3;
         }
         return array(
-            'respt_inc' => $array_ri, 'respuesta' => $array,
-            'qtions' => $pr, 'numpp' => $triv_user->num_quest, "idpr" => $idpr, 'img' => $img
+            'respt_inc' => $array_ri,
+            'respuesta' => $array,
+            'qtions' => $pr,
+            'numpp' => $triv_user->num_quest,
+            "idpr" => $idpr,
+            'img' => $img
         );
     }
 
@@ -1301,8 +1320,11 @@ class TriviaController extends Controller
         $trivia = TriviaMulti::where('id', $room)->first();
         echo json_encode(
             array(
-                'pj' => $this->count_players($room), 'wns' => $this->count_winners($room),
-                'winns' => $info_user_winns, 'cups' => $count_cups->cups, 'snd' => $trivia->status
+                'pj' => $this->count_players($room),
+                'wns' => $this->count_winners($room),
+                'winns' => $info_user_winns,
+                'cups' => $count_cups->cups,
+                'snd' => $trivia->status
             )
         );
     }
@@ -1334,13 +1356,17 @@ class TriviaController extends Controller
                     if ($triv_user->num_quest < 6 && $triv_user->c_jump > 0) {
                         DB::table('triv_multi_user')->where('room', $room)
                             ->where('user', $user)->update([
-                                'num_quest' => $answer->num_quest + 1, 'c_jump' => $triv_user->c_jump - 1
+                                'num_quest' => $answer->num_quest + 1,
+                                'c_jump' => $triv_user->c_jump - 1
                             ]);
                         $datos = $this->Question($room);
                         echo json_encode(array(
-                            'xyz_w' => $datos['respt_inc'], 'pr' => $datos['qtions'],
-                            'question' => $datos['respuesta'], 'van' => 6,
-                            'numpp' => $datos['numpp'], 'img' => $datos['img']
+                            'xyz_w' => $datos['respt_inc'],
+                            'pr' => $datos['qtions'],
+                            'question' => $datos['respuesta'],
+                            'van' => 6,
+                            'numpp' => $datos['numpp'],
+                            'img' => $datos['img']
                         ));
                         $this->fin_pre($room);
                     } else {
@@ -1372,9 +1398,12 @@ class TriviaController extends Controller
                                 ->where('num_quest', $triv_user->num_quest)->update(['cups' => $triv_cups->cups - 1]);
                             $datos = $this->Question($room);
                             echo json_encode(array(
-                                'xyz_w' => $datos['respt_inc'], 'pr' => $datos['qtions'],
-                                'question' => $datos['respuesta'], 'van' => 0,
-                                'numpp' => $datos['numpp'], 'img' => $datos['img']
+                                'xyz_w' => $datos['respt_inc'],
+                                'pr' => $datos['qtions'],
+                                'question' => $datos['respuesta'],
+                                'van' => 0,
+                                'numpp' => $datos['numpp'],
+                                'img' => $datos['img']
                             ));
                             $this->fin_pre($room);
                         }
@@ -1414,7 +1443,8 @@ class TriviaController extends Controller
             if ($triv_user->c_half > 0) {
                 DB::table('triv_multi_user')->where('room', $request->id)
                     ->where('user', $user)->update([
-                        'c_half_use' => $triv_user->num_quest, 'c_half' => $triv_user->c_half - 1
+                        'c_half_use' => $triv_user->num_quest,
+                        'c_half' => $triv_user->c_half - 1
                     ]);
                 echo json_encode(array('van' => 1));
             } else {
@@ -1449,8 +1479,10 @@ class TriviaController extends Controller
         }
         $this->fin_pre($room);
         echo json_encode(array(
-            'pr' => $datos['qtions'], 'question' => $datos['respuesta'],
-            'numpp' => 1, 'img' => $datos['img']
+            'pr' => $datos['qtions'],
+            'question' => $datos['respuesta'],
+            'numpp' => 1,
+            'img' => $datos['img']
         ));
     }
 
@@ -1478,10 +1510,14 @@ class TriviaController extends Controller
                 DB::table('extras_user')->where('user', $user)->update(['lives' => $ext->lives - 1]);
                 $datos = $this->Question($id);
                 echo json_encode(array(
-                    'rv' => 1, 'mn' => number_format($wallet->balance, 2),
-                    'xyz_w' => $datos['respt_inc'], 'pr' => $datos['qtions'],
-                    'question' => $datos['respuesta'], 'van' => 5,
-                    'numpp' => $datos['numpp'], 'img' => $datos['img']
+                    'rv' => 1,
+                    'mn' => number_format($wallet->balance, 2),
+                    'xyz_w' => $datos['respt_inc'],
+                    'pr' => $datos['qtions'],
+                    'question' => $datos['respuesta'],
+                    'van' => 5,
+                    'numpp' => $datos['numpp'],
+                    'img' => $datos['img']
                 ));
                 $this->fin_pre($id);
             } else {

@@ -35,17 +35,19 @@
                                         @include('includes.btn-group', [
                                             'name' => $name,
                                             'dataId' => encrypt($item->id),
-                                            'buttons' => [
+                                            'buttons' => array_filter([
                                                 (object) [
                                                     'dataType' => '2',
                                                     'color' => 'btn-primary',
                                                     'icon' => 'fas fa-edit',
                                                 ],
-                                                (object) [
-                                                    'dataType' => '3',
-                                                    'color' => 'btn-danger',
-                                                    'icon' => 'fa-solid fa-trash-can',
-                                                ],
+                                                $item->status != 3
+                                                    ? (object) [
+                                                        'dataType' => '3',
+                                                        'color' => 'btn-danger',
+                                                        'icon' => 'fa-solid fa-trash-can',
+                                                    ]
+                                                    : null,
                                                 (object) [
                                                     'dataType' => '4',
                                                     'color' => 'btn-secondary',
@@ -56,8 +58,9 @@
                                                     'color' => 'bg-navy',
                                                     'icon' => 'fa-solid fa-lock',
                                                 ],
-                                            ],
+                                            ]),
                                         ])
+
                                     </td>
                                 </tr>
                             @endforeach
@@ -92,6 +95,10 @@
         $(document).on("click", "#btn-copy", function() {
             copyInfo('Contraseña Copiada');
         });
+
+        $(document).on("click", "#btn-change-customer-key", function() {
+            $('#customer-key').val(crypto.randomUUID());
+        })
 
         $(function() {
             $('.select2').each(function() {
@@ -136,7 +143,10 @@
             update = false;
             $('#username, #email').attr('readonly', false);
 
-            if (type == 1) country.append(`<option value="" disabled selected>Seleccionar:</option>`);
+            if (type == 1) {
+                $('#customer-key').val(crypto.randomUUID());
+                country.append(`<option value="" disabled selected>Seleccionar:</option>`);
+            }
 
             $.each(arrCountries, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.customer.country) ? 'selected' : '';

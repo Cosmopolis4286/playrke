@@ -43,18 +43,11 @@ Route::get('/', function () {
 });
 
 Route::get('get/info/{page}', function ($page) {
-    $validPages = ['terms', 'about', 'privacy'];
-
-    if (in_array($page, $validPages)) {
-        return view("components.info.$page");
+    if (in_array($page, ['terms', 'about', 'privacy'])) {
+        return view("includes.info.$page");
     }
-
     abort(404);
 })->name('info-rke');
-
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'profile', 'as' => 'profile.'], function () {
     Route::get('', [ProfileController::class, 'index'])->name('index');
@@ -124,7 +117,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment', 'as' => 'payment.
 
 // Tasa de Cambio/ExhangeRate
 Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function () {
-    Route::get('all/{creatorType}/{userID?}', [ExchangeRateController::class, 'index'])->name('index');
+    Route::get('all/{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
     Route::post('create', [ExchangeRateController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [ExchangeRateController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');

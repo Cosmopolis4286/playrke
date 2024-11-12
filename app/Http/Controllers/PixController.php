@@ -18,7 +18,7 @@ class PixController extends Controller
 
     public function index()
     {
-        $user = $this->user()->id;
+        $user = $this->user(['id']);
         $wallet = $this->Wallet($user);
 
         if ($wallet->coin != 2) return redirect()->back();

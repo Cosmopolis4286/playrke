@@ -29,7 +29,7 @@ class DirectoryController extends Controller
         if (!$country) return redirect()->back();
 
         $title = "Directorio $country->name";
-        $user = $this->user()->id;
+        $user = $this->user(['id']);
         $wallet = $this->wallet();
         $countries = Country::getCountriesById($this->getAvailableCountries($user));
 

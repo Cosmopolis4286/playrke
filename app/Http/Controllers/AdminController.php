@@ -25,7 +25,7 @@ class AdminController extends Controller
         $commerces = Commerce::with(['Country', 'User' => function ($query) {
             $query->select('id', 'email');
         }])->get();
-        
+
         $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
 
@@ -60,35 +60,33 @@ class AdminController extends Controller
 
     public function storeCommerce(Request $request)
     {
-        $user = $this->user();
-        if ($user->user_type == 2) {
+        if ($this->user(['user_type']) != 2) return redirect()->back();
 
-            $newPassw = $this->valEncrypt();
+        $newPassw = $this->valEncrypt();
 
-            $newUser =  User::create([
-                'username' => null,
-                'email' => $request->email,
-                'password' => Hash::make($newPassw),
-                'country' => $request->country,
-                'referral_code' => User::getUniqueReferralCode(),
-                'referred_by' => null,
-            ]);
+        $newUser =  User::create([
+            'username' => null,
+            'email' => $request->email,
+            'password' => Hash::make($newPassw),
+            'country' => $request->country,
+            'referral_code' => User::getUniqueReferralCode(),
+            'referred_by' => null,
+        ]);
 
-            Commerce::create([
-                'description' => $request->description,
-                'com' => $request->valCom,
-                'telefono' => $request->telefono,
-                'country' => $request->country,
-                'status' => 1,
-                'user' => $newUser->id
-            ]);
+        Commerce::create([
+            'description' => $request->description,
+            'com' => $request->valCom,
+            'telefono' => $request->telefono,
+            'country' => $request->country,
+            'status' => 1,
+            'user' => $newUser->id
+        ]);
 
-            Session::flash('message', 'La contraseña de la Comercializadora ' . $request['description']
-                . ' es: <b>' . '<a class="copyInfo">' . $newPassw . '</a>' . '</b>');
-            Session::flash('passwCommerce', $newPassw);
+        Session::flash('message', 'La contraseña de la Comercializadora ' . $request['description']
+            . ' es: <b>' . '<a class="copyInfo">' . $newPassw . '</a>' . '</b>');
+        Session::flash('passwCommerce', $newPassw);
 
-            return redirect()->back();
-        }
+        return redirect()->back();
     }
 
     public function promoteUserToCommerce(Request $request)

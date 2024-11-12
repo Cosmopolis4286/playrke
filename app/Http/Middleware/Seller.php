@@ -25,7 +25,7 @@ class Seller
         }
 
         // Verificar si el usuario es de tipo 'seller' (vendedor)
-        if (UserType::getValueById(Auth::user()->user_type, 'prefix') == 'seller') {
+        if (UserType::getValueById(Auth::user()->user_type, 'prefix') === 'seller') {
             return $next($request); // Permite el acceso al siguiente middleware o ruta
         }
 
