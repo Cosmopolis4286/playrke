@@ -10,6 +10,12 @@
         </a>
     </li>
     <li class="nav-item has-treeview">
+        <a href="{{ route('iframe.index') }}" title="Iframes" class="nav-link  {{ !Route::is('iframe.index') ?: 'active' }}">
+            <i class="nav-icon fa-regular fa-file-code"></i>
+            <p>Iframes</p>
+        </a>
+    </li>
+    <li class="nav-item has-treeview">
         <a href="#"
             class="nav-link {{ !Route::is('bingo.all-commerce-rooms', 'commerce.getBingoWinnersByCommerce', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>

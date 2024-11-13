@@ -133,7 +133,7 @@ class SellerController extends Controller
 
     public function create(Request $request)
     {
-        if (!in_array($this->user(['user_type']), [2, 3])) {
+        if (!in_array($this->user(['user_type'])->user_type, [2, 3])) {
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
 
@@ -232,7 +232,7 @@ class SellerController extends Controller
 
     public function update(Request $request, $id)
     {
-        if (!in_array($this->user(['user_type']), [2, 3])) {
+        if (!in_array($this->user(['user_type'])->user_type, [2, 3])) {
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
 

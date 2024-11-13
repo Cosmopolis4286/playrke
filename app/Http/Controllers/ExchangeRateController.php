@@ -23,15 +23,23 @@ class ExchangeRateController extends Controller
     {
         switch ($creatorType) {
             case 'customer': //customer
-                $customer = Customer::getValueByToken($creatorID, 'id');
 
-                if (!$customer) return response()->json(['message' => 'Token del cliente no existe'], 404);
+                if ($creatorID) {
+                    $customer = Customer::getValueByToken($creatorID, 'id');
+                    if (!$customer) return response()->json(['message' => 'Token del cliente no existe'], 404);
+
+                    $returnBtn = false;
+                    $isLogin = false;
+                    $moreViewData = ['cusToken' => $creatorID];
+                } else {
+                    $customer = Customer::getByUserId(Auth::id(), ['id', 'token']);
+                    $isLogin = true;
+
+                    $moreViewData = ['wallet' => $this->wallet(), 'cusToken' => $customer->token];
+                    $customer = $customer->id;
+                }
 
                 $exchangeRate = CustomerExchangeRate::where('customer', $customer)->where('status', '<>', 3)->get();
-
-                $returnBtn = false;
-
-                $moreViewData = ['cusToken' => $creatorID];
                 break;
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user']);

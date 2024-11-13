@@ -36,11 +36,13 @@
                                             'name' => $name,
                                             'dataId' => encrypt($item->id),
                                             'buttons' => array_filter([
-                                                (object) [
-                                                    'dataType' => '2',
-                                                    'color' => 'btn-primary',
-                                                    'icon' => 'fas fa-edit',
-                                                ],
+                                                $item->status != 3
+                                                    ? (object) [
+                                                        'dataType' => '2',
+                                                        'color' => 'btn-primary',
+                                                        'icon' => 'fas fa-edit',
+                                                    ]
+                                                    : null,
                                                 $item->status != 3
                                                     ? (object) [
                                                         'dataType' => '3',
@@ -53,14 +55,15 @@
                                                     'color' => 'btn-secondary',
                                                     'icon' => 'fa-solid fa-repeat',
                                                 ],
-                                                (object) [
-                                                    'dataType' => '5',
-                                                    'color' => 'bg-navy',
-                                                    'icon' => 'fa-solid fa-lock',
-                                                ],
+                                                $item->status != 3
+                                                    ? (object) [
+                                                        'dataType' => '5',
+                                                        'color' => 'bg-navy',
+                                                        'icon' => 'fa-solid fa-lock',
+                                                    ]
+                                                    : null,
                                             ]),
                                         ])
-
                                     </td>
                                 </tr>
                             @endforeach
@@ -82,6 +85,7 @@
     @include('includes.form-other-options')
 @endsection
 @section('scripts')
+    @vite('resources/js/rke/get-uuid.js')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
         if (@json(Session::has('message-passw'))) {
@@ -97,7 +101,7 @@
         });
 
         $(document).on("click", "#btn-change-customer-key", function() {
-            $('#customer-key').val(crypto.randomUUID());
+            $('#customer-key').val(generateUUID());
         })
 
         $(function() {
@@ -144,7 +148,7 @@
             $('#username, #email').attr('readonly', false);
 
             if (type == 1) {
-                $('#customer-key').val(crypto.randomUUID());
+                $('#customer-key').val(generateUUID());
                 country.append(`<option value="" disabled selected>Seleccionar:</option>`);
             }
 

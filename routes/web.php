@@ -25,6 +25,7 @@ use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\RecargasController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\HistorialController;
+use App\Http\Controllers\IframeController;
 use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
@@ -117,13 +118,18 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment', 'as' => 'payment.
 
 // Tasa de Cambio/ExhangeRate
 Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function () {
-    Route::get('all/{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
+    Route::get('{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
     Route::post('create', [ExchangeRateController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [ExchangeRateController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
     Route::put('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [ExchangeRateController::class, 'changeStatus'])->name('change-status');
     Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
+});
+
+// Iframes
+Route::group(['middleware' => 'auth', 'prefix' => 'iframe', 'as' => 'iframe.'], function () {
+    Route::get('', [IframeController::class, 'index'])->name('index');
 });
 
 // Directorio-Datos Bancarios
@@ -357,18 +363,18 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 
     Route::get('rooms/admin/{user}/{coin?}', [BingoController::class, 'allRooms'])
-        ->middleware(['auth', 'customer-commerce'])->name('all-rooms');
+        ->middleware(['auth', 'admin'])->name('all-rooms');
 
     Route::get('rooms/comm/{user}/{coin?}', [BingoController::class, 'allCommerceRooms'])
-        ->middleware(['auth', 'customer-commerce'])->name('all-commerce-rooms');
+        ->middleware(['auth', 'commerce'])->name('all-commerce-rooms');
 
     Route::get('rooms/cust/{user}/{coin?}', [BingoController::class, 'allCustomerRooms'])->name('all-customer-rooms');
 
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
-        ->middleware(['auth', 'customer-commerce'])->name('game-rooms-admin');
+        ->middleware(['auth', 'admin'])->name('game-rooms-admin');
 
     Route::get('game-rooms/comm/{user}/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
-        ->middleware(['auth', 'customer-commerce'])->name('game-rooms-commerce');
+        ->middleware(['auth', 'commerce'])->name('game-rooms-commerce');
 
     Route::get('game-rooms/cust/{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('game-rooms-customer');
 
