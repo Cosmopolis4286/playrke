@@ -74,46 +74,6 @@ $('#btn-volume').click(function () {
     }
 });
 
-async function getGameData() {
-    if (vanChange && endWin === 0) {
-        try {
-            const data = await $.getJSON(`${preRoute}bingocash/get/chips/${encrypted}`, {
-                '_token': $("#5K3_70K").val()
-            });
-
-            // Redefinir variables
-            latestChips = data.latestChips;
-            allChips = data.allChips;
-            timeServ = Number(data.timeServ);
-            vanChange = false;
-
-            handleLatestChips(latestChips);
-
-        } catch (error) {
-            console.error("Error al obtener los datos del juego:", error);
-        }
-    }
-}
-
-function handleLatestChips(latestChips) {
-    // Asegurarse de que el contenedor está vacío antes de añadir contenido
-    const $container = $("#cont-last-chips").empty();
-
-    // Generar el HTML para los chips
-    const chipsHtml = latestChips.slice(0, 6).map((elem, ind) => {
-        return `<div class="cont-img-chip">
-                <img id="chp_${elem}" class="img-chip${ind === 0 ? ' zoom' : ''}" alt="${elem}" src="${preRoute}img/bg/chips/${elem}.png">
-            </div>`;
-    }).join(''); // Unir los elementos para crear una sola cadena
-
-    // Insertar todo el HTML generado de una vez en el contenedor
-    $container.html(chipsHtml);
-
-    renderChipsView(allChips);
-    autoMarked();
-    processChips();
-}
-
 let posChip = 0;
 
 function renderChipsView(arr, arrow) {
@@ -138,11 +98,22 @@ function renderChipsView(arr, arrow) {
         posChip++;
     }
 
-    // Genera el HTML para los chips visibles en el carrusel
+    let imagePromises = [];
+
     for (let i = posChip; i < arr.length && arrCrrselChips.length < sizeCarrsel; i++) {
         const chip = arr[i];
-        infoHtml += `<img class="img-fluid" src="${preRoute}img/bg/chips/${chip}.png" alt="${chip}">`;
+        const imgSrc = `${preRoute}img/bg/chips/${chip}.png`;
+        infoHtml += `<img class="img-fluid" src="${imgSrc}" alt="${chip}">`;
         arrCrrselChips.push(chip);
+
+        // Crear una promesa que se resuelva cuando la imagen se haya cargado
+        const imgPromise = new Promise((resolve) => {
+            const img = new Image();
+            img.src = imgSrc;
+            img.onload = resolve;
+            img.onerror = resolve; // Resolver incluso si hay un error en la carga
+        });
+        imagePromises.push(imgPromise);
     }
 
     // Configura la visibilidad de las flechas de navegación
@@ -151,13 +122,30 @@ function renderChipsView(arr, arrow) {
     $('#left-arrow').toggle(!firstChipVisible);
     $('#right-arrow').toggle(!lastChipVisible && allChips.length > sizeCarrsel);
 
-    // Actualiza el contenedor de chips y muestra el historial de chips
-    $('#container-all-chips').html(infoHtml);
-    $('#container-history-chips').show();
-
-    return true;
+    // Espera que todas las imágenes se carguen antes de insertar el HTML en el contenedor
+    Promise.all(imagePromises).then(() => {
+        $('#container-all-chips').html(infoHtml);
+    });
 }
 
+function handleLatestChips(latestChips) {
+    // Asegurarse de que el contenedor está vacío antes de añadir contenido
+    const $container = $("#cont-last-chips").empty();
+
+    // Generar el HTML para los chips
+    const chipsHtml = latestChips.slice(0, 6).map((elem, ind) => {
+        return `<div class="cont-img-chip">
+                <img id="chp_${elem}" class="img-chip${ind === 0 ? ' zoom' : ''}" alt="${elem}" src="${preRoute}img/bg/chips/${elem}.png">
+            </div>`;
+    }).join(''); // Unir los elementos para crear una sola cadena
+
+    // Insertar todo el HTML generado de una vez en el contenedor
+    $container.html(chipsHtml);
+
+    renderChipsView(allChips);
+    autoMarked();
+    processChips();
+}
 
 window.onblur = () => {
     vanChange = true;
@@ -166,6 +154,27 @@ window.onblur = () => {
 window.onfocus = function () {
     if (roomStatus == 3) getGameData();
 };
+
+async function getGameData() {
+    if (vanChange && endWin === 0) {
+        try {
+            const data = await $.getJSON(`${preRoute}bingocash/get/chips/${encrypted}`, {
+                '_token': $("#5K3_70K").val()
+            });
+
+            // Redefinir variables
+            latestChips = data.latestChips;
+            allChips = data.allChips;
+            timeServ = Number(data.timeServ);
+            vanChange = false;
+
+            handleLatestChips(latestChips);
+
+        } catch (error) {
+            console.error("Error al obtener los datos del juego:", error);
+        }
+    }
+}
 
 // Ajustar tamaño de las casillas
 function adjustHeightBoxesCtnAward() {
@@ -177,22 +186,6 @@ function adjustHeightBoxes() {
     let widthNumberBox = $('.number-box').first().width();
     $('.number-box').height(widthNumberBox);
 }
-
-$(document).ready(function () {
-
-    if (!player) return;
-
-    adjustHeightBoxes();
-    $('.container-carton').css('visibility', 'visible');
-
-    // Llama a la función cada vez que se redimensiona la ventana
-    $(window).resize(function () {
-        adjustHeightBoxes();
-        if (roomStatus > 2 && $('#cont-ctn-award-winning').data('status') == true) {
-            adjustHeightBoxesCtnAward();
-        }
-    });
-});
 
 $(document).on("click", ".cont-arrow-history-chips", function () {
     renderChipsView(allChips, $(this).data('move'));
@@ -428,17 +421,31 @@ $(document).on("click", "#btn-view-winners", function () {
 });
 
 $(function () {
-    if (!latestChips.length) {
-        processChips();
-        return;
-    }
-
     try {
-        handleLatestChips(latestChips);
+        if (player) {
+            adjustHeightBoxes();
+            $('.container-carton').css('visibility', 'visible');
 
-        // Verifica el estado de la sala para mostrar los ganadores
-        if (roomStatus > 3) {
-            showWinners(decryptJson(infoGame, r4nd0m), chpLast);
+            // Ajusta la altura de los contenedores al redimensionar la ventana
+            $(window).resize(function () {
+                adjustHeightBoxes();
+
+                if (roomStatus > 2 && $('#cont-ctn-award-winning').data('status')) {
+                    adjustHeightBoxesCtnAward();
+                }
+            });
+        }
+
+        if (!latestChips.length) {
+            processChips();
+        } else {
+            handleLatestChips(latestChips);
+            $('#container-history-chips').show();
+
+            // Muestra los ganadores si el estado de la sala lo permite
+            if (roomStatus > 3) {
+                showWinners(decryptJson(infoGame, r4nd0m), chpLast);
+            }
         }
     } catch (error) {
         console.error("Error en la inicialización:", error);

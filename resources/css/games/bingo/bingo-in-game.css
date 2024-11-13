@@ -11,7 +11,6 @@
 }
 
 body {
-    background: url('/resources/img/body/space.png') !important;
     font-family: 'Poppins', sans-serif !important;
 }
 
@@ -292,60 +291,7 @@ body {
     border-radius: 15px;
 }
 
-/*Seccion Carrusel*/
-#container-history-chips {
-    position: relative;
-    padding: 0 7px;
-    width: 100%;
-    display: flex;
-    align-items: center;
-}
 
-.cont-arrow-history-chips {
-    height: 100%;
-    padding-top: 2.5px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    color: rgb(83, 0, 151);
-    font-size: 1.6em;
-    transition: 3ms ease;
-}
-
-.cont-arrow-history-chips:hover {
-    transform: scale(1.10);
-}
-
-.arrow {
-    display: none;
-}
-
-#left-arrow {
-    margin-right: 5px;
-}
-
-#right-arrow {
-    margin-left: 5px;
-}
-
-#container-all-chips {
-    position: relative;
-    background: rgb(17, 0, 48);
-    border-radius: 15px;
-    height: 45px;
-    padding: 5px;
-    gap: 4px;
-    display: flex;
-    width: auto;
-}
-
-.image-history {
-    width: 3.8vmax;
-    height: 3.8vmax;
-}
-
-/*Seccion Carrusel*/
 .container-carton {
     width: auto;
     visibility: hidden;

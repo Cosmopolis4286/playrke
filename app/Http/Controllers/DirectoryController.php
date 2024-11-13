@@ -8,6 +8,7 @@ use App\Models\DocumentType;
 use App\Models\PagoMovil;
 use App\Models\Pix;
 use App\Models\PixKeys;
+use App\Models\UserType;
 use App\Traits\UserVal;
 
 class DirectoryController extends Controller
@@ -16,6 +17,12 @@ class DirectoryController extends Controller
 
     public function index($countryCode)
     {
+        $user = $this->user(['id', 'user_type']);
+
+        if (UserType::getValueById($user->user_type, 'prefix') === 'customer') {
+            return redirect()->back();
+        }
+
         $countryCode = strtolower($countryCode);
         $validCodes = ['br', 'co', 've'];
 
@@ -29,9 +36,8 @@ class DirectoryController extends Controller
         if (!$country) return redirect()->back();
 
         $title = "Directorio $country->name";
-        $user = $this->user(['id']);
         $wallet = $this->wallet();
-        $countries = Country::getCountriesById($this->getAvailableCountries($user));
+        $countries = Country::getCountriesById($this->getAvailableCountries($user->id));
 
         $paymentType = null;
         $name = null;
@@ -42,7 +48,7 @@ class DirectoryController extends Controller
                 $paymentType = 'Pix';
                 $name = 'Pix';
                 $additionalData = [
-                    'pixs' => Pix::with('ChavePix')->where('user', $user)->get(),
+                    'pixs' => Pix::with('ChavePix')->where('user', $user->id)->get(),
                     'pixKeys' => PixKeys::all()
                 ];
                 break;
@@ -54,7 +60,7 @@ class DirectoryController extends Controller
                 $paymentType = 'Pago Movil';
                 $name = 'PagoMovil';
                 $additionalData = [
-                    'pagomovils' => PagoMovil::with('Bank')->where('user', $user)->get(),
+                    'pagomovils' => PagoMovil::with('Bank')->where('user', $user->id)->get(),
                     'documentType' => DocumentType::getDocumentTypeByCountry($country->id),
                     'banks' => Banks_VEN::all()
                 ];

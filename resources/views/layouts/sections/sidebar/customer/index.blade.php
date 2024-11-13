@@ -3,13 +3,6 @@
 @section('user-type', 'Cliente')
 @section('body')
     <li class="nav-item has-treeview">
-        <a href="{{ route('directory.index', ['countryCode' => strtolower(session('countryCode'))]) }}" title="Directorio"
-            class="nav-link  {{ !Route::is('directory.index') ?: 'active' }}">
-            <i class="nav-icon fas fa-university"></i>
-            <p>Directorio</p>
-        </a>
-    </li>
-    <li class="nav-item has-treeview">
         <a href="{{ route('exchange-rate.index', ['creatorType' => 'customer']) }}" title="Tasa de Cambio"
             class="nav-link  {{ !Route::is('exchange-rate.index') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-circle-dollar-to-slot"></i>

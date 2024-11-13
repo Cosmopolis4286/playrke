@@ -9,6 +9,7 @@ use App\Models\TriviaMulti;
 use App\Models\User;
 use App\Models\UserType;
 use App\Models\Wallet;
+use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
@@ -16,14 +17,13 @@ class HomeController extends Controller
 
     public function index()
     {
-        $user = $this->user(['id', 'user_type']);
-        $userID = $user->id;
+        $user = $this->user(['user_type']);
 
         $data = [
             'title' => 'Tablero',
-            'wallet' => $this->wallet($userID),
+            'wallet' => $this->wallet(),
             'exchangeRate' => $exchangeRate ?? 1,
-            'balance' => $this->getBalance($userID),
+            'balance' => $this->getBalance(),
         ];
 
         $userType = UserType::getValueById($user->user_type, 'prefix');
@@ -46,14 +46,14 @@ class HomeController extends Controller
         return view($view)->with($data);
     }
 
-    public function getBalance($userID)
+    public function getBalance()
     {
-        return Wallet::where('user', $userID)->sum('balance');
+        return Wallet::where('user', Auth::id())->sum('balance');
     }
 
     public function balanceUSDT($userID)
     {
-        return Wallet::where('user', $userID)->sum('usdt');
+        return Wallet::where('user', Auth::id())->sum('usdt');
     }
 
     public function count_GRsD()

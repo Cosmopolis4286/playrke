@@ -1,9 +1,13 @@
-<audio id="next">
-    <source src="{{ asset('sounds/bing/next.mp3') }}" type="audio/mp3">
-</audio>
-<audio id="select">
-    <source src="{{ asset('sounds/bing/select.mp3') }}" type="audio/mp3">
-</audio>
-<audio id="winner">
-    <source src="{{ asset('sounds/bing/winner.mp3') }}" type="audio/mp3">
-</audio>
+@php
+    $audioFiles = [
+        'next' => 'storage/sounds/bingo/next.mp3',
+        'select' => 'storage/sounds/bingo/select.mp3',
+        'winner' => 'storage/sounds/bingo/winner.mp3',
+    ];
+@endphp
+
+@foreach ($audioFiles as $id => $file)
+    <audio id="{{ $id }}">
+        <source src="{{ asset($file) }}" type="audio/mp3">
+    </audio>
+@endforeach

@@ -7,6 +7,8 @@ use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
+use App\Models\Customer;
+use App\Models\CustomerExchangeRate;
 use App\Models\PagoMovil;
 use App\Models\Pix;
 use App\Models\ProviderRKE;
@@ -33,7 +35,7 @@ trait UserVal
 
     public function wallet($userID = '')
     {
-        if ($userID) $userID = Auth::id();
+        if (!$userID) $userID = Auth::id();
         return Wallet::with('Coin')->where("user", $userID)->first();
     }
 
@@ -52,6 +54,8 @@ trait UserVal
         $creatorTypeID = User::getValueById($user, 'user_type');
         $creatorType = UserType::getValueById($creatorTypeID, 'prefix');
 
+        $countries = [];
+
         switch ($creatorType) {
             case 'user': // Jugador
                 $countries = [User::getValueById($user, 'country')];
@@ -67,8 +71,11 @@ trait UserVal
                 $seller = Seller::getValueByUserId($user, 'id');
                 $countries = SellerCountriesCoins::getAvailableCountries($seller);
                 break;
+            case 'customer': // Cliente
+                //$customer = Customer::getValueByUserId($user, 'id');
+                //$countries = CustomerExchangeRate::getAvailableCountries($customer) ?? [];
+                break;
             default:
-                $countries = [];
                 break;
         }
 

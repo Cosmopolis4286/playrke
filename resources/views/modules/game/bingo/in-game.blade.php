@@ -1,19 +1,26 @@
 @extends($layout)
-@section('styles')@vite('resources/css/games/bingo/bingo-in-game.css')@endsection
+@section('styles')
+    <style>
+        body {
+            background-image: url("{{ asset('img/body/space.png') }}") !important;
+        }
+    </style>
+    @vite('resources/css/games/bingo/bingo-in-game.css')
+@endsection
 @section('title', $title)
 
 @section('content')
-    <div class="col-12 col-lg-9 col-xl-10 pb-2 m-auto">
+    <div class="col-lg-9 col-xl-10 m-auto">
         @include('includes.game.bingo.layout.container-last-chips')
-        <div class="container">
-            @include('includes.game.bingo.layout.container-bingo-info')
+        @include('includes.game.bingo.layout.container-bingo-info')
+        @if ($room->status > 2)
             @include('includes.game.bingo.layout.container-history-chips')
-            <div class="container mt-1">
-                @if (!empty($cartons))
-                    @include('includes.game.bingo.layout.cartons')
-                @endif
-                <input type="hidden" id="random" value="{{ $random }}">
-            </div>
+        @endif
+        <div class="container mt-1">
+            @if (!empty($cartons))
+                @include('includes.game.bingo.layout.cartons')
+            @endif
+            <input type="hidden" id="random" value="{{ $random }}">
         </div>
         @include('includes.game.bingo.layout.sounds')
         @if ($room->status == 2)
