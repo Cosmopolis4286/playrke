@@ -41,7 +41,6 @@
     <script>
         const name = '{{ $name }}';
         const creatorType = '{{ $creatorType }}';
-        const roomType = $("#room-type");
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
@@ -75,13 +74,18 @@
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
 
-            // Aplica las propiedades y vacía los elementos `gameMode` y `roomType`
-            [gameMode, roomType].forEach(element => {
-                element.prop({
+            gameMode.prop({
+                disabled: isDisabled,
+                required: isRequired
+            }).empty();
+
+            if (creatorType === 'commerce') {
+                const roomType = $("#room-type");
+                roomType.prop({
                     disabled: isDisabled,
                     required: isRequired
                 }).empty();
-            });
+            }
 
             // Vacía `jackpotType`
             jackpotType.empty();
@@ -89,15 +93,13 @@
             if (type == 1) {
                 if (creatorType === 'commerce' && arrRoomType.length) {
                     roomType.append(`<option value="" disabled selected>Seleccionar:</option>`);
-                } else {
-                    $('#container-room-type').hide();
-                    roomType.prop('required', false);
                 }
 
-                jackpotType.append(`<option value="" disabled selected>Seleccionar:</option>`);
                 if (arrGameModes.length > 1) {
                     gameMode.append(`<option value="" disabled selected>Seleccionar:</option>`);
                 }
+
+                jackpotType.append(`<option value="" disabled selected>Seleccionar:</option>`);
             }
 
             if (creatorType === 'commerce' && arrRoomType.length) {
@@ -106,6 +108,7 @@
                     roomType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
                 });
             }
+
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
                 jackpotType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
@@ -114,7 +117,7 @@
             $.each(arrGameModes, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
 
-                if (creatorType === 'customer' && item.id === 1 || creatorType !== 'customer') {
+                if ((creatorType === 'customer' && item.id == 1) || creatorType !== 'customer') {
                     gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
                 }
             });

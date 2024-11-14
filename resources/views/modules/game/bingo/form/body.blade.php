@@ -8,11 +8,13 @@
         <label for="time">Hora*</label>
         <input type="time" id="time" name="time" class="form-control form-info" required>
     </div>
-    <div id="container-room-type" class="form-group col-sm-6 col-md-4">
-        <label for="room-type">Tipo de Sala*</label>
-        <select id="room-type" name="room_type" class="form-control form-info"
-            aria-label="Seleccionar tipo de sala"></select>
-    </div>
+    @if ($creator[1] !== 'customer')
+        <div class="form-group col-sm-6 col-md-4">
+            <label for="room-type">Tipo de Sala*</label>
+            <select id="room-type" name="room_type" class="form-control form-info"
+                aria-label="Seleccionar tipo de sala"></select>
+        </div>
+    @endif
     <div class="form-group col-sm-6 col-md-4">
         <label for="game-mode">Modo de Juego*</label>
         <select id="game-mode" name="game_mode" class="form-control form-info"></select>

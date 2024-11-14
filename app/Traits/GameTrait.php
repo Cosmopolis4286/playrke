@@ -84,7 +84,7 @@ trait GameTrait
                 $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator['id'], $coin);
                 break;
             case 'customer':
-                $creatorExchangeRate = CustomerExchangeRate::getCustomerCoinValue($creator['id'], $coin);
+                $creatorExchangeRate = CustomerExchangeRate::getValueById($coin);
                 break;
             default:
                 # code...
@@ -107,7 +107,7 @@ trait GameTrait
         // Formatear monto/valor de acuerdo al tipo
         if ($type === 'string') {
             // Formatear como cadena y eliminar ceros y comas finales
-            return rtrim(number_format($amount, 2, ',', '.'), '0,');
+            return number_format($amount, 2, ',', '.') ?: '0,0';
         } else {
             // Devolver como número de punto flotante
             return (float) $amount;

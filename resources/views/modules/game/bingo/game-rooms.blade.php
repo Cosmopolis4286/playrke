@@ -76,15 +76,14 @@
 @section('scripts')
     @vite('resources/js/rke/format-date-time-unix.js')
     <script>
-        const creatorType = '{{ $creatorType }}';
-        const creatorID = @json($creatorID);
+        const creator = @json($creator);
         const coin = @json($coin);
         const exchangeRate = '{{ $exchangeRate }}';
         const player = @json($player);
         const userToken = @json($userToken ?? null);
 
-        let timestamp = new Date(@json($timestamp));
-        let rooms = @json($dateTimeRooms);
+        let dateTimeRooms = @json($dateTimeRooms);
+        let timestamp = new Date(dateTimeRooms['timestamp']);
         let arrRooms = [];
         let isLogin = false;
         let room = false;
@@ -122,12 +121,10 @@
             }
         });
 
-        function getDateTimeRooms() {
-            const url =
-                "{{ route('bingo.get-datetime-rooms', ['creatorType' => ':creatorType', 'userID' => ':userID']) }}"
-                .replace(':creatorType', creatorType).replace(':userID', creatorID)
+        const routeGetDatetimeRooms = @json($route);
 
-            $.getJSON(url, {
+        function getDateTimeRooms() {
+            $.getJSON(routeGetDatetimeRooms, {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
                 .done(res => {
@@ -223,8 +220,8 @@
                     room: roomID,
                     coin,
                     num_ctns: numCtns,
-                    user_type: creatorType,
-                    user_type_val: creatorID,
+                    user_type: creator.type,
+                    user_type_val: creator.id,
                     player,
                     is_login: true,
                 },
@@ -336,16 +333,17 @@
                     }
 
                     // Redirigir a la sala según el tipo de usuario
-                    const route = creatorType == 'commerce' ?
+                    const route = creator.type == 'commerce' ?
                         `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
                         .replace(':player', player).replace(':roomID', roomID) :
-                        `{{ route('bingocash.in-game-customer', ['cust' => ':cust', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
-                        .replace(':cust', creatorID).replace(':userToken', userToken).replace(':roomID', roomID);
+
+                        `{{ route('bingocash.in-game-customer', ['customer' => ':customer', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
+                        .replace(':customer', creator.id).replace(':userToken', userToken)
+                        .replace(':roomID', roomID);
 
                     window.location.href = route;
-                    if (waitingTime) {
-                        clearInterval(waitingTime); // Limpiar el intervalo previo si existe
-                    }
+
+                    if (waitingTime) clearInterval(waitingTime); // Limpiar el intervalo previo si existe
                     return;
                 }
 
@@ -392,8 +390,8 @@
         }
 
         // Iniciar el intervalo si hay salas
-        if (rooms.length) {
-            getArrRooms(rooms);
+        if (dateTimeRooms.rooms.length) {
+            getArrRooms(dateTimeRooms.rooms);
             waitingTime = setInterval(() => handleWaitingTime(arrRooms), 1000); // Ejecutar cada segundo
         }
     </script>

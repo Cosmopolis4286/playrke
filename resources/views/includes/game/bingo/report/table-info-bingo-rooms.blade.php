@@ -23,9 +23,9 @@
                 @php
                     $roomID = $room->encrypted;
 
-                    if ($creatorType == 'customer') {
+                    if ($creatorType === 'customer') {
                         $roomRoute = route('bingocash.out-game-customer', [
-                            'cust' => encrypt($userID),
+                            'customer' => encrypt($userID),
                             'room' => $roomID,
                             'coin' => encrypt($coin),
                         ]);

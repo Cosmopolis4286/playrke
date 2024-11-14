@@ -25,7 +25,6 @@ use App\Models\PlayerLink;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
-use App\Models\ExchangeRate;
 use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
 use App\Traits\BingoTrait;
@@ -58,15 +57,12 @@ class BingoController extends Controller
         // broadcast(new BingoOFF_GetRoomInfo(now()->format('H:i:s'), $room->encrypted));
     }
 
-    public function getDateTimeRooms($creator, $userID)
+    public function getDateTimeRooms($creatorType, $creatorID)
     {
         $rooms = BingoRoom::select('encrypted', 'status', 'unix_date')
-            ->where($creator, decrypt($userID))->whereIn('status', [2, 3])->get();
+            ->where($creatorType, decrypt($creatorID))->whereIn('status', [2, 3])->get();
 
-        return [
-            'rooms' => $rooms,
-            'timestamp' => Carbon::now()->timestamp * 1000
-        ];
+        return ['rooms' => $rooms, 'timestamp' => Carbon::now()->timestamp * 1000];
     }
 
     private function getRoomGame($query, $dateFilter)
@@ -164,17 +160,18 @@ class BingoController extends Controller
             ])];
         }
 
+        $creator['id'] = encrypt($creator['id']);
+
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Bingo Salas de Juego',
             'coinSym' => $coinSym,
             'coin' => encrypt($coin),
             'exchangeRate' => $exchangeRate ?? 1,
+            'creator' => $creator,
             'rooms' => $rooms,
-            'dateTimeRooms' => $this->getDateTimeRooms($creator, encrypt($creatorID))['rooms'],
-            'creatorType' => $creator['type'],
-            'creatorID' => encrypt($creatorID),
-            'timestamp' => Carbon::now()->timestamp * 1000
+            'dateTimeRooms' => $this->getDateTimeRooms($creator['type'], $creator['id']),
+            'route' => route('bingo.get-datetime-rooms', ['creatorType' => $creator['type'], 'creatorID' => $creator['id']])
         ];
 
         if ($coin == 1) $viewData['USDT'] = true;
@@ -182,7 +179,6 @@ class BingoController extends Controller
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);
         }
-
         // Retorna ruta y datos
         return ['route' => 'modules.game.bingo.game-rooms', 'data' => $viewData];
     }
@@ -400,14 +396,13 @@ class BingoController extends Controller
                     $user = CustomerUser::getByToken($creatorID, $data['userToken'], ['id', 'coin']);
                     $coinID = $user->coin;
                     $coinSym = $coinID;
-                    $player = $user->id;
-
-                    $roomUser = BingoRoomUser::getValueByColumn($room->id, 'player_user', $player, 'id');
-                    $moreViewData['player'] = encrypt($player);
+                    $roomUser = BingoRoomUser::getValueByColumn($room->id, 'player_user', $user->id, 'id');
                 } else {
                     $coinID = $data['coin'];
-                    $coinSym = $data['coin'];
+                    $coinSym = CustomerExchangeRate::getValueById($coinID, 'coin');
                 }
+
+                $moreViewData['player'] =  (isset($roomUser) && $roomUser) ? true : false;
 
                 if ($room->status == 2) {
                     $moreViewData['customerName'] = Customer::getValueById($creatorID, 'name');
@@ -464,7 +459,7 @@ class BingoController extends Controller
                 $room = BingoRoom::getRoomById($roomID, ['status', 'all_for_one', 'ctn_price']);
 
                 $moreViewData = [
-                    'player' => $player ?? false,
+                    'player' => (isset($roomUser) && $roomUser) ? true : false,
                     'saleLink' => true,
                     'coinsAvailable' => $coinsAvailable ?? []
                 ];
@@ -483,13 +478,13 @@ class BingoController extends Controller
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
         // Definir precio del carton 
-        $ctnPrice = BingoRoom::getValueById($roomID, 'ctn_price');
+        $dataCtnPrice = [
+            'coin' => $coinID,
+            'value' => BingoRoom::getValueById($roomID, 'ctn_price'),
+            'creator' => $creator
+        ];
 
-        $dataCtnPrice = ['coin' => $coinID, 'value' => $ctnPrice, 'creator' => $creator];
         $moreViewData['ctnPrice'] = $this->convertValueByGame('BINGO', $roomID, $dataCtnPrice, 'float');
-
-        // Obtener valor formateado del bote
-        $jackpot = $this->convertPrizeValue($roomID, $coinID);
 
         $vanDraw = ($room->status > 2) ?
             BingoDraw::select('id', 'chip')->where(['room' => $roomID, 'win' => 1])->first() : [];
@@ -523,7 +518,7 @@ class BingoController extends Controller
             'room' => $room,
             'jackpotType' => BingoRoomConfig::getValueByRoom($roomID, 'jackpot_type'),
             'coinSym' => $coinSym,
-            'jackpot' => $jackpot,
+            'jackpot' => $this->convertPrizeValue($roomID, $coinID),
             'startTime' => $this->convertToUnixTimestamp($room->date, $room->time),
             'chipsRest' => $chipsRest,
             'cartons' => $ctns ?? [],
@@ -542,8 +537,6 @@ class BingoController extends Controller
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);
         }
-
-        //dd($viewData);
 
         return ['route' => 'modules.game.bingo.in-game', 'data' => $viewData];
     }
@@ -771,12 +764,10 @@ class BingoController extends Controller
             case 'customer': // Cliente
 
                 $creatorID = $creator['id'];
-
                 $isLogin = false;
 
-                $custCoin = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
-                $coinSym = $custCoin->coin;
-                $exchangeRate = $custCoin->exchange_rate;
+                $coinSym = $coin;
+                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $coin);
                 $coins = CustomerExchangeRate::getCoinsIDsByCustomer($creatorID);
 
                 $returnBtn = false;
@@ -873,8 +864,10 @@ class BingoController extends Controller
             }
 
             // Redirigir con la primera moneda disponible encriptada
-            $coinId = $coins[0]->id;
-            return redirect()->route('bingo.all-customer-rooms', ['user' => $customer, 'coin' => encrypt($coinId)]);
+            return redirect()->route('bingo.all-customer-rooms', [
+                'user' => $customer,
+                'coin' => encrypt($coins[0]->id)
+            ]);
         }
 
         try {
@@ -885,7 +878,7 @@ class BingoController extends Controller
                 return response()->json(['message' => 'Divisa Invalida'], 404);
             }
             $coin = CustomerExchangeRate::getCustomerCoinValue($customerId, $coin, 'id');
-            // Si falla, encriptar la moneda nuevamente y redirigir
+            // Si falla, encriptar el ID la moneda nuevamente y redirigir
             return redirect()->route('bingo.all-customer-rooms', ['user' => $customer, 'coin' => encrypt($coin)]);
         }
 
@@ -951,7 +944,6 @@ class BingoController extends Controller
                 DB::commit();
                 return redirect()->back()->with('message', 'Sala creada con éxito')->with('type', 'success');
             } catch (\Exception $e) {
-                dd($e->getMessage());
                 DB::rollBack();
                 return redirect()->back()->with('msg-error', 'Hubo un problema al crear la sala: ' . $e->getMessage());
             }
@@ -1014,7 +1006,6 @@ class BingoController extends Controller
 
             return redirect()->back()->with('message', 'La información fue actualizada')->with('type', 'success');
         } catch (\Exception $e) {
-            dd($e->getMessage());
             DB::rollBack();
             return redirect()->back()->with('error', 'Hubo un problema al actualizar la información: ' . $e->getMessage());
         }
@@ -1135,11 +1126,9 @@ class BingoController extends Controller
 
             return redirect()->back()->with('message', 'Sala copiada con exito')->with('type', 'success');
         } catch (\Exception $e) {
-            dd($e->getMessage());
             DB::rollBack();
             return redirect()->back()->with('msg-error', 'Hubo un problema al copiar la sala: ' . $e->getMessage());
         }
-
 
         return redirect()->back()->with('msg-error', 'No tienes permiso para copiar una sala');
     }
