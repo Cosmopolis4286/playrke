@@ -3,72 +3,75 @@
 @section('title', 'BingoCash')
 
 @section('content')
-    <div class="col-12 @if ($layout === 'layouts.app_rke_off') mt-2 @endif">
-        <div id="container-spinner" class="mt-1">
-            <div class="spinner-border text-primary" role="status">
-                <span class="sr-only"></span>
+    <div class="container-fluid">
+        <div class="col-12 bg-danger @if ($layout === 'layouts.app_rke_off') mt-2 @endif">
+            <div id="container-spinner" class="mt-1">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only"></span>
+                </div>
             </div>
+            <div id="container-text-game-rooms">
+                <span id="text-game-rooms">SALAS DE JUEGO</span>
+                {{-- <a class="mt-n1 badge badge-primary"
+                            href="{{ route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
+                            Cambiar a <b>{{ $coinSym }}</b>
+                        </a> --}}
+            </div>
+            @include('includes.game.bingo.layout.container-purchase-ctns')
         </div>
-        <div id="container-text-game-rooms">
-            <span id="text-game-rooms">SALAS DE JUEGO</span>
-            {{-- <a class="mt-n1 badge badge-primary"
-                    href="{{ route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
-                    Cambiar a <b>{{ $coinSym }}</b>
-                </a> --}}
-        </div>
-        @include('includes.game.bingo.layout.container-purchase-ctns')
-    </div>
-    <div class="col-12 w-100 mt-4 pb-4">
-        <div class="row justify-content-center" style="gap: 2.75rem;">
-            @foreach ($rooms as $key => $room)
-                <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
-                    <div class="card-game-room" id="card-game-room_{{ $room->encrypted }}"
-                        data-room="{{ $room->encrypted }}" data-status="{{ $room->status }}">
-                        <div id="start-time_{{ $room->encrypted }}" class="card-game-room__time">
-                            {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
-                        </div>
-                        <span class="card-game-room__game-mode">Modo: Cartón Lleno</span>
-                        @if (count($room->PlayersRoom))
-                            <div class="card-game-room__number-of-ctns" title="Mis Cartones">
-                                <span>+{{ $room->PlayersRoom[0]->ctns }}</span>
+        <div class="col-12 w-100 mt-4 bg-success">
+            <div class="row justify-content-center" style="gap: 2.75rem;">
+                @foreach ($rooms as $key => $room)
+                    <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
+                        <div class="card-game-room" id="card-game-room_{{ $room->encrypted }}"
+                            data-room="{{ $room->encrypted }}" data-status="{{ $room->status }}">
+                            <div id="start-time_{{ $room->encrypted }}" class="card-game-room__time">
+                                {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
                             </div>
-                        @endif
-                        {{-- @if ($room->PlayersRoom[0]->auto_mc)
-                            <div class="card-game-room__auto-marker" title="Tienes el Automarcador">
-                                <i class="fa-solid fa-check-to-slot"></i>
+                            <span class="card-game-room__game-mode">Modo: Cartón Lleno</span>
+                            @if (count($room->PlayersRoom))
+                                <div class="card-game-room__number-of-ctns" title="Mis Cartones">
+                                    <span>+{{ $room->PlayersRoom[0]->ctns }}</span>
+                                </div>
+                            @endif
+                            {{-- @if ($room->PlayersRoom[0]->auto_mc)
+                                <div class="card-game-room__auto-marker" title="Tienes el Automarcador">
+                                    <i class="fa-solid fa-check-to-slot"></i>
+                                </div>
+                            @endif --}}
+                            <img class="card-game-room__room-image" src="{{ asset('img/bg/estelar_fd.png') }}"
+                                alt="IMG">
+                            <div class="container-card-game-room__jackpot">
+                                <span class="card-game-room__jackpot-text">
+                                    {{ $room->Config->jackpot_type == 1 ? 'Bote:' : 'Premio:' }}
+                                </span>
+                                <div class="card-game-room__jackpot-amount">
+                                    @if ($room->jackpot_prize > 0 || $room->Config->jackpot_type != 1)
+                                        <h3>
+                                            <span id="jackpot-room_{{ $room->encrypted }}">
+                                                {{ number_format($room->jackpot_prize, 2) }}
+                                            </span>
+                                            <small id="coin-symbol-room_{{ $room->encrypted }}">
+                                                {{ $coinSym }}
+                                            </small>
+                                        </h3>
+                                    @else
+                                        <h3>ESPERANDO</h3>
+                                    @endif
+                                </div>
+                                <span class="card-game-room__ctn-price">
+                                    Cartón: <span id="ctn-price_{{ $room->encrypted }}">
+                                        {{ $room->ctn_price * $exchangeRate }}
+                                    </span> {{ $coinSym }}
+                                </span>
+                                <span class="card-game-room__status" id="card-game-room__status_{{ $room->encrypted }}">
+                                    {{ $room->status == 2 ? 'Comprar cartones' : 'No disponible' }}
+                                </span>
                             </div>
-                        @endif --}}
-                        <img class="card-game-room__room-image" src="{{ asset('img/bg/estelar_fd.png') }}" alt="IMG">
-                        <div class="container-card-game-room__jackpot">
-                            <span class="card-game-room__jackpot-text">
-                                {{ $room->Config->jackpot_type == 1 ? 'Bote:' : 'Premio:' }}
-                            </span>
-                            <div class="card-game-room__jackpot-amount">
-                                @if ($room->jackpot_prize > 0 || $room->Config->jackpot_type != 1)
-                                    <h3>
-                                        <span id="jackpot-room_{{ $room->encrypted }}">
-                                            {{ number_format($room->jackpot_prize, 2) }}
-                                        </span>
-                                        <small id="coin-symbol-room_{{ $room->encrypted }}">
-                                            {{ $coinSym }}
-                                        </small>
-                                    </h3>
-                                @else
-                                    <h3>ESPERANDO</h3>
-                                @endif
-                            </div>
-                            <span class="card-game-room__ctn-price">
-                                Cartón: <span id="ctn-price_{{ $room->encrypted }}">
-                                    {{ $room->ctn_price * $exchangeRate }}
-                                </span> {{ $coinSym }}
-                            </span>
-                            <span class="card-game-room__status" id="card-game-room__status_{{ $room->encrypted }}">
-                                {{ $room->status == 2 ? 'Comprar cartones' : 'No disponible' }}
-                            </span>
                         </div>
                     </div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
         </div>
     </div>
 @endsection

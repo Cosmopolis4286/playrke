@@ -10,7 +10,7 @@
 @section('title', $title)
 
 @section('content')
-    <div class="col-lg-9 col-xl-10 m-auto">
+    <div class="col-md-11 col-lg-7 col-xl-8 m-auto">
         @include('includes.game.bingo.layout.container-last-chips')
         @include('includes.game.bingo.layout.container-bingo-info')
         @if ($room->status > 2)

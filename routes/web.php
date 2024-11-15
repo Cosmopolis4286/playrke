@@ -130,6 +130,7 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
 // Iframes
 Route::group(['middleware' => 'auth', 'prefix' => 'iframe', 'as' => 'iframe.'], function () {
     Route::get('', [IframeController::class, 'index'])->name('index');
+    Route::get('get/route/game-rooms/{userToken}', [IframeController::class, 'getRouteGameRooms'])->name('get-route-game-rooms');
 });
 
 // Directorio-Datos Bancarios

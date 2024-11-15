@@ -3,7 +3,7 @@
     @if (!$cusToken)
         <select id="coin" class="form-control input-exchange-rate" name="coin"></select>
     @else
-        <input type="text" id="currency" class="form-control input-exchange-rate" name="currency" />
+        <input type="text" id="currency" class="form-control input-exchange-rate" name="currency">
         <input type="hidden" name="cust_token" value="{{ $cusToken }}">
     @endif
 </div>

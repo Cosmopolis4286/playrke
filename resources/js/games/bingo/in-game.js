@@ -20,24 +20,6 @@ document.addEventListener('dragstart', function (evt) {
 
 // document.addEventListener("contextmenu", e => e.preventDefault());
 
-function handleResize(e) {
-    const view_width = e.currentTarget.innerWidth;
-
-    if (view_width > 745) {
-        sizeCarrsel = 12;
-    } else if (view_width < 370) {
-        sizeCarrsel = 7;
-    } else {
-        sizeCarrsel = 8;
-    }
-
-    if (allChips.length && roomStatus > 2) {
-        renderChipsView(allChips);
-    }
-}
-
-window.addEventListener('resize', handleResize, true);
-
 document.body.addEventListener('click', function () {
     if (actSound == 0 && endWin == 0 && latestChips && roomStatus == 3) {
         $('#icon-volume').toggleClass('fa-volume-high fa-volume-xmark');
@@ -76,55 +58,59 @@ $('#btn-volume').click(function () {
 
 let posChip = 0;
 
-function renderChipsView(arr, arrow) {
-    if (!arr.length) return false;
+function renderChipsView(arrow) {
 
-    // Función auxiliar para definir el tamaño del carrusel según el ancho de pantalla
-    const getSizeCarrsel = () => {
-        const screenWidth = screen.width;
-        if (screenWidth > 745) return 12;
-        if (screenWidth < 370) return 7;
-        return 8;
+    if (!allChips.length) return;
+
+    const arr = allChips;
+
+    // Determina la cantidad de fichas según el ancho de pantalla
+    const screenWidth = screen.width;
+
+    console.log(widthContainerImage);
+
+    const calculateMaxItems = () => {
+        // Calcula el número máximo de elementos que pueden caber en el carrousel
+        const itemsByScreenWidth = Math.floor(screenWidth / widthContainerImage);
+        // Asegura que no se supere el máximo permitido
+        return Math.min(itemsByScreenWidth, 12);
     };
 
-    const sizeCarrsel = getSizeCarrsel();
-    let arrCrrselChips = [];
-    let infoHtml = '';
+    const totalItems = calculateMaxItems();
+    console.log(`Número máximo de elementos que caben: ${totalItems}`);
 
-    // Actualiza la posición del chip en función de la flecha
-    if (arrow === 1 && posChip > 0) {
-        posChip--;
-    } else if (arrow === 2 && !arrCrrselChips.includes(allChips[0])) {
-        posChip++;
-    }
+    // Actualiza la posición según la dirección de la flecha
+    if (arrow === 1 && posChip > 0) posChip--;
+    if (arrow === 2 && posChip + totalItems < arr.length) posChip++;
 
-    let imagePromises = [];
+    // Genera las fichas visibles y el HTML
+    const visibleChips = arr.slice(posChip, posChip + totalItems);
+    const infoHtml = visibleChips
+        .map((chip) => {
+            const imgSrc = `${preRoute}img/bg/chips/${chip}.png`;
+            return `<div class="container-image-history">
+                        <img class="image-history" src="${imgSrc}" alt="${chip}">
+                    </div>`;
+        })
+        .join('');
 
-    for (let i = posChip; i < arr.length && arrCrrselChips.length < sizeCarrsel; i++) {
-        const chip = arr[i];
-        const imgSrc = `${preRoute}img/bg/chips/${chip}.png`;
-        infoHtml += `<img class="img-fluid" src="${imgSrc}" alt="${chip}">`;
-        arrCrrselChips.push(chip);
-
-        // Crear una promesa que se resuelva cuando la imagen se haya cargado
-        const imgPromise = new Promise((resolve) => {
-            const img = new Image();
-            img.src = imgSrc;
+    // Carga imágenes antes de actualizar el DOM
+    const imagePromises = visibleChips.map((chip) => {
+        const img = new Image();
+        img.src = `${preRoute}img/bg/chips/${chip}.png`;
+        return new Promise((resolve) => {
             img.onload = resolve;
-            img.onerror = resolve; // Resolver incluso si hay un error en la carga
+            img.onerror = resolve;
         });
-        imagePromises.push(imgPromise);
-    }
+    });
 
-    // Configura la visibilidad de las flechas de navegación
-    const firstChipVisible = arrCrrselChips[0] === allChips[0];
-    const lastChipVisible = arrCrrselChips[arrCrrselChips.length - 1] === arr[arr.length - 1];
-    $('#left-arrow').toggle(!firstChipVisible);
-    $('#right-arrow').toggle(!lastChipVisible && allChips.length > sizeCarrsel);
-
-    // Espera que todas las imágenes se carguen antes de insertar el HTML en el contenedor
     Promise.all(imagePromises).then(() => {
         $('#container-all-chips').html(infoHtml);
+        $('#container-all-chips').css('visibility', 'visible');
+        if (roomStatus > 2) adjustWidthBoxesHist();
+        // Configura la visibilidad de las flechas de navegación
+        $('#cont-left-arrow').toggleClass('hide-elem', posChip <= 0);
+        $('#cont-right-arrow').toggleClass('hide-elem', (posChip + totalItems) > arr.length);
     });
 }
 
@@ -142,7 +128,7 @@ function handleLatestChips(latestChips) {
     // Insertar todo el HTML generado de una vez en el contenedor
     $container.html(chipsHtml);
 
-    renderChipsView(allChips);
+    renderChipsView();
     autoMarked();
     processChips();
 }
@@ -182,13 +168,22 @@ function adjustHeightBoxesCtnAward() {
     $('.number-box-view-ctn').height(widthNumberBoxViewCtn);
 }
 
+const heightContainerAllChips = $('#container-history-chips').height();
+const sizeChip = heightContainerAllChips * 0.85;
+const newMargin = sizeChip * 0.072;
+const widthContainerImage = sizeChip + (newMargin * 2);
+
+function adjustWidthBoxesHist() {
+    $('.container-image-history').css({ width: sizeChip, height: sizeChip, margin: `0 ${newMargin}px` });
+}
+
 function adjustHeightBoxes() {
     let widthNumberBox = $('.number-box').first().width();
     $('.number-box').height(widthNumberBox);
 }
 
 $(document).on("click", ".cont-arrow-history-chips", function () {
-    renderChipsView(allChips, $(this).data('move'));
+    renderChipsView($(this).data('move'));
 });
 
 function decryptChp(code) {
@@ -249,7 +244,6 @@ function processChips() {
         }
 
         timeServ++;
-        console.log('timeServ', timeServ);
     }, 1000); // Intervalo de 1 segundo
 }
 
@@ -297,7 +291,7 @@ function getNewChip(newChip) {
         allChipsSet.add(newChip);
 
         // Ejecutar funciones en paralelo
-        renderChipsView(allChips);
+        renderChipsView();
         autoMarked();
 
         // Mostrar ganadores si es el último chip
@@ -425,22 +419,24 @@ $(function () {
         if (player) {
             adjustHeightBoxes();
             $('.container-carton').css('visibility', 'visible');
+        }
 
-            // Ajusta la altura de los contenedores al redimensionar la ventana
-            $(window).resize(function () {
-                adjustHeightBoxes();
+        $(window).resize(function () {
+            // Ajusta la altura de los contenedores al redimensionar la ventana         
+            if (player) adjustHeightBoxes();
 
-                if (roomStatus > 2 && $('#cont-ctn-award-winning').data('status')) {
+            if (roomStatus > 2) {
+                renderChipsView();
+                if ($('#cont-ctn-award-winning').data('status')) {
                     adjustHeightBoxesCtnAward();
                 }
-            });
-        }
+            }
+        });
 
         if (!latestChips.length) {
             processChips();
         } else {
             handleLatestChips(latestChips);
-            $('#container-history-chips').show();
 
             // Muestra los ganadores si el estado de la sala lo permite
             if (roomStatus > 3) {

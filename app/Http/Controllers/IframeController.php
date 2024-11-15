@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Services\CustomerSessionService;
 use App\Models\UserType;
 use App\Traits\UserVal;
 
@@ -41,5 +42,25 @@ class IframeController extends Controller
             'wallet' => $this->wallet(),
             'iframes' => $iframes
         ]);
+    }
+
+    public function getRouteGameRooms($userToken)
+    {
+        $user = $this->user(['id', 'user_type']);
+
+        if (UserType::getValueById($user->user_type, 'prefix') !== 'customer') {
+            return redirect()->back();
+        }
+
+        $customer = Customer::getByUserId($user->id, ['id', 'token']);
+        $customerSessionService = new CustomerSessionService();
+        $response = $customerSessionService->handleCustomerUserSession($customer->id, $userToken);
+
+        // Verificar si existe el usuario por su token
+        if (isset($response['Error'])) {
+            return ['error' => $response['Error']];
+        }
+
+        return ['route' => route('bingo.game-rooms-customer', ['customer' => $customer->token, 'user' => $userToken])];
     }
 }
