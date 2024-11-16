@@ -24,7 +24,7 @@ class BingoRoom extends Model
     'ctn_price',
     'players',
     'all_sale',
-    'commerce_commn',
+    'room_commn',
     'seller_commn',
     'jackpot',
     'jackpot_prize',

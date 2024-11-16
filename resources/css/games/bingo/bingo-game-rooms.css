@@ -3,10 +3,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Braah+One&display=swap');
 
-body {
-    background: url('/resources/img/body/space.png') !important;
-}
-
 #container-spinner {
     position: absolute;
     right: 0;
