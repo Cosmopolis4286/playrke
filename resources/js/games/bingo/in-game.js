@@ -64,10 +64,10 @@ function renderChipsView(arrow) {
 
     const arr = allChips;
 
-    // Determina la cantidad de fichas según el ancho de pantalla
-    const screenWidth = screen.width;
+    let widthContArrow = $('#cont-right-arrow').width();
 
-    console.log(widthContainerImage);
+    // Determina la cantidad de fichas según el ancho de pantalla
+    const screenWidth = $('#container-bingo-info').width() - (widthContArrow * 2);
 
     const calculateMaxItems = () => {
         // Calcula el número máximo de elementos que pueden caber en el carrousel
@@ -77,8 +77,6 @@ function renderChipsView(arrow) {
     };
 
     const totalItems = calculateMaxItems();
-    console.log(`Número máximo de elementos que caben: ${totalItems}`);
-
     // Actualiza la posición según la dirección de la flecha
     if (arrow === 1 && posChip > 0) posChip--;
     if (arrow === 2 && posChip + totalItems < arr.length) posChip++;
@@ -91,8 +89,7 @@ function renderChipsView(arrow) {
             return `<div class="container-image-history">
                         <img class="image-history" src="${imgSrc}" alt="${chip}">
                     </div>`;
-        })
-        .join('');
+        }).join('');
 
     // Carga imágenes antes de actualizar el DOM
     const imagePromises = visibleChips.map((chip) => {
@@ -105,8 +102,7 @@ function renderChipsView(arrow) {
     });
 
     Promise.all(imagePromises).then(() => {
-        $('#container-all-chips').html(infoHtml);
-        $('#container-all-chips').css('visibility', 'visible');
+        $('#container-all-chips').html(infoHtml).css('visibility', 'visible');
         if (roomStatus > 2) adjustWidthBoxesHist();
         // Configura la visibilidad de las flechas de navegación
         $('#cont-left-arrow').toggleClass('hide-elem', posChip <= 0);
