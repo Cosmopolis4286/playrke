@@ -11,7 +11,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CommerceController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\BingoController;
-use App\Http\Controllers\PollaExpressController;
+use App\Http\Controllers\PollaRKEController;
 use App\Http\Controllers\BancosController;
 use App\Http\Controllers\DoubleController;
 use App\Http\Controllers\RuletaController;
@@ -29,6 +29,8 @@ use App\Http\Controllers\IframeController;
 use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
+use App\Http\Controllers\LotteryController;
+use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\TrikiController;
 use App\Http\Controllers\YankenpoController;
 use App\Models\ExchangeRate;
@@ -420,12 +422,23 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 // BingoCash -Jugador-
 
 // PollaExpress -Jugador-
-Route::group(['prefix' => 'pollaexpress', 'as' => 'pollaexpress.'], function () {
-    Route::get('getDraw/{room}', [PollaExpressController::class, 'getDraw'])->name('getDraw');
-    Route::get('{player}', [PollaExpressController::class, 'game'])->name('game');
-    Route::get('get/chips/{room}', [PollaExpressController::class, 'getChips'])->name('getChips');
-    Route::get('getResult/{room}/{playerLink}', [PollaExpressController::class, 'getResult'])->name('getResult');
-    Route::get('viewCtn/{ctnId}', [PollaExpressController::class, 'viewCtn'])->name('viewCtn');
+Route::group(['prefix' => 'polla-rke', 'as' => 'polla.'], function () {
+
+    Route::get('rooms/admin/{user}/{coin?}', [PollaRKEController::class, 'allRooms'])
+        ->middleware(['auth', 'admin'])->name('all-rooms');
+
+    Route::get('rooms/comm/{user}/{coin?}', [PollaRKEController::class, 'allCommerceRooms'])
+        ->middleware(['auth', 'commerce'])->name('all-commerce-rooms');
+
+    Route::get('rooms-sales-report/{coin}/{dateFilter?}', [PollaRKEController::class, 'roomsSalesReport'])->name('roomsSalesReport');
+});
+
+Route::group(['prefix' => 'lottery', 'as' => 'lottery.'], function () {
+    Route::get('results/{game}', [LotteryController::class, 'lotteryResults'])->name('results');
+});
+
+Route::group(['prefix' => 'predict', 'as' => 'predict.'], function () {
+    Route::get('/predict', [PredictionController::class, 'generatePrediction']);
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'ruleta', 'as' => 'ruleta.'], function () {
