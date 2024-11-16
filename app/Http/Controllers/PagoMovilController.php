@@ -9,6 +9,9 @@ use App\Models\PagoMovil;
 use App\Models\CodTef;
 use App\Models\DocumentType;
 use App\Traits\UserVal;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PagoMovilController extends Controller
 {
@@ -16,8 +19,8 @@ class PagoMovilController extends Controller
 
     public function index()
     {
-        $user = $this->user(['id']);
-        $wallet = $this->Wallet($user);
+        $user = $this->user(['id'])->id;
+        $wallet = $this->wallet();
 
         if ($wallet->coin != 2) return redirect()->back();
 
@@ -29,7 +32,7 @@ class PagoMovilController extends Controller
     public function list() // Falta Ajustar
     {
         $user = $this->user(['id']);
-        $wallet = $this->Wallet($user);
+        $wallet = $this->wallet();
         $banks = Banks_VEN::All();
         $codTelfVe = CodTef::All();
         $typeIdent = DocumentType::where('country', 234)->where('status', 1)->get();
@@ -49,41 +52,69 @@ class PagoMovilController extends Controller
         $bank = $request->bank;
         $phone = $request->phone;
 
-        $existPagoMovil = PagoMovil::getPagoMovil($documentType, $documentVal, $bank, $phone);
-        if (!$existPagoMovil) {
+        $existPagoMovil = PagoMovil::existsPagoMovil($documentType, $documentVal, $bank, $phone);
+
+        if ($existPagoMovil) {
+            return redirect()->back()->with('message', 'Este PagoMovil ya se encuentra registrado')->with('type', 'warning');
+        }
+
+        DB::beginTransaction();
+
+        try {
             PagoMovil::create([
                 'document_type' => $documentType,
                 'document' => $documentVal,
                 'phone' => $phone,
                 'bank' => $bank,
-                'user' => $this->user(['id'])
+                'user' => Auth::id()
             ]);
+
+            DB::commit();
             return redirect()->back()->with('message', 'Registro exitoso')->with('type', 'success');
-        } else {
-            return redirect()->back()->with('message', 'Este PagoMovil ya se encuentra registrado')->with('type', 'warning');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al registrar Pago Movil: ' . $e->getMessage());
         }
     }
 
     public function update(Request $request, $id)
     {
         $pagoMovil = PagoMovil::findOrFail(decrypt($id));
-        if ($pagoMovil) {
+
+        if (!$pagoMovil) {
+            return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
+        }
+
+        DB::beginTransaction();
+
+        try {
             $pagoMovil->update([
                 'document_type' => $request->document_type,
                 'document' => $request->document_val,
                 'phone' => $request->phone,
                 'bank' => $request->bank,
             ]);
+
+            DB::commit();
             return redirect()->back()->with('message', 'PagoMovil actualizado')->with('type', 'success');
-        } else {
-            return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al actualizar Pago Movil: ' . $e->getMessage());
         }
     }
 
     public function delete(Request $request)
     {
-        PagoMovil::destroy(decrypt($request->id));
-        return redirect()->back()->with('message', 'PagoMovil eliminado')->with('type', 'success');;
+        DB::beginTransaction();
+
+        try {
+            PagoMovil::destroy(decrypt($request->id));
+            DB::commit();
+            return redirect()->back()->with('message', 'PagoMovil eliminado')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al eliminar Pago Movil: ' . $e->getMessage());
+        }
     }
 
     public function getInfo($id)

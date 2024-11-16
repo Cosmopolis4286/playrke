@@ -11,6 +11,7 @@ use App\Traits\UserVal;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PixController extends Controller
 {
@@ -18,12 +19,11 @@ class PixController extends Controller
 
     public function index()
     {
-        $user = $this->user(['id']);
-        $wallet = $this->Wallet($user);
+        $wallet = $this->wallet();
 
         if ($wallet->coin != 2) return redirect()->back();
 
-        $pixs = Pix::with('Bank')->where("user", $user)->get();
+        $pixs = Pix::with('Bank')->where("user", Auth::id())->get();
         $typeChave = PixKeys::all();
 
         return view('all.directory.br.index', compact('wallet', 'pixs', 'typeChave'));
@@ -34,14 +34,15 @@ class PixController extends Controller
         $bank = json_decode($infoBank);
         $ISPB = $bank->ispb;
 
-        if (Banks_BRA::existsISPB($ISPB)) return;
+        $bankID = Banks_BRA::getValueByISPB($ISPB, 'id');
 
-        Banks_BRA::create([
+        if ($bankID) return $bankID;
+
+        return Banks_BRA::create([
             'name' => $bank->name,
-            'code' => $bank->code,
             'full_name' => $bank->full_name,
             'ispb' => $ISPB
-        ]);
+        ])->id;
     }
 
     public function create(Request $request)
@@ -49,7 +50,7 @@ class PixController extends Controller
         DB::beginTransaction();
 
         try {
-            $this->insertNewBank($request->arr_bank);
+            $bankID = $this->insertNewBank($request->arr_bank);
 
             $pixKey = $request->pix_key;
             $pixKeyVal = $request->pix_key_value;
@@ -63,7 +64,7 @@ class PixController extends Controller
 
             Pix::create([
                 'name' => $request->name,
-                'bank' => $request->bank,
+                'bank' => $bankID,
                 'pix_key' => $request->pix_key,
                 'pix_key_value' => $request->pix_key_value,
                 'user' => Auth::id()
@@ -91,7 +92,7 @@ class PixController extends Controller
 
         try {
 
-            $this->insertNewBank($request->arr_bank);
+            $bankID = $this->insertNewBank($request->arr_bank);
 
             $pixKey = $request->pix_key;
             $pixKeyVal = $request->pix_key_value;
@@ -107,7 +108,7 @@ class PixController extends Controller
 
             $pix->update([
                 'name' => $request->name,
-                'bank' => $request->bank,
+                'bank' => $bankID,
                 'pix_key' => $pixKey,
                 'pix_key_value' => $pixKeyVal
             ]);
@@ -129,8 +130,16 @@ class PixController extends Controller
 
     public function delete(Request $request)
     {
-        Pix::destroy(decrypt($request->id));
-        return redirect()->back()->with('message', 'Esta Chave Pix ha sido eliminada')->with('type', 'success');
+        DB::beginTransaction();
+
+        try {
+            Pix::destroy(decrypt($request->id));
+            DB::commit();
+            return redirect()->back()->with('message', 'Esta Chave Pix ha sido eliminada')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al eliminar Pix: ' . $e->getMessage());
+        }
     }
 
     public function getInfo($id)

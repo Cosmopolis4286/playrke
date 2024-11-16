@@ -36,8 +36,7 @@
                 <span class="input-group-text" id="basic-addon2">%</span>
             </div>
             <input type="number" id="commission" name="commission" class="form-control" placeholder="%Com" required
-                value="{{ old('commission', '5') }}" min="5" max="25" placeholder="Recipient's username"
-                aria-label="Recipient's username" aria-describedby="basic-addon2">
+                value="{{ old('commission', '3.5') }}" step="0.5" min="3.5" max="30">
         </div>
     </div>
     <div class="form-group col-sm-6">

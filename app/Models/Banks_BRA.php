@@ -14,6 +14,11 @@ class Banks_BRA extends Model
         return self::select($fields)->where('ispb', $ispb)->first();
     }
 
+    public static function getValueByISPB($ispb, $value)
+    {
+        return self::where('ispb', $ispb)->value($value);
+    }
+
     public static function existsISPB($ispb)
     {
         return self::where('ispb', $ispb)->exists();

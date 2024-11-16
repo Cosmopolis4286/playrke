@@ -32,7 +32,7 @@ class AdminController extends Controller
         return view('modules/admin/commerce/index')->with([
             'title' => 'Comercializadoras',
             'name' => 'commerce',
-            'wallet' => $this->Wallet(Auth::id()),
+            'wallet' => $this->wallet(Auth::id()),
             'commerces' => $commerces,
             'countries' => $countries,
             'coins' => $coins
@@ -51,7 +51,7 @@ class AdminController extends Controller
         return view('modules/admin/customer/index')->with([
             'title' => 'Clientes',
             'name' => 'customer',
-            'wallet' => $this->Wallet(Auth::id()),
+            'wallet' => $this->wallet(Auth::id()),
             'customers' => $customers,
             'countries' => $countries,
             'coins' => $coins

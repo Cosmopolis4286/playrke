@@ -11,7 +11,7 @@ class Pix extends Model
 
     public function Bank()
     {
-        return $this->belongsTo(Banks_BRA::class, 'bank', 'code');
+        return $this->belongsTo(Banks_BRA::class, 'bank');
     }
 
     public function ChavePix()

@@ -313,7 +313,7 @@ body {
     justify-content: center;
     align-items: center;
     height: 100%;
-    min-width: 38px;
+    min-width: 36px;
 }
 
 .arrow {
@@ -327,11 +327,11 @@ body {
 }
 
 #cont-left-arrow {
-    padding-right: 0.8%;
+    padding-right: 0.75%;
 }
 
 #cont-right-arrow {
-    padding-left: 0.8%;
+    padding-left: 0.75%;
 }
 
 #container-all-chips {

@@ -1,7 +1,7 @@
 @extends('layouts.app_rke')
 @section('title', $title)
 @section('content')
-    <div class="col-md-8 m-auto">
+    <div class="col-md-9 m-auto">
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">

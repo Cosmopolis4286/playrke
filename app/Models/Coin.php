@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Coin extends Model
 {
     protected $table = "coins";
-    protected $fillable = ['symbol', 'short_name', 'long_name', 'country', 'status'];
+    protected $fillable = ['iso_code', 'symbol', 'short_name', 'long_name', 'country', 'status'];
 
     public function Country()
     {
@@ -36,13 +36,18 @@ class Coin extends Model
 
     public static function getById($coin, $fields = ['*'])
     {
-        return self::where('id', $coin)->select($fields)->first();
+        return self::select($fields)->where('id', $coin)->first();
+    }
+
+    public static function getByISOCode($ISOCode, $fields = ['*'])
+    {
+        return self::select($fields)->where('iso_code', $ISOCode)->first();
     }
 
     public static function getByIdForStatus($status = ['>=', 0], $fields = ['*'])
     {
         // Asume que $status es un array con dos elementos: operador y valor
-        return self::where('status', $status[0], $status[1])->select($fields)->get();
+        return self::select($fields)->where('status', $status[0], $status[1])->get();
     }
 
     public static function getValue($coin, $value)
@@ -52,7 +57,7 @@ class Coin extends Model
 
     public static function getCoinByCountry($country, $fields = ['*'])
     {
-        return self::where('country', $country)->select($fields)->first();
+        return self::select($fields)->where('country', $country)->first();
     }
 
     public static function getValueByCountry($country, $value)
