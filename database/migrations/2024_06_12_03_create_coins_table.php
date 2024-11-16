@@ -10,6 +10,7 @@ class CreateCoinsTable extends Migration
     {
         Schema::create('coins', function (Blueprint $table) {
             $table->id();
+            $table->string('iso_code', 3)->nullable()->unique();
             $table->string('symbol', 6);
             $table->string('short_name', 10);
             $table->string('long_name', 15);

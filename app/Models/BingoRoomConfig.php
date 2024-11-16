@@ -12,7 +12,7 @@ class BingoRoomConfig extends Model
     'jackpot_type',
     'fixed_jackpot_value',
     'replay',
-    'commerce_commn',
+    'room_commn',
     'serials_commn',
     'val_serials',
     'num_serials',
@@ -37,6 +37,6 @@ class BingoRoomConfig extends Model
 
   static function getRoomConfig($room, $fields = ['*'])
   {
-    return self::where('room', $room)->select($fields)->first();
+    return self::select($fields)->where('room', $room)->first();
   }
 }

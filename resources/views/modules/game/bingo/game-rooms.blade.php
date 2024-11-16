@@ -1,10 +1,17 @@
 @extends($layout)
-@section('styles')@vite('resources/css/games/bingo/bingo-game-rooms.css')@endsection
+@section('styles')
+    <style>
+        body {
+            background-image: url("{{ asset('img/body/space.png') }}") !important;
+        }
+    </style>
+    @vite('resources/css/games/bingo/bingo-game-rooms.css')
+@endsection
 @section('title', 'BingoCash')
 
 @section('content')
     <div class="container-fluid">
-        <div class="col-12 bg-danger @if ($layout === 'layouts.app_rke_off') mt-2 @endif">
+        <div class="col-12 @if ($layout === 'layouts.app_rke_off') mt-2 @endif">
             <div id="container-spinner" class="mt-1">
                 <div class="spinner-border text-primary" role="status">
                     <span class="sr-only"></span>
@@ -19,7 +26,7 @@
             </div>
             @include('includes.game.bingo.layout.container-purchase-ctns')
         </div>
-        <div class="col-12 w-100 mt-4 bg-success">
+        <div class="col-12 w-100 mt-4">
             <div class="row justify-content-center" style="gap: 2.75rem;">
                 @foreach ($rooms as $key => $room)
                     <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">

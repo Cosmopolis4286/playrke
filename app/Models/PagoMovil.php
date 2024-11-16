@@ -24,9 +24,15 @@ class PagoMovil extends Model
 		return $this->belongsTo(Banks_VEN::class, 'bank');
 	}
 
-	public static function getPagoMovil($documentType, $document, $bank, $phone)
+	public static function getUserByPagoMovil($documentType, $document, $bank, $phone)
 	{
 		return self::where('document_type', $documentType)->where('document', $document)
-			->where('bank', $bank)->where('phone', $phone)->first();
+			->where('bank', $bank)->where('phone', $phone)->value('user');
+	}
+
+	public static function existsPagoMovil($documentType, $document, $bank, $phone)
+	{
+		return self::where('document_type', $documentType)->where('document', $document)
+			->where('bank', $bank)->where('phone', $phone)->exists();
 	}
 }

@@ -73,6 +73,7 @@
         function insertInfo(type, data = '') {
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
+            let roomType = false;
 
             gameMode.prop({
                 disabled: isDisabled,
@@ -80,26 +81,27 @@
             }).empty();
 
             if (creatorType === 'commerce') {
-                const roomType = $("#room-type");
+                roomType = $("#room-type");
                 roomType.prop({
                     disabled: isDisabled,
                     required: isRequired
                 }).empty();
             }
 
-            // Vacía `jackpotType`
             jackpotType.empty();
 
             if (type == 1) {
+                const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
+
                 if (creatorType === 'commerce' && arrRoomType.length) {
-                    roomType.append(`<option value="" disabled selected>Seleccionar:</option>`);
+                    roomType.append(defaultOption);
                 }
 
                 if (arrGameModes.length > 1) {
-                    gameMode.append(`<option value="" disabled selected>Seleccionar:</option>`);
+                    gameMode.append(defaultOption);
                 }
 
-                jackpotType.append(`<option value="" disabled selected>Seleccionar:</option>`);
+                jackpotType.append(defaultOption);
             }
 
             if (creatorType === 'commerce' && arrRoomType.length) {

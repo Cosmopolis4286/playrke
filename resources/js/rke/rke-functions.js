@@ -21,6 +21,9 @@ $(document).ajaxStop(ajaxStop);
 $(document).on("submit", "form", ajaxStart);
 
 function copyInfo(text, elem = false) {
+    // Verifica si el navegador soporta la API Clipboard
+    if (!navigator.clipboard) return false;
+
     if (!elem) elem = $("#info-to-copy");
     navigator.clipboard.writeText(elem.val());
     showToast(text, 'success');

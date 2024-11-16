@@ -19,7 +19,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->unsignedBigInteger('jackpot_type')->default(1);
             $table->double('fixed_jackpot_value')->nullable();
             $table->boolean('replay')->default(0);
-            $table->double('commerce_commn')->default(10);
+            $table->double('room_commn')->default(10);
             $table->double('serials_commn')->nullable();
             $table->double('val_serials')->nullable();
             $table->string('num_serials', 2)->nullable();

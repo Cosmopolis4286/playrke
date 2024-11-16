@@ -22,7 +22,7 @@ return new class extends Migration
             $table->boolean('paid_win')->default(0);
             $table->date('date');
             $table->string('time', 10);
-            $table->integer('unix_time')->nullable();
+            $table->integer('unix_date')->nullable();
             $table->unsignedBigInteger('country')->nullable();
             $table->string('coin', 15)->nullable();
             $table->timestamp('publication_date')->nullable();

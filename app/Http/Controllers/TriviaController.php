@@ -326,7 +326,7 @@ class TriviaController extends Controller
         $user = $this->user(['id', 'user_type']);
 
         if ($user->user_type == 2) {
-            $wallet = $this->Wallet($user->id);
+            $wallet = $this->wallet($user->id);
             $title = 'Salas de Bingo';
             $trivia = TriviaMulti::with(['Coin', 'Status'])->orderBy('created_at')->get();
 
@@ -337,7 +337,7 @@ class TriviaController extends Controller
     public function roomshh($coinSym)
     {
         $user = $this->user(['id']);
-        $wallet = $this->Wallet($user->id);
+        $wallet = $this->wallet($user->id);
         $coin = 0;
         if (!$coinSym == 'USDT')  $coin = $wallet->Coin->id;
 
@@ -396,7 +396,7 @@ class TriviaController extends Controller
     public function rooms($coinSym)
     {
         $user = $this->user(['id']);
-        $wallet = $this->Wallet($user->id);
+        $wallet = $this->wallet($user->id);
         $coinRoom = $coinSym;
         $coin = strtoupper($coinSym) == 'USDT' ? 1 : $wallet->Coin->id;
 
@@ -466,7 +466,7 @@ class TriviaController extends Controller
         if (!$coin) return redirect()->back();
 
         $user = $this->user(['id']);
-        $wallet = $this->Wallet($user->id);
+        $wallet = $this->wallet($user->id);
 
         $game = TriviaMulti::with(['PlayersRoom'])
             ->whereHas('PlayersRoom', function ($query) use ($user) {
