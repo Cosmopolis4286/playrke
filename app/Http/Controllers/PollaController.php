@@ -14,12 +14,13 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\GameModes;
 use App\Models\JackpotType;
+use App\Models\PollaDraw;
 use App\Traits\Filters;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
-class PollaRKEController extends Controller
+class PollaController extends Controller
 {
     use EncryptRKE;
     use UserVal;
@@ -91,17 +92,17 @@ class PollaRKEController extends Controller
         // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
         // $jackpotType = JackpotType::getByIds($gameJackpotType);
 
-        // $rooms = BingoRoom::with([
-        //     'Config.JackpotType',
-        //     'GameMode',
-        //     'PlayersRoom' => function ($query) {
-        //         $query->where('winner', '>', 0);
-        //     },
-        //     'GameExchangeRate' => function ($query) use ($coin) {
-        //         $query->where('coin', $coin)->where('game', 1);
-        //     }
-        // ])->where($creator['type'], $creatorID)->orderByDesc('date')
-        //     ->orderByDesc('time')->orderBy('status')->get();
+        $rooms = PollaDraw::with([
+            'Config.JackpotType',
+            'GameMode',
+            'PlayersRoom' => function ($query) {
+                $query->where('winner', '>', 0);
+            },
+            'GameExchangeRate' => function ($query) use ($coin) {
+                $query->where('coin', $coin)->where('game', 1);
+            }
+        ])->where($creator['type'], $creatorID)->orderByDesc('date')
+            ->orderByDesc('time')->orderBy('status')->get();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',

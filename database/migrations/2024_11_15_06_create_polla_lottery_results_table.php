@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('polla_rke_tickets_player', function (Blueprint $table) {
+        Schema::create('polla_lottery_results', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('draw')->constrained('polla_rke')->onDelete('cascade');
-            $table->foreignId('player_type')->constrained('player_type')->onDelete('cascade');
-            $table->integer('player_id');
-            $table->string('plays', 3);
+            $table->foreignId('lottery_id')->constrained('lotteries')->onDelete('cascade');
+            $table->date('date');
+            $table->string('time', 10);
+            $table->string('number', 2);
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('polla_rke_tickets_player');
+        Schema::dropIfExists('polla_lottery_results');
     }
 };

@@ -41,14 +41,14 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('commerce.getBingoWinnersByCommerce', ['dateFilter' => 'today']) }}" title="Ganadores"
-                    class="nav-link {{ !Route::is('commerce.getBingoWinnersByCommerce') ?: 'active' }}">
+                <a href="{{ route('polla.winners', ['dateFilter' => 'today']) }}" title="Ganadores"
+                    class="nav-link {{ !Route::is('commerce.winnersByCommerce') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Ganadores</p>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('lottery.results', ['game' => 'polla']) }}" title="Cartones Vendidos"
+                <a href="{{ route('lottery.results', ['game' => 'polla-rke']) }}" title="Resultados"
                     class="nav-link {{ !Route::is('lottery.results') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Resultados</p>

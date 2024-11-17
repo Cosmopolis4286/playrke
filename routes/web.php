@@ -11,7 +11,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CommerceController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\BingoController;
-use App\Http\Controllers\PollaRKEController;
+use App\Http\Controllers\PollaController;
 use App\Http\Controllers\BancosController;
 use App\Http\Controllers\DoubleController;
 use App\Http\Controllers\RuletaController;
@@ -424,13 +424,15 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 // PollaExpress -Jugador-
 Route::group(['prefix' => 'polla-rke', 'as' => 'polla.'], function () {
 
-    Route::get('rooms/admin/{user}/{coin?}', [PollaRKEController::class, 'allRooms'])
+    Route::get('rooms/admin/{user}/{coin?}', [PollaController::class, 'allRooms'])
         ->middleware(['auth', 'admin'])->name('all-rooms');
 
-    Route::get('rooms/comm/{user}/{coin?}', [PollaRKEController::class, 'allCommerceRooms'])
+    Route::get('rooms/comm/{user}/{coin?}', [PollaController::class, 'allCommerceRooms'])
         ->middleware(['auth', 'commerce'])->name('all-commerce-rooms');
 
-    Route::get('rooms-sales-report/{coin}/{dateFilter?}', [PollaRKEController::class, 'roomsSalesReport'])->name('roomsSalesReport');
+    Route::get('rooms-sales-report/{coin}/{dateFilter?}', [PollaController::class, 'roomsSalesReport'])->name('roomsSalesReport');
+
+    Route::get('winners/{coin}/{dateFilter?}', [PollaController::class, 'winners'])->name('winners');
 });
 
 Route::group(['prefix' => 'lottery', 'as' => 'lottery.'], function () {

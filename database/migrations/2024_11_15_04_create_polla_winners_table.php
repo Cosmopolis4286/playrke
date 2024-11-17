@@ -11,12 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('polla_rke_creator', function (Blueprint $table) {
+        Schema::create('polla_winners', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('draw')->constrained('polla_rke')->onDelete('cascade'); 
-            $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade'); 
-            $table->integer('creator_id');
-            $table->boolean('status')->default(0);
+            $table->foreignId('draw')->constrained('polla_draws')->onDelete('cascade');
+            $table->foreignId('player_ticket')->constrained('polla_rke_tickets_player')->onDelete('cascade');
+            $table->boolean('status');
             $table->timestamps();
         });
     }
@@ -26,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('polla_rke_creator');
+        Schema::dropIfExists('polla_winners');
     }
 };
