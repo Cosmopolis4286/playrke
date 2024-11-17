@@ -41,8 +41,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('polla.winners', ['dateFilter' => 'today']) }}" title="Ganadores"
-                    class="nav-link {{ !Route::is('commerce.winnersByCommerce') ?: 'active' }}">
+                <a href="{{ route('polla.winners', ['coin' => encrypt($wallet->Coin->id), 'dateFilter' => 'today']) }}"
+                    title="Ganadores" class="nav-link {{ !Route::is('commerce.winnersByCommerce') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Ganadores</p>
                 </a>
