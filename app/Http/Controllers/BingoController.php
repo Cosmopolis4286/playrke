@@ -185,12 +185,16 @@ class BingoController extends Controller
 
     public function gamesRoomsAdmin() {}
 
-    public function gamesRoomsCommerce($user, $coin)
+    public function gamesRoomsCommerce($coin = '')
     {
         // Vista para todas las salas disponibles o en juego de un comercio 
 
         // Obtner ID d Comercio a traves del ID de usuario
-        $commerce = Commerce::getValueByUserId(decrypt($user), 'id');
+        $commerce = Commerce::getValueByUserId(Auth::id(), 'id');
+
+        if (!$coin) {
+            return redirect()->route('bingo.all-commerce-rooms', ['coin' => encrypt(1)]);
+        }
 
         $creator = ['type' => 'commerce', 'id' => $commerce];
 
@@ -746,7 +750,7 @@ class BingoController extends Controller
                 $coins = Coin::getCoinsById($coins);
 
                 $routeName = 'bingo.all-commerce-rooms';
-                $GMRoute =  route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt($coin)]);
+                $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($coin)]);
 
                 $moreViewData = [
                     'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
@@ -831,11 +835,15 @@ class BingoController extends Controller
         return ['route' => 'modules.game.bingo.form.index', 'data' => $viewData];
     }
 
-    public function allCommerceRooms($commerce, $coin)
+    public function allCommerceRooms($coin = '')
     {
-        $commerceId = Commerce::getValueById(decrypt($commerce), 'id');
+        $commerceId = Commerce::getValueByUserId(Auth::id(), 'id');
 
         if (!$commerceId) return redirect()->back();
+
+        if (!$coin) {
+            return redirect()->route('bingo.all-commerce-rooms', ['coin' => encrypt(1)]);
+        }
 
         $creator = ['type' => 'commerce', 'id' => $commerceId];
 

@@ -65,7 +65,7 @@
 
         $(document).on("click", `.btn-${name}`, function() {
             if ($(this).data('type') == 1) {
-                extraInfo = creatorType;
+                extraInfo = `{"creatorType": ${creatorType}}`;
             }
             formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap);
         });

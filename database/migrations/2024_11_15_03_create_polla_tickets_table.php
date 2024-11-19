@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('polla_tickets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('draw')->constrained('polla_draws')->onDelete('cascade');
-            $table->foreignId('player_ticket')->constrained('polla_rke_tickets_player')->onDelete('cascade');
+            $table->foreignId('player_ticket')->constrained('polla_tickets_player')->onDelete('cascade');
             $table->foreignId('coin')->constrained('coins')->onDelete('cascade');
             $table->double('exchange_rate');
             $table->double('amount');
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('n_5', 2);
             $table->string('n_6', 2);
             $table->string('n_7', 2);
-            $table->status('status')->default(0);
+            $table->string('status', 1)->default('0');
             $table->timestamps();
         });
     }

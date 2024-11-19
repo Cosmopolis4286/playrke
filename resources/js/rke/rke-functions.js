@@ -93,7 +93,14 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
         const data = elem.data();
         type = data.type;
         if (type > 1) {
-            encryptedId = extraInfo ? [data.id, extraInfo] : [data.id];
+            if (extraInfo) {
+                // Convierte extraInfo a un objeto
+                const extraInfoObj = JSON.parse(extraInfo);
+                // Crea el objeto final
+                encryptedId = { id: data.id, ...extraInfoObj };
+            } else {
+                encryptedId =  data.id;
+            }
             encryptedId = encodeURIComponent(JSON.stringify(encryptedId));
         }
     } else {

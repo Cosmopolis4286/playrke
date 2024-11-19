@@ -26,7 +26,7 @@
 
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('bingo.all-commerce-rooms', 'commerce.getBingoWinnersByCommerce', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('polla.all-commerce-rooms', 'polla.winners', 'polla.roomsSalesReport') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-splotch"></i>
             <p>Polla RKE
                 <i class="right fas fa-angle-left"></i>
@@ -34,8 +34,8 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a href="{{ route('polla.all-commerce-rooms', ['coin' => encrypt(1), 'user' => encrypt(Auth::id())]) }}"
-                    title="Polla RKE" class="nav-link {{ !Route::is('polla.all-commerce-rooms') ?: 'active' }}">
+                <a href="{{ route('polla.all-commerce-rooms') }}" title="Polla RKE"
+                    class="nav-link {{ !Route::is('polla.all-commerce-rooms') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Salas</p>
                 </a>
@@ -73,8 +73,8 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a href="{{ route('bingo.all-commerce-rooms', ['coin' => encrypt(1), 'user' => encrypt(Auth::id())]) }}"
-                    title="Salas Bingo" class="nav-link {{ !Route::is('bingo.all-commerce-rooms') ?: 'active' }}">
+                <a href="{{ route('bingo.all-commerce-rooms') }}" title="Salas Bingo"
+                    class="nav-link {{ !Route::is('bingo.all-commerce-rooms') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Salas</p>
                 </a>

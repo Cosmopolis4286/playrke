@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('polla_winners', function (Blueprint $table) {
             $table->id();
             $table->foreignId('draw')->constrained('polla_draws')->onDelete('cascade');
-            $table->foreignId('player_ticket')->constrained('polla_rke_tickets_player')->onDelete('cascade');
-            $table->boolean('status');
+            $table->foreignId('player_ticket')->constrained('polla_tickets_player')->onDelete('cascade');
+            $table->string('status', 1)->default('0');
             $table->timestamps();
         });
     }

@@ -120,13 +120,14 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment', 'as' => 'payment.
 
 // Tasa de Cambio/ExhangeRate
 Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function () {
-    Route::get('{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
     Route::post('create', [ExchangeRateController::class, 'create'])->name('create');
-    Route::get('getInfo/{id}', [ExchangeRateController::class, 'getInfo'])->name('getInfo');
+    Route::get('getInfo/{id}', [ExchangeRateController::class, 'getInfo'])->where('id', '.*')->name('getInfo');
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
     Route::put('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [ExchangeRateController::class, 'changeStatus'])->name('change-status');
     Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
+
+    Route::get('{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
 });
 
 // Iframes
@@ -368,18 +369,18 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('rooms/admin/{user}/{coin?}', [BingoController::class, 'allRooms'])
         ->middleware(['auth', 'admin'])->name('all-rooms');
 
-    Route::get('rooms/comm/{user}/{coin?}', [BingoController::class, 'allCommerceRooms'])
-        ->middleware(['auth', 'commerce'])->name('all-commerce-rooms');
-
     Route::get('rooms/cust/{user}/{coin?}', [BingoController::class, 'allCustomerRooms'])->name('all-customer-rooms');
+
+    Route::get('rooms/{coin?}', [BingoController::class, 'allCommerceRooms'])
+        ->middleware(['auth', 'commerce'])->name('all-commerce-rooms');
 
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
         ->middleware(['auth', 'admin'])->name('game-rooms-admin');
 
-    Route::get('game-rooms/comm/{user}/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
-        ->middleware(['auth', 'commerce'])->name('game-rooms-commerce');
-
     Route::get('game-rooms/cust/{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('game-rooms-customer');
+
+    Route::get('game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
+        ->middleware(['auth', 'commerce'])->name('game-rooms-commerce');
 
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
@@ -427,7 +428,7 @@ Route::group(['prefix' => 'polla-rke', 'as' => 'polla.'], function () {
     Route::get('rooms/admin/{user}/{coin?}', [PollaController::class, 'allRooms'])
         ->middleware(['auth', 'admin'])->name('all-rooms');
 
-    Route::get('rooms/comm/{user}/{coin?}', [PollaController::class, 'allCommerceRooms'])
+    Route::get('rooms/{coin?}', [PollaController::class, 'allCommerceRooms'])
         ->middleware(['auth', 'commerce'])->name('all-commerce-rooms');
 
     Route::get('rooms-sales-report/{coin}/{dateFilter?}', [PollaController::class, 'roomsSalesReport'])->name('roomsSalesReport');

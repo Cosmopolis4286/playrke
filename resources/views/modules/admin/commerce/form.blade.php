@@ -48,9 +48,15 @@
         <input type="text" id="coin-text" class="form-control" disabled />
         <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}" />
     </div>
-    <div id="cont-other-coins" class="form-group col-sm hide-elem">
+    <div id="cont-other-coins" class="form-group col-sm-6 hide-elem">
         <label for="other-coins">Otras Monedas:</label>
         <select multiple id="other-coins" name="other_coins[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
+            class="select2 form-control">
+        </select>
+    </div>
+    <div id="cont-other-coins" class="form-group col-sm-6">
+        <label for="games">Juegos Disponibles:</label>
+        <select multiple id="games" name="games[]" placeholder="Seleccionar Juegos" data-allow-clear="1"
             class="select2 form-control">
         </select>
     </div>

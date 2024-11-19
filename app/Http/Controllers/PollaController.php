@@ -47,7 +47,7 @@ class PollaController extends Controller
                 $coins = Coin::getCoinsById($coins);
 
                 $routeName = 'bingo.all-commerce-rooms';
-                $GMRoute =  route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt($coin)]);
+                $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($coin)]);
 
                 $moreViewData = [
                     'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
@@ -131,9 +131,9 @@ class PollaController extends Controller
         return ['route' => 'modules.game.polla.form.index', 'data' => $viewData];
     }
 
-    public function allCommerceRooms($commerce, $coin)
+    public function allCommerceRooms($coin = '')
     {
-        $commerceId = Commerce::getValueById(decrypt($commerce), 'id');
+        $commerceId = Commerce::getValueByUserId(Auth::id(), 'id');
 
         if (!$commerceId) return redirect()->back();
 

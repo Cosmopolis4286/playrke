@@ -1,11 +1,11 @@
 @extends($layout)
 @section('title', $title)
 @section('content')
-    <div class="col-12 @if (isset($cusToken)) p-2 @endif">
+    <div class="col-12 @if (isset($cus)) p-2 @endif">
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @if (count($coins) > 0 || isset($cusToken))
+                @if (!empty($coins) || $creator['type'] === 'customer')
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                 @endif
@@ -14,8 +14,9 @@
                     <table class="table table-striped table-bordered my-2 w-100">
                         <h6>Valores en base a Un Dólar (1 USD)</h6>
                         <thead>
+
                             <tr>
-                                @if (!isset($cusToken))
+                                @if ($creator['type'] !== 'customer')
                                     <th>Pais</th>
                                 @endif
                                 <th>Moneda</th>
@@ -27,16 +28,16 @@
                         <tbody>
                             @foreach ($exchangeRate as $item)
                                 <tr>
-                                    @if (!isset($cusToken))
+                                    @if ($creator['type'] !== 'customer')
                                         <td>
                                             {{ $item->Coin->Country ? $item->Coin->Country->name : 'Todos' }}
                                         </td>
                                     @endif
                                     <td>
-                                        {{ isset($cusToken) ? $item->coin : $item->Coin->long_name }}
+                                        {{ $creator['type'] === 'customer' ? $item->coin : $item->Coin->long_name }}
                                     </td>
                                     <td>
-                                        @if (isset($cusToken))
+                                        @if ($creator['type'] === 'customer')
                                         @else
                                             {{ $item->Coin->symbol }}
                                         @endif
@@ -67,7 +68,7 @@
                                                 data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
                                                 <i class="fa-solid fa-repeat"></i>
                                             </button>
-                                            @if ((Auth::user() && Auth::user()->user_type == 1) || isset($cusToken))
+                                            @if ((Auth::user() && Auth::user()->user_type == 1) || $creator['type'] === 'customer')
                                                 <button class="btn btn-sm btn-danger btn-{{ $name }}"
                                                     data-type="3" data-id="{{ encrypt($item->id) }}" title="Eliminar">
                                                     <i class="fa-solid fa-trash-can"></i>
@@ -85,7 +86,7 @@
     </div>
     @include('includes.modal-form', [
         'name' => $name,
-        'dataForm' => view('modules.all.exchange-rate.form', ['cusToken' => $cusToken ?? false])->render(),
+        'dataForm' => view('modules.all.exchange-rate.form', ['creator' => $creator])->render(),
     ])
     @include('includes.form-other-options')
 @endsection
@@ -93,136 +94,40 @@
     <script src="https://cdn.jsdelivr.net/npm/just-validate/dist/just-validate.production.min.js"></script>
     <script>
         const name = '{{ $name }}';
-        const valChange = $("#val-change");
-        let coinID;
-        let customer;
-        let valChangeMax;
-        let valChangeMin;
+        const creatorType = @json($creator['type'] ?? '');
+        const exchangeRate = $("#exchange-rate");
+        const arrCoins = @json($coins) ?? [];
+        const coin = $("#coin");
+
+        let exchangeRateMax;
+        let exchangeRateMin;
         let coinName;
         let update = false;
+
         $(document).ready(function() {
-            setExtraInfo(@json($creatorType));
+            setExtraInfo(`{"creatorType": "${creatorType}"}`);
         })
-    </script>
-    @if (isset($cusToken))
-        <script>
-            customer = true;
-            coinID = $("#currency");
 
-            coinID.mask('AAAAAA', {
-                translation: {
-                    'A': {
-                        pattern: /[A-Za-z]/
-                    }
-                }
-            });
-
-            coinID.on('input', function() {
-                var valor = $(this).val();
-                $(this).val(valor.toUpperCase());
-            });
-
-            $(document).on("input", coinID, function() {
-                coinName = coinID.val();
-            });
-
-            valChange.prop('readonly', false);
-
-            function insertInfo(type, data = '') {
-                update = false;
-
-                if (type == 2) {
-                    update = true;
-                    const coin = data.coin;
-                    coinID.val(coin);
-                    coinName = coin;
-
-                    valChange.val(data.exchange_rate);
-                    $(".input-exchange-rate").trigger('change');
-                    $("#alert-currency").removeClass('hide-elem');
-                }
-
-                $(`#modal-${name}`).modal('show');
+        function setTextExchangeRate() {
+            if (coin.val() && exchangeRate.val() > 0) {
+                $("#text-exchange-rate").text(`${exchangeRate.val()} ${coinName}`);
+                $("#alert-exchange-rate").removeClass('hide-elem');
             }
-        </script>
-    @else
-        <script>
-            const arrCoins = JSON.parse('<?php echo json_encode($coins); ?>');
-            const coins = $("#coin");
-            coinID = coins;
+        }
 
-            function insertInfo(type, data = '') {
-                update = false;
-
-                if (type == 2) {
-                    update = true;
-                    const coin = data.coin;
-                    coins.append(
-                        `<option value="${coin.id}" selected>${coin.long_name} (${coin.symbol})</option>`
-                    );
-                    coinName = `${coin.long_name} (${coin.symbol})`;
-                    valChange.val(data.exchange_rate);
-                    $(".input-exchange-rate").trigger('change');
-                    $("#alert-currency").removeClass('hide-elem');
-                }
-
-                if (arrCoins.length > 0 && !customer) {
-                    $.each(arrCoins, function(index, item) {
-                        coins.append(`<option value="${item.id}">${item.long_name} (${item.symbol})</option>`);
-                    });
-                }
-
-                $(`#modal-${name}`).modal('show');
-            }
-
-            function getLastValueByCoin(coin) {
-                const url = `{{ asset('') }}exchange-rate/getLastValueByCoin/:coin`.replace(':coin', coin);
-                $.getJSON({
-                    url: url,
-                    data: {
-                        '_token': $("#5K3_70K").val()
-                    },
-                    success: function(data) {
-                        const coinValue = parseFloat(data.toFixed(2));
-                        // Calcular los valores de máximo y mínimo
-                        if (coinValue > 1) {
-                            valChangeMax = (coinValue + 3).toFixed(2);
-                            valChangeMin = (coinValue - 2).toFixed(2);
-                        }
-                        if (!update) valChange.val(coinValue);
-                        valChange.prop('readonly', false);
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        // Manejar errores aquí si es necesario
-                    }
-                });
-            }
-
-            coins.on("change", function() {
-                if (coins.val() != '') valChange.attr('readonly', true), getLastValueByCoin(coins.val());
-            });
-
-            $(document).on("input", coins, function() {
-                coinName = coins.find("option:selected").text();
-            });
-        </script>
-    @endif
-    <script>
-        $(document).on("input change", ".input-exchange-rate", function() {
-            if (coinID.val() && valChange.val()) {
-                console.log(900, coinName);
-                $("#text-currency-val").text(`${valChange.val()} ${coinName}`);
-                $("#alert-currency").removeClass('hide-elem');
-            }
+        $(document).on("input change", "#coin", function() {
+            setTextExchangeRate();
         });
 
-        valChange.on('input', function() {
+        exchangeRate.on('input', function() {
             let currentValue = parseFloat($(this).val());
-            if (currentValue < valChangeMin) {
-                $(this).val(valChangeMin);
-            } else if (currentValue > valChangeMax) {
-                $(this).val(valChangeMax);
+            if (currentValue < exchangeRateMin) {
+                $(this).val(exchangeRateMin);
+            } else if (currentValue > exchangeRateMax) {
+                $(this).val(exchangeRateMax);
             }
+
+            setTextExchangeRate();
         });
 
         $(document).on("click", `.btn-${name}`, function() {
@@ -230,7 +135,7 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, [coinID.attr('id'), valChange.attr('id')]);
+            submitForm(name, [coin.attr('id'), exchangeRate.attr('id')]);
         });
 
         function deleteInfo(encryptedId) {
@@ -256,5 +161,91 @@
                 );
             }
         };
+
+        if (creatorType === 'customer') {
+            coin.mask('AAAAAA', {
+                translation: {
+                    'A': {
+                        pattern: /[A-Za-z]/
+                    }
+                }
+            });
+
+            coin.on('input', function() {
+                var valor = $(this).val();
+                $(this).val(valor.toUpperCase());
+            });
+
+            $(document).on("input", coin, function() {
+                coinName = coin.val();
+            });
+        } else {
+            function getLastValueByCoin(coin) {
+                const url = `{{ asset('') }}exchange-rate/getLastValueByCoin/:coin`.replace(':coin', coin);
+                $.getJSON({
+                    url: url,
+                    data: {
+                        '_token': $("#5K3_70K").val()
+                    },
+                    success: function(data) {
+                        const coinValue = parseFloat(data.toFixed(2));
+                        // Calcular los valores de máximo y mínimo
+                        if (coinValue > 1) {
+                            exchangeRateMax = (coinValue + 3).toFixed(2);
+                            exchangeRateMin = (coinValue - 2).toFixed(2);
+                        }
+                        if (!update) exchangeRate.val(coinValue);
+                        exchangeRate.prop('readonly', false);
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        // Manejar errores aquí si es necesario
+                    }
+                });
+            }
+
+            coin.on("change", function() {
+                if (coin.val() != '') exchangeRate.attr('readonly', true), getLastValueByCoin(coin.val());
+            });
+
+            $(document).on("input", coin, function() {
+                coinName = coin.find("option:selected").text();
+            });
+        }
+
+        function insertInfo(type, data = '') {
+            update = false;
+
+            if (type == 2) {
+                $('#creator').prop('disabled', true);
+                update = true;
+                const currentCoin = data.coin;
+
+                if (creatorType === 'customer') {
+                    coin.val(currentCoin);
+                    coinName = currentCoin;
+                } else {
+                    coin.append(
+                        `<option value="${currentCoin.id}" selected>${currentCoin.long_name} (${currentCoin.symbol})</option>`
+                    );
+                    coinName = `${currentCoin.long_name} (${currentCoin.symbol})`;
+                }
+
+                exchangeRate.val(data.exchange_rate);
+
+                $("#coin").trigger('change');
+                $("#alert-exchange-rate").removeClass('hide-elem');
+            } else {
+                exchangeRate.prop('readonly', false);
+                $('#creator').prop('disabled', false);
+            }
+
+            if (arrCoins.length && creatorType !== 'customer') {
+                $.each(arrCoins, function(index, item) {
+                    coin.append(`<option value="${item.id}">${item.long_name} (${item.symbol})</option>`);
+                });
+            }
+
+            $(`#modal-${name}`).modal('show');
+        }
     </script>
 @endsection
