@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('game_mode');
+            $table->boolean('public_rooms')->default(0);
             $table->boolean('status')->default(0);
             $table->timestamps();
 

@@ -623,7 +623,7 @@ class CommerceController extends Controller
         $commerce = $this->commerce()->id;
 
         // Obtener los datos de los ganadores
-        $winnersData = $this->getWinnersData($commerce, $dateFilter, true);
+        $winners = $this->getWinnersData($commerce, $dateFilter, true);
 
         // Contar los ganadores pendientes de pago para otros comercios
         $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCommerce($commerce);
@@ -642,7 +642,7 @@ class CommerceController extends Controller
                 'wallet',
                 'commerce',
                 'dateFilter',
-                'winnersData',
+                'winners',
                 'countWinnersOtherCommerces',
                 'countWinnersByCommerce',
                 'coins'

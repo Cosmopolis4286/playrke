@@ -15,7 +15,6 @@ class Commerce extends Model
     'user',
     'commn',
     'code_rke',
-    'all_in',
     'code_uuid',
     'status'
   ];

@@ -89,7 +89,16 @@ class SellerController extends Controller
 
     private function insertOtherCoins($seller, $otherCoins)
     {
-        if (!empty($otherCoins) && is_array($otherCoins)) {
+        if (empty($otherCoins)) {
+            DB::beginTransaction();
+            try {
+                SellerCountriesCoins::where('seller', $seller)->update(['status' => 0]);
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error al inhabilitar todas las monedas para el vendedor: ' . $e->getMessage());
+            }
+        } else if (!empty($otherCoins) && is_array($otherCoins)) {
             // Obtener las monedas seleccionadas y prepararlas para la inserción
             $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
             $timestamp = now();
@@ -180,24 +189,7 @@ class SellerController extends Controller
             ]);
 
             $otherCoins = $request->other_coins;
-
-            if (!empty($otherCoins) && is_array($otherCoins)) {
-                $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
-                $timestamp = now();
-
-                $coinsToCreate = [];
-                foreach ($otherCoins as $coin) {
-                    $coinsToCreate[] = [
-                        'seller' => $seller->id,
-                        'country' => $coin->country,
-                        'coin' => $coin->id,
-                        'status' => 1,
-                        'created_at' => $timestamp,
-                        'updated_at' => $timestamp
-                    ];
-                }
-                SellerCountriesCoins::insert($coinsToCreate);
-            }
+            $this->insertOtherCoins($seller->id, $otherCoins);
 
             DB::commit();
 

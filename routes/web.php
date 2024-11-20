@@ -161,7 +161,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
     Route::get('all-directories', [CommerceController::class, 'allDirectories'])->name('allDirectories');
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
-    Route::get('seller/getSellerInfoByCtn/{ctn}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
+    Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
     Route::get('bingocash/players/other-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByOtherCommerces'])->name('getBingoWinnersByOtherCommerces');
     Route::get('bingocash/players/my-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByCommerce'])->name('getBingoWinnersByCommerce');
     Route::get('bingocash/carton-sold/{coin}/{dateFilter?}', [CommerceController::class, 'ctnsSold'])->name('ctnsSold');
@@ -207,7 +207,7 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::post('bingocash/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
     Route::post('bingocash/carton/notify/payment/win-ctn', [SellerController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
     Route::get('bingocash/report/sales/rooms/{coin}/{dateFilter?}', [SellerController::class, 'reportSalesRooms'])->name('reportSalesRooms');
-    Route::get('bingocash/report/sales/room/{room}/{coin}/{dateFilter?}', [SellerController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
+    Route::get('bingocash/report/sales/room/{room}/{coin}/{dateFilter?}', [SellerController::class, 'reportSalesBgetInfoByCtnIdyRoom'])->name('reportSalesByRoom');
     Route::get('bingocash/report/sales/room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 });
 
