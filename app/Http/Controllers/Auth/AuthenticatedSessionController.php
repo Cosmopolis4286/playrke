@@ -39,7 +39,7 @@ class AuthenticatedSessionController extends Controller
         $country = Auth::user()->country;
         $userType = UserType::getValueById(Auth::user()->user_type, 'prefix');
 
-        $isoCode = Country::getCountryValue($country, 'iso_code_2');
+        $isoCode = Country::getValue($country, 'iso_code_2');
         $coin = encrypt(Coin::getValueByCountry($country, 'id'));
 
         // Crear la variable de sesión 'countryCode'

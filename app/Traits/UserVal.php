@@ -184,7 +184,7 @@ trait UserVal
                 return response()->json(['error' => 'Moneda no válida.'], 404);
             }
 
-            $isoCode = Country::getCountryValue($coinInfo->country, 'iso_code_2');
+            $isoCode = Country::getValue($coinInfo->country, 'iso_code_2');
             if (!$isoCode) {
                 return response()->json(['error' => 'Código ISO del país no encontrado.'], 404);
             }

@@ -19,7 +19,7 @@ class EmailVerificationPromptController extends Controller
     {
         if ($request->user()->hasVerifiedEmail()) {
 
-            $isoCode = Country::getCountryValue(Auth::user()->country, 'iso_code_2');
+            $isoCode = Country::getValue(Auth::user()->country, 'iso_code_2');
             $coin = encrypt(Coin::getValueByCountry(Auth::user()->country, 'id'));
 
             // Crear la variable de sesión 'countryCode'

@@ -55,6 +55,11 @@ class Coin extends Model
         return self::where('id', $coin)->value($value);
     }
 
+    public static function getValueByISOCode($ISOCode, $value)
+    {
+        return self::where('iso_code', $ISOCode)->value($value);
+    }
+
     public static function getCoinByCountry($country, $fields = ['*'])
     {
         return self::select($fields)->where('country', $country)->first();

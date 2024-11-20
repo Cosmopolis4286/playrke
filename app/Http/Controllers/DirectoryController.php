@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Banks_VEN;
+use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\Country;
@@ -82,7 +83,7 @@ class DirectoryController extends Controller
                 break;
         }
 
-        if ($notPayment) {
+        if (isset($notPayment)) {
 
             switch ($userType) {
                 case 'admin':
@@ -90,7 +91,17 @@ class DirectoryController extends Controller
                     break;
                 case 'commerce':
                     $commerce = Commerce::getValueByUserId($userID, 'id');
-                    $coins = CommerceCountriesCoins::getAvailableCountries($commerce);
+
+                    $coins = CommerceCountriesCoins::getAvailableCoins($commerce);
+
+                    $coinNotPayment = Coin::getValueByISOCode($notPayment, 'id');
+
+                    $country = CommerceCountriesCoins::where('commerce', $commerce)
+                        ->whereNot('coin', $coinNotPayment)->value('coin');
+
+                    $countryCode = Country::getValue();
+
+                    return redirect()->route('directory.index', ['countryCode' => $countryCode]);
                     break;
                 case 'seller':
                     # code...
@@ -100,11 +111,6 @@ class DirectoryController extends Controller
                     # code...
                     break;
             }
-
-            return redirect()->back()->with([
-                'type' => 'warning',
-                'message' => 'No existen medios de pago para' . ' ' . $country->name
-            ]);
         }
 
         // Determinar la ruta de la vista
