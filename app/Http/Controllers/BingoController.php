@@ -739,7 +739,7 @@ class BingoController extends Controller
                 break;
             case 'commerce': // Comercio
 
-                $creatorID = $creator['id'];
+                $creatorID = decrypt($creator['id']);
 
                 $isLogin = true;
                 $coinSym = Coin::getValue($coin, 'symbol');
@@ -767,7 +767,7 @@ class BingoController extends Controller
                 break;
             case 'customer': // Cliente
 
-                $creatorID = $creator['id'];
+                $creatorID = decrypt($creator['id']);
                 $isLogin = false;
 
                 $coinSym = $coin;
@@ -814,8 +814,7 @@ class BingoController extends Controller
             'returnBtn' => $returnBtn ?? true,
             'routeName' => $routeName,
             'routeRKE' => $this->getRouteRKE(),
-            'creatorType' => $creator['type'],
-            'userID' => $creatorID,
+            'creator' => $creator,
             'coins' => $coins,
             'coin' => $coin,
             'coinSym' => $coinSym,
@@ -845,7 +844,7 @@ class BingoController extends Controller
             return redirect()->route('bingo.all-commerce-rooms', ['coin' => encrypt(1)]);
         }
 
-        $creator = ['type' => 'commerce', 'id' => $commerceId];
+        $creator = ['type' => 'commerce', 'id' => encrypt($commerceId)];
 
         $viewData = $this->getGameRoomsInfo($creator, decrypt($coin));
 
@@ -890,7 +889,7 @@ class BingoController extends Controller
             return redirect()->route('bingo.all-customer-rooms', ['user' => $customer, 'coin' => encrypt($coin)]);
         }
 
-        $creator = ['type' => 'customer', 'id' => $customerId];
+        $creator = ['type' => 'customer', 'id' => encrypt($customerId)];
 
         // Obtener la información de las salas de juego
         $viewData = $this->getGameRoomsInfo($creator, $coin);
@@ -901,10 +900,12 @@ class BingoController extends Controller
 
     public function create(Request $request)
     {
-        $creator = json_decode($request->user);
+        $creator = json_decode($request->creator);
+        $creatorType = $creator->type;
+        $creatorID = decrypt($creator->id);
         $allowedPrefixes = ['admin', 'commerce', 'customer'];
 
-        if (in_array($creator[1], $allowedPrefixes)) {
+        if (in_array($creatorType, $allowedPrefixes)) {
 
             $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
             $country = $request->country ?? NULL;
@@ -924,11 +925,11 @@ class BingoController extends Controller
                 'all_for_one' => $request->room_type ?? 0
             ];
 
-            if ($creator[1] === 'commerce') {
-                $createData['commerce'] = $creator[0];
+            if ($creatorType === 'commerce') {
+                $createData['commerce'] = $creatorID;
                 $createData['subsidiary'] = $request->subsidiary ?? null;
             } else {
-                $createData['customer'] = $creator[0];
+                $createData['customer'] = $creatorID;
                 $createData['code_uuid'] = $this->getCodeUUID('BingoRoom');
             }
 

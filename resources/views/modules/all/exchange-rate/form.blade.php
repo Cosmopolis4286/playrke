@@ -10,7 +10,7 @@
     <label for="exchange-rate">Cambio*</label>
     <input type="number" readonly step="0.01" min="0.01" id="exchange-rate" class="form-control"
         name="exchange_rate">
-    <input type="hidden" id="creator" name="creator" value="{{ $creator }}">
+    <input type="hidden" id="creator" name="creator" value="{{ json_encode($creator) }}">
 </div>
 <div id="alert-exchange-rate" class="alert alert-danger fade show text-center hide-elem" role="alert">
     Un Dólar (USD) es igual a: <h6 id="text-exchange-rate"></h6>

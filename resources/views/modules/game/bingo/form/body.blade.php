@@ -8,7 +8,7 @@
         <label for="time">Hora*</label>
         <input type="time" id="time" name="time" class="form-control form-info" required>
     </div>
-    @if ($creator[1] !== 'customer')
+    @if ($creator['type'] !== 'customer' && !empty($arrRoomType))
         <div class="form-group col-sm-6 col-md-4">
             <label for="room-type">Tipo de Sala*</label>
             <select id="room-type" name="room_type" class="form-control form-info"
@@ -19,11 +19,11 @@
         <label for="game-mode">Modo de Juego*</label>
         <select id="game-mode" name="game_mode" class="form-control form-info"></select>
     </div>
-    <input type="hidden" name="user" value="{{ json_encode($creator) }}">
+    <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
-        <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
-            placeholder="Ingresar Precio" min="1" value="1" step="0.05" required>
+        <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info" placeholder="Precio Cartón"
+            min="0.5" value="1" step="0.05" required>
     </div>
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label for="small-prizes">%Cantos</label>

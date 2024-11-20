@@ -31,16 +31,14 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', [
-            'creator' => [$userID ?? null, $creatorType],
-        ])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
     ])
     @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script>
         const name = '{{ $name }}';
-        const creatorType = '{{ $creatorType }}';
+        const creatorType = @json($creator['type'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
@@ -80,7 +78,7 @@
                 required: isRequired
             }).empty();
 
-            if (creatorType === 'commerce') {
+            if (creatorType === 'commerce' && arrRoomType.length) {
                 roomType = $("#room-type");
                 roomType.prop({
                     disabled: isDisabled,

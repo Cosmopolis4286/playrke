@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Banks_VEN;
+use App\Models\Commerce;
+use App\Models\CommerceCountriesCoins;
 use App\Models\Country;
 use App\Models\DocumentType;
 use App\Models\PagoMovil;
@@ -18,8 +20,10 @@ class DirectoryController extends Controller
     public function index($countryCode)
     {
         $user = $this->user(['id', 'user_type']);
+        $userID = $user->id;
+        $userType = UserType::getValueById($user->user_type, 'prefix');
 
-        if (UserType::getValueById($user->user_type, 'prefix') === 'customer') {
+        if ($userType === 'customer') {
             return redirect()->back();
         }
 
@@ -37,34 +41,70 @@ class DirectoryController extends Controller
 
         $title = "Directorio $country->name";
         $wallet = $this->wallet();
-        $countries = Country::getCountriesById($this->getAvailableCountries($user->id));
+        $countries = Country::getCountriesById($this->getAvailableCountries($userID));
 
         $paymentType = null;
         $name = null;
         $additionalData = [];
 
-        switch ($country->iso_code_3) {
+        $ISOCode3 = $country->iso_code_3;
+
+        switch ($ISOCode3) {
             case 'BRA': // Brasil
                 $paymentType = 'Pix';
                 $name = 'Pix';
                 $additionalData = [
-                    'pixs' => Pix::with('ChavePix')->where('user', $user->id)->get(),
+                    'pixs' => Pix::with('ChavePix')->where('user', $userID)->get(),
                     'pixKeys' => PixKeys::all()
                 ];
                 break;
 
             case 'COL': // Colombia
-                return redirect()->back(); // Se redirige para Colombia
+                // $paymentType = 'Pago Movil';
+                // $name = 'PagoMovil';
+                // $additionalData = [
+                //     'pagomovils' => PagoMovil::with('Bank')->where('user', $userID)->get(),
+                //     'documentType' => DocumentType::getDocumentTypeByCountry($country->id),
+                //     'banks' => Banks_VEN::all()
+                // ];
 
+                $notPayment = $ISOCode3;
+
+                // Se redirige para Colombia
             case 'VEN': // Venezuela
                 $paymentType = 'Pago Movil';
                 $name = 'PagoMovil';
                 $additionalData = [
-                    'pagomovils' => PagoMovil::with('Bank')->where('user', $user->id)->get(),
+                    'pagomovils' => PagoMovil::with('Bank')->where('user', $userID)->get(),
                     'documentType' => DocumentType::getDocumentTypeByCountry($country->id),
                     'banks' => Banks_VEN::all()
                 ];
                 break;
+        }
+
+        if ($notPayment) {
+
+            switch ($userType) {
+                case 'admin':
+                    # code...
+                    break;
+                case 'commerce':
+                    $commerce = Commerce::getValueByUserId($userID, 'id');
+                    $coins = CommerceCountriesCoins::getAvailableCountries($commerce);
+                    break;
+                case 'seller':
+                    # code...
+                    break;
+
+                default:
+                    # code...
+                    break;
+            }
+
+            return redirect()->back()->with([
+                'type' => 'warning',
+                'message' => 'No existen medios de pago para' . ' ' . $country->name
+            ]);
         }
 
         // Determinar la ruta de la vista

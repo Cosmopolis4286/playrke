@@ -92,7 +92,8 @@ class SellerController extends Controller
         if (empty($otherCoins)) {
             DB::beginTransaction();
             try {
-                SellerCountriesCoins::where('seller', $seller)->update(['status' => 0]);
+                $sellerCoin = Seller::getValueById($seller, 'coin');
+                SellerCountriesCoins::where('seller', $seller)->whereNot('coin', $sellerCoin)->update(['status' => 0]);
                 DB::commit();
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -344,9 +345,9 @@ class SellerController extends Controller
         $seller = $this->seller(['id', 'commerce']);
 
         $countryCoinsSeller = SellerCountriesCoins::getAvailableCountries($seller->id);
-        $countryCoinsSeller[] = Seller::getValueById($seller->id, 'country');
 
         $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1);
+
         $commerceCountries = Coin::getCountriesByCoinInArray($commerceCoinsAvailable);
 
         $coinsAvailable = array_intersect($commerceCountries, $countryCoinsSeller);

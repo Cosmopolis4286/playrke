@@ -19,7 +19,7 @@
         <label for="game-mode">Modo de Juego*</label>
         <select id="game-mode" name="game_mode" class="form-control form-info"></select>
     </div>
-    <input type="hidden" name="user" value="{{ json_encode($creator) }}">
+    <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
         <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"

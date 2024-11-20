@@ -45,16 +45,18 @@ class ExchangeRateController extends Controller
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user']);
 
-                $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce->id);
+                $creatorID = $commerce->id;
 
-                $this->checkBankDirectoriesExistence('commerce', $commerce->id, $commerceCoins);
+                $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($creatorID);
+
+                $this->checkBankDirectoriesExistence('commerce', $creatorID, $commerceCoins);
 
                 $coins = Coin::whereIn('id', $this->getAvailableCoins($commerce->user))
-                    ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($commerce) {
-                        $query->where('commerce', $commerce->id);
+                    ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($creatorID) {
+                        $query->where('commerce', $creatorID);
                     })->get(['id', 'symbol', 'long_name']);
 
-                $exchangeRate = CommerceExchangeRate::where('commerce', $commerce->id)->get();
+                $exchangeRate = CommerceExchangeRate::where('commerce', $creatorID)->get();
 
                 $isLogin = true;
 
@@ -89,11 +91,11 @@ class ExchangeRateController extends Controller
 
         try {
 
-            $creator = $request->creator;
-            $creatorID = $creator['id'];
+            $creator = json_decode($request->creator);
+            $creatorID = decrypt($creator->id);
             $coin = $request->coin;
 
-            if ($creator['type'] === 'customer') {
+            if ($creator->type === 'customer') {
 
                 $user = Customer::getValueById($creatorID, 'user');
                 $coinID = CustomerExchangeRate::getCustomerCoinValue($creatorID, $coin, 'id');
