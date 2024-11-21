@@ -48,9 +48,7 @@ class DirectoryController extends Controller
         $name = null;
         $additionalData = [];
 
-        $ISOCode3 = $country->iso_code_3;
-
-        switch ($ISOCode3) {
+        switch ($country->iso_code_3) {
             case 'BRA': // Brasil
                 $paymentType = 'Pix';
                 $name = 'Pix';
@@ -69,7 +67,7 @@ class DirectoryController extends Controller
                 //     'banks' => Banks_VEN::all()
                 // ];
 
-                $notPayment = $ISOCode3;
+                $coinNotPayment = $country->id;
 
                 // Se redirige para Colombia
             case 'VEN': // Venezuela
@@ -83,7 +81,7 @@ class DirectoryController extends Controller
                 break;
         }
 
-        if (isset($notPayment)) {
+        if (isset($coinNotPayment)) {
 
             switch ($userType) {
                 case 'admin':
@@ -94,12 +92,10 @@ class DirectoryController extends Controller
 
                     $coins = CommerceCountriesCoins::getAvailableCoins($commerce);
 
-                    $coinNotPayment = Coin::getValueByISOCode($notPayment, 'id');
-
                     $country = CommerceCountriesCoins::where('commerce', $commerce)
-                        ->whereNot('coin', $coinNotPayment)->value('coin');
+                        ->whereNot('country', $coinNotPayment)->value('country');
 
-                    $countryCode = Country::getValue();
+                    $countryCode = strtolower(Country::getValue($country, 'iso_code_2'));
 
                     return redirect()->route('directory.index', ['countryCode' => $countryCode]);
                     break;

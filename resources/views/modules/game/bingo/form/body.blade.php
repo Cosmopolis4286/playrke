@@ -8,7 +8,7 @@
         <label for="time">Hora*</label>
         <input type="time" id="time" name="time" class="form-control form-info" required>
     </div>
-    @if ($creator['type'] !== 'customer' && !empty($arrRoomType))
+    @if ($creator['type'] !== 'customer' || !empty($roomType))
         <div class="form-group col-sm-6 col-md-4">
             <label for="room-type">Tipo de Sala*</label>
             <select id="room-type" name="room_type" class="form-control form-info"

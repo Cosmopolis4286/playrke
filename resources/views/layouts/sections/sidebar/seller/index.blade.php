@@ -26,14 +26,13 @@
                  </a>
              </li>
              <li class="nav-item">
-                 <a href="{{ route('seller.ctnsSold', ['dateFilter' => 'today', 'coin' => encrypt($wallet->Coin->id)]) }}"
-                     class="nav-link {{ !Route::is('seller.ctnsSold') ?: 'active' }}">
+                 <a href="{{ route('seller.ctnsSold') }}" class="nav-link {{ !Route::is('seller.ctnsSold') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Vendidos</p>
                  </a>
              </li>
              <li class="nav-item">
-                 <a href="{{ route('seller.ctnsAwarded', ['dateFilter' => 'today', 'coin' => encrypt($wallet->Coin->id)]) }}"
+                 <a href="{{ route('seller.ctnsAwarded') }}"
                      class="nav-link {{ !Route::is('seller.ctnsAwarded') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Premiados</p>
@@ -42,7 +41,7 @@
          </ul>
      </li>
      <li class="nav-item has-treeview ">
-         <a href="{{ route('seller.reportSalesRooms', ['dateFilter' => 'today', 'coin' => encrypt($wallet->Coin->id)]) }}"
+         <a href="{{ route('seller.reportSalesRooms') }}"
              class="nav-link {{ !Route::is('seller.reportSalesRoom') ?: 'active' }}">
              <i class="nav-icon fa-solid fa-money-check-dollar"></i>
              <p>Reporte de Ventas</p>

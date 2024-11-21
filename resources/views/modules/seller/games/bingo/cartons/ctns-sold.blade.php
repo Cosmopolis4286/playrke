@@ -8,13 +8,13 @@
                 @include('includes.coin-tabs', [
                     'routeName' => 'seller.ctnsSold',
                     'dateFilter' => $dateFilter,
-                    'coin' => $coinId,
+                    'coin' => $coin->id,
                     'coins' => $coins,
                 ])
                 @include('includes.date-filter-buttons', [
                     'routeName' => 'seller.ctnsSold',
                     'dateFilter' => $dateFilter,
-                    'coin' => $coinId,
+                    'coin' => $coin->id,
                 ])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
@@ -104,7 +104,7 @@
     @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/rke/payment-confirm-button.js'])
     <script>
         const name = '{{ $name }}';
-        const coin = '{{ encrypt($coinId) }}';
+        const coin = '{{ $coinId }}';
         const coinName = '{{ $coin->short_name }}';
         const allPendingCtnSale = '{{ $allPendingCtnSale }}';
         const commerceName = '{{ $commerceName }}';

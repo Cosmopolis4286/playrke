@@ -10,12 +10,12 @@
                     'coins' => $coins,
                     'routeName' => 'commerce.reportSalesRooms',
                     'dateFilter' => $dateFilter,
-                    'coin' => $coinId,
+                    'coin' => $coin,
                 ])
                 @include('includes.date-filter-buttons', [
                     'routeName' => 'commerce.reportSalesRooms',
                     'dateFilter' => $dateFilter,
-                    'coin' => $coinId,
+                    'coin' => $coin,
                 ])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">

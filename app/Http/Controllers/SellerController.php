@@ -469,8 +469,15 @@ class SellerController extends Controller
     {
         $seller = $this->seller(['id', 'commerce']);
 
-        $coinId = decrypt($coin);
-        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $coin = decrypt($coin);
+
+        // Verificar la si existe venta en la moneda para la fecha $dateFilter
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') {
+            // si no existe venta para esa fecha
+            return redirect()->route('seller.ctnsSold', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        }
 
         $ctnsSoldQuery = BingoCtnsLot::with([
             'Payment',
@@ -486,7 +493,7 @@ class SellerController extends Controller
 
         $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
-        $ctnsSold = $ctnsSoldQuery->where('coin', $coinId)
+        $ctnsSold = $ctnsSoldQuery->where('coin', $coin)
             ->where('seller', $seller->id)->orderBy('status')->orderByDesc('id')->get();
 
         $allPendingCtnSale = $pendingCtns = 0;
@@ -497,6 +504,8 @@ class SellerController extends Controller
                 $pendingCtns++;
             }
         }
+
+        $coin = Coin::getById($coin);
 
         $coins = $this->getSellerCoins($seller->id, $dateFilter, ['CtnsLot']);
 
@@ -509,8 +518,8 @@ class SellerController extends Controller
             'pendingCtns' => $pendingCtns,
             'ctnsSold' => $ctnsSold,
             'routSeller' => [$this->getRouteRKE(), $seller->id],
-            'coinId' => $coinId,
-            'coin' => Coin::getById($coinId),
+            'coinId' => encrypt($coin->id),
+            'coin' => $coin,
             'dateFilter' => $dateFilter,
             'commerceName' => Commerce::getById($seller->commerce)->name,
             'coins' => $coins
@@ -528,7 +537,12 @@ class SellerController extends Controller
         $coinId = decrypt($coinId);
         $coin = Coin::getById($coinId);
 
-        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') {
+            // si no existe venta para esa fecha
+            return redirect()->route('seller.ctnsSold', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        }
 
         $winnersQuery = BingoPrizeCtns::with([
             'Coin',
@@ -669,7 +683,12 @@ class SellerController extends Controller
         $seller = $this->seller(['id', 'commerce']);
         $coinId = decrypt($coin);
 
-        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') {
+            // si no existe venta para esa fecha
+            return redirect()->route('commerce.ctnsSold', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        }
 
         $roomsQuery = BingoRoom::with([
             'Config',
@@ -749,7 +768,12 @@ class SellerController extends Controller
         $seller = $this->seller(['id', 'commerce']);
         $coinId = decrypt($coin);
 
-        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id)->where('room', $room->id), $coinId, $dateFilter);
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id)->where('room', $room->id), $coinId, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') {
+            // si no existe venta para esa fecha
+            return redirect()->route('commerce.ctnsSold', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        }
 
         $playersRoom = PlayerLink::with(['Coin', 'CtnsLot'])
             ->whereHas('CtnsLot', function ($query) use ($dateFilter) {
