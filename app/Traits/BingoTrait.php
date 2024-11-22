@@ -14,6 +14,7 @@ use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomUser;
+use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
@@ -1472,6 +1473,20 @@ trait BingoTrait
             }
         } else {
             $coin = BingoCtnsLot::where($user['type'], $user['id'])->value('coin');
+        }
+
+        if (!$coin) {
+            switch ($user['type']) {
+                case 'commerce':
+                    $coin = Commerce::getValueById($user['id'], 'coin');
+                    break;
+                case 'seller':
+                    $coin = Seller::getValueById($user['id'], 'coin');
+                    break;
+                default:
+                    # code...
+                    break;
+            }
         }
         return ['return' => true, 'coin' => $coin];
     }
