@@ -465,18 +465,21 @@ class SellerController extends Controller
         return Coin::getCoinsById($coins);
     }
 
-    public function ctnsSold($coin, $dateFilter = "today") //Cartones Vendidos Salas Actuales Status 2 o 3
+    public function ctnsSold($coin = '', $dateFilter = "today") //Cartones Vendidos Salas Actuales Status 2 o 3
     {
         $seller = $this->seller(['id', 'commerce']);
 
-        $coin = decrypt($coin);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
 
-        // Verificar la si existe venta en la moneda para la fecha $dateFilter
         $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
 
-        if (!$existSale && $dateFilter !== 'all') {
-            // si no existe venta para esa fecha
-            return redirect()->route('seller.ctnsSold', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
+
+        if ($verifyCoin['return']) {
+            return redirect()->route(
+                'seller.ctnsSold',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
         }
 
         $ctnsSoldQuery = BingoCtnsLot::with([
@@ -505,7 +508,7 @@ class SellerController extends Controller
             }
         }
 
-        $coin = Coin::getById($coin);
+        $coin = Coin::getById($verifyCoin['coin']);
 
         $coins = $this->getSellerCoins($seller->id, $dateFilter, ['CtnsLot']);
 
@@ -526,7 +529,7 @@ class SellerController extends Controller
         ]);
     }
 
-    public function ctnsAwarded($coinId, $dateFilter = "today")
+    public function ctnsAwarded($coin = '', $dateFilter = "today")
     {
         $title = 'Ganadores';
         $name = 'notify-payment-win-ctns-off';
@@ -534,15 +537,21 @@ class SellerController extends Controller
         $wallet = $this->wallet();
         $seller = $this->seller(['id', 'commerce']);
 
-        $coinId = decrypt($coinId);
-        $coin = Coin::getById($coinId);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
 
-        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
 
-        if (!$existSale && $dateFilter !== 'all') {
-            // si no existe venta para esa fecha
-            return redirect()->route('seller.ctnsSold', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
+
+        if ($verifyCoin['return']) {
+            return redirect()->route(
+                'seller.ctnsAwarded',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
         }
+
+        $coin = Coin::getById($verifyCoin['coin']);
+        $coinId = $coin->id;
 
         $winnersQuery = BingoPrizeCtns::with([
             'Coin',
@@ -568,7 +577,7 @@ class SellerController extends Controller
 
         return view(
             'modules.seller.games.bingo.cartons.awarwed',
-            compact('title', 'name', 'wallet', 'commerce', 'winners', 'coinId', 'dateFilter', 'coin', 'coins')
+            compact('title', 'name', 'wallet', 'commerce', 'winners', 'dateFilter', 'coin', 'coins')
         );
     }
 
@@ -675,20 +684,27 @@ class SellerController extends Controller
         if ($player) return json_encode($player);
     }
 
-    public function reportSalesRooms($coin, $dateFilter = "today") // Muestra el reporte por salas 
+    public function reportSalesRooms($coin = '', $dateFilter = "today") // Muestra el reporte por salas 
     {
         $title = 'Reporte de Ventas';
 
         $wallet = $this->wallet();
         $seller = $this->seller(['id', 'commerce']);
-        $coinId = decrypt($coin);
 
-        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
 
-        if (!$existSale && $dateFilter !== 'all') {
-            // si no existe venta para esa fecha
-            return redirect()->route('commerce.ctnsSold', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
+        
+        if ($verifyCoin['return']) {
+            return redirect()->route(
+                'seller.reportSalesRooms',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
         }
+
+        $coinId = $verifyCoin['coin'];
 
         $roomsQuery = BingoRoom::with([
             'Config',
@@ -766,14 +782,21 @@ class SellerController extends Controller
         $generateUniqueCodeed = $room->encrypted;
 
         $seller = $this->seller(['id', 'commerce']);
-        $coinId = decrypt($coin);
 
-        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id)->where('room', $room->id), $coinId, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
 
-        if (!$existSale && $dateFilter !== 'all') {
-            // si no existe venta para esa fecha
-            return redirect()->route('commerce.ctnsSold', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
+
+        if ($verifyCoin['return']) {
+            return redirect()->route(
+                'seller.reportSalesByRoom',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
         }
+
+        $coin = $verifyCoin['coin'];
 
         $playersRoom = PlayerLink::with(['Coin', 'CtnsLot'])
             ->whereHas('CtnsLot', function ($query) use ($dateFilter) {

@@ -24,6 +24,7 @@ use App\Models\Transactions;
 use App\Models\User;
 use App\Models\Wallet;
 use Carbon\Carbon;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -1457,5 +1458,21 @@ trait BingoTrait
             'amount' => $amount,
             'payment_proof' => $paymentImage,
         ]);
+    }
+
+    public function verifyExistenceOfSales($coin = '', $user)
+    {
+        if ($coin) {
+            try {
+                // Intentar descifrar el valor
+                $coin = decrypt($coin);
+                return ['return' => false, 'coin' => $coin];
+            } catch (DecryptException $e) {
+                $coin = BingoCtnsLot::where($user['type'], $user['id'])->value('coin');
+            }
+        } else {
+            $coin = BingoCtnsLot::where($user['type'], $user['id'])->value('coin');
+        }
+        return ['return' => true, 'coin' => $coin];
     }
 }

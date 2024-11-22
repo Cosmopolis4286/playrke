@@ -8,13 +8,13 @@
                 @include('includes.coin-tabs', [
                     'coins' => $coins,
                     'routeName' => 'seller.ctnsAwarded',
-                    'coin' => $coinId,
+                    'coin' => $coin->id,
                     'dateFilter' => $dateFilter,
                 ])
                 @include('includes.date-filter-buttons', [
                     'routeName' => 'seller.ctnsAwarded',
                     'dateFilter' => $dateFilter,
-                    'coin' => $coinId,
+                    'coin' => $coin->id,
                 ])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
@@ -33,72 +33,69 @@
                                         <th>Acción</th>
                                     </tr>
                                 </thead>
-                                @if (!empty($winners))
-                                    <tbody>
-                                        @foreach ($winners as $win)
-                                            <tr>
-                                                <td class="align-middle">
-                                                    <a class="badge bg-navy" title="Ver Reporte"
-                                                        href="{{ route('seller.reportSalesByRoom', [
-                                                            'room' => $win->Room->encrypted,
-                                                            'coin' => encrypt($win->Coin->id),
-                                                            'dateFilter' => 'today',
-                                                        ]) }}">
-                                                        {{ $win->Room->encrypted }}
-                                                    </a>
-                                                </td>
-                                                <td class="align-middle">
-                                                    {{ \Carbon\Carbon::parse($win->Room->date)->format('d/m/y') }}<br>
-                                                    {{ $win->Room->time }} <small>GMT-4</small>
-                                                </td>
-                                                <td>{{ $win->PlayerLink->name }}
-                                                    {{ $win->PlayerLink->lastname }}</td>
-                                                <td>{{ $win->PlayerLink->Country->name }}</td>
-                                                <td>{{ $coin->long_name }} ({{ $coin->symbol }})</td>
-                                                <td>{{ $coin->symbol }} {{ $win->amount }}</td>
-                                                <td>{{ $win->Prize->description }}</td>
-                                                <td class="align-middle">
-                                                    @if ($win->status == 0)
-                                                        <span class="badge bg-secondary">Pendiente</span>
-                                                    @elseif($win->status == 1)
-                                                        <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[0]->payment_proof]) }}"
-                                                            title="Ver Comprobante" target="_blank">
-                                                            <span class="badge bg-primary">Por Pagar</span></a>
-                                                    @else
-                                                        <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[1]->payment_proof]) }}"
-                                                            title="Ver Comprobante" target="_blank">
-                                                            <span class="badge bg-success">Pagado</span></a>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <div class="btn-group" role="group" aria-label="Acciones">
-                                                        @if ($win->status == 1)
-                                                            <button class="btn btn-sm bg-danger notify-ctn-payment"
-                                                                title="Notificar Pago"
-                                                                data-coin_sym="{{ $win->Coin->symbol }}"
-                                                                data-prize_amount="{{ $win->amount }}"
-                                                                data-ctn='{{ encrypt($win->ctn) }}'>
-                                                                <i class="fa-solid fa-circle-dollar-to-slot mr-1"></i>
-                                                                Notificar
-                                                            </button>
-                                                        @endif
-                                                        <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                                            href="{{ route('bingocash.in-game-commerce', ['commerce' => $commerce, 'player' => $win->PlayerLink->link]) }}">
-                                                            <i class="mr-1 fa-solid fa-eye"></i>CTNs
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                    <tfoot>
+                                <tbody>
+                                    @foreach ($winners as $win)
                                         <tr>
-                                            <td colspan="5" class="text-right"><b>Total:</b></td>
-                                            <td>{{ $coin->symbol }} {{ $winners->sum('amount') }}</td>
-                                            <td colspan="3"></td>
+                                            <td class="align-middle">
+                                                <a class="badge bg-navy" title="Ver Reporte"
+                                                    href="{{ route('seller.reportSalesByRoom', [
+                                                        'room' => $win->Room->encrypted,
+                                                        'coin' => encrypt($win->Coin->id),
+                                                        'dateFilter' => 'today',
+                                                    ]) }}">
+                                                    {{ $win->Room->encrypted }}
+                                                </a>
+                                            </td>
+                                            <td class="align-middle">
+                                                {{ \Carbon\Carbon::parse($win->Room->date)->format('d/m/y') }}<br>
+                                                {{ $win->Room->time }} <small>GMT-4</small>
+                                            </td>
+                                            <td>{{ $win->PlayerLink->name }}
+                                                {{ $win->PlayerLink->lastname }}</td>
+                                            <td>{{ $win->PlayerLink->Country->name }}</td>
+                                            <td>{{ $coin->long_name }} ({{ $coin->symbol }})</td>
+                                            <td>{{ $coin->symbol }} {{ $win->amount }}</td>
+                                            <td>{{ $win->Prize->description }}</td>
+                                            <td class="align-middle">
+                                                @if ($win->status == 0)
+                                                    <span class="badge bg-secondary">Pendiente</span>
+                                                @elseif($win->status == 1)
+                                                    <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[0]->payment_proof]) }}"
+                                                        title="Ver Comprobante" target="_blank">
+                                                        <span class="badge bg-primary">Por Pagar</span></a>
+                                                @else
+                                                    <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[1]->payment_proof]) }}"
+                                                        title="Ver Comprobante" target="_blank">
+                                                        <span class="badge bg-success">Pagado</span></a>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group" aria-label="Acciones">
+                                                    @if ($win->status == 1)
+                                                        <button class="btn btn-sm bg-danger notify-ctn-payment"
+                                                            title="Notificar Pago" data-coin_sym="{{ $win->Coin->symbol }}"
+                                                            data-prize_amount="{{ $win->amount }}"
+                                                            data-ctn='{{ encrypt($win->ctn) }}'>
+                                                            <i class="fa-solid fa-circle-dollar-to-slot mr-1"></i>
+                                                            Notificar
+                                                        </button>
+                                                    @endif
+                                                    <a class="btn btn-sm bg-primary show-ctns" target="_blank"
+                                                        href="{{ route('bingocash.in-game-commerce', ['commerce' => $commerce, 'player' => $win->PlayerLink->link]) }}">
+                                                        <i class="mr-1 fa-solid fa-eye"></i>CTNs
+                                                    </a>
+                                                </div>
+                                            </td>
                                         </tr>
-                                    </tfoot>
-                                @endif
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="5" class="text-right"><b>Total:</b></td>
+                                        <td>{{ $coin->symbol }} {{ $winners->sum('amount') }}</td>
+                                        <td colspan="3"></td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>

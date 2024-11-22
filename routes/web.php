@@ -206,8 +206,8 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::get('bingocash/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
     Route::post('bingocash/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
     Route::post('bingocash/carton/notify/payment/win-ctn', [SellerController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
-    Route::get('bingocash/report/sales/rooms/{coin}/{dateFilter?}', [SellerController::class, 'reportSalesRooms'])->name('reportSalesRooms');
-    Route::get('bingocash/report/sales/room/{room}/{coin}/{dateFilter?}', [SellerController::class, 'reportSalesBgetInfoByCtnIdyRoom'])->name('reportSalesByRoom');
+    Route::get('bingocash/report/sales/rooms/{coin?}/{dateFilter?}', [SellerController::class, 'reportSalesRooms'])->name('reportSalesRooms');
+    Route::get('bingocash/sales-report/room/{room}/{coin}', [SellerController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
     Route::get('bingocash/report/sales/room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 });
 
@@ -433,7 +433,7 @@ Route::group(['prefix' => 'polla-rke', 'as' => 'polla.'], function () {
 
     Route::get('rooms-sales-report/{coin?}/{dateFilter?}', [PollaController::class, 'roomsSalesReport'])->name('roomsSalesReport');
 
-    Route::get('winners/{coin}/{dateFilter?}', [PollaController::class, 'winners'])->name('winners');
+    Route::get('winners/{coin?}/{dateFilter?}', [PollaController::class, 'winners'])->name('winners');
 });
 
 Route::group(['prefix' => 'lottery', 'as' => 'lottery.'], function () {
