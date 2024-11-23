@@ -393,6 +393,14 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::put('publish/{id}', [BingoController::class, 'publish'])->name('publish');
     Route::put('refund/{id}', [BingoController::class, 'refund'])->name('refund');
     Route::put('copy/{id}', [BingoController::class, 'copy'])->name('copy');
+
+    /// Rutas de Salas Automaticas
+    Route::get('rooms-automatic/{creatorType}/{creatorID}', [BingoController::class, 'allAutomaticRooms'])->name('automatic-room.all-rooms');
+    Route::get('rooms-automatic/getInfo/{id}', [BingoController::class, 'getAutomaticRoomInfo'])->name('automatic-room.getInfo');
+    Route::put('rooms-automatic/status/{id}', [BingoController::class, 'changeStatusAutomaticRoom'])->name('automatic-room.change-status');
+    Route::post('rooms-automatic/create', [BingoController::class, 'createAutomaticRoomInfo'])->name('automatic-room.create');
+    Route::put('rooms-automatic/update/{id}', [BingoController::class, 'updateAutomaticRoomInfo'])->name('automatic-room.update');
+    Route::put('rooms-automatic/delete/{id}', [BingoController::class, 'deleteAutomaticRoomInfo'])->name('automatic-room.delete');
 });
 
 Route::post('bingocash/actWn', [BingoController::class, 'actWn'])

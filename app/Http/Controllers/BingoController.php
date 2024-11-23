@@ -16,6 +16,7 @@ use App\Models\HistGame;
 use App\Http\Controllers\Controller;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawCode;
+use App\Models\BingoRoomAutomatic;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
@@ -821,7 +822,7 @@ class BingoController extends Controller
             'exchangeRate' => $exchangeRate ?? 1,
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
-            'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
+            'activeRooms' => $rooms->whereIn('status', [2, 3])->exists(),
             'roomType' => $roomType ?? [],
             'jackpotType' => JackpotType::all(),
             'gameModes' => GameModes::all()
@@ -1250,6 +1251,217 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'Carton Ganador Generado');
         } else {
             return redirect()->back()->with('message', 'El PlayerLink no existe');
+        }
+    }
+
+    public function getAutomaticRoomsInfo($creator)
+    {
+        //  Lista (CRUD) de configuracion de Salas Automaticas
+        $this->checkRoomClosure();
+
+        $creatorType = $creator['type'];
+        $creatorID = decrypt($creator['id']);
+
+        switch ($creatorType) {
+            case 'admin': // Admin
+                break;
+            case 'commerce': // Comercio
+                $isLogin = true;
+
+                $commerce = Commerce::getById($creatorID, ['coin', 'code_uuid']);
+
+                $routeName = 'bingo.all-commerce-rooms';
+                $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($commerce->coin)]);
+
+                $moreViewData = [
+                    'commerceUUID' => $commerce->code_uuid,
+                    'wallet' => $this->wallet()
+                ];
+
+                if ($creatorID == 1) {
+                    $roomType = [
+                        0 => ['id' => 0, 'description' => 'Privada'],
+                        1 => ['id' => 1, 'description' => 'Pública']
+                    ];
+                }
+                break;
+            case 'customer': // Cliente
+
+                $isLogin = false;
+                $returnBtn = false;
+
+                $customer = Customer::getById($creatorID, ['coin', 'token']);
+                $token = $customer->token;
+
+                $routeName = 'bingo.all-customer-rooms';
+                $GMRoute =  route(
+                    'bingo.game-rooms-customer',
+                    [
+                        'customer' => $token,
+                        'user' => $token,
+                        'coin' => encrypt($customer->coin)
+                    ]
+                );
+
+                $moreViewData = ['customer' => true, 'userToken' => $token];
+
+                break;
+
+            default:
+                return false;
+                break;
+        }
+
+        $automaticRooms = BingoRoomAutomatic::where('creator_type', $creatorType)
+            ->where('creator_id', $creatorID)->get();
+
+        $activeRooms = BingoRoom::where($creator['type'], $creatorID)->whereIn('status', [2, 3])->exists();
+
+        $viewData = [
+            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Salas de Bingo AUTO',
+            'name' => 'bingocash',
+            'returnBtn' => $returnBtn ?? true,
+            'routeName' => $routeName,
+            'creator' => $creator,
+            'automaticRooms' => $automaticRooms,
+            'activeRooms' => $activeRooms,
+            'GMRoute' => $GMRoute,
+            'roomType' => $roomType ?? [],
+            'jackpotType' => JackpotType::all(),
+            'gameModes' => GameModes::all()
+        ];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
+
+        dd($viewData);
+
+        return ['route' => 'modules.game.bingo.automatic-room.form.index', 'data' => $viewData];
+    }
+
+    public function allAutomaticRooms($creatorType, $creatorID)
+    {
+        $creatorID = decrypt($creatorID);
+
+        switch ($creatorType) {
+            case 'commerce':
+                $creatorID = Commerce::getValueById($creatorID, 'id');
+                // Verificar si el comercio existe
+                if (!$creatorID) {
+                    return response()->json(['message' => 'Token del cliente no existe'], 404);
+                }
+                break;
+
+            case 'customer':
+                $creatorID = Customer::getValueByToken($creatorID, 'id');
+                // Verificar si el cliente existe
+                if (!$creatorID) {
+                    return response()->json(['message' => 'Token del cliente no existe'], 404);
+                }
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        $creator = ['type' => $creatorType, 'id' => encrypt($creatorID)];
+
+        // Obtener la información de configuracion de salas automaticas
+        $viewData = $this->getAutomaticRoomsInfo($creator);
+
+        // Retornar la vista con la información
+        return $this->handleViewData($viewData, $creator['type']);
+    }
+
+    public function createAutomaticRoomInfo(Request $request)
+    {
+        DB::beginTransaction();
+
+        try {
+            BingoRoomAutomatic::create([
+                'description' => $request->description,
+                'date' => $request->date,
+                'time' => $request->time,
+                'ctn_price' => $request->ctn_price,
+                'room_commn' => $request->room_commn
+            ]);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear información de una sala automática: ' . $e->getMessage());
+        }
+    }
+
+    public function updateAutomaticRoomInfo(Request $request, $id)
+    {
+        DB::beginTransaction();
+
+        try {
+            BingoRoomAutomatic::create([
+                'description' => $request->description,
+                'date' => $request->date,
+                'time' => $request->time,
+                'ctn_price' => $request->ctn_price,
+                'room_commn' => $request->room_commn
+            ]);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear información de una sala automática: ' . $e->getMessage());
+        }
+    }
+
+    public function getAutomaticRoomInfo($id)
+    {
+        $id = decrypt($id);
+
+        $room = BingoRoom::select('game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->where('id', $id)->firstOrFail();
+
+        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
+            ->where('room', $id)->firstOrFail();
+
+        return response()->json(['room' => $room, 'config' => $roomConfig]);
+    }
+
+    public function changeStatusAutomaticRoom($id)
+    {
+        $id = decrypt($id);
+
+        DB::beginTransaction();
+
+        try {
+            $roomAutomaticStatus = (int)!BingoRoomAutomatic::getValue($id, 'status');
+            BingoRoomAutomatic::where('id', $id)->update(['status' => $roomAutomaticStatus]);
+
+            DB::commit();
+
+            return redirect()->back()->with('message', 'Status actualizado')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('msg-error', 'Ha ocurrido un error');
+        }
+    }
+
+    public function deleteAutomaticRoomInfo($id)
+    {
+        // Desencriptar el ID
+        $id = decrypt($id);
+
+        DB::beginTransaction();
+
+        try {
+
+            BingoRoomAutomatic::where('id', $id)->delete();
+            DB::commit();
+            // Redirigir de vuelta con un mensaje
+            return redirect()->back()->with('message', 'La configuración ha sido eliminada')->with('type', 'success');
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+            return redirect()->back()->with('msg-error', 'Ha ocurrido un error');
         }
     }
 }
