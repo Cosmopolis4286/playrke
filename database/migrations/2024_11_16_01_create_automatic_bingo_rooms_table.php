@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('description', 50)->nullable();
             $table->date('date')->nullable();
+            $table->string('days')->nullable();
             $table->string('time', 10);
-            $table->unsignedBigInteger('game_mode');
-            $table->unsignedBigInteger('jackpot_type')->default(1);
+            $table->foreignId('game_mode')->constrained('game_modes')->onDelete('cascade');
+            $table->foreignId('jackpot_type')->constrained('jackpot_types')->onDelete('cascade')->default(1);
             $table->double('fixed_jackpot_value')->nullable();
             $table->double('jackpot')->default(0);
             $table->double('ctn_price');

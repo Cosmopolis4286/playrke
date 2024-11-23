@@ -366,8 +366,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 
 Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 
-    Route::get('rooms/admin/{user}/{coin?}', [BingoController::class, 'allRooms'])
-        ->middleware(['auth', 'admin'])->name('all-rooms');
+    Route::get('rooms/{creatorType}/{creatorID}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
 
     Route::get('rooms/cust/{user}/{coin?}', [BingoController::class, 'allCustomerRooms'])->name('all-customer-rooms');
 
@@ -395,12 +394,18 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::put('copy/{id}', [BingoController::class, 'copy'])->name('copy');
 
     /// Rutas de Salas Automaticas
-    Route::get('rooms-automatic/{creatorType}/{creatorID}', [BingoController::class, 'allAutomaticRooms'])->name('automatic-room.all-rooms');
-    Route::get('rooms-automatic/getInfo/{id}', [BingoController::class, 'getAutomaticRoomInfo'])->name('automatic-room.getInfo');
-    Route::put('rooms-automatic/status/{id}', [BingoController::class, 'changeStatusAutomaticRoom'])->name('automatic-room.change-status');
-    Route::post('rooms-automatic/create', [BingoController::class, 'createAutomaticRoomInfo'])->name('automatic-room.create');
-    Route::put('rooms-automatic/update/{id}', [BingoController::class, 'updateAutomaticRoomInfo'])->name('automatic-room.update');
-    Route::put('rooms-automatic/delete/{id}', [BingoController::class, 'deleteAutomaticRoomInfo'])->name('automatic-room.delete');
+    Route::get('automatic-rooms/{creatorType}/{creatorID}', [BingoController::class, 'allAutomaticRooms'])->name('automatic-room.all-rooms');
+    Route::get('automatic-room/getInfo/{id}', [BingoController::class, 'getInfoAutomaticRoom'])->name('automatic-room.getInfo');
+    Route::put('automatic-room/status/{id}', [BingoController::class, 'changeStatusAutomaticRoom'])->name('automatic-room.change-status');
+    Route::post('automatic-room/create', [BingoController::class, 'createAutomaticRoomInfo'])->name('automatic-room.create');
+    Route::put('automatic-room/update/{id}', [BingoController::class, 'updateAutomaticRoomInfo'])->name('automatic-room.update');
+    Route::put('automatic-room/change-status/{id}', [BingoController::class, 'changeStatusAutomaticRoomInfo'])->name('automatic-room.change-status');
+    Route::put('automatic-room/delete/{id}', [BingoController::class, 'deleteAutomaticRoomInfo'])->name('automatic-room.delete');
+    Route::put('automatic-room/copy/{id}', [BingoController::class, 'copyAutomaticRoomInfo'])->name('automatic-room.copy');
+
+    // Rutas de Salas Publicas
+    Route::get('public-rooms/{creatorType}/{creatorID}', [BingoController::class, 'allPublicRooms'])
+        ->middleware(['auth', 'commerce'])->name('public-room.all-rooms');
 });
 
 Route::post('bingocash/actWn', [BingoController::class, 'actWn'])

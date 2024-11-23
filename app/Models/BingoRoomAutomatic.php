@@ -10,6 +10,7 @@ class BingoRoomAutomatic extends Model
   protected $fillable = [
     'description',
     'date',
+    'days',
     'time',
     'game_mode',
     'jackpot_type',
@@ -24,6 +25,16 @@ class BingoRoomAutomatic extends Model
     'creator_id',
     'status'
   ];
+
+  public function GameMode()
+  {
+    return $this->belongsTo(GameModes::class, 'game_mode');
+  }
+
+  public function JackpotType()
+  {
+    return $this->belongsTo(JackpotType::class, 'jackpot_type');
+  }
 
   public static function getById($id, $fields = ['*'])
   {

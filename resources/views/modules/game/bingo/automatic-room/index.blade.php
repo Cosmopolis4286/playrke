@@ -5,24 +5,10 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'coins' => $coins,
-                    'routeName' => $routeName,
-                    'coin' => $coin,
-                    'userToken' => $userToken ?? false,
-                ])
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
-                        <i class="fas fa-plus-square"></i> Crear
-                    </button>
-                    <a href="{{ $activeRooms ? $GMRoute : '#' }}"
-                        class="ml-1 btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}">
-                        <i class="fas fa-hat-wizard"></i> Ver Salas
-                    </a>
-                </div>
+                @include('includes.game.bingo.report.btn-group', ['privateRoom' => true])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.table-info-bingo-rooms')
+                        @include('includes.game.bingo.report.table-info-automatic-bingo-rooms')
                     </div>
                 </div>
             </div>
@@ -31,7 +17,10 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', [
+            'creator' => $creator,
+            'automaticRoom' => true,
+        ])->render(),
     ])
     @include('includes.form-other-options')
 @endsection
@@ -41,7 +30,6 @@
         const creatorType = @json($creator['type'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
-        const arrCoins = @json($coins);
         const arrRoomType = @json($roomType);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
@@ -65,7 +53,7 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap);
+            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash/automatic-room', otherCasesMap);
         });
 
         function insertInfo(type, data = '') {
@@ -143,10 +131,7 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, [
-                'date', 'time', 'game-mode', 'ctn-price',
-                'val-serials', 'commerce-commission', 'jackpot-type'
-            ]);
+            submitForm(name);
         });
 
         function deleteInfo(encryptedId) {
@@ -155,7 +140,7 @@
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `{{ route('bingo.delete', ['id' => ':id']) }}`,
+                `{{ route('bingo.automatic-room.delete', ['id' => ':id']) }}`,
                 encryptedId
             );
         }
@@ -163,41 +148,21 @@
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Repetir esta sala cada 24h',
-                    'question',
-                    'Sí, repetir',
-                    '#form-other-options',
-                    `{{ route('bingo.replay', ['id' => ':id']) }}`,
-                    encryptedId
-                );
-            },
-            5: function(encryptedId) {
-                showToastOptionBtns(
-                    'Se publicará esta sala al público',
+                    'Se actualizará el Status de esta configuración',
                     'info',
-                    'Sí, publicarla',
+                    'Sí, actualizar',
                     '#form-other-options',
-                    `{{ route('bingo.publish', ['id' => ':id']) }}`,
-                    encryptedId
-                );
-            },
-            6: function(encryptedId) {
-                showToastOptionBtns(
-                    'El jackpot de esta sala será reembolsado',
-                    'warning',
-                    'Sí, reembolsar',
-                    '#form-other-options',
-                    `{{ route('bingo.refund', ['id' => ':id']) }}`,
+                    `{{ route('bingo.automatic-room.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
             7: function(encryptedId) {
                 showToastOptionBtns(
-                    'Deseas copiar la información de esta sala',
+                    'Deseas copiar esta configuración',
                     'question',
                     'Sí, copiar',
                     '#form-other-options',
-                    `{{ route('bingo.copy', ['id' => ':id']) }}`,
+                    `{{ route('bingo.automatic-room.copy', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },

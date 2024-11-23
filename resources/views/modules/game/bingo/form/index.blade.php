@@ -11,21 +11,7 @@
                     'coin' => $coin,
                     'userToken' => $userToken ?? false,
                 ])
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
-                            <i class="fas fa-plus-square"></i> Crear
-                        </button>
-                        <a class="btn btn-sm btn-secondary"
-                            href="{{ route('bingo.automatic-room.all-rooms', ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
-                            <i class="fa-solid fa-repeat"></i> Auto
-                        </a>
-                    </div>
-                    <a href="{{ $activeRooms ? $GMRoute : '#' }}"
-                        class="ml-1 btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}">
-                        <i class="fas fa-hat-wizard"></i> Ver Salas
-                    </a>
-                </div>
+                @include('includes.game.bingo.report.btn-group', ['automaticRoom' => true])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @include('includes.game.bingo.report.table-info-bingo-rooms')

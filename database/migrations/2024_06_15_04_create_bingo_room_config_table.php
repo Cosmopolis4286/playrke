@@ -29,7 +29,7 @@ class CreateBingoRoomConfigTable extends Migration
 
             // Foreign key constraint
             $table->foreign('room')->references('id')->on('bingo_rooms')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('jackpot_type')->references('id')->on('jackpot_type')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('jackpot_type')->references('id')->on('jackpot_types')->onDelete('restrict')->onUpdate('cascade');
         });
     }
 

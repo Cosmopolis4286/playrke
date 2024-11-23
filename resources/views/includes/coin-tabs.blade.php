@@ -3,7 +3,7 @@
     @foreach ($coins as $item)
         <li class="nav-item">
             <a class="nav-link @if ($coin == $item->id) active @endif"
-                id="{{ $item->id }}{{ $item->symbol ?? $item->coin }}-tab"
+                id="{{ $item->id }}{{ $item->iso_code ?? ($item->coin ?? $item->short_name) }}-tab"
                 href="{{ route(
                     $routeName,
                     array_merge(
@@ -13,8 +13,9 @@
                         ['coin' => encrypt($item->id)],
                     ),
                 ) }}"
-                role="tab" aria-controls="{{ $item->id }}{{ $item->symbol ?? $item->coin }}"
-                aria-selected="true">{{ $item->short_name ?? $item->coin }}</a>
+                role="tab"
+                aria-controls="{{ $item->id }}{{ $item->iso_code ?? ($item->coin ?? $item->short_name) }}"
+                aria-selected="true">{{ $item->iso_code ?? ($item->coin ?? $item->short_name) }}</a>
         </li>
     @endforeach
 </ul>

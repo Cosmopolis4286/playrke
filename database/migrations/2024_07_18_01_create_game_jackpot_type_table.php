@@ -23,7 +23,7 @@ return new class extends Migration
 
             $table->foreign('game')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('game_mode')->references('id')->on('game_modes')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('jackpot_type')->references('id')->on('jackpot_type')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('jackpot_type')->references('id')->on('jackpot_types')->onDelete('restrict')->onUpdate('cascade');
         });
     }
 
