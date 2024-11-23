@@ -157,10 +157,14 @@ class BingoController extends Controller
 
         // Redirigir si no hay salas disponibles
         if (!count($rooms) && $creator['type'] === 'commerce') {
-            return ['redirect' => route('bingo.all-commerce-rooms', [
-                'coin' => encrypt($coin),
-                'user' => encrypt(Auth::id())
-            ])];
+            return ['redirect' => route(
+                'bingo.all-rooms',
+                [
+                    'creatorType' => 'commerce',
+                    'userID' => encrypt($creatorID),
+                    'coin' => encrypt($coin),
+                ]
+            )];
         }
 
         $creator['id'] = encrypt($creator['id']);
@@ -196,7 +200,14 @@ class BingoController extends Controller
         $commerce = Commerce::getValueByUserId(Auth::id(), 'id');
 
         if (!$coin) {
-            return redirect()->route('bingo.all-commerce-rooms', ['coin' => encrypt(1)]);
+            return redirect()->route(
+                'bingo.all-rooms',
+                [
+                    'creatorType' => 'commerce',
+                    'userID' => $commerce,
+                    'coin' => encrypt(1)
+                ]
+            );
         }
 
         $creator = ['type' => 'commerce', 'id' => $commerce];
@@ -752,7 +763,13 @@ class BingoController extends Controller
                 $coins[] = 1; // ID Coin (USDT)
                 $coins = Coin::getCoinsById($coins);
 
-                $routeName = 'bingo.all-commerce-rooms';
+                $routeWithCoin = [
+                    'route' => 'bingo.all-rooms',
+                    'parameters' => [
+                        'creatorType' => 'commerce',
+                        'userID' => $creator['id']
+                    ]
+                ];
                 $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($coin)]);
 
                 $moreViewData = [
@@ -776,7 +793,13 @@ class BingoController extends Controller
                 $returnBtn = false;
                 $token = Customer::getValueById($creatorID, 'token');
 
-                $routeName = 'bingo.all-customer-rooms';
+                $routeWithCoin = [
+                    'route' => 'bingo.all-rooms',
+                    'parameters' => [
+                        'creatorType' => 'customer',
+                        'userID' => $creator['id']
+                    ]
+                ];
                 $GMRoute =  route(
                     'bingo.game-rooms-customer',
                     ['customer' => $token, 'user' => $token, 'coin' => encrypt($coin)]
@@ -811,7 +834,7 @@ class BingoController extends Controller
             'title' => 'Salas de Bingo',
             'name' => 'bingocash',
             'returnBtn' => $returnBtn ?? true,
-            'routeName' => $routeName,
+            'routeWithCoin' => $routeWithCoin,
             'routeRKE' => $this->getRouteRKE(),
             'creator' => $creator,
             'coins' => $coins,
@@ -835,43 +858,64 @@ class BingoController extends Controller
 
     public function allRooms($creatorType, $creatorID, $coin = '')
     {
-        switch ($variable) {
-            case 'value':
-                # code...
+        switch ($creatorType) {
+            case 'admin':
+                // Lógica para "admin" si se necesita.
                 break;
 
+            case 'commerce':
+                return $this->allCommerceRooms($creatorID, $coin);
+
+            case 'customer':
+                return $this->allCustomerRooms($creatorID, $coin);
+
             default:
-                # code...
-                break;
+                return redirect()->back()->with('error', 'Tipo de creador no válido.');
         }
     }
 
-    public function allCommerceRooms($coin = '')
+    public function allCommerceRooms($creatorID, $coin = '')
     {
         $commerceId = Commerce::getValueByUserId(Auth::id(), 'id');
 
-        if (!$commerceId) return redirect()->back();
-
-        if (!$coin) {
-            return redirect()->route('bingo.all-commerce-rooms', ['coin' => encrypt(1)]);
+        if (!$commerceId) {
+            return redirect()->back()->with('error', 'El comercio no existe o no está vinculado al usuario.');
         }
 
-        $creator = ['type' => 'commerce', 'id' => encrypt($commerceId)];
+        if (!$creatorID || !$coin) {
+            return redirect()->route('bingo.all-rooms', [
+                'creatorType' => 'commerce',
+                'userID' => encrypt($commerceId),
+                'coin' => encrypt(1)
+            ]);
+        }
+
+        $creator = [
+            'type' => 'commerce',
+            'id' => encrypt($commerceId),
+        ];
 
         $viewData = $this->getGameRoomsInfo($creator, decrypt($coin));
 
-        // Retorna a vista con la informacion 
+        // Retorna la vista con la información
         return $this->handleViewData($viewData, $creator['type']);
     }
 
+
     public function allCustomerRooms($customer, $coin = '')
     {
-        $customerId = Customer::getValueByToken($customer, 'id');
+        $isLogin = Customer::getValueByUserId(Auth::id(), 'id');
 
-        // Verificar si el cliente existe
-        if (!$customerId) {
-            return response()->json(['message' => 'Token del cliente no existe'], 404);
+        if (!$isLogin) {
+            $customerId = Customer::getValueByToken($customer, 'id');
+
+            // Verificar si el cliente existe
+            if (!$customerId) {
+                return response()->json(['message' => 'Token del cliente no existe'], 404);
+            }
         }
+
+        $customerId = $isLogin;
 
         // Si no se proporciona moneda, obtener la primera disponible
         if (!$coin) {
@@ -883,8 +927,9 @@ class BingoController extends Controller
             }
 
             // Redirigir con la primera moneda disponible encriptada
-            return redirect()->route('bingo.all-customer-rooms', [
-                'user' => $customer,
+            return redirect()->route('bingo.all-rooms', [
+                'creatorType' => 'customer',
+                'userID' => $customer,
                 'coin' => encrypt($coins[0]->id)
             ]);
         }
@@ -898,7 +943,13 @@ class BingoController extends Controller
             }
             $coin = CustomerExchangeRate::getCustomerCoinValue($customerId, $coin, 'id');
             // Si falla, encriptar el ID la moneda nuevamente y redirigir
-            return redirect()->route('bingo.all-customer-rooms', ['user' => $customer, 'coin' => encrypt($coin)]);
+            return redirect()->route(
+                'bingo.all-rooms',
+                [
+                    'creatorType' => 'customer',
+                    'userID' => $customer
+                ]
+            );
         }
 
         $creator = ['type' => 'customer', 'id' => encrypt($customerId)];

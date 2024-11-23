@@ -7,12 +7,12 @@
             <div class="card-body">
                 @include('includes.coin-tabs', [
                     'coins' => $coins,
-                    'routeName' => 'seller.ctnsAwarded',
+                    'routeWithCoin' => 'seller.ctnsAwarded',
                     'coin' => $coin->id,
                     'dateFilter' => $dateFilter,
                 ])
                 @include('includes.date-filter-buttons', [
-                    'routeName' => 'seller.ctnsAwarded',
+                    'routeWithCoin' => 'seller.ctnsAwarded',
                     'dateFilter' => $dateFilter,
                     'coin' => $coin->id,
                 ])

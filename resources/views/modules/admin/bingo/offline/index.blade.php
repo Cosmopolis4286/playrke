@@ -7,7 +7,7 @@
             <div class="card-body">
                 @include('includes.coin-tabs', [
                     'coins' => $coins,
-                    'routeName' => 'seller.reportSalesRoom',
+                    'routeWithCoin' => 'seller.reportSalesRoom',
                     'coin' => $coin,
                 ])
                 <div class="btn-group" role="group" aria-label="Basic example">

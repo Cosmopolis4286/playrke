@@ -12,7 +12,7 @@
                     'countWinnersOtherCommerces' => $countWinnersOtherCommerces,
                 ])
                 @include('includes.date-filter-buttons', [
-                    'routeName' => 'commerce.getBingoWinnersByCommerce',
+                    'routeWithCoin' => 'commerce.getBingoWinnersByCommerce',
                     'dateFilter' => $dateFilter,
                 ])
                 <div class="tab-content">

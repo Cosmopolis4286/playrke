@@ -46,7 +46,7 @@ class PollaController extends Controller
                 $coins[] = 1; // ID Coin (USDT)
                 $coins = Coin::getCoinsById($coins);
 
-                $routeName = 'bingo.all-commerce-rooms';
+                $routeWithCoin = 'bingo.all-commerce-rooms';
                 $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($coin)]);
 
                 $moreViewData = [
@@ -74,7 +74,7 @@ class PollaController extends Controller
                 // $returnBtn = false;
                 // $token = Customer::getValueById($creatorID, 'token');
 
-                // $routeName = 'bingo.all-customer-rooms';
+                // $routeWithCoin = 'bingo.all-customer-rooms';
                 // $GMRoute =  route(
                 //     'bingo.game-rooms-customer',
                 //     ['customer' => $token, 'user' => $token, 'coin' => encrypt($coin)]
@@ -109,7 +109,7 @@ class PollaController extends Controller
             'title' => 'Salas de Bingo',
             'name' => 'bingocash',
             'returnBtn' => $returnBtn ?? true,
-            'routeName' => $routeName,
+            'routeWithCoin' => $routeWithCoin,
             'creatorType' => $creator['type'],
             'userID' => $creatorID,
             'coins' => $coins,

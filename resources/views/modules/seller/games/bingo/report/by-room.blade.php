@@ -6,14 +6,14 @@
             @include('includes.card-header', ['cardTitle' => $cardTitle])
             <div class="card-body">
                 @include('includes.coin-tabs', [
-                    'routeName' => 'seller.reportSalesByRoom',
+                    'routeWithCoin' => 'seller.reportSalesByRoom',
                     'dateFilter' => $dateFilter,
                     'room' => $generateUniqueCodeed,
                     'coin' => $coinId,
                     'coins' => $coins,
                 ])
                 @include('includes.date-filter-buttons', [
-                    'routeName' => 'seller.reportSalesByRoom',
+                    'routeWithCoin' => 'seller.reportSalesByRoom',
                     'dateFilter' => $dateFilter,
                     'room' => $generateUniqueCodeed,
                     'coin' => $coinId,

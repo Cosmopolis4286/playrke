@@ -6,13 +6,13 @@
             @include('includes.card-header')
             <div class="card-body">
                 @include('includes.coin-tabs', [
-                    'routeName' => 'seller.ctnsSold',
+                    'routeWithCoin' => 'seller.ctnsSold',
                     'dateFilter' => $dateFilter,
                     'coin' => $coin->id,
                     'coins' => $coins,
                 ])
                 @include('includes.date-filter-buttons', [
-                    'routeName' => 'seller.ctnsSold',
+                    'routeWithCoin' => 'seller.ctnsSold',
                     'dateFilter' => $dateFilter,
                     'coin' => $coin->id,
                 ])

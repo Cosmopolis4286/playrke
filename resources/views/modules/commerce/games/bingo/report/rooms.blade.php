@@ -8,12 +8,12 @@
             <div class="card-body">
                 @include('includes.coin-tabs', [
                     'coins' => $coins,
-                    'routeName' => 'commerce.reportSalesRooms',
+                    'routeWithCoin' => 'commerce.reportSalesRooms',
                     'dateFilter' => $dateFilter,
                     'coin' => $coin,
                 ])
                 @include('includes.date-filter-buttons', [
-                    'routeName' => 'commerce.reportSalesRooms',
+                    'routeWithCoin' => 'commerce.reportSalesRooms',
                     'dateFilter' => $dateFilter,
                     'coin' => $coin,
                 ])

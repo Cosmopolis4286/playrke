@@ -7,7 +7,7 @@
             <div class="card-body">
                 @include('includes.coin-tabs', [
                     'coins' => $coins,
-                    'routeName' => 'commerce.reportSalesByRoom',
+                    'routeWithCoin' => 'commerce.reportSalesByRoom',
                     'room' => $room,
                     'coin' => $coin,
                 ])
