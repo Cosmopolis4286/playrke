@@ -66,7 +66,7 @@
                 required: isRequired
             }).empty();
 
-            if (creatorType === 'commerce' && arrRoomType.length) {
+            if (creatorType !== 'customer' && arrRoomType.length) {
                 roomType = $("#room-type");
                 roomType.prop({
                     disabled: isDisabled,
@@ -79,52 +79,60 @@
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
 
-                if (creatorType === 'commerce' && arrRoomType.length) {
+                if (creatorType !== 'customer' && arrRoomType.length) {
                     roomType.append(defaultOption);
+                } else {
+                    roomType.append(`<option value="0" selected>Privada</option>`);
                 }
 
-                if (arrGameModes.length > 1) {
+                if (arrGameModes.length > 1 && creatorType !== 'customer') {
                     gameMode.append(defaultOption);
+                } else {
+                    gameMode.append(`<option value="1" selected>Online</option>`);
                 }
 
                 jackpotType.append(defaultOption);
             }
 
-            if (creatorType === 'commerce' && arrRoomType.length) {
+            if (creatorType !== 'customer' && arrRoomType.length) {
                 $.each(arrRoomType, function(index, item) {
                     const isSelected = (type == 2 && item.id == data.room.all_for_one) ? 'selected' : '';
                     roomType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
                 });
             }
 
+            const config = data.config !== undefined ? data.config : data.room;
+
             $.each(arrJackpotType, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == config.jackpot_type) ? 'selected' : '';
                 jackpotType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
-            $.each(arrGameModes, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
+            if (creatorType !== 'customer' && arrGameModes.length) {
+                $.each(arrGameModes, function(index, item) {
+                    const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
 
-                if ((creatorType === 'customer' && item.id == 1) || creatorType !== 'customer') {
-                    gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
-                }
-            });
+                    if ((creatorType === 'customer' && item.id == 1) || creatorType !== 'customer') {
+                        gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                    }
+                });
+            }
 
             if (type == 1) {
                 changeFixedJackpot(1);
-            } else if (type == 2 && data.config.jackpot_type > 1) {
+            } else if (type == 2 && config.jackpot_type > 1) {
                 changeFixedJackpot(2);
-                $('#fixed-jackpot-value').val(data.config.fixed_jackpot_value);
+                $('#fixed-jackpot-value').val(config.fixed_jackpot_value);
             }
 
             if (type == 2) {
                 $('#date').val(data.room.date);
                 $('#time').val(data.room.time);
                 $('#ctn-price').val(data.room.ctn_price);
-                $('#val-serials').val(data.config.val_serials);
-                $('#num-serials').val(data.config.num_serials);
-                $('#commerce-commission').val(data.config.room_commn);
-                $('#serials-commission').val(data.config.serials_commn);
+                $('#val-serials').val(config.val_serials);
+                $('#num-serials').val(config.num_serials);
+                $('#commerce-commission').val(config.room_commn);
+                $('#serials-commission').val(config.serials_commn);
             }
 
             $(`#modal-${name}`).modal('show');

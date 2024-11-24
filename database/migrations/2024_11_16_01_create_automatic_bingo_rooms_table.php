@@ -28,7 +28,7 @@ return new class extends Migration
             $table->double('num_serials', 2)->nullable();
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
-            $table->boolean('status')->default(0);
+            $table->string('status', 1)->default(0);
             $table->timestamps();
         });
     }

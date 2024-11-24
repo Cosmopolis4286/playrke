@@ -1461,7 +1461,7 @@ trait BingoTrait
         ]);
     }
 
-    public function verifyExistenceOfSales($coin = '', $user)
+    public function verifyExistenceOfSales($coin = '', $user, $room = '')
     {
         if ($coin) {
             try {
@@ -1469,13 +1469,21 @@ trait BingoTrait
                 $coin = decrypt($coin);
                 return ['return' => false, 'coin' => $coin];
             } catch (DecryptException $e) {
-                $coin = BingoCtnsLot::where($user['type'], $user['id'])->value('coin');
+                $subQueryCoin = BingoCtnsLot::where($user['type'], $user['id']);
+
+                if ($room) $coin = $subQueryCoin->where('room', $room);
+
+                $coin = $subQueryCoin->value('coin');
             }
         } else {
-            $coin = BingoCtnsLot::where($user['type'], $user['id'])->value('coin');
+            $subQueryCoin = BingoCtnsLot::where($user['type'], $user['id']);
+
+            if ($room) $coin = $subQueryCoin->where('room', $room);
+
+            $coin = $subQueryCoin->value('coin');
         }
 
-        if (!$coin) {
+        if (!$coin && !$room) {
             switch ($user['type']) {
                 case 'commerce':
                     $coin = Commerce::getValueById($user['id'], 'coin');

@@ -32,7 +32,6 @@
                                                     href="{{ route('seller.reportSalesByRoom', [
                                                         'room' => $win->Room->encrypted,
                                                         'coin' => encrypt($win->Coin->id),
-                                                        'dateFilter' => 'today',
                                                     ]) }}">
                                                     {{ $win->Room->encrypted }}
                                                 </a>
@@ -44,8 +43,8 @@
                                             <td>{{ $win->PlayerLink->name }}
                                                 {{ $win->PlayerLink->lastname }}</td>
                                             <td>{{ $win->PlayerLink->Country->name }}</td>
-                                            <td>{{ $coin->long_name }} ({{ $coin->symbol }})</td>
-                                            <td>{{ $coin->symbol }} {{ $win->amount }}</td>
+                                            <td>{{ $coin->long_name }} ({{ $coinSym }})</td>
+                                            <td>{{ $coinSym }} {{ $win->amount }}</td>
                                             <td>{{ $win->Prize->description }}</td>
                                             <td class="align-middle">
                                                 @if ($win->status == 0)
@@ -64,7 +63,7 @@
                                                 <div class="btn-group" role="group" aria-label="Acciones">
                                                     @if ($win->status == 1)
                                                         <button class="btn btn-sm bg-danger notify-ctn-payment"
-                                                            title="Notificar Pago" data-coin_sym="{{ $win->Coin->symbol }}"
+                                                            title="Notificar Pago" data-coin_sym="{{ $win->coinSym }}"
                                                             data-prize_amount="{{ $win->amount }}"
                                                             data-ctn='{{ encrypt($win->ctn) }}'>
                                                             <i class="fa-solid fa-circle-dollar-to-slot mr-1"></i>
@@ -83,7 +82,7 @@
                                 <tfoot>
                                     <tr>
                                         <td colspan="5" class="text-right"><b>Total:</b></td>
-                                        <td>{{ $coin->symbol }} {{ $winners->sum('amount') }}</td>
+                                        <td>{{ $coinSym }} {{ $winners->sum('amount') }}</td>
                                         <td colspan="3"></td>
                                     </tr>
                                 </tfoot>

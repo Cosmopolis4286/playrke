@@ -27,5 +27,10 @@
             class="btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}">
             <i class="fas fa-eye"></i> Ver Salas
         </a>
+    @else
+        <a href="{{ $activeRooms ? $GMRoute : '#' }}"
+            class="btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}">
+            <i class="fa-solid fa-bolt"></i> Ejecutar Job
+        </a>
     @endif
 </div>

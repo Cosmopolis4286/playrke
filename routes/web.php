@@ -368,11 +368,6 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 
     Route::get('rooms/{creatorType}/{userID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
 
-    // Route::get('rooms/cust/{user}/{coin?}', [BingoController::class, 'allCustomerRooms'])->name('all-customer-rooms');
-
-    // Route::get('rooms/{coin?}', [BingoController::class, 'allCommerceRooms'])
-    //     ->middleware(['auth', 'commerce'])->name('all-commerce-rooms');
-
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
         ->middleware(['auth', 'admin'])->name('game-rooms-admin');
 

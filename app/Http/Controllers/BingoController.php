@@ -1371,7 +1371,7 @@ class BingoController extends Controller
         $userType = UserType::getValueByPrefix($creatorType, 'id');
 
         $automaticRooms = BingoRoomAutomatic::where('creator_type', $userType)
-            ->where('creator_id', $creatorID)
+            ->where('creator_id', $creatorID)->whereNot('status', 3)
             ->get([
                 'id',
                 'time',
@@ -1489,15 +1489,17 @@ class BingoController extends Controller
                 'jackpot_type' => $request->jackpot_type,
                 'fixed_jackpot_value' => $request->fixed_jackpot_value,
                 'ctn_price' => $request->ctn_price,
-                'room_commn' => $request->room_commn,
-                'serials_commn' => $request->serials_commn,
+                'room_commn' => $request->room_commission,
+                'serials_commn' => $request->serials_commission,
                 'val_serials' => $request->val_serials,
                 'num_serials' => $request->num_serials,
             ]);
             DB::commit();
+            return redirect()->back()->with('message', 'Registro actualizado con éxito')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al crear información de una sala automática: ' . $e->getMessage());
+            return redirect()->back()->with('msg-error', 'Hubo un error al actualizar la información');
         }
     }
 
@@ -1543,19 +1545,15 @@ class BingoController extends Controller
 
     public function deleteAutomaticRoomInfo($id)
     {
-        // Desencriptar el ID
         $id = decrypt($id);
 
         DB::beginTransaction();
 
         try {
-
-            BingoRoomAutomatic::where('id', $id)->delete();
+            BingoRoomAutomatic::where('id', $id)->update(['status' => 3]);
             DB::commit();
-            // Redirigir de vuelta con un mensaje
             return redirect()->back()->with('message', 'La configuración ha sido eliminada')->with('type', 'success');
-        } catch (\Throwable $th) {
-            //throw $th;
+        } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('msg-error', 'Ha ocurrido un error');
         }

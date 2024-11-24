@@ -37,9 +37,9 @@
                                             </td>
                                             <td>{{ $ctn->PlayerLink->name }} {{ $ctn->PlayerLink->lastname }}</td>
                                             <td>{{ $ctn->PlayerLink->Country->name }}</td>
-                                            <td>{{ $coin->long_name }}</td>
+                                            <td>{{ $coin->coinISOCode }} ({{ $coinSym }})</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coin->symbol }} {{ $ctn->sale_amount }}</td>
+                                            <td>{{ $coinISOCode }} {{ $ctn->sale_amount }}</td>
                                             <td>{{ $ctn->created_at->format('d/m/y H:i:s') }}<small
                                                     class="ml-1">GMT-4</small></td>
                                             <td>
@@ -71,7 +71,7 @@
                                                 <b>Total:</b>
                                             </td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
-                                            <td>{{ $coin->symbol }} {{ $ctnsSold->sum('sale_amount') }}</td>
+                                            <td>{{ $coinISOCode }} {{ $ctnsSold->sum('sale_amount') }}</td>
                                             <td colspan="2"></td>
                                         </tr>
                                     @endif
@@ -95,8 +95,8 @@
     @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/rke/payment-confirm-button.js'])
     <script>
         const name = '{{ $name }}';
-        const coin = '{{ $coinId }}';
-        const coinName = '{{ $coin->short_name }}';
+        const coin = '{{ $coin }}';
+        const coinName = '{{ $coinName }}';
         const allPendingCtnSale = '{{ $allPendingCtnSale }}';
         const commerceName = '{{ $commerceName }}';
         let allNotifyCtns = false;
