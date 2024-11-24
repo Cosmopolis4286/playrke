@@ -13,7 +13,6 @@
                 ])
                 @include('includes.date-filter-buttons', [
                     'routeWithCoin' => 'commerce.getBingoWinnersByOtherCommerces',
-                    'dateFilter' => $dateFilter,
                 ])
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
@@ -53,9 +52,9 @@
                 .fail((jqXHR, textStatus, errorThrown) => {});
         }
 
-        
 
-        
+
+
         $(document).on("click", ".notify-ctn-payment", function() {
             const data = $(this).data();
             const countCommerces = data.count_commerce;

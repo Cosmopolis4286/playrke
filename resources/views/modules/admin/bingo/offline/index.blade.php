@@ -5,11 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'coins' => $coins,
-                    'routeWithCoin' => 'seller.reportSalesRoom',
-                    'coin' => $coin,
-                ])
+                @include('includes.coin-tabs')
                 <div class="btn-group" role="group" aria-label="Basic example">
                     <button type="button" class="btnBingo btn btn-sm btn-success" data-type="1">
                         <i class="fas fa-plus-square"></i> Crear

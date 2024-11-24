@@ -13,7 +13,6 @@
                 ])
                 @include('includes.date-filter-buttons', [
                     'routeWithCoin' => 'commerce.getBingoWinnersByCommerce',
-                    'dateFilter' => $dateFilter,
                 ])
                 <div class="tab-content">
                     <div class="tab-pane fade show active">

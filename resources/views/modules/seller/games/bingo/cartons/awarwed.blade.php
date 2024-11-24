@@ -5,17 +5,8 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'coins' => $coins,
-                    'routeWithCoin' => 'seller.ctnsAwarded',
-                    'coin' => $coin->id,
-                    'dateFilter' => $dateFilter,
-                ])
-                @include('includes.date-filter-buttons', [
-                    'routeWithCoin' => 'seller.ctnsAwarded',
-                    'dateFilter' => $dateFilter,
-                    'coin' => $coin->id,
-                ])
+                @include('includes.coin-tabs')
+                @include('includes.date-filter-buttons', ['routeWithCoin' => 'seller.ctnsAwarded'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-3">

@@ -3,22 +3,10 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('includes.card-header', ['cardTitle' => $cardTitle])
+            @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'routeWithCoin' => 'seller.reportSalesByRoom',
-                    'dateFilter' => $dateFilter,
-                    'room' => $generateUniqueCodeed,
-                    'coin' => $coinId,
-                    'coins' => $coins,
-                ])
-                @include('includes.date-filter-buttons', [
-                    'routeWithCoin' => 'seller.reportSalesByRoom',
-                    'dateFilter' => $dateFilter,
-                    'room' => $generateUniqueCodeed,
-                    'coin' => $coinId,
-                    'coins' => $coins,
-                ])
+                @include('includes.coin-tabs')
+                @include('includes.date-filter-buttons', ['routeWithCoin' => 'seller.reportSalesByRoom'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-3">

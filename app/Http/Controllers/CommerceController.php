@@ -442,9 +442,14 @@ class CommerceController extends Controller
             ];
         }
 
+        $routeWithCoin = [
+            'route' => 'commerce.reportSalesRooms',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
+
         return view(
             'modules.commerce.games.bingo.report.rooms',
-            compact('title', 'wallet', 'rooms', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
+            compact('title', 'wallet', 'rooms', 'routeWithCoin', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
         );
     }
 
@@ -469,12 +474,12 @@ class CommerceController extends Controller
     }
 
 
-    public function reportSalesByRoom($room, $coin)
+    public function reportSalesByRoom($roomID, $coin)
     {
         $wallet = $this->wallet();
         $commerce = $this->commerce('id')->id;
 
-        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'ctn_price', 'encrypted', 'commerce']);
+        $room = BingoRoom::getRoomByEncrypted($roomID, ['id', 'ctn_price', 'encrypted', 'commerce']);
 
         if ($room->commerce != $commerce || !$room->commerce) {
             return redirect()->back();
@@ -503,6 +508,11 @@ class CommerceController extends Controller
 
         $coins = $this->getCommerceCoins($commerce, '', ['CtnsLot', 'Coin']);
 
+        $routeWithCoin = [
+            'route' => 'commerce.reportSalesByRoom',
+            'parameters' => ['room' => $roomID]
+        ];
+
         return view('modules/commerce/games/bingo/report/by-room')->with([
             'title' => "Reporte de Sala",
             'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
@@ -511,6 +521,7 @@ class CommerceController extends Controller
             'sellers' => $sellers,
             'comCommerceRm' => BingoRoomConfig::getValueByRoom($room->id, 'room_commn') / 100,
             'room' => $room->encrypted,
+            'routeWithCoin' => $routeWithCoin,
             'coin' => $coin,
             'coins' => $coins
         ]);
@@ -755,9 +766,14 @@ class CommerceController extends Controller
 
         $coins = $this->getCommerceCoins($commerce, $dateFilter, ['CtnsLot', 'Coin']);
 
+        $routeWithCoin = [
+            'route' => 'commerce.ctnsSold',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
+
         return view(
             'modules.commerce.games.bingo.cartons.ctns-sold',
-            compact('title', 'wallet', 'ctnsSold', 'dateFilter', 'coin', 'coinSym', 'coins')
+            compact('title', 'wallet', 'ctnsSold', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coins')
         );
     }
 

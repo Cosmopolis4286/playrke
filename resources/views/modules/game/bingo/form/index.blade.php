@@ -5,12 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'coins' => $coins,
-                    'routeWithCoin' => $routeWithCoin,
-                    'coin' => $coin,
-                    'userToken' => $userToken ?? false,
-                ])
+                @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
                 @include('includes.game.bingo.report.btn-group', ['automaticRoom' => true])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">

@@ -5,17 +5,8 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'routeWithCoin' => 'seller.ctnsSold',
-                    'dateFilter' => $dateFilter,
-                    'coin' => $coin->id,
-                    'coins' => $coins,
-                ])
-                @include('includes.date-filter-buttons', [
-                    'routeWithCoin' => 'seller.ctnsSold',
-                    'dateFilter' => $dateFilter,
-                    'coin' => $coin->id,
-                ])
+                @include('includes.coin-tabs')
+                @include('includes.date-filter-buttons', ['routeWithCoin' => 'seller.ctnsSold'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @if ($ctnsSold->count() > 1 && $pendingCtns > 1)

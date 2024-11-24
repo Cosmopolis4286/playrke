@@ -5,12 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'coins' => $coins,
-                    'routeWithCoin' => $routeWithCoin,
-                    'coin' => $coin,
-                    'userToken' => $userToken ?? false,
-                ])
+                @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
                 <div class="d-flex justify-content-between">
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
                         <i class="fas fa-plus-square"></i> Crear
