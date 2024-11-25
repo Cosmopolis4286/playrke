@@ -18,9 +18,9 @@ return new class extends Migration
             $table->string('days')->nullable();
             $table->string('time', 10);
             $table->foreignId('game_mode')->constrained('game_modes')->onDelete('cascade');
+            $table->tinyInteger('room_type')->default(1);
             $table->foreignId('jackpot_type')->constrained('jackpot_types')->onDelete('cascade')->default(1);
             $table->double('fixed_jackpot_value')->nullable();
-            $table->double('jackpot')->default(0);
             $table->double('ctn_price');
             $table->double('room_commn')->default(0);
             $table->double('serials_commn')->default(0);

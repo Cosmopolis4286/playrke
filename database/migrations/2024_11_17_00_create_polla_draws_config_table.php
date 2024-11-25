@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('draw')->constrained('polla_draws')->onDelete('cascade'); 
             $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('status')->default(1);
-            $table->boolean('all_for_one')->default(1);
+            $table->tinyInteger('room_type')->default(1);
             $table->timestamps();
         });
     }

@@ -96,7 +96,7 @@
 
             if (creatorType !== 'customer' && arrRoomType.length) {
                 $.each(arrRoomType, function(index, item) {
-                    const isSelected = (type == 2 && item.id == data.room.all_for_one) ? 'selected' : '';
+                    const isSelected = (type == 2 && item.id == data.room.room_type) ? 'selected' : '';
                     roomType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
                 });
             }

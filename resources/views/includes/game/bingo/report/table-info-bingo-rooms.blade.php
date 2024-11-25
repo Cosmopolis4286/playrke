@@ -30,7 +30,7 @@
                             'coin' => encrypt($coin),
                         ]);
                     } else {
-                        if ($room->all_for_one == 1) {
+                        if ($room->room_type == 2) {
                             $roomRoute = route('bingocash.out-game-rke', ['room' => $roomID]);
                         } else {
                             $roomRoute = route('bingocash.out-game-commerce', [

@@ -691,7 +691,7 @@ trait BingoTrait
     public function handleCartonStore($data)
     {
         $room = BingoRoom::with(['Config:room,jackpot_type'])
-            ->select('id', 'all_for_one', 'status')
+            ->select('id', 'room_type', 'status')
             ->where('encrypted', $data['room'])->first();
 
         if ($room->status > 2) {
@@ -775,7 +775,7 @@ trait BingoTrait
 
             if (!isset($responseCtns['Error'])) {
                 DB::commit();
-                return $seller ? $this->getGameLinkByPlayer($commerce, $playerLink, $room->all_for_one) : true;
+                return $seller ? $this->getGameLinkByPlayer($commerce, $playerLink, $room->room_type) : true;
             } else {
                 DB::rollBack();
                 return $responseCtns;

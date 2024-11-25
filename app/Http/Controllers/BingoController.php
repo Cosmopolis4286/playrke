@@ -474,7 +474,7 @@ class BingoController extends Controller
                     }
                 }
 
-                $room = BingoRoom::getRoomById($roomID, ['status', 'all_for_one', 'ctn_price']);
+                $room = BingoRoom::getRoomById($roomID, ['status', 'room_type', 'ctn_price']);
 
                 $moreViewData = [
                     'player' => (isset($roomUser) && $roomUser) ? true : false,
@@ -977,6 +977,7 @@ class BingoController extends Controller
             $createData = [
                 'game_mode' => $request->game_mode,
                 'status' => 1,
+                'creation' => 'M',
                 'date' => $request->date,
                 'time' => $request->time,
                 'unix_date' => strtotime("{$request->date} {$request->time}"),
@@ -985,7 +986,7 @@ class BingoController extends Controller
                 'ctn_price' => $request->ctn_price,
                 'jackpot' => $boat,
                 'encrypted' => $this->generateUniqueCode('bingo_rooms'),
-                'all_for_one' => $request->room_type ?? 0
+                'room_type' => $request->room_type ?? 1
             ];
 
             if ($creatorType === 'commerce') {
@@ -1052,7 +1053,7 @@ class BingoController extends Controller
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
                 'jackpot' => $room->jackpot + $boat,
-                'all_for_one' => $request->room_type ?? 0
+                'room_type' => $request->room_type ?? 1
             ];
 
             // Solo añadir 'game_mode' si el jackpot es 0
@@ -1158,6 +1159,7 @@ class BingoController extends Controller
         $createData = [
             'game_mode' => $existingRoom->game_mode,
             'status' => 1,
+            'creation' => 'M',
             'date' => $existingRoom->date,
             'time' => $existingRoom->time,
             'unix_date' => strtotime("{$existingRoom->date} {$existingRoom->time}"),
@@ -1166,7 +1168,7 @@ class BingoController extends Controller
             'ctn_price' => $existingRoom->ctn_price,
             'jackpot' => $boat,
             'encrypted' => $this->generateUniqueCode('bingo_rooms'),
-            'all_for_one' => $existingRoom->room_type
+            'room_type' => $existingRoom->room_type
         ];
 
         if ($existingRoom->commerce) {
@@ -1376,6 +1378,7 @@ class BingoController extends Controller
                 'id',
                 'time',
                 'game_mode',
+                'room_type',
                 'jackpot_type',
                 'fixed_jackpot_value',
                 'ctn_price',
@@ -1456,6 +1459,7 @@ class BingoController extends Controller
             BingoRoomAutomatic::create([
                 'time' => $request->time,
                 'game_mode' => $request->game_mode,
+                'room_type' => $request->room_type,
                 'jackpot_type' => $request->jackpot_type,
                 'fixed_jackpot_value' => $request->fixed_jackpot_value,
                 'ctn_price' => $request->ctn_price,
@@ -1486,6 +1490,7 @@ class BingoController extends Controller
             BingoRoomAutomatic::where('id', $id)->update([
                 'time' => $request->time,
                 'game_mode' => $request->game_mode,
+                'room_type' => $request->room_type,
                 'jackpot_type' => $request->jackpot_type,
                 'fixed_jackpot_value' => $request->fixed_jackpot_value,
                 'ctn_price' => $request->ctn_price,
@@ -1510,6 +1515,7 @@ class BingoController extends Controller
         $room = BingoRoomAutomatic::select(
             'time',
             'game_mode',
+            'room_type',
             'jackpot_type',
             'fixed_jackpot_value',
             'ctn_price',

@@ -323,10 +323,10 @@ class SellerController extends Controller
 
         $this->checkRoomClosure();
 
-        $rooms = BingoRoom::select('encrypted', 'all_for_one', 'unix_date')
+        $rooms = BingoRoom::select('encrypted', 'room_type', 'unix_date')
             ->where('status', 2)->where('game_mode', 2)->where(function ($query) use ($seller) {
                 $query->where('commerce', $seller->commerce)
-                    ->orWhere('all_for_one', 1);
+                    ->orWhere('room_type', 2);
             })->orderBy('date')->orderBy('time')->get();
 
         return view('modules/seller/games/bingo/cartons/generate')->with([
@@ -390,14 +390,14 @@ class SellerController extends Controller
     {
         switch ($request->game) {
             case 'BINGO':
-                $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'commerce', 'all_for_one']);
+                $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'commerce', 'room_type']);
 
                 $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
                     ->where(['phone' => $request->player_info, 'game' => 1, 'room' => $room->id])->first();
 
                 if (!$player)  return response()->json(['response' => false]);
 
-                $route = $this->getGameLinkByPlayer($room->commerce, $player->link, $room->all_for_one);
+                $route = $this->getGameLinkByPlayer($room->commerce, $player->link, $room->room_type);
                 $ctnsPlayer = BingoCtns::where(['player_link' => $player->id, 'room' => $room->id])->count();
 
                 return response()->json([

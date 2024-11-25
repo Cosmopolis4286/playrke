@@ -18,7 +18,8 @@ return new class extends Migration
             $table->unsignedBigInteger('commerce')->nullable();
             $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('status')->default(1);
-            $table->boolean('all_for_one')->default(0);
+            $table->enum('creation', ['M', 'A'])->default('M');
+            $table->tinyInteger('room_type')->default(1);
             $table->boolean('paid_win')->default(0);
             $table->date('date');
             $table->string('time', 10);
