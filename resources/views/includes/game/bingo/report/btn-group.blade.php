@@ -28,9 +28,8 @@
             <i class="fas fa-eye"></i> Ver Salas
         </a>
     @else
-        <a href="{{ $activeRooms ? $GMRoute : '#' }}"
-            class="btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}">
+        <button type="button" id="btn-execute-job" class="btn btn-sm btn-primary {{ $rooms ? '' : 'disabled' }}">
             <i class="fa-solid fa-bolt"></i> Ejecutar Job
-        </a>
+        </button>
     @endif
 </div>

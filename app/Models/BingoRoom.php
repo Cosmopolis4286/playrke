@@ -14,7 +14,7 @@ class BingoRoom extends Model
     'subsidiary',
     'status',
     'creation',
-    'room_type',
+    'all_for_one',
     'paid_win',
     'date',
     'time',

@@ -30,6 +30,7 @@ use App\Models\Room;
 use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
+use App\Services\AutoGenerateBingoRooms;
 use App\Traits\BingoTrait;
 use App\Traits\CustomerTrait;
 use App\Traits\Filters;
@@ -42,6 +43,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use PDO;
 
 class BingoController extends Controller
 {
@@ -1391,6 +1393,11 @@ class BingoController extends Controller
 
         $activeRooms = BingoRoom::where($creator['type'], $creatorID)->whereIn('status', [2, 3])->exists();
 
+        $routeExecuteGenerateBingoRoomsJob = route(
+            'bingo.automatic-room.executeGenerateBingoRoomsJob',
+            ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
+        );
+
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo AUTO',
@@ -1399,6 +1406,7 @@ class BingoController extends Controller
             'creator' => $creator,
             'rooms' => $automaticRooms,
             'activeRooms' => $activeRooms,
+            'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
             'jackpotType' => JackpotType::all(),
@@ -1562,6 +1570,43 @@ class BingoController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('msg-error', 'Ha ocurrido un error');
+        }
+    }
+
+    public function executeGenerateBingoRoomsJob($creatorType, $creatorID)
+    {
+        $creatorID = decrypt($creatorID);
+
+        switch ($creatorType) {
+            case 'admin':
+                //$existsCreator = Admin::existsValue('id', $creatorID);
+                break;
+            case 'commerce':
+                $existsCreator = Commerce::existsValue('id', $creatorID);
+                break;
+            case 'customer':
+                $existsCreator = Customer::existsValue('id', $creatorID);
+                break;
+            default:
+                $existsCreator = false;
+                break;
+        }
+
+        if (!$existsCreator) {
+            return redirect()->back()->with('message', 'El creador no existe')->with('type', 'warning');
+        }
+
+        $creatorType = UserType::getValueByPrefix($creatorType, 'id');
+
+        $creator = ['type' => $creatorType, 'id' => $creatorID];
+
+        $service = new AutoGenerateBingoRooms();
+        $response = $service->createBingoRooms($creator);
+
+        if ($response) {
+            return response()->json(['message' => 'Salas creadas correctamente']);
+        } else {
+            return response()->json(['message' => 'Ha ocurrido un error']);
         }
     }
 }

@@ -3,6 +3,7 @@
     <table class="table table-striped table-bordered my-2 w-100">
         <thead>
             <tr>
+                <th>Tipo</th>
                 <th>Modo</th>
                 <th>Hora</th>
                 <th>CTN</th>
@@ -18,9 +19,12 @@
         <tbody>
             @foreach ($rooms as $room)
                 <tr>
+                    <td>
+                        {{ $room->room_type == 2 ? 'Publica' : 'Privada' }}
+                    </td>
                     <td>{{ $room->GameMode->description }}</td>
                     <td>{{ $room->time }} H</td>
-                    <td>USDT {{ $room->ctn_price }}</td>
+                    <td>USDT&nbsp{{ $room->ctn_price }}</td>
                     <td>{{ $room->JackpotType->description }}</td>
                     <td>{{ $room->room_commn }}%</td>
                     <td>{{ $room->val_serials }}%</td>

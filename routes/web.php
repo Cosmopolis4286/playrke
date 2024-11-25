@@ -397,6 +397,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::put('automatic-room/change-status/{id}', [BingoController::class, 'changeStatusAutomaticRoomInfo'])->name('automatic-room.change-status');
     Route::put('automatic-room/delete/{id}', [BingoController::class, 'deleteAutomaticRoomInfo'])->name('automatic-room.delete');
     Route::put('automatic-room/copy/{id}', [BingoController::class, 'copyAutomaticRoomInfo'])->name('automatic-room.copy');
+    Route::get('automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorID}', [BingoController::class, 'executeGenerateBingoRoomsJob'])->name('automatic-room.executeGenerateBingoRoomsJob');
 
     // Rutas de Salas Publicas
     Route::get('public-rooms/{creatorType}/{creatorID}', [BingoController::class, 'allPublicRooms'])

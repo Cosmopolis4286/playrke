@@ -27,6 +27,7 @@
 @section('scripts')
     <script>
         const name = '{{ $name }}';
+        const routeGenerateBingoRoomsJob = @json($routeGenerateBingoRoomsJob);
         const creatorType = @json($creator['type'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
@@ -44,6 +45,30 @@
                 $("#fixed-jackpot-value").empty();
             }
         }
+
+        $(document).on('click', '#btn-execute-job', function() {
+            const btnExecuteJob = $(this);
+
+            // Deshabilitar el botón
+            btnExecuteJob.prop('disabled', true);
+
+            // Realizar la solicitud
+            $.getJSON(routeGenerateBingoRoomsJob, {
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
+                })
+                .done(res => {
+                    const message = res.message || 'Operación exitosa.';
+                    showToast(message, 'success');
+                })
+                .fail(err => {
+                    const message = err.responseJSON?.message || 'Ha ocurrido un error.';
+                    showToast(message, 'warning');
+                })
+                .always(() => {
+                    // Habilitar el botón independientemente del resultado
+                    btnExecuteJob.prop('disabled', false);
+                });
+        });
 
         $(document).on('change', '#jackpot-type', function() {
             changeFixedJackpot($(this).val());
