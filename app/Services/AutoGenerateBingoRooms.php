@@ -34,35 +34,31 @@ class AutoGenerateBingoRooms
         DB::beginTransaction();
 
         try {
+
             $timestamp = now();
             $currentDate = $timestamp->format('Y-m-d');
 
             foreach ($automaticRooms as $room) {
+
                 $creatorType = UserType::getValueById($room->creator_type, 'prefix');
                 $creatorID = $room->creator_id;
 
-                $existingRoomToday = BingoRoom::where($creatorType, $creatorID)
-                    ->where('date', $currentDate)
-                    ->where('time', $room->time)
-                    ->where('status', '>', 1)
-                    ->exists();
+                $roomTime = $room->time;
+                $roomCtnPrice = $room->ctn_price;
+
+                $existingRoomToday = $this->existingRoom($creatorType, $creatorID, $currentDate, $roomTime, $roomCtnPrice);
 
                 $roomDate = $existingRoomToday ? $timestamp->copy()->addDay()->format('Y-m-d') : $currentDate;
 
                 // Verificar si existe una sala al día siguiente con las mismas condiciones
                 if ($existingRoomToday) {
-                    $existingRoomNextDay = BingoRoom::where($creatorType, $creatorID)
-                        ->where('date', $roomDate)
-                        ->where('time', $room->time)
-                        ->where('status', '>', 1)
-                        ->exists();
-                    if ($existingRoomNextDay) {
+                    if ($this->existingRoom($creatorType, $creatorID, $roomDate, $roomTime, $roomCtnPrice)) {
                         continue; // Saltar si ya existe la sala
                     }
                 }
 
                 // Verificar si el horario esta disponible
-                $unixDate = strtotime("{$roomDate} {$room->time}");
+                $unixDate = strtotime("{$roomDate} {$roomTime}");
 
                 if (time() + 900 >= $unixDate) {
                     continue;
@@ -70,14 +66,14 @@ class AutoGenerateBingoRooms
 
                 $roomData = [
                     'date' => $roomDate,
-                    'time' => $room->time,
+                    'time' => $roomTime,
                     'unix_date' => $unixDate,
                     'game_mode' => $room->game_mode,
-                    'ctn_price' => $room->ctn_price,
+                    'ctn_price' => $roomCtnPrice,
                     $creatorType => $creatorID,
                     'status' => 2,
                     'creation' => 'A',
-                    'publication_date' => "{$roomDate} {$room->time}",
+                    'publication_date' => "{$roomDate} {$roomTime}",
                     'encrypted' => $this->generateUniqueCode('bingo_rooms'),
                     'room_type' => $room->room_type,
                     'created_at' => $timestamp,
@@ -108,8 +104,17 @@ class AutoGenerateBingoRooms
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error en la creación de salas de bingo: ' . $e->getMessage());
-            dd($e->getMessage());
             return false;
         }
+    }
+
+    private function existingRoom($creatorType, $creatorID, $date, $time, $ctnPrice)
+    {
+        return BingoRoom::where($creatorType, $creatorID)
+            ->where('date', $date)
+            ->where('time', $time)
+            ->where('ctn_price', $ctnPrice)
+            ->where('status', '>', 1)
+            ->exists();
     }
 }

@@ -37,10 +37,10 @@ class ExchangeRateController extends Controller
                     $isLogin = true;
 
                     $moreViewData = ['wallet' => $this->wallet()];
-                    $customer = $customer->id;
+                    $creatorID = $customer->id;
                 }
 
-                $exchangeRate = CustomerExchangeRate::where('customer', $customer)->where('status', '<>', 3)->get();
+                $exchangeRate = CustomerExchangeRate::where('customer', $creatorID)->where('status', '<>', 3)->get();
                 break;
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user']);
