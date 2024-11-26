@@ -106,8 +106,6 @@
 
                 if (creatorType !== 'customer' && arrRoomType.length) {
                     roomType.append(defaultOption);
-                } else {
-                    roomType.append(`<option value="0" selected>Privada</option>`);
                 }
 
                 if (arrGameModes.length > 1 && creatorType !== 'customer') {

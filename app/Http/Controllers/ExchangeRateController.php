@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Coin;
-use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;

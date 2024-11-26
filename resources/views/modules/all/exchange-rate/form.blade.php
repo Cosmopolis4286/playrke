@@ -8,8 +8,7 @@
 </div>
 <div class="form-group">
     <label for="exchange-rate">Cambio*</label>
-    <input type="number" readonly step="0.01" min="0.01" id="exchange-rate" class="form-control"
-        name="exchange_rate">
+    <input type="number" step="0.01" min="0.01" id="exchange-rate" class="form-control" name="exchange_rate">
     <input type="hidden" id="creator" name="creator" value="{{ json_encode($creator) }}">
 </div>
 <div id="alert-exchange-rate" class="alert alert-danger fade show text-center hide-elem" role="alert">

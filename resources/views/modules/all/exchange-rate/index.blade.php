@@ -1,7 +1,7 @@
 @extends($layout)
 @section('title', $title)
 @section('content')
-    <div class="col-12 @if (isset($cus)) p-2 @endif">
+    <div class="col-12">
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
@@ -195,7 +195,6 @@
                             exchangeRateMin = (coinValue - 2).toFixed(2);
                         }
                         if (!update) exchangeRate.val(coinValue);
-                        exchangeRate.prop('readonly', false);
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         // Manejar errores aquí si es necesario
@@ -235,7 +234,6 @@
                 $("#coin").trigger('change');
                 $("#alert-exchange-rate").removeClass('hide-elem');
             } else {
-                exchangeRate.prop('readonly', false);
                 $('#creator').prop('disabled', false);
             }
 
