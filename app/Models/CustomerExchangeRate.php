@@ -34,9 +34,10 @@ class CustomerExchangeRate extends Model
         return self::where('customer', $customer)->where('coin', $coin)->orderByDesc('id')->value($value);
     }
 
-    public static function getAllExchangeRates()
+    public static function getAllExchangeRates($customer)
     {
-        return self::where('status', 1)->orderByDesc('id')->get(['coin', 'exchange_rate']);
+        return self::where('customer', $customer)->where('status', 1)
+            ->orderByDesc('id')->get(['coin', 'exchange_rate']);
     }
 
     public static function getValuesByCoin($coin)

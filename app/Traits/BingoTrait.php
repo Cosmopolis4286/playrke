@@ -791,12 +791,7 @@ trait BingoTrait
             if (!BingoPrizeCtns::existsPrizeCtn($roomID, 1, $playerColumn, $playerColumnVal)) {
 
                 // Verificar y obtener el tipo de cambio
-                $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $cartons[0]->coin) ?? 1;
-
-                if (!$exchangeRate) {
-                    $this->insertGameExchangeRate($roomID, 'BINGO');
-                    $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $cartons[0]->coin);
-                }
+                $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $ctn->coin) ?? 1;
 
                 $prizeWn = number_format($USDValue * $exchangeRate, 3, '.', '');
                 $timestamp = now();

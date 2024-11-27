@@ -491,9 +491,6 @@ class BingoController extends Controller
                 break;
         }
 
-        dd($this->convertPrizeValue($roomID, $coinID));
-
-
         // Verificar Cierre de Sala
         $this->checkRoomClosure($roomID);
 
@@ -1502,7 +1499,6 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'Registro creado con éxito')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
             Log::error('Error al crear información de una sala automática: ' . $e->getMessage());
             return redirect()->back()->with('msg-error', 'Hubo un error al crear la información');
         }

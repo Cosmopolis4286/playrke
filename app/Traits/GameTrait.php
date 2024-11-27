@@ -35,21 +35,24 @@ trait GameTrait
 
         // Obtener ExchangeRates (Tasas de Cambio)
         if ($creatortType === 'commerce') {
-            $exchangeRates = CommerceExchangeRate::getCommerceCoinValue($creatorID);
+            $exchangeRates = CommerceExchangeRate::getAllExchangeRates($creatorID);
         } else if ($creatortType === 'customer') {
-            $exchangeRates = CustomerExchangeRate::getCustomerCoinValue();
+            $exchangeRates = CustomerExchangeRate::getAllExchangeRates($creatorID);
         }
 
         $timestamp = Carbon::now();
 
         $recordsToInsert = $coinsInGameRoom->map(function ($coin) use ($exchangeRates, $gameID, $room, $timestamp) {
+            // Verificar la existencia de la tasa de cambio en la sala de juego
             if (!GameExchangeRate::existsGameExchangeRate($gameID, $room, $coin)) {
-                $averageExchangeRate = $exchangeRates->where('coin', $coin)->avg('value');
+                // Definir tasa de cambio para la sala de juego respecto a la moneda
+                $roomExchangeRate = $exchangeRates->where('coin', $coin)->avg('exchange_rate');
+
                 return [
                     'game' => $gameID,
                     'room' => $room,
                     'coin' => $coin,
-                    'exchange_rate' => $averageExchangeRate,
+                    'exchange_rate' => $roomExchangeRate,
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp
                 ];
