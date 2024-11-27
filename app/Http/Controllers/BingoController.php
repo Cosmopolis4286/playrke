@@ -1008,7 +1008,7 @@ class BingoController extends Controller
                 // Registar el creador de la sala
                 BingoCreator::create([
                     'room' => $roomID,
-                    'creator_type' => $creatorType,
+                    'creator_type' => UserType::getValueByPrefix($creatorType, 'id'),
                     'creator_id' => $creatorID,
                     'creator_commn' => $request->room_commission,
                     'ctn_price' => $request->ctn_price,
@@ -1029,6 +1029,7 @@ class BingoController extends Controller
                 return redirect()->back()->with('message', 'Sala creada con éxito')->with('type', 'success');
             } catch (\Exception $e) {
                 DB::rollBack();
+                Log::error('Error al crear la sala: ' . $e->getMessage());
                 return redirect()->back()->with('msg-error', 'Hubo un problema al crear la sala: ' . $e->getMessage());
             }
         }
@@ -1201,7 +1202,7 @@ class BingoController extends Controller
             // Registar el creador de la sala
             BingoCreator::create([
                 'room' => $newRoom,
-                'creator_type' => $existingRoom->commerce ? 'commerce' : 'customer',
+                'creator_type' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
                 'creator_id' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
                 'creator_commn' => $existingRoomConfig->room_commn,
                 'ctn_price' => $existingRoom->ctn_price,
