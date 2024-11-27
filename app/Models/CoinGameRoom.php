@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class CoinGameRoom extends Model
 {
@@ -19,22 +20,33 @@ class CoinGameRoom extends Model
         return $this->belongsTo(Coin::class, 'coin');
     }
 
-    public static function registerNewCoinInRoom($game, $room, $coin)
+    public static function createNewCoinInRoom($game, $room, $coin)
     {
-        $gameID = Games::getValueByName($game['name']);
+        try {
+            // Obtener el ID del juego
+            $gameID = Games::getValueByName($game['name']);
 
-        self::create([
-            'game' => $gameID,
-            'game_mode' => $game['game_mode'],
-            'room' => $room,
-            'coin' => $coin
-        ]);
+            // Crear el nuevo registro
+            self::create([
+                'game' => $gameID,
+                'game_mode' => $game['game_mode'],
+                'room' => $room,
+                'coin' => $coin,
+            ]);
+            return true;
+        } catch (\Exception $e) {
+            // Registrar error en el log si la creación falla
+            Log::error('Error al crear nueva moneda en la sala: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public static function existsCoinGameRoom($coin, $room, $game, $gameMode = '')
     {
+        $gameID = Games::getValueByName($game);
+
         // Iniciar la consulta
-        $query = self::where('coin', $coin)->where('room', $room)->where('game', $game);
+        $query = self::where('coin', $coin)->where('room', $room)->where('game', $gameID);
 
         // Añadir condicionalmente el filtro de 'game_mode'
         if ($gameMode) {

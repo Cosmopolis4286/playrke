@@ -39,7 +39,7 @@ class ExchangeRateController extends Controller
                     $creatorID = $customer->id;
                 }
 
-                $exchangeRate = CustomerExchangeRate::where('customer', $creatorID)->where('status', '<>', 3)->get();
+                $exchangeRate = CustomerExchangeRate::getAvailableExchangeRates($creatorID);
                 break;
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user']);
@@ -48,14 +48,14 @@ class ExchangeRateController extends Controller
 
                 $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($creatorID);
 
-                $this->checkBankDirectoriesExistence('commerce', $creatorID, $commerceCoins);
+                $this->checkBankDirectoriesExistence('commerce', $commerceCoins);
 
                 $coins = Coin::whereIn('id', $this->getAvailableCoins($commerce->user))
                     ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($creatorID) {
                         $query->where('commerce', $creatorID);
                     })->get(['id', 'symbol', 'long_name']);
 
-                $exchangeRate = CommerceExchangeRate::where('commerce', $creatorID)->get();
+                $exchangeRate = CommerceExchangeRate::getAvailableExchangeRates($creatorID);
 
                 $isLogin = true;
 

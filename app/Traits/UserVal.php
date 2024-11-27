@@ -113,9 +113,9 @@ trait UserVal
         return $coins;
     }
 
-    public function checkBankDirectoriesExistence($userType, $userID, $coins)
+    public function checkBankDirectoriesExistence($userType, $coins)
     {
-        $coinsWithDirectories = [];
+        $coinsWithoutDirectories = [];
         $user = Auth::id();
 
         foreach ($coins as $coin) {
@@ -123,46 +123,43 @@ trait UserVal
                 case 2:
                     // Bs (Venezuela) PagoMovil
                     $pagomovil = PagoMovil::where('user', $user)->exists();
-                    if ($pagomovil) $coinsWithDirectories[] = $coin;
+                    if (!$pagomovil) $coinsWithoutDirectories[] = $coin;
                     break;
                 case 3:
                     // R$ (Brasil) Pix
                     $pix = Pix::where('user', $user)->exists();
-                    if ($pix) $coinsWithDirectories[] = $coin;
+                    if (!$pix) $coinsWithoutDirectories[] = $coin;
                     break;
                 case 4:
                     // $ (Colombia) Pix
-                    $coinsWithDirectories[] = $coin;
+                    //$coinsWithoutDirectories[] = $coin;
                     break;
                 default:
                     return response()->json(['error' => 'Tipo de moneda no soportado.'], 400);
             }
         }
 
-        switch ($userType) {
-            case 'commerce':
-                DB::beginTransaction();
+        if (in_array($userType, ['commerce', 'admin'])) {
 
-                try {
-                    $query = CommerceExchangeRate::where('commerce', $userID);
+            DB::beginTransaction();
 
-                    if (!empty($coinsWithDirectories)) {
-                        // status => 1 Con directorio registrado
-                        $query->whereIn('coin', $coins)->update(['status' => 1]);
-                    } else {
-                        // status => 2 Sin directorio registrado
-                        $query->update(['status' => 2]);
-                    }
+            try {
 
-                    DB::commit();
-                } catch (\Throwable $th) {
-                    DB::rollBack();
-                    Log::error("Error al cambiar el estado de las monedas sin directorios: {$th->getMessage()}");
+                $commerceID = Commerce::getValueByUserId($user, 'id');
+                $query = CommerceExchangeRate::where('commerce', $commerceID);
+
+                if (count($coinsWithoutDirectories)) {
+                    // status => 2 Sin directorio registrado
+                    $query->whereIn('coin', $coinsWithoutDirectories)->update(['status' => 2]);
+                } else {
+                    $query->update(['status' => 1]);
                 }
-                break;
 
-            default:
-                break;
+                DB::commit();
+            } catch (\Throwable $th) {
+                DB::rollBack();
+                Log::error("Error al cambiar el estado de las monedas sin directorios: {$th->getMessage()}");
+            }
         }
     }
 

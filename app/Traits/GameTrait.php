@@ -2,29 +2,51 @@
 
 namespace App\Traits;
 
+use App\Models\BingoCreator;
 use App\Models\BingoRoom;
 use App\Models\CoinGameRoom;
 use App\Models\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
 use App\Models\ExchangeRate;
 use App\Models\GameExchangeRate;
+use App\Models\Games;
+use App\Models\UserType;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 trait GameTrait
 {
-    public function insertGameExchangeRate($room, $game, $gameMode = '')
+    public function insertGameExchangeRate($room, $game)
     {
+        // Obtener el ID del juego
+        $gameID = Games::getValueByName($game);
+        $gameMode = false;
+
+        if ($game === 'BINGO') {
+            $gameMode = BingoRoom::getValueById($room, 'game_mode');
+            $creator = BingoCreator::getByRoom($room, ['creator_type', 'creator_id']);
+
+            $creatortType = UserType::getValueById($creator->creator_type, 'prefix');
+            $creatorID = $creator->id;
+        }
+
         // Obtener las monedas registradas en la sala de juego
-        $coinsInGameRoom = CoinGameRoom::getCoinsByRoom($game, $room, $gameMode);
+        $coinsInGameRoom = CoinGameRoom::getCoinsByRoom($gameID, $room, $gameMode);
+
+        // Obtener ExchangeRates (Tasas de Cambio)
+        if ($creatortType === 'commerce') {
+            $exchangeRates = CommerceExchangeRate::getCommerceCoinValue($creatorID);
+        } else if ($creatortType === 'customer') {
+            $exchangeRates = CustomerExchangeRate::getCustomerCoinValue();
+        }
 
         $timestamp = Carbon::now();
 
-        $recordsToInsert = $coinsInGameRoom->map(function ($coin) use ($exchangeRates, $game, $room, $timestamp) {
-            if (!GameExchangeRate::existsGameExchangeRate($game, $room, $coin)) {
+        $recordsToInsert = $coinsInGameRoom->map(function ($coin) use ($exchangeRates, $gameID, $room, $timestamp) {
+            if (!GameExchangeRate::existsGameExchangeRate($gameID, $room, $coin)) {
                 $averageExchangeRate = $exchangeRates->where('coin', $coin)->avg('value');
                 return [
-                    'game' => $game,
+                    'game' => $gameID,
                     'room' => $room,
                     'coin' => $coin,
                     'exchange_rate' => $averageExchangeRate,
@@ -41,6 +63,7 @@ trait GameTrait
             return true;
         } catch (\Exception $e) {
             Log::error('Error al insertar en GameExchangeRate: ' . $e->getMessage(), [
+                'game' => $game,
                 'room' => $room,
                 'exception' => $e
             ]);

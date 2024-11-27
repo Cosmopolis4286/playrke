@@ -9,6 +9,7 @@ use App\Models\Games;
 use App\Models\Transactions;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 trait SeamlessWallet
@@ -194,82 +195,94 @@ trait SeamlessWallet
         return $uniqueId;
     }
 
-     // Función para registrar la transacción de cliente afiliado
-     private function registerCustomerTransaction($game = [], $customer, $roomID, $playerUser, $coin, $totalSaleAmount)
-     {
-         try {
-             $transaction = $this->registerTransaction(
-                 $game,
-                 $customer,
-                 $playerUser,
-                 $roomID,
-                 'BET',
-                 $coin,
-                 $totalSaleAmount
-             );
- 
-             if (!$transaction) {
-                 DB::rollBack();
-                 return ['Error' => 'Error al registrar la transacción'];
-             }
- 
-             $transactionResponse = $this->transferMoney(
-                 $transaction->customer,
-                 $transaction->game,
-                 $transaction->user_id,
-                 $transaction->bet_id,
-                 $transaction->coin,
-                 $transaction->amount,
-                 $transaction->code,
-                 $transaction->transaction_type
-             );
- 
-             // Verificar si la respuesta contiene un error
-             if (isset($transactionResponse->Error) && $transactionResponse->Error) {
-                 Log::error("Error al procesar la transacción hacia el cliente: '{$transaction->id}': {$transactionResponse->Error}");
-                 return ['Error' => 'Error al registrar la transacción hacia el cliente'];
-             }
- 
-             if ($transactionResponse) {
-                 // Actualizar la transacción si es exitosa
-                 Transactions::where('id', $transaction->id)->update([
-                     'status' => 1,
-                     'processing_data' => Carbon::now(),
-                     'updated_at' => now(),
-                 ]);
-             }
-         } catch (\Exception $e) {
-             dd($e->getMessage());
-             Log::error('Error al generar transaccion: ' . $e->getMessage());
-         }
-     }
-
-    public function registerTransaction($game = [], $customer, $clientUser, $betId, $type, $coin, $amount, $status = 0)
+    // Funcion para manejar una transaccion tipo "BET"
+    private function handleTransactionByBET(array $game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount)
     {
         try {
+            return DB::transaction(function () use ($game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount) {
+                // Registrar la transacción
+                $transaction = $this->registerTransaction(
+                    $game,
+                    $customer,
+                    $playerUser,
+                    $roomID,
+                    'BET',
+                    $coin,
+                    $totalSaleAmount
+                );
 
-            $code = $this->getTransaction($game[0], $customer, $clientUser);
+                if (!$transaction) {
+                    throw new \Exception('Error al registrar la transacción');
+                }
 
-            $transaction = Transactions::create([
+                // Procesar la transferencia de dinero
+                $transactionResponse = $this->transferMoney(
+                    $transaction->customer,
+                    $transaction->game,
+                    $transaction->user_id,
+                    $transaction->bet_id,
+                    $transaction->coin,
+                    $transaction->amount,
+                    $transaction->code,
+                    $transaction->transaction_type
+                );
+
+                if (isset($transactionResponse->Error) && $transactionResponse->Error) {
+                    $errorMessage = "Error al procesar la transacción '{$transaction->id}': {$transactionResponse->Error}";
+                    Log::error($errorMessage);
+                    throw new \Exception($errorMessage);
+                }
+
+                // Actualizar la transacción como exitosa
+                $transaction->update([
+                    'status' => 1,
+                    'processing_data' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                return ['Success' => true];
+            });
+        } catch (\Exception $e) {
+            Log::error("Error en handleTransactionByBET: " . $e->getMessage());
+            return ['Error' => $e->getMessage()];
+        }
+    }
+
+    // Función para registrar las transacciones del cliente 
+    public function registerTransaction(array $game, $customer, $clientUser, $betId, $type, $coin, $amount, $status = 0)
+    {
+        try {
+            // Validar datos requeridos
+            if (empty($game['name']) || empty($game['game_mode'])) {
+                throw new \InvalidArgumentException('El juego debe tener un nombre y un modo válido.');
+            }
+
+            // Obtener valores necesarios
+            $gameID = Games::getValueByName($game['name']);
+            $code = $this->getTransaction($game['name'], $customer, $clientUser);
+
+            // Crear la transacción
+            return Transactions::create([
                 'customer' => $customer,
                 'user_id' => $clientUser,
-                'game' => $game['game'],
+                'game' => $gameID,
                 'game_mode' => $game['game_mode'],
                 'bet_id' => $betId,
                 'code' => $code, // transaction_id
                 'transaction_type' => $type,
                 'coin' => $coin,
                 'amount' => $amount,
-                'status' => $status
+                'status' => $status,
             ]);
-
-            return $transaction;
+        } catch (\InvalidArgumentException $e) {
+            Log::warning('Datos inválidos para registrar la transacción: ' . $e->getMessage());
+            return false;
         } catch (\Exception $e) {
-            dd($e->getMessage());
-            //throw $th;
+            Log::error('Error al registrar la transacción: ' . $e->getMessage());
             return false;
         }
     }
+
 
     public function validateTransaction($customer)
     {

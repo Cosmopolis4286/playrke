@@ -20,6 +20,7 @@ use App\Models\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\GameExchangeRate;
+use App\Models\Games;
 use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\Transactions;
@@ -239,7 +240,7 @@ trait BingoTrait
 
             BingoDraw::where('chip', $chipVan)->where('room', $room)->update(['win' => 1]);
 
-            $this->insertGameExchangeRate($room, 1); // Registrar Tasas de Cambio
+            $this->insertGameExchangeRate($room, 'BINGO'); // Registrar Tasas de Cambio
 
             DB::commit();
 
@@ -619,24 +620,20 @@ trait BingoTrait
             // Actualizar acumulado y comisiones de la sala
             $this->updateRoomMetrics($room, $arrCtn, $totalSaleAmount, $exchangeRate, $saleAmount, $comSaleSellerCtns);
 
-            //Registrar nueva moneda en juego de ser necesario
-            if (!CoinGameRoom::existsCoinGameRoom()) {
-                $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
-                CoinGameRoom::registerNewCoinInRoom();
-            }
+            // Definir variables dobre el juego
+            $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
 
-            // Generar un nuevo sorteo si aplica
-            if (isset($arrCtn['ctnWin'])) {
-                $this->newDraw($roomID, $roomUser);
+            //Registrar nueva moneda en juego de ser necesario
+            if (!CoinGameRoom::existsCoinGameRoom($coin, $roomID, 'BINGO', $gameMode)) {
+                CoinGameRoom::createNewCoinInRoom($game, $roomID, $coin);
             }
 
             // Si la sala es de un cliente
             if ($customer) {
                 // Registrar transacción (se consulta nuvamente el saldo del juagdor)
-                if (!isset($game)) $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
                 $roomID = BingoRoom::getValueById($roomID, 'code_uuid') ?? $this->getCodeUUID('BingoRoom');
 
-                $this->registerCustomerTransaction(
+                $transactionBet = $this->handleTransactionByBET(
                     $game,
                     $customer,
                     $roomID,
@@ -644,12 +641,21 @@ trait BingoTrait
                     $coin,
                     $totalSaleAmount
                 );
+
+                if (isset($transactionBet['Error'])) {
+                    DB::rollBack();
+                    return ['Error' => 'Error al procesar la transferencia' . $transactionBet['Error']];
+                }
+            }
+
+            // Generar un nuevo sorteo si aplica
+            if (isset($arrCtn['ctnWin'])) {
+                $this->newDraw($roomID, $roomUser);
             }
 
             DB::commit();
             return true;
         } catch (\Exception $e) {
-            dd($e->getMessage());
             DB::rollBack();
             Log::error('Error al crear los cartones: ' . $e->getMessage());
             return ['Error' => 'Error al crear los cartones'];
@@ -788,7 +794,7 @@ trait BingoTrait
                 $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $cartons[0]->coin) ?? 1;
 
                 if (!$exchangeRate) {
-                    $this->insertGameExchangeRate($roomID, 1);
+                    $this->insertGameExchangeRate($roomID, 'BINGO');
                     $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $cartons[0]->coin);
                 }
 

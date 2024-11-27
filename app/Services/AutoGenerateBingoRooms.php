@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BingoCreator;
 use App\Models\BingoRoom;
 use App\Models\BingoRoomAutomatic;
 use App\Models\BingoRoomConfig;
@@ -96,7 +97,19 @@ class AutoGenerateBingoRooms
                     'updated_at' => $timestamp,
                 ];
 
+                // Insertar datos de la configuracion de la sala
                 BingoRoomConfig::insert($dataRoomConfig);
+
+                // Insertar informacion del creador de la sala
+                BingoCreator::insert([
+                    'room' => $roomId,
+                    'creator_type' => $room->creator_type,
+                    'creator_id' => $creatorID,
+                    'creator_commn' => $room->room_commn,
+                    'ctn_price' => $roomCtnPrice,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ]);
             }
 
             DB::commit();

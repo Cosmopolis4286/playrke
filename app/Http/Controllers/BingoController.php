@@ -14,6 +14,7 @@ use App\Models\BingoRoomUser;
 use App\Models\BingoCtns;
 use App\Models\HistGame;
 use App\Http\Controllers\Controller;
+use App\Models\BingoCreator;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawCode;
 use App\Models\BingoRoomAutomatic;
@@ -532,7 +533,7 @@ class BingoController extends Controller
         }
 
         $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $roomUser ?? null, $randomKey) : [];
-        
+
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'BingoCash',
@@ -1005,10 +1006,19 @@ class BingoController extends Controller
 
             try {
 
-                $room = BingoRoom::create($createData);
+                $roomID = BingoRoom::create($createData)->id;
+
+                // Registar el creador de la sala
+                BingoCreator::create([
+                    'room' => $roomID,
+                    'creator_type' => $creatorType,
+                    'creator_id' => $creatorID,
+                    'creator_commn' => $request->room_commission,
+                    'ctn_price' => $request->ctn_price,
+                ]);
 
                 BingoRoomConfig::create([
-                    'room' => $room->id,
+                    'room' => $roomID,
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
                     'room_commn' => $request->room_commission,
@@ -1065,6 +1075,11 @@ class BingoController extends Controller
 
             // Actualizar el bingo con los datos construidos
             $room->update($updateData);
+
+            BingoCreator::where('room', $room)->update([
+                'creator_commn' => $request->room_commission,
+                'ctn_price' => $request->ctn_price,
+            ]);
 
             BingoRoomConfig::where('room', $id)->update(
                 [
@@ -1183,7 +1198,17 @@ class BingoController extends Controller
 
         try {
 
-            $newRoom = BingoRoom::create($createData);
+            // Obtener ID de la nueva sala
+            $newRoom = BingoRoom::create($createData)->id;
+
+            // Registar el creador de la sala
+            BingoCreator::create([
+                'room' => $newRoom,
+                'creator_type' => $existingRoom->commerce ? 'commerce' : 'customer',
+                'creator_id' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
+                'creator_commn' => $existingRoomConfig->room_commn,
+                'ctn_price' => $existingRoom->ctn_price,
+            ]);
 
             BingoRoomConfig::create([
                 'room' => $newRoom->id,
@@ -1257,6 +1282,9 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
+            //Eliminar registro del Creador
+            BingoCreator::where('room', $id)->delete();
+            // Eliminar configuracion de la sala
             BingoRoomConfig::where('room', $id)->delete();
 
             // Actualizar el registro en bingo_rooms (o eliminar si decides hacerlo en lugar de solo actualizar el estado)
