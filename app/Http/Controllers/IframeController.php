@@ -26,7 +26,7 @@ class IframeController extends Controller
         $iframes = [
             [
                 'title' => 'Salas de Juego CRUD',
-                'route' => route('bingo.all-customer-rooms', ['user' => $customerToken])
+                'route' => route('bingo.all-rooms', ['creatorType' => 'customer', 'userID' => $customerToken])
             ],
             [
                 'title' => 'Salas de Juego Vista',

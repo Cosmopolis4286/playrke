@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Coin;
 use App\Models\Country;
 use App\Models\Settings;
+use App\Models\UserType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,14 +36,20 @@ class AuthenticatedSessionController extends Controller
         // Regenerar la sesión para evitar ataques de fijación de sesión
         $request->session()->regenerate();
 
-        $isoCode = Country::getCountryValue(Auth::user()->country, 'iso_code_2');
-        $coin = encrypt(Coin::getValueByCountry(Auth::user()->country, 'id'));
+        $country = Auth::user()->country;
+        $userType = UserType::getValueById(Auth::user()->user_type, 'prefix');
+
+        $isoCode = Country::getValue($country, 'iso_code_2');
+        $coin = encrypt(Coin::getValueByCountry($country, 'id'));
 
         // Crear la variable de sesión 'countryCode'
         $request->session()->put('countryCode', $isoCode);
 
         // Crear la variable de sesión 'coin'
         $request->session()->put('coin', $coin);
+
+        // Crear la variable de sesión 'userType'
+        $request->session()->put('userType', $userType);
 
         // Redirigir al usuario a la ruta de destino
         return redirect()->intended(route('dashboard', absolute: false));

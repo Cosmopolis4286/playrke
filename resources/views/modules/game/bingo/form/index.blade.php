@@ -5,21 +5,8 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'coins' => $coins,
-                    'routeName' => $routeName,
-                    'coin' => $coin,
-                    'userToken' => $userToken ?? false,
-                ])
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
-                        <i class="fas fa-plus-square"></i> Crear
-                    </button>
-                    <a href="{{ $activeRooms > 0 ? $GMRoute : '#' }}"
-                        class="ml-1 btn btn-sm btn-primary {{ $activeRooms > 0 ? '' : 'disabled' }}">
-                        <i class="fas fa-hat-wizard"></i> Ver Salas
-                    </a>
-                </div>
+                @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
+                @include('includes.game.bingo.report.btn-group', ['automaticRoom' => true])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @include('includes.game.bingo.report.table-info-bingo-rooms')
@@ -31,16 +18,14 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', [
-            'creator' => [$userID ?? null, $creatorType],
-        ])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
     ])
     @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script>
         const name = '{{ $name }}';
-        const creatorType = '{{ $creatorType }}';
+        const creatorType = @json($creator['type'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
@@ -65,7 +50,7 @@
 
         $(document).on("click", `.btn-${name}`, function() {
             if ($(this).data('type') == 1) {
-                extraInfo = creatorType;
+                extraInfo = `{"creatorType": ${creatorType}}`;
             }
             formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap);
         });
@@ -80,7 +65,7 @@
                 required: isRequired
             }).empty();
 
-            if (creatorType === 'commerce') {
+            if (creatorType === 'commerce' && arrRoomType.length) {
                 roomType = $("#room-type");
                 roomType.prop({
                     disabled: isDisabled,
@@ -106,7 +91,7 @@
 
             if (creatorType === 'commerce' && arrRoomType.length) {
                 $.each(arrRoomType, function(index, item) {
-                    const isSelected = (type == 2 && item.id == data.room.all_for_one) ? 'selected' : '';
+                    const isSelected = (type == 2 && item.id == data.room.room_type) ? 'selected' : '';
                     roomType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
                 });
             }

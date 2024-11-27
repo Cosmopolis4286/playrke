@@ -19,6 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('coin');
             $table->double('exchange_rate')->default(1);
             $table->boolean('status')->default(0);
+            $table->string('pct', 8)->default('0');
             $table->timestamps();
 
             // Foreign keys

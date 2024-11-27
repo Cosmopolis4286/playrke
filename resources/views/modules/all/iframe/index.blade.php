@@ -47,7 +47,7 @@
         const userToken = $('#user-token');
 
         $(document).on('click', '#go-route-game-route', function() {
-            if (userToken.val() == '') {
+            if (!userToken.val()) {
                 showToast('Ingrese el Token de Usuario', 'warning');
                 return;
             }

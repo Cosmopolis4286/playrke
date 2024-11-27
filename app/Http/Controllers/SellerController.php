@@ -89,7 +89,17 @@ class SellerController extends Controller
 
     private function insertOtherCoins($seller, $otherCoins)
     {
-        if (!empty($otherCoins) && is_array($otherCoins)) {
+        if (empty($otherCoins)) {
+            DB::beginTransaction();
+            try {
+                $sellerCoin = Seller::getValueById($seller, 'coin');
+                SellerCountriesCoins::where('seller', $seller)->whereNot('coin', $sellerCoin)->update(['status' => 0]);
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error al inhabilitar todas las monedas para el vendedor: ' . $e->getMessage());
+            }
+        } else if (!empty($otherCoins) && is_array($otherCoins)) {
             // Obtener las monedas seleccionadas y prepararlas para la inserción
             $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
             $timestamp = now();
@@ -180,24 +190,7 @@ class SellerController extends Controller
             ]);
 
             $otherCoins = $request->other_coins;
-
-            if (!empty($otherCoins) && is_array($otherCoins)) {
-                $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
-                $timestamp = now();
-
-                $coinsToCreate = [];
-                foreach ($otherCoins as $coin) {
-                    $coinsToCreate[] = [
-                        'seller' => $seller->id,
-                        'country' => $coin->country,
-                        'coin' => $coin->id,
-                        'status' => 1,
-                        'created_at' => $timestamp,
-                        'updated_at' => $timestamp
-                    ];
-                }
-                SellerCountriesCoins::insert($coinsToCreate);
-            }
+            $this->insertOtherCoins($seller->id, $otherCoins);
 
             DB::commit();
 
@@ -330,10 +323,10 @@ class SellerController extends Controller
 
         $this->checkRoomClosure();
 
-        $rooms = BingoRoom::select('encrypted', 'all_for_one', 'unix_date')
+        $rooms = BingoRoom::select('encrypted', 'room_type', 'unix_date')
             ->where('status', 2)->where('game_mode', 2)->where(function ($query) use ($seller) {
                 $query->where('commerce', $seller->commerce)
-                    ->orWhere('all_for_one', 1);
+                    ->orWhere('room_type', 2);
             })->orderBy('date')->orderBy('time')->get();
 
         return view('modules/seller/games/bingo/cartons/generate')->with([
@@ -352,9 +345,9 @@ class SellerController extends Controller
         $seller = $this->seller(['id', 'commerce']);
 
         $countryCoinsSeller = SellerCountriesCoins::getAvailableCountries($seller->id);
-        $countryCoinsSeller[] = Seller::getValueById($seller->id, 'country');
 
         $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1);
+
         $commerceCountries = Coin::getCountriesByCoinInArray($commerceCoinsAvailable);
 
         $coinsAvailable = array_intersect($commerceCountries, $countryCoinsSeller);
@@ -397,14 +390,14 @@ class SellerController extends Controller
     {
         switch ($request->game) {
             case 'BINGO':
-                $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'commerce', 'all_for_one']);
+                $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'commerce', 'room_type']);
 
                 $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
                     ->where(['phone' => $request->player_info, 'game' => 1, 'room' => $room->id])->first();
 
                 if (!$player)  return response()->json(['response' => false]);
 
-                $route = $this->getGameLinkByPlayer($room->commerce, $player->link, $room->all_for_one);
+                $route = $this->getGameLinkByPlayer($room->commerce, $player->link, $room->room_type);
                 $ctnsPlayer = BingoCtns::where(['player_link' => $player->id, 'room' => $room->id])->count();
 
                 return response()->json([
@@ -452,7 +445,7 @@ class SellerController extends Controller
                 // Aplicar condiciones adicionales desde $where
                 if ($where && $where->isNotEmpty()) {
                     foreach ($where as $item) {
-                        $subquery->where($item->colum, $item->value);
+                        $subquery->where($item->column, $item->value);
                     }
                 }
 
@@ -472,12 +465,22 @@ class SellerController extends Controller
         return Coin::getCoinsById($coins);
     }
 
-    public function ctnsSold($coin, $dateFilter = "today") //Cartones Vendidos Salas Actuales Status 2 o 3
-    {
+    public function ctnsSold($coin = '', $dateFilter = "today")
+    {   //Cartones Vendidos Salas Actuales Status 2 o 3
         $seller = $this->seller(['id', 'commerce']);
 
-        $coinId = decrypt($coin);
-        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
+
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
+
+        if ($verifyCoin['return']) {
+            return redirect()->route(
+                'seller.ctnsSold',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
+        }
 
         $ctnsSoldQuery = BingoCtnsLot::with([
             'Payment',
@@ -493,7 +496,7 @@ class SellerController extends Controller
 
         $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
-        $ctnsSold = $ctnsSoldQuery->where('coin', $coinId)
+        $ctnsSold = $ctnsSoldQuery->where('coin', $coin)
             ->where('seller', $seller->id)->orderBy('status')->orderByDesc('id')->get();
 
         $allPendingCtnSale = $pendingCtns = 0;
@@ -505,7 +508,14 @@ class SellerController extends Controller
             }
         }
 
+        $coin = Coin::getById($verifyCoin['coin']);
+
         $coins = $this->getSellerCoins($seller->id, $dateFilter, ['CtnsLot']);
+
+        $routeWithCoin = [
+            'route' => 'seller.ctnsSold',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
 
         return view('modules/seller/games/bingo/cartons/ctns-sold')->with([
             'title' => 'Cartones Vendidos',
@@ -515,16 +525,18 @@ class SellerController extends Controller
             'allPendingCtnSale' => $allPendingCtnSale,
             'pendingCtns' => $pendingCtns,
             'ctnsSold' => $ctnsSold,
-            'routSeller' => [$this->getRouteRKE(), $seller->id],
-            'coinId' => $coinId,
-            'coin' => Coin::getById($coinId),
+            'routeWithCoin' => $routeWithCoin,
+            'coin' => $coin->id,
+            'coinName' => $coin->short_name,
+            'coinISOCode' => $coin->iso_code,
+            'coinSym' => $coin->symbol,
             'dateFilter' => $dateFilter,
             'commerceName' => Commerce::getById($seller->commerce)->name,
             'coins' => $coins
         ]);
     }
 
-    public function ctnsAwarded($coinId, $dateFilter = "today")
+    public function ctnsAwarded($coin = '', $dateFilter = "today")
     {
         $title = 'Ganadores';
         $name = 'notify-payment-win-ctns-off';
@@ -532,10 +544,20 @@ class SellerController extends Controller
         $wallet = $this->wallet();
         $seller = $this->seller(['id', 'commerce']);
 
-        $coinId = decrypt($coinId);
-        $coin = Coin::getById($coinId);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
 
-        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
+
+        if ($verifyCoin['return']) {
+            return redirect()->route(
+                'seller.ctnsAwarded',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
+        }
+
+        $coin = $verifyCoin['coin'];
 
         $winnersQuery = BingoPrizeCtns::with([
             'Coin',
@@ -547,21 +569,29 @@ class SellerController extends Controller
         ])->whereHas('Room', function ($query) {
             $query->whereColumn('id', 'bingo_prize_ctns.room')
                 ->where('status', 4);
-        })->whereHas('GameExchangeRate', function ($query) use ($coinId) {
-            $query->where('game', 1)->where('coin', $coinId);
+        })->whereHas('GameExchangeRate', function ($query) use ($coin) {
+            $query->where('game', 1)->where('coin', $coin);
         });
 
         $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
 
-        $winners = $winnersQuery->where('seller', $seller->id)->where('coin', $coinId)->get();
+        $winners = $winnersQuery->where('seller', $seller->id)->where('coin', $coin)->get();
 
         $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
 
         $coins = $this->getSellerCoins($seller->id, $dateFilter, ['PlayerLink', 'PrizeCtns']);
 
+        $routeWithCoin = [
+            'route' => 'seller.ctnsAwarded',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
+
+        $coinInfo = Coin::getById($coin, ['id', 'symbol', 'long_name']);
+        $coinSym = $coinInfo->symbol;
+
         return view(
             'modules.seller.games.bingo.cartons.awarwed',
-            compact('title', 'name', 'wallet', 'commerce', 'winners', 'coinId', 'dateFilter', 'coin', 'coins')
+            compact('title', 'name', 'wallet', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coins')
         );
     }
 
@@ -668,26 +698,38 @@ class SellerController extends Controller
         if ($player) return json_encode($player);
     }
 
-    public function reportSalesRooms($coin, $dateFilter = "today") // Muestra el reporte por salas 
+    public function reportSalesRooms($coin = '', $dateFilter = "today") // Muestra el reporte por salas 
     {
         $title = 'Reporte de Ventas';
 
         $wallet = $this->wallet();
         $seller = $this->seller(['id', 'commerce']);
-        $coinId = decrypt($coin);
 
-        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coinId, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
+
+        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
+
+        if ($verifyCoin['return']) {
+            return redirect()->route(
+                'seller.reportSalesRooms',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
+        }
+
+        $coin = $verifyCoin['coin'];
 
         $roomsQuery = BingoRoom::with([
             'Config',
-            'CtnsLot' => function ($query) use ($seller, $coinId) {
-                $query->where('seller', $seller->id)->where('coin', $coinId)->with('Coin');
+            'CtnsLot' => function ($query) use ($seller, $coin) {
+                $query->where('seller', $seller->id)->where('coin', $coin)->with('Coin');
             },
             'ComSeller' => function ($query) use ($seller) {
                 $query->where('seller', $seller->id);
             }
-        ])->whereHas('CtnsLot', function ($query) use ($seller, $coinId) {
-            $query->where('seller', $seller->id)->where('coin', $coinId);
+        ])->whereHas('CtnsLot', function ($query) use ($seller, $coin) {
+            $query->where('seller', $seller->id)->where('coin', $coin);
         })->whereHas('ComSeller', function ($query) use ($seller) {
             $query->where('seller', $seller->id);
         });
@@ -732,20 +774,25 @@ class SellerController extends Controller
             ];
         }
 
-        $coin = Coin::getById($coinId, ['id', 'symbol', 'long_name']);
+        $coinInfo = Coin::getById($coin, ['id', 'symbol', 'long_name']);
 
-        $coinSym = $coin->symbol;
-        $coinName = $coin->long_name;
+        $coinSym = $coinInfo->symbol;
+        $coinName = $coinInfo->long_name;
 
         $coins = $this->getSellerCoins($seller->id, $dateFilter, ['CtnsLot']);
 
+        $routeWithCoin = [
+            'route' => 'seller.reportSalesRooms',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
+
         return view(
             'modules.seller.games.bingo.report.rooms',
-            compact('title', 'wallet', 'rooms', 'roomsData', 'dateFilter', 'coins', 'coinId', 'coinName', 'coinSym', 'totalSale', 'totalComision', 'totalBanca')
+            compact('title', 'wallet', 'rooms', 'roomsData', 'routeWithCoin', 'dateFilter', 'coins', 'coin', 'coinName', 'coinSym', 'totalSale', 'totalComision', 'totalBanca')
         );
     }
 
-    public function reportSalesByRoom($room, $coin, $dateFilter = "today") // Muestra el reporte de una sala
+    public function reportSalesByRoom($room, $coin) // Muestra el reporte de una sala
     {
         $room = BingoRoom::getRoomByEncrypted($room, ['id', 'encrypted']);
 
@@ -754,15 +801,16 @@ class SellerController extends Controller
         $generateUniqueCodeed = $room->encrypted;
 
         $seller = $this->seller(['id', 'commerce']);
-        $coinId = decrypt($coin);
 
-        $coinId = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id)->where('room', $room->id), $coinId, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id], $room->id);
+
+        if ($verifyCoin['return']) return redirect()->back();
+
+        $coin = $verifyCoin['coin'];
 
         $playersRoom = PlayerLink::with(['Coin', 'CtnsLot'])
-            ->whereHas('CtnsLot', function ($query) use ($dateFilter) {
-                $query = $this->applyDateFilter($dateFilter, $query);
-            })->where(['seller' => $seller->id, 'room' => $room->id, 'coin' => $coinId])->orderByDesc('id')
-            ->get(['id', 'link', 'coin', 'name', 'lastname', 'phone']);
+            ->where(['seller' => $seller->id, 'room' => $room->id, 'coin' => $coin])
+            ->orderByDesc('id')->get(['id', 'link', 'coin', 'name', 'lastname', 'phone']);
 
         if (!count($playersRoom)) return redirect()->back();
 
@@ -784,17 +832,39 @@ class SellerController extends Controller
 
         $totalCtnsByRoom = $playersRoom->flatMap->CtnsLot->sum('ctns');
 
-        $where = collect([(object) ['colum' => 'room', 'value' => $room->id]]);
+        $where = collect([(object) ['column' => 'room', 'value' => $room->id]]);
 
-        $coins = $this->getSellerCoins($seller->id, $dateFilter, ['CtnsLot'], $where);
+        $coins = $this->getSellerCoins($seller->id, '', ['CtnsLot'], $where);
 
-        $coin = Coin::getById($coinId, ['symbol', 'long_name']);
+        $coinInfo = Coin::getById($coin, ['symbol', 'long_name']);
+
+        $coinName = $coinInfo->long_name;
+        $coinSym = $coinInfo->symbol;
 
         $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
 
+        $routeWithCoin = [
+            'route' => 'seller.reportSalesByRoom',
+            'parameters' => ['room' => $room->encrypted]
+        ];
+
         return view(
             'modules.seller.games.bingo.report.by-room',
-            compact('title', 'cardTitle', 'wallet', 'commerce', 'generateUniqueCodeed', 'playersRoom', 'dateFilter', 'coins', 'coin', 'coinId', 'totalCtnsPurchased', 'totalCtnsByRoom')
+            compact(
+                'title',
+                'cardTitle',
+                'wallet',
+                'commerce',
+                'generateUniqueCodeed',
+                'playersRoom',
+                'routeWithCoin',
+                'coins',
+                'coin',
+                'coinSym',
+                'coinName',
+                'totalCtnsPurchased',
+                'totalCtnsByRoom'
+            )
         );
     }
 

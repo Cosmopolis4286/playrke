@@ -16,13 +16,12 @@ return new class extends Migration
         Schema::create('game_exchange_rate', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('game');
-            $table->unsignedBigInteger('room');
+            $table->integer('room');
             $table->string('coin', 15);
             $table->double('exchange_rate');
             $table->timestamps();
 
             $table->foreign('game')->references('id')->on('games');
-            $table->foreign('room')->references('id')->on('bingo_rooms');
         });
     }
 

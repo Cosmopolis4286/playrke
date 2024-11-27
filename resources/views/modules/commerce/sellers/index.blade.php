@@ -35,7 +35,7 @@
                                                 data-toggle="popover" data-trigger="focus" title="Otras Monedas"
                                                 data-content="
                                                 @foreach ($seller->CountriesCoins as $item) 
-                                                    @if ($item->Coin->id != $seller->Coin->id)
+                                                    @if ($item->coin != $seller->coin)
                                                     <span>{{ $item->Coin->long_name }} ({{ $item->Coin->symbol }})</span><br> 
                                                     @endif @endforeach">
                                                 <i class="fa-solid fa-coins mr-1"></i>Ver

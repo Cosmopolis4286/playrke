@@ -16,8 +16,9 @@ class GamesSeeder extends Seeder
     {
         // Insertar los datos en la tabla 'games'
         DB::table('games')->insert([
-            ['id' => 1, 'name' => 'Bingo', 'status' => 1],
-            ['id' => 2, 'name' => 'Trivia', 'status' => 1]
+            ['id' => 1, 'name' => 'BINGO', 'status' => 1],
+            ['id' => 2, 'name' => 'TRIVIA', 'status' => 1],
+            ['id' => 3, 'name' => 'POLLA', 'status' => 1]
         ]);
     }
 }

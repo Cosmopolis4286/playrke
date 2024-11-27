@@ -38,16 +38,13 @@ trait Filters
         return $query;
     }
 
-    protected function existsCoin($query, $coinId, $dateFilter = '')
+    protected function existsCoin($query, $coin, $dateFilter = '')
     {
+        // Aplicar el filtro de moneda (coin) a la consulta
+        $query = $query->where('coin', $coin);
+
         // Aplicar el filtro de fecha a la consulta
-        $query = $this->applyDateFilter($dateFilter, $query);
-
-        // Obtener el listado de monedas filtradas
-        $coins = $query->pluck('coin')->toArray();
-
-        // Retornar la primera moneda disponible o el coinId original
-        return in_array($coinId, $coins) ? $coinId : ($coins[0] ?? $coinId);
+        return $this->applyDateFilter($dateFilter, $query)->first();
     }
 
     public function handleViewData($viewData, $creatorType = '')

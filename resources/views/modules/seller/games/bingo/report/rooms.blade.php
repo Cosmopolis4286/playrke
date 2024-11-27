@@ -5,17 +5,8 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'routeName' => 'seller.reportSalesRooms',
-                    'dateFilter' => $dateFilter,
-                    'coin' => $coinId,
-                    'coins' => $coins,
-                ])
-                @include('includes.date-filter-buttons', [
-                    'routeName' => 'seller.reportSalesRooms',
-                    'dateFilter' => $dateFilter,
-                    'coin' => $coinId,
-                ])
+                @include('includes.coin-tabs')
+                @include('includes.date-filter-buttons', ['routeWithCoin' => 'seller.reportSalesRooms'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-3">
@@ -39,8 +30,7 @@
                                                 <a class="badge bg-navy" title="Ver Reporte"
                                                     href="{{ route('seller.reportSalesByRoom', [
                                                         'room' => $data['room']->encrypted,
-                                                        'coin' => encrypt($coinId),
-                                                        'dateFilter' => $dateFilter,
+                                                        'coin' => encrypt($coin)
                                                     ]) }}">
                                                     {{ $data['room']->encrypted }}
                                                 </a>

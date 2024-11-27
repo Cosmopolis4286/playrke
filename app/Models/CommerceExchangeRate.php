@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CommerceExchangeRate extends Model
 {
     protected $table = "commerces_exchange_rates";
-    protected $fillable = ['commerce', 'coin', 'exchange_rate', 'status'];
+    protected $fillable = ['commerce', 'coin', 'exchange_rate', 'pct', 'status'];
 
     public function Coin()
     {
@@ -26,17 +26,23 @@ class CommerceExchangeRate extends Model
 
     public static function getCommerceCoinValue($commerce, $coin, $value = 'exchange_rate')
     {
-        return self::where('commerce', $commerce)->where('coin', $coin)->value($value);
+        return self::where('commerce', $commerce)->where('coin', $coin)->orderByDesc('id')->value($value);
     }
 
-    public static function getAllExchangeRates()
+    public static function getAllExchangeRates($commerce)
     {
-        return self::where('status', 1)->get(['coin', 'exchange_rate']);
+        return self::where('commerce', $commerce)->where('status', 1)
+            ->orderByDesc('id')->get(['coin', 'exchange_rate']);
     }
 
     public static function getValuesByCoin($coin)
     {
         return self::where('coin', $coin)->pluck('exchange_rate');
+    }
+
+    public static function getAvailableExchangeRates($commerce)
+    {
+        return self::where('commerce', $commerce)->where('status', '<>', 3)->get();
     }
 
     public static function getCoinsByCommerce($commerce, $status = '')

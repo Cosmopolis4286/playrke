@@ -16,7 +16,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($winnersData['winners'] as $win)
+            @foreach ($winners as $win)
                 @php
                     $countCommerces = $win->Room->CtnsLot->pluck('commerce')->unique()->count();
                     $totalWinners =

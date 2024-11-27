@@ -416,12 +416,13 @@ input[type=number] {
 
 .card-game-room__ctn-price {
     text-align: center;
-    width: 55%;
+    width: auto;
+    padding: 1.35% 2.75%;
     color: #00091d;
     font-weight: 600;
     font-size: 14px;
     background-color: rgb(189, 225, 255);
-    margin-bottom: 7.75%;
+    margin-bottom: 7.85%;
     border-radius: 4px;
 }
 

@@ -19,7 +19,7 @@ class Country extends Model
         return $this->hasMany(PlayerLink::class, 'id', 'country');
     }
 
-    public static function getCountryById($id, $fields = ['*'])
+    public static function getById($id, $fields = ['*'])
     {
         return self::select($fields)->where('id', $id)->first();
     }
@@ -29,7 +29,7 @@ class Country extends Model
         return self::select($fields)->whereIn('id', $arr)->get();
     }
 
-    public static function getCountryValue($id, $value)
+    public static function getValue($id, $value)
     {
         return self::where('id', $id)->value($value);
     }

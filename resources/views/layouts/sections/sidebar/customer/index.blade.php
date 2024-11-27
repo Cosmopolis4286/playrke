@@ -16,8 +16,7 @@
         </a>
     </li>
     <li class="nav-item has-treeview">
-        <a href="#"
-            class="nav-link {{ !Route::is('bingo.all-commerce-rooms', 'commerce.getBingoWinnersByCommerce', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
+        <a href="#" class="nav-link {{ !Route::is('bingo.all-rooms') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>
@@ -25,8 +24,8 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a href="{{ route('bingo.all-commerce-rooms', ['coin' => encrypt(1), 'user' => encrypt(Auth::id())]) }}"
-                    title="Salas Bingo" class="nav-link {{ !Route::is('bingo.all-commerce-rooms') ?: 'active' }}">
+                <a href="{{ route('bingo.all-rooms', ['creatorType' => 'customer']) }}" title="Salas Bingo"
+                    class="nav-link {{ !Route::is('bingo.all-rooms') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Salas</p>
                 </a>

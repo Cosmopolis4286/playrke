@@ -3,14 +3,9 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('includes.card-header', ['cardTitle' => $cardTitle])
+            @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'coins' => $coins,
-                    'routeName' => 'commerce.reportSalesByRoom',
-                    'room' => $room,
-                    'coin' => $coin,
-                ])
+                @include('includes.coin-tabs')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-2">

@@ -370,27 +370,34 @@ class CommerceController extends Controller
         return Coin::getCoinsById($coins);
     }
 
-    public function reportSalesRooms($coinId, $dateFilter = "today",)
+    public function reportSalesRooms($coin = '', $dateFilter = "today")
     {
         $title = 'Reporte de Ventas';
-        $wallet = $this->wallet(Auth::id());
+        $wallet = $this->wallet();
 
-        $coinId = decrypt($coinId);
         $commerce = $this->commerce('id')->id;
 
-        // Verificar la existencia de la moneda
-        $coinId = $this->existsCoin(BingoCtnsLot::where('commerce', $commerce), $coinId, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'commerce', 'id' => $commerce]);
 
-        // if ($coinId != $coin) {
-        //     return redirect()->route('commerce.reportSalesRooms', ['dateFilter' => $dateFilter, 'coin' => encrypt($coin)]);
-        // }
+        $existSale = $this->existsCoin(BingoCtnsLot::where('commerce', $commerce), $coin, $dateFilter);
 
-        $coin = Coin::getById($coinId, ['symbol', 'long_name']);
-        $coinSym = $coin->symbol;
-        $coinName = $coin->long_name;
+        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
+
+        if ($verifyCoin['return']) {
+            return redirect()->route(
+                'commerce.reportSalesRooms',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
+        }
+
+        $coin = $verifyCoin['coin'];
+
+        $dataCoin = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
+        $coinSym = $dataCoin->symbol;
+        $coinName = "$dataCoin->short_name ($dataCoin->iso_code)";
 
         // Obtener los datos de los ganadores
-        $rooms = $this->getRoomsData($commerce, $coinId, $dateFilter);
+        $rooms = $this->getRoomsData($commerce, $coin, $dateFilter);
 
         $coins = $this->getCommerceCoins($commerce, $dateFilter, ['CtnsLot', 'Coin']);
 
@@ -435,9 +442,14 @@ class CommerceController extends Controller
             ];
         }
 
+        $routeWithCoin = [
+            'route' => 'commerce.reportSalesRooms',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
+
         return view(
             'modules.commerce.games.bingo.report.rooms',
-            compact('title', 'wallet', 'rooms', 'dateFilter', 'coinId', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
+            compact('title', 'wallet', 'rooms', 'routeWithCoin', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
         );
     }
 
@@ -462,12 +474,12 @@ class CommerceController extends Controller
     }
 
 
-    public function reportSalesByRoom($room, $coin)
+    public function reportSalesByRoom($roomID, $coin)
     {
         $wallet = $this->wallet();
         $commerce = $this->commerce('id')->id;
 
-        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'ctn_price', 'encrypted', 'commerce']);
+        $room = BingoRoom::getRoomByEncrypted($roomID, ['id', 'ctn_price', 'encrypted', 'commerce']);
 
         if ($room->commerce != $commerce || !$room->commerce) {
             return redirect()->back();
@@ -475,16 +487,12 @@ class CommerceController extends Controller
 
         // Verificar la existencia de la moneda
         $query = BingoCtnsLot::where('commerce', $commerce)->where('room', $room->id);
-        $coin = $this->existsCoin($query, decrypt($coin));
+        $existSale = $this->existsCoin($query, decrypt($coin));
 
-        //dd($coinId,'commerce.reportSalesByRoom',['room' => $room->encrypted, 'coin' => encrypt($coinId)]);
-
-        // if ($coinId != $coin) {
-        //     return redirect()->route(
-        //         'commerce.reportSalesByRoom',
-        //         ['room' => $room->encrypted, 'coin' => encrypt($coinId)]
-        //     );
-        // }
+        if (!$existSale) {
+            // si no existe venta para esa fecha
+            return redirect()->route('commerce.reportSalesRooms', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        }
 
         $sellers = Seller::with([
             'Country',
@@ -500,6 +508,11 @@ class CommerceController extends Controller
 
         $coins = $this->getCommerceCoins($commerce, '', ['CtnsLot', 'Coin']);
 
+        $routeWithCoin = [
+            'route' => 'commerce.reportSalesByRoom',
+            'parameters' => ['room' => $roomID]
+        ];
+
         return view('modules/commerce/games/bingo/report/by-room')->with([
             'title' => "Reporte de Sala",
             'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
@@ -508,6 +521,7 @@ class CommerceController extends Controller
             'sellers' => $sellers,
             'comCommerceRm' => BingoRoomConfig::getValueByRoom($room->id, 'room_commn') / 100,
             'room' => $room->encrypted,
+            'routeWithCoin' => $routeWithCoin,
             'coin' => $coin,
             'coins' => $coins
         ]);
@@ -573,7 +587,7 @@ class CommerceController extends Controller
         Seller::where('commerce', $request->id_comm)->update(['com' => $request->commn]);
     }
 
-    public function getBingoWinnersByCommerce($dateFilter)
+    public function getBingoWinnersByCommerce($dateFilter = 'all')
     {
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
@@ -614,7 +628,7 @@ class CommerceController extends Controller
         );
     }
 
-    public function getBingoWinnersByOtherCommerces($dateFilter)
+    public function getBingoWinnersByOtherCommerces($dateFilter = 'all')
     {
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
@@ -623,7 +637,7 @@ class CommerceController extends Controller
         $commerce = $this->commerce()->id;
 
         // Obtener los datos de los ganadores
-        $winnersData = $this->getWinnersData($commerce, $dateFilter, true);
+        $winners = $this->getWinnersData($commerce, $dateFilter, true);
 
         // Contar los ganadores pendientes de pago para otros comercios
         $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCommerce($commerce);
@@ -642,7 +656,7 @@ class CommerceController extends Controller
                 'wallet',
                 'commerce',
                 'dateFilter',
-                'winnersData',
+                'winners',
                 'countWinnersOtherCommerces',
                 'countWinnersByCommerce',
                 'coins'
@@ -721,11 +735,22 @@ class CommerceController extends Controller
         $title = 'Cartones Vendidos';
 
         $wallet = $this->wallet();
-        $coin = decrypt($coin);
-
         $commerce = $this->commerce('id')->id;
 
-        $coin = $this->existsCoin(BingoCtnsLot::where('commerce', $commerce), $coin, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'commerce', 'id' => $commerce]);
+
+        $existSale = $this->existsCoin(BingoCtnsLot::where('commerce', $commerce), $coin, $dateFilter);
+
+        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
+
+        if ($verifyCoin['return']) {
+            return redirect()->route(
+                'commerce.ctnsSold',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
+        }
+
+        $coin = $verifyCoin['coin'];
 
         $coinSym = Coin::getValue($coin, 'symbol');
 
@@ -741,9 +766,14 @@ class CommerceController extends Controller
 
         $coins = $this->getCommerceCoins($commerce, $dateFilter, ['CtnsLot', 'Coin']);
 
+        $routeWithCoin = [
+            'route' => 'commerce.ctnsSold',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
+
         return view(
             'modules.commerce.games.bingo.cartons.ctns-sold',
-            compact('title', 'wallet', 'ctnsSold', 'dateFilter', 'coin', 'coinSym', 'coins')
+            compact('title', 'wallet', 'ctnsSold', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coins')
         );
     }
 

@@ -21,7 +21,6 @@ class CreateCommercesTable extends Migration
             $table->string('phone', 12);
             $table->unsignedBigInteger('user');
             $table->double('commn')->default(25);
-            $table->boolean('all_in')->default(0);
             $table->string('code_rke', 16)->nullable()->unique();
             $table->string('code_uuid', 36)->unique();
             $table->boolean('status')->default(0);

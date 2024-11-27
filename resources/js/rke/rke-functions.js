@@ -47,17 +47,26 @@ function deleteSessionFlash(arr = []) {
 function submitForm(formName, requiredFields = []) {
     let isValid = true;
 
-    // Recorre los campos requeridos y verifica si todos tienen valor
-    requiredFields.forEach(function (fieldId) {
+    // Si no hay campos requeridos especificados, seleccionarlos automáticamente
+    if (!requiredFields.length) {
+        requiredFields = $(`#form-${formName} input[required], #form-${formName} select[required]`)
+            .map(function () {
+                return this.id; // Obtener IDs de los campos
+            }).get().filter(id => id); // Filtrar elementos sin ID
+    }
+
+    // Validar que todos los campos requeridos tengan un valor
+    requiredFields.forEach(fieldId => {
         if (!$(`#${fieldId}`).val()) {
             isValid = false;
         }
     });
 
+    // Si todo es válido, enviar el formulario; si no, mostrar alerta
     if (isValid) {
         $(`#form-${formName}`).submit();
     } else {
-        showToast('Toda la información es requerida', 'warning');
+        showToast('Todos los campos son requeridos', 'warning');
     }
 }
 
@@ -93,8 +102,15 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
         const data = elem.data();
         type = data.type;
         if (type > 1) {
-            encryptedId = extraInfo ? [data.id, extraInfo] : [data.id];
-            encryptedId = encodeURIComponent(JSON.stringify(encryptedId));
+            if (extraInfo) {
+                // Convierte extraInfo a un objeto
+                const extraInfoObj = JSON.parse(extraInfo);
+                // Crea el objeto final
+                encryptedId = { id: data.id, ...extraInfoObj };
+                encryptedId = encodeURIComponent(JSON.stringify(encryptedId));
+            } else {
+                encryptedId = data.id;
+            }
         }
     } else {
         // Si `elem` es un array, usa sus valores

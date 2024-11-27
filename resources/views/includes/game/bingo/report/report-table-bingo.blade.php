@@ -26,7 +26,7 @@
                     </td>
                     <td>{{ \Carbon\Carbon::parse($room['date'])->format('d/m/y') }}</td>
                     <td>{{ $room['time'] }}h</td>
-                    <td>{{ $coinName }} ({{ $coinSym }})</td>
+                    <td>{{ $coinName }}</td>
                     <td>{{ $room['allCtns'] }}</td>
                     <td>{{ $coinSym }} {{ $room['allSaleRoom'] }}</td>
                     <td>{{ $coinSym }} {{ $room['comSaleSellerRoom'] }}</td>

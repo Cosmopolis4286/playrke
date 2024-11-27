@@ -3,22 +3,9 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('includes.card-header', ['cardTitle' => $cardTitle])
+            @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs', [
-                    'routeName' => 'seller.reportSalesByRoom',
-                    'dateFilter' => $dateFilter,
-                    'room' => $generateUniqueCodeed,
-                    'coin' => $coinId,
-                    'coins' => $coins,
-                ])
-                @include('includes.date-filter-buttons', [
-                    'routeName' => 'seller.reportSalesByRoom',
-                    'dateFilter' => $dateFilter,
-                    'room' => $generateUniqueCodeed,
-                    'coin' => $coinId,
-                    'coins' => $coins,
-                ])
+                @include('includes.coin-tabs')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-3">
@@ -41,7 +28,7 @@
                                             <td>{{ $player->name }}</td>
                                             <td>{{ $player->lastname }}</td>
                                             <td>{{ $player->phone }}</td>
-                                            <td>{{ $coin->long_name }} ({{ $coin->symbol }})</td>
+                                            <td>{{ $coinName }} ({{ $coinSym }})</td>
                                             <td>{{ $player->CtnsLot->sum('ctns') }}</td>
                                             <td>{{ $player->Coin->symbol }} {{ $player->ctns_purchased }}</td>
                                             <td>
@@ -57,7 +44,7 @@
                                     <tr>
                                         <td colspan="4" class="text-right"><b>Total:</b></td>
                                         <td>{{ $totalCtnsByRoom }}</td>
-                                        <td>{{ $coin->symbol }} {{ $totalCtnsPurchased }}</td>
+                                        <td colspan="2">{{ $coinSym }} {{ $totalCtnsPurchased }}</td>
                                     </tr>
                                 </tfoot>
                             </table>

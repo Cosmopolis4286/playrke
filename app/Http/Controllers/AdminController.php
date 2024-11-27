@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Session;
 use App\Models\Commerce;
 use App\Models\Country;
 use App\Models\Customer;
+use App\Models\Games;
 use App\Models\User;
 use App\Traits\EncryptRKE;
 use App\Traits\UserVal;
@@ -35,7 +36,8 @@ class AdminController extends Controller
             'wallet' => $this->wallet(Auth::id()),
             'commerces' => $commerces,
             'countries' => $countries,
-            'coins' => $coins
+            'coins' => $coins,
+            'games' => Games::all()
         ]);
     }
 

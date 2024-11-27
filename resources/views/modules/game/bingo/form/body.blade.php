@@ -1,14 +1,16 @@
 <div class="row">
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="date">Fecha*</label>
-        <input type="date" id="date" name="date" class="form-control form-info" required
-            min="{{ \Carbon\Carbon::now()->format('Y-m-d') }}" value="{{ \Carbon\Carbon::now()->format('Y-m-d') }}">
-    </div>
+    @if (!isset($automaticRoom))
+        <div class="form-group col-sm-6 col-md-4">
+            <label for="date">Fecha*</label>
+            <input type="date" id="date" name="date" class="form-control form-info" required
+                min="{{ \Carbon\Carbon::now()->format('Y-m-d') }}" value="{{ \Carbon\Carbon::now()->format('Y-m-d') }}">
+        </div>
+    @endif
     <div class="form-group col-sm-6 col-md-4">
         <label for="time">Hora*</label>
         <input type="time" id="time" name="time" class="form-control form-info" required>
     </div>
-    @if ($creator[1] !== 'customer')
+    @if ($creator['type'] !== 'customer' || !empty($roomType))
         <div class="form-group col-sm-6 col-md-4">
             <label for="room-type">Tipo de Sala*</label>
             <select id="room-type" name="room_type" class="form-control form-info"
@@ -19,11 +21,11 @@
         <label for="game-mode">Modo de Juego*</label>
         <select id="game-mode" name="game_mode" class="form-control form-info"></select>
     </div>
-    <input type="hidden" name="user" value="{{ json_encode($creator) }}">
+    <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
-        <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
-            placeholder="Ingresar Precio" min="1" value="1" step="0.05" required>
+        <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info" placeholder="Precio Cartón"
+            min="0.35" value="1" step="0.05" required>
     </div>
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label for="small-prizes">%Cantos</label>
@@ -32,13 +34,13 @@
     </div> --}}
     {{-- @isset($customer) --}}
     <div class="form-group col-sm-6 col-md-4">
-        <label for="serials-commission">%Com. X Seriales</label>
+        <label for="serials-commission">%Com. Seriales</label>
         <input type="number" value="1" min="1" max="6" step="0.01" id="serials-commission"
             name="serials_commission" class="form-control form-info" placeholder="Ingrese valor">
     </div>
     {{-- @endisset --}}
     <div class="form-group col-sm-6 col-md-4">
-        <label for="val-serials">%Seriales</label>
+        <label for="val-serials">%Bote Seriales</label>
         <input type="number" value="2" min="2" max="15" step="0.05" id="val-serials"
             name="val_serials" class="form-control form-info" placeholder="Ingrese valor" required>
     </div>
