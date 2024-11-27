@@ -15,9 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => App\Http\Middleware\Admin::class,
             'commerce' => App\Http\Middleware\Commerce::class,
-            'my-provider' => App\Http\Middleware\Provider::class,
+            'customer' => App\Http\Middleware\Customer::class,
+            'seller' => App\Http\Middleware\Seller::class,
+            'provider' => App\Http\Middleware\Provider::class,
             'customer-commerce' => App\Http\Middleware\CustomerCommerce::class,
-            'seller' => App\Http\Middleware\Seller::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
