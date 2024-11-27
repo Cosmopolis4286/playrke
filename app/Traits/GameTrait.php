@@ -15,23 +15,16 @@ trait GameTrait
 {
     public function insertGameExchangeRate($room, $game, $gameMode = '')
     {
-        $exchangeRates = ExchangeRate::all();
+        // Obtener las monedas registradas en la sala de juego
+        $coinsInGameRoom = CoinGameRoom::getCoinsByRoom($game, $room, $gameMode);
 
         $timestamp = Carbon::now();
 
-        $coins = $exchangeRates->pluck('coin')->unique();
-
-        $query = CoinGameRoom::where('game', $game)->where('room', $room)->whereIn('coin', $coins);
-
-        if ($gameMode) $query->where('game_mode', $gameMode);
-
-        $coinsInGame = $query->pluck('coin');
-
-        $recordsToInsert = $coinsInGame->map(function ($coin) use ($exchangeRates, $game, $room, $timestamp) {
+        $recordsToInsert = $coinsInGameRoom->map(function ($coin) use ($exchangeRates, $game, $room, $timestamp) {
             if (!GameExchangeRate::existsGameExchangeRate($game, $room, $coin)) {
                 $averageExchangeRate = $exchangeRates->where('coin', $coin)->avg('value');
                 return [
-                    'game' => $game, // game == 1 Bingo
+                    'game' => $game,
                     'room' => $room,
                     'coin' => $coin,
                     'exchange_rate' => $averageExchangeRate,
@@ -41,13 +34,15 @@ trait GameTrait
             }
         })->toArray();
 
+        if (empty($recordsToInsert)) return true;
+
         try {
-            if (!empty($recordsToInsert)) GameExchangeRate::insert($recordsToInsert);
+            GameExchangeRate::insert($recordsToInsert);
             return true;
-        } catch (\Throwable $th) {
-            Log::error('Error al insertar en GameExchangeRate: ' . $th->getMessage(), [
+        } catch (\Exception $e) {
+            Log::error('Error al insertar en GameExchangeRate: ' . $e->getMessage(), [
                 'room' => $room,
-                'exception' => $th
+                'exception' => $e
             ]);
             return false;
         }

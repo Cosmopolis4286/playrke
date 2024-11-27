@@ -14,16 +14,15 @@ return new class extends Migration
     public function up()
     {
         Schema::create('coins_game_rooms', function (Blueprint $table) {
-            $table->id(); 
+            $table->id();
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('game_mode')->nullable();
             $table->integer('room');
-            $table->unsignedBigInteger('coin');
+            $table->string('coin', 15);
             $table->timestamps();
 
             $table->foreign('game')->references('id')->on('games');
             $table->foreign('game_mode')->references('id')->on('game_modes');
-            $table->foreign('coin')->references('id')->on('coins');
         });
     }
 

@@ -19,7 +19,6 @@ class BingoRoom extends Model
     'date',
     'time',
     'unix_date',
-    'country',
     'coin',
     'publication_date',
     'ctn_price',

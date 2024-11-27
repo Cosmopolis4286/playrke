@@ -194,6 +194,56 @@ trait SeamlessWallet
         return $uniqueId;
     }
 
+     // Función para registrar la transacción de cliente afiliado
+     private function registerCustomerTransaction($game = [], $customer, $roomID, $playerUser, $coin, $totalSaleAmount)
+     {
+         try {
+             $transaction = $this->registerTransaction(
+                 $game,
+                 $customer,
+                 $playerUser,
+                 $roomID,
+                 'BET',
+                 $coin,
+                 $totalSaleAmount
+             );
+ 
+             if (!$transaction) {
+                 DB::rollBack();
+                 return ['Error' => 'Error al registrar la transacción'];
+             }
+ 
+             $transactionResponse = $this->transferMoney(
+                 $transaction->customer,
+                 $transaction->game,
+                 $transaction->user_id,
+                 $transaction->bet_id,
+                 $transaction->coin,
+                 $transaction->amount,
+                 $transaction->code,
+                 $transaction->transaction_type
+             );
+ 
+             // Verificar si la respuesta contiene un error
+             if (isset($transactionResponse->Error) && $transactionResponse->Error) {
+                 Log::error("Error al procesar la transacción hacia el cliente: '{$transaction->id}': {$transactionResponse->Error}");
+                 return ['Error' => 'Error al registrar la transacción hacia el cliente'];
+             }
+ 
+             if ($transactionResponse) {
+                 // Actualizar la transacción si es exitosa
+                 Transactions::where('id', $transaction->id)->update([
+                     'status' => 1,
+                     'processing_data' => Carbon::now(),
+                     'updated_at' => now(),
+                 ]);
+             }
+         } catch (\Exception $e) {
+             dd($e->getMessage());
+             Log::error('Error al generar transaccion: ' . $e->getMessage());
+         }
+     }
+
     public function registerTransaction($game = [], $customer, $clientUser, $betId, $type, $coin, $amount, $status = 0)
     {
         try {
@@ -203,8 +253,8 @@ trait SeamlessWallet
             $transaction = Transactions::create([
                 'customer' => $customer,
                 'user_id' => $clientUser,
-                'game' => $game[0],
-                'game_mode' => $game[1],
+                'game' => $game['game'],
+                'game_mode' => $game['game_mode'],
                 'bet_id' => $betId,
                 'code' => $code, // transaction_id
                 'transaction_type' => $type,

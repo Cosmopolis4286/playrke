@@ -126,6 +126,7 @@ function handleLatestChips(latestChips) {
 
     renderChipsView();
     autoMarked();
+    vanChange = false;
     processChips();
 }
 
@@ -148,7 +149,6 @@ async function getGameData() {
             latestChips = data.latestChips;
             allChips = data.allChips;
             timeServ = Number(data.timeServ);
-            vanChange = false;
 
             handleLatestChips(latestChips);
 

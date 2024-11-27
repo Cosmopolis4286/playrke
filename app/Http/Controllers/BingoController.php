@@ -490,6 +490,9 @@ class BingoController extends Controller
                 break;
         }
 
+        dd($this->convertPrizeValue($roomID, $coinID));
+
+
         // Verificar Cierre de Sala
         $this->checkRoomClosure($roomID);
 
@@ -529,7 +532,7 @@ class BingoController extends Controller
         }
 
         $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $roomUser ?? null, $randomKey) : [];
-
+        
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'BingoCash',
@@ -974,7 +977,6 @@ class BingoController extends Controller
         if (in_array($creatorType, $allowedPrefixes)) {
 
             $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
-            $country = $request->country ?? NULL;
             $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
 
             $createData = [
@@ -984,7 +986,6 @@ class BingoController extends Controller
                 'date' => $request->date,
                 'time' => $request->time,
                 'unix_date' => strtotime("{$request->date} {$request->time}"),
-                'country' => $country,
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
                 'jackpot' => $boat,
@@ -1045,14 +1046,12 @@ class BingoController extends Controller
 
         try {
             $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
-            $country = $request->country ?? NULL;
             $coin = $request->coin ?? 1;
 
             $updateData = [
                 'date' => $newDate,
                 'time' => $newTime,
                 'unix_date' => $unixDate,
-                'country' => $country,
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
                 'jackpot' => $room->jackpot + $boat,
@@ -1156,7 +1155,6 @@ class BingoController extends Controller
         $existingRoomConfig = BingoRoomConfig::where('room', $existingRoom->id)->firstOrFail();
 
         $boat = ($existingRoom->jackpot_type > 1) ? $existingRoom->fixed_jackpot_value : 0;
-        $country = $existingRoom->country ?? NULL;
         $coin = $existingRoom->coin ?? 1; // ID Coin == 1 (USDT)
 
         $createData = [
@@ -1166,7 +1164,6 @@ class BingoController extends Controller
             'date' => $existingRoom->date,
             'time' => $existingRoom->time,
             'unix_date' => strtotime("{$existingRoom->date} {$existingRoom->time}"),
-            'country' => $country,
             'coin' => $coin,
             'ctn_price' => $existingRoom->ctn_price,
             'jackpot' => $boat,

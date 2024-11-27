@@ -14,6 +14,7 @@ use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomUser;
+use App\Models\CoinGameRoom;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
@@ -236,16 +237,13 @@ trait BingoTrait
             // Obtener la ficha ganadora
             $chipVan = BingoDraw::where('room', $room)->whereIn('chip', $chipsVan)->value('chip');
 
-            if ($chipVan) {
+            BingoDraw::where('chip', $chipVan)->where('room', $room)->update(['win' => 1]);
 
-                BingoDraw::where('chip', $chipVan)->where('room', $room)->update(['win' => 1]);
+            $this->insertGameExchangeRate($room, 1); // Registrar Tasas de Cambio
 
-                $this->insertGameExchangeRate($room, 1); // Registrar Tasas de Cambio
+            DB::commit();
 
-                DB::commit();
-
-                return BingoDraw::select('id', 'chip', 'time')->where('chip', $chipVan)->where('room', $room)->first();
-            }
+            return BingoDraw::select('id', 'chip', 'time')->where('chip', $chipVan)->where('room', $room)->first();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al registar ficha ganadora Sala Bingo (ID)' . $room . ': ' . $e->getMessage());
@@ -552,56 +550,6 @@ trait BingoTrait
         }
     }
 
-    // Función para registrar la transacción de cliente afiliado
-    private function registerCustomerTransaction($customer, $roomID, $playerUser, $coin, $totalSaleAmount)
-    {
-        try {
-            $transaction = $this->registerTransaction(
-                [1, 1],
-                $customer,
-                $playerUser,
-                BingoRoom::getValueById($roomID, 'code_uuid') ?? 'TEST',
-                'BET',
-                $coin,
-                $totalSaleAmount
-            );
-
-            if (!$transaction) {
-                DB::rollBack();
-                return ['Error' => 'Error al registrar la transacción'];
-            }
-
-            $transactionResponse = $this->transferMoney(
-                $transaction->customer,
-                $transaction->game,
-                $transaction->user_id,
-                $transaction->bet_id,
-                $transaction->coin,
-                $transaction->amount,
-                $transaction->code,
-                $transaction->transaction_type
-            );
-
-            // Verificar si la respuesta contiene un error
-            if (isset($transactionResponse->Error) && $transactionResponse->Error) {
-                Log::error("Error al procesar la transacción hacia el cliente: '{$transaction->id}': {$transactionResponse->Error}");
-                return ['Error' => 'Error al registrar la transacción hacia el cliente'];
-            }
-
-            if ($transactionResponse) {
-                // Actualizar la transacción si es exitosa
-                Transactions::where('id', $transaction->id)->update([
-                    'status' => 1,
-                    'processing_data' => Carbon::now(),
-                    'updated_at' => now(),
-                ]);
-            }
-        } catch (\Exception $e) {
-            dd($e->getMessage());
-            Log::error('Error al generar transaccion: ' . $e->getMessage());
-        }
-    }
-
     public function cartonStore($arrCtn)
     {
         $roomID = $arrCtn['room'];
@@ -630,7 +578,10 @@ trait BingoTrait
             // Registrar o actualizar el usuario en la sala
             $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);
 
-            if (!$roomUser) return ['Error' => 'Registrar o actualizar el usuario en la sala'];
+            if (!$roomUser) {
+                DB::rollBack();
+                return ['Error' => 'Registrar o actualizar el usuario en la sala'];
+            }
 
             // Anexar atributo al array
             $arrCtn['roomUser'] = $roomUser;
@@ -668,14 +619,31 @@ trait BingoTrait
             // Actualizar acumulado y comisiones de la sala
             $this->updateRoomMetrics($room, $arrCtn, $totalSaleAmount, $exchangeRate, $saleAmount, $comSaleSellerCtns);
 
-            // Registrar transacción si hay un cliente afiliado
-            if ($customer) {
-                $this->registerCustomerTransaction($customer, $roomID, $playerUser, $coin, $totalSaleAmount);
+            //Registrar nueva moneda en juego de ser necesario
+            if (!CoinGameRoom::existsCoinGameRoom()) {
+                $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
+                CoinGameRoom::registerNewCoinInRoom();
             }
 
             // Generar un nuevo sorteo si aplica
             if (isset($arrCtn['ctnWin'])) {
                 $this->newDraw($roomID, $roomUser);
+            }
+
+            // Si la sala es de un cliente
+            if ($customer) {
+                // Registrar transacción (se consulta nuvamente el saldo del juagdor)
+                if (!isset($game)) $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
+                $roomID = BingoRoom::getValueById($roomID, 'code_uuid') ?? $this->getCodeUUID('BingoRoom');
+
+                $this->registerCustomerTransaction(
+                    $game,
+                    $customer,
+                    $roomID,
+                    $playerUser,
+                    $coin,
+                    $totalSaleAmount
+                );
             }
 
             DB::commit();
@@ -875,7 +843,7 @@ trait BingoTrait
                         $roomUUID = BingoRoom::getValueById($roomID, 'code_uuid');
                         // Registrar la transaccion en PlayRKE
                         $transaction = $this->registerTransaction(
-                            [1, 1],
+                            ['name' => 'BINGO', 'game_mode' => 1],
                             $customer,
                             $ctn->player_user,
                             $roomUUID,
