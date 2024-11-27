@@ -33,7 +33,6 @@ use App\Http\Controllers\LotteryController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\TrikiController;
 use App\Http\Controllers\YankenpoController;
-use App\Models\ExchangeRate;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -142,7 +141,10 @@ Route::group(['middleware' => 'auth', 'prefix' => 'directory', 'as' => 'director
 });
 
 //Cliente
-Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as' => 'customer.'], function () {});
+Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as' => 'customer.'], function () {
+    Route::get('getUserId/{userToken}', [CustomerController::class, 'getUserId'])->name('getUserId');
+    Route::get('getUserBalance/{userToken}', [CustomerController::class, 'getUserBalance'])->name('getUserBalance');
+});
 
 // Cliente Options ADMIN
 Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'customer', 'as' => 'customer.'], function () {

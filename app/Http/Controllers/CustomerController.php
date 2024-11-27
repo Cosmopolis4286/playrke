@@ -9,8 +9,10 @@ use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
 use App\Traits\EncryptRKE;
+use App\Traits\SeamlessWallet;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +21,7 @@ use Illuminate\Support\Facades\Validator;
 
 class CustomerController extends Controller
 {
-    use EncryptRKE, UserVal;
+    use EncryptRKE, UserVal, SeamlessWallet;
 
     private function validateRequest($request, $type = 1, $id = '')
     {
@@ -285,5 +287,17 @@ class CustomerController extends Controller
             Session::flash('msg-error', 'Ha ocurrido un error: ' . $res['Error']);
         }
         return redirect()->back();
+    }
+
+    public function getUserId($userToken)
+    {
+        $customerID = Customer::getValueByUserId(Auth::id(), 'id');
+        return $this->getUserInfoFromCustomer($customerID, $userToken);
+    }
+
+    public function getUserBalance($userToken)
+    {
+        $customerID = Customer::getValueByUserId(Auth::id(), 'id');
+        return $this->getUserInfoFromCustomer($customerID, $userToken);
     }
 }
