@@ -288,15 +288,16 @@ class BingoController extends Controller
 
             if ($creator === 'customer') {
 
-                $user = CustomerUser::getById($player, ['user_id', 'token', 'coin']);
-                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $user->coin);
+                $user = CustomerUser::getById($player, ['token', 'coin']);
 
-                $customerResponse = $this->getUserBalanceFromCustomer($creatorID, [$user->user_id, $user->token], $coin);
+                $customerResponse = $this->getUserBalanceFromCustomer($creatorID, $user->token);
 
                 if (isset($customerResponse->Error)) {
                     Log::error('Ha ocurrido un error al generar Carton del Cliente/Jugador: ' . $customerResponse->Error);
                     return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error en la solicitud']);
                 }
+
+                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $user->coin);
 
                 // Monto total a pagar 
                 $saleAmount = $room->ctn_price * $exchangeRate * $data['numOfCtns'];

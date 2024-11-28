@@ -107,21 +107,23 @@ trait SeamlessWallet
         }
     }
 
-    public function getUserInfoFromCustomer($customerID, $token)
+    public function getUserInfoFromCustomer($customerID, $userToken)
     {
         // Datos del cuerpo de la solicitud
-        $dataJson = json_encode(["Token" => $token]);
+        $dataJson = json_encode(["Token" => $userToken]);
 
         return $this->globalGuzzle($customerID, $dataJson, 'GetUserInfo');
     }
 
-    public function getUserBalanceFromCustomer($customerID, $userToken, $coin)
+    public function getUserBalanceFromCustomer($customerID, $userToken)
     {
+        $user = CustomerUser::getvalueByToken($customerID, $userToken, ['user_id', 'coin']);
+
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
-            "Token" => $userToken[1],
-            "UserID" => $userToken[0],
-            "CurrencyCode" => $coin ?? ''
+            "Token" => $userToken,
+            "UserID" => $user->user_id,
+            "CurrencyCode" => $userCoin ?? ''
         ]);
 
         return $this->globalGuzzle($customerID, $dataJson, 'GetBalance');

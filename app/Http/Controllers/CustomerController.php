@@ -298,6 +298,6 @@ class CustomerController extends Controller
     public function getUserBalance($userToken)
     {
         $customerID = Customer::getValueByUserId(Auth::id(), 'id');
-        return $this->getUserInfoFromCustomer($customerID, $userToken);
+        return $this->getUserBalanceFromCustomer($customerID, $userToken);
     }
 }
