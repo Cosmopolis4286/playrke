@@ -10,6 +10,7 @@ use App\Models\BingoDraw;
 use App\Models\BingoDrawCode;
 use App\Models\BingoCtnsLot;
 use App\Models\BingoCtnsPayment;
+use App\Models\BingoPlayTypes;
 use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomConfig;
@@ -1466,5 +1467,12 @@ trait BingoTrait
             }
         }
         return ['return' => true, 'coin' => $coin];
+    }
+
+    public function getPlayTypesForRoom()
+    {
+        $playTypes = BingoPlayTypes::where('status', 1)->pluck('id');
+
+        return null;
     }
 }

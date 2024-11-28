@@ -1006,14 +1006,8 @@ class BingoController extends Controller
 
                 $roomID = BingoRoom::create($createData)->id;
 
-                // Registar el creador de la sala
-                BingoCreator::create([
-                    'room' => $roomID,
-                    'creator_type' => UserType::getValueByPrefix($creatorType, 'id'),
-                    'creator_id' => $creatorID,
-                    'creator_commn' => $request->room_commission,
-                    'ctn_price' => $request->ctn_price,
-                ]);
+                // Definir Tipos de Cantos disponibles
+                $typesPlays = $this->getPlayTypesForRoom() ?? null;
 
                 BingoRoomConfig::create([
                     'room' => $roomID,
@@ -1023,7 +1017,17 @@ class BingoController extends Controller
                     'serials_commn' => $request->serials_commission,
                     'val_serials' => $request->val_serials,
                     'num_serials' => $request->num_serials,
-                    //'val_sm_prizes' => $request->val_sm_prizes,
+                    'val_sm_prizes' => $request->val_sm_prizes,
+                    'types_plays' => $typesPlays
+                ]);
+
+                // Registar el creador de la sala
+                BingoCreator::create([
+                    'room' => $roomID,
+                    'creator_type' => UserType::getValueByPrefix($creatorType, 'id'),
+                    'creator_id' => $creatorID,
+                    'creator_commn' => $request->room_commission,
+                    'ctn_price' => $request->ctn_price,
                 ]);
 
                 DB::commit();
@@ -1075,11 +1079,6 @@ class BingoController extends Controller
             // Actualizar el bingo con los datos construidos
             $room->update($updateData);
 
-            BingoCreator::where('room', $room)->update([
-                'creator_commn' => $request->room_commission,
-                'ctn_price' => $request->ctn_price,
-            ]);
-
             BingoRoomConfig::where('room', $id)->update(
                 [
                     'jackpot_type' => $request->jackpot_type,
@@ -1090,6 +1089,11 @@ class BingoController extends Controller
                     'num_serials' => $request->num_serials
                 ]
             );
+
+            BingoCreator::where('room', $room)->update([
+                'creator_commn' => $request->room_commission,
+                'ctn_price' => $request->ctn_price,
+            ]);
 
             DB::commit();
 
@@ -1200,14 +1204,8 @@ class BingoController extends Controller
             // Obtener ID de la nueva sala
             $newRoom = BingoRoom::create($createData)->id;
 
-            // Registar el creador de la sala
-            BingoCreator::create([
-                'room' => $newRoom,
-                'creator_type' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
-                'creator_id' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
-                'creator_commn' => $existingRoomConfig->room_commn,
-                'ctn_price' => $existingRoom->ctn_price,
-            ]);
+            // Definir Tipos de Cantos disponibles
+            $typesPlays = $this->getPlayTypesForRoom() ?? null;
 
             BingoRoomConfig::create([
                 'room' => $newRoom->id,
@@ -1218,6 +1216,15 @@ class BingoController extends Controller
                 'val_serials' => $existingRoomConfig->val_serials,
                 'num_serials' => $existingRoomConfig->num_serials,
                 //'val_sm_prizes' => $existingRoomConfig->val_sm_prizes,
+            ]);
+
+            // Registar el creador de la sala
+            BingoCreator::create([
+                'room' => $newRoom,
+                'creator_type' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
+                'creator_id' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
+                'creator_commn' => $existingRoomConfig->room_commn,
+                'ctn_price' => $existingRoom->ctn_price,
             ]);
 
             DB::commit();
@@ -1447,17 +1454,9 @@ class BingoController extends Controller
             case 'commerce':
                 $creatorID = Commerce::getValueById($creatorID, 'id');
                 // Verificar si el comercio existe
-                if (!$creatorID) {
-                    return response()->json(['message' => 'Token del cliente no existe'], 404);
-                }
                 break;
 
-            case 'customer':
-                $creatorID = Auth::id() ? $creatorID : Customer::getValueByToken($creatorID, 'id');
-                // Verificar si el cliente existe
-                if (!$creatorID) {
-                    return response()->json(['message' => 'Token del cliente no existe'], 404);
-                }
+            case 'admin':
                 break;
 
             default:
@@ -1625,6 +1624,69 @@ class BingoController extends Controller
             return response()->json(['message' => 'Salas creadas correctamente']);
         } else {
             return response()->json(['message' => 'Ha ocurrido un error']);
+        }
+    }
+
+    public function allPublicRooms($creatorType, $creatorID)
+    {
+        $creatorID = decrypt($creatorID);
+
+        switch ($creatorType) {
+            case 'commerce':
+                $creatorID = Commerce::getValueById($creatorID, 'id');
+                // Verificar si el comercio existe
+                if (!$creatorID) {
+                    return redirect()->back()->with('message', 'El creador no existe')->with('type', 'warning');
+                }
+                break;
+
+            case 'customer':
+                $creatorID = Auth::id() ? $creatorID : Customer::getValueByToken($creatorID, 'id');
+                // Verificar si el cliente existe
+                if (!$creatorID) {
+                    return response()->json(['message' => 'Token del cliente no existe'], 404);
+                }
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        $creator = ['type' => $creatorType, 'id' => encrypt($creatorID)];
+
+        // Obtener la información de configuracion de salas automaticas
+        $viewData = $this->getAutomaticRoomsInfo($creator);
+
+        // Retornar la vista con la información
+        return $this->handleViewData($viewData, $creator['type']);
+    }
+
+    public function storePublicRoom(Request $request, $id)
+    {
+        $creator = json_decode($request->creator);
+        $creatorType = UserType::getValueByPrefix($creator->type, 'id');
+        $creatorID = decrypt($creator->id);
+
+        $roomID = decrypt($id);
+
+        DB::beginTransaction();
+
+        try {
+            // Registar el creador de la sala
+            BingoCreator::create([
+                'room' => $roomID,
+                'creator_type' => $creatorType,
+                'creator_id' => $creatorID,
+                'creator_commn' => $request->room_commission,
+                'ctn_price' => $request->ctn_price,
+            ]);
+            DB::commit();
+            return redirect()->back()->with('message', 'Proceso exitoso')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al procesar la solicitud : ' . $e->getMessage());
+            return redirect()->back()->with('msg-error', 'Hubo un error al procesar la solicitud');
         }
     }
 }

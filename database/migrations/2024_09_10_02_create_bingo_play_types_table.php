@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bingo_types_of_plays', function (Blueprint $table) {
+        Schema::create('bingo_play_types', function (Blueprint $table) {
             $table->id();
             $table->string('code', 10);
             $table->string('description', 35);
-            $table->string('boxes', 25);
+            $table->string('boxes', 50);
             $table->boolean('status')->default(0);
             $table->timestamps();
         });
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bingo_types_of_plays');
+        Schema::dropIfExists('bingo_play_types');
     }
 };

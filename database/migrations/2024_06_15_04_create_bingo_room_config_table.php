@@ -24,7 +24,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->double('val_serials')->nullable();
             $table->string('num_serials', 2)->nullable();
             $table->double('val_sm_prizes')->nullable();
-            $table->string('types_plays')->nullable();
+            $table->string('play_types', 25)->nullable();
             $table->timestamps();
 
             // Foreign key constraint

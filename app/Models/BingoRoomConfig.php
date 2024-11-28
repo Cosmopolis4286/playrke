@@ -17,7 +17,7 @@ class BingoRoomConfig extends Model
     'val_serials',
     'num_serials',
     'val_sm_prizes',
-    'types_plays'
+    'play_types'
   ];
 
   public function Room()

@@ -404,6 +404,9 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     // Rutas de Salas Publicas
     Route::get('public-rooms/{creatorType}/{creatorID}', [BingoController::class, 'allPublicRooms'])
         ->middleware(['auth', 'commerce'])->name('public-room.all-rooms');
+
+    Route::get('public-room/getInfo/{id}', [BingoController::class, 'getInfoPublicRoom'])->name('public-room.getInfo');
+    Route::put('public-room/store/{id?}', [BingoController::class, 'storePublicRoom'])->name('public-room.store');
 });
 
 Route::post('bingocash/actWn', [BingoController::class, 'actWn'])
