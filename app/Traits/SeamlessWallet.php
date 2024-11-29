@@ -285,7 +285,6 @@ trait SeamlessWallet
         }
     }
 
-
     public function validateTransaction($customer)
     {
         // Obtener transacciones pendientes

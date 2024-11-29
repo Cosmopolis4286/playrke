@@ -788,7 +788,7 @@ trait BingoTrait
 
             $playerColumnVal = $ctn->player_user ?? $ctn->player_link;
 
-            if (!BingoPrizeCtns::existsPrizeCtn($roomID, 1, $playerColumn, $playerColumnVal)) {
+            if (!BingoPrizeCtns::existsPrizeCtn($roomID, $prizeType, $playerColumn, $playerColumnVal)) {
 
                 // Verificar y obtener el tipo de cambio
                 $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $ctn->coin) ?? 1;
@@ -1208,7 +1208,7 @@ trait BingoTrait
         $winnerJackpotPrize = BingoRoom::getSerialPrize($roomID) / count($arrSerialsPlayers);
 
         try {
-            $registerPrizeCtn = $this->registerPrizeCtn($ctnsSerials, 2, $winnerJackpotPrize, $roomID);
+            $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsSerials, 2, $winnerJackpotPrize);
             if (!$registerPrizeCtn) DB::rollBack();
         } catch (\Exception $e) {
             DB::rollBack();
