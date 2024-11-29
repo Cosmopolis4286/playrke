@@ -26,6 +26,7 @@ use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\Transactions;
 use App\Models\User;
+use App\Models\UserType;
 use App\Models\Wallet;
 use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -715,7 +716,8 @@ trait BingoTrait
                     $arrDataPlayer = [
                         'game' => 1,
                         'room' => $roomID,
-                        'commerce' => $commerce,
+                        'creator_type' => UserType::getValueByPrefix('commerce', 'id'),
+                        'creator_id' => $commerce,
                         'seller' => $seller,
                         'country' => $data['country'],
                         'coin' => $coin,
@@ -783,13 +785,10 @@ trait BingoTrait
         $playersToUpdate = [];
 
         foreach ($cartons as $ctn) {
-
-            //Determinar la columna según el modo de juego
-            $playerColumn = $ctn->player_user ? 'player_user' : 'player_link';
-
-            $playerColumnVal = $ctn->player_user ?? $ctn->player_link;
-
-            if (!BingoPrizeCtns::existsPrizeCtn($roomID, 1, $playerColumn, $playerColumnVal)) {
+            // Definir variable relacion "room_user"
+            $roomUser = $ctn->room_user;
+            //Verificar si ya se encuentra el registro
+            if (!BingoPrizeCtns::existsPrizeCtn($roomID, $prizeType, $roomUser)) {
 
                 // Verificar y obtener el tipo de cambio
                 $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $ctn->coin) ?? 1;
@@ -799,7 +798,7 @@ trait BingoTrait
 
                 $record = [
                     'room' => $roomID,
-                    'room_user' => $ctn->room_user,
+                    'room_user' => $roomUser,
                     'customer' => $ctn->customer,
                     'commerce' => $ctn->commerce,
                     'seller' => $ctn->seller,
@@ -816,8 +815,8 @@ trait BingoTrait
                 // Añadimos el registro al array de inserciones
                 $recordsToInsert[] = $record;
 
-                // Determinar el campo de actualización basado en el tipo de usuario
-                $playersToUpdate[] = BingoRoomUser::getValueByColumn($roomID, $playerColumn, $playerColumnVal, 'id');
+                // Añadimos el ID room_user al array
+                $playersToUpdate[] = $roomUser;
             }
         }
 

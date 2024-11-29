@@ -8,15 +8,11 @@ class BingoPrizeCtns extends Model
 {
     protected $table = "bingo_prize_ctns";
     protected $fillable = [
-        'id',
         'room',
-        'customer',
-        'commerce',
-        'subsidiary',
+        'creator_type',
+        'creator_id',
         'seller',
         'room_user',
-        'player_user',
-        'player_link',
         'ctn',
         'prize_type',
         'coin',
@@ -31,34 +27,14 @@ class BingoPrizeCtns extends Model
         return $this->belongsTo(BingoRoom::class, 'room');
     }
 
-    public function Customer()
-    {
-        return $this->belongsTo(Customer::class, 'customer');
-    }
-
-    public function Commerce()
-    {
-        return $this->belongsTo(Commerce::class, 'commerce');
-    }
-
     public function Seller()
     {
         return $this->belongsTo(Seller::class, 'seller');
     }
 
-    public function Provider()
-    {
-        return $this->belongsTo(ProviderRKE::class, 'provider');
-    }
-
-    public function PlayerLink()
-    {
-        return $this->belongsTo(PlayerLink::class, 'player_link', 'id');
-    }
-
     public function PlayerGame()
     {
-        return $this->belongsTo(BingoRoomUser::class, 'player_link', 'player_link');
+        return $this->belongsTo(BingoRoomUser::class, 'room_user');
     }
 
     public function Coin()
@@ -96,9 +72,10 @@ class BingoPrizeCtns extends Model
         return self::select($fields)->where('ctn', $ctnId)->first();
     }
 
-    public static function existsPrizeCtn($room, $prizeType, $column, $value)
+    public static function existsPrizeCtn($room, $prizeType, $roomUser)
     {
-        return self::where(['room' => $room, 'prize_type' => $prizeType, $column => $value])->exists();
+        return self::where('room', $room)->where('prize_type', $prizeType)
+            ->where('room_user', $roomUser)->exists();
     }
 
     public static function getValueById($ctnId, $value)

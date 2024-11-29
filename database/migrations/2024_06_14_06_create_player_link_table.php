@@ -15,15 +15,15 @@ class CreatePlayerLinkTable extends Migration
     {
         Schema::create('player_link', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('game');
+            $table->unsignedBigInteger('room');
+            $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
+            $table->integer('creator_id');
+            $table->string('seller', 10)->nullable();
+            $table->unsignedBigInteger('user')->nullable();
             $table->string('link', 25);
             $table->unsignedBigInteger('country');
             $table->unsignedBigInteger('coin');
-            $table->unsignedBigInteger('game');
-            $table->unsignedBigInteger('room');
-            $table->unsignedBigInteger('commerce')->nullable();
-            $table->unsignedBigInteger('subsidiary')->nullable();
-            $table->unsignedBigInteger('seller')->nullable();
-            $table->unsignedBigInteger('user')->nullable();
             $table->string('name', 20);
             $table->string('lastname', 20);
             $table->string('identification', 12)->nullable();
@@ -32,13 +32,10 @@ class CreatePlayerLinkTable extends Migration
             $table->timestamps();
 
             // Foreign keys
-            $table->foreign('country')->references('id')->on('countries');
-            $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('game')->references('id')->on('games');
             $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('commerce')->references('id')->on('commerces');
-            $table->foreign('subsidiary')->references('id')->on('subsidiaries');
-            $table->foreign('seller')->references('id')->on('sellers');
+            $table->foreign('country')->references('id')->on('countries');
+            $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('user')->references('id')->on('users');
             $table->foreign('purchase_code')->references('id')->on('user_purchase_codes');
         });

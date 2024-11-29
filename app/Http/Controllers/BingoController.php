@@ -566,7 +566,7 @@ class BingoController extends Controller
     public function inGame($player, $room = '')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        if (!$room) $player = PlayerLink::getByLink($player, ['room', 'commerce', 'link']);
+        if (!$room) $player = PlayerLink::getByLink($player, ['creator_id', 'room', 'link']);
 
         $creator = ['type' => 'RKE', 'id' => $player->commerce];
 
@@ -579,7 +579,7 @@ class BingoController extends Controller
     public function inGameCommerce($commerce, $playerLink)
     {
         // Vista para el juego de un comercio especifico
-        $commerceID = PlayerLink::getValueByLink($playerLink, 'commerce');
+        $commerceID = PlayerLink::getValueByLink($playerLink, 'creator_id');
 
         // Validar el codigo de comercio
         $comerceIDByUUID = Commerce::getValueByCodeUUID($commerce, 'id');

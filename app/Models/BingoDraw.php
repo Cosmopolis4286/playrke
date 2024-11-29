@@ -31,6 +31,6 @@ class BingoDraw extends Model
 
     public static function getFirstDrawChip($room, $fields = ['*'])
     {
-        return self::where('room', $room)->select($fields)->first();
+        return self::select($fields)->where('room', $room)->first();
     }
 }

@@ -10,8 +10,8 @@ class PlayerLink extends Model
   protected $fillable = [
     'game',
     'room',
-    'commerce',
-    'subsidiary',
+    'creator_type',
+    'craator_id',
     'seller',
     'user',
     'link',
@@ -39,19 +39,9 @@ class PlayerLink extends Model
     return $this->hasMany(GameExchangeRate::class, 'room', 'room');
   }
 
-  public function Commerce()
-  {
-    return $this->belongsTo(Commerce::class, 'commerce');
-  }
-
   public function Seller()
   {
     return $this->belongsTo(Seller::class, 'seller');
-  }
-
-  public function User()
-  {
-    return $this->belongsTo(User::class, 'user');
   }
 
   public function Room()
@@ -91,7 +81,7 @@ class PlayerLink extends Model
 
   public static function getByLink($playerLink, $fields = ['*'])
   {
-    return self::where('link', $playerLink)->select($fields)->first();
+    return self::select($fields)->where('link', $playerLink)->first();
   }
 
   public static function getValueByLink($link, $value)

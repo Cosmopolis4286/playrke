@@ -65,7 +65,7 @@ class BingoRoom extends Model
 
   public static function getRoomById($room, $fields = ['*'])
   {
-    return self::where('id', $room)->select($fields)->first();
+    return self::select($fields)->where('id', $room)->first();
   }
 
   public static function getRoomByEncrypted($encryptedID, $fields = ['*'])

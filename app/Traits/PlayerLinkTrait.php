@@ -26,14 +26,15 @@ trait PlayerLinkTrait
                 'country' => $country,
                 'phone' => $phone,
                 'code' => strtoupper(Str::random(8)),
-                'status' => 'Activo'
+                'status' => 'ACTIVO'
             ]);
 
             // Crear el nuevo registro
             $player = PlayerLink::create([
-                'game' => $arr['game'], // Bingo
-                'room' => $arr['room'], // ID Sala Bingo
-                'commerce' => $arr['commerce'],
+                'game' => $arr['game'], // ID Juego
+                'room' => $arr['room'], // ID Sala
+                'creator_type' => $arr['creator_type'],
+                'creator_id' => $arr['creator_id'],
                 'seller' => $arr['seller'],
                 'country' => $country,
                 'coin' => $arr['coin'],
