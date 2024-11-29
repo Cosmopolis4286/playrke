@@ -1053,24 +1053,26 @@ trait BingoTrait
 
         try {
 
-            $USDPrize = $room->jackpot_prize / $winnersCount;
+            $jackpotPrize = $room->jackpot_prize;
+            $updateData = ['close_room' => Carbon::now()->timestamp];
 
             // Calcular premios si hay premio serial
-            if ($room->Config->val_serials > 0  && $room->serial_prize == 0 && $generateSerials > 0) {
+            if ($room->Config->val_serials > 0 && $room->serial_prize == 0 && $generateSerials > 0) {
                 $serialPrize = $room->jackpot * $room->Config->val_serials / 100;
-                $jackpotPrize = $room->jackpot - $serialPrize;
+                $jackpotPrize -= $serialPrize;
 
-                BingoRoom::where('id', $roomID)->update([
-                    'jackpot_prize' => $jackpotPrize,
-                    'serial_prize' => $serialPrize,
-                    'close_room' => Carbon::now()->timestamp
-                ]);
-
-                $USDPrize = $jackpotPrize / $winnersCount;
+                $updateData['jackpot_prize'] = $jackpotPrize;
+                $updateData['serial_prize'] = $serialPrize;
             }
 
+            // Actualizar datos de la sala
+            BingoRoom::where('id', $roomID)->update($updateData);
+
+            // Calcular el valor de cada premio individual
+            $winnerJackpotPrize = $jackpotPrize / $winnersCount;
+
             // Crear registros de ganadores y actualizar el estado de los jugadores
-            $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsJackpot, 1, $USDPrize);
+            $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsJackpot, 1, $winnerJackpotPrize);
 
             if (!$registerPrizeCtn) DB::rollBack();
 
@@ -1203,10 +1205,10 @@ trait BingoTrait
         $ctnsSerials = BingoCtns::whereIn('serial', $arrSerialsPlayers)
             ->where('room', $roomID)->get(['id', 'commerce', 'seller', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
 
-        $USDPrize = BingoRoom::getSerialPrize($roomID) / count($arrSerialsPlayers);
+        $winnerJackpotPrize = BingoRoom::getSerialPrize($roomID) / count($arrSerialsPlayers);
 
         try {
-            $registerPrizeCtn = $this->registerPrizeCtn($ctnsSerials, 2, $USDPrize, $roomID);
+            $registerPrizeCtn = $this->registerPrizeCtn($ctnsSerials, 2, $winnerJackpotPrize, $roomID);
             if (!$registerPrizeCtn) DB::rollBack();
         } catch (\Exception $e) {
             DB::rollBack();
