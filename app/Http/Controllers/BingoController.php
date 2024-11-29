@@ -817,21 +817,20 @@ class BingoController extends Controller
                 return false;
                 break;
         }
-
-        // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
-        // $jackpotType = JackpotType::getByIds($gameJackpotType);
-
+        
         $rooms = BingoRoom::with([
+            'Config:room,game_mode,jackpot_type',
+            'Config.GameMode',
             'Config.JackpotType',
-            'GameMode',
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
             },
             'GameExchangeRate' => function ($query) use ($coin) {
-                $query->where('coin', $coin)->where('game', 1);
+                $query->where([['coin', $coin], ['game', 1]]);
             }
-        ])->where($creator['type'], $creatorID)->orderByDesc('date')
-            ->orderByDesc('time')->orderBy('status')->get();
+        ])->where($creator['type'], $creatorID)
+            ->orderByDesc('date')->orderByDesc('time')
+            ->orderBy('status')->get();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
@@ -857,7 +856,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.private-room.index', 'data' => $viewData];
+        return ['route' => 'modules.game.bingo.form.index', 'data' => $viewData];
     }
 
     public function allRooms($creatorType, $creatorID = '', $coin = '')
@@ -904,7 +903,6 @@ class BingoController extends Controller
         // Retorna la vista con la información
         return $this->handleViewData($viewData, $creator['type']);
     }
-
 
     public function allCustomerRooms($customer = '', $coin = '')
     {

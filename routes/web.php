@@ -375,12 +375,15 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
         ->middleware(['auth', 'commerce'])->name('game-rooms-commerce');
 
-    /// Rutas de Salas Privadas
-    Route::get('private-rooms/{creatorType}/{userID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
+    //Obtener Informacion por ID
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
-    Route::put('status/{id}', [BingoController::class, 'changeStatusRoom'])->name('change-status');
+    // Obtener Informacion de las salas de un $cretor especifico   
     Route::get('getDateTimeRooms/{creatorType}/{creatorID}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
+
+    /// Rutas de Salas 
+    Route::get('rooms/{creatorType}/{userID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
+    Route::put('status/{id}', [BingoController::class, 'changeStatusRoom'])->name('change-status');
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
     Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');
@@ -404,7 +407,6 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('public-rooms/{creatorType}/{creatorID}', [BingoController::class, 'allPublicRooms'])
         ->middleware(['auth', 'commerce'])->name('public-room.all-rooms');
 
-    Route::get('public-room/getInfo/{id}', [BingoController::class, 'getInfoPublicRoom'])->name('public-room.getInfo');
     Route::put('public-room/store/{id?}', [BingoController::class, 'storePublicRoom'])->name('public-room.store');
 });
 
