@@ -1208,7 +1208,7 @@ trait BingoTrait
         $winnerJackpotPrize = BingoRoom::getSerialPrize($roomID) / count($arrSerialsPlayers);
 
         try {
-            $registerPrizeCtn = $this->registerPrizeCtn($ctnsSerials, 2, $winnerJackpotPrize, $roomID);
+            $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsSerials, 2, $winnerJackpotPrize);
             if (!$registerPrizeCtn) DB::rollBack();
         } catch (\Exception $e) {
             DB::rollBack();
