@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('status')->default(1);
             $table->integer('players')->default(0);
             $table->integer('plays')->default(0);
-            $table->boolean('paid_win')->default(0);
+            $table->boolean('prizes_paid')->default(0);
             $table->double('all_sale')->default(0);
             $table->double('rke_commn')->default(0)->nullable();
             $table->double('creator_commn')->default(0)->nullable();

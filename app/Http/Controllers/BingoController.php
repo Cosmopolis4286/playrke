@@ -857,7 +857,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.form.index', 'data' => $viewData];
+        return ['route' => 'modules.game.bingo.private-room.index', 'data' => $viewData];
     }
 
     public function allRooms($creatorType, $creatorID = '', $coin = '')
@@ -1627,6 +1627,99 @@ class BingoController extends Controller
         }
     }
 
+    public function getPublicRoomsInfo($creator)
+    {
+        //  Lista (CRUD) de configuracion de Salas Publicas
+        $this->checkRoomClosure();
+
+        $creatorType = $creator['type'];
+        $creatorID = decrypt($creator['id']);
+
+        switch ($creatorType) {
+            case 'admin': // Admin
+                break;
+            case 'commerce': // Comercio
+                $isLogin = true;
+
+                $commerce = Commerce::getById($creatorID, ['coin', 'code_uuid']);
+
+                $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($commerce->coin)]);
+
+                $moreViewData = [
+                    'commerceUUID' => $commerce->code_uuid,
+                    'wallet' => $this->wallet()
+                ];
+
+                if ($creatorID == 1) $roomType = Room::getRoomTypes();
+
+                break;
+            case 'customer': // Cliente
+
+                $isLogin = $returnBtn = false;
+
+                $token = Customer::getValueById($creatorID, 'token');
+
+                $GMRoute =  route(
+                    'bingo.game-rooms-customer',
+                    ['customer' => $token, 'user' => $token]
+                );
+
+                $moreViewData = ['customer' => true, 'userToken' => $token];
+
+                break;
+
+            default:
+                return false;
+                break;
+        }
+
+        $userType = UserType::getValueByPrefix($creatorType, 'id');
+
+        $publicRooms = BingoRoom::where('creator_type', $userType)
+            ->where('creator_id', $creatorID)->whereNot('status', 3)
+            ->get([
+                'id',
+                'time',
+                'game_mode',
+                'room_type',
+                'jackpot_type',
+                'fixed_jackpot_value',
+                'ctn_price',
+                'room_commn',
+                'serials_commn',
+                'val_serials',
+                'num_serials',
+                'status'
+            ]);
+
+        $activeRooms = BingoRoom::where($creator['type'], $creatorID)->whereIn('status', [2, 3])->exists();
+
+        $routeExecuteGenerateBingoRoomsJob = route(
+            'bingo.automatic-room.executeGenerateBingoRoomsJob',
+            ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
+        );
+
+        $viewData = [
+            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Salas de Bingo AUTO',
+            'name' => 'bingocash',
+            'returnBtn' => $returnBtn ?? true,
+            'creator' => $creator,
+            'rooms' => $publicRooms,
+            'activeRooms' => $activeRooms,
+            'GMRoute' => $GMRoute,
+            'roomType' => $roomType ?? [],
+            'jackpotType' => JackpotType::all(),
+            'gameModes' => GameModes::all()
+        ];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
+
+        return ['route' => 'modules.game.bingo.public-room.index', 'data' => $viewData];
+    }
+
     public function allPublicRooms($creatorType, $creatorID)
     {
         $creatorID = decrypt($creatorID);
@@ -1655,8 +1748,8 @@ class BingoController extends Controller
 
         $creator = ['type' => $creatorType, 'id' => encrypt($creatorID)];
 
-        // Obtener la información de configuracion de salas automaticas
-        $viewData = $this->getAutomaticRoomsInfo($creator);
+        // Obtener la información de configuracion de salas publicas
+        $viewData = $this->getPublicRoomsInfo($creator);
 
         // Retornar la vista con la información
         return $this->handleViewData($viewData, $creator['type']);

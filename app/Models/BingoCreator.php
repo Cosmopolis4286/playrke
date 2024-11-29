@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BingoCreator extends Model
 {
     protected $table = 'bingo_creator';
-    protected $fillable = ['room', 'creator_type', 'creator_id', 'creator_commn', 'ctn_price', 'created_at', 'updated_at'];
+    protected $fillable = ['room', 'creator_type', 'creator_id', 'creator_commn', 'coin', 'ctn_price', 'created_at', 'updated_at'];
 
     public function Room()
     {
@@ -17,6 +17,11 @@ class BingoCreator extends Model
     public function CreatorType()
     {
         return $this->belongsTo(UserType::class, 'creator_type');
+    }
+
+    public function Coin()
+    {
+        return $this->belongsTo(Coin::class, 'iso_code', 'coin');
     }
 
     public static function getById($id, $fields = ['*'])

@@ -9,6 +9,9 @@ class BingoRoomConfig extends Model
   protected $table = "bingo_rooms_config";
   protected $fillable = [
     'room',
+    'game_mode',
+    'creation',
+    'room_type',
     'jackpot_type',
     'fixed_jackpot_value',
     'replay',
@@ -23,6 +26,11 @@ class BingoRoomConfig extends Model
   public function Room()
   {
     return $this->belongsTo(BingoRoom::class, 'room');
+  }
+
+  public function GameMode()
+  {
+    return $this->belongsTo(GameModes::class, 'game_mode', 'id');
   }
 
   public function JackpotType()
