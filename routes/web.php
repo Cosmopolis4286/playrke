@@ -307,8 +307,8 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'retiro', 'as' => '
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'games', 'as' => 'games.'], function () {
-    Route::put('handleCustomerGames', [GameController::class, 'handleCustomerGames'])
-        ->name('handleCustomerGames')->withoutMiddleware('auth');
+    Route::put('handleCustomerGames/{id?}', [GameController::class, 'handleCustomerGames'])
+        ->name('handleCustomerGames')->withoutMiddleware(['auth']);
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'historial', 'as' => 'historial.'], function () {

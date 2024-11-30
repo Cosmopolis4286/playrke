@@ -13,7 +13,8 @@
                      <span aria-hidden="true">&times;</span>
                  </button>
              </div>
-             <form id="form-{{ $name }}" method="POST">@csrf
+             <form id="form-{{ $name }}" @isset($action) action="{{ $action }}" @endisset
+                 method="POST">@csrf @isset($PUT)@method('PUT')@endisset
                  <div class="modal-body">{!! $dataForm !!}</div>
                  <div class="modal-footer">
                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>

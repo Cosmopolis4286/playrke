@@ -26,8 +26,13 @@
             'modalTitle' => 'ID del Juego - API',
             'name' => 'customer-games',
             'size' => 'sm',
+            'PUT' => true,
+            'action' => route('games.handleCustomerGames', ['id' => $customerGameID->id ?? null]),
             'btnConfirm' => 'btn-confirm-game-id',
-            'dataForm' => view('modules.customer.customer-games.form', ['creator' => $creator])->render(),
+            'dataForm' => view('modules.customer.customer-games.form', [
+                'creatorID' => $creator['id'],
+                'customerGameID' => $customerGameID,
+            ])->render(),
         ])
     @endif
 @endsection
@@ -206,7 +211,7 @@
             });
 
             $(document).on("click", '#btn-confirm-game-id', function() {
-                if (!$('#customer-game-id').val()) {
+                if ($('#customer-game-id').val()) {
                     $('#form-customer-games').submit();
                 } else {
                     $('#customer-game-id').focus();

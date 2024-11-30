@@ -813,7 +813,7 @@ class BingoController extends Controller
 
                 $gameID = Games::getValueByName('BINGO');
 
-                $customerGameID = CustomerGames::getByGameID($creatorID, $gameID);
+                $customerGameID = CustomerGames::getByGameID($creatorID, $gameID) ?? null;
 
                 $moreViewData = [
                     'customer' => true,

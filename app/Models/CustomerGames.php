@@ -24,7 +24,7 @@ class CustomerGames extends Model
         return self::select($fields)->where('id', $id)->first();
     }
 
-    public static function getByGameID($customer, $game, $fields = ['customer_game_id', 'description', 'status'])
+    public static function getByGameID($customer, $game, $fields = ['id', 'customer_game_id', 'description', 'status'])
     {
         return self::select($fields)->where('customer', $customer)->where('game', $game)->first();
     }

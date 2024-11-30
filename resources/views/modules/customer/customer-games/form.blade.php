@@ -13,12 +13,12 @@
     <!-- Selector de Status -->
     <div class="form-group col-12">
         <label for="status" class="form-label">Status</label>
-        <select id="status" name="room_type" class="form-control form-info" aria-label="Seleccionar Status">
+        <select id="status" name="status" class="form-control form-info" aria-label="Seleccionar Status">
             <option value="1" @selected(old('room_type', $customerGameID->status ?? null) == 1)>Activo</option>
             <option value="0" @selected(old('room_type', $customerGameID->status ?? null) == 0)>Inactivo</option>
         </select>
     </div>
 
     <!-- Campo oculto para customer -->
-    <input type="hidden" name="customer" value="{{ $creator['id'] }}">
+    <input type="hidden" name="customer" value="{{ $creatorID }}">
 </div>

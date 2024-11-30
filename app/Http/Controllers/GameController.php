@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class GameController extends Controller
 {
-    public function handleCustomerGames(Request $request, $id)
+    public function handleCustomerGames(Request $request, $id = null)
     {
         DB::beginTransaction();
 
@@ -31,14 +31,13 @@ class GameController extends Controller
             } else {
                 // Crear un nuevo registro
                 CustomerGames::create([
-                    'customer' => $request->customer,
+                    'customer' => decrypt($request->customer),
                     'game' => $gameID,
                     'customer_game_id' => $request->customer_game_id,
                 ]);
             }
 
             DB::commit();
-
             return redirect()->back()->with('message', 'Proceso efectuado con éxito')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
