@@ -71,40 +71,60 @@ trait SeamlessWallet
 
     private function globalGuzzle($customerID, $dataJson, $action)
     {
+        // Validar que el JSON sea válido
+        if (!is_string($dataJson) || is_null(json_decode($dataJson, true))) {
+            Log::error('El parámetro $dataJson no es un JSON válido.');
+            return null;
+        }
+
         // Obtener la clave de seguridad del cliente
         $customerKey = self::getCustomerKey($customerID);
+        if (!$customerKey) {
+            Log::error("No se pudo obtener la clave del cliente con ID {$customerID}.");
+            return null;
+        }
 
         // Generar la firma
         $signature = $this->generateSignature($dataJson, $customerKey);
 
         // Obtener la URL base del cliente
         $linkRoute = Customer::getValueById($customerID, 'link_route');
+        if (!$linkRoute) {
+            Log::error("No se pudo obtener la URL base del cliente con ID {$customerID}.");
+            return null;
+        }
 
-        // Crear una instancia de Guzzle
-        $client = new Client();
+        // Crear una instancia de Guzzle con configuración predeterminada
+        $client = $this->createGuzzleClient();
 
         // Configurar los encabezados de la solicitud
         $headers = [
             'X-Signature' => $signature,
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
         ];
 
-        // Realizar la solicitud HTTP POST con tiempos de espera extendidos
         try {
+            // Realizar la solicitud HTTP POST
             $response = $client->post("{$linkRoute}/{$action}", [
                 'headers' => $headers,
                 'body' => $dataJson,
-                'timeout' => 30,           // Tiempo máximo de espera de la respuesta en segundos
-                'connect_timeout' => 20,   // Tiempo máximo de espera para la conexión en segundos
             ]);
 
             // Retornar la respuesta del servidor
-            return json_decode($response->getBody()->getContents());
+            return json_decode($response->getBody()->getContents(), true);
         } catch (\Exception $e) {
             // Manejar errores
-            Log::error('Error en la solicitud HTTP: ' . $e->getMessage());
+            Log::error("Error en la solicitud HTTP al cliente {$customerID}: {$e->getMessage()}");
             return null;
         }
+    }
+
+    private function createGuzzleClient()
+    {
+        return new Client([
+            'timeout' => 20,           // Tiempo máximo de espera de la respuesta en segundos
+            'connect_timeout' => 20,   // Tiempo máximo de espera para la conexión en segundos
+        ]);
     }
 
     public function getUserInfoFromCustomer($customerID, $userToken)
