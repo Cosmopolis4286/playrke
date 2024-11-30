@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class CustomerGames extends Model
 {
     protected $table = "customers_games";
-    protected $fillable = ['customer', 'game', 'customer_game_id', 'status'];
+    protected $fillable = ['customer', 'game', 'customer_game_id', 'description', 'status'];
 
     public function Customer()
     {
-        return $this->belongsTo(Commerce::class, 'customer');
+        return $this->belongsTo(Customer::class, 'customer');
     }
 
     public function Game()
@@ -21,7 +21,12 @@ class CustomerGames extends Model
 
     public static function getById($id, $fields = ['*'])
     {
-        return self::where('id', $id)->select($fields)->first();
+        return self::select($fields)->where('id', $id)->first();
+    }
+
+    public static function getByGameID($customer, $game, $fields = ['customer_game_id', 'description', 'status'])
+    {
+        return self::select($fields)->where('customer', $customer)->where('game', $game)->first();
     }
 
     public static function getCustomerGameID($customer, $game)

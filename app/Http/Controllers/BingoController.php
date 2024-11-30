@@ -26,7 +26,9 @@ use App\Models\JackpotType;
 use App\Models\PlayerLink;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
+use App\Models\CustomerGames;
 use App\Models\CustomerUser;
+use App\Models\Games;
 use App\Models\Room;
 use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
@@ -809,7 +811,15 @@ class BingoController extends Controller
                     ['customer' => $token, 'user' => $token, 'coin' => encrypt($coin)]
                 );
 
-                $moreViewData = ['customer' => true, 'userToken' => $token];
+                $gameID = Games::getValueByName('BINGO');
+
+                $customerGameID = CustomerGames::getByGameID($creatorID, $gameID);
+
+                $moreViewData = [
+                    'customer' => true,
+                    'userToken' => $token,
+                    'customerGameID' => $customerGameID
+                ];
 
                 break;
 
@@ -927,8 +937,8 @@ class BingoController extends Controller
             $coins = CustomerExchangeRate::getCoinsIDsByCustomer($customerID);
 
             // Verificar si el cliente tiene monedas disponibles
-            if (empty($coins)) {
-                return response()->json(['message' => 'No se encontraron monedas disponibles'], 404);
+            if (!count($coins)) {
+                return response()->json(['message' => 'No se encontraron monedas registradas'], 404);
             }
 
             // Redirigir con la primera moneda disponible encriptada

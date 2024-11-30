@@ -22,6 +22,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\RetirosController;
 use App\Http\Controllers\DirectoryController;
+use App\Http\Controllers\GameController;
 use App\Http\Controllers\RecargasController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\HistorialController;
@@ -303,6 +304,11 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'retiro', 'as' => '
     Route::get('accept_bpay/{id}', [RecargasController::class, 'accept_bpay'])->name('accept_bpay');
     Route::get('decline_bpay/{id}', [RecargasController::class, 'decline_bpay'])->name('decline_bpay');
     Route::get('usdt', [RetirosController::class, 'cryptos'])->name('cryptos');
+});
+
+Route::group(['middleware' => ['auth'], 'prefix' => 'games', 'as' => 'games.'], function () {
+    Route::put('handleCustomerGames', [GameController::class, 'handleCustomerGames'])
+        ->name('handleCustomerGames')->withoutMiddleware('auth');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'historial', 'as' => 'historial.'], function () {
