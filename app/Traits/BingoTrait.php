@@ -738,12 +738,14 @@ trait BingoTrait
                 }
             }
 
-            $data['playerLink'] = $player;
             $data['jackpotType'] = $room->Config->jackpot_type;
             $data['initials'] = $serialText ?? 'RKE';
 
-            // Eliminar Valores innecesarios
-            unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastname']);
+            if (($commerce || $seller)) {
+                $data['playerLink'] = $player;
+                // Eliminar Valores innecesarios
+                unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastname']);
+            }
 
             $responseCtns = $this->cartonStore($data);
 
@@ -757,7 +759,6 @@ trait BingoTrait
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al crear la información del jugador: ' . $e->getMessage());
-            dd($e->getMessage());
             return false;
         }
     }

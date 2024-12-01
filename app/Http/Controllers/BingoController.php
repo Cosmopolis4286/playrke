@@ -124,11 +124,7 @@ class BingoController extends Controller
                 $coinSym = $custCoin->coin;
                 $exchangeRate = $custCoin->exchange_rate;
 
-                $player = $data['player'];
-
-                $isCreator = Customer::getValueByToken($player, 'id');
-
-                $player = !$isCreator ? false : encrypt($player);
+                $player = $data['player'] ? encrypt($data['player']) : false;
 
                 $moreViewData = ['player' => $player, 'userToken' => $data['userToken']];
                 break;
@@ -234,8 +230,8 @@ class BingoController extends Controller
                 return response()->json(['message' => $customer['Error']], 404);
             }
 
-            $coin = CustomerUser::getValueByToken($customer, $userToken, 'coin');
-            $coin = CustomerExchangeRate::getCustomerCoinValue($customer, $coin, 'id');
+            $customerUser = CustomerUser::getByToken($customer, $userToken, ['id', 'coin']);
+            $coin = CustomerExchangeRate::getCustomerCoinValue($customer, $customerUser->coin, 'id');
 
             // Redirecciona si el valor de moneda no está disponible tras desencriptar
             if (!$coin) {
@@ -243,10 +239,13 @@ class BingoController extends Controller
                     'bingo.game-rooms-customer',
                     ['customer' => $customer, 'user' => $userToken, 'coin' => encrypt($coin)]
                 );
+            } else {
+                $player = $customerUser->id;
             }
         } else {
             $customer = Customer::getValueByToken($customerToken, 'id');
             $coin = decrypt($coin);
+            $player = false;
         }
 
         $creator = ['type' => 'customer', 'id' => $customer];
@@ -254,7 +253,7 @@ class BingoController extends Controller
         // Obtiene la información de vista del cliente
         $viewData = self::getGamesRoomsView($creator, [
             'userToken' => $userToken,
-            'player' => $player ?? $customer,
+            'player' => $player,
             'coin' => $coin
         ]);
 
@@ -294,8 +293,8 @@ class BingoController extends Controller
 
                 $customerResponse = $this->getUserBalanceFromCustomer($creatorID, $user->token);
 
-                if (isset($customerResponse->Error)) {
-                    Log::error('Ha ocurrido un error al generar Carton del Cliente/Jugador: ' . $customerResponse->Error);
+                if (isset($customerResponse['Error'])) {
+                    Log::error('Ha ocurrido un error al generar Carton del Cliente/Jugador: ' . $customerResponse['Error']);
                     return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error en la solicitud']);
                 }
 
@@ -304,7 +303,7 @@ class BingoController extends Controller
                 // Monto total a pagar 
                 $saleAmount = $room->ctn_price * $exchangeRate * $data['numOfCtns'];
 
-                if ($customerResponse->Data[0]->Amount < $saleAmount) {
+                if ($customerResponse['Data'][0]['Amount'] < $saleAmount) {
                     // Validar saldo disponible
                     return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
                 }
