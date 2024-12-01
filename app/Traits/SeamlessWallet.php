@@ -114,7 +114,7 @@ trait SeamlessWallet
             // Realizar la solicitud HTTP POST
             $response = $client->post("{$linkRoute}/{$action}", [
                 'headers' => $headers,
-                'json' => json_decode($dataJson, true), // Usa `json` en lugar de `body`
+                'body' => $dataJson, // Usa `json` en lugar de `body`
             ]);
 
             // Decodificar y retornar la respuesta

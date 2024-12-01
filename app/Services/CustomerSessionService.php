@@ -13,23 +13,23 @@ class CustomerSessionService
     {
         $customerResponse = $this->getUserInfoFromCustomer($customerID, $userToken);
 
-        if (isset($customerResponse->Error)) {
-            return ['Error' => $customerResponse->Error];
+        if (isset($customerResponse['Error'])) {
+            return ['Error' => $customerResponse['Error']];
         }
 
-        if ($customerResponse == null) {
+        if (!$customerResponse) {
             return ['Error' => 'Error en la solicitud HTTP'];
         }
 
-        $userID = $customerResponse->Data->ID;
+        $userID = $customerResponse['Data']['ID'];
 
         if (!CustomerUser::existsUserByCustomer($customerID, $userID)) {
             $this->registerUserByCustomer(
                 $customerID,
                 $userID,
                 $userToken,
-                $customerResponse->Data->Country,
-                $customerResponse->Data->DefaultCurrencyCode
+                $customerResponse['Data']['Country'],
+                $customerResponse['Data']['DefaultCurrencyCode']
             );
         }
 

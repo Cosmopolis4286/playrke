@@ -24,7 +24,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div id="container-message" class="mt-2 py-1" role="alert"></div>
+                        <div id="container-message" class="mt-2" role="alert"></div>
                     </div>
                 </div>
                 {{-- <div class="row mt-3">
@@ -73,15 +73,14 @@
                         // Estructura y muestra la respuesta recibida desde Data
                         const data = res.Data; // Extraer el objeto Data
                         const responseHtml = `
-                    <h4>Datos del usuario:</h4>
+                    <h5>Datos del usuario:</h5>
                     <ul>
                         <li><strong>ID:</strong> ${data.ID}</li>
                         <li><strong>Brand:</strong> ${data.Brand ?? 'No especificado'}</li>
                         <li><strong>Nombre de Usuario:</strong> ${data.UserName}</li>
                         <li><strong>País:</strong> ${data.Country}</li>
                         <li><strong>Moneda Predeterminada:</strong> ${data.DefaultCurrencyCode}</li>
-                    </ul>
-                `;
+                    </ul>`;
                         containerMessage.addClass('alert alert-success').html(responseHtml);
                     } else {
                         containerMessage
@@ -107,24 +106,23 @@
                 },
                 success: function(res) {
                     // Limpia clases previas
-                    container.removeClass('alert-danger alert-success');
+                    containerMessage.removeClass('alert-danger alert-success');
                     if (res.Error) {
-                        container.text(res.Error).addClass('alert alert-danger');
+                        containerMessage.text(res.Error).addClass('alert alert-danger');
                     } else if (res.Data && Array.isArray(res.Data) && res.Data.length > 0) {
                         const balanceInfo = res.Data[0];
                         const message = `
-                    <p><strong>Moneda:</strong> ${balanceInfo.CurrencyCode}</p>
-                    <p><strong>Balance:</strong> ${balanceInfo.Amount}</p>
-                    <p><strong>Predeterminado:</strong> ${balanceInfo.IsDefault}</p>
-                `;
-                        container.html(message).addClass('alert alert-success');
+                            <span><strong>Moneda:</strong> ${balanceInfo.CurrencyCode}</span><br>
+                            <span><strong>Balance:</strong> ${balanceInfo.Amount}</span><br>
+                            <span><strong>Predeterminado:</strong> ${balanceInfo.IsDefault}</span>`;
+                        containerMessage.html(message).addClass('alert alert-success');
                     } else {
-                        container.text('Datos no disponibles.').addClass('alert alert-danger');
+                        containerMessage.text('Datos no disponibles.').addClass('alert alert-danger');
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     console.error('Error al obtener el balance del usuario:', textStatus, errorThrown);
-                    container.text('Error al realizar la solicitud.').addClass('alert alert-danger');
+                    containerMessage.text('Error al realizar la solicitud.').addClass('alert alert-danger');
                 }
             });
         }
