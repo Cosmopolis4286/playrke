@@ -6,7 +6,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-auto col-lg-8 col-lx-7">
+                    <div class="col-md-11 col-lg-8 col-lx-7">
                         <div class="input-group">
                             <input type="text" id="user-token" class="form-control"
                                 placeholder="Ingresa el token del usuario" aria-label="Ingresa el token del usuario"
