@@ -11,7 +11,7 @@ class BingoCreator extends Model
 
     public function Room()
     {
-        return $this->belongsTo(BingoRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room','id');
     }
 
     public function CreatorType()

@@ -16,9 +16,10 @@ class CreateBingoRoomConfigTable extends Migration
         Schema::create('bingo_rooms_config', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
-            $table->unsignedBigInteger('game_mode');
             $table->enum('creation', ['M', 'A'])->default('M');
+            $table->unsignedBigInteger('game_mode');
             $table->tinyInteger('room_type')->default(1);
+            $table->double('ctn_price')->nullable();
             $table->unsignedBigInteger('jackpot_type')->default(1);
             $table->double('fixed_jackpot_value')->nullable();
             $table->boolean('replay')->default(0);

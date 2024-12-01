@@ -15,7 +15,7 @@ trait EncryptRKE
             $code = Str::random($size);
         } while (DB::table($table)->where('encrypted', $code)->exists());
 
-        return $code;
+        return Str::upper($code);
     }
 
     public function encryptDraw($table, $id)
@@ -139,7 +139,7 @@ trait EncryptRKE
             $code = Str::uuid()->toString();
         } while (app("App\\Models\\$model")::where('code_uuid', $code)->exists());
 
-        return $code;
+        return Str::upper($code);
     }
 
     public function handleChangePassword($model, $id)

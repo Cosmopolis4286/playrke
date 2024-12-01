@@ -29,7 +29,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('room_user')->references('id')->on('bingo_rooms_user');
             $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
             $table->foreign('ctn')->references('id')->on('bingo_ctns');

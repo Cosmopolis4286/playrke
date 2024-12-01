@@ -21,7 +21,7 @@ class AutoGenerateBingoRooms
 
         if ($creator) {
             $query->where('creator_type', $creator['type'])
-                ->where('creator_id', $creator['id']);
+                ->where('creator_id', decrypt($creator['id']));
         }
 
         $automaticRooms = $query->get();
@@ -68,13 +68,11 @@ class AutoGenerateBingoRooms
                 $roomData = [
                     'date' => $roomDate,
                     'time' => $roomTime,
-                    'unix_date' => $unixDate,
-                    'game_mode' => $room->game_mode,
-                    'ctn_price' => $roomCtnPrice,
-                    $creatorType => $creatorID,
                     'status' => 2,
-                    'creation' => 'A',
+                    'unix_date' => $unixDate,
                     'publication_date' => "{$roomDate} {$roomTime}",
+                    'game_mode' => $room->game_mode,
+                    'status' => 2,
                     'encrypted' => $this->generateUniqueCode('bingo_rooms'),
                     'room_type' => $room->room_type,
                     'created_at' => $timestamp,
@@ -87,6 +85,9 @@ class AutoGenerateBingoRooms
                 // Agregar configuración asociada a la sala creada
                 $dataRoomConfig = [
                     'room' => $roomId,
+                    'creation' => 'A',
+                    'game_mode' => $room->game_mode,
+                    'room_type' => $room->room_type,
                     'jackpot_type' => $room->jackpot_type,
                     'fixed_jackpot_value' => $room->fixed_jackpot_value,
                     'room_commn' => $room->room_commn,
@@ -123,11 +124,15 @@ class AutoGenerateBingoRooms
 
     private function existingRoom($creatorType, $creatorID, $date, $time, $ctnPrice)
     {
-        return BingoRoom::where($creatorType, $creatorID)
-            ->where('date', $date)
-            ->where('time', $time)
-            ->where('ctn_price', $ctnPrice)
-            ->where('status', '>', 1)
-            ->exists();
+        return BingoRoom::with([
+            'Creator' => function ($query) use ($creatorType, $creatorID, $ctnPrice) {
+                $query->select('room', 'creator_type', 'creator_id', 'ctn_price')
+                    ->where([
+                        ['creator_type', $creatorType],
+                        ['creator_id', $creatorID],
+                        ['ctn_price', $ctnPrice]
+                    ]);
+            },
+        ])->where('date', $date)->where('time', $time)->where('status', '>', 1)->exists();
     }
 }

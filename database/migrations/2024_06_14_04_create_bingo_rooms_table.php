@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('bingo_rooms', function (Blueprint $table) {
             $table->id();
+            $table->string('encrypted', 18)->unique();
             $table->date('date');
             $table->string('time', 10);
             $table->unsignedBigInteger('status')->default(1);
@@ -29,7 +30,6 @@ return new class extends Migration
             $table->double('jackpot')->default(0);
             $table->double('jackpot_prize')->default(0);
             $table->double('serial_prize')->default(0);
-            $table->string('encrypted', 18)->unique();
             $table->string('code_uuid', 36)->nullable()->unique();
             $table->timestamps();
 

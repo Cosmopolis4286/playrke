@@ -8,6 +8,7 @@ class BingoRoom extends Model
 {
   protected $table = "bingo_rooms";
   protected $fillable = [
+    'encrypted',
     'date',
     'time',
     'status',
@@ -24,9 +25,13 @@ class BingoRoom extends Model
     'jackpot',
     'jackpot_prize',
     'serial_prize',
-    'encrypted',
     'code_uuid'
   ];
+
+  public function Creator()
+  {
+    return $this->hasMany(BingoCreator::class, 'room', 'id');
+  }
 
   public function Config()
   {

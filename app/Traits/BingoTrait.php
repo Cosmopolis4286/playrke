@@ -970,7 +970,7 @@ trait BingoTrait
     {
         // Obtener la información de la sala
         $room = BingoRoom::with((['Config:room,val_serials']))
-            ->select('id', 'customer', 'jackpot', 'jackpot_prize', 'serial_prize')
+            ->select('id', 'jackpot', 'jackpot_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 
         // Verificar si ya hay ganadores del premio mayor
@@ -1330,7 +1330,7 @@ trait BingoTrait
 
     public function hideRoom() // Validar Salas Finalizadas
     {
-        $rooms = BingoRoom::where('status', 4)->get(['id', 'customer', 'date', 'time']);
+        $rooms = BingoRoom::where('status', 4)->get(['id', 'date', 'time']);
 
         if (!count($rooms)) return true;
 

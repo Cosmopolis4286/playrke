@@ -9,7 +9,7 @@
                 @include('includes.game.bingo.report.btn-group', ['automaticRoom' => true])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.table-info-private-bingo-rooms')
+                        @include('includes.game.bingo.report.table-info-bingo-rooms')
                     </div>
                 </div>
             </div>
