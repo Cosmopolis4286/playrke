@@ -24,7 +24,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div id="container-message" class="mt-2" role="alert"></div>
+                        <div id="container-message" class="mt-2 pb-0" role="alert"></div>
                     </div>
                 </div>
                 {{-- <div class="row mt-3">
@@ -85,13 +85,12 @@
                         containerMessage.addClass('alert alert-success').html(responseHtml);
                     } else {
                         containerMessage
-                            .addClass('alert alert-danger') text('No se encontraron datos en la respuesta.');
+                            .addClass('alert alert-danger').text('No se encontraron datos en la respuesta.');
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     console.error('Error al obtener el ID del usuario:', jqXHR.status, textStatus, errorThrown);
-                    containerMessage
-                        .removeClass('alert-success').addClass('alert alert-danger')
+                    containerMessage.removeClass('alert-success').addClass('alert alert-danger')
                         .text('Error al realizar la solicitud. Por favor, inténtelo de nuevo más tarde.');
                 }
             });

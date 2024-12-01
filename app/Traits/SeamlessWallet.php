@@ -160,15 +160,33 @@ trait SeamlessWallet
 
     public function getUserBalanceFromCustomer($customerID, $userToken)
     {
-        $user = CustomerUser::getvalueByToken($customerID, $userToken, ['user_id', 'coin']);
+        // Intenta obtener el usuario localmente
+        $user = CustomerUser::getByToken($customerID, $userToken, ['user_id', 'coin']);
 
-        // Datos del cuerpo de la solicitud
+        // Si no se encuentra, realiza una solicitud para obtener la información del usuario
+        if (!$user) {
+            $response = $this->getUserInfoFromCustomer($customerID, $userToken);
+
+            // Valida si la respuesta contiene los datos esperados
+            if (!isset($response->Data->ID)) {
+                return false; // Termina si no hay datos válidos
+            }
+
+            $userID = $response->Data->ID;
+            $coin = $response->Data->DefaultCurrencyCode ?? null;
+        } else {
+            $userID = $user->user_id;
+            $coin = $user->coin;
+        }
+
+        // Construye el cuerpo del JSON de manera segura
         $dataJson = json_encode([
             "Token" => $userToken,
-            "UserID" => $user->user_id,
-            "CurrencyCode" => $userCoin ?? ''
+            "UserID" => $userID,
+            "CurrencyCode" => $coin ?: ''
         ]);
 
+        // Realiza la solicitud y retorna la respuesta
         return $this->globalGuzzle($customerID, $dataJson, 'GetBalance');
     }
 
