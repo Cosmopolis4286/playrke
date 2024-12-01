@@ -166,14 +166,12 @@ trait SeamlessWallet
         // Si no se encuentra, realiza una solicitud para obtener la información del usuario
         if (!$user) {
             $response = $this->getUserInfoFromCustomer($customerID, $userToken);
-
             // Valida si la respuesta contiene los datos esperados
-            if (!isset($response->Data->ID)) {
+            if (!isset($response['Data'])) {
                 return false; // Termina si no hay datos válidos
             }
-
-            $userID = $response->Data->ID;
-            $coin = $response->Data->DefaultCurrencyCode ?? null;
+            $userID = $response['Data']['ID'];
+            $coin = $response['Data']['DefaultCurrencyCode'] ?? null;
         } else {
             $userID = $user->user_id;
             $coin = $user->coin;

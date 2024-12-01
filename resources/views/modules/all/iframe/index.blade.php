@@ -24,7 +24,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div id="container-message" class="mt-2 pb-0" role="alert"></div>
+                        <div id="container-message" class="mt-2 py-1" role="alert"></div>
                     </div>
                 </div>
                 {{-- <div class="row mt-3">
@@ -97,25 +97,34 @@
         }
 
         function getBalance() {
-            $.getJSON({
+            $.ajax({
                 url: `{{ route('customer.getUserBalance', ['userToken' => ':userToken']) }}`
                     .replace(':userToken', userToken.val()),
+                type: 'GET',
+                dataType: 'json',
                 data: {
                     '_token': $("#5K3_70K").val()
                 },
                 success: function(res) {
+                    // Limpia clases previas
+                    container.removeClass('alert-danger alert-success');
                     if (res.Error) {
-                        $('#container-message').text(res.Error)
-                            .addClass('alert alert-danger');
+                        container.text(res.Error).addClass('alert alert-danger');
+                    } else if (res.Data && Array.isArray(res.Data) && res.Data.length > 0) {
+                        const balanceInfo = res.Data[0];
+                        const message = `
+                    <p><strong>Moneda:</strong> ${balanceInfo.CurrencyCode}</p>
+                    <p><strong>Balance:</strong> ${balanceInfo.Amount}</p>
+                    <p><strong>Predeterminado:</strong> ${balanceInfo.IsDefault}</p>
+                `;
+                        container.html(message).addClass('alert alert-success');
                     } else {
-                        $('#container-message').text('User ID: ' + res.Data.userId)
-                            .addClass('alert alert-success');
+                        container.text('Datos no disponibles.').addClass('alert alert-danger');
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    console.error('Error al obtener el ID del usuario:', textStatus, errorThrown);
-                    $('#container-message').text('Error al realizar la solicitud.')
-                        .addClass('alert alert-danger');
+                    console.error('Error al obtener el balance del usuario:', textStatus, errorThrown);
+                    container.text('Error al realizar la solicitud.').addClass('alert alert-danger');
                 }
             });
         }
