@@ -52,6 +52,7 @@
 @section('scripts')
     <script>
         const userToken = $('#user-token');
+        const containerMessage = $('#container-message');
 
         function getUserId() {
             $.getJSON({
@@ -61,18 +62,37 @@
                     '_token': $("#5K3_70K").val()
                 },
                 success: function(res) {
+                    // Limpia clases previas
+                    containerMessage.removeClass('alert-danger alert-success');
+
                     if (res.Error) {
-                        $('#container-message').text(res.Error)
-                            .addClass('alert alert-danger');
+                        // Muestra el error si existe
+                        containerMessage
+                            .addClass('alert alert-danger').text(res.Error);
+                    } else if (res.Data) {
+                        // Estructura y muestra la respuesta recibida desde Data
+                        const data = res.Data; // Extraer el objeto Data
+                        const responseHtml = `
+                    <h4>Datos del usuario:</h4>
+                    <ul>
+                        <li><strong>ID:</strong> ${data.ID}</li>
+                        <li><strong>Brand:</strong> ${data.Brand ?? 'No especificado'}</li>
+                        <li><strong>Nombre de Usuario:</strong> ${data.UserName}</li>
+                        <li><strong>País:</strong> ${data.Country}</li>
+                        <li><strong>Moneda Predeterminada:</strong> ${data.DefaultCurrencyCode}</li>
+                    </ul>
+                `;
+                        containerMessage.addClass('alert alert-success').html(responseHtml);
                     } else {
-                        $('#container-message').text('User ID: ' + res.Data.userId)
-                            .addClass('alert alert-success');
+                        containerMessage
+                            .addClass('alert alert-danger') text('No se encontraron datos en la respuesta.');
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    console.error('Error al obtener el ID del usuario:', textStatus, errorThrown);
-                    $('#container-message').text('Error al realizar la solicitud.')
-                        .addClass('alert alert-danger');
+                    console.error('Error al obtener el ID del usuario:', jqXHR.status, textStatus, errorThrown);
+                    containerMessage
+                        .removeClass('alert-success').addClass('alert alert-danger')
+                        .text('Error al realizar la solicitud. Por favor, inténtelo de nuevo más tarde.');
                 }
             });
         }
