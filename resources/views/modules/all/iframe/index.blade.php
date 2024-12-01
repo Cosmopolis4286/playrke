@@ -136,7 +136,7 @@
                 },
                 success: function(res) {
                     if (res.route) {
-                        window.location.href = res.route;
+                        window.open(res.route, '_blank');
                     } else {
                         showToast(res.error, 'warning');
                         $('#container-message').text(res.error).addClass('alert alert-danger');

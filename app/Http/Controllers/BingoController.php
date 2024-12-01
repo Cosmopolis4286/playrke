@@ -234,14 +234,14 @@ class BingoController extends Controller
                 return response()->json(['message' => $customer['Error']], 404);
             }
 
-            $player = CustomerUser::getById($customer, $userToken, ['id', 'coin']);
-            $coin = $coin ? decrypt($coin) : $player->coin;
+            $coin = CustomerUser::getValueByToken($customer, $userToken, 'coin');
+            $coin = CustomerExchangeRate::getCustomerCoinValue($customer, $coin, 'id');
 
             // Redirecciona si el valor de moneda no está disponible tras desencriptar
             if (!$coin) {
                 return redirect()->route(
                     'bingo.game-rooms-customer',
-                    ['customer' => $customer, 'user' => $userToken, 'coin' => encrypt($player->coin)]
+                    ['customer' => $customer, 'user' => $userToken, 'coin' => encrypt($coin)]
                 );
             }
         } else {
