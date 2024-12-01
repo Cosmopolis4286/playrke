@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Services\CustomerSessionService;
 use App\Models\UserType;
+use App\Traits\CustomerTrait;
 use App\Traits\UserVal;
 
 class IframeController extends Controller
 {
-    use UserVal;
+    use UserVal, CustomerTrait;
 
     public function index()
     {
@@ -52,15 +52,12 @@ class IframeController extends Controller
             return redirect()->back();
         }
 
-        $customer = Customer::getByUserId($user->id, ['id', 'token']);
-        $customerSessionService = new CustomerSessionService();
-        $response = $customerSessionService->handleCustomerUserSession($customer->id, $userToken);
+        $customerToken = Customer::getValueByUserId($user->id, 'token');
+        $response = $this->validateCustomer($customerToken, $userToken);
 
         // Verificar si existe el usuario por su token
-        if (isset($response['Error'])) {
-            return ['error' => $response['Error']];
-        }
+        if (isset($response['Error'])) return $response['Error'];
 
-        return ['route' => route('bingo.game-rooms-customer', ['customer' => $customer->token, 'user' => $userToken])];
+        return ['route' => route('bingo.game-rooms-customer', ['customer' => $customerToken, 'user' => $userToken])];
     }
 }

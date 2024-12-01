@@ -46,7 +46,7 @@ trait SeamlessWallet
         $hashHex = $this->generateSignature($dataJson, $customerKey);
 
         // Inicializar y configurar CURL en una sola llamada
-        $curl = curl_init("http://{$linkRoute}/{$action}");
+        $curl = curl_init("{$linkRoute}/{$action}");
         curl_setopt_array($curl, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -71,40 +71,83 @@ trait SeamlessWallet
 
     private function globalGuzzle($customerID, $dataJson, $action)
     {
+        // Validar que el JSON sea válido
+        if (!is_string($dataJson) || is_null(json_decode($dataJson, true))) {
+            Log::error('El parámetro $dataJson no es un JSON válido.', ['dataJson' => $dataJson]);
+            return null;
+        }
+
         // Obtener la clave de seguridad del cliente
-        $customerKey = self::getCustomerKey($customerID);
+        $customerKey = $this->getCustomerKey($customerID);
+        if (!$customerKey) {
+            Log::error("No se pudo obtener la clave del cliente.", ['customerID' => $customerID]);
+            return null;
+        }
 
         // Generar la firma
         $signature = $this->generateSignature($dataJson, $customerKey);
 
         // Obtener la URL base del cliente
         $linkRoute = Customer::getValueById($customerID, 'link_route');
+        if (!$linkRoute) {
+            Log::error("No se pudo obtener la URL base del cliente.", ['customerID' => $customerID]);
+            return null;
+        }
 
-        // Crear una instancia de Guzzle
-        $client = new Client();
+        // Crear una instancia de Guzzle con configuración predeterminada
+        $client = $this->createGuzzleClient();
 
         // Configurar los encabezados de la solicitud
         $headers = [
             'X-Signature' => $signature,
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
         ];
 
-        // Realizar la solicitud HTTP POST con tiempos de espera extendidos
         try {
-            $response = $client->post("{$linkRoute}/{$action}", [
+            // Registrar información de la solicitud antes de enviarla
+            Log::info('Enviando solicitud HTTP POST', [
+                'url' => "{$linkRoute}/{$action}",
                 'headers' => $headers,
                 'body' => $dataJson,
-                'timeout' => 30,           // Tiempo máximo de espera de la respuesta en segundos
-                'connect_timeout' => 20,   // Tiempo máximo de espera para la conexión en segundos
             ]);
 
-            // Retornar la respuesta del servidor
-            return json_decode($response->getBody()->getContents());
+            // Realizar la solicitud HTTP POST
+            $response = $client->post("{$linkRoute}/{$action}", [
+                'headers' => $headers,
+                'body' => $dataJson, // Usa `json` en lugar de `body`
+            ]);
+
+            // Decodificar y retornar la respuesta
+            $responseData = json_decode($response->getBody()->getContents(), true);
+            Log::info('Respuesta recibida', ['response' => $responseData]);
+
+            return $responseData;
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            // Captura errores específicos de cliente (4xx)
+            Log::error("Error en la solicitud HTTP (Cliente)", [
+                'message' => $e->getMessage(),
+                'response' => $e->getResponse() ? $e->getResponse()->getBody()->getContents() : null,
+            ]);
+        } catch (\GuzzleHttp\Exception\ServerException $e) {
+            // Captura errores específicos del servidor (5xx)
+            Log::error("Error en la solicitud HTTP (Servidor)", [
+                'message' => $e->getMessage(),
+                'response' => $e->getResponse() ? $e->getResponse()->getBody()->getContents() : null,
+            ]);
         } catch (\Exception $e) {
-            // Manejar errores
-            Log::error('Error en la solicitud HTTP: ' . $e->getMessage());
-            return null;
+            // Manejar otros errores inesperados
+            Log::error("Error inesperado en la solicitud HTTP", ['message' => $e->getMessage()]);
         }
+
+        return null; // Retornar null en caso de error
+    }
+
+    private function createGuzzleClient()
+    {
+        return new Client([
+            'timeout' => 20,           // Tiempo máximo de espera de la respuesta en segundos
+            'connect_timeout' => 20,   // Tiempo máximo de espera para la conexión en segundos
+        ]);
     }
 
     public function getUserInfoFromCustomer($customerID, $userToken)
@@ -117,15 +160,31 @@ trait SeamlessWallet
 
     public function getUserBalanceFromCustomer($customerID, $userToken)
     {
-        $user = CustomerUser::getvalueByToken($customerID, $userToken, ['user_id', 'coin']);
+        // Intenta obtener el usuario localmente
+        $user = CustomerUser::getByToken($customerID, $userToken, ['user_id', 'coin']);
 
-        // Datos del cuerpo de la solicitud
+        // Si no se encuentra, realiza una solicitud para obtener la información del usuario
+        if (!$user) {
+            $response = $this->getUserInfoFromCustomer($customerID, $userToken);
+            // Valida si la respuesta contiene los datos esperados
+            if (!isset($response['Data'])) {
+                return false; // Termina si no hay datos válidos
+            }
+            $userID = $response['Data']['ID'];
+            $coin = $response['Data']['DefaultCurrencyCode'] ?? null;
+        } else {
+            $userID = $user->user_id;
+            $coin = $user->coin;
+        }
+
+        // Construye el cuerpo del JSON de manera segura
         $dataJson = json_encode([
             "Token" => $userToken,
-            "UserID" => $user->user_id,
-            "CurrencyCode" => $userCoin ?? ''
+            "UserID" => $userID,
+            "CurrencyCode" => $coin ?: ''
         ]);
 
+        // Realiza la solicitud y retorna la respuesta
         return $this->globalGuzzle($customerID, $dataJson, 'GetBalance');
     }
 

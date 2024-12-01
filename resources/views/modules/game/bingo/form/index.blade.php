@@ -21,6 +21,20 @@
         'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
     ])
     @include('includes.form-other-options')
+    @if ($creator['type'] === 'customer')
+        @include('includes.modal-form', [
+            'modalTitle' => 'ID del Juego - API',
+            'name' => 'customer-games',
+            'size' => 'sm',
+            'PUT' => true,
+            'action' => route('games.handleCustomerGames', ['id' => $customerGameID->id ?? null]),
+            'btnConfirm' => 'btn-confirm-game-id',
+            'dataForm' => view('modules.customer.customer-games.form', [
+                'creatorID' => $creator['id'],
+                'customerGameID' => $customerGameID,
+            ])->render(),
+        ])
+    @endif
 @endsection
 @section('scripts')
     <script>
@@ -190,4 +204,20 @@
             },
         };
     </script>
+    @if ($creator['type'] === 'customer')
+        <script>
+            $(document).on("click", '#btn-game-id', function() {
+                $('#modal-customer-games').modal('show');
+            });
+
+            $(document).on("click", '#btn-confirm-game-id', function() {
+                if ($('#customer-game-id').val()) {
+                    $('#form-customer-games').submit();
+                } else {
+                    $('#customer-game-id').focus();
+                    showToast('ID del Juego Obligatorio', 'warning');
+                }
+            });
+        </script>
+    @endif
 @endsection

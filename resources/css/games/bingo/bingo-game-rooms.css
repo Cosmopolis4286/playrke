@@ -428,7 +428,8 @@ input[type=number] {
 
 .card-game-room__status {
     width: 75%;
-    background: linear-gradient(360deg, rgba(243, 207, 26, 0.966) 0%, rgba(243, 240, 54, 0.986)100.2%);
+    background: -webkit-linear-gradient(360deg, rgba(243, 207, 26, 0.97) 0%, rgba(243, 240, 54, 0.99) 100%);
+    background: linear-gradient(360deg, rgba(243, 207, 26, 0.97) 0%, rgba(243, 240, 54, 0.99) 100%);
     border-radius: 9.5px;
     padding-top: 0.65%;
     position: absolute;

@@ -19,6 +19,10 @@
                     href="{{ route('bingo.public-room.all-rooms', ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                     <i class="fas fa-globe"></i> Publicas
                 </a>
+            @else
+                <button id="btn-game-id" class="btn btn-sm btn-dark">
+                    <i class="fa-solid fa-gamepad"></i> Game ID
+                </button>
             @endif
         @endif
     </div>
