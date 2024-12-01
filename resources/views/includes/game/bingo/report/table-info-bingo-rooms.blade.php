@@ -49,7 +49,7 @@
                 @endphp
                 <tr>
                     <td class="align-middle">
-                        <small>Modo: {{ $room->GameMode->description }}</small>
+                        <small>Modo: {{ $room->Config->GameMode->description }}</small>
                         @if ($room->status > 1)
                             <a href="{{ $roomRoute }}" class="badge badge-dark" target="_blank">
                                 <i class="fa-regular fa-eye"></i>

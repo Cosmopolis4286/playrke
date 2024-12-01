@@ -15,7 +15,7 @@ trait EncryptRKE
             $code = Str::random($size);
         } while (DB::table($table)->where('encrypted', $code)->exists());
 
-        return Str::upper($code);
+        return $code;
     }
 
     public function encryptDraw($table, $id)

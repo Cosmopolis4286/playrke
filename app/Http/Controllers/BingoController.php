@@ -842,11 +842,12 @@ class BingoController extends Controller
             },
             'Creator' => function ($query) use ($creatorType, $creatorID) {
                 $query->select('room', 'creator_type', 'creator_id')
-                    ->where([['creator_type', $creatorType], ['creator_id', $creatorID]]);
+                    ->where([
+                        ['creator_type', UserType::getValueByPrefix($creatorType, 'id')],
+                        ['creator_id', $creatorID]
+                    ]);
             },
         ])->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
-
-        dd($rooms);
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
@@ -1177,9 +1178,9 @@ class BingoController extends Controller
     public function copy($id)
     {
         $roomID = decrypt($id);
-        $existingRoom = BingoRoom::findOrFail();
-        $existingRoomConfig = BingoRoomConfig::where('room', $existingRoom->id)->firstOrFail();
-        $roomCreator = BingoCreator::getValueByRoom($roomID, 'creator_type');
+        $existingRoom = BingoRoom::findOrFail($roomID);
+        $existingRoomConfig = BingoRoomConfig::where('room', $roomID)->firstOrFail();
+        $roomCreator = BingoCreator::getByRoom($roomID);
 
         $boat = ($existingRoom->jackpot_type > 1) ? $existingRoom->fixed_jackpot_value : 0;
 
@@ -1207,11 +1208,11 @@ class BingoController extends Controller
             $typesPlays = $this->getPlayTypesForRoom() ?? null;
 
             BingoRoomConfig::create([
-                'room' => $newRoom->id,
+                'room' => $newRoom,
                 'creation' => 'M',
-                'game_mode' => $existingRoom->game_mode,
-                'room_type' => $existingRoom->room_type ?? 1,
-                'ctn_price' => $existingRoom->ctn_price,
+                'game_mode' => $existingRoomConfig->game_mode,
+                'room_type' => $existingRoomConfig->room_type ?? 1,
+                'ctn_price' => $existingRoomConfig->ctn_price,
                 'jackpot_type' => $existingRoomConfig->jackpot_type,
                 'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
                 'room_commn' => $existingRoomConfig->room_commn,
@@ -1224,10 +1225,10 @@ class BingoController extends Controller
             // Registar el creador de la sala
             BingoCreator::create([
                 'room' => $newRoom,
-                'creator_type' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
-                'creator_id' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
-                'creator_commn' => $existingRoomConfig->room_commn,
-                'ctn_price' => $existingRoom->ctn_price,
+                'creator_type' => $roomCreator->creator_type,
+                'creator_id' => $roomCreator->creator_id,
+                'creator_commn' => $roomCreator->creator_commn,
+                'ctn_price' => $roomCreator->ctn_price,
             ]);
 
             DB::commit();
@@ -1235,6 +1236,7 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'Sala copiada con exito')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Hubo un problema al copiar la sala: ' . $e->getMessage());
             return redirect()->back()->with('msg-error', 'Hubo un problema al copiar la sala: ' . $e->getMessage());
         }
 
