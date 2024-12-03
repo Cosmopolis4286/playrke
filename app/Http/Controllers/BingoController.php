@@ -389,7 +389,7 @@ class BingoController extends Controller
             if (isset($creator)) {
                 return response()->json(['type' => 'warning', 'message' => $cartonStore['Error']]);
             } else {
-                return redirect()->back()->with(['type' => 'warning', 'message' => $cartonStore['Error']]);
+                return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al procesar la solicitud']);
             }
         }
     }

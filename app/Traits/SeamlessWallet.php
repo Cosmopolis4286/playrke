@@ -203,7 +203,7 @@ trait SeamlessWallet
         $gameID = CustomerGames::getCustomerGameID($customerID, $game);
 
         if (!$gameID) {
-            Log::error("Error al procesar la transacion: '{$transactionId}': No existe el ID de Juego del cliente [{$customerID}] para el juego [games.id={$game}]");
+            Log::error("No existe el ID de Juego del cliente [{$customerID}] para el juego [games.id={$game}]");
             return ['Error' => "No existe el ID de Juego del cliente [{$customerID}]"];
         }
 
@@ -260,6 +260,7 @@ trait SeamlessWallet
     private function handleTransactionByBET(array $game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount)
     {
         try {
+            // Manejo de transacciones en un closure
             return DB::transaction(function () use ($game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount) {
                 // Registrar la transacción
                 $transaction = $this->registerTransaction(
@@ -272,6 +273,7 @@ trait SeamlessWallet
                     $totalSaleAmount
                 );
 
+                // Validación de la transacción
                 if (!$transaction) {
                     throw new \Exception('Error al registrar la transacción');
                 }
@@ -288,10 +290,9 @@ trait SeamlessWallet
                     $transaction->transaction_type
                 );
 
-                if (isset($transactionResponse->Error) && $transactionResponse->Error) {
-                    $errorMessage = "Error al procesar la transacción '{$transaction->id}': {$transactionResponse->Error}";
-                    Log::error($errorMessage);
-                    throw new \Exception($errorMessage);
+                // Validación de respuesta de transferencia
+                if (isset($transactionResponse['Error'])) {
+                    throw new \Exception($transactionResponse['Error']);
                 }
 
                 // Actualizar la transacción como exitosa
@@ -301,9 +302,10 @@ trait SeamlessWallet
                     'updated_at' => now(),
                 ]);
 
-                return ['Success' => true];
+                return true; // Transacción exitosa
             });
         } catch (\Exception $e) {
+            // Registrar el error y devolverlo como respuesta
             Log::error("Error en handleTransactionByBET: " . $e->getMessage());
             return ['Error' => $e->getMessage()];
         }

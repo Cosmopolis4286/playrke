@@ -570,7 +570,7 @@ trait BingoTrait
             $numOfCtns = $arrCtn['numOfCtns'];
             $gameMode = $room->game_mode;
 
-            $exchangeRate = $customer ? CustomerExchangeRate::getCustomerCoinValue($customer, $coin) : 1;
+            $exchangeRate = $customer ? CustomerExchangeRate::getValueById($coin) : 1;
             $comSaleSellerCtns = 0;
             $totalSaleAmount = $numOfCtns * $room->ctn_price;
             $saleAmount = $totalSaleAmount;
@@ -648,7 +648,7 @@ trait BingoTrait
 
                 if (isset($transactionBet['Error'])) {
                     DB::rollBack();
-                    return ['Error' => 'Error al procesar la transferencia' . $transactionBet['Error']];
+                    return ['Error' => 'Error al procesar la transferencia: ' . $transactionBet['Error']];
                 }
             }
 
