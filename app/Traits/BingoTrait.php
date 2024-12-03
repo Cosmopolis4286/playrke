@@ -417,7 +417,6 @@ trait BingoTrait
             }
             return true;
         } catch (\Exception $e) {
-            dd($e->getMessage());
             Log::error('Error al generar cartones: ' . $e->getMessage());
             return false;
         }
@@ -600,7 +599,12 @@ trait BingoTrait
             $lotID = $this->createCtnsLot($arrCtn, $exchangeRate, $totalSaleAmount);
 
             // Generar y almacenar los cartones de bingo
-            $this->generateAndStoreCtns($arrCtn, $lotID);
+            $generateAndStoreCtns = $this->generateAndStoreCtns($arrCtn, $lotID);
+
+            if (!$generateAndStoreCtns) {
+                DB::rollBack();
+                return ['Error' => 'Error al generar cartones'];
+            }
 
             // Si no es modo offline y el creador es un comercio, actualizar la billetera del jugador
             if ($gameMode != 2 && $commerce) {

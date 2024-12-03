@@ -240,10 +240,12 @@
                     $('#loader-btn-purchase-ctns').show();
                 },
                 success: function(res) {
-                    showToast(res.message, res.msg_type);
-                    setTimeout(function() {
-                        location.reload();
-                    }, 3250);
+                    showToast(res.message, res.type);
+                    if (res.type === 'success') {
+                        setTimeout(function() {
+                            location.reload();
+                        }, 3250);
+                    }
                 },
                 error: function(error) {
                     console.error(error);
