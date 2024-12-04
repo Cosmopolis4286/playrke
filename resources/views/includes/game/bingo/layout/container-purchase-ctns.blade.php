@@ -7,8 +7,8 @@
             <div class="purchase-ctns__coin">
                 <div id="purchase-ctns__coin-text"></div>
                 <div id="purchase-ctns__coin-number">
-                    <small id="purchase-ctns__coin-label" class="purchase-ctns__coin-label"></small>
                     <span id="jackpot-amount"></span>
+                    <small id="purchase-ctns__coin-label" class="purchase-ctns__coin-label"></small>
                 </div>
             </div>
         </div>
@@ -53,8 +53,8 @@
                     </div>
                 </div>
                 <span class="form-text-total">Total:</span>
-                <small class="purchase-ctns__coin-label"></small>
                 <span id="total-amount"></span>
+                <small class="purchase-ctns__coin-label"></small>
             </div>
             <div id="purchase-ctns__body-form-section-right"></div>
         </div>

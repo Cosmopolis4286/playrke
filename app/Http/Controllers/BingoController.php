@@ -1161,12 +1161,12 @@ class BingoController extends Controller
             $room = [
                 'dateTime' => $room->unix_date,
                 'coin' => $coin,
-                'jackpotAmount' => number_format($room->jackpot_prize, 2, '.'),
+                'jackpotAmount' => number_format(($room->jackpot_prize * $exchangeRate), 2, '.'),
                 'jackpotType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
-                'ctnPrice' => $room->ctn_price
+                'ctnPrice' => $room->ctn_price * $exchangeRate
             ];
 
-            return response()->json(['room' => $room, 'exchangeRate' => $exchangeRate ?? 1, 'isLogin' => $isLogin]);
+            return response()->json(['room' => $room, 'isLogin' => $isLogin]);
         }
 
         return response()->json(['room' => $room, 'config' => $roomConfig]);

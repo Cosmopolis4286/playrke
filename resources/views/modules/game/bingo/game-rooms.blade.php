@@ -56,7 +56,7 @@
                                     @if ($room->jackpot_prize > 0 || $room->Config->jackpot_type != 1)
                                         <h3>
                                             <span id="jackpot-room_{{ $room->encrypted }}">
-                                                {{ number_format($room->jackpot_prize, 2) }}
+                                                {{ number_format($room->jackpot_prize * $exchangeRate, 2) }}
                                             </span>
                                             <small id="coin-symbol-room_{{ $room->encrypted }}">
                                                 {{ $coinSym }}
@@ -88,7 +88,6 @@
     <script>
         const creator = @json($creator);
         const coin = @json($coin);
-        const exchangeRate = '{{ $exchangeRate }}';
         const player = @json($player);
         const userToken = @json($userToken ?? null);
 
@@ -186,7 +185,7 @@
 
                     $(`#jackpot-room_${roomID}`).text(room.jackpotAmount);
 
-                    if (exchangeRate != res.exchangeRate) {
+                    if ( $(`#ctn-price_${roomID}`).text() != ctnPrice) {
                         $(`#ctn-price_${roomID}`).text(ctnPrice);
                     }
 
