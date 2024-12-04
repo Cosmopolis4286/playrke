@@ -325,20 +325,16 @@ trait BingoTrait
     }
 
     // Función para calcular el monto total de venta
-    private function calculateTotalSale($numOfCtns, $room, $coin, $seller, $commerce)
+    private function calculateTotalSale($saleAmount, $room, $coin, $seller, $commerce)
     {
         $exchangeRate = ($coin != 1) ? CommerceExchangeRate::getCommerceCoinValue($commerce, $coin) : 1;
-        $totalSaleCtns = $numOfCtns * $exchangeRate;
+        $totalSaleCtns = $saleAmount * $exchangeRate;
 
         // Comisiones del vendedor
-        $comSaleSellerCtns = $this->calculateSellerCommission($seller, $totalSaleCtns, $room->id);
-        $saleAmount = $totalSaleCtns - $comSaleSellerCtns;
+        $saleCommn = $this->calculateSellerCommission($seller, $totalSaleCtns, $room->id);
+        $sellerSaleCommn = number_format(($totalSaleCtns - $saleCommn) / $exchangeRate, 3, '.');;
 
-        return [
-            'exchangeRate' => $exchangeRate,
-            'saleAmount' => $saleAmount,
-            'comSaleSellerCtns' => $comSaleSellerCtns
-        ];
+        return ['exchangeRate' => $exchangeRate, 'sellerSaleCommn' => $sellerSaleCommn];
     }
 
     // Función para calcular la comisión del vendedor
@@ -510,34 +506,36 @@ trait BingoTrait
 
             return $roomUser->id;
         } catch (\Exception $e) {
-            dd($e->getMessage());
             Log::error('Error al registar o actualizar los datos del usuario: ' . $e->getMessage());
             return false;
         }
     }
 
     // Función para actualizar acumulados y comisiones de la sala
-    private function updateRoomMetrics($room, $arrCtn, $totalSaleAmount, $exchangeRate, $saleAmount, $comSaleSellerCtns)
+    private function updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn)
     {
         try {
             // Actualización del bote acumulado y otras métricas de la sala
-            $convertedJackpot = number_format($saleAmount / $exchangeRate, 3, '.');
-            $boatAcum = ($arrCtn['jackpotType'] == 1) ? $convertedJackpot : (($arrCtn['jackpotType'] == 2) ? 0 : null);
+
+            $boatAcum = ($arrCtn['jackpotType'] == 1) ? $saleAmount : (($arrCtn['jackpotType'] == 2) ? 0 : null);
+
             $jackpot = $room->jackpot + $boatAcum;
-            $comCommerce = ($jackpot * BingoRoomConfig::getValueByRoom($room->id, 'room_commn') / 100);
-            $jackpot -= $comCommerce;
+
+            // Obtener comision del creador/casa (comision por sala)
+            $creatorCommn = ($jackpot * BingoRoomConfig::getValueByRoom($room->id, 'room_commn') / 100);
+            if ($creatorCommn) $jackpot -= $creatorCommn;
 
             // Preparar los datos para actualizar la sala
             $updateData = [
-                'all_sale' => $room->all_sale + $totalSaleAmount,
+                'all_sale' => $room->all_sale + $saleAmount,
                 'jackpot' => $jackpot,
                 'jackpot_prize' => $jackpot,
                 'ctns' => $room->ctns + $arrCtn['numOfCtns'],
-                'room_commn' => $room->room_commn + $comCommerce
+                'room_commn' => $room->room_commn + $creatorCommn
             ];
 
             if (isset($arrCtn['seller'])) {
-                $updateData['seller_commn'] = $room->seller_commn + $comSaleSellerCtns;
+                $updateData['seller_commn'] = $room->seller_commn + $sellerSaleCommn;
             }
 
             // Actualiza la sala con los datos preparados
@@ -569,11 +567,10 @@ trait BingoTrait
             $coin = $arrCtn['coin'];
             $numOfCtns = $arrCtn['numOfCtns'];
             $gameMode = $room->game_mode;
+            $saleAmount = $numOfCtns * $room->ctn_price;
+            $sellerSaleCommn = null;
 
-            $exchangeRate = $customer ? CustomerExchangeRate::getValueById($coin) : 1;
-            $comSaleSellerCtns = 0;
-            $totalSaleAmount = $numOfCtns * $room->ctn_price;
-            $saleAmount = $totalSaleAmount;
+            if ($customer) $exchangeRate = CustomerExchangeRate::getValueById($coin) ?? 1;
 
             // Registrar o actualizar el usuario en la sala
             $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);
@@ -587,13 +584,15 @@ trait BingoTrait
             $arrCtn['roomUser'] = $roomUser;
 
             if ($gameMode != 1 && ($commerce || $seller)) {
-                // Calcular monto total de venta y comisiones
-                $salesData = $this->calculateTotalSale($numOfCtns, $room, $coin, $seller, $commerce);
+                // Calcular monto total de venta y comisiones si es un vendedor
+                $salesData = $this->calculateTotalSale($saleAmount, $room, $coin, $seller, $commerce);
 
                 $exchangeRate = $salesData['exchangeRate'];
-                $saleAmount = $salesData['saleAmount'];
-                $comSaleSellerCtns = $salesData['comSaleSellerCtns'];
+                $sellerSaleCommn = $salesData['sellerSaleCommn'];
             }
+
+            // Definir monto total de venta
+            $totalSaleAmount = $exchangeRate * $saleAmount;
 
             // Crear lote de cartones
             $lotID = $this->createCtnsLot($arrCtn, $exchangeRate, $totalSaleAmount);
@@ -622,7 +621,7 @@ trait BingoTrait
             }
 
             // Actualizar acumulado y comisiones de la sala
-            $this->updateRoomMetrics($room, $arrCtn, $totalSaleAmount, $exchangeRate, $saleAmount, $comSaleSellerCtns);
+            $this->updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn);
 
             // Definir variables dobre el juego
             $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
