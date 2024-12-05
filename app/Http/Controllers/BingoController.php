@@ -378,7 +378,7 @@ class BingoController extends Controller
                     }
                 }
 
-                $jackpot = $this->convertPrizeValue($roomID, $coin);
+                $jackpot = $this->convertPrizeValue($roomID, $coin, 'float');
                 return response()->json(['jackpot' => $jackpot, 'type' => 'success', 'message' => 'Proceso efectuado con exito']);
             } else {
                 Session::flash('message', 'Proceso efectuado con exito');

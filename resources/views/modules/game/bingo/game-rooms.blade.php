@@ -95,7 +95,7 @@
         let timestamp = new Date(dateTimeRooms['timestamp']);
         let arrRooms = [];
         let isLogin = false;
-        let room = false;
+        let roomID = false;
         let ctnPrice = 1;
         let numCtns = 1;
         let total = 0;
@@ -185,7 +185,7 @@
 
                     $(`#jackpot-room_${roomID}`).text(room.jackpotAmount);
 
-                    if ( $(`#ctn-price_${roomID}`).text() != ctnPrice) {
+                    if ($(`#ctn-price_${roomID}`).text() != ctnPrice) {
                         $(`#ctn-price_${roomID}`).text(ctnPrice);
                     }
 
@@ -239,12 +239,8 @@
                     $('#loader-btn-purchase-ctns').show();
                 },
                 success: function(res) {
+                    $(`#jackpot-room_${roomID}`).text(res.jackpot);
                     showToast(res.message, res.type);
-                    if (res.type === 'success') {
-                        setTimeout(function() {
-                            location.reload();
-                        }, 3250);
-                    }
                 },
                 error: function(error) {
                     console.error(error);
@@ -331,26 +327,25 @@
             if (!arrRooms.length) return;
 
             arrRooms.forEach((elem, key) => {
-                const roomID = elem.id;
+                const room = elem.id;
                 const end = new Date(elem.dateTime * 1000);
                 const difference = end - timestamp;
 
                 // Si el tiempo ha terminado
                 if (difference <= 0) {
-                    const status = $(`#card-game-room_${roomID}`).data('status');
+                    const status = $(`#card-game-room_${room}`).data('status');
                     if (status == 2) {
-                        $(`#card-game-room_${roomID}`).data('status', 3);
-                        updateRoomStatus(roomID, 'No disponible', '<span class="start-time__text">En Juego</span>');
+                        $(`#card-game-room_${room}`).data('status', 3);
+                        updateRoomStatus(room, 'No disponible', '<span class="start-time__text">En Juego</span>');
                     }
 
                     // Redirigir a la sala según el tipo de usuario
                     const route = creator.type == 'commerce' ?
-                        `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
-                        .replace(':player', player).replace(':roomID', roomID) :
+                        `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':room']) }}`
+                        .replace(':player', player).replace(':room', room) :
 
-                        `{{ route('bingocash.in-game-customer', ['customer' => ':customer', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
-                        .replace(':customer', creator.id).replace(':userToken', userToken)
-                        .replace(':roomID', roomID);
+                        `{{ route('bingocash.in-game-customer', ['customer' => ':customer', 'userToken' => ':userToken', 'room' => ':room']) }}`
+                        .replace(':customer', creator.id).replace(':userToken', userToken).replace(':room', room);
 
                     window.location.href = route;
 
@@ -362,7 +357,7 @@
                 const timeRemaining = getTimeRemaining(difference);
 
                 // Verificar si no existe cnt-seconds en el DOM
-                if (!$(`#start-time_${roomID} .cnt-seconds`).length) {
+                if (!$(`#start-time_${room} .cnt-seconds`).length) {
                     let displayText = '';
                     if (timeRemaining.days > 0) displayText += formatTime(timeRemaining.days, 'DIAS', 'cnt-days',
                         key);
@@ -372,11 +367,11 @@
                         'cnt-minutes', key);
                     displayText += formatTime(timeRemaining.seconds, 'SEG', 'cnt-seconds', key);
 
-                    updateRoomStatus(roomID, null, displayText);
+                    updateRoomStatus(room, null, displayText);
                 } else {
                     setTimeRemaining(key, timeRemaining); // Actualizar valores existentes
                 }
-                toggleTimeVisibility(roomID, timeRemaining); // Mostrar/ocultar días, horas, minutos
+                toggleTimeVisibility(room, timeRemaining); // Mostrar/ocultar días, horas, minutos
             });
 
             timestamp.setMilliseconds(timestamp.getMilliseconds() + 1000); // Incrementar 1 segundo

@@ -8,7 +8,7 @@
                 <div id="purchase-ctns__coin-text"></div>
                 <div id="purchase-ctns__coin-number">
                     <span id="jackpot-amount"></span>
-                    <small id="purchase-ctns__coin-label" class="purchase-ctns__coin-label"></small>
+                    <small id="purchase-ctns__coin-label" class="ml-1 mt-1 purchase-ctns__coin-label"></small>
                 </div>
             </div>
         </div>
@@ -66,5 +66,4 @@
             </button>
         </div>
     </div>
-
 </div>
