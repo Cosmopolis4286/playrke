@@ -145,6 +145,7 @@ Route::group(['middleware' => 'auth', 'prefix' => 'directory', 'as' => 'director
 Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as' => 'customer.'], function () {
     Route::get('getUserId/{userToken}', [CustomerController::class, 'getUserId'])->name('getUserId');
     Route::get('getUserBalance/{userToken}', [CustomerController::class, 'getUserBalance'])->name('getUserBalance');
+    Route::get('increaseBalance/{userToken}/{balance?}', [CustomerController::class, 'increaseBalance'])->name('increaseBalance');
 });
 
 // Cliente Options ADMIN

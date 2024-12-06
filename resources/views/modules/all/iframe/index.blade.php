@@ -9,18 +9,23 @@
                     <div class="col-md-11 col-lg-8 col-lx-7">
                         <div class="input-group">
                             <input type="text" id="user-token" class="form-control"
-                                placeholder="Ingresa el token del usuario" aria-label="Ingresa el token del usuario"
-                                aria-describedby="button-addon4">
+                                placeholder="Ingresa el token del usuario" aria-label="Ingresa el token del usuario">
                             <div class="input-group-append">
-                                <button data-val="getId" class="btn-user-token btn btn-outline-secondary" type="button">
-                                    Get ID
+                                <button data-val="getId" class="btn-user-token btn btn-outline-secondary" type="button"
+                                    title="Obtener Info. User">
+                                    <i class="fa-solid fa-circle-user"></i>
                                 </button>
                                 <button data-val="getBalance" class="btn-user-token btn btn-outline-secondary"
-                                    type="button">
-                                    Balance
+                                    type="button" title="Obtener Saldo">
+                                    <i class="fa-solid fa-scale-balanced"></i>
                                 </button>
-                                <button data-val="goToView" class="btn-user-token btn btn-outline-primary" type="button">
-                                    Go To View
+                                <button data-val="increaseBalance" class="btn-user-token btn btn-outline-secondary"
+                                    type="button" title="Incrementar Saldo">
+                                    <i class="fa-solid fa-arrow-up-right-dots"></i>
+                                </button>
+                                <button data-val="goToView" class="btn-user-token btn btn-outline-primary" type="button"
+                                    title="Ir a Salas de Juego">
+                                    <i class="fa-solid fa-gamepad"></i>
                                 </button>
                             </div>
                         </div>
@@ -96,6 +101,7 @@
         }
 
         function getBalance() {
+
             $.ajax({
                 url: `{{ route('customer.getUserBalance', ['userToken' => ':userToken']) }}`
                     .replace(':userToken', userToken.val()),
@@ -123,6 +129,24 @@
                 error: function(jqXHR, textStatus, errorThrown) {
                     console.error('Error al obtener el balance del usuario:', textStatus, errorThrown);
                     containerMessage.text('Error al realizar la solicitud.').addClass('alert alert-danger');
+                }
+            });
+        }
+
+        function increaseBalance() {
+            const balance = 2500;
+
+            $.getJSON({
+                url: `{{ route('customer.increaseBalance', ['userToken' => ':userToken', 'balance' => ':balance']) }}`
+                    .replace(':userToken', userToken.val()).replace(':balance', balance),
+                data: {
+                    '_token': $("#5K3_70K").val()
+                },
+                success: function(res) {
+                    showToast(res.message, res.type);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Failed to fetch exchange rate:', textStatus, errorThrown);
                 }
             });
         }
@@ -164,6 +188,8 @@
                 getUserId();
             } else if (dataType === 'getBalance') {
                 getBalance();
+            } else if (dataType === 'increaseBalance') {
+                increaseBalance();
             } else if (dataType === 'goToView') {
                 getRouteGameRoom();
             }

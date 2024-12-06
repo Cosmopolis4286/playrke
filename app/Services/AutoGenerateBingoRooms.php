@@ -27,7 +27,7 @@ class AutoGenerateBingoRooms
         $automaticRooms = $query->get();
 
         if ($automaticRooms->isEmpty()) {
-            return false;
+            return ['Info' => 'No hay configuraciones para salas automáticas creadas/activas'];
         }
 
         $dataRoomConfig = [];

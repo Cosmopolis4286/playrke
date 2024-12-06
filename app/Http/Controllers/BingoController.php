@@ -378,7 +378,7 @@ class BingoController extends Controller
                     }
                 }
 
-                $jackpot = $this->convertPrizeValue($roomID, $coin, 'float');
+                $jackpot = number_format($this->convertPrizeValue($roomID, $coin, 'float'), 2, '.');
                 return response()->json(['jackpot' => $jackpot, 'type' => 'success', 'message' => 'Proceso efectuado con exito']);
             } else {
                 Session::flash('message', 'Proceso efectuado con exito');
@@ -1163,7 +1163,7 @@ class BingoController extends Controller
                 'coin' => $coin,
                 'jackpotAmount' => number_format(($room->jackpot_prize * $exchangeRate), 2, '.'),
                 'jackpotType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
-                'ctnPrice' => $room->ctn_price * $exchangeRate
+                'ctnPrice' => number_format(($room->ctn_price * $exchangeRate), 2, '.')
             ];
 
             return response()->json(['room' => $room, 'isLogin' => $isLogin]);
@@ -1631,9 +1631,17 @@ class BingoController extends Controller
         $response = $service->createBingoRooms($creator);
 
         if ($response) {
-            return response()->json(['message' => 'Salas creadas correctamente']);
+            if (!isset($response['Info'])) {
+                $typeMessage = 'success';
+                $message = 'Salas creadas correctamente';
+            } else {
+                $typeMessage = 'info';
+                $message = 'No hay configuraciones activas';
+            }
         } else {
-            return response()->json(['message' => 'Ha ocurrido un error']);
+            $typeMessage = 'warning';
+            $message = 'Ha ocurrido un error';
         }
+        return response()->json(['type' => $typeMessage, 'message' => $message]);
     }
 }

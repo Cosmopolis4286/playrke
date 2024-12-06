@@ -39,9 +39,13 @@ class GenerateBingoRoomsJob implements ShouldQueue
 
             // Lógica principal
             $service = new AutoGenerateBingoRooms();
-            $service->createBingoRooms();
+            $response = $service->createBingoRooms();
 
-            Log::info('Salas de bingo generadas exitosamente.');
+            if (isset($response['Info'])) {
+                Log::info($response['Info']);
+            } else {
+                Log::info('Salas de bingo generadas exitosamente.');
+            }
         } catch (\Exception $e) {
             Log::error('Error al generar salas de bingo: ' . $e->getMessage());
         }

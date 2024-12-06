@@ -174,7 +174,7 @@
                 success: function(res) {
                     const room = res.room;
                     isLogin = Number(res.isLogin);
-                    ctnPrice = room.ctnPrice * res.exchangeRate;
+                    ctnPrice = room.ctnPrice;
                     numCtns = 1;
 
                     $('#purchase-ctns__coin-text').text(room.jackpotType);
