@@ -20,8 +20,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 
-use function PHPSTORM_META\type;
-
 class CustomerController extends Controller
 {
     use EncryptRKE, UserVal, SeamlessWallet;
