@@ -321,7 +321,7 @@ class CustomerController extends Controller
             $transaction = $this->registerTransaction(
                 ['name' => 'BINGO', 'game_mode' => 1],
                 $customerID,
-                $player->coin,
+                $player->id,
                 'TESTE_RECARGAR_SALDO',
                 'WIN',
                 $player->coin,
@@ -340,9 +340,10 @@ class CustomerController extends Controller
                 Log::info($message . ' Monto recargado: ' . $balance);
                 DB::commit();
             }
+            return response()->json(['type' => $typeMessage, 'message' => $message]);
         } catch (\Exception $e) {
             DB::rollBack();
+            return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error']);
         }
-        return response()->json(['type' => $typeMessage, 'message' => $message]);
     }
 }
