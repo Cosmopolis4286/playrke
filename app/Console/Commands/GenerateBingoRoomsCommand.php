@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\GenerateBingoRoomsJob;
 use App\Models\CommandLog;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class GenerateBingoRoomsCommand extends Command
 {
@@ -22,19 +23,25 @@ class GenerateBingoRoomsCommand extends Command
 
             // Si no hay errores, se considera una ejecución exitosa
             $output = 'La tarea de generación de salas de bingo se ha ejecutado exitosamente';
+            Log::info($output); // Registrar en logs de Laravel
         } catch (\Exception $e) {
-            // Si ocurre un error, capturar el mensaje de la excepción
+            // Capturar el mensaje de la excepción
             $output = 'Error al ejecutar la tarea: ' . $e->getMessage();
-            $status = 'ERROR'; // Si ocurre un error, cambiar el estado
+            $status = 'ERROR'; // Cambiar el estado si ocurre un error
+            Log::error($output); // Registrar en logs de Laravel
         }
 
-        // Guardar el registro de ejecucion del comando 
-        CommandLog::created([
-            'command' => 'generate:bingo-rooms',
+        // Guardar el registro de ejecución del comando en la base de datos
+        CommandLog::create([
+            'command' => $this->signature,
             'output' => $output,
             'status' => $status,
             'executed_at' => now()
         ]);
+
+        // Guardar el registro también en el archivo de logs schedule.log
+        $logFilePath = storage_path('logs/schedule.log');
+        file_put_contents($logFilePath, '[' . now() . "] {$this->signature}: {$output}" . PHP_EOL, FILE_APPEND);
 
         // Imprimir el resultado en consola
         $this->info($output);
