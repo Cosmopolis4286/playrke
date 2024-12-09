@@ -338,6 +338,14 @@ class CustomerController extends Controller
                 $typeMessage = 'success';
                 $message = 'Recarga de saldo exitosa';
                 Log::info($message . ' Monto recargado: ' . $balance);
+
+                // Actualizar la transacción como exitosa
+                $transaction->update([
+                    'status' => 1,
+                    'processing_data' => now(),
+                    'updated_at' => now(),
+                ]);
+                
                 DB::commit();
             }
             return response()->json(['type' => $typeMessage, 'message' => $message]);
