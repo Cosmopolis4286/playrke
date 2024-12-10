@@ -53,18 +53,14 @@
                                     {{ $room->Config->jackpot_type == 1 ? 'Bote:' : 'Premio:' }}
                                 </span>
                                 <div class="card-game-room__jackpot-amount">
-                                    @if ($room->jackpot_prize > 0 || $room->Config->jackpot_type != 1)
-                                        <h3>
-                                            <span id="jackpot-room_{{ $room->encrypted }}">
-                                                {{ number_format($room->jackpot_prize * $exchangeRate, 2) }}
-                                            </span>
-                                            <small id="coin-symbol-room_{{ $room->encrypted }}">
-                                                {{ $coinSym }}
-                                            </small>
-                                        </h3>
-                                    @else
-                                        <h3>ESPERANDO</h3>
-                                    @endif
+                                    <h3>
+                                        <span id="jackpot-room_{{ $room->encrypted }}">
+                                            {{ number_format($room->jackpot_prize * $exchangeRate, 2) }}
+                                        </span>
+                                        <small id="coin-symbol-room_{{ $room->encrypted }}">
+                                            {{ $coinSym }}
+                                        </small>
+                                    </h3>
                                 </div>
                                 <span class="card-game-room__ctn-price">
                                     Cartón: <span id="ctn-price_{{ $room->encrypted }}">
@@ -239,6 +235,7 @@
                     $('#loader-btn-purchase-ctns').show();
                 },
                 success: function(res) {
+                    $('#jackpot-amount').text(res.jackpot);
                     $(`#jackpot-room_${roomID}`).text(res.jackpot);
                     showToast(res.message, res.type);
                 },
