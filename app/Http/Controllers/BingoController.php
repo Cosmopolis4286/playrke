@@ -318,11 +318,14 @@ class BingoController extends Controller
 
                 $data['customer'] = $creatorID;
                 $data['playerUser'] = $player ?? null;
+                $playerColumn = 'player_user';
             } else {
                 $data['commerce'] = $creatorID;
 
+
                 if ($isLogin == true) {
                     $data['playerUser'] = $player;
+                    $playerColumn = 'player_user';
 
                     // Determinar la columna de saldo en función de la moneda
                     $columnBalance = $coin == 1 ? 'usdt' : 'balance';
@@ -345,6 +348,7 @@ class BingoController extends Controller
                     }
 
                     $data['playerLink'] =  $player ?? null;
+                    $playerColumn = 'player_link';
 
                     if ($request->user_in_game) {
                         $data['country'] = $request->country ?? null;
@@ -387,7 +391,13 @@ class BingoController extends Controller
                 }
 
                 $jackpot = number_format($this->convertPrizeValue($roomID, $coin, 'float'), 2, '.');
-                return response()->json(['jackpot' => $jackpot, 'type' => 'success', 'message' => 'Proceso efectuado con exito']);
+
+                return response()->json([
+                    'jackpot' => $jackpot,
+                    'ctns' => BingoRoomUser::getValueByColumn($roomID, $playerColumn, $player, 'ctns'),
+                    'type' => 'success',
+                    'message' => 'Proceso efectuado con exito'
+                ]);
             } else {
                 Session::flash('message', 'Proceso efectuado con exito');
                 Session::flash('playerLink',  $cartonStore);

@@ -36,11 +36,14 @@
                                 {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
                             </div>
                             <span class="card-game-room__game-mode">Modo: Cartón Lleno</span>
-                            @if (count($room->PlayersRoom))
-                                <div class="card-game-room__number-of-ctns" title="Mis Cartones">
-                                    <span>+{{ $room->PlayersRoom[0]->ctns }}</span>
-                                </div>
-                            @endif
+                            <div class="@if (!count($room->PlayersRoom)) hide-elem @endif card-game-room__number-of-ctns"
+                                title="Mis Cartones">
+                                <span>+
+                                    <span id="number-of-ctns_{{ $room->encrypted }}">
+                                        {{ $room->PlayersRoom[0]->ctns }}
+                                    </span>
+                                </span>
+                            </div>
                             {{-- @if ($room->PlayersRoom[0]->auto_mc)
                                 <div class="card-game-room__auto-marker" title="Tienes el Automarcador">
                                     <i class="fa-solid fa-check-to-slot"></i>
@@ -237,6 +240,7 @@
                 success: function(res) {
                     $('#jackpot-amount').text(res.jackpot);
                     $(`#jackpot-room_${roomID}`).text(res.jackpot);
+                    $(`#number-of-ctns_${roomID}`).text(res.ctns);
                     showToast(res.message, res.type);
                 },
                 error: function(error) {
