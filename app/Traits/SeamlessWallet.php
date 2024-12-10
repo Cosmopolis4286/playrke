@@ -377,7 +377,7 @@ trait SeamlessWallet
                 ]);
             } catch (\Exception $e) {
                 // Manejo de excepciones inesperadas
-                Log::error("Excepción al procesar la transacción: '{$transactionID->id}', Error: {$e->getMessage()}");
+                Log::error("Excepción al procesar la transacción: '{$transactionID}', Error: {$e->getMessage()}");
             }
         }
     }

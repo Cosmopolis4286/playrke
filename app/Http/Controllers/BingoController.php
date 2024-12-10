@@ -108,6 +108,9 @@ class BingoController extends Controller
 
                 $player = Auth::id();
 
+                $playerColumn = 'player_link';
+                $roomUser = $player;
+
                 $isCreator = Commerce::getValueByUserId($player, 'id');
 
                 $player = !$isCreator ? false : encrypt($player);
@@ -126,6 +129,9 @@ class BingoController extends Controller
 
                 $player = $data['player'] ? encrypt($data['player']) : false;
 
+                $playerColumn = 'player_user';
+                $roomUser = $data['player'];
+
                 $moreViewData = ['player' => $player, 'userToken' => $data['userToken']];
                 break;
 
@@ -135,12 +141,14 @@ class BingoController extends Controller
         }
 
         $rooms = BingoRoom::with([
-            'Config:room,jackpot_type',
-            'PlayersRoom' => function ($query) {
-                $query->select('room', 'player_user', 'ctns')
-                    ->where('player_user', Auth::id());
+            'Config' => function ($query) {
+                $query->select('room', 'jackpot_type');
+            },
+            'PlayersRoom' => function ($query) use ($playerColumn, $roomUser) {
+                $query->select('id', $playerColumn, 'room', 'ctns')
+                    ->where($playerColumn, $roomUser);
             }
-        ])->select(
+        ])->select([
             'id',
             $creator['type'],
             'subsidiary',
@@ -154,7 +162,7 @@ class BingoController extends Controller
             'jackpot_prize',
             'ctns',
             'encrypted'
-        )->where($creator['type'], $creatorID)->whereIn('status', [2, 3])->get();
+        ])->where($creator['type'], $creatorID)->whereIn('status', [2, 3])->get();
 
         // Redirigir si no hay salas disponibles
         if (!count($rooms) && $creator['type'] === 'commerce') {

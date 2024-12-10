@@ -17,6 +17,7 @@ use App\Models\BingoRoomUser;
 use App\Models\CoinGameRoom;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
+use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\GameExchangeRate;
@@ -488,6 +489,7 @@ trait BingoTrait
 
             $defaultValues = [
                 'room' => $arrCtn['room'],
+                'customer' => $arrCtn['customer'] ?? null,
                 'commerce' => $arrCtn['commerce'] ?? null,
                 'seller' => $arrCtn['seller'] ?? null,
                 'player_user' => $playerUser,
@@ -685,6 +687,7 @@ trait BingoTrait
         $coin = $data['coin'];
         $commerce = $data['commerce'] ?? null;
         $seller = $data['seller'] ?? null;
+        $serialText = 'RKE';
 
         if ($commerce || $seller) {
 
@@ -744,8 +747,12 @@ trait BingoTrait
                 }
             }
 
+            if ($data['customer']) {
+                $serialText = Customer::getValueById($data['customer'], 'brand');
+            }
+
             $data['jackpotType'] = $room->Config->jackpot_type;
-            $data['initials'] = $serialText ?? 'RKE';
+            $data['initials'] = $serialText;
 
             if (($commerce || $seller)) {
                 $data['playerLink'] = $player;

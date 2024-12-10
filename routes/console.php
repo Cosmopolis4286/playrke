@@ -8,3 +8,7 @@ Schedule::command('generate:bingo-rooms')
     ->dailyAt('06:00')->dailyAt('09:00')
     ->dailyAt('12:00')->dailyAt('15:00')
     ->dailyAt('18:00')->dailyAt('21:00');
+
+// Schedule::command('validate:transactions')
+//     ->timezone('America/Caracas')
+//     ->everyFiveMinutes();
