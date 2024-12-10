@@ -40,6 +40,9 @@ trait BingoTrait
         $sort = BingoDraw::where('room', $room)->count() === 75;
 
         if (!$sort) {
+
+            date_default_timezone_set(config('app.timezone'));
+
             $this->encryptDraw('bingo_draw_code', $room);
 
             $roomInfo = BingoRoom::getRoomById($room, ['date', 'time']);
@@ -1337,6 +1340,8 @@ trait BingoTrait
         $rooms = BingoRoom::where('status', 4)->get(['id', 'customer', 'date', 'time']);
 
         if (!count($rooms)) return true;
+
+        date_default_timezone_set(config('app.timezone'));
 
         foreach ($rooms as $room) {
 

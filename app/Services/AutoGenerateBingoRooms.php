@@ -2,14 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\BingoCreator;
-use App\Models\BingoRoom;
-use App\Models\BingoRoomAutomatic;
-use App\Models\BingoRoomConfig;
-use App\Models\UserType;
+use App\Models\{BingoCreator, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, UserType};
 use App\Traits\EncryptRKE;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class AutoGenerateBingoRooms
 {
@@ -30,62 +27,42 @@ class AutoGenerateBingoRooms
             return ['Info' => 'No hay configuraciones para salas automáticas creadas/activas'];
         }
 
-        $dataRoomConfig = [];
-
+        $currentDate = Carbon::now();
         DB::beginTransaction();
 
         try {
-
-            $timestamp = now();
-            $currentDate = $timestamp->format('Y-m-d');
-
             foreach ($automaticRooms as $room) {
-
                 $creatorType = UserType::getValueById($room->creator_type, 'prefix');
                 $creatorID = $room->creator_id;
 
-                $roomTime = $room->time;
-                $roomCtnPrice = $room->ctn_price;
+                $roomTime = Carbon::parse("{$currentDate->format('Y-m-d')} {$room->time}");
+                $addDay = Carbon::now()->addMinutes(15)->greaterThanOrEqualTo($roomTime);
 
-                $existingRoomToday = $this->existingRoom($creatorType, $creatorID, $currentDate, $roomTime, $roomCtnPrice);
+                $roomDate = $addDay ? $currentDate->copy()->addDay()->format('Y-m-d') : $currentDate->format('Y-m-d');
 
-                $roomDate = $existingRoomToday ? $timestamp->copy()->addDay()->format('Y-m-d') : $currentDate;
+                // Verificar si ya existe una sala
+                $existingRoom = $this->existingRoom($creatorType, $creatorID, $roomDate, $room->time, $room->ctn_price);
 
-                // Verificar si existe una sala al día siguiente con las mismas condiciones
-                if ($existingRoomToday) {
-                    if ($this->existingRoom($creatorType, $creatorID, $roomDate, $roomTime, $roomCtnPrice)) {
-                        continue; // Saltar si ya existe la sala
-                    }
-                }
+                if ($existingRoom) continue;
 
-                // Verificar si el horario esta disponible
-                $unixDate = strtotime("{$roomDate} {$roomTime}");
-
-                if (time() + 900 >= $unixDate) {
-                    continue;
-                }
-
+                // Insertar datos de la sala
                 $roomData = [
                     'date' => $roomDate,
-                    'time' => $roomTime,
-                    'unix_date' => $unixDate,
+                    'time' => $room->time,
+                    'unix_date' => $roomTime->timestamp,
                     'game_mode' => $room->game_mode,
-                    'ctn_price' => $roomCtnPrice,
+                    'ctn_price' => $room->ctn_price,
                     $creatorType => $creatorID,
                     'status' => 2,
                     'creation' => 'A',
-                    'publication_date' => "{$roomDate} {$roomTime}",
+                    'publication_date' => "{$roomDate} {$room->time}",
                     'encrypted' => $this->generateUniqueCode('bingo_rooms'),
                     'room_type' => $room->room_type,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp,
                 ];
+                $roomId = BingoRoom::create($roomData)->id;
 
-                // Insertar una sala y obtener su ID
-                $roomId = BingoRoom::insertGetId($roomData);
-
-                // Agregar configuración asociada a la sala creada
-                $dataRoomConfig = [
+                // Configuración asociada
+                BingoRoomConfig::create([
                     'room' => $roomId,
                     'jackpot_type' => $room->jackpot_type,
                     'fixed_jackpot_value' => $room->fixed_jackpot_value,
@@ -93,22 +70,15 @@ class AutoGenerateBingoRooms
                     'serials_commn' => $room->serials_commn,
                     'val_serials' => $room->val_serials,
                     'num_serials' => $room->num_serials,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp,
-                ];
+                ]);
 
-                // Insertar datos de la configuracion de la sala
-                BingoRoomConfig::insert($dataRoomConfig);
-
-                // Insertar informacion del creador de la sala
-                BingoCreator::insert([
+                // Información del creador
+                BingoCreator::create([
                     'room' => $roomId,
                     'creator_type' => $room->creator_type,
                     'creator_id' => $creatorID,
                     'creator_commn' => $room->room_commn,
-                    'ctn_price' => $roomCtnPrice,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp,
+                    'ctn_price' => $room->ctn_price,
                 ]);
             }
 
@@ -116,7 +86,10 @@ class AutoGenerateBingoRooms
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error en la creación de salas de bingo: ' . $e->getMessage());
+            Log::error('Error en la creación de salas de bingo', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return false;
         }
     }

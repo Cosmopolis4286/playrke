@@ -74,12 +74,13 @@ trait GameTrait
         }
     }
 
-    public function convertToUnixTimestamp($date, $time)
+    public function convertToUnixTimestamp($date, $time, $timeZone = null)
     {
-        // Concatenar fecha y hora en un solo string
-        $dateTime = "{$date} {$time}";
-        // Convertir a timestamp Unix
-        return strtotime($dateTime);
+        // Determinar la zona horaria a usar
+        $timeZone = $timeZone ?? config('app.timezone');
+
+        // Crear un objeto Carbon con la fecha, hora y zona horaria
+        return Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", $timeZone)->timestamp;
     }
 
     public function convertValueByGame($game, $roomID, $data, $type = 'string')

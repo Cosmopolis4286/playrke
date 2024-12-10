@@ -984,6 +984,8 @@ class BingoController extends Controller
 
         if (in_array($creatorType, $allowedPrefixes)) {
 
+            date_default_timezone_set(config('app.timezone'));
+
             $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
             $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
 
@@ -1051,6 +1053,8 @@ class BingoController extends Controller
     {
         $id = decrypt($id);
         $room = BingoRoom::findOrFail($id);
+
+        date_default_timezone_set(config('app.timezone'));
 
         $newDate = $request->date;
         $newTime = $request->time;
@@ -1177,6 +1181,8 @@ class BingoController extends Controller
         $existingRoom = BingoRoom::findOrFail(decrypt($id));
         $existingRoomConfig = BingoRoomConfig::where('room', $existingRoom->id)->firstOrFail();
 
+        date_default_timezone_set(config('app.timezone'));
+
         $boat = ($existingRoom->jackpot_type > 1) ? $existingRoom->fixed_jackpot_value : 0;
         $coin = $existingRoom->coin ?? 1; // ID Coin == 1 (USDT)
 
@@ -1250,6 +1256,9 @@ class BingoController extends Controller
     {
         // Desencripta el ID y busca el registro correspondiente.
         $bingoRoom = BingoRoom::findOrFail(decrypt($id));
+
+        date_default_timezone_set(config('app.timezone'));
+
         $publicationDate = "{$bingoRoom->date} {$bingoRoom->time}";
         $unixDate = strtotime($publicationDate);
 
