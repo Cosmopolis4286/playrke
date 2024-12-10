@@ -8,6 +8,7 @@ class BingoRoom extends Model
 {
   protected $table = "bingo_rooms";
   protected $fillable = [
+    'encrypted',
     'game_mode',
     'customer',
     'commerce',
@@ -31,7 +32,6 @@ class BingoRoom extends Model
     'serial_prize',
     'ctns',
     'close_room',
-    'encrypted',
     'code_uuid'
   ];
 

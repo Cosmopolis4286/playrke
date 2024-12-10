@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('bingo_rooms', function (Blueprint $table) {
             $table->id();
+            $table->string('encrypted', 18)->unique();
             $table->unsignedBigInteger('game_mode');
             $table->unsignedBigInteger('customer')->nullable();
             $table->unsignedBigInteger('commerce')->nullable();
@@ -37,7 +38,6 @@ return new class extends Migration
             $table->double('serial_prize')->default(0);
             $table->integer('ctns')->default(0);
             $table->integer('close_room')->nullable();
-            $table->string('encrypted', 18)->unique();
             $table->string('code_uuid', 36)->nullable()->unique();
             $table->timestamps();
 

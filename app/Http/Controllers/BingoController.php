@@ -1088,7 +1088,7 @@ class BingoController extends Controller
             // Actualizar el bingo con los datos construidos
             $room->update($updateData);
 
-            BingoCreator::where('room', $room)->update([
+            BingoCreator::where('room', $id)->update([
                 'creator_commn' => $request->room_commission,
                 'ctn_price' => $request->ctn_price,
             ]);
@@ -1109,7 +1109,8 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'La información fue actualizada')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Hubo un problema al actualizar la información: ' . $e->getMessage());
+            Log::error('Hubo un problema al actualizar la información de la sala: ' . $e->getMessage());
+            return redirect()->back()->with('message', 'Hubo un problema al actualizar la información')->with('type', 'warning');
         }
     }
 
