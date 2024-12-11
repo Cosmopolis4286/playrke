@@ -4,10 +4,9 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('generate:bingo-rooms')
     ->timezone('America/Caracas')
-    ->dailyAt('00:00')->dailyAt('03:00')
-    ->dailyAt('06:00')->dailyAt('09:00')
-    ->dailyAt('12:00')->dailyAt('15:00')
-    ->dailyAt('18:00')->dailyAt('21:00');
+    ->everyThreeHours()  // Esto ejecutará el comando cada 3 horas
+    ->at('00:00')  // Esto asegura que el primer ejecución será a las 00:00
+    ->withoutOverlapping();
 
 // Schedule::command('validate:transactions')
 //     ->timezone('America/Caracas')

@@ -21,10 +21,8 @@ use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\GameExchangeRate;
-use App\Models\Games;
 use App\Models\PlayerLink;
 use App\Models\Seller;
-use App\Models\Transactions;
 use App\Models\User;
 use App\Models\Wallet;
 use Carbon\Carbon;
@@ -516,25 +514,28 @@ trait BingoTrait
         }
     }
 
-    // Función para actualizar acumulados y comisiones de la sala
+    // Función para actualizar el bote acumulado y otras métricas de la sala
     private function updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn)
     {
         try {
-            // Actualización del bote acumulado y otras métricas de la sala
+            // Variable para definir monto a anexar al bote
+            $amountAddJackpot = $saleAmount;
 
-            $boatAcum = ($arrCtn['jackpotType'] == 1) ? $saleAmount : (($arrCtn['jackpotType'] == 2) ? 0 : null);
-
-            $jackpot = $room->jackpot + $boatAcum;
+            if ($arrCtn['jackpotType'] == 2) {
+                // Si el bote es tipo "Premio"
+                $amountAddJackpot = 0;
+            }
 
             // Obtener comision del creador/casa (comision por sala)
-            $creatorCommn = ($jackpot * BingoRoomConfig::getValueByRoom($room->id, 'room_commn') / 100);
-            if ($creatorCommn) $jackpot -= $creatorCommn;
+            $creatorCommn = ($amountAddJackpot * BingoRoomConfig::getValueByRoom($room->id, 'room_commn')) / 100;
+
+            if ($creatorCommn) $amountAddJackpot -= $creatorCommn;
 
             // Preparar los datos para actualizar la sala
             $updateData = [
                 'all_sale' => $room->all_sale + $saleAmount,
-                'jackpot' => $jackpot,
-                'jackpot_prize' => $jackpot,
+                'jackpot' => $room->jackpot + $amountAddJackpot,
+                'jackpot_prize' => $room->jackpot + $amountAddJackpot,
                 'ctns' => $room->ctns + $arrCtn['numOfCtns'],
                 'room_commn' => $room->room_commn + $creatorCommn
             ];
@@ -547,7 +548,6 @@ trait BingoTrait
             $room->update($updateData);
             return true;
         } catch (\Exception $e) {
-            dd($e->getMessage());
             Log::error('Error al actualizar los datos de la sala: ' . $e->getMessage());
             return false;
         }

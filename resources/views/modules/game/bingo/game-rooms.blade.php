@@ -239,7 +239,7 @@
                 success: function(res) {
                     $('#jackpot-amount').text(res.jackpot);
                     $(`#jackpot-room_${roomID}`).text(res.jackpot);
-                    $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`);
+                    $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
                     showToast(res.message, res.type);
                 },
                 error: function(error) {
