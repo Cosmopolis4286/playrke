@@ -66,7 +66,7 @@
                                 </div>
                                 <span class="card-game-room__ctn-price">
                                     Cartón: <span id="ctn-price_{{ $room->encrypted }}">
-                                        {{ $room->ctn_price * $exchangeRate }}
+                                        {{ number_format($room->ctn_price * $exchangeRate), 2 }}
                                     </span> {{ $coinSym }}
                                 </span>
                                 <span class="card-game-room__status" id="card-game-room__status_{{ $room->encrypted }}">
