@@ -20,9 +20,9 @@
             <div id="container-text-game-rooms">
                 <span id="text-game-rooms">SALAS DE JUEGO</span>
                 {{-- <a class="mt-n1 badge badge-primary"
-                            href="{{ route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
-                            Cambiar a <b>{{ $coinSym }}</b>
-                        </a> --}}
+                    href="{{ route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
+                    Cambiar a <b>{{ $coinSym }}</b>
+                </a> --}}
             </div>
             @include('includes.game.bingo.layout.container-purchase-ctns')
         </div>
@@ -39,7 +39,9 @@
                             <div id="number-of-ctns_{{ $room->encrypted }}"
                                 class="@if (!count($room->PlayersRoom)) hide-elem @endif card-game-room__number-of-ctns"
                                 title="Mis Cartones">
-                                +{{ $room->PlayersRoom[0]->ctns }}
+                                @if (count($room->PlayersRoom))
+                                    +{{ $room->PlayersRoom[0]->ctns }}
+                                @endif
                             </div>
                             {{-- @if ($room->PlayersRoom[0]->auto_mc)
                                 <div class="card-game-room__auto-marker" title="Tienes el Automarcador">

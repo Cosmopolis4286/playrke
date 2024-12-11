@@ -35,17 +35,19 @@ class AutoGenerateBingoRooms
                 $creatorType = UserType::getValueById($room->creator_type, 'prefix');
                 $creatorID = $room->creator_id;
 
+                // Calcula la fecha de la sala
                 $roomTime = Carbon::parse("{$currentDate->format('Y-m-d')} {$room->time}");
                 $addDay = Carbon::now()->addMinutes(15)->greaterThanOrEqualTo($roomTime);
-
                 $roomDate = $addDay ? $currentDate->copy()->addDay()->format('Y-m-d') : $currentDate->format('Y-m-d');
 
-                // Verificar si ya existe una sala
+                // Verifica si existe una sala activa
                 $existingRoom = $this->existingRoom($creatorType, $creatorID, $roomDate, $room->time, $room->ctn_price);
 
-                if ($existingRoom) continue;
+                if ($existingRoom && $existingRoom->status >= 2) {
+                    continue;
+                }
 
-                // Insertar datos de la sala
+                // Datos principales de la sala
                 $roomData = [
                     'date' => $roomDate,
                     'time' => $room->time,
@@ -59,30 +61,45 @@ class AutoGenerateBingoRooms
                     'encrypted' => $this->generateUniqueCode('bingo_rooms'),
                     'room_type' => $room->room_type,
                 ];
-                $roomId = BingoRoom::create($roomData)->id;
+
+                // Inserta o actualiza la sala
+                $roomId = $existingRoom
+                    ? tap($existingRoom)->update($roomData)->id
+                    : BingoRoom::create($roomData)->id;
 
                 // Configuración asociada
-                BingoRoomConfig::create([
-                    'room' => $roomId,
-                    'jackpot_type' => $room->jackpot_type,
-                    'fixed_jackpot_value' => $room->fixed_jackpot_value,
-                    'room_commn' => $room->room_commn,
-                    'serials_commn' => $room->serials_commn,
-                    'val_serials' => $room->val_serials,
-                    'num_serials' => $room->num_serials,
-                ]);
+                BingoRoomConfig::updateOrCreate(
+                    ['room' => $roomId],
+                    [
+                        'jackpot_type' => $room->jackpot_type,
+                        'fixed_jackpot_value' => $room->fixed_jackpot_value,
+                        'room_commn' => $room->room_commn,
+                        'serials_commn' => $room->serials_commn,
+                        'val_serials' => $room->val_serials,
+                        'num_serials' => $room->num_serials,
+                    ]
+                );
 
                 // Información del creador
-                BingoCreator::create([
-                    'room' => $roomId,
-                    'creator_type' => $room->creator_type,
-                    'creator_id' => $creatorID,
-                    'creator_commn' => $room->room_commn,
-                    'ctn_price' => $room->ctn_price,
-                ]);
+                BingoCreator::updateOrCreate(
+                    ['room' => $roomId],
+                    [
+                        'creator_type' => $room->creator_type,
+                        'creator_id' => $creatorID,
+                        'creator_commn' => $room->room_commn,
+                        'ctn_price' => $room->ctn_price,
+                    ]
+                );
             }
 
             DB::commit();
+            Log::info('Nueva Sala Creada Automáticamente', [
+                'creator_type' => $room->creator_type,
+                'creator_id' => $creatorID,
+                'date' => $roomDate,
+                'time' => $room->time,
+                'ctn_price' => $room->ctn_price
+            ]);
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
@@ -100,7 +117,6 @@ class AutoGenerateBingoRooms
             ->where('date', $date)
             ->where('time', $time)
             ->where('ctn_price', $ctnPrice)
-            ->where('status', '>', 1)
-            ->exists();
+            ->first();
     }
 }

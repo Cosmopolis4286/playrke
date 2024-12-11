@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\GenerateBingoRoomsJob;
 use App\Models\CommandLog;
+use App\Services\AutoGenerateBingoRooms;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -15,35 +15,47 @@ class GenerateBingoRoomsCommand extends Command
     public function handle()
     {
         $output = '';
-        $status = 'SUCCESS'; // Valor predeterminado
+        $status = 'SUCCESS';
 
         try {
-            // Disparar el Job
-            GenerateBingoRoomsJob::dispatch();
+            $service = new AutoGenerateBingoRooms();
+            $response = $service->createBingoRooms();
 
-            // Si no hay errores, se considera una ejecución exitosa
-            $output = 'La tarea de generación de salas de bingo se ha ejecutado exitosamente';
-            Log::info($output); // Registrar en logs de Laravel
+            $output = $response['Info'] ?? 'Salas de bingo generadas exitosamente.';
+            Log::info($output);
+
         } catch (\Exception $e) {
-            // Capturar el mensaje de la excepción
+            $status = 'ERROR';
             $output = 'Error al ejecutar la tarea: ' . $e->getMessage();
-            $status = 'ERROR'; // Cambiar el estado si ocurre un error
-            Log::error($output); // Registrar en logs de Laravel
+            Log::error($output);
+            report($e);
         }
 
-        // Guardar el registro de ejecución del comando en la base de datos
+        $this->logCommandExecution($output, $status);
+        $this->infoOrError($output, $status === 'ERROR');
+    }
+
+    private function logCommandExecution(string $output, string $status): void
+    {
+        // Guardar en la base de datos
         CommandLog::create([
             'command' => $this->signature,
             'output' => $output,
             'status' => $status,
-            'executed_at' => now()
+            'executed_at' => now(),
         ]);
 
-        // Guardar el registro también en el archivo de logs schedule.log
+        // Guardar en archivo de logs
         $logFilePath = storage_path('logs/schedule.log');
-        file_put_contents($logFilePath, '[' . now() . "] {$this->signature}: {$output}" . PHP_EOL, FILE_APPEND);
+        if (is_writable(dirname($logFilePath))) {
+            file_put_contents($logFilePath, '[' . now() . "] {$this->signature}: {$output}" . PHP_EOL, FILE_APPEND);
+        } else {
+            Log::warning("El archivo {$logFilePath} no tiene permisos de escritura.");
+        }
+    }
 
-        // Imprimir el resultado en consola
-        $this->info($output);
+    private function infoOrError(string $message, bool $isError): void
+    {
+        $isError ? $this->error($message) : $this->info($message);
     }
 }
