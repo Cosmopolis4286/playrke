@@ -799,8 +799,7 @@ trait BingoTrait
 
     private function registerPrizeCtn($roomID, $cartons, $prizeType, $USDValue)
     {
-        $recordsToInsert = [];
-        $playersToUpdate = [];
+        $recordsToInsert = $playersToUpdate = [];
 
         foreach ($cartons as $ctn) {
 
@@ -818,6 +817,7 @@ trait BingoTrait
                 $timestamp = now();
 
                 $record = [
+                    'active' => 'N',
                     'room' => $roomID,
                     'room_user' => $ctn->room_user,
                     'customer' => $ctn->customer,
@@ -845,41 +845,17 @@ trait BingoTrait
 
         try {
 
-            // Actualizar el estado del jugador
+            if (!$playersToUpdate && !$recordsToInsert) return;
+
             if ($playersToUpdate) {
+                // Actualizar el estado del jugador 
                 BingoRoomUser::where('room', $roomID)->whereIn('id', $playersToUpdate)
                     ->where('winner', 0)->update(['winner' => 1]);
             }
 
-            // Insertar los registros de una sola vez
             if ($recordsToInsert) {
-
+                //Insertar los registros de una sola vez
                 BingoPrizeCtns::insert($recordsToInsert);
-
-                $customer = BingoRoom::getValueById($roomID, 'customer');
-
-                if ($customer) {
-
-                    foreach ($cartons as $ctn) {
-
-                        $roomUUID = BingoRoom::getValueById($roomID, 'code_uuid');
-                        // Registrar la transaccion en PlayRKE
-                        $transaction = $this->registerTransaction(
-                            ['name' => 'BINGO', 'game_mode' => 1],
-                            $customer,
-                            $ctn->player_user,
-                            $roomUUID,
-                            'WIN',
-                            $ctn->coin,
-                            $prizeWn
-                        );
-
-                        if (!$transaction) {
-                            DB::rollBack();
-                            return ['Error' => 'Error al registrar la transacción'];
-                        }
-                    }
-                }
             }
 
             DB::commit();
@@ -887,7 +863,6 @@ trait BingoTrait
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al crear ganador o actualizar estado: ' . $e->getMessage());
-            dd($e->getMessage());
             return false;
         }
     }
@@ -1492,5 +1467,38 @@ trait BingoTrait
             }
         }
         return ['return' => true, 'coin' => $coin];
+    }
+}
+
+function gg()
+{
+    if ($recordsToInsert) {
+
+
+        $customer = BingoRoom::getValueById($roomID, 'customer');
+
+        if ($customer) {
+
+            foreach ($cartons as $ctn) {
+
+                $roomUUID = BingoRoom::getValueById($roomID, 'code_uuid');
+                // Registrar la transaccion en PlayRKE
+                $transaction = $this->registerTransaction(
+                    ['name' => 'BINGO', 'game_mode' => 1],
+                    $customer,
+                    $ctn->player_user,
+                    $roomUUID,
+                    'WIN',
+                    $ctn->coin,
+                    $prizeWn,
+                    '3'
+                );
+
+                if (!$transaction) {
+                    DB::rollBack();
+                    return ['Error' => 'Error al registrar la transacción'];
+                }
+            }
+        }
     }
 }

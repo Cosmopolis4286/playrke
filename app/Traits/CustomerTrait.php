@@ -4,7 +4,7 @@ namespace App\Traits;
 
 use App\Models\Customer;
 use App\Models\CustomerUser;
-use App\Services\CustomerSessionService;
+use App\Services\Customer\CustomerSessionService;
 use Illuminate\Support\Facades\DB;
 
 trait CustomerTrait

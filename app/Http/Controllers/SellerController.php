@@ -575,7 +575,8 @@ class SellerController extends Controller
 
         $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
 
-        $winners = $winnersQuery->where('seller', $seller->id)->where('coin', $coin)->get();
+        $winners = $winnersQuery->where('seller', $seller->id)
+            ->where('active', 'Y')->where('coin', $coin)->get();
 
         $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
 

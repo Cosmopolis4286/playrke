@@ -693,7 +693,7 @@ class CommerceController extends Controller
 
         $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
 
-        return $winnersQuery->orderBy('prize_type')->get();
+        return $winnersQuery->where('active', 'Y')->orderBy('prize_type')->get();
 
         //$winnersJackpot = $winners->where('prize_type', 1)->count();
         //$winnersSerials = $winners->where('prize_type', 2)->count();

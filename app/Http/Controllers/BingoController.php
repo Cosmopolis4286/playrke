@@ -33,7 +33,7 @@ use App\Models\Room;
 use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
-use App\Services\AutoGenerateBingoRooms;
+use App\Services\Game\Bingo\AutoGenerateBingoRooms;
 use App\Traits\BingoTrait;
 use App\Traits\CustomerTrait;
 use App\Traits\Filters;
@@ -1231,7 +1231,6 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
-
             // Obtener ID de la nueva sala
             $newRoom = BingoRoom::create($createData)->id;
 
@@ -1245,7 +1244,7 @@ class BingoController extends Controller
             ]);
 
             BingoRoomConfig::create([
-                'room' => $newRoom->id,
+                'room' => $newRoom,
                 'jackpot_type' => $existingRoomConfig->jackpot_type,
                 'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
                 'room_commn' => $existingRoomConfig->room_commn,
@@ -1256,10 +1255,10 @@ class BingoController extends Controller
             ]);
 
             DB::commit();
-
             return redirect()->back()->with('message', 'Sala copiada con exito')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al copiar la sala: ' . $e->getMessage());
             return redirect()->back()->with('msg-error', 'Hubo un problema al copiar la sala: ' . $e->getMessage());
         }
 

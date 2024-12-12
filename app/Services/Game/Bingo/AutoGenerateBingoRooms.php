@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Game\Bingo;
 
 use App\Models\{BingoCreator, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, UserType};
 use App\Traits\EncryptRKE;

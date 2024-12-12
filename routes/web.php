@@ -177,7 +177,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
 
 // Commerce Options ADMIN
 Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-commerce', 'as' => 'admin-commerce.'], function () {
-    Route::post('create', [CustomerController::class, 'create'])->name('create');
+    Route::post('create', [CommerceController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
     Route::put('delete/{id}', [CommerceController::class, 'delete'])->name('delete');

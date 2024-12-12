@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\CommandLog;
-use App\Services\AutoGenerateBingoRooms;
+use App\Services\Game\Bingo\AutoGenerateBingoRooms;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
