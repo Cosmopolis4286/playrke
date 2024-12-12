@@ -633,7 +633,7 @@ trait BingoTrait
 
             // Definir coinISO
             if ($customer) {
-                $coinISO = CustomerExchangeRate::getValueById('coin');
+                $coinISO = CustomerExchangeRate::getValueById($coin, 'coin');
             } else {
                 $coinISO = $coin;
             }

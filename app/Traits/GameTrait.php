@@ -46,8 +46,6 @@ trait GameTrait
             if (!GameExchangeRate::existsGameExchangeRate($gameID, $room, $coin)) {
 
                 // Definir tasa de cambio dependiendo de la cantidad, calcular el promedio o tomar el unico valor
-                dd($exchangeRates->where('coin', $coin)->count());
-
                 $roomExchangeRate = $exchangeRates->where('coin', $coin)->count() > 1
                     ? $exchangeRates->where('coin', $coin)->avg('exchange_rate')
                     : ($exchangeRates->where('coin', $coin)->first()->exchange_rate ?? null);
@@ -101,26 +99,23 @@ trait GameTrait
         // Definir Moneda/Divisa
         $coin = $data['coin'];
 
-        // Definir la tasa de cambio de acuerdo al $creator['type'] 
-        $creator = $data['creator'];
+        // Declarar variables del Creador de la sala
+        $creatorID = $data['creator']['id'];
+        $creatorType = $data['creator']['type'];
 
-        switch ($creator['type']) {
-            case 'RKE';
-            case 'commerce':
-                $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator['id'], $coin);
-                break;
-            case 'customer':
-                $creatorExchangeRate = CustomerExchangeRate::getValueById($coin);
-                break;
-            default:
-                # code...
-                break;
+        // Definir la tasa de cambio de acuerdo al $creator['type'] 
+        if ($creatorType === 'commerce') {
+            $coinISO = $coin;
+            $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coinISO);
+        } else {
+            $coinISO = CustomerExchangeRate::getValueById($coin, 'coin');
+            $creatorExchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $coinISO);
         }
 
         // Definir Tasa de Cambio de la sala de acuerdo al estatus
         $exchangeRate = ($roomStatus == 2)
             ? $creatorExchangeRate
-            : GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin);
+            : GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coinISO);
 
         // Definir valor final o monto
         $amount = $data['value'] * ($exchangeRate ?? 1);
