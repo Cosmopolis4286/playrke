@@ -1107,9 +1107,7 @@ trait BingoTrait
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            // Registrar el error
             Log::error('Error en handleJackpotWinners: ' . $e->getMessage());
-            dd($e->getMessage());
             // Devolver un mensaje de error
             return response()->json(['error' => 'Hubo un error al procesar la solicitud.'], 500);
         }

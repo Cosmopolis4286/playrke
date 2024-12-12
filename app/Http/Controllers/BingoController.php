@@ -162,7 +162,8 @@ class BingoController extends Controller
             'jackpot_prize',
             'ctns',
             'encrypted'
-        ])->where($creator['type'], $creatorID)->whereIn('status', [2, 3])->get();
+        ])->where($creator['type'], $creatorID)
+            ->whereIn('status', [2, 3])->orderBy('unix_date')->get();
 
         // Redirigir si no hay salas disponibles
         if (!count($rooms) && $creator['type'] === 'commerce') {

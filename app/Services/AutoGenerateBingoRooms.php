@@ -90,16 +90,17 @@ class AutoGenerateBingoRooms
                         'ctn_price' => $room->ctn_price,
                     ]
                 );
+
+                Log::info('Nueva Sala Creada Automaticamente', [
+                    'creator_type' => $room->creator_type,
+                    'creator_id' => $creatorID,
+                    'date' => $roomDate,
+                    'time' => $room->time,
+                    'ctn_price' => $room->ctn_price
+                ]);
             }
 
             DB::commit();
-            Log::info('Nueva Sala Creada Automáticamente', [
-                'creator_type' => $room->creator_type,
-                'creator_id' => $creatorID,
-                'date' => $roomDate,
-                'time' => $room->time,
-                'ctn_price' => $room->ctn_price
-            ]);
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
