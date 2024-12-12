@@ -51,7 +51,7 @@ class AutoGenerateBingoRooms
                 $roomData = [
                     'date' => $roomDate,
                     'time' => $room->time,
-                    'unix_date' => $roomTime->timestamp,
+                    'unix_date' => Carbon::createFromFormat('Y-m-d H:i', "{$roomDate} {$room->time}")->timestamp,
                     'game_mode' => $room->game_mode,
                     'ctn_price' => $room->ctn_price,
                     $creatorType => $creatorID,

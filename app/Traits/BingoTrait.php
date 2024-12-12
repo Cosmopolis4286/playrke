@@ -1313,6 +1313,7 @@ trait BingoTrait
 
     public function checkRoomClosure($room = '')
     {
+
         $query = BingoRoom::whereIn('status', [2, 3]);
 
         if ($room) $query = $query->where('id', $room);
@@ -1320,6 +1321,8 @@ trait BingoTrait
         $rooms = $query->get(['id', 'unix_date']);
 
         if (count($rooms)) {
+
+            date_default_timezone_set(config('app.timezone'));
 
             foreach ($rooms as $room) {
 
