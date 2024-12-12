@@ -136,11 +136,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Cliente', '{{ asset('') }}customer');
+            formCRUD(elem, name, 'Cliente', '{{ asset('') }}admin-customer');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Cliente', '{{ asset('') }}customer', otherCasesMap)
+            formCRUD($(this), name, 'Cliente', '{{ asset('') }}admin-customer', otherCasesMap)
         });
 
         function insertInfo(type, data = '') {
@@ -187,7 +187,7 @@
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `{{ route('customer.delete', ['id' => ':id']) }}`,
+                `{{ route('admin-customer.delete', ['id' => ':id']) }}`,
                 encryptedId
             );
         }
@@ -199,7 +199,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('customer.change-status', ['id' => ':id']) }}`,
+                    `{{ route('admin-customer.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -209,7 +209,7 @@
                     'info',
                     'Sí, generar',
                     '#form-other-options',
-                    `{{ route('customer.change-pasww', ['id' => ':id']) }}`,
+                    `{{ route('admin-customer.change-pasww', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
