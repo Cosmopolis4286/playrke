@@ -613,12 +613,12 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function inGameCustomer($customerToken, $userToken, $room)
+    public function inGameCustomer($customerID, $userToken, $room)
     {
         // Vista para el juego de un cliente especifico
 
         // Validar Informacion de cliente-user y crear variabales de session
-        $response = $this->validateCustomer($customerToken, $userToken);
+        $response = $this->validateCustomer($customerID, $userToken);
 
         if (isset($response['Error'])) {
             return response()->json(['message' => $response['Error']], 404);
