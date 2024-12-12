@@ -618,7 +618,7 @@ class BingoController extends Controller
         // Vista para el juego de un cliente especifico
 
         // Validar Informacion de cliente-user y crear variabales de session
-        $response = $this->validateCustomer($customerID, $userToken);
+        $response = $this->validateCustomer($customerID, $userToken, 'in-game');
 
         if (isset($response['Error'])) {
             return response()->json(['message' => $response['Error']], 404);

@@ -7,7 +7,6 @@ use App\Models\BingoRoom;
 use App\Models\CoinGameRoom;
 use App\Models\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
-use App\Models\ExchangeRate;
 use App\Models\GameExchangeRate;
 use App\Models\Games;
 use App\Models\UserType;
@@ -24,10 +23,10 @@ trait GameTrait
 
         if ($game === 'BINGO') {
             $gameMode = BingoRoom::getValueById($room, 'game_mode');
-            $creator = BingoCreator::getByRoom($room, ['creator_type', 'creator_id']);
+            $gameCreator = BingoCreator::getByRoom($room, ['creator_type', 'creator_id']);
 
-            $creatortType = UserType::getValueById($creator->creator_type, 'prefix');
-            $creatorID = $creator->id;
+            $creatortType = UserType::getValueById($gameCreator->creator_type, 'prefix');
+            $creatorID = $gameCreator->creator_id;
         }
 
         // Obtener las monedas registradas en la sala de juego
@@ -45,8 +44,13 @@ trait GameTrait
         $recordsToInsert = $coinsInGameRoom->map(function ($coin) use ($exchangeRates, $gameID, $room, $timestamp) {
             // Verificar la existencia de la tasa de cambio en la sala de juego
             if (!GameExchangeRate::existsGameExchangeRate($gameID, $room, $coin)) {
-                // Definir tasa de cambio para la sala de juego respecto a la moneda
-                $roomExchangeRate = $exchangeRates->where('coin', $coin)->avg('exchange_rate');
+
+                // Definir tasa de cambio dependiendo de la cantidad, calcular el promedio o tomar el unico valor
+                dd($exchangeRates->where('coin', $coin)->count());
+
+                $roomExchangeRate = $exchangeRates->where('coin', $coin)->count() > 1
+                    ? $exchangeRates->where('coin', $coin)->avg('exchange_rate')
+                    : ($exchangeRates->where('coin', $coin)->first()->exchange_rate ?? null);
 
                 return [
                     'game' => $gameID,

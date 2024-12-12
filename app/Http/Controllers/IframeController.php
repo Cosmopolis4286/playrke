@@ -53,10 +53,6 @@ class IframeController extends Controller
         }
 
         $customerToken = Customer::getValueByUserId($user->id, 'token');
-        $response = $this->validateCustomer($customerToken, $userToken);
-
-        // Verificar si existe el usuario por su token
-        if (isset($response['Error'])) return $response['Error'];
 
         return ['route' => route('bingo.game-rooms-customer', ['customer' => $customerToken, 'user' => $userToken])];
     }

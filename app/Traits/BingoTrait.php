@@ -631,9 +631,16 @@ trait BingoTrait
             // Definir variables dobre el juego
             $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
 
+            // Definir coinISO
+            if ($customer) {
+                $coinISO = CustomerExchangeRate::getValueById('coin');
+            } else {
+                $coinISO = $coin;
+            }
+
             //Registrar nueva moneda en juego de ser necesario
-            if (!CoinGameRoom::existsCoinGameRoom($coin, $roomID, 'BINGO', $gameMode)) {
-                CoinGameRoom::createNewCoinInRoom($game, $roomID, $coin);
+            if (!CoinGameRoom::existsCoinGameRoom($coinISO, $roomID, 'BINGO', $gameMode)) {
+                CoinGameRoom::createNewCoinInRoom($game, $roomID, $coinISO);
             }
 
             // Si la sala es de un cliente

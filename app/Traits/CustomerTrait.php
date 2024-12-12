@@ -32,12 +32,16 @@ trait CustomerTrait
         }
     }
 
-    public function validateCustomer($customerID, $userToken)
+    public function validateCustomer($customerID, $userToken, $view = 'game-rooms')
     {
-        // Obtener el ID del cliente usando el token
-        $customerID = decrypt($customerID);
-
-        $customerToken = Customer::getValueById($customerID, 'token');
+        // Obtener el ID del cliente
+        if ($view === 'game-rooms') {
+            $customerToken = Customer::getValueByToken($customerID, 'id');
+            $customerID = $customerToken;
+        } else {
+            $customerID = decrypt($customerID);
+            $customerToken = Customer::getValueById($customerID, 'token');
+        }
 
         // Verificar si el cliente existe
         if (!$customerToken) {
