@@ -23,7 +23,6 @@ class GenerateBingoRoomsCommand extends Command
 
             $output = $response['Info'] ?? 'Salas de bingo generadas exitosamente.';
             Log::info($output);
-
         } catch (\Exception $e) {
             $status = 'ERROR';
             $output = 'Error al ejecutar la tarea: ' . $e->getMessage();
@@ -44,14 +43,6 @@ class GenerateBingoRoomsCommand extends Command
             'status' => $status,
             'executed_at' => now(),
         ]);
-
-        // Guardar en archivo de logs
-        $logFilePath = storage_path('logs/schedule.log');
-        if (is_writable(dirname($logFilePath))) {
-            file_put_contents($logFilePath, '[' . now() . "] {$this->signature}: {$output}" . PHP_EOL, FILE_APPEND);
-        } else {
-            Log::warning("El archivo {$logFilePath} no tiene permisos de escritura.");
-        }
     }
 
     private function infoOrError(string $message, bool $isError): void
