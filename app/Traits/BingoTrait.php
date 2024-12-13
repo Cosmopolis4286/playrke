@@ -1286,74 +1286,6 @@ trait BingoTrait
         ];
     }
 
-    public function checkRoomClosure($room = '')
-    {
-
-        $query = BingoRoom::whereIn('status', [2, 3]);
-
-        if ($room) $query = $query->where('id', $room);
-
-        $rooms = $query->get(['id', 'unix_date']);
-
-        if (count($rooms)) {
-
-            date_default_timezone_set(config('app.timezone'));
-
-            foreach ($rooms as $room) {
-
-                $roomID = $room->id;
-
-                if (time() < $room->unix_date) continue;
-
-                $existsCtns = BingoCtns::getCountCtnByRoom($roomID);
-                $existsPlayers = BingoRoomUser::getPlayerCountByRoom($roomID);
-
-                if ($existsCtns && $existsPlayers) {
-                    $winChip = BingoDraw::getWinningChip($roomID) ?? $this->newDraw($roomID);
-
-                    //dd($winChip->time <= time());
-
-                    $status = ($winChip->time <= time()) ? 4 : 3;
-                } else {
-                    $status = 1; //N/D Borrador
-                }
-
-                BingoRoom::where('id', $roomID)->update(['status' => $status]);
-            }
-        }
-
-        $this->hideRoom();
-    }
-
-    public function hideRoom() // Validar Salas Finalizadas
-    {
-        $rooms = BingoRoom::where('status', 4)->get(['id', 'customer', 'date', 'time']);
-
-        if (!count($rooms)) return true;
-
-        date_default_timezone_set(config('app.timezone'));
-
-        foreach ($rooms as $room) {
-
-            $getWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 1);
-
-            if ($getWinnersJackpot == 0) {
-                $this->handleJackpotWinners($room->id);
-            }
-
-            $dataTime = strtotime("{$room->date} {$room->time}");
-
-            // Sumar 2 semanas (14 días * 24 horas * 60 minutos * 60 segundos)
-            $dataTime2Week = $dataTime + (2 * 7 * 24 * 60 * 60);
-
-            if ($dataTime2Week <= time()) { // Status (6) Sala Oculta
-                BingoRoom::where('id', $room->id)->update(['status' => 6]);
-            }
-        }
-
-        return true;
-    }
-
     public function getBingoInfoByDateTrait($commerce, $date = 'today') {}
 
     public function allWinCtnPaid($room)
@@ -1467,38 +1399,5 @@ trait BingoTrait
             }
         }
         return ['return' => true, 'coin' => $coin];
-    }
-}
-
-function gg()
-{
-    if ($recordsToInsert) {
-
-
-        $customer = BingoRoom::getValueById($roomID, 'customer');
-
-        if ($customer) {
-
-            foreach ($cartons as $ctn) {
-
-                $roomUUID = BingoRoom::getValueById($roomID, 'code_uuid');
-                // Registrar la transaccion en PlayRKE
-                $transaction = $this->registerTransaction(
-                    ['name' => 'BINGO', 'game_mode' => 1],
-                    $customer,
-                    $ctn->player_user,
-                    $roomUUID,
-                    'WIN',
-                    $ctn->coin,
-                    $prizeWn,
-                    '3'
-                );
-
-                if (!$transaction) {
-                    DB::rollBack();
-                    return ['Error' => 'Error al registrar la transacción'];
-                }
-            }
-        }
     }
 }

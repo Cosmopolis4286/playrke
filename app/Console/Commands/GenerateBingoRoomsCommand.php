@@ -45,10 +45,6 @@ class GenerateBingoRoomsCommand extends Command
             'executed_at' => now()
         ]);
 
-        // Guardar el registro también en el archivo de logs schedule.log
-        //$logFilePath = storage_path('logs/schedule.log');
-        //file_put_contents($logFilePath,  PHP_EOL . '  ' . now() . ": {$output}" . PHP_EOL, FILE_APPEND);
-
         // Imprimir el resultado en consola
         $this->info($output);
     }

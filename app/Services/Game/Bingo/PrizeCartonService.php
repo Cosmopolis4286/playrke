@@ -4,71 +4,81 @@ namespace App\Services\Game\Bingo;
 
 use App\Models\Customer;
 use App\Models\BingoPrizeCtns;
-use App\Models\Transactions;
-use Illuminate\Support\Facades\Log;
+use App\Models\BingoRoom;
+use App\Traits\SeamlessWallet;
+use Illuminate\Support\Facades\DB;
+use Exception;
 
 class PrizeCartonService
 {
-    /**
-     * Maneja la asignación de premios para un cliente.
-     *
-     * @param int $customerId
-     * @param int $cartonId
-     * @param string $prize
-     * @return array
-     * @throws \Exception
-     */
-    public function handleCustomerPrizeCarton(int $customerId, int $cartonId, string $prize): array
+    use SeamlessWallet;
+
+    public function handleCustomerPrizeCarton($customerID)
     {
-        // Verificar que los datos necesarios están presentes
-        if (!$customerId || !$cartonId || !$prize) {
-            throw new \InvalidArgumentException("Datos incompletos para manejar el premio del cartón.");
-        }
+        // Buscar información del cliente
+        $customer = Customer::find($customerID);
 
-        // 1. Buscar información del cliente
-        $customer = Customer::find($customerId);
         if (!$customer) {
-            throw new \Exception("Cliente no encontrado.");
+            throw new Exception("Cliente no encontrado.");
         }
 
-        // 2. Verificar el cartón ganador
-        $carton = BingoCarton::where('id', $cartonId)
-            ->where('customer_id', $customerId)
-            ->first();
+        // Obtener premios no procesados del cliente
+        $prizeCtns = BingoPrizeCtns::where('customer', $customerID)->where('active', 'N')->get();
 
-        if (!$carton) {
-            throw new \Exception("Cartón no válido o no pertenece al cliente.");
+        if ($prizeCtns->isEmpty()) {
+            return ['status' => 'info', 'message' => 'No hay premios asociados a este cliente.'];
         }
 
-        // 3. Asignar el premio al cliente
-        $prizeAssigned = Prize::create([
-            'customer_id' => $customerId,
-            'carton_id' => $cartonId,
-            'prize' => $prize,
-            'assigned_at' => now(),
-        ]);
+        DB::beginTransaction();
 
-        if (!$prizeAssigned) {
-            throw new \Exception("Error al asignar el premio al cliente.");
+        try {
+            foreach ($prizeCtns as $ctn) {
+                // Obtener roomUUID con validación
+                $roomUUID = $this->getRoomUUID($ctn->room);
+
+                // Registrar la transacción
+                $this->processPrizeTransaction($ctn, $customerID, $roomUUID);
+
+                // Actualizar estado del premio
+                if (!$ctn->update(['active' => 'Y'])) {
+                    throw new Exception("Error al actualizar el estado del premio con ID: {$ctn->id}");
+                }
+            }
+
+            DB::commit();
+            return ['status' => 'success', 'message' => 'Premios procesados exitosamente.'];
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            // Log del error o notificación
+            throw new Exception("Error procesando los premios: " . $th->getMessage());
+        }
+    }
+
+    private function getRoomUUID($roomId)
+    {
+        $roomUUID = BingoRoom::getValueById($roomId, 'code_uuid');
+
+        if (!$roomUUID) {
+            throw new Exception("No se encontró un código UUID para la sala con ID: $roomId");
         }
 
-        // 4. Actualizar el estado del cartón
-        $carton->update(['status' => 'prize_assigned']);
+        return $roomUUID;
+    }
 
-        // 5. Registrar la acción en los logs
-        Log::info("Premio asignado: Cliente #$customerId, Cartón #$cartonId, Premio: $prize");
+    private function processPrizeTransaction($ctn, $customerID, $roomUUID)
+    {
+        $transaction = $this->registerTransaction(
+            ['name' => 'BINGO', 'game_mode' => 1],
+            $customerID,
+            $ctn->player_user,
+            $roomUUID,
+            'WIN',
+            $ctn->coin,
+            $ctn->amount
+        );
 
-        // 6. Notificar al cliente
-        $this->notifyCustomer($customer, $prize);
-
-        return [
-            'success' => true,
-            'message' => "Premio asignado exitosamente.",
-            'data' => [
-                'customer' => $customer,
-                'carton' => $carton,
-                'prize' => $prize,
-            ],
-        ];
+        if (!$transaction) {
+            throw new Exception("Error al registrar la transacción para el premio con ID: {$ctn->id}");
+        }
     }
 }

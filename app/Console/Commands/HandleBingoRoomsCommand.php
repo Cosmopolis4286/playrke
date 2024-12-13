@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\CommandLog;
+use App\Services\Game\Bingo\HandleBingoRooms;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
+
+class HandleBingoRoomsCommand extends Command
+{
+    protected $signature = 'handler:bingo-rooms';
+    protected $description = 'Manejar Salas de Bindo';
+
+    public function handle()
+    {
+        $output = '';
+        $status = 'SUCCESS'; // Valor predeterminado
+
+        try {
+            // Lógica principal
+            $service = new HandleBingoRooms();
+            $response = $service->checkRoomClosure();
+
+            if (isset($response['Info'])) {
+                //Log::info($response['Info']);
+            } else {
+                //Log::info('Salas de bingo generadas exitosamente.');
+            }
+            // Si no hay errores, se considera una ejecución exitosa
+            $output = 'La tarea de control/manejo de salas de bingo se ha ejecutado exitosamente';
+            //Log::info($output); // Registrar en logs de Laravel
+        } catch (\Exception $e) {
+            // Capturar el mensaje de la excepción
+            $output = 'Error al ejecutar la tarea: ' . $e->getMessage();
+            $status = 'ERROR'; // Cambiar el estado si ocurre un error
+            //Log::error($output); // Registrar en logs de Laravel
+        }
+
+        // Guardar el registro de ejecución del comando en la base de datos
+        CommandLog::create([
+            'command' => $this->signature,
+            'output' => $output,
+            'status' => $status,
+            'executed_at' => now()
+        ]);
+
+        // Imprimir el resultado en consola
+        $this->info($output);
+    }
+}
