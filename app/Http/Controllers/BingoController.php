@@ -34,6 +34,7 @@ use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
 use App\Services\Game\Bingo\AutoGenerateBingoRooms;
+use App\Services\Game\Bingo\HandleBingoRooms;
 use App\Traits\BingoTrait;
 use App\Traits\CustomerTrait;
 use App\Traits\Filters;
@@ -46,7 +47,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
-use PDO;
 
 class BingoController extends Controller
 {
@@ -91,7 +91,7 @@ class BingoController extends Controller
     private function getGamesRoomsView($creator, $data = [])
     {
         // Verificar Cierre de Salas
-        $this->checkRoomClosure();
+        (new HandleBingoRooms())->checkRoomClosure();
 
         // Obtener infomacion de Salas de Juego (CARDS)
         switch ($creator['type']) {
@@ -513,7 +513,7 @@ class BingoController extends Controller
         }
 
         // Verificar Cierre de Sala
-        $this->checkRoomClosure($roomID);
+        (new HandleBingoRooms())->checkRoomClosure($roomID);
 
         $room = BingoRoom::select(['status', 'date', 'time', 'encrypted'])->where('id', $roomID)->first();
 
@@ -770,7 +770,7 @@ class BingoController extends Controller
     // CRUD //     
     public function getGameRoomsInfo($creator, $coin) //  Lista Salas CRUD de Juego
     {
-        $this->checkRoomClosure();
+        (new HandleBingoRooms())->checkRoomClosure();
 
         switch ($creator['type']) {
             case 'admin': // Admin
@@ -1385,7 +1385,7 @@ class BingoController extends Controller
     public function getAutomaticRoomsInfo($creator)
     {
         //  Lista (CRUD) de configuracion de Salas Automaticas
-        $this->checkRoomClosure();
+        (new HandleBingoRooms())->checkRoomClosure();
 
         $creatorType = $creator['type'];
         $creatorID = decrypt($creator['id']);

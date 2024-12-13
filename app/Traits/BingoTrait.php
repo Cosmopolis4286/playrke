@@ -25,6 +25,7 @@ use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Game\Bingo\HandleBingoRooms;
 use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\DB;
@@ -556,8 +557,8 @@ trait BingoTrait
     public function cartonStore($arrCtn)
     {
         $roomID = $arrCtn['room'];
-        $this->checkRoomClosure($roomID);
-
+        (new HandleBingoRooms())->checkRoomClosure();
+        
         $room = $this->getRoomDetails($roomID);
         if (!$room) return ['Error' => 'Sala no disponible'];
 

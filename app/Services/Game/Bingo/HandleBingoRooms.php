@@ -2,9 +2,8 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoPrizeCtns, BingoRoom};
+use App\Models\{BingoCtns, BingoDraw, BingoPrizeCtns, BingoRoom, BingoRoomUser};
 use App\Traits\BingoTrait;
-use App\Traits\EncryptRKE;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
