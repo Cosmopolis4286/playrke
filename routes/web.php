@@ -149,7 +149,7 @@ Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as'
 });
 
 // Cliente Options ADMIN
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', 'as' => 'customer.'], function () {
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', 'as' => 'admin-customer.'], function () {
     Route::post('create', [CustomerController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [CustomerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CustomerController::class, 'update'])->name('update');
