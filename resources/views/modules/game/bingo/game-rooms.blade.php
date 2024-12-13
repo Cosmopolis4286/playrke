@@ -24,7 +24,6 @@
                     Cambiar a <b>{{ $coinSym }}</b>
                 </a> --}}
             </div>
-            @include('includes.game.bingo.layout.container-purchase-ctns')
         </div>
         <div class="col-12 w-100 mt-4">
             <div class="row justify-content-center" style="gap: 2.75rem;">
@@ -32,6 +31,7 @@
                     <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
                         <div class="card-game-room" id="card-game-room_{{ $room->encrypted }}"
                             data-room="{{ $room->encrypted }}" data-status="{{ $room->status }}">
+                            @include('includes.game.bingo.layout.container-purchase-ctns')
                             <div id="start-time_{{ $room->encrypted }}" class="card-game-room__time">
                                 {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
                             </div>
@@ -43,7 +43,7 @@
                                     +{{ $room->PlayersRoom[0]->ctns }}
                                 @endif
                             </div>
-                            {{-- @if ($room->PlayersRoom[0]->auto_mc)
+                            {{-- @if ($room->PlayersRoom[0]->automarker)
                                 <div class="card-game-room__auto-marker" title="Tienes el Automarcador">
                                     <i class="fa-solid fa-check-to-slot"></i>
                                 </div>

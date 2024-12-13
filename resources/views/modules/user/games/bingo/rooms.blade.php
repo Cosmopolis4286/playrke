@@ -83,7 +83,7 @@
                                         <i style="color: #004bbbe0;" class="fa-solid fa-circle-check"></i>
                                     </div>
                                     <div class="hide_info_bg" id="aum_in_use">
-                                        <input type="checkbox" id="buy_autom" name="auto_mc" value="0">
+                                        <input type="checkbox" id="buy_autom" name="automarker" value="0">
                                         <span id="txt_automc_sn">Automarcar</span>
                                     </div>
                                 </div>
@@ -134,7 +134,7 @@
                         data-precio="{{ $room->price }}" data-idb="{{ $room->id }}"
                         data-bot="{{ number_format($room->jackpot, 2) }}" data-automc="{{ $room->val_automc }}"
                         data-type='{{ $room->type_boat }}' data-status='{{ $room->status }}'
-                        data-user_automc="{{ $room->auto_mc }}" data-cantpj='{{ $room->players }}'>
+                        data-user_automc="{{ $room->automarker }}" data-cantpj='{{ $room->players }}'>
                         <div class="box_rbg">
                             <div class="cont_rbg">
                                 <div id="bg_tx{{ $room->id }}" class="time_bg">
@@ -150,7 +150,7 @@
                                         +<span class="num_ct">{{ $room->ctns }}</span>
                                     </div>
                                 @endif
-                                @if ($room->auto_mc == 1)
+                                @if ($room->automarker == 1)
                                     <div class="ic_atm" title="Tienes el Automarcador">
                                         <i class="fa-solid fa-check-to-slot"></i>
                                     </div>

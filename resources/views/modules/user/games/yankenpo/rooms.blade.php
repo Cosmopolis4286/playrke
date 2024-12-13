@@ -75,7 +75,7 @@
                                     <i style="color: #004bbbe0;" class="fa-solid fa-circle-check"></i>
                                 </div>
                                 <div class="hide_info_bg" id="aum_in_use">
-                                    <input type="checkbox" id="buy_autom" name="auto_mc" value="0">
+                                    <input type="checkbox" id="buy_autom" name="automarker" value="0">
                                     <span id="txt_automc_sn">Automarcar</span>
                                 </div>
                             </div>

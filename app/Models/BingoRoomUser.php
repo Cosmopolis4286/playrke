@@ -16,6 +16,7 @@ class BingoRoomUser extends Model
         'player_user',
         'player_link',
         'ctns',
+        'automarker',
         'winner'
     ];
 
