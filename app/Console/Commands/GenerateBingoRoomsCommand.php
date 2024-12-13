@@ -2,50 +2,58 @@
 
 namespace App\Console\Commands;
 
-use App\Models\CommandLog;
 use App\Services\Game\Bingo\AutoGenerateBingoRooms;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class GenerateBingoRoomsCommand extends Command
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $signature = 'generate:bingo-rooms';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
     protected $description = 'Crea nuevas salas de bingo';
 
-    public function handle()
+    /**
+     * Execute the console command.
+     *
+     * @return void
+     */
+    public function handle(): void
     {
-        $output = '';
-        $status = 'SUCCESS'; // Valor predeterminado
+        $status = 'SUCCESS';
 
         try {
-            // Lógica principal
-            $service = new AutoGenerateBingoRooms();
-            $response = $service->createBingoRooms();
+            // Ejecutar la lógica principal
+            app(AutoGenerateBingoRooms::class)->createBingoRooms();
+            $output = 'La tarea de generación de salas de bingo se ha ejecutado exitosamente.';
+        } catch (Throwable $e) {
+            // Manejar excepciones con detalles adicionales
+            $status = 'ERROR';
+            $output = sprintf(
+                'Error al ejecutar la tarea: %s en archivo %s línea %d',
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            );
 
-            if (isset($response['Info'])) {
-                //Log::info($response['Info']);
-            } else {
-                //Log::info('Salas de bingo generadas exitosamente.');
-            }
-            // Si no hay errores, se considera una ejecución exitosa
-            $output = 'La tarea de generación de salas de bingo se ha ejecutado exitosamente';
-            //Log::info($output); // Registrar en logs de Laravel
-        } catch (\Exception $e) {
-            // Capturar el mensaje de la excepción
-            $output = 'Error al ejecutar la tarea: ' . $e->getMessage();
-            $status = 'ERROR'; // Cambiar el estado si ocurre un error
-            //Log::error($output); // Registrar en logs de Laravel
+            $this->error($output); // Imprimir mensaje de error en consola
         }
 
-        // Guardar el registro de ejecución del comando en la base de datos
-        CommandLog::create([
-            'command' => $this->signature,
-            'output' => $output,
-            'status' => $status,
-            'executed_at' => now()
-        ]);
+        // Registrar el resultado en la base de datos
+        app(HandleCommands::class)->logCommandExecution($this->signature, $output, $status);
 
-        // Imprimir el resultado en consola
-        $this->info($output);
+        // Imprimir mensaje de éxito si no hubo errores
+        if ($status === 'SUCCESS') {
+            $this->info($output);
+        }
     }
 }

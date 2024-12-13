@@ -25,6 +25,7 @@ use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Customer\HandleTransactions;
 use App\Services\Game\Bingo\HandleBingoRooms;
 use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -558,7 +559,7 @@ trait BingoTrait
     {
         $roomID = $arrCtn['room'];
         (new HandleBingoRooms())->checkRoomClosure();
-        
+
         $room = $this->getRoomDetails($roomID);
         if (!$room) return ['Error' => 'Sala no disponible'];
 
@@ -1089,7 +1090,9 @@ trait BingoTrait
         }
 
         // Validar Transacciones
-        if ($room->customer) $this->validateTransaction($room->customer);
+        if ($room->customer) {
+            app(HandleTransactions::class)->validateTransactions($room->customer);
+        }
     }
 
     public function getWinnersJackpot($roomID, $roomUser)
