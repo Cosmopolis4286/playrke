@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('n_4', 2);
             $table->string('n_5', 2);
             $table->string('n_6', 2);
-            $table->string('n_7', 2);
+            $table->string('n_7', 2)->nullable();
             $table->string('status', 1)->default('0');
             $table->timestamps();
         });

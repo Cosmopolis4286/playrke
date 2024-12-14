@@ -28,6 +28,7 @@ use App\Traits\BingoTrait;
 use App\Traits\Filters;
 use App\Traits\RouteRKE;
 use App\Traits\UserVal;
+use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -162,6 +163,7 @@ class CommerceController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
+                'email_verified_at' => Carbon::now()->timestamp,
                 'referral_code' => User::getUniqueReferralCode(),
             ]);
 
@@ -693,7 +695,7 @@ class CommerceController extends Controller
 
         $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
 
-        return $winnersQuery->orderBy('prize_type')->get();
+        return $winnersQuery->where('active', 'Y')->orderBy('prize_type')->get();
 
         //$winnersJackpot = $winners->where('prize_type', 1)->count();
         //$winnersSerials = $winners->where('prize_type', 2)->count();

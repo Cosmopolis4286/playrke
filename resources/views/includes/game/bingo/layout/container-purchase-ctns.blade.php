@@ -7,8 +7,8 @@
             <div class="purchase-ctns__coin">
                 <div id="purchase-ctns__coin-text"></div>
                 <div id="purchase-ctns__coin-number">
-                    <small id="purchase-ctns__coin-label" class="purchase-ctns__coin-label"></small>
                     <span id="jackpot-amount"></span>
+                    <small id="purchase-ctns__coin-label" class="ml-1 mt-1 purchase-ctns__coin-label"></small>
                 </div>
             </div>
         </div>
@@ -23,7 +23,7 @@
             </div>
         </div>
     </div>
-    <div class="purchase-ctns__body bg-light ">
+    <div class="purchase-ctns__body">
         @isset($record)
             <div class="purchase-ctns__game-room-info">
                 <div id="game-room-info__details">
@@ -53,12 +53,12 @@
                     </div>
                 </div>
                 <span class="form-text-total">Total:</span>
-                <small class="purchase-ctns__coin-label"></small>
                 <span id="total-amount"></span>
+                <small class="purchase-ctns__coin-label"></small>
             </div>
             <div id="purchase-ctns__body-form-section-right"></div>
         </div>
-        <div class="purchase-ctns__footer card-footer bg-light text-center">
+        <div class="purchase-ctns__footer card-footer">
             <button type="button" id="btn-container-purchase-close" class="mr-1 btn btn-secondary">Cancelar</button>
             <button type="button" id="btn-purchase-ctns" class="btn btn-primary">Comprar
                 <span id="loader-btn-purchase-ctns" class="spinner-border spinner-border-sm" role="status"
@@ -66,5 +66,4 @@
             </button>
         </div>
     </div>
-
 </div>

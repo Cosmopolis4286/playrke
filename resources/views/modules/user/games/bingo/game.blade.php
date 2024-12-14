@@ -374,7 +374,7 @@
         const idRmBing = $('#rmd').data('id');
         const coinRoom = '<?php echo json_encode($room->coin); ?>';
         const valSongs = $('#valSongs').data('id');
-        const autoMc = '<?php echo json_encode($room->auto_mc); ?>';
+        const autoMc = '<?php echo json_encode($room->automarker); ?>';
         if (autoMc >= 1) $(".bt_num").prop("disabled", true);
         const arrSort = $('.chips');
         const chpLast = arrSort[74].value;

@@ -59,7 +59,7 @@
                                                     <td>{{ $rm->time }}</td>
                                                     <td></td>
                                                     <td>{{ $rm->price }} {{ $rm->name }}</td>
-                                                    <td>{{ $rm->auto_mc }} {{ $rm->name }}</td>
+                                                    <td>{{ $rm->automarker }} {{ $rm->name }}</td>
                                                     <td>{{ $rm->players }}</td>
                                                     <td>{{ $rm->jackpot }} {{ $rm->name }}</td>
                                                     <td>
@@ -85,7 +85,7 @@
                                                             data-time="{{ $rm->time_adm }}"
                                                             data-coin="{{ $rm->name }}"
                                                             data-price="{{ $rm->price }}"
-                                                            data-auto_mc="{{ $rm->auto_mc }}"
+                                                            data-automarker="{{ $rm->automarker }}"
                                                             data-type_boat="{{ $rm->type_boat }}"
                                                             data-com="{{ $rm->com }}">
                                                             <i class="fas fa-edit"></i>
@@ -357,7 +357,7 @@
                 $("#time").val($(this).data('time'));
                 $("#coin").val($(this).data('coin'));
                 $("#val_ctn").val($(this).data('price'));
-                $("#val_autom").val($(this).data('auto_mc'));
+                $("#val_autom").val($(this).data('automarker'));
                 $(".type_boat").val($(this).data('type_boat'));
                 $("#val_com").html($(this).data('com'));
             });

@@ -24,11 +24,11 @@ use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
-use App\Models\ExchangeRate;
 use App\Models\SellerCountriesCoins;
 use App\Models\User;
 use App\Models\UserType;
 use App\Models\Wallet;
+use App\Services\Game\Bingo\HandleBingoRooms;
 use App\Traits\Filters;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Auth;
@@ -321,7 +321,7 @@ class SellerController extends Controller
         $wallet = $this->wallet();
         $seller = $this->seller(['commerce', 'country', 'commn', 'status']);
 
-        $this->checkRoomClosure();
+        (new HandleBingoRooms())->checkRoomClosure();
 
         $rooms = BingoRoom::select('encrypted', 'room_type', 'unix_date')
             ->where('status', 2)->where('game_mode', 2)->where(function ($query) use ($seller) {
@@ -575,7 +575,8 @@ class SellerController extends Controller
 
         $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
 
-        $winners = $winnersQuery->where('seller', $seller->id)->where('coin', $coin)->get();
+        $winners = $winnersQuery->where('seller', $seller->id)
+            ->where('active', 'Y')->where('coin', $coin)->get();
 
         $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
 

@@ -15,11 +15,6 @@ class CoinGameRoom extends Model
         return $this->belongsTo(Games::class, 'game');
     }
 
-    public function Coin()
-    {
-        return $this->belongsTo(Coin::class, 'coin');
-    }
-
     public static function createNewCoinInRoom($game, $room, $coin)
     {
         try {

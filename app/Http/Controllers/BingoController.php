@@ -33,7 +33,8 @@ use App\Models\Room;
 use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
-use App\Services\AutoGenerateBingoRooms;
+use App\Services\Game\Bingo\AutoGenerateBingoRooms;
+use App\Services\Game\Bingo\HandleBingoRooms;
 use App\Traits\BingoTrait;
 use App\Traits\CustomerTrait;
 use App\Traits\Filters;
@@ -46,7 +47,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
-use PDO;
 
 class BingoController extends Controller
 {
@@ -91,7 +91,7 @@ class BingoController extends Controller
     private function getGamesRoomsView($creator, $data = [])
     {
         // Verificar Cierre de Salas
-        $this->checkRoomClosure();
+        (new HandleBingoRooms())->checkRoomClosure();
 
         // Obtener infomacion de Salas de Juego (CARDS)
         switch ($creator['type']) {
@@ -107,6 +107,9 @@ class BingoController extends Controller
                 $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
 
                 $player = Auth::id();
+
+                $playerColumn = 'player_link';
+                $roomUser = $player;
 
                 $isCreator = Commerce::getValueByUserId($player, 'id');
 
@@ -126,6 +129,9 @@ class BingoController extends Controller
 
                 $player = $data['player'] ? encrypt($data['player']) : false;
 
+                $playerColumn = 'player_user';
+                $roomUser = $data['player'];
+
                 $moreViewData = ['player' => $player, 'userToken' => $data['userToken']];
                 break;
 
@@ -135,12 +141,14 @@ class BingoController extends Controller
         }
 
         $rooms = BingoRoom::with([
-            'Config:room,jackpot_type',
-            'PlayersRoom' => function ($query) {
-                $query->select('room', 'player_user', 'ctns')
-                    ->where('player_user', Auth::id());
+            'Config' => function ($query) {
+                $query->select('room', 'jackpot_type');
+            },
+            'PlayersRoom' => function ($query) use ($playerColumn, $roomUser) {
+                $query->select('id', $playerColumn, 'room', 'ctns')
+                    ->where($playerColumn, $roomUser);
             }
-        ])->select(
+        ])->select([
             'id',
             $creator['type'],
             'subsidiary',
@@ -154,7 +162,8 @@ class BingoController extends Controller
             'jackpot_prize',
             'ctns',
             'encrypted'
-        )->where($creator['type'], $creatorID)->whereIn('status', [2, 3])->get();
+        ])->where($creator['type'], $creatorID)
+            ->whereIn('status', [2, 3])->orderBy('unix_date')->get();
 
         // Redirigir si no hay salas disponibles
         if (!count($rooms) && $creator['type'] === 'commerce') {
@@ -310,11 +319,14 @@ class BingoController extends Controller
 
                 $data['customer'] = $creatorID;
                 $data['playerUser'] = $player ?? null;
+                $playerColumn = 'player_user';
             } else {
                 $data['commerce'] = $creatorID;
 
+
                 if ($isLogin == true) {
                     $data['playerUser'] = $player;
+                    $playerColumn = 'player_user';
 
                     // Determinar la columna de saldo en función de la moneda
                     $columnBalance = $coin == 1 ? 'usdt' : 'balance';
@@ -337,6 +349,7 @@ class BingoController extends Controller
                     }
 
                     $data['playerLink'] =  $player ?? null;
+                    $playerColumn = 'player_link';
 
                     if ($request->user_in_game) {
                         $data['country'] = $request->country ?? null;
@@ -378,8 +391,14 @@ class BingoController extends Controller
                     }
                 }
 
-                $jackpot = $this->convertPrizeValue($roomID, $coin);
-                return response()->json(['jackpot' => $jackpot, 'type' => 'success', 'message' => 'Proceso efectuado con exito']);
+                $jackpot = number_format($this->convertPrizeValue($roomID, $coin, 'float'), 2, '.');
+
+                return response()->json([
+                    'jackpot' => $jackpot,
+                    'ctns' => BingoRoomUser::getValueByColumn($roomID, $playerColumn, $player, 'ctns'),
+                    'type' => 'success',
+                    'message' => 'Proceso efectuado con exito'
+                ]);
             } else {
                 Session::flash('message', 'Proceso efectuado con exito');
                 Session::flash('playerLink',  $cartonStore);
@@ -389,7 +408,7 @@ class BingoController extends Controller
             if (isset($creator)) {
                 return response()->json(['type' => 'warning', 'message' => $cartonStore['Error']]);
             } else {
-                return redirect()->back()->with(['type' => 'warning', 'message' => $cartonStore['Error']]);
+                return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al procesar la solicitud']);
             }
         }
     }
@@ -494,7 +513,7 @@ class BingoController extends Controller
         }
 
         // Verificar Cierre de Sala
-        $this->checkRoomClosure($roomID);
+        (new HandleBingoRooms())->checkRoomClosure($roomID);
 
         $room = BingoRoom::select(['status', 'date', 'time', 'encrypted'])->where('id', $roomID)->first();
 
@@ -567,7 +586,7 @@ class BingoController extends Controller
     public function inGame($player, $room = '')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        if (!$room) $player = PlayerLink::getByLink($player, ['creator_id', 'room', 'link']);
+        if (!$room) $player = PlayerLink::getByLink($player, ['room', 'commerce', 'link']);
 
         $creator = ['type' => 'RKE', 'id' => $player->commerce];
 
@@ -580,7 +599,7 @@ class BingoController extends Controller
     public function inGameCommerce($commerce, $playerLink)
     {
         // Vista para el juego de un comercio especifico
-        $commerceID = PlayerLink::getValueByLink($playerLink, 'creator_id');
+        $commerceID = PlayerLink::getValueByLink($playerLink, 'commerce');
 
         // Validar el codigo de comercio
         $comerceIDByUUID = Commerce::getValueByCodeUUID($commerce, 'id');
@@ -595,12 +614,12 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function inGameCustomer($customerToken, $userToken, $room)
+    public function inGameCustomer($customerID, $userToken, $room)
     {
         // Vista para el juego de un cliente especifico
 
         // Validar Informacion de cliente-user y crear variabales de session
-        $response = $this->validateCustomer($customerToken, $userToken);
+        $response = $this->validateCustomer($customerID, $userToken, 'in-game');
 
         if (isset($response['Error'])) {
             return response()->json(['message' => $response['Error']], 404);
@@ -751,11 +770,9 @@ class BingoController extends Controller
     // CRUD //     
     public function getGameRoomsInfo($creator, $coin) //  Lista Salas CRUD de Juego
     {
-        $this->checkRoomClosure();
+        (new HandleBingoRooms())->checkRoomClosure();
 
-        $creatorType = $creator['type'];
-
-        switch ($creatorType) {
+        switch ($creator['type']) {
             case 'admin': // Admin
                 break;
             case 'commerce': // Comercio
@@ -777,7 +794,6 @@ class BingoController extends Controller
                         'userID' => $creator['id']
                     ]
                 ];
-
                 $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($coin)]);
 
                 $moreViewData = [
@@ -830,24 +846,20 @@ class BingoController extends Controller
                 break;
         }
 
+        // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
+        // $jackpotType = JackpotType::getByIds($gameJackpotType);
+
         $rooms = BingoRoom::with([
-            'Config:room,game_mode,jackpot_type',
-            'Config.GameMode',
             'Config.JackpotType',
+            'GameMode',
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
             },
             'GameExchangeRate' => function ($query) use ($coin) {
-                $query->where([['coin', $coin], ['game', 1]]);
-            },
-            'Creator' => function ($query) use ($creatorType, $creatorID) {
-                $query->select('room', 'creator_type', 'creator_id')
-                    ->where([
-                        ['creator_type', UserType::getValueByPrefix($creatorType, 'id')],
-                        ['creator_id', $creatorID]
-                    ]);
-            },
-        ])->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
+                $query->where('coin', $coin)->where('game', 1);
+            }
+        ])->where($creator['type'], $creatorID)->orderByDesc('date')
+            ->orderByDesc('time')->orderBy('status')->get();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
@@ -899,7 +911,7 @@ class BingoController extends Controller
         $commerceId = Commerce::getValueByUserId(Auth::id(), 'id');
 
         if (!$commerceId) {
-            return redirect()->back()->with('message', 'El comercio no existe o no está vinculado al usuario.')->with('type', 'warning');
+            return redirect()->back()->with('error', 'El comercio no existe o no está vinculado al usuario.');
         }
 
         if (!$creatorID || !$coin) {
@@ -920,6 +932,7 @@ class BingoController extends Controller
         // Retorna la vista con la información
         return $this->handleViewData($viewData, $creator['type']);
     }
+
 
     public function allCustomerRooms($customer = '', $coin = '')
     {
@@ -990,18 +1003,30 @@ class BingoController extends Controller
 
         if (in_array($creatorType, $allowedPrefixes)) {
 
+            date_default_timezone_set(config('app.timezone'));
+
             $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
+            $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
 
             $createData = [
-                'encrypted' => $this->generateUniqueCode('bingo_rooms'),
+                'game_mode' => $request->game_mode,
+                'status' => 1,
+                'creation' => 'M',
                 'date' => $request->date,
                 'time' => $request->time,
-                'status' => 1,
                 'unix_date' => strtotime("{$request->date} {$request->time}"),
+                'coin' => $coin,
+                'ctn_price' => $request->ctn_price,
                 'jackpot' => $boat,
+                'encrypted' => $this->generateUniqueCode('bingo_rooms'),
+                'room_type' => $request->room_type ?? 1
             ];
 
             if ($creatorType === 'commerce') {
+                $createData['commerce'] = $creatorID;
+                $createData['subsidiary'] = $request->subsidiary ?? null;
+            } else {
+                $createData['customer'] = $creatorID;
                 $createData['code_uuid'] = $this->getCodeUUID('BingoRoom');
             }
 
@@ -1011,24 +1036,6 @@ class BingoController extends Controller
 
                 $roomID = BingoRoom::create($createData)->id;
 
-                // Definir Tipos de Cantos disponibles
-                $typesPlays = $this->getPlayTypesForRoom() ?? null;
-
-                BingoRoomConfig::create([
-                    'room' => $roomID,
-                    'creation' => 'M',
-                    'game_mode' => $request->game_mode,
-                    'room_type' => $request->room_type ?? 1,
-                    'jackpot_type' => $request->jackpot_type,
-                    'fixed_jackpot_value' => $request->fixed_jackpot_value,
-                    'room_commn' => $request->room_commission,
-                    'serials_commn' => $request->serials_commission,
-                    'val_serials' => $request->val_serials,
-                    'num_serials' => $request->num_serials,
-                    'val_sm_prizes' => $request->val_sm_prizes,
-                    'types_plays' => $typesPlays
-                ]);
-
                 // Registar el creador de la sala
                 BingoCreator::create([
                     'room' => $roomID,
@@ -1036,6 +1043,17 @@ class BingoController extends Controller
                     'creator_id' => $creatorID,
                     'creator_commn' => $request->room_commission,
                     'ctn_price' => $request->ctn_price,
+                ]);
+
+                BingoRoomConfig::create([
+                    'room' => $roomID,
+                    'jackpot_type' => $request->jackpot_type,
+                    'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                    'room_commn' => $request->room_commission,
+                    'serials_commn' => $request->serials_commission,
+                    'val_serials' => $request->val_serials,
+                    'num_serials' => $request->num_serials,
+                    //'val_sm_prizes' => $request->val_sm_prizes,
                 ]);
 
                 DB::commit();
@@ -1051,64 +1069,69 @@ class BingoController extends Controller
     }
 
     public function update(Request $request, $id)
-{
-    $id = decrypt($id);
-    $room = BingoRoom::findOrFail($id);
+    {
+        $id = decrypt($id);
+        $room = BingoRoom::findOrFail($id);
 
-    // Validar Fecha y Hora
-    $unixDate = strtotime("{$request->date} {$request->time}");
-    if ($unixDate < time()) {
-        return redirect()->back()->with('message', 'Fecha/Hora no permitidas')->with('type', 'warning');
-    }
+        date_default_timezone_set(config('app.timezone'));
 
-    DB::beginTransaction();
+        $newDate = $request->date;
+        $newTime = $request->time;
+        $unixDate = strtotime("{$newDate} {$newTime}");
 
-    try {
-        // Preparar datos para BingoRoom
-        $boat = $request->jackpot_type > 1 ? $request->fixed_jackpot_value : 0;
-        $updateRoomData = [
-            'date' => $request->date,
-            'time' => $request->time,
-            'unix_date' => $unixDate,
-            'jackpot' => $room->jackpot + $boat,
-        ];
-        $room->update($updateRoomData);
-
-        // Preparar datos para BingoRoomConfig
-        $updateConfigData = [
-            'fixed_jackpot_value' => $request->fixed_jackpot_value,
-            'room_commn' => $request->room_commission,
-            'serials_commn' => $request->serials_commission,
-            'val_serials' => $request->val_serials,
-            'num_serials' => $request->num_serials,
-        ];
-
-        if ($room->jackpot == 0) {
-            $updateConfigData = array_merge($updateConfigData, [
-                'game_mode' => $request->game_mode,
-                'ctn_price' => $request->ctn_price,
-                'room_type' => $request->room_type ?? 1,
-                'jackpot_type' => $request->jackpot_type,
-            ]);
+        if ($unixDate < time()) {
+            return redirect()->back()->with('message', 'Fecha/Hora no permitidas')->with('type', 'warning');
         }
 
-        BingoRoomConfig::where('room', $id)->update($updateConfigData);
+        DB::beginTransaction();
 
-        // Actualizar BingoCreator
-        BingoCreator::where('room', $room)->update([
-            'creator_commn' => $request->room_commission,
-            'ctn_price' => $request->ctn_price,
-        ]);
+        try {
+            $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
+            $coin = $request->coin ?? 1;
 
-        DB::commit();
+            $updateData = [
+                'date' => $newDate,
+                'time' => $newTime,
+                'unix_date' => $unixDate,
+                'coin' => $coin,
+                'ctn_price' => $request->ctn_price,
+                'jackpot' => $room->jackpot + $boat,
+                'room_type' => $request->room_type ?? 1
+            ];
 
-        return redirect()->back()->with('message', 'La información fue actualizada')->with('type', 'success');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error al actualizar la sala: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Hubo un problema al actualizar la información.');
+            // Solo añadir 'game_mode' si el jackpot es 0
+            if ($room->jackpot == 0) {
+                $updateData['game_mode'] = $request->game_mode;
+            }
+
+            // Actualizar el bingo con los datos construidos
+            $room->update($updateData);
+
+            BingoCreator::where('room', $id)->update([
+                'creator_commn' => $request->room_commission,
+                'ctn_price' => $request->ctn_price,
+            ]);
+
+            BingoRoomConfig::where('room', $id)->update(
+                [
+                    'jackpot_type' => $request->jackpot_type,
+                    'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                    'room_commn' => $request->room_commission,
+                    'serials_commn' => $request->serials_commission,
+                    'val_serials' => $request->val_serials,
+                    'num_serials' => $request->num_serials
+                ]
+            );
+
+            DB::commit();
+
+            return redirect()->back()->with('message', 'La información fue actualizada')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Hubo un problema al actualizar la información de la sala: ' . $e->getMessage());
+            return redirect()->back()->with('message', 'Hubo un problema al actualizar la información')->with('type', 'warning');
+        }
     }
-}
 
     public function changeStatusRoom($id)
     {
@@ -1121,44 +1144,14 @@ class BingoController extends Controller
 
     public function getInfo($id)
     {
-        try {
-            // Desencriptar el ID
-            $roomId = decrypt($id);
+        $id = decrypt($id);
 
-            // Consultar la sala
-            $room = BingoRoom::select('date', 'time', 'jackpot', 'players')
-                ->where('id', $roomId)->firstOrFail();
+        $room = BingoRoom::select('game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->where('id', $id)->firstOrFail();
 
-            // Consultar configuración de la sala
-            $roomConfig = BingoRoomConfig::select(
-                'game_mode',
-                'room_type',
-                'ctn_price',
-                'jackpot_type',
-                'fixed_jackpot_value',
-                'room_commn',
-                'serials_commn',
-                'val_serials',
-                'num_serials',
-                'play_types'
-            )->where('room', $roomId)->firstOrFail();
+        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
+            ->where('room', $id)->firstOrFail();
 
-            // Obtener datos del creador
-            $commerceId = Commerce::getValueByUserId(Auth::id(), 'id');
-            $creatorData = ['type' => 'commerce', 'id' => $commerceId];
-            $creator = BingoCreator::getByCreatorRoom($creatorData, $roomId, ['ctn_price']);
-
-            // Retornar datos en formato JSON
-            return response()->json([
-                'room' => $room,
-                'config' => $roomConfig,
-                'creator' => $creator,
-            ]);
-        } catch (\Exception $e) {
-            // Registrar error en los logs y retornar respuesta clara
-            Log::error('Error en BingoController::getInfo: ' . $e->getMessage());
-            return response()->json(['error' => 'No se pudo obtener la información solicitada.'], 500);
-        }
+        return response()->json(['room' => $room, 'config' => $roomConfig]);
     }
 
     public function getInfoByEncrypt($id, $mode = '', $coin = '')
@@ -1192,12 +1185,12 @@ class BingoController extends Controller
             $room = [
                 'dateTime' => $room->unix_date,
                 'coin' => $coin,
-                'jackpotAmount' => number_format($room->jackpot_prize, 2, '.'),
+                'jackpotAmount' => number_format(($room->jackpot_prize * $exchangeRate), 2, '.'),
                 'jackpotType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
-                'ctnPrice' => $room->ctn_price
+                'ctnPrice' => number_format(($room->ctn_price * $exchangeRate), 2, '.')
             ];
 
-            return response()->json(['room' => $room, 'exchangeRate' => $exchangeRate ?? 1, 'isLogin' => $isLogin]);
+            return response()->json(['room' => $room, 'isLogin' => $isLogin]);
         }
 
         return response()->json(['room' => $room, 'config' => $roomConfig]);
@@ -1205,70 +1198,71 @@ class BingoController extends Controller
 
     public function copy($id)
     {
+        $existingRoom = BingoRoom::findOrFail(decrypt($id));
+        $existingRoomConfig = BingoRoomConfig::where('room', $existingRoom->id)->firstOrFail();
+
+        date_default_timezone_set(config('app.timezone'));
+
+        $boat = ($existingRoom->jackpot_type > 1) ? $existingRoom->fixed_jackpot_value : 0;
+        $coin = $existingRoom->coin ?? 1; // ID Coin == 1 (USDT)
+
+        $createData = [
+            'game_mode' => $existingRoom->game_mode,
+            'status' => 1,
+            'creation' => 'M',
+            'date' => $existingRoom->date,
+            'time' => $existingRoom->time,
+            'unix_date' => strtotime("{$existingRoom->date} {$existingRoom->time}"),
+            'coin' => $coin,
+            'ctn_price' => $existingRoom->ctn_price,
+            'jackpot' => $boat,
+            'encrypted' => $this->generateUniqueCode('bingo_rooms'),
+            'room_type' => $existingRoom->room_type ?? 1
+        ];
+
+        if ($existingRoom->commerce) {
+            $createData['commerce'] = $existingRoom->commerce;
+            $createData['subsidiary'] = $existingRoom->subsidiary ?? null;
+        } else {
+            $createData['customer'] = $existingRoom->customer;
+            $createData['code_uuid'] = $this->getCodeUUID('BingoRoom');
+        }
+
+        DB::beginTransaction();
+
         try {
-            // Desencriptar el ID de la sala
-            $roomID = decrypt($id);
+            // Obtener ID de la nueva sala
+            $newRoom = BingoRoom::create($createData)->id;
 
-            // Obtener datos de la sala existente
-            $existingRoom = BingoRoom::findOrFail($roomID);
-            $existingRoomConfig = BingoRoomConfig::where('room', $roomID)->firstOrFail();
-            $roomCreator = BingoCreator::getByRoom($roomID);
+            // Registar el creador de la sala
+            BingoCreator::create([
+                'room' => $newRoom,
+                'creator_type' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
+                'creator_id' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
+                'creator_commn' => $existingRoomConfig->room_commn,
+                'ctn_price' => $existingRoom->ctn_price,
+            ]);
 
-            // Calcular el valor del jackpot
-            $jackpotValue = ($existingRoom->jackpot_type > 1) ? $existingRoom->fixed_jackpot_value : 0;
-
-            // Preparar datos para la nueva sala
-            $newRoomData = [
-                'encrypted' => $this->generateUniqueCode('bingo_rooms'),
-                'date' => $existingRoom->date,
-                'time' => $existingRoom->time,
-                'status' => 1,
-                'unix_date' => strtotime("{$existingRoom->date} {$existingRoom->time}"),
-                'jackpot' => $jackpotValue,
-            ];
-
-            if ($roomCreator === 'commerce') {
-                $newRoomData['code_uuid'] = $this->getCodeUUID('BingoRoom');
-            }
-
-            DB::beginTransaction();
-
-            // Crear la nueva sala
-            $newRoom = BingoRoom::create($newRoomData)->id;
-
-            // Crear configuración de la nueva sala
             BingoRoomConfig::create([
                 'room' => $newRoom,
-                'creation' => 'M',
-                'game_mode' => $existingRoomConfig->game_mode,
-                'room_type' => $existingRoomConfig->room_type ?? 1,
-                'ctn_price' => $existingRoomConfig->ctn_price,
                 'jackpot_type' => $existingRoomConfig->jackpot_type,
                 'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
                 'room_commn' => $existingRoomConfig->room_commn,
-                'serials_commn' => $existingRoomConfig->serials_commn,
+                'serials_commn' => $existingRoomConfig->serials_commission,
                 'val_serials' => $existingRoomConfig->val_serials,
                 'num_serials' => $existingRoomConfig->num_serials,
-            ]);
-
-            // Registrar el creador de la nueva sala
-            BingoCreator::create([
-                'room' => $newRoom,
-                'creator_type' => $roomCreator->creator_type,
-                'creator_id' => $roomCreator->creator_id,
-                'creator_commn' => $roomCreator->creator_commn,
-                'ctn_price' => $roomCreator->ctn_price,
+                //'val_sm_prizes' => $existingRoomConfig->val_sm_prizes,
             ]);
 
             DB::commit();
-
-            return redirect()->back()->with('message', 'Sala copiada con éxito')->with('type', 'success');
+            return redirect()->back()->with('message', 'Sala copiada con exito')->with('type', 'success');
         } catch (\Exception $e) {
-            // Manejar errores
             DB::rollBack();
-            Log::error("Error al copiar la sala con ID {$id}: " . $e->getMessage());
-            return redirect()->back()->with('msg-error', 'Hubo un problema al copiar la sala. Inténtalo nuevamente.');
+            Log::error('Error al copiar la sala: ' . $e->getMessage());
+            return redirect()->back()->with('msg-error', 'Hubo un problema al copiar la sala: ' . $e->getMessage());
         }
+
+        return redirect()->back()->with('msg-error', 'No tienes permiso para copiar una sala');
     }
 
     public function replay($id)
@@ -1281,6 +1275,9 @@ class BingoController extends Controller
     {
         // Desencripta el ID y busca el registro correspondiente.
         $bingoRoom = BingoRoom::findOrFail(decrypt($id));
+
+        date_default_timezone_set(config('app.timezone'));
+
         $publicationDate = "{$bingoRoom->date} {$bingoRoom->time}";
         $unixDate = strtotime($publicationDate);
 
@@ -1388,7 +1385,7 @@ class BingoController extends Controller
     public function getAutomaticRoomsInfo($creator)
     {
         //  Lista (CRUD) de configuracion de Salas Automaticas
-        $this->checkRoomClosure();
+        (new HandleBingoRooms())->checkRoomClosure();
 
         $creatorType = $creator['type'];
         $creatorID = decrypt($creator['id']);
@@ -1450,12 +1447,7 @@ class BingoController extends Controller
                 'status'
             ]);
 
-        $activeRooms = BingoRoom::with([
-            'Creator' => function ($query) use ($creatorType, $creatorID) {
-                $query->select('room', 'creator_type', 'creator_id')
-                    ->where([['creator_type', $creatorType], ['creator_id', $creatorID]]);
-            },
-        ])->whereIn('status', [2, 3])->exists();
+        $activeRooms = BingoRoom::where($creator['type'], $creatorID)->whereIn('status', [2, 3])->exists();
 
         $routeExecuteGenerateBingoRoomsJob = route(
             'bingo.automatic-room.executeGenerateBingoRoomsJob',
@@ -1492,9 +1484,17 @@ class BingoController extends Controller
             case 'commerce':
                 $creatorID = Commerce::getValueById($creatorID, 'id');
                 // Verificar si el comercio existe
+                if (!$creatorID) {
+                    return response()->json(['message' => 'Token del cliente no existe'], 404);
+                }
                 break;
 
-            case 'admin':
+            case 'customer':
+                $creatorID = Auth::id() ? $creatorID : Customer::getValueByToken($creatorID, 'id');
+                // Verificar si el cliente existe
+                if (!$creatorID) {
+                    return response()->json(['message' => 'Token del cliente no existe'], 404);
+                }
                 break;
 
             default:
@@ -1659,165 +1659,17 @@ class BingoController extends Controller
         $response = $service->createBingoRooms($creator);
 
         if ($response) {
-            return response()->json(['message' => 'Salas creadas correctamente']);
+            if (!isset($response['Info'])) {
+                $typeMessage = 'success';
+                $message = 'Salas creadas correctamente';
+            } else {
+                $typeMessage = 'info';
+                $message = 'No hay configuraciones activas';
+            }
         } else {
-            return response()->json(['message' => 'Ha ocurrido un error']);
+            $typeMessage = 'warning';
+            $message = 'Ha ocurrido un error';
         }
-    }
-
-    public function getPublicRoomsInfo($creator)
-    {
-        //  Lista (CRUD) de configuracion de Salas Publicas
-        $this->checkRoomClosure();
-
-        $creatorType = $creator['type'];
-        $creatorID = decrypt($creator['id']);
-
-        switch ($creatorType) {
-            case 'admin': // Admin
-                break;
-            case 'commerce': // Comercio
-                $isLogin = true;
-
-                $commerce = Commerce::getById($creatorID, ['coin', 'code_uuid']);
-
-                $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($commerce->coin)]);
-
-                $moreViewData = [
-                    'commerceUUID' => $commerce->code_uuid,
-                    'wallet' => $this->wallet()
-                ];
-
-                if ($creatorID == 1) $roomType = Room::getRoomTypes();
-
-                break;
-            case 'customer': // Cliente
-
-                $isLogin = $returnBtn = false;
-
-                $token = Customer::getValueById($creatorID, 'token');
-
-                $GMRoute =  route(
-                    'bingo.game-rooms-customer',
-                    ['customer' => $token, 'user' => $token]
-                );
-
-                $moreViewData = ['customer' => true, 'userToken' => $token];
-
-                break;
-
-            default:
-                return false;
-                break;
-        }
-
-        $userType = UserType::getValueByPrefix($creatorType, 'id');
-
-        $publicRooms = BingoRoom::where('creator_type', $userType)
-            ->where('creator_id', $creatorID)->whereNot('status', 3)
-            ->get([
-                'id',
-                'time',
-                'game_mode',
-                'room_type',
-                'jackpot_type',
-                'fixed_jackpot_value',
-                'ctn_price',
-                'room_commn',
-                'serials_commn',
-                'val_serials',
-                'num_serials',
-                'status'
-            ]);
-
-        $activeRooms = BingoRoom::where($creator['type'], $creatorID)->whereIn('status', [2, 3])->exists();
-
-        $routeExecuteGenerateBingoRoomsJob = route(
-            'bingo.automatic-room.executeGenerateBingoRoomsJob',
-            ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
-        );
-
-        $viewData = [
-            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
-            'title' => 'Salas de Bingo AUTO',
-            'name' => 'bingocash',
-            'returnBtn' => $returnBtn ?? true,
-            'creator' => $creator,
-            'rooms' => $publicRooms,
-            'activeRooms' => $activeRooms,
-            'GMRoute' => $GMRoute,
-            'roomType' => $roomType ?? [],
-            'jackpotType' => JackpotType::all(),
-            'gameModes' => GameModes::all()
-        ];
-
-        if (isset($moreViewData)) {
-            $viewData = array_merge($viewData, $moreViewData);
-        }
-
-        return ['route' => 'modules.game.bingo.public-room.index', 'data' => $viewData];
-    }
-
-    public function allPublicRooms($creatorType, $creatorID)
-    {
-        $creatorID = decrypt($creatorID);
-
-        switch ($creatorType) {
-            case 'commerce':
-                $creatorID = Commerce::getValueById($creatorID, 'id');
-                // Verificar si el comercio existe
-                if (!$creatorID) {
-                    return redirect()->back()->with('message', 'El creador no existe')->with('type', 'warning');
-                }
-                break;
-
-            case 'customer':
-                $creatorID = Auth::id() ? $creatorID : Customer::getValueByToken($creatorID, 'id');
-                // Verificar si el cliente existe
-                if (!$creatorID) {
-                    return response()->json(['message' => 'Token del cliente no existe'], 404);
-                }
-                break;
-
-            default:
-                # code...
-                break;
-        }
-
-        $creator = ['type' => $creatorType, 'id' => encrypt($creatorID)];
-
-        // Obtener la información de configuracion de salas publicas
-        $viewData = $this->getPublicRoomsInfo($creator);
-
-        // Retornar la vista con la información
-        return $this->handleViewData($viewData, $creator['type']);
-    }
-
-    public function storePublicRoom(Request $request, $id)
-    {
-        $creator = json_decode($request->creator);
-        $creatorType = UserType::getValueByPrefix($creator->type, 'id');
-        $creatorID = decrypt($creator->id);
-
-        $roomID = decrypt($id);
-
-        DB::beginTransaction();
-
-        try {
-            // Registar el creador de la sala
-            BingoCreator::create([
-                'room' => $roomID,
-                'creator_type' => $creatorType,
-                'creator_id' => $creatorID,
-                'creator_commn' => $request->room_commission,
-                'ctn_price' => $request->ctn_price,
-            ]);
-            DB::commit();
-            return redirect()->back()->with('message', 'Proceso exitoso')->with('type', 'success');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al procesar la solicitud : ' . $e->getMessage());
-            return redirect()->back()->with('msg-error', 'Hubo un error al procesar la solicitud');
-        }
+        return response()->json(['type' => $typeMessage, 'message' => $message]);
     }
 }

@@ -127,11 +127,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Comercio', '{{ asset('') }}commerce');
+            formCRUD(elem, name, 'Comercio', '{{ asset('') }}admin-commerce');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Comercio', '{{ asset('') }}commerce', otherCasesMap)
+            formCRUD($(this), name, 'Comercio', '{{ asset('') }}admin-commerce', otherCasesMap)
         });
 
         country.on("change", function() {
@@ -222,7 +222,7 @@
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `{{ route('commerce.delete', ['id' => ':id']) }}`,
+                `{{ route('admin-commerce.delete', ['id' => ':id']) }}`,
                 encryptedId
             );
         }
@@ -234,7 +234,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('commerce.change-status', ['id' => ':id']) }}`,
+                    `{{ route('admin-commerce.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -244,7 +244,7 @@
                     'info',
                     'Sí, generar',
                     '#form-other-options',
-                    `{{ route('commerce.change-pasww', ['id' => ':id']) }}`,
+                    `{{ route('admin-commerce.change-pasww', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },

@@ -29,7 +29,7 @@ class PollaController extends Controller
     // CRUD //     
     public function getGameRoomsInfo($creator, $coin) //  Lista Salas CRUD de Juego
     {
-        //$this->checkRoomClosure();
+        //(new HandleBingoRooms())->checkRoomClosure();
 
         switch ($creator['type']) {
             case 'admin': // Admin

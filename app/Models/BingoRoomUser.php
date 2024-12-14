@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BingoRoomUser extends Model
 {
     protected $table = 'bingo_rooms_user';
-    protected $fillable = ['room', 'player_user', 'player_link', 'ctns', 'winner'];
+    protected $fillable = ['room', 'player_user', 'player_link', 'ctns', 'automarker', 'winner'];
 
     public function Room()
     {

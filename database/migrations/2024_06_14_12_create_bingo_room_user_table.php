@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('player_user')->nullable();
             $table->unsignedBigInteger('player_link')->nullable();
             $table->string('ctns', 3);
+            $table->double('automarker')->nullable();
             $table->string('winner', 1)->default('0');
             $table->timestamps();
 

@@ -26,58 +26,62 @@
 #container-purchase-ctns {
     display: none;
     position: absolute;
-    top: 0%;
+    top: 50%;
     left: 50%;
-    transform: translate(-50%, 40.5%);
+    transform: translate(-50%, -50%);
+    box-shadow: 0px 3.5px 20px rgba(0, 61, 175, 0.55);
     z-index: 99999;
-    min-width: 305px;
-    max-width: 480px;
-
+    min-width: 312px;
+    max-width: 420px;
 }
 
 .purchase-ctns__header {
     position: relative;
     display: flex;
-    height: 60px;
     width: 100%;
+    height: 30%;
 }
 
 .purchase-ctns__footer {
-    border-bottom-left-radius: 7px;
-    border-bottom-right-radius: 7px;
+    display: flex;
+    gap: 1.5%;
+    justify-content: center;
 }
 
 .purchase-ctns__body {
     position: relative;
     height: auto;
     width: 100%;
+    background-color: #f8f9fa !important;
+    border-bottom-left-radius: 9px;
+    border-bottom-right-radius: 9px;
 }
 
 .purchase-ctns__body-form {
     position: relative;
     display: flex;
-    padding: 1.5%;
+    padding: 1.5% 2.5%;
 }
 
 #purchase-ctns__body-form-section-left {
     position: relative;
-    width: 66%;
+    width: 67%;
 }
 
 #purchase-ctns__body-form-section-right {
     position: relative;
-    width: 34%;
+    width: 33%;
     display: flex;
     justify-content: right;
 }
 
 .purchase-ctns__jackpot {
     position: relative;
-    width: 66%;
-    height: 100%;
+    width: 67%;
+    min-height: 100%;
     display: flex;
-    padding: 1.15%;
-    border-top-left-radius: 7px;
+    padding: 1.25%;
+    border-top-left-radius: 9px;
     background: linear-gradient(to bottom, #084aff, #0e43b4);
 }
 
@@ -140,10 +144,10 @@
 
 .purchase-ctns__date {
     position: relative;
-    width: 34%;
-    border-top-right-radius: 7px;
+    width: 33%;
+    border-top-right-radius: 9px;
     height: 100%;
-    padding: 1.5%;
+    padding: 1.25%;
     display: flex;
     align-items: center;
     flex-direction: column;
@@ -162,21 +166,14 @@
 
 .purchase-ctns__icon {
     color: #008afc;
-    margin-right: 2.75px;
-}
-
-.purchase-ctns__icon_rlg {
-    color: #008afc;
-    font-size: 12.2px;
-    margin-right: 2.75px;
 }
 
 #text-date {
-    font-size: 17px;
+    font-size: 18px;
 }
 
 #text-time {
-    font-size: 17px;
+    font-size: 16px;
 }
 
 #purchase-ctns__form {
@@ -221,7 +218,7 @@
 }
 
 .quant {
-    background-color: #c4e7ff;
+    background-color: #ace1ff;
     display: flex;
     justify-content: center;
     align-items: center;

@@ -20,11 +20,10 @@
             <div id="container-text-game-rooms">
                 <span id="text-game-rooms">SALAS DE JUEGO</span>
                 {{-- <a class="mt-n1 badge badge-primary"
-                            href="{{ route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
-                            Cambiar a <b>{{ $coinSym }}</b>
-                        </a> --}}
+                    href="{{ route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
+                    Cambiar a <b>{{ $coinSym }}</b>
+                </a> --}}
             </div>
-            @include('includes.game.bingo.layout.container-purchase-ctns')
         </div>
         <div class="col-12 w-100 mt-4">
             <div class="row justify-content-center" style="gap: 2.75rem;">
@@ -32,16 +31,19 @@
                     <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
                         <div class="card-game-room" id="card-game-room_{{ $room->encrypted }}"
                             data-room="{{ $room->encrypted }}" data-status="{{ $room->status }}">
+                            @include('includes.game.bingo.layout.container-purchase-ctns')
                             <div id="start-time_{{ $room->encrypted }}" class="card-game-room__time">
                                 {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
                             </div>
                             <span class="card-game-room__game-mode">Modo: Cartón Lleno</span>
-                            @if (count($room->PlayersRoom))
-                                <div class="card-game-room__number-of-ctns" title="Mis Cartones">
-                                    <span>+{{ $room->PlayersRoom[0]->ctns }}</span>
-                                </div>
-                            @endif
-                            {{-- @if ($room->PlayersRoom[0]->auto_mc)
+                            <div id="number-of-ctns_{{ $room->encrypted }}"
+                                class="@if (!count($room->PlayersRoom)) hide-elem @endif card-game-room__number-of-ctns"
+                                title="Mis Cartones">
+                                @if (count($room->PlayersRoom))
+                                    +{{ $room->PlayersRoom[0]->ctns }}
+                                @endif
+                            </div>
+                            {{-- @if ($room->PlayersRoom[0]->automarker)
                                 <div class="card-game-room__auto-marker" title="Tienes el Automarcador">
                                     <i class="fa-solid fa-check-to-slot"></i>
                                 </div>
@@ -53,22 +55,18 @@
                                     {{ $room->Config->jackpot_type == 1 ? 'Bote:' : 'Premio:' }}
                                 </span>
                                 <div class="card-game-room__jackpot-amount">
-                                    @if ($room->jackpot_prize > 0 || $room->Config->jackpot_type != 1)
-                                        <h3>
-                                            <span id="jackpot-room_{{ $room->encrypted }}">
-                                                {{ number_format($room->jackpot_prize, 2) }}
-                                            </span>
-                                            <small id="coin-symbol-room_{{ $room->encrypted }}">
-                                                {{ $coinSym }}
-                                            </small>
-                                        </h3>
-                                    @else
-                                        <h3>ESPERANDO</h3>
-                                    @endif
+                                    <h3>
+                                        <span id="jackpot-room_{{ $room->encrypted }}">
+                                            {{ number_format($room->jackpot_prize * $exchangeRate, 2) }}
+                                        </span>
+                                        <small id="coin-symbol-room_{{ $room->encrypted }}">
+                                            {{ $coinSym }}
+                                        </small>
+                                    </h3>
                                 </div>
                                 <span class="card-game-room__ctn-price">
                                     Cartón: <span id="ctn-price_{{ $room->encrypted }}">
-                                        {{ $room->ctn_price * $exchangeRate }}
+                                        {{ number_format($room->ctn_price * $exchangeRate, 2) }}
                                     </span> {{ $coinSym }}
                                 </span>
                                 <span class="card-game-room__status" id="card-game-room__status_{{ $room->encrypted }}">
@@ -88,7 +86,6 @@
     <script>
         const creator = @json($creator);
         const coin = @json($coin);
-        const exchangeRate = '{{ $exchangeRate }}';
         const player = @json($player);
         const userToken = @json($userToken ?? null);
 
@@ -96,7 +93,7 @@
         let timestamp = new Date(dateTimeRooms['timestamp']);
         let arrRooms = [];
         let isLogin = false;
-        let room = false;
+        let roomID = false;
         let ctnPrice = 1;
         let numCtns = 1;
         let total = 0;
@@ -175,7 +172,7 @@
                 success: function(res) {
                     const room = res.room;
                     isLogin = Number(res.isLogin);
-                    ctnPrice = room.ctnPrice * res.exchangeRate;
+                    ctnPrice = room.ctnPrice;
                     numCtns = 1;
 
                     $('#purchase-ctns__coin-text').text(room.jackpotType);
@@ -186,7 +183,7 @@
 
                     $(`#jackpot-room_${roomID}`).text(room.jackpotAmount);
 
-                    if (exchangeRate != res.exchangeRate) {
+                    if ($(`#ctn-price_${roomID}`).text() != ctnPrice) {
                         $(`#ctn-price_${roomID}`).text(ctnPrice);
                     }
 
@@ -240,10 +237,10 @@
                     $('#loader-btn-purchase-ctns').show();
                 },
                 success: function(res) {
-                    showToast(res.message, res.msg_type);
-                    setTimeout(function() {
-                        location.reload();
-                    }, 3250);
+                    $('#jackpot-amount').text(res.jackpot);
+                    $(`#jackpot-room_${roomID}`).text(res.jackpot);
+                    $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
+                    showToast(res.message, res.type);
                 },
                 error: function(error) {
                     console.error(error);
@@ -330,26 +327,25 @@
             if (!arrRooms.length) return;
 
             arrRooms.forEach((elem, key) => {
-                const roomID = elem.id;
+                const room = elem.id;
                 const end = new Date(elem.dateTime * 1000);
                 const difference = end - timestamp;
 
                 // Si el tiempo ha terminado
                 if (difference <= 0) {
-                    const status = $(`#card-game-room_${roomID}`).data('status');
+                    const status = $(`#card-game-room_${room}`).data('status');
                     if (status == 2) {
-                        $(`#card-game-room_${roomID}`).data('status', 3);
-                        updateRoomStatus(roomID, 'No disponible', '<span class="start-time__text">En Juego</span>');
+                        $(`#card-game-room_${room}`).data('status', 3);
+                        updateRoomStatus(room, 'No disponible', '<span class="start-time__text">En Juego</span>');
                     }
 
                     // Redirigir a la sala según el tipo de usuario
                     const route = creator.type == 'commerce' ?
-                        `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':roomID']) }}`
-                        .replace(':player', player).replace(':roomID', roomID) :
+                        `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':room']) }}`
+                        .replace(':player', player).replace(':room', room) :
 
-                        `{{ route('bingocash.in-game-customer', ['customer' => ':customer', 'userToken' => ':userToken', 'room' => ':roomID']) }}`
-                        .replace(':customer', creator.id).replace(':userToken', userToken)
-                        .replace(':roomID', roomID);
+                        `{{ route('bingocash.in-game-customer', ['customer' => ':customer', 'userToken' => ':userToken', 'room' => ':room']) }}`
+                        .replace(':customer', creator.id).replace(':userToken', userToken).replace(':room', room);
 
                     window.location.href = route;
 
@@ -361,7 +357,7 @@
                 const timeRemaining = getTimeRemaining(difference);
 
                 // Verificar si no existe cnt-seconds en el DOM
-                if (!$(`#start-time_${roomID} .cnt-seconds`).length) {
+                if (!$(`#start-time_${room} .cnt-seconds`).length) {
                     let displayText = '';
                     if (timeRemaining.days > 0) displayText += formatTime(timeRemaining.days, 'DIAS', 'cnt-days',
                         key);
@@ -371,11 +367,11 @@
                         'cnt-minutes', key);
                     displayText += formatTime(timeRemaining.seconds, 'SEG', 'cnt-seconds', key);
 
-                    updateRoomStatus(roomID, null, displayText);
+                    updateRoomStatus(room, null, displayText);
                 } else {
                     setTimeRemaining(key, timeRemaining); // Actualizar valores existentes
                 }
-                toggleTimeVisibility(roomID, timeRemaining); // Mostrar/ocultar días, horas, minutos
+                toggleTimeVisibility(room, timeRemaining); // Mostrar/ocultar días, horas, minutos
             });
 
             timestamp.setMilliseconds(timestamp.getMilliseconds() + 1000); // Incrementar 1 segundo

@@ -188,42 +188,41 @@ trait SeamlessWallet
         return $this->globalGuzzle($customerID, $dataJson, 'GetBalance');
     }
 
-    public function transferMoney($customerID, $game, $userToken, $betId, $coin, $amount, $transactionId, $transactionType, $additionalData = '')
+    public function transferMoney($transaction, $additionalData = '')
     {
-        // Obtener datos del proveedor
+        // Obtener datos del cliente
+        $customerID = $transaction->customer;
         $customer = Customer::getById($customerID, ['brand', 'product']);
 
-        // Validar que se obtuvieron datos del proveedor
+        // Validar que se obtuvieron datos del cliente
         if (!$customer) {
             Log::error("Cliente no encontrado: ID {$customerID}");
             return ['Error' => 'Cliente no encontrado'];
         }
 
         // Obtener Identificador del Juego con respecto al cliente
-        $gameID = CustomerGames::getCustomerGameID($customerID, $game);
+        $gameID = CustomerGames::getCustomerGameID($customerID, $transaction->game);
 
         if (!$gameID) {
-            Log::error("Error al procesar la transacion: '{$transactionId}': No existe el ID de Juego del cliente [{$customerID}] para el juego [games.id={$game}]");
+            Log::error("No existe el ID de Juego del cliente [{$customerID}] para el juego [games.id={$transaction->game}]");
             return ['Error' => "No existe el ID de Juego del cliente [{$customerID}]"];
         }
 
-        if (!is_array($userToken)) {
-            $player = CustomerUser::getById($userToken, ['user_id', 'token']);
-            $userToken = [$player->user_id, $player->token];
-        }
+        // Obtener informacion del jugador
+        $player = CustomerUser::getById($transaction->user_id, ['user_id', 'token', 'coin']);
 
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
             "Ticks" => "0000000",
             "Game" => $gameID,
             "Brand" => $customer->brand,
-            "Token" => $userToken[1] ?? '',
-            "UserID" => $userToken[0] ?? '',
-            "CurrencyCode" => $coin,
-            "BetID" => $betId,
-            "Amount" => $amount,
-            "TransactionID" => $transactionId,
-            "TransactionType" => $transactionType,
+            "Token" => $player->token ?? '',
+            "UserID" => $player->user_id ?? '',
+            "CurrencyCode" => $player->coin,
+            "BetID" => $transaction->bet_id,
+            "Amount" => $transaction->amount,
+            "TransactionID" => $transaction->code,
+            "TransactionType" => $transaction->transaction_type,
             "AdditionalData" => json_encode($additionalData) ?? "{}"
         ]);
 
@@ -231,9 +230,9 @@ trait SeamlessWallet
         $response = $this->globalGuzzle($customerID, $dataJson, 'TransferMoney');
 
         // Manejo de la respuesta
-        if (isset($response->Error) && $response->Error) {
-            Log::error("Error en la transferencia de dinero: " . ($response->Error ?? 'Error desconocido'));
-            return $response->Error;
+        if (isset($response['Error']) && $response['Error']) {
+            Log::error("Error en la transferencia de dinero: " . ($response['Error'] ?? 'Error desconocido'));
+            return ['Error' => $response['Error']];
         }
 
         return $response;
@@ -260,6 +259,7 @@ trait SeamlessWallet
     private function handleTransactionByBET(array $game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount)
     {
         try {
+            // Manejo de transacciones en un closure
             return DB::transaction(function () use ($game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount) {
                 // Registrar la transacción
                 $transaction = $this->registerTransaction(
@@ -272,26 +272,17 @@ trait SeamlessWallet
                     $totalSaleAmount
                 );
 
+                // Validación de la transacción
                 if (!$transaction) {
                     throw new \Exception('Error al registrar la transacción');
                 }
 
-                // Procesar la transferencia de dinero
-                $transactionResponse = $this->transferMoney(
-                    $transaction->customer,
-                    $transaction->game,
-                    $transaction->user_id,
-                    $transaction->bet_id,
-                    $transaction->coin,
-                    $transaction->amount,
-                    $transaction->code,
-                    $transaction->transaction_type
-                );
+                // Procesar la transferencia de dinero [enviar datos de la transaccion]
+                $transferResponse = $this->transferMoney($transaction);
 
-                if (isset($transactionResponse->Error) && $transactionResponse->Error) {
-                    $errorMessage = "Error al procesar la transacción '{$transaction->id}': {$transactionResponse->Error}";
-                    Log::error($errorMessage);
-                    throw new \Exception($errorMessage);
+                // Validación de respuesta de transferencia
+                if (isset($transferResponse['Error'])) {
+                    throw new \Exception($transferResponse['Error']);
                 }
 
                 // Actualizar la transacción como exitosa
@@ -301,9 +292,10 @@ trait SeamlessWallet
                     'updated_at' => now(),
                 ]);
 
-                return ['Success' => true];
+                return true; // Transacción exitosa
             });
         } catch (\Exception $e) {
+            // Registrar el error y devolverlo como respuesta
             Log::error("Error en handleTransactionByBET: " . $e->getMessage());
             return ['Error' => $e->getMessage()];
         }
@@ -341,60 +333,6 @@ trait SeamlessWallet
         } catch (\Exception $e) {
             Log::error('Error al registrar la transacción: ' . $e->getMessage());
             return false;
-        }
-    }
-
-    public function validateTransaction($customer)
-    {
-        // Obtener transacciones pendientes
-        $transactions = Transactions::where('customer', $customer)->where('status', 0)->get();
-
-        // Verificar si hay transacciones pendientes
-        if ($transactions->isEmpty()) {
-            return false;
-        }
-
-        foreach ($transactions as $item) {
-            try {
-                // Obtener información del jugador
-                $player = CustomerUser::getById($item->user_id, ['user_id', 'token']);
-
-                // Verificar si el jugador existe
-                if (!$player) {
-                    Log::error("Jugador no encontrado para la transacción: '{$item->id}'");
-                    continue;
-                }
-
-                // Realizar la transferencia de dinero
-                $transactionResponse = $this->transferMoney(
-                    $customer,
-                    $item->game,
-                    [$player->user_id, $player->token],
-                    $item->bet_id,
-                    $item->coin,
-                    $item->amount,
-                    $item->code,
-                    $item->transaction_type
-                );
-
-                // Verificar si la respuesta contiene un error
-                if (isset($transactionResponse->Error) && $transactionResponse->Error) {
-                    Log::error("Error al procesar la transacción: '{$item->id}': {$transactionResponse->Error}");
-                    continue;
-                }
-
-                if ($transactionResponse) {
-                    // Actualizar la transacción si es exitosa
-                    Transactions::where('id', $item->id)->update([
-                        'status' => 1,
-                        'processing_data' => Carbon::now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-            } catch (\Exception $e) {
-                // Manejo de excepciones inesperadas
-                Log::error("Excepción al procesar la transacción: '{$item->id}', Error: {$e->getMessage()}");
-            }
         }
     }
 }

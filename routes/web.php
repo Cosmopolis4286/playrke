@@ -145,10 +145,11 @@ Route::group(['middleware' => 'auth', 'prefix' => 'directory', 'as' => 'director
 Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as' => 'customer.'], function () {
     Route::get('getUserId/{userToken}', [CustomerController::class, 'getUserId'])->name('getUserId');
     Route::get('getUserBalance/{userToken}', [CustomerController::class, 'getUserBalance'])->name('getUserBalance');
+    Route::get('increaseBalance/{userToken}/{balance?}', [CustomerController::class, 'increaseBalance'])->name('increaseBalance');
 });
 
 // Cliente Options ADMIN
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'customer', 'as' => 'customer.'], function () {
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', 'as' => 'admin-customer.'], function () {
     Route::post('create', [CustomerController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [CustomerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CustomerController::class, 'update'])->name('update');
@@ -175,7 +176,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
 });
 
 // Commerce Options ADMIN
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-commerce', 'as' => 'admin-commerce.'], function () {
     Route::post('create', [CommerceController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');

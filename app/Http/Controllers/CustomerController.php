@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\CustomerUser;
 use App\Models\User;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
@@ -11,6 +12,7 @@ use App\Models\Wallet;
 use App\Traits\EncryptRKE;
 use App\Traits\SeamlessWallet;
 use App\Traits\UserVal;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -109,6 +111,7 @@ class CustomerController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
+                'email_verified_at' => Carbon::now()->timestamp,
                 'referral_code' => User::getUniqueReferralCode(),
             ]);
 
@@ -292,12 +295,65 @@ class CustomerController extends Controller
     public function getUserId($userToken)
     {
         $customerID = Customer::getValueByUserId(Auth::id(), 'id');
+        if (!$customerID) return false;
         return $this->getUserInfoFromCustomer($customerID, $userToken);
     }
 
     public function getUserBalance($userToken)
     {
         $customerID = Customer::getValueByUserId(Auth::id(), 'id');
+        if (!$customerID) return false;
         return $this->getUserBalanceFromCustomer($customerID, $userToken);
+    }
+
+    public function increaseBalance($userToken, $balance = 2000)
+    {
+        $customerID = Customer::getValueByUserId(Auth::id(), 'id');
+        if (!$customerID) return false;
+
+        $player = CustomerUser::getByToken($customerID, $userToken, ['id', 'coin']);
+
+        if (!$player) {
+            return response()->json(['type' => 'warning', 'message' => 'Usuario no encontrado en DB']);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $transaction = $this->registerTransaction(
+                ['name' => 'BINGO', 'game_mode' => 1],
+                $customerID,
+                $player->id,
+                'TESTE_RECARGAR_SALDO',
+                'WIN',
+                $player->coin,
+                $balance
+            );
+
+            $response = $this->transferMoney($transaction, 'TESTE_RECARGAR_SALDO');
+
+            if (isset($response['Error']) && $response['Error']) {
+                $typeMessage = 'warning';
+                $message = 'Error al recargar saldo';
+                Log::error($message . ': ' . $response['Error']);
+            } else {
+                $typeMessage = 'success';
+                $message = 'Recarga de saldo exitosa';
+                Log::info($message . ' Monto recargado: ' . $balance);
+
+                // Actualizar la transacción como exitosa
+                $transaction->update([
+                    'status' => 1,
+                    'processing_data' => now(),
+                    'updated_at' => now(),
+                ]);
+                
+                DB::commit();
+            }
+            return response()->json(['type' => $typeMessage, 'message' => $message]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error']);
+        }
     }
 }

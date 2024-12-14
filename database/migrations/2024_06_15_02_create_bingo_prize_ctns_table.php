@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
             $table->string('seller', 10)->nullable();
+            $table->enum('active', ['Y', 'N'])->default('N');
             $table->unsignedBigInteger('room_user');
             $table->unsignedBigInteger('lot');
             $table->unsignedBigInteger('ctn');

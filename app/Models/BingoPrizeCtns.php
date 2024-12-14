@@ -8,6 +8,8 @@ class BingoPrizeCtns extends Model
 {
     protected $table = "bingo_prize_ctns";
     protected $fillable = [
+        'id',
+        'active',
         'room',
         'creator_type',
         'creator_id',
@@ -83,9 +85,10 @@ class BingoPrizeCtns extends Model
         return self::where('ctn', $ctnId)->value($value);
     }
 
-    public static function getWinnersIDsByPrizeType($room, $prizeType, $column)
+    public static function getWinnersIDsByPrizeType($room, $prizeType, $column, $active = 'Y')
     {
-        return self::where(['room' => $room, 'prize_type' => $prizeType])->pluck($column);
+        return self::where('room', $room)->where('active', $active)
+            ->where('prize_type', $prizeType)->pluck($column);
     }
 
     public static function getWinnersCountByPrizeType($room, $prizeType)
@@ -95,13 +98,13 @@ class BingoPrizeCtns extends Model
 
     public static function getPendingPaymentsCountByCommerce($commerce)
     {
-        return self::where('commerce', $commerce)
+        return self::where('commerce', $commerce)->where('active', 'Y')
             ->where('player_link', '<>', '')->where('status', '<', 2)->count();
     }
 
     public static function getPendingPaymentsCountExcludingCommerce($commerce)
     {
-        return self::whereNot('commerce', $commerce)
+        return self::whereNot('commerce', $commerce)->where('active', 'Y')
             ->where('player_link', '<>', '')->where('status', '<>', 3)->count();
     }
 }
