@@ -28,10 +28,10 @@
         <div class="col-12 w-100 mt-4">
             <div class="row justify-content-center" style="gap: 2.75rem;">
                 @foreach ($rooms as $key => $room)
-                    <div class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
+                    <div id="container-card-game-room_{{ $room->encrypted }}"
+                        class="col-sm-6 col-md-4 col-xl-3 d-flex justify-content-center">
                         <div class="card-game-room" id="card-game-room_{{ $room->encrypted }}"
                             data-room="{{ $room->encrypted }}" data-status="{{ $room->status }}">
-                            @include('includes.game.bingo.layout.container-purchase-ctns')
                             <div id="start-time_{{ $room->encrypted }}" class="card-game-room__time">
                                 {!! $room->status == 2 ? '<i class="fa-regular fa-clock"></i>' : 'EN JUEGO' !!}
                             </div>
@@ -88,6 +88,7 @@
         const coin = @json($coin);
         const player = @json($player);
         const userToken = @json($userToken ?? null);
+        const modalHTML = @json(view('includes.game.bingo.layout.container-purchase-ctns')->render());
 
         let dateTimeRooms = @json($dateTimeRooms);
         let timestamp = new Date(dateTimeRooms['timestamp']);
@@ -152,6 +153,12 @@
             });
         }
 
+        function generateModalPurchase(roomID) {
+            $('#container-purchase-ctns').remove(); // Elimina el contenedor previo
+
+            $(`#container-card-game-room_${roomID}`).prepend(modalHTML); // Inserta el nuevo modal
+        }
+
         $(document).on("click", ".card-game-room", function() {
             // Obtener informacion de Sala al hacer click en ella
 
@@ -174,6 +181,8 @@
                     isLogin = Number(res.isLogin);
                     ctnPrice = room.ctnPrice;
                     numCtns = 1;
+
+                    generateModalPurchase(roomID);
 
                     $('#purchase-ctns__coin-text').text(room.jackpotType);
                     $('.purchase-ctns__coin-label').text(room.coin);
