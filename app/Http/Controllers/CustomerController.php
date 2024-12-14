@@ -12,6 +12,7 @@ use App\Models\Wallet;
 use App\Traits\EncryptRKE;
 use App\Traits\SeamlessWallet;
 use App\Traits\UserVal;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -110,6 +111,7 @@ class CustomerController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
+                'email_verified_at' => Carbon::now()->timestamp,
                 'referral_code' => User::getUniqueReferralCode(),
             ]);
 
