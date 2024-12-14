@@ -15,17 +15,17 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="current_password">Contraseña Actual*</label>
-                        <input type="password" id="current_password" name="current_password"
+                        <input type="text" id="current_password" name="current_password"
                             class="form-control form-info" required>
                     </div>
                     <div class="form-group">
                         <label for="new_password">Nueva Contraseña*</label>
-                        <input type="password" id="new_password" name="new_password" class="form-control form-info"
+                        <input type="text" id="new_password" name="new_password" class="form-control form-info"
                             required>
                     </div>
                     <div class="form-group">
                         <label for="new_password_confirmation">Confirmar Nueva Contraseña*</label>
-                        <input type="password" id="new_password_confirmation" name="new_password_confirmation"
+                        <input type="text" id="new_password_confirmation" name="new_password_confirmation"
                             class="form-control form-info" required>
                     </div>
                 </div>

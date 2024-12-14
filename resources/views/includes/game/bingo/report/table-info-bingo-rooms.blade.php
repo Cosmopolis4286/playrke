@@ -81,61 +81,48 @@
                         <small>{{ $room->Config->JackpotType->description }}</small>
                         <br>{{ $coinSym }} {{ rtrim(rtrim(number_format($jackpot, 3), '0'), '.') }}
                     </td>
+                    {{-- Estado --}}
                     <td class="align-middle">
-                        @if ($room->Status->id == 1)
-                            <span class="badge bg-gray">{{ $room->Status->description }}</span>
-                        @elseif ($room->Status->id == 2)
-                            <span class="badge bg-primary">{{ $room->Status->description }}</span>
-                        @elseif ($room->Status->id == 3)
-                            <span class="badge bg-navy">{{ $room->Status->description }}</span>
-                        @elseif ($room->Status->id == 4)
-                            <span class="badge bg-success">{{ $room->Status->description }}</span>
-                        @elseif ($room->Status->id == 5)
-                            <span class="badge bg-black">{{ $room->Status->description }}</span>
-                        @endif
+                        <span
+                            class="badge bg-{{ match ($room->Status->id) {
+                                1 => 'gray',
+                                2 => 'primary',
+                                3 => 'navy',
+                                4 => 'success',
+                                5 => 'black',
+                                default => 'secondary',
+                            } }}">{{ $room->Status->description }}</span>
                     </td>
+
+                    {{-- Acciones --}}
                     <td class="align-middle">
-                        <div class="btn-group" role="group" aria-label="Acciones">
+                        <div class="btn-group" role="group">
                             @if ($room->status <= 2)
                                 <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
                                     data-type="2" data-id="{{ encrypt($room->id) }}">
-                                    <i class="fa-solid fa-pen-to-square"></i> </button>
-                                @if ($room->status == 1)
-                                    @php
-                                        $roomDateTime = \Carbon\Carbon::createFromFormat(
-                                            'Y-m-d H:i',
-                                            "{$room->date} {$room->time}",
-                                        );
-                                        $currentDateTime = \Carbon\Carbon::now();
-                                    @endphp
-
-                                    @if ($roomDateTime->greaterThan($currentDateTime))
-                                        <button class="btn-{{ $name }} btn btn-sm btn-success" data-type="5"
-                                            data-id="{{ encrypt($room->id) }}" title="Publicar">
-                                            <i class="fa-solid fa-circle-up"></i>
-                                        </button>
-                                    @endif
-                                    {{-- <button class="btn-{{ $name }} btn btn-sm btn-danger" data-type="3"
-                                        data-id="{{ encrypt($room->id) }}" title="Eliminar">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button> --}}
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                @if ($room->status == 1 && $room->unix_date + 900 < now()->timestamp)
+                                    <button class="btn-{{ $name }} btn btn-sm btn-success" data-type="5"
+                                        data-id="{{ encrypt($room->id) }}" title="Publicar">
+                                        <i class="fa-solid fa-circle-up"></i>
+                                    </button>
                                 @elseif ($room->status == 2 && $room->jackpot_prize > 0)
                                     <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="6"
                                         data-id="{{ encrypt($room->id) }}" title="Reembolsar">
                                         <i class="fa-solid fa-rotate-right"></i>
                                     </button>
                                 @endif
-                            @else
-                                @if ($room->replay == 0)
-                                    <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="4"
-                                        data-id="{{ encrypt($room->id) }}" title="Repetir">
-                                        <i class="fa-solid fa-repeat"></i>
-                                    </button>
-                                @endif
+                            @elseif (!$room->replay)
+                                <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="4"
+                                    data-id="{{ encrypt($room->id) }}" title="Repetir">
+                                    <i class="fa-solid fa-repeat"></i>
+                                </button>
                             @endif
                             <button class="btn-{{ $name }} btn btn-sm bg-navy" data-type="7"
                                 data-id="{{ encrypt($room->id) }}" title="Copiar">
-                                <i class="fa-solid fa-copy"></i></button>
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
                         </div>
                     </td>
                 </tr>

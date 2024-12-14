@@ -33,6 +33,7 @@ use App\Models\Room;
 use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
+use App\Services\Customer\HandleTransactions;
 use App\Services\Game\Bingo\AutoGenerateBingoRooms;
 use App\Services\Game\Bingo\HandleBingoRooms;
 use App\Traits\BingoTrait;
@@ -382,7 +383,7 @@ class BingoController extends Controller
                     DB::beginTransaction();
                     try {
                         // Validar transacciones del cliente
-                        $this->validateTransaction($creatorID);
+                        app(HandleTransactions::class)->validateTransactions($creatorID);
                         DB::commit();
                     } catch (\Exception $e) {
                         DB::rollBack();
