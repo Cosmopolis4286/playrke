@@ -22,12 +22,12 @@ class AutoGenerateBingoRooms
         }
 
         $automaticRooms = $query->get();
-
         if ($automaticRooms->isEmpty()) {
+            Log::info('No hay configuraciones activas para salas automáticas');
             return ['Info' => 'No hay configuraciones para salas automáticas creadas/activas'];
         }
 
-        $currentDate = Carbon::now();
+        $now = Carbon::now();
         DB::beginTransaction();
 
         try {
@@ -35,19 +35,15 @@ class AutoGenerateBingoRooms
                 $creatorType = UserType::getValueById($room->creator_type, 'prefix');
                 $creatorID = $room->creator_id;
 
-                // Calcula la fecha de la sala
-                $roomTime = Carbon::parse("{$currentDate->format('Y-m-d')} {$room->time}");
-                $addDay = Carbon::now()->addMinutes(15)->greaterThanOrEqualTo($roomTime);
-                $roomDate = $addDay ? $currentDate->copy()->addDay()->format('Y-m-d') : $currentDate->format('Y-m-d');
+                $roomTime = Carbon::parse("{$now->format('Y-m-d')} {$room->time}");
+                $roomDate = $this->calculateRoomDate($roomTime, $now);
 
-                // Verifica si existe una sala activa
                 $existingRoom = $this->existingRoom($creatorType, $creatorID, $roomDate, $room->time, $room->ctn_price);
 
                 if ($existingRoom && $existingRoom->status >= 2) {
                     continue;
                 }
 
-                // Datos principales de la sala
                 $roomData = [
                     'date' => $roomDate,
                     'time' => $room->time,
@@ -62,12 +58,10 @@ class AutoGenerateBingoRooms
                     'room_type' => $room->room_type,
                 ];
 
-                // Inserta o actualiza la sala
                 $roomId = $existingRoom
                     ? tap($existingRoom)->update($roomData)->id
                     : BingoRoom::create($roomData)->id;
 
-                // Configuración asociada
                 BingoRoomConfig::updateOrCreate(
                     ['room' => $roomId],
                     [
@@ -80,7 +74,6 @@ class AutoGenerateBingoRooms
                     ]
                 );
 
-                // Información del creador
                 BingoCreator::updateOrCreate(
                     ['room' => $roomId],
                     [
@@ -91,7 +84,8 @@ class AutoGenerateBingoRooms
                     ]
                 );
 
-                Log::info('Nueva Sala Creada Automaticamente', [
+                Log::info('Sala creada automáticamente', [
+                    'room_id' => $roomId,
                     'creator_type' => $room->creator_type,
                     'creator_id' => $creatorID,
                     'date' => $roomDate,
@@ -112,10 +106,19 @@ class AutoGenerateBingoRooms
         }
     }
 
+    private function calculateRoomDate($roomTime, $now)
+    {
+        return $now->addMinutes(15)->greaterThanOrEqualTo($roomTime)
+            ? $now->copy()->addDay()->format('Y-m-d')
+            : $now->format('Y-m-d');
+    }
+
     private function existingRoom($creatorType, $creatorID, $date, $time, $ctnPrice)
     {
+        $startDate = Carbon::parse($date)->subDay()->format('Y-m-d');
+
         return BingoRoom::where($creatorType, $creatorID)
-            ->where('date', $date)
+            ->whereBetween('date', [$startDate, $date])
             ->where('time', $time)
             ->where('ctn_price', $ctnPrice)
             ->first();
