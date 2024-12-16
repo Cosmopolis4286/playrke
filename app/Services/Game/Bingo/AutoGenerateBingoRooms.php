@@ -83,25 +83,12 @@ class AutoGenerateBingoRooms
                         'ctn_price' => $room->ctn_price,
                     ]
                 );
-
-                Log::info('Sala creada automáticamente', [
-                    'room_id' => $roomId,
-                    'creator_type' => $room->creator_type,
-                    'creator_id' => $creatorID,
-                    'date' => $roomDate,
-                    'time' => $room->time,
-                    'ctn_price' => $room->ctn_price
-                ]);
             }
 
             DB::commit();
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error en la creación de salas de bingo', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
             return false;
         }
     }
