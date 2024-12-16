@@ -102,7 +102,7 @@
                                     data-type="2" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                @if ($room->status == 1 && $room->unix_date + 900 < now()->timestamp)
+                                @if ($room->status == 1 && now()->timestamp + 900 < $room->unix_date)
                                     <button class="btn-{{ $name }} btn btn-sm btn-success" data-type="5"
                                         data-id="{{ encrypt($room->id) }}" title="Publicar">
                                         <i class="fa-solid fa-circle-up"></i>

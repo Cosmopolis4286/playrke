@@ -29,10 +29,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0px 3.5px 20px rgba(0, 61, 175, 0.55);
-    z-index: 99999;
-    min-width: 312px;
-    max-width: 420px;
+    box-shadow: 0px 3.5px 20px rgba(0, 65, 187, 0.55);
+    z-index: 99;
+    min-width: 310px;
+    max-width: 380px;
 }
 
 .purchase-ctns__header {
@@ -77,7 +77,7 @@
 
 .purchase-ctns__jackpot {
     position: relative;
-    width: 67%;
+    width: 69%;
     min-height: 100%;
     display: flex;
     padding: 1.25%;
@@ -126,7 +126,7 @@
 #purchase-ctns__coin-number {
     display: flex;
     align-items: center;
-    font-size: 24px;
+    font-size: 22.25px;
 }
 
 #purchase-ctns__coin-label {
@@ -144,7 +144,7 @@
 
 .purchase-ctns__date {
     position: relative;
-    width: 33%;
+    width: 31%;
     border-top-right-radius: 9px;
     height: 100%;
     padding: 1.25%;

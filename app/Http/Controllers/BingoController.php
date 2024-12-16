@@ -112,9 +112,7 @@ class BingoController extends Controller
                 $playerColumn = 'player_link';
                 $roomUser = $player;
 
-                $isCreator = Commerce::getValueByUserId($player, 'id');
-
-                $player = !$isCreator ? false : encrypt($player);
+                $player = Commerce::getValueByUserId($player, 'id') ? false : encrypt($player);
 
                 $moreViewData = ['player' => $player, 'wallet' => $this->wallet()];
                 break;
