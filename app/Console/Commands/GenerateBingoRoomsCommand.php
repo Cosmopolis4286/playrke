@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Game\Bingo\AutoGenerateBingoRooms;
+use App\Services\RKE\HandleCommands;
 use Illuminate\Console\Command;
 use Throwable;
 
