@@ -164,6 +164,7 @@ class SellerController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
+                'email_verified_at' => Carbon::now()->timestamp,
                 'referral_code' => User::getUniqueReferralCode(),
             ]);
 

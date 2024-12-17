@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="col-12">
-            <div class="row">
+            <div class="row @if (count($rooms) < 4) justify-content-center @endif">
                 @foreach ($rooms as $key => $room)
                     <div id="container-card-game-room_{{ $room->encrypted }}"
                         class="d-flex justify-content-center py-4 mb-1 col-sm-6 col-md-4 col-xl-3">
