@@ -48,7 +48,6 @@ trait PlayerLinkTrait
             return $player->id;
         } catch (\Exception $e) {
             // Manejo de errores
-            dd($e->getMessage());
             Log::error('Error al crear la información del jugador: ' . $e->getMessage());
             return false;
         }

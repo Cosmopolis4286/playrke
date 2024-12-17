@@ -756,7 +756,7 @@ trait BingoTrait
                 }
             }
 
-            if ($data['customer']) {
+            if (isset($data['customer'])) {
                 $serialText = Customer::getValueById($data['customer'], 'brand');
             }
 
@@ -780,7 +780,7 @@ trait BingoTrait
             }
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear la información del jugador: ' . $e->getMessage());
+            Log::error('Error en handleCartonStore(): ' . $e->getMessage());
             return false;
         }
     }

@@ -375,6 +375,8 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 
 Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 
+    Route::post('test/regenerateDraw', [BingoController::class, 'regenerateDraw'])->name('test.regenerateDraw');
+
     Route::get('rooms/{creatorType}/{userID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
 
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])

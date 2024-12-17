@@ -13,10 +13,6 @@ const Toast = Swal.mixin({
 });
 
 function showToast(text, icon, type = '') {
-
-    if (toastInExecution) return false;
-
-    toastInExecution = true;
     Toast.fire({
         icon: icon,
         title: text
@@ -26,7 +22,6 @@ function showToast(text, icon, type = '') {
                 showToast('warning', '¡Gracias por participar!', 3);
             }, 2800);
         }
-        toastInExecution = false;
     });
 }
 

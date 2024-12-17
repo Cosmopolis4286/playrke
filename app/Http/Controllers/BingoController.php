@@ -1671,4 +1671,80 @@ class BingoController extends Controller
         }
         return response()->json(['type' => $typeMessage, 'message' => $message]);
     }
+
+    public function regenerateDraw(Request $request)
+    {
+        // FUNCION PARA REGENERAR SORTEO
+        // USAR FUNCION SOLO PARA TESTES
+        ////////////////////////////////
+
+        // Declarar variables
+        $roomEncrypted = $request->room;
+        $room = BingoRoom::getValueByEncrypted($roomEncrypted, 'id');
+
+        $keyword = $request->keyword;
+
+        if (!BingoDraw::where('room', $room)->count() === 75) return;
+
+        if ($keyword !== 'RK3_T357E*2K25') {
+            return response()->json([
+                'type' => 'warning',
+                'message' => 'Ha ocurrido un error en la solicitud'
+            ]);
+        }
+
+        date_default_timezone_set(config('app.timezone'));
+
+        $roomInfo = BingoRoom::getRoomById($room, ['date', 'time']);
+        $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
+
+        $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
+        $existingChips = BingoDraw::where('room', $room)->pluck('chip');
+
+        $chips = [];
+        $chp = 1;
+        $inserts = [];
+        $lastDrawTime = BingoDraw::where('room', $room)->orderByDesc('id')->value('time') ?? $dataTime;
+        $currentTimestamp = now();
+
+        while ($chp <= 75) {
+            do {
+                $rnd = mt_rand(1, 75);
+            } while (in_array($rnd, $chips) || $existingChips->contains($rnd));
+
+            $numEncoded = collect(str_split($rnd))
+                ->map(fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '')
+                ->implode('');
+
+            $timeIncrement = $chp === 1 ? 8 : 9;
+            $currentDrawTime = $lastDrawTime + $timeIncrement;
+
+            $inserts[] = [
+                "chip" => $rnd,
+                "code" => $numEncoded,
+                "room" => $room,
+                "time" => $currentDrawTime,
+                "created_at" => $currentTimestamp,
+                "updated_at" => $currentTimestamp
+            ];
+
+            $chips[] = $rnd;
+            $lastDrawTime = $currentDrawTime;
+            $chp++;
+        }
+
+        DB::beginTransaction();
+
+        try {
+            BingoDraw::where('room', $room)->update($inserts);
+            DB::commit();
+            return response()->json([
+                'type' => 'success',
+                'message' => 'Proceso efectuado con exito'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al regenerar sorteo [' . $room . ']: ' . $e->getMessage());
+        }
+    }
 }

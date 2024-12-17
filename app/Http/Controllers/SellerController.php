@@ -30,6 +30,7 @@ use App\Models\UserType;
 use App\Models\Wallet;
 use App\Services\Game\Bingo\HandleBingoRooms;
 use App\Traits\Filters;
+use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -394,7 +395,7 @@ class SellerController extends Controller
                 $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'commerce', 'room_type']);
 
                 $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
-                    ->where(['phone' => $request->player_info, 'game' => 1, 'room' => $room->id])->first();
+                    ->where('phone', $request->player_info)->where('game', 1)->where('room', $room->id)->first();
 
                 if (!$player)  return response()->json(['response' => false]);
 
