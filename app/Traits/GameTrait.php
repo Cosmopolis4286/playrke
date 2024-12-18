@@ -104,7 +104,7 @@ trait GameTrait
         $creatorType = $data['creator']['type'];
 
         // Definir la tasa de cambio de acuerdo al $creator['type'] 
-        if ($creatorType === 'commerce') {
+        if (in_array($creatorType, ['RKE', 'commerce'])) {
             $coinISO = $coin;
             $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coinISO);
         } else {

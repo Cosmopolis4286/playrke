@@ -46,28 +46,32 @@ trait BingoTrait
 
             $this->encryptDraw('bingo_draw_code', $room);
 
+            // Consolidar consultas para mejorar rendimiento
             $roomInfo = BingoRoom::getRoomById($room, ['date', 'time']);
             $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
 
+            $existingChips = BingoDraw::where('room', $room)->get(['chip', 'time']);
             $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
-            $existingChips = BingoDraw::where('room', $room)->pluck('chip');
+
+            $lastDrawTime = $existingChips->max('time') ?? $dataTime;
+            $existingChipsSet = $existingChips->pluck('chip')->flip();
 
             $chips = [];
-            $chp = 1;
             $inserts = [];
-            $lastDrawTime = BingoDraw::where('room', $room)->orderByDesc('id')->value('time') ?? $dataTime;
             $currentTimestamp = now();
+            $timeIncrement = 8;
 
-            while ($chp <= 75) {
+            for ($chp = 1; $chp <= 75; $chp++) {
                 do {
                     $rnd = mt_rand(1, 75);
-                } while (in_array($rnd, $chips) || $existingChips->contains($rnd));
+                } while (isset($chips[$rnd]) || isset($existingChipsSet[$rnd]));
 
-                $numEncoded = collect(str_split($rnd))
-                    ->map(fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '')
-                    ->implode('');
+                // Codificar el número
+                $numEncoded = implode('', array_map(
+                    fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '',
+                    str_split($rnd)
+                ));
 
-                $timeIncrement = $chp === 1 ? 8 : 9;
                 $currentDrawTime = $lastDrawTime + $timeIncrement;
 
                 $inserts[] = [
@@ -76,16 +80,17 @@ trait BingoTrait
                     "room" => $room,
                     "time" => $currentDrawTime,
                     "created_at" => $currentTimestamp,
-                    "updated_at" => $currentTimestamp
+                    "updated_at" => $currentTimestamp,
                 ];
 
-                $chips[] = $rnd;
+                $chips[$rnd] = true;
                 $lastDrawTime = $currentDrawTime;
-                $chp++;
+
+                // Cambiar incremento después del primer chip
+                $timeIncrement = 9;
             }
 
             DB::beginTransaction();
-
             try {
                 BingoDraw::insert($inserts); // Inserción masiva
                 DB::commit();

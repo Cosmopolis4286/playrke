@@ -1676,14 +1676,13 @@ class BingoController extends Controller
     {
         // FUNCION PARA REGENERAR SORTEO
         // USAR FUNCION SOLO PARA TESTES
-        ////////////////////////////////
 
         // Declarar variables
         $roomEncrypted = $request->room;
         $room = BingoRoom::getValueByEncrypted($roomEncrypted, 'id');
-
         $keyword = $request->keyword;
 
+        // Validar condiciones iniciales
         if (!BingoDraw::where('room', $room)->count() === 75) return;
 
         if ($keyword !== 'RK3_T357E*2K25') {
@@ -1695,56 +1694,72 @@ class BingoController extends Controller
 
         date_default_timezone_set(config('app.timezone'));
 
-        $roomInfo = BingoRoom::getRoomById($room, ['date', 'time']);
-        $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
+        $this->encryptDraw('bingo_draw_code', $room);
 
+        // Obtener datos iniciales
         $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
-        $existingChips = BingoDraw::where('room', $room)->pluck('chip');
+        $draws = BingoDraw::where('room', $room)->get();
+        $currentTimestamp = now()->addMinutes(2)->timestamp; // Tiempo base (actual + 2 minutos)
+        $timeIncrement = 8;
 
         $chips = [];
-        $chp = 1;
-        $inserts = [];
-        $lastDrawTime = BingoDraw::where('room', $room)->orderByDesc('id')->value('time') ?? $dataTime;
-        $currentTimestamp = now();
+        $updates = [];
 
-        while ($chp <= 75) {
+        foreach ($draws as $index => $draw) {
             do {
                 $rnd = mt_rand(1, 75);
-            } while (in_array($rnd, $chips) || $existingChips->contains($rnd));
+            } while (isset($chips[$rnd]));
 
-            $numEncoded = collect(str_split($rnd))
-                ->map(fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '')
-                ->implode('');
+            // Codificar el nuevo número
+            $numEncoded = implode('', array_map(
+                fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '',
+                str_split($rnd)
+            ));
 
-            $timeIncrement = $chp === 1 ? 8 : 9;
-            $currentDrawTime = $lastDrawTime + $timeIncrement;
+            // Calcular nuevo tiempo
+            $newTime = $currentTimestamp + ($index * $timeIncrement);
 
-            $inserts[] = [
-                "chip" => $rnd,
-                "code" => $numEncoded,
-                "room" => $room,
-                "time" => $currentDrawTime,
-                "created_at" => $currentTimestamp,
-                "updated_at" => $currentTimestamp
+            $updates[] = [
+                'id' => $draw->id,
+                'chip' => $rnd,
+                'code' => $numEncoded,
+                'time' => $newTime,
+                'updated_at' => now()
             ];
 
-            $chips[] = $rnd;
-            $lastDrawTime = $currentDrawTime;
-            $chp++;
+            $chips[$rnd] = true;
+
+            // Cambiar incremento después del primer chip
+            $timeIncrement = 9;
         }
 
+        // Realizar transacción
         DB::beginTransaction();
 
         try {
-            BingoDraw::where('room', $room)->update($inserts);
+            foreach ($updates as $update) {
+                BingoDraw::where('id', $update['id'])->update([
+                    'chip' => $update['chip'],
+                    'code' => $update['code'],
+                    'time' => $update['time'],
+                    'updated_at' => $update['updated_at'],
+                ]);
+            }
+
             DB::commit();
+
             return response()->json([
                 'type' => 'success',
-                'message' => 'Proceso efectuado con exito'
+                'message' => 'Proceso efectuado con éxito'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al regenerar sorteo [' . $room . ']: ' . $e->getMessage());
+
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Hubo un error durante el proceso de regeneración'
+            ]);
         }
     }
 }
