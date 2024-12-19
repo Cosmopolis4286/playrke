@@ -59,6 +59,11 @@ class HandleBingoRooms
             $this->handleJackpotWinners($room->id);
         }
 
+        if ($room->customer) {
+            // Verificar si existen pagos que procesar
+            (new PrizeCartonService())->handleCustomerPrizeCarton($room->customer);
+        }
+
         $this->checkAndHideRoom($room);
     }
 
