@@ -370,11 +370,11 @@ trait BingoTrait
             'player_user' => $arrCtn['playerUser'] ?? null,
             'player_link' => $arrCtn['playerLink'] ?? null,
             'room' => $arrCtn['room'],
-            'coin' => $arrCtn['coin'],
             'exchange_rate' => $exchangeRate,
-            'status' => 0,
             'ctns' => $arrCtn['numOfCtns'],
+            'coin' => $arrCtn['coin'],
             'sale_amount' => $saleAmount,
+            'status' => 0,
             'created_at' => $currentTime,
             'updated_at' => $currentTime,
         ]);

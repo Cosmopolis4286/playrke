@@ -23,9 +23,9 @@ return new class extends Migration
             $table->unsignedBigInteger('room_user');
             $table->integer('player_user')->nullable();
             $table->unsignedBigInteger('player_link')->nullable();
-            $table->string('coin', 15);
             $table->double('exchange_rate');
             $table->integer('ctns');
+            $table->string('coin', 15);
             $table->double('sale_amount');
             $table->boolean('status')->default(0);
             $table->timestamps();
