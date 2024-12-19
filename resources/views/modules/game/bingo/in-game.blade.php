@@ -70,7 +70,7 @@
             const generateCartonURL = `{{ route('bingocash.generateCarton') }}`;
             let amount = ctnPrice;
         </script>
-        @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'])
+        {{-- @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js']) --}}
     @endif
     @if ($room->status > 2)
         <script>

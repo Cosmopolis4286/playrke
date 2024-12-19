@@ -585,7 +585,11 @@ class BingoController extends Controller
     public function inGame($player, $room = '')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        if (!$room) $player = PlayerLink::getByLink($player, ['room', 'commerce', 'link']);
+        $player = PlayerLink::getByLink($player, ['room', 'commerce', 'link']);
+
+        if (!$player) {
+            abort(404); // Retorna un error 404 Not Found
+        }
 
         $creator = ['type' => 'RKE', 'id' => $player->commerce];
 
@@ -1682,8 +1686,17 @@ class BingoController extends Controller
         $room = BingoRoom::getValueByEncrypted($roomEncrypted, 'id');
         $keyword = $request->keyword;
 
+        $draw = BingoDraw::where('room', $room)->count() === 75;
+
         // Validar condiciones iniciales
-        if (!BingoDraw::where('room', $room)->count() === 75) return;
+        if (!$draw) {
+            $this->newDraw($room);
+
+            return response()->json([
+                'type' => 'success',
+                'message' => 'Proceso efectuado con éxito'
+            ]);
+        }
 
         if ($keyword !== 'RK3_T357E*2K25') {
             return response()->json([
@@ -1694,13 +1707,14 @@ class BingoController extends Controller
 
         date_default_timezone_set(config('app.timezone'));
 
-        $this->encryptDraw('bingo_draw_code', $room);
-
         // Obtener datos iniciales
         $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
         $draws = BingoDraw::where('room', $room)->get();
-        $currentTimestamp = now()->addMinutes(2)->timestamp; // Tiempo base (actual + 2 minutos)
+        $currentTimestamp = now()->addMinutes(1)->timestamp;
         $timeIncrement = 8;
+
+        // Eliminar Ficha Ganadora
+        BingoDraw::where('room', $room)->where('win', 1)->update(['win' => 0]);
 
         $chips = [];
         $updates = [];
@@ -1745,6 +1759,12 @@ class BingoController extends Controller
                     'updated_at' => $update['updated_at'],
                 ]);
             }
+
+            // Definir Obtener Ficha Ganadora
+            $this->chipWin($room);
+
+            // Ajustar status de la sala
+            BingoRoom::where('id', $room)->update(['status' => 3]);
 
             DB::commit();
 

@@ -19,7 +19,7 @@ function showToast(text, icon, type = '') {
     }).then((result) => {
         if (result.isConfirmed && type == 2) {
             setTimeout(() => {
-                showToast('warning', '¡Gracias por participar!', 3);
+                showToast('¡Gracias por participar!', 'warning', 3);
             }, 2800);
         }
     });

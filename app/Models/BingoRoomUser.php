@@ -70,6 +70,11 @@ class BingoRoomUser extends Model
         return $this->hasMany(BingoPrizeCtns::class, 'room_user', 'id');
     }
 
+    public static function getValue($id, $value)
+    {
+        return self::where('id', $id)->value($value);
+    }
+
     public static function getByColumn($column, $value, $fields = ['*'])
     {
         return self::select($fields)->where($column, $value)->first();

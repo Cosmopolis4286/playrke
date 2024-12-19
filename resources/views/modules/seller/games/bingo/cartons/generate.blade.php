@@ -370,7 +370,7 @@
                 success: function(data) {
                     if (data.response) {
                         const infoPlayer = data.infoPlayer;
-                        showToast('warning', 'Este usuario está participando');
+                        showToast('Este usuario está participando', 'warning');
                         $('#name, #last-name, #type_id, #identification, #phone').prop('required', false);
                         $('#name, #last-name, #type_id, #phone').prop('readonly', true);
                         country.val(infoPlayer.country);

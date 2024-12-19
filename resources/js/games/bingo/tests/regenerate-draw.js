@@ -1,9 +1,13 @@
 $(document).on("click", "#btn-regenerate-draw", function () {
 
-    if (!$('#keyword-test').val()) return false;
+    if (!$('#keyword-test').val()) {
+        showToast('Ingrese Palabra Clave', 'warning');
+        $('#keyword-test').trigger('focus');
+        return;
+    }
 
     $.post({
-        url: "{{ route('seller.getPlayer') }}",
+        url: `${preRoute}bingocash/test/regenerateDraw`,
         headers: {
             'X-CSRF-TOKEN': $("#5K3_70K").val()
         },
@@ -12,8 +16,8 @@ $(document).on("click", "#btn-regenerate-draw", function () {
             room: encrypted
         },
         dataType: 'json',
-        success: function (data) {
-
+        success: function (res) {
+            showToast(res.message, res.type);
         }
     });
 });
