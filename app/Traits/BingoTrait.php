@@ -1083,16 +1083,18 @@ trait BingoTrait
             // Actualizar datos de la sala
             BingoRoom::where('id', $roomID)->update($updateData);
 
-            // Calcular el valor de cada premio individual
-            $winnerJackpotPrize = $jackpotPrize / $winnersCount;
+            // Consultar si hay cartones premiados registrados
+            if (!BingoPrizeCtns::existsPrizeCtns($roomID, 'JACKPOT')) {
+                // Calcular el valor de cada premio individual
+                $winnerJackpotPrize = $jackpotPrize / $winnersCount;
+                // Crear registros de ganadores y actualizar el estado de los jugadores
+                $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsJackpot, 1, $winnerJackpotPrize);
 
-            // Crear registros de ganadores y actualizar el estado de los jugadores
-            $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsJackpot, 1, $winnerJackpotPrize);
-
-            if (!$registerPrizeCtn) DB::rollBack();
+                if (!$registerPrizeCtn) DB::rollBack();
+            }
 
             // Generar seriales ganadores si hay jugadores no ganadores
-            if ($generateSerials) {
+            if ($generateSerials && !BingoPrizeCtns::existsPrizeCtns($roomID, 'SERIAL')) {
                 $this->handleSerialWinners($roomID); // Ejecutar Obtener Seriales Ganadores
             }
             // Cambiar Status Premios Pagados
