@@ -78,7 +78,7 @@ class PrizeCartonService
         );
 
         if (!$transaction) {
-            throw new Exception("Error al registrar la transacción para el premio con ID: {$ctn->id}");
+            throw new Exception("Error al registrar la transacción para el premio de BingoPrizeCtns con ID: {$ctn->id}");
         }
     }
 }

@@ -835,6 +835,7 @@ trait BingoTrait
                     'customer' => $ctn->customer,
                     'commerce' => $ctn->commerce,
                     'seller' => $ctn->seller,
+                    'player_user' => $ctn->player_user,
                     'player_link' => $ctn->player_link,
                     'ctn' => $ctn->id,
                     'lot' => $ctn->lot,
