@@ -155,9 +155,7 @@
 
         function generateModalPurchase(roomID) {
             $('#container-purchase-ctns').remove(); // Elimina el contenedor previo
-
             $(`#container-card-game-room_${roomID}`).prepend(modalHTML); // Inserta el nuevo modal
-
             initializeButtonVisibility();
         }
 
