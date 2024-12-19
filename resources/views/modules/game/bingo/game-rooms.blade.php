@@ -157,6 +157,8 @@
             $('#container-purchase-ctns').remove(); // Elimina el contenedor previo
 
             $(`#container-card-game-room_${roomID}`).prepend(modalHTML); // Inserta el nuevo modal
+
+            initializeButtonVisibility();
         }
 
         $(document).on("click", ".card-game-room", function() {
@@ -268,37 +270,57 @@
             $('#total-amount').text(total);
         }
 
-        // Manejador de Cantidad de Ctns
-        const input = $('#num-ctns');
-        const btnUp = $('#quantity-up');
-        const btnDown = $('#quantity-down');
-        const min = parseFloat(input.attr('min')) || 0;
-        const max = parseFloat(input.attr('max')) || 30;
-        const step = parseFloat(input.attr('step')) || 1;
+        let currentValCtns = 1;
 
-        const updateInput = (newValue) => {
+        $(document).on("click", "#quantity-up, #quantity-down", function() {
+            handleNumCtns($(this).attr("id"));
+        });
+
+        $(document).on("input paste", "#num-ctns", function() {
+            handleNumCtns($(this).val());
+        });
+
+        function handleNumCtns(value = null) {
+            const input = $('#num-ctns');
+            const min = parseFloat(input.attr('min')) || 0;
+            const max = parseFloat(input.attr('max')) || 30;
+            const step = parseFloat(input.attr('step')) || 1;
+
+            let newValue = parseFloat(input.val()) || min;
+
+            // Determinar el nuevo valor en función de la acción o entrada directa
+            if (value === "quantity-up") {
+                newValue = Math.min(newValue + step, max);
+            } else if (value === "quantity-down") {
+                newValue = Math.max(newValue - step, min);
+            } else if (value !== null) {
+                // Si se recibe un valor directo (desde input o paste)
+                newValue = Math.min(Math.max(parseFloat(value) || min, min), max);
+            }
+
             if (isLogin && !validateUserBalance()) return;
-            input.val(newValue).trigger('change');
-            btnDown.toggle(newValue > min);
-            btnUp.toggle(newValue < max);
-            numCtns = newValue;
-            handleTotalAmount();
-        };
 
-        // Función para manejar clics
-        const handleButtonClick = (increment) => {
-            let currentVal = +input.val();
-            const newValue = increment ? Math.min(currentVal + step, max) : Math.max(currentVal - step, min);
-            if (newValue !== currentVal) updateInput(newValue);
-        };
+            // Actualizar el input solo si el valor cambió
+            if (newValue !== currentValCtns) {
+                currentValCtns = newValue;
+                input.val(newValue).trigger('change');
+                $("#quantity-down").toggle(newValue > min);
+                $("#quantity-up").toggle(newValue < max);
+                numCtns = newValue;
+                handleTotalAmount();
+            }
+        }
 
-        // Manejadores de clic para incrementar y decrementar
-        btnUp.click(() => handleButtonClick(true));
-        btnDown.click(() => handleButtonClick(false));
+        // Inicializa la visibilidad de los botones al mostrar el modal
+        function initializeButtonVisibility() {
+            const input = $('#num-ctns');
+            const currentVal = +input.val();
+            const min = parseFloat(input.attr('min')) || 0;
+            const max = parseFloat(input.attr('max')) || 30;
 
-        // Inicializa la visibilidad de los botones
-        btnDown.toggle(+input.val() > min);
-        // Manejador de Cantidad de Ctns
+            $("#quantity-down").toggle(currentVal > min);
+            $("#quantity-up").toggle(currentVal < max);
+        }
 
         const _second = 1000;
         const _minute = _second * 60;
