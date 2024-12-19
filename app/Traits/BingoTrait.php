@@ -582,7 +582,11 @@ trait BingoTrait
             $saleAmount = $numOfCtns * $room->ctn_price;
             $sellerSaleCommn = null;
 
-            if ($customer) $exchangeRate = CustomerExchangeRate::getValueById($coin) ?? 1;
+            if ($customer) {
+                $customerExchangeRate = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
+                $coin = $customerExchangeRate->coin;
+                $exchangeRate = $customerExchangeRate->exchangeRate ?? 1;
+            };
 
             // Registrar o actualizar el usuario en la sala
             $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);
@@ -762,7 +766,7 @@ trait BingoTrait
             }
 
             if (isset($data['customer'])) {
-                $serialText = Customer::getValueById($data['customer'], 'brand');
+                $serialText = Customer::getValueById($data['customer'], 'brand') ?? strtoupper(bin2hex(random_bytes(2)));
             }
 
             $data['jackpotType'] = $room->Config->jackpot_type;

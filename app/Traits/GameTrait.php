@@ -105,17 +105,15 @@ trait GameTrait
 
         // Definir la tasa de cambio de acuerdo al $creator['type'] 
         if (in_array($creatorType, ['RKE', 'commerce'])) {
-            $coinISO = $coin;
-            $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coinISO);
+            $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
         } else {
-            $coinISO = CustomerExchangeRate::getValueById($coin, 'coin');
-            $creatorExchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $coinISO);
+            $creatorExchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $coin);
         }
 
         // Definir Tasa de Cambio de la sala de acuerdo al estatus
         $exchangeRate = ($roomStatus == 2)
             ? $creatorExchangeRate
-            : GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coinISO);
+            : GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin);
 
         // Definir valor final o monto
         $amount = $data['value'] * ($exchangeRate ?? 1);

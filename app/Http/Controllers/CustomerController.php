@@ -111,7 +111,7 @@ class CustomerController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
-                'email_verified_at' => Carbon::now()->timestamp,
+                'email_verified_at' => Carbon::now()->format('Y-m-d H:i:s'),
                 'referral_code' => User::getUniqueReferralCode(),
             ]);
 
@@ -347,7 +347,7 @@ class CustomerController extends Controller
                     'processing_data' => now(),
                     'updated_at' => now(),
                 ]);
-                
+
                 DB::commit();
             }
             return response()->json(['type' => $typeMessage, 'message' => $message]);
