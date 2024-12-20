@@ -359,8 +359,8 @@ class SellerController extends Controller
 
     public function getCtnPrice($roomID)
     {
-        $room = BingoRoom::with(['Coin', 'Config'])
-            ->select('id', 'encrypted', 'jackpot', 'coin', 'ctn_price')
+        $room = BingoRoom::with('Config:room,jackpot_type')
+            ->select('id', 'encrypted', 'jackpot', 'ctn_price')
             ->where('encrypted', $roomID)->first();
 
         if (!$room) {
@@ -372,7 +372,7 @@ class SellerController extends Controller
         return response()->json([
             'jackpotType' => $room->Config->jackpot_type,
             'jackpot' => $room->jackpot,
-            'coin' => $room->Coin->symbol,
+            'coin' => 'USDT',
             'price' => $room->ctn_price,
             'countries' => $countries
         ]);

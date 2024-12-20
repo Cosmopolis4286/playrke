@@ -337,11 +337,11 @@ trait BingoTrait
     private function calculateTotalSale($saleAmount, $room, $coin, $seller, $commerce)
     {
         $exchangeRate = ($coin != 1) ? CommerceExchangeRate::getCommerceCoinValue($commerce, $coin) : 1;
-        $totalSaleCtns = $saleAmount * $exchangeRate;
+        $totalSaleCtns = number_format(($saleAmount * $exchangeRate), 2, '.');
 
         // Comisiones del vendedor
         $saleCommn = $this->calculateSellerCommission($seller, $totalSaleCtns, $room->id);
-        $sellerSaleCommn = number_format(($totalSaleCtns - $saleCommn) / $exchangeRate, 3, '.');;
+        $sellerSaleCommn = number_format($saleCommn / $exchangeRate, 3, '.');;
 
         return ['exchangeRate' => $exchangeRate, 'sellerSaleCommn' => $sellerSaleCommn];
     }

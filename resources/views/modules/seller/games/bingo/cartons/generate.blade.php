@@ -164,6 +164,7 @@
         const form = $("#form-ctns");
         const btnGenerate = $("#btn-generate-ctn");
         let roomID = '';
+        let roomCtnPrice = false;
         let ctnPrice = 1;
         let jackpotRoom;
         let playerInfo = '';
@@ -226,13 +227,19 @@
             room.prop('disabled', false);
         });
 
-        function formatNumber(num) {
-            // Redondear el número a dos decimales
-            const roundedNum = Math.round(num * 100) / 100;
-            // Convertir el número a formato de cadena con exactamente dos decimales
-            const roundedStr = roundedNum.toFixed(2);
-            // Convertir la cadena de vuelta a un número flotante
-            return parseFloat(roundedStr);
+        function formatNumber(num, decimals = 3) {
+            // Redondear el número al número de decimales especificado
+            const factor = Math.pow(10, decimals);
+            const roundedNum = Math.round(num * factor) / factor;
+            // Convertir el número a formato de cadena con exactamente los decimales deseados
+            let result = roundedNum.toFixed(decimals);
+
+            // Si el tercer decimal es "0", eliminarlo
+            if (decimals == 3 && result.endsWith('0')) {
+                result = parseFloat(result).toString();
+            }
+
+            return result;
         }
 
         function calculateSale() {
@@ -250,10 +257,11 @@
         }
 
         function convertCurrency(data) {
-            ctnPrice = formatNumber(data.value);
+            const exchangeRate = data.value;
+            ctnPrice = formatNumber(exchangeRate * roomCtnPrice);
             $("#coin").val(data.sym);
             $("#tx-ctn-price").text(`${data.sym} ${ctnPrice}`);
-            $("#tx-jackpot-room").text(formatNumber(jackpotRoom * ctnPrice));
+            $("#tx-jackpot-room").text(formatNumber((jackpotRoom * exchangeRate), 3));
             calculateSale();
         }
 
@@ -302,12 +310,13 @@
                             coin,
                             countries
                         } = data;
-                        ctnPrice = formatNumber(price);
+                        roomCtnPrice = formatNumber(price);
+                        ctnPrice = roomCtnPrice;
                         $("#coin").val(coin);
                         $("#tx-ctn-price").text(`${coin} ${ctnPrice}`);
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
-                        jackpotRoom = formatNumber(jackpot);
+                        jackpotRoom = formatNumber(jackpot, 3);
                         $(".jackpot-type").text(jackpotType == 1 ? 'Bote' : 'Premio');
                         $("#tx-jackpot-room").text(jackpotRoom);
                         calculateSale();
