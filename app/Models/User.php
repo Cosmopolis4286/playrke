@@ -14,7 +14,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $primaryKey = 'id';
     protected $fillable = [
         'username', 'user_type', 'first_name', 'last_name', 'password', 'photo', 
-        'email', 'phone', 'country', 'time_zone', 'referral_code', 'referred_by'
+        'email', 'phone', 'country', 'time_zone', 'referral_code', 'referred_by', 'email_verified_at'
     ];
     protected $hidden = [
         'password', 'remember_token',
