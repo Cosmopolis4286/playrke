@@ -60,9 +60,10 @@ class DirectoryController extends Controller
 
             case 'COL': // Colombia
                 $paymentType = 'Registro';
-                $name = 'PaymentMethodsCOL';
+                $name = 'payment-method-col';
                 $additionalData = [
-                    'paymentMethods' => PaymentMethodsCOL::where('user', $userID)->get()
+                    'paymentMethods' => PaymentMethodsCOL::where('user', $userID)->get(),
+                    'arrPaymentMethod' => ['B' => 'Bancolombia', 'D' => 'Daviplata', 'N' => 'Nequi']
                 ];
                 break;
 

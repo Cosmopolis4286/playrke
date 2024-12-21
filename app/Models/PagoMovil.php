@@ -30,9 +30,13 @@ class PagoMovil extends Model
 			->where('bank', $bank)->where('phone', $phone)->value('user');
 	}
 
-	public static function existsPagoMovil($documentType, $document, $bank, $phone)
+	public static function existsPagoMovil($documentType, $document, $bank, $phone, $user = false)
 	{
-		return self::where('document_type', $documentType)->where('document', $document)
-			->where('bank', $bank)->where('phone', $phone)->exists();
+		return self::where([
+			['document_type', $documentType],
+			['document', $document],
+			['bank', $bank],
+			['phone', $phone]
+		])->when($user, fn($query) => $query->where('user', '<>', $user))->exists();
 	}
 }

@@ -79,6 +79,17 @@ class PagoMovilController extends Controller
 
     public function update(Request $request, $id)
     {
+        $documentType = $request->document_type;
+        $documentVal = $request->document_val;
+        $bank = $request->bank;
+        $phone = $request->phone;
+
+        $existPagoMovil = PagoMovil::existsPagoMovil($documentType, $documentVal, $bank, $phone, Auth::id());
+
+        if ($existPagoMovil) {
+            return redirect()->back()->with('message', 'Este PagoMovil ya se encuentra registrado')->with('type', 'warning');
+        }
+
         $pagoMovil = PagoMovil::findOrFail(decrypt($id));
 
         if (!$pagoMovil) {
@@ -89,10 +100,10 @@ class PagoMovilController extends Controller
 
         try {
             $pagoMovil->update([
-                'document_type' => $request->document_type,
-                'document' => $request->document_val,
-                'phone' => $request->phone,
-                'bank' => $request->bank,
+                'document_type' => $documentType,
+                'document' => $documentVal,
+                'phone' => $phone,
+                'bank' => $bank,
             ]);
 
             DB::commit();

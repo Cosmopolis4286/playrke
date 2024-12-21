@@ -31,6 +31,7 @@ use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\LotteryController;
+use App\Http\Controllers\PaymentMethodsCOLController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\TrikiController;
 use App\Http\Controllers\YankenpoController;
@@ -246,6 +247,13 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'pix', 'as' => 'pix.'], func
     Route::put('delete/{id}', [PixController::class, 'delete'])->name('delete');
     Route::get('getInfo/{id}', [PixController::class, 'getInfo'])->name('getInfo');
     Route::get('get/banks', [PixController::class, 'getBanks'])->name('getBanks');
+});
+
+Route::group(['middleware' => ['auth'], 'prefix' => 'payment-method-col', 'as' => 'payment-method-col.'], function () {
+    Route::post('create', [PaymentMethodsCOLController::class, 'create'])->name('create');
+    Route::put('update/{id}', [PaymentMethodsCOLController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [PaymentMethodsCOLController::class, 'delete'])->name('delete');
+    Route::get('getInfo/{id}', [PaymentMethodsCOLController::class, 'getInfo'])->name('getInfo');
 });
 
 // Route::group(['middleware' => ['auth'], 'prefix' => 'wallet', 'as' => 'wallet.'], function () {

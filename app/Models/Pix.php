@@ -29,8 +29,9 @@ class Pix extends Model
         return self::where('pix_key_value', $pixKey)->first();
     }
 
-    public static function existsPixKey($pixKey, $pixKeyVal)
+    public static function existsPixKey($pixKey, $pixKeyVal, $user = false)
     {
-        return self::where('pix_key', $pixKey)->where('pix_key_value', $pixKeyVal)->exists();
+        return self::where([['pix_key', $pixKey], ['pix_key_value', $pixKeyVal]])
+            ->when($user, fn($query) => $query->where('user', '<>', $user))->exists();
     }
 }

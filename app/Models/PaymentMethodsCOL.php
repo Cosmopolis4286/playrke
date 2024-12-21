@@ -27,4 +27,19 @@ class PaymentMethodsCOL extends Model
 
 		return $gateways[$value] ?? 'Desconocido';
 	}
+
+	public static function getById($id, $fields = ['*'])
+	{
+		return self::select($fields)->where('id', $id)->first();
+	}
+
+	public static function existsRegister($gateway, $userName, $accNumber, $documentNumber, $user = false)
+	{
+		return self::where([
+			['gateway', $gateway],
+			['user_name', $userName],
+			['acc_number', $accNumber],
+			['document_number', $documentNumber]
+		])->when($user, fn($query) => $query->where('user', '<>', $user))->exists();
+	}
 }

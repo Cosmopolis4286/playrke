@@ -26,8 +26,8 @@
                             @foreach ($paymentMethods as $item)
                                 <tr>
                                     <td>{{ $item->gateway }}</td>
-                                    <td>{{ $item->user_name }}</td>
                                     <td>{{ $item->acc_number }}</td>
+                                    <td>{{ $item->user_name }}</td>
                                     <td>{{ $item->document_number }}</td>
                                     <td>
                                         @include('includes.btn-group', [
@@ -57,115 +57,58 @@
     </div>
     @include('includes.modal-form', [
         'name' => $name,
-        'dataForm' => view('modules.all.directory.br.form')->render(),
+        'dataForm' => view('modules.all.directory.co.form')->render(),
     ])
     @include('includes.form-other-options')
 @endsection
-{{-- @section('scripts')
+@section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
         const name = '{{ $name }}';
-        const paymentType = '{{ $paymentType }}';
-        const bank = $("#bank");
-        const arrPixKeys = @json($pixKeys);
-        let banks = [];
+        const arrPaymentMethod = @json($arrPaymentMethod);
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Pix', '{{ asset('') }}pix')
+            formCRUD($(this), name, 'Datos Bancarios', '{{ asset('') }}payment-method-col')
         });
 
         $(document).ready(function() {
-            $("#phone").mask("00000000000");
-            $('#bank').select2({
-                theme: 'bootstrap4',
-                placeholder: "Selecciona una opción",
-                allowClear: true
-            });
+            $("#acc-number").mask("000000000000");
+            $("#document-number").mask("000000000000");
         });
 
-        $(document).on("change", "#bank", function() {
-            const selectedBank = $(this).val();
-            let bankInfo = {};
+        function insertInfo(type, data = '') {
+            $("#acc-number, #user-name, #document-number").empty();
 
-            $.each(banks, function(index, item) {
-                if (selectedBank == item.ispb) {
-                    bankInfo = {
-                        ispb: item.ispb,
-                        name: item.name,
-                        full_name: item.fullName
-                    };
-                }
+            if (type == 1) $('#gateway').append(`<option value=""  disabled selected>Seleccionar:</option>`);
+
+            // Pasarela de Pago
+            $.each(arrPaymentMethod, function(index, item) {
+                const isSelected = (type == 2 && index == data.gateway) ? 'selected' : '';
+                $('#gateway').append(`<option value="${index}" ${isSelected}>${item}</option>`);
             });
 
-            // Asignar la cadena JSON al valor del input
-            $("#arr-bank").val(JSON.stringify(bankInfo));
-        });
-
-        function insertBanks(type, data = '') {
-            if (type == 1) bank.append(`<option value="" disabled selected>Seleccionar:</option>`);
-
-            $.each(banks, function(index, item) {
-                const isSelected = (type == 2 && item.ispb == data.bank) ? 'selected' : '';
-                bank.append(
-                    `<option value="${item.ispb}" ${isSelected}>${item.name}</option>`);
-            });
-
-            bank.trigger('change');
+            if (type == 2) {
+                $('#acc-number').val(data.acc_number);
+                $('#user-name').val(data.user_name);
+                $('#document-number').val(data.document_number);
+            };
 
             $(`#modal-${name}`).modal('show');
         }
 
-        function getBanks(type, data = '') {
-            if (banks.length) {
-                insertBanks(type, data);
-            } else {
-                $.getJSON({
-                    url: "{{ route('pix.getBanks') }}",
-                    data: {
-                        '_token': $("#5K3_70K").val()
-                    },
-                    success: function(res) {
-                        banks = res;
-                        insertBanks(type, data);
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        // Manejar errores aquí si es necesario
-                    }
-                });
-            }
-        }
-
-        function insertInfo(type, data = '') {
-            const pixKey = $("#pix-key");
-
-            $("#pix-key, #bank").empty();
-
-            if (type == 1) pixKey.append(`<option value=""  disabled selected>Seleccionar:</option>`);
-
-            /// Tipo Documento
-            $.each(arrPixKeys, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.pix_key) ? 'selected' : '';
-                pixKey.append(`<option value="${item.id}" ${isSelected}>${item.value}</option>`);
-            });
-
-            if (type == 2) $("#pix-key-value").val(data.pix_key_value);
-
-            getBanks(type, data);
-        }
-
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['pix-key', 'pix-key-value']);
+            submitForm(name, ['gateway', 'acc-number', 'user-name', 'document-number']);
         });
 
         function deleteInfo(encryptedId) {
             showToastOptionBtns(
-                `Este ${paymentType} será eliminado definitivamente`,
+                `Este registro será eliminado definitivamente`,
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `{{ route('pix.delete', ['id' => ':id']) }}`,
+                `{{ route('payment-method-col.delete', ['id' => ':id']) }}`,
                 encryptedId
             );
         }
     </script>
-@endsection --}}
+@endsection

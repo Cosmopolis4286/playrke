@@ -68,6 +68,7 @@
         const paymentType = '{{ $paymentType }}';
         const bank = $("#bank");
         const arrPixKeys = @json($pixKeys);
+        const pixKey = $("#pix-key");
         let banks = [];
 
         $(document).on("click", `.btn-${name}`, function() {
@@ -136,7 +137,6 @@
         }
 
         function insertInfo(type, data = '') {
-            const pixKey = $("#pix-key");
 
             $("#pix-key, #bank").empty();
 

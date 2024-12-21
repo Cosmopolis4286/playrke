@@ -78,9 +78,8 @@ class PixController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
             return redirect()->back()->with([
-                'message' => 'Ocurrió un error al registrar el Pix.' . $e->getMessage() . 'Inténtalo de nuevo.',
+                'message' => 'Ocurrió un error',
                 'type' => 'warning',
             ]);
         }
@@ -97,7 +96,7 @@ class PixController extends Controller
             $pixKey = $request->pix_key;
             $pixKeyVal = $request->pix_key_value;
 
-            if (Pix::existsPixKey($pixKey, $pixKeyVal)) {
+            if (Pix::existsPixKey($pixKey, $pixKeyVal, Auth::id())) {
                 return redirect()->back()->with([
                     'message' => 'Esta Chave Pix ya se encuentra registrada',
                     'type' => 'warning',
