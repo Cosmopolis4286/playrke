@@ -251,8 +251,13 @@ class CommerceController extends Controller
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
 
+        // Decryptar el ID y encontrar el vendedor
+        $commerce = Commerce::findOrFail(decrypt($id));
+
         $codeRKE = $request->code_rke;
-        $existsCodeRKE = Commerce::existsValue('code_rke', $codeRKE);
+
+        $existsCodeRKE = Commerce::where('code_rke', $codeRKE)
+            ->where('id', '<>', $commerce->id)->exists();
 
         if ($existsCodeRKE) {
             return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
@@ -261,8 +266,6 @@ class CommerceController extends Controller
         DB::beginTransaction();
 
         try {
-            // Decryptar el ID y encontrar el vendedor
-            $commerce = Commerce::findOrFail(decrypt($id));
 
             if ($commerce) {
                 $validator = $this->validateRequest($request, 2, $id);
@@ -280,7 +283,7 @@ class CommerceController extends Controller
                     'country' => $request->country,
                     'coin' => $request->coin,
                     'phone' => $request->phone,
-                    'code_rke' => $request->code_rke
+                    'code_rke' => $codeRKE
                 ]);
 
                 if ($coinChange) {

@@ -241,7 +241,7 @@ trait SeamlessWallet
     public function getTransaction($game, $customerID, $user)
     {
         // Obtener la marca de tiempo fuera del bucle
-        $timestamp = time();
+        $timestamp = Carbon::now()->timestamp;
 
         do {
             // Concatenar los valores con una cadena aleatoria para asegurar unicidad

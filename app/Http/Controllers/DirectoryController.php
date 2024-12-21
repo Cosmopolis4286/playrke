@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Banks_VEN;
-use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\Country;
 use App\Models\DocumentType;
 use App\Models\PagoMovil;
+use App\Models\PaymentMethodsCOL;
 use App\Models\Pix;
 use App\Models\PixKeys;
 use App\Models\UserType;
@@ -59,17 +59,13 @@ class DirectoryController extends Controller
                 break;
 
             case 'COL': // Colombia
-                // $paymentType = 'Pago Movil';
-                // $name = 'PagoMovil';
-                // $additionalData = [
-                //     'pagomovils' => PagoMovil::with('Bank')->where('user', $userID)->get(),
-                //     'documentType' => DocumentType::getDocumentTypeByCountry($country->id),
-                //     'banks' => Banks_VEN::all()
-                // ];
+                $paymentType = 'Registro';
+                $name = 'PaymentMethodsCOL';
+                $additionalData = [
+                    'paymentMethods' => PaymentMethodsCOL::where('user', $userID)->get()
+                ];
+                break;
 
-                $coinNotPayment = $country->id;
-
-                // Se redirige para Colombia
             case 'VEN': // Venezuela
                 $paymentType = 'Pago Movil';
                 $name = 'PagoMovil';

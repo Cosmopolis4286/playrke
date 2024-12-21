@@ -5,6 +5,7 @@ namespace App\Services\Game\Bingo;
 use App\Models\Customer;
 use App\Models\BingoPrizeCtns;
 use App\Models\BingoRoom;
+use App\Services\Customer\HandleTransactions;
 use App\Traits\SeamlessWallet;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -23,17 +24,46 @@ class PrizeCartonService
         }
 
         // Obtener premios no procesados del cliente
-        $prizeCtns = BingoPrizeCtns::where('customer', $customerID)->where('active', 'N')->get();
+        $prizeCtns = BingoPrizeCtns::where('customer', $customerID)
+            ->where('active', 'N')
+            ->chunk(100, function ($prizeCtns) use ($customerID) {
+                $this->processPrizeCtns($prizeCtns, $customerID);
+            });
 
         if ($prizeCtns->isEmpty()) {
             return ['status' => 'info', 'message' => 'No hay premios asociados a este cliente.'];
         }
 
+        // Ejecutar validación de transacciones después del procesamiento
+        app(HandleTransactions::class)->validateTransactions($customerID);
+
+        return ['status' => 'success', 'message' => 'Premios procesados exitosamente.'];
+    }
+
+    /**
+     * Obtener cliente con validación
+     */
+    private function getCustomer($customerID)
+    {
+        $customer = Customer::find($customerID);
+
+        if (!$customer) {
+            throw new Exception("Cliente no encontrado.");
+        }
+
+        return $customer;
+    }
+
+    /**
+     * Procesar premios no procesados
+     */
+    private function processPrizeCtns($prizeCtns, $customerID)
+    {
         DB::beginTransaction();
 
         try {
             foreach ($prizeCtns as $ctn) {
-                // Obtener roomUUID con validación
+                // Obtener roomUUID
                 $roomUUID = $this->getRoomUUID($ctn->room);
 
                 // Registrar la transacción
@@ -46,14 +76,16 @@ class PrizeCartonService
             }
 
             DB::commit();
-            return ['status' => 'success', 'message' => 'Premios procesados exitosamente.'];
         } catch (\Throwable $th) {
             DB::rollBack();
-            // Log del error o notificación
+            // Log del error
             throw new Exception("Error procesando los premios: " . $th->getMessage());
         }
     }
 
+    /**
+     * Obtener UUID de la sala
+     */
     private function getRoomUUID($roomId)
     {
         $roomUUID = BingoRoom::getValueById($roomId, 'code_uuid');
@@ -65,6 +97,9 @@ class PrizeCartonService
         return $roomUUID;
     }
 
+    /**
+     * Procesar transacción del premio
+     */
     private function processPrizeTransaction($ctn, $customerID, $roomUUID)
     {
         $transaction = $this->registerTransaction(
