@@ -136,7 +136,7 @@ trait EncryptRKE
     public function getCodeUUID($model = 'UUIDCodes')
     {
         do {
-            $code = Str::uuid()->toString();
+            $code = strtoupper(Str::uuid()->toString());
         } while (app("App\\Models\\$model")::where('code_uuid', $code)->exists());
 
         return $code;

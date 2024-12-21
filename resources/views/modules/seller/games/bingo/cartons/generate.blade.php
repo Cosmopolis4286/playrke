@@ -227,7 +227,7 @@
             room.prop('disabled', false);
         });
 
-        function formatNumber(num, decimals = 3) {
+        function formatNumber(num, decimals = 2) {
             // Redondear el número al número de decimales especificado
             const factor = Math.pow(10, decimals);
             const roundedNum = Math.round(num * factor) / factor;

@@ -604,10 +604,15 @@ class BingoController extends Controller
         // Vista para el juego de un comercio especifico
         $commerceID = PlayerLink::getValueByLink($playerLink, 'commerce');
 
-        // Validar el codigo de comercio
-        $comerceIDByUUID = Commerce::getValueByCodeUUID($commerce, 'id');
+        // Obetener codigos Unicos del comercio
+        $commerce = Commerce::getById($commerceID, ['code_rke', 'code_uuid']);
 
-        if ($comerceIDByUUID != $commerceID) return redirect('/');
+        // Verificar si posee un codigo RKE 
+        $codeRKE = $commerce->code_rke ? true : false;
+
+        if (!$codeRKE && !$commerce->code_uuid) {
+            return redirect('/');
+        }
 
         $creator = ['type' => 'commerce', 'id' => $commerceID];
 
