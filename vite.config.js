@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
                     'resources/css/rke/auth-pages.css',
                     'resources/css/games/bingo/bingo-game-rooms.css',
                     'resources/css/games/bingo/bingo-in-game.css',
-                    //'resources/js/app.js',
+                    'resources/js/app.js',
                     'resources/js/rke/toast-notify.js',
                     'resources/js/rke/register.js',
                     'resources/js/rke/rke-crypt.js',
@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
             }),
             obfuscatorPlugin({
                 include: [
-                    //'resources/js/app.js',
+                    'resources/js/app.js',
                     'resources/js/rke/toast-notify.js',
                     'resources/js/rke/register.js',
                     'resources/js/rke/rke-crypt.js',

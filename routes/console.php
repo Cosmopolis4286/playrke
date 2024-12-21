@@ -8,6 +8,11 @@ Schedule::command('handle:bingo-rooms')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/schedule.log'));
 
+Schedule::command('bingo-draw:broadcast')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/schedule.log'));
+
 Schedule::command('validate:transactions')
     ->timezone('America/Caracas')
     ->withoutOverlapping()
