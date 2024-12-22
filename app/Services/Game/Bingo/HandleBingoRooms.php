@@ -9,16 +9,20 @@ class HandleBingoRooms
 {
     use BingoTrait;
 
-    public function checkRoomClosure($room = null): void
+    public function checkRoomClosure(int $room = null, array $creator = []): void
     {
-        date_default_timezone_set(config('app.timezone'));
+        $fields = ['id', 'unix_date'];
+        if (!empty($creator)) {
+            $fields[] = $creator['type'];
+        }
 
-        BingoRoom::whereIn('status', [2, 3])
-            ->when($room, fn($query) => $query->where('id', $room))
-            ->get(['id', 'unix_date'])
-            ->each(fn($room) => $this->processRoomClosure($room));
+        BingoRoom::whereIn('status', [2, 3]) // Filtramos por status
+            ->when(!empty($creator), fn($query) => $query->where($creator['type'], $creator['id'])) // Condición para creator
+            ->when($room, fn($query) => $query->where('id', $room)) // Condición para room
+            ->get($fields) // Obtener solo los campos necesarios
+            ->each(fn($room) => $this->processRoomClosure($room)); // Procesar cada sala
 
-        $this->handleFinishedRooms();
+        $this->handleFinishedRooms($creator);
     }
 
     private function processRoomClosure($room): void
@@ -46,11 +50,16 @@ class HandleBingoRooms
         return 1; // Status 1: Borrador
     }
 
-    private function handleFinishedRooms(): void
+    private function handleFinishedRooms(array $creator = []): void
     {
-        BingoRoom::where('status', 4)
-            ->get(['id', 'customer', 'date', 'time'])
-            ->each(fn($room) => $this->processFinishedRoom($room));
+        $fields = ['id', 'date', 'time'];
+        if (!empty($creator)) {
+            $fields[] = $creator['type'];
+        }
+
+        BingoRoom::where('status', 4) // Filtramos por el Status
+            ->when(!empty($creator), fn($query) => $query->where($creator['type'], $creator['id']))
+            ->get($fields)->each(fn($room) => $this->processFinishedRoom($room));
     }
 
     private function processFinishedRoom($room): void

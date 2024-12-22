@@ -52,4 +52,8 @@
             </div>
         </div>
     </div>
+    <div class="form-group col-12">
+        <label for="logo">Logo</label>
+        <input type="file" id="logo" class="form-control-file" name="logo" accept="image/png, image/jpeg">
+    </div>
 </div>

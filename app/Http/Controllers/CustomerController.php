@@ -13,6 +13,7 @@ use App\Traits\EncryptRKE;
 use App\Traits\SeamlessWallet;
 use App\Traits\UserVal;
 use Carbon\Carbon;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class CustomerController extends Controller
 {
@@ -83,9 +87,35 @@ class CustomerController extends Controller
         return ['customerKey' => $customerKey, 'securityKey' => $securityKey];
     }
 
-    private function saveLogo($logo)
+    private function saveLogo(UploadedFile $logo, $customerID)
     {
-        // Guardar logo del cliente si existe y crear carpeta personalizada 
+        try {
+            if ($logo && $logo->isValid()) {
+                // Crear un nombre único para el archivo
+                $fileName = Carbon::now()->timestamp . '.' . $logo->getClientOriginalExtension();
+
+                // Crear una carpeta personalizada usando el ID del cliente
+                $customerFolder = "customers/$customerID";
+
+                // Eliminar cualquier archivo existente en la carpeta
+                Storage::disk('public')->deleteDirectory($customerFolder);
+
+                // Guardar el nuevo archivo en la carpeta específica
+                $logo->storeAs($customerFolder, $fileName, 'public');
+
+                return $fileName;
+            }
+
+            throw new \Exception('El archivo no es válido o está corrupto.');
+        } catch (\Exception $e) {
+            // Registrar el error para depuración
+            Log::error("Error al guardar el logo para el cliente $customerID: " . $e->getMessage());
+
+            throw new HttpResponseException(response()->json([
+                'message' => 'Error al guardar el logo. Inténtalo de nuevo.',
+                'error' => $e->getMessage()
+            ], 500));
+        }
     }
 
     public function create(Request $request) /// Registar Comercializadoras
@@ -120,24 +150,27 @@ class CustomerController extends Controller
 
             $keys = $this->getEncryptionKeyForClient($request->customer_key);
 
-            $logo = $request->logo ? $this->saveLogo($request->logo) : null;
+            $codeUUID = $this->getCodeUUID();
 
-            $customerToken = Customer::create([
+            $fileLogo = $request->file('logo');
+            $logo = $fileLogo ? $this->saveLogo($fileLogo, $codeUUID) : null;
+
+            Customer::create([
                 'name' => $request->name,
                 'country' => $request->country,
                 'phone' => $request->phone,
                 'user' => $newUser->id,
                 'logo' => $logo,
                 'link_route' => $request->api_route,
-                'token' => $this->getCodeUUID(),
+                'token' => $codeUUID,
                 'customer_key' => $keys['customerKey'],
                 'security_key' => $keys['securityKey'],
                 'status' => 1
-            ])->token;
+            ]);
 
             // Registrar Code UUID
             UUIDCodes::create([
-                'code_uuid' => $customerToken,
+                'code_uuid' => $codeUUID,
                 'user_type' => UserType::getValueByPrefix('customer', 'id')
             ]);
 
@@ -196,13 +229,15 @@ class CustomerController extends Controller
             $customer = Customer::findOrFail(decrypt($id));
 
             if ($customer) {
+
                 $validator = $this->validateRequest($request, 2, $id);
 
                 if ($validator->fails()) {
                     return redirect()->back()->withErrors($validator)->withInput();
                 }
 
-                $logo = $request->logo ? $this->saveLogo($request->logo) : null;
+                $fileLogo = $request->file('logo');
+                $logo = $fileLogo ? $this->saveLogo($fileLogo, $customer->token) : null;
 
                 $data = [
                     'name' => $request->name,
