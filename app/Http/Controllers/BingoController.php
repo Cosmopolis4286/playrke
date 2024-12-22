@@ -428,10 +428,11 @@ class BingoController extends Controller
                 if (!$room) return ['error' => 'Sala no encontrada'];
 
                 $roomID = $room->id;
-
                 $isLogin = false;
 
-                $moreViewData = ['custLogo' => Customer::getValueById($creatorID, 'logo')];
+                $customer = Customer::getById($creatorID, ['name', 'logo', 'token']);
+
+                $moreViewData = ['custLogo' => "$customer->token/$customer->logo"];
 
                 if (isset($data['userToken'])) {
                     $user = CustomerUser::getByToken($creatorID, $data['userToken'], ['id', 'coin']);
@@ -446,7 +447,7 @@ class BingoController extends Controller
                 $moreViewData['player'] =  (isset($roomUser) && $roomUser) ? true : false;
 
                 if ($room->status == 2) {
-                    $moreViewData['customerName'] = Customer::getValueById($creatorID, 'name');
+                    $moreViewData['customerName'] = $customer->name;
                 }
 
                 break;

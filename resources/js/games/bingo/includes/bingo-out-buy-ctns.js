@@ -3,10 +3,11 @@ let symbolSale = coinSym;
 let coinSale = player ? $('#coin').val() : '';
 let ctnPriceSale = ctnPrice;
 let numCtns = $("#num-ctns").val() ?? 1;
+let available = true;
 
 function toggleModalInfo() {
     $("#card-form-buy-ctns").toggleClass('hide-elem');
-    $("#cont-btn-buy-ctns, #game-clock").toggle();
+    $("#btn-buy-ctns, #game-clock").toggle();
 }
 
 function toggleSpinnerBtn() {
@@ -22,6 +23,7 @@ function setAmount() {
 }
 
 function getCommerceDetails(coinSale) {
+    if (!available) return;
     const url = commerceDetailsURL.replace(':commerce', creatorID).replace(':coin', coinSale);
     $.getJSON(url, { _token: $("#5K3_70K").val() })
         .done((response) => {
@@ -65,7 +67,7 @@ $(document).on("change", "#num-ctns", function () {
     setAmount();
 });
 
-$(document).on("click", "#cont-btn-buy-ctns", function () {
+$(document).on("click", "#btn-buy-ctns", function () {
     handleAmount();
     setAmount();
     toggleModalInfo();
@@ -159,6 +161,8 @@ function countdownt(startTime) {
 
     // Si la cuenta regresiva ha terminado, muestra un mensaje
     if (distance <= 0) {
+        available = false;
+        $('#btn-buy-ctns').prop('disabled', true);
         $('#game-clock').html("<small>¡La cuenta regresiva ha terminado!</small>");
         if (waitingTime) {
             clearInterval(waitingTime);

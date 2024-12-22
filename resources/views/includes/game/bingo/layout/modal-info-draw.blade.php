@@ -7,10 +7,8 @@
                 <div id="modal-info-draw-title"></div>
             </div>
             <div class="modal-body pb-2">
-                <div id="cont-btn-buy-ctns" class="text-center mb-2">
-                    <button type="button" id="btn-buy-ctns" class="btn btn-danger mdl-buy-ctns">Comprar
-                        Cartones</button>
-                </div>
+                <button type="button" id="btn-buy-ctns" class="text-center mb-2 btn btn-danger">Comprar
+                    Cartones</button>
                 <div id="game-clock" class="mb-1">
                     <div id="cont-D" class="cont-time-clock"><span id="days"></span><span>D</span></div>
                     <div id="cont-H" class="cont-time-clock"><span id="hours"></span><span>H</span></div>
@@ -101,7 +99,7 @@
                         </div>
                         <div class="card-footer d-flex justify-content-center">
                             <button type="button" id="btn-cancel-buy-ctns"
-                                class="mdl-buy-ctns btn btn-sm btn-secondary mx-1">Cancelar</button>
+                                class="btn btn-sm btn-secondary mx-1">Cancelar</button>
                             <button id="btn-buy-ctns-confirm" class="mdl-buy-ctns btn btn-success mx-1"
                                 type="button">Comprar
                                 <span id="spinner-btn-buy-ctns-confirm" class="spinner-grow spinner-grow-sm hide-elem"
