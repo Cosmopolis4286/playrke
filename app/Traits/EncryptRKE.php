@@ -18,27 +18,6 @@ trait EncryptRKE
         return $code;
     }
 
-    public function encryptDraw($table, $id)
-    {
-        $existingSymbols = DB::table($table)->where('room', $id)->pluck('sym')->toArray();
-
-        try {
-            for ($i = count($existingSymbols) + 1; $i <= 10; $i++) {
-                $num = $i;
-                if ($i == 10) $num = 0;
-                do {
-                    $code = Str::random(3);
-                } while (in_array($code, $existingSymbols));
-
-                DB::table($table)->insert(['num' => $num, 'sym' => $code, 'room' => $id]);
-                $existingSymbols[] = $code;
-            }
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
     public function valEncrypt()
     {
         return Str::random(10);

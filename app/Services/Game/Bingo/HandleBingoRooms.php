@@ -52,7 +52,7 @@ class HandleBingoRooms
 
     private function handleFinishedRooms(array $creator = []): void
     {
-        $fields = ['id', 'date', 'time'];
+        $fields = ['id', 'date', 'time', 'customer'];
         if (!empty($creator)) {
             $fields[] = $creator['type'];
         }
