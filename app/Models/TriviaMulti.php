@@ -6,10 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class TriviaMulti extends Model
 {
-
-    protected $table = "triv_multi";
+    protected $table = "trivia_rooms_multi";
     protected $fillable = [
-        'id', 'nombre', 'status', 'coin', 'precio', 'pj', 'min_pj', 'type_boat',
+        'nombre', 'status', 'coin', 'precio', 'pj', 'min_pj', 'type_boat',
         'jackpot', 'com', 'tickets', 'fecha', 'hora', 'replay', 'imagen', 'jackpot_f'
     ];
 

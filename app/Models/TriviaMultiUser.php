@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class TriviaMultiUserRoom extends Model
+class TriviaMultiUser extends Model
 {
-    protected $table = "triv_multi_user";
+    protected $table = "trivia_multi_user";
     protected $fillable = [
-        'id', 'user', 'room', 'c_half', 'c_half_use', 'c_jump',
+        'user', 'room', 'c_half', 'c_half_use', 'c_jump',
         'start', 'lose_win', 'num_quest', 'init_gm', 'fin_qt', 'end_gm'
     ];
 
