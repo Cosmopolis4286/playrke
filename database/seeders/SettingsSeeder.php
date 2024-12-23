@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Settings;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class SettingsSeeder extends Seeder
 {
@@ -15,9 +15,9 @@ class SettingsSeeder extends Seeder
     public function run()
     {
         // Insertar los datos en la tabla 'settings'
-        DB::table('settings')->insert([
-            ['description' => 'LOGIN', 'status' => 1],
-            ['description' => 'REGISTER', 'status' => 1]
+        Settings::insert([
+            ['param' => 'LOGIN', 'status' => 1],
+            ['param' => 'REGISTER', 'status' => 1]
         ]);
     }
 }
