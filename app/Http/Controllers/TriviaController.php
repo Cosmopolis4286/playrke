@@ -32,8 +32,6 @@ class TriviaController extends Controller
     // public function edit_sound()
     // {
     //     $user = auth()->user()->id;
-    //     $wallet = Wallet::where("usuario_id", $user)
-    //         ->join('monedas', 'monedas.id', 'Wallets.coin')->first();
     //     return view('modules/admin/trivia/sound')->with([
     //         'wallet' => $wallet
     //     ]);
@@ -124,8 +122,6 @@ class TriviaController extends Controller
     public function create_quest_indv()
     {
         $user = auth()->user()->id;
-        $wallet = Wallet::where("usuario_id", $user)
-            ->join('monedas', 'monedas.id', 'Wallets.coin')->first();
         $questions = DB::table('triv_indv_quest')->get();
         return view('modules/admin/trivia/create_indv')->with([
             'wallet' => $wallet,
@@ -323,15 +319,9 @@ class TriviaController extends Controller
 
     public function allRooms()
     {
-        $user = $this->user(['id', 'user_type']);
+        $viewData = ['title' => 'Trivias', 'rooms' => TriviaMulti::all()];
 
-        if ($user->user_type == 2) {
-            $wallet = $this->wallet($user->id);
-            $title = 'Salas de Bingo';
-            $trivia = TriviaMulti::with(['Coin', 'Status'])->orderBy('created_at')->get();
-
-            return view('modules.admin.trivia.rooms', compact('wallet', 'title', 'trivias'));
-        }
+        return view('modules.admin.trivia.rooms')->with($viewData);
     }
 
     public function roomshh($coinSym)
@@ -536,9 +526,6 @@ class TriviaController extends Controller
 
     public function room_indv() //Bolivares
     {
-        $user = auth()->user()->id;
-        $wallet = Wallet::where("usuario_id", $user)
-            ->join('monedas', 'monedas.id', 'Wallets.coin')->first();
         $sounds = DB::table('audio_tri')->get();
         $cdin = DB::table('triv_indv_cdin')->where('id_user', $user)
             ->orderBy('id', 'desc')->first();
@@ -832,9 +819,6 @@ class TriviaController extends Controller
     public function refresh_pvp() {}
     public function room_pvp()
     {
-        $user = auth()->user()->id;
-        $wallet = Wallet::where("usuario_id", $user)
-            ->join('monedas', 'monedas.id', 'Wallets.coin')->first();
         $sounds = DB::table('audio_tri')->get();
         $cdin = DB::table('triv_indv_cdin')->where('id_user', $user)
             ->orderBy('id', 'desc')->first();
@@ -958,8 +942,6 @@ class TriviaController extends Controller
 
     public function editTrivaMulti($id)
     {
-        $wallet = Wallet::where("usuario_id", auth()->user()->id)->first();
-        $walletdas = Coin::All();
         return view('modules/admin/trivia/edit')
             ->with('data', $this->getInfoTrivia($id))
             ->with('question', $this->triv_multi_quest($id))
@@ -1497,9 +1479,6 @@ class TriviaController extends Controller
 
     public function revive($id)
     {
-        $user = auth()->user()->id;
-        $wallet = Wallet::where("usuario_id", $user)
-            ->join('monedas', 'monedas.id', 'Wallets.coin')->first();
         $trivia = TriviaMulti::where('id', $id)->first();
         $triv_user = DB::table('triv_multi_user')->where('room', $id)->where('user', $user)->first();
         $ext = DB::table('extras_user')->where('user', $user)->first();
@@ -1530,9 +1509,6 @@ class TriviaController extends Controller
 
     public function buy_lives($id)
     {
-        $user = auth()->user()->id;
-        $wallet = Wallet::where("usuario_id", $user)
-            ->join('monedas', 'monedas.id', 'Wallets.coin')->first();
         $ext = DB::table('extras')->where('id', 3)->first();
         $ext_u = DB::table('extras_user')->where('user', $user)->first();
         if ($ext_u->lives == null || $ext_u->lives <= 0) {

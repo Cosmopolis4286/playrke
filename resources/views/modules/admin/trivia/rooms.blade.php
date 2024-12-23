@@ -1,6 +1,5 @@
 @extends('layouts.app_rke')
-<title>
-    Trivias - PlayRKE</title>
+@section('title', $title)
 @section('fnd-content')
     <div class="content-wrapper">
     @endsection
@@ -33,7 +32,7 @@
                                     <a href="{{ route('trivia.create') }}">
                                         <i class="fas fa-plus-square"></i>
                                     </a>
-                                    <a class="ml-3 mr-3" href="{{ route('triv_in.create_quest') }}">??</a>
+                                    {{-- <a class="ml-3 mr-3" href="{{ route('trivia.create_quest') }}">??</a> --}}
                                     <a href="{{ route('trivia.edit_sound') }}">
                                         <i class="fa-solid fa-music"></i>
                                     </a>
@@ -58,38 +57,38 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach ($trivias as $triv)
+                                            @foreach ($rooms as $room)
                                                 <tr>
                                                     <td>
-                                                        @if ($triv->fecha != null)
-                                                            {{ \Carbon\Carbon::parse($triv->fecha)->format('d/m/Y') }}
+                                                        @if ($room->fecha != null)
+                                                            {{ \Carbon\Carbon::parse($room->fecha)->format('d/m/Y') }}
                                                         @endif
                                                     </td>
-                                                    <td>{{ $triv->hora }}</td>
+                                                    <td>{{ $room->hora }}</td>
                                                     <td>
-                                                        @if ($triv->replay == 0)
+                                                        @if ($room->replay == 0)
                                                             No
                                                         @else
                                                             Si
                                                         @endif
                                                     </td>
-                                                    <td>{{ $triv->name }}</td>
-                                                    <td>{{ $triv->precio }}</td>
-                                                    <td>{{ $triv->players }}/{{ $triv->min_pj }}</td>
-                                                    <td>{{ $triv->jackpot }}</td>
+                                                    <td>{{ $room->name }}</td>
+                                                    <td>{{ $room->precio }}</td>
+                                                    <td>{{ $room->players }}/{{ $room->min_pj }}</td>
+                                                    <td>{{ $room->jackpot }}</td>
                                                     <td>
-                                                        @if ($triv->type_boat == 1)
+                                                        @if ($room->type_boat == 1)
                                                             Aumet
-                                                        @elseif($triv->type_boat == 2)
+                                                        @elseif($room->type_boat == 2)
                                                             ValFJ
                                                         @endif
                                                     </td>
-                                                    <td>{{ $triv->com }}%</td>
-                                                    <td>{{ $triv->profit }}</td>
-                                                    <td>{{ $triv->info }}</td>
+                                                    <td>{{ $room->com }}%</td>
+                                                    <td>{{ $room->profit }}</td>
+                                                    <td>{{ $room->info }}</td>
                                                     <td align="center">
-                                                        @if ($triv->status != 3)
-                                                            <a href="{{ url('trivia/edit/' . $triv->id) }}"
+                                                        @if ($room->status != 3)
+                                                            <a href="{{ url('trivia/edit/' . $room->id) }}"
                                                                 class="btn bg-cyan"><i class="fas fa-edit"></i>
                                                             </a>
                                                         @endif
@@ -102,9 +101,9 @@
                             </div>
                         </div>
                         <div class="mt-2 text-center">
-                            <a href="{{ route('trivia.create') }}" title="Crear Nueva Trivia">
+                            <a href="{{ route('trivia.create') }}" title="Crear Nueva trivia">
                                 <button id="savePago" class="btn btn-primary profile-button" type="submit">
-                                    <i class="fas fa-plus-square"></i>&nbspCrear Nueva Trivia
+                                    <i class="fas fa-plus-square"></i>&nbspCrear Nueva trivia
                                 </button>
                             </a>
                         </div>

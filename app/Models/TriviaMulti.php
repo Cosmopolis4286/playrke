@@ -8,18 +8,23 @@ class TriviaMulti extends Model
 {
     protected $table = "trivia_rooms_multi";
     protected $fillable = [
-        'nombre', 'status', 'coin', 'precio', 'pj', 'min_pj', 'type_boat',
-        'jackpot', 'com', 'tickets', 'fecha', 'hora', 'replay', 'imagen', 'jackpot_f'
+        'date',
+        'time',
+        'unix_date',
+        'status',
+        'price',
+        'players',
+        'all_sale',
+        'jackpot',
+        'room_commn',
+        'advertising_image',
+        'close_room',
+        'code_uuid'
     ];
 
     public function Status()
     {
         return $this->belongsTo(StatusGame::class, 'status');
-    }
-
-    public function Coin()
-    {
-        return $this->belongsTo(Coin::class, 'coin');
     }
 
     public function Questions()
@@ -34,6 +39,6 @@ class TriviaMulti extends Model
 
     public function PlayersRoom()
     {
-        return $this->hasMany(TriviaMultiUserRoom::class, 'room', 'id');
+        return $this->hasMany(TriviaMultiUser::class, 'room', 'id');
     }
 }

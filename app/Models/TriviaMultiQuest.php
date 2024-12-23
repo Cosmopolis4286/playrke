@@ -6,10 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class TriviaMultiQuest extends Model
 {
-    protected $table = "triv_multi_quest";
+    protected $table = "trivia_multi_quest";
     protected $fillable = [
-        'id', 'room', 'num_quest', 'send', 'question', 'imagen',
-        'correct_answer', 'option_1', 'option_2', 'option_3'
+        'room',
+        'num_quest',
+        'imagen',
+        'question',
+        'answer',
+        'option_1',
+        'option_2',
+        'option_3'
     ];
 
     public function Room()
