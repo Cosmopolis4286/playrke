@@ -50,9 +50,9 @@ class HandleBingoRooms
         return 1; // Status 1: Borrador
     }
 
-    private function handleFinishedRooms(array $creator = []): void
+    public function handleFinishedRooms(array $creator = []): void
     {
-        $fields = ['id', 'date', 'time', 'customer'];
+        $fields = ['id', 'date', 'time', 'commerce', 'customer'];
         if (!empty($creator)) {
             $fields[] = $creator['type'];
         }
@@ -68,7 +68,10 @@ class HandleBingoRooms
             $this->handleJackpotWinners($room->id);
         }
 
-        if ($room->customer) {
+        if ($room->commerce) {
+            // Actulizar estado de los cartones ganadores
+            BingoPrizeCtns::where('room', $room->id)->update(['active' => 'Y']);
+        } else if ($room->customer) {
             // Verificar si existen pagos que procesar
             (new PrizeCartonService())->handleCustomerPrizeCarton($room->customer);
         }

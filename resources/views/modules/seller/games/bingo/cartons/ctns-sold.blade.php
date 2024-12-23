@@ -31,13 +31,13 @@
                                         <tr>
                                             <td class="align-middle">
                                                 <a class="badge bg-navy" title="Ver Reporte"
-                                                    href="{{ route('seller.reportSalesByRoom', ['room' => $ctn->Room->encrypted, 'coin' => encrypt($coinId), 'dateFilter' => $dateFilter]) }}">
+                                                    href="{{ route('seller.reportSalesByRoom', ['room' => $ctn->Room->encrypted, 'coin' => encrypt($coin), 'dateFilter' => $dateFilter]) }}">
                                                     {{ $ctn->Room->encrypted }}
                                                 </a>
                                             </td>
                                             <td>{{ $ctn->PlayerLink->name }} {{ $ctn->PlayerLink->lastname }}</td>
                                             <td>{{ $ctn->PlayerLink->Country->name }}</td>
-                                            <td>{{ $coin->coinISOCode }} ({{ $coinSym }})</td>
+                                            <td>{{ $coinISOCode }} ({{ $coinSym }})</td>
                                             <td>{{ $ctn->ctns }}</td>
                                             <td>{{ $coinISOCode }} {{ $ctn->sale_amount }}</td>
                                             <td>{{ $ctn->created_at->format('d/m/y H:i:s') }}<small
