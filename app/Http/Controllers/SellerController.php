@@ -484,6 +484,8 @@ class SellerController extends Controller
             );
         }
 
+        $coin = Coin::getById($verifyCoin['coin']);
+
         $ctnsSoldQuery = BingoCtnsLot::with([
             'Payment',
             'PlayerLink',
@@ -498,7 +500,7 @@ class SellerController extends Controller
 
         $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
-        $ctnsSold = $ctnsSoldQuery->where('coin', $coin)
+        $ctnsSold = $ctnsSoldQuery->where('coin', $coin->id)
             ->where('seller', $seller->id)->orderBy('status')->orderByDesc('id')->get();
 
         $allPendingCtnSale = $pendingCtns = 0;
@@ -509,8 +511,6 @@ class SellerController extends Controller
                 $pendingCtns++;
             }
         }
-
-        $coin = Coin::getById($verifyCoin['coin']);
 
         $coins = $this->getSellerCoins($seller->id, $dateFilter, ['CtnsLot']);
 
@@ -559,6 +559,8 @@ class SellerController extends Controller
             );
         }
 
+        app(HandleBingoRooms::class)->checkRoomClosure();
+
         $coin = $verifyCoin['coin'];
 
         $winnersQuery = BingoPrizeCtns::with([
@@ -580,7 +582,9 @@ class SellerController extends Controller
         $winners = $winnersQuery->where('seller', $seller->id)
             ->where('active', 'Y')->where('coin', $coin)->get();
 
-        $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
+        $commerce = Commerce::getById($seller->commerce, ['code_rke', 'code_uuid']);
+
+        $commerce = $commerce->code_rke ?? $commerce->code_uuid;
 
         $coins = $this->getSellerCoins($seller->id, $dateFilter, ['PlayerLink', 'PrizeCtns']);
 
@@ -589,12 +593,13 @@ class SellerController extends Controller
             'parameters' => ['dateFilter' => $dateFilter]
         ];
 
-        $coinInfo = Coin::getById($coin, ['id', 'symbol', 'long_name']);
+        $coinInfo = Coin::getById($coin, ['id', 'symbol', 'iso_code']);
         $coinSym = $coinInfo->symbol;
+        $coinISOCode = $coinInfo->iso_code;
 
         return view(
             'modules.seller.games.bingo.cartons.awarwed',
-            compact('title', 'name', 'wallet', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coins')
+            compact('title', 'name', 'wallet', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
         );
     }
 

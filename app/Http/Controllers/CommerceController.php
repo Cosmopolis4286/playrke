@@ -24,6 +24,7 @@ use App\Models\SellerCountriesCoins;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
+use App\Services\Game\Bingo\HandleBingoRooms;
 use App\Traits\BingoTrait;
 use App\Traits\Filters;
 use App\Traits\RouteRKE;
@@ -490,9 +491,11 @@ class CommerceController extends Controller
             return redirect()->back();
         }
 
+        $coin = decrypt($coin);
+
         // Verificar la existencia de la moneda
         $query = BingoCtnsLot::where('commerce', $commerce)->where('room', $room->id);
-        $existSale = $this->existsCoin($query, decrypt($coin));
+        $existSale = $this->existsCoin($query, $coin);
 
         if (!$existSale) {
             // si no existe venta para esa fecha
@@ -600,6 +603,8 @@ class CommerceController extends Controller
         $wallet = $this->wallet();
         $commerce = $this->commerce()->id;
 
+        app(HandleBingoRooms::class)->checkRoomClosure();
+
         // Obtener los datos de los ganadores
         $winners = $this->getWinnersData($commerce, $dateFilter);
 
@@ -614,7 +619,9 @@ class CommerceController extends Controller
 
         // Obtener las monedas asociadas al comercio
         $coins = $this->getByIdsForCommerce($commerce);
-        $commerce = Commerce::getValueById($commerce, 'code_uuid');
+
+        $commerce = Commerce::getById($commerce, ['code_rke', 'code_uuid']);
+        $commerce = $commerce->code_rke ?? $commerce->code_uuid;
 
         return view(
             'modules.commerce.games.bingo.cartons.awarwed.my-winners',
@@ -640,6 +647,8 @@ class CommerceController extends Controller
 
         $wallet = $this->wallet();
         $commerce = $this->commerce()->id;
+
+        app(HandleBingoRooms::class)->checkRoomClosure();
 
         // Obtener los datos de los ganadores
         $winners = $this->getWinnersData($commerce, $dateFilter, true);

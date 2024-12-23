@@ -43,7 +43,7 @@
                                             <td>{{ $win->PlayerLink->name }}
                                                 {{ $win->PlayerLink->lastname }}</td>
                                             <td>{{ $win->PlayerLink->Country->name }}</td>
-                                            <td>{{ $coin->long_name }} ({{ $coinSym }})</td>
+                                            <td>{{ $coinISOCode }} ({{ $coinSym }})</td>
                                             <td>{{ $coinSym }} {{ $win->amount }}</td>
                                             <td>{{ $win->Prize->description }}</td>
                                             <td class="align-middle">
