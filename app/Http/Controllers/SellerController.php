@@ -827,16 +827,7 @@ class SellerController extends Controller
         $wallet = $this->wallet();
 
         // Realizar los cálculos de CTNs 
-        $totalCtnsPurchased = 0;
-
-        foreach ($playersRoom as $player) {
-            $playerCtnsPurchased = 0;
-            foreach ($player->CtnsLot as $ctn) {
-                $playerCtnsPurchased += $ctn->ctns * $ctn->exchange_rate;
-            }
-            $player->ctns_purchased = $playerCtnsPurchased;
-            $totalCtnsPurchased += $playerCtnsPurchased;
-        }
+        $totalCtnsPurchased = $playersRoom->pluck('CtnsLot')->flatten()->sum('sale_amount');
 
         $totalCtnsByRoom = $playersRoom->flatMap->CtnsLot->sum('ctns');
 

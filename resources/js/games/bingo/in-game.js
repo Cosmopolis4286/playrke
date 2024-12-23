@@ -61,6 +61,7 @@ let posChip = 0;
 function renderChipsView(arrow) {
 
     if (!allChips.length) return;
+    $('#container-history-chips').removeClass('hide-elem');
 
     const arr = allChips;
 
@@ -128,6 +129,11 @@ function handleLatestChips(latestChips) {
     autoMarked();
     vanChange = false;
     processChips();
+
+    // Muestra los ganadores si el estado de la sala lo permite
+    if (roomStatus > 3 || latestChips.includes(chpLast)) {
+        showWinners(decryptJson(infoGame, r4nd0m), chpLast);
+    }
 }
 
 window.onblur = () => {
@@ -149,6 +155,9 @@ async function getGameData() {
             latestChips = data.latestChips;
             allChips = data.allChips;
             timeServ = Number(data.timeServ);
+
+            console.log('latestChips', latestChips);
+            console.log('allChips', allChips);
 
             handleLatestChips(latestChips);
 
@@ -211,13 +220,14 @@ function checkExitOfToken() {
         // Verificamos si el chip tiene un tiempo válido y está listo para salir
         if (chipTime && chipTime <= timeServ) {
             const nextChip = decryptChp(chip.code);
-
+            console.log('allChips', allChips);
+            console.log('nextChip', nextChip);
             // Si el chip no ha sido procesado, lo procesamos
-            if (!allChipsSet.has(nextChip)) {
-                arrDraw.splice(i, 1);
+            if (!allChips.includes(nextChip)) {
                 getNewChip(nextChip);
                 break;
             }
+            arrDraw.splice(i, 1);
         }
     }
 }
@@ -284,7 +294,6 @@ function getNewChip(newChip) {
         newChip = Number(newChip);
         latestChips.unshift(newChip);
         allChips.unshift(newChip);
-        allChipsSet.add(newChip);
 
         // Ejecutar funciones en paralelo
         renderChipsView();
@@ -433,11 +442,6 @@ $(function () {
             processChips();
         } else {
             handleLatestChips(latestChips);
-
-            // Muestra los ganadores si el estado de la sala lo permite
-            if (roomStatus > 3) {
-                showWinners(decryptJson(infoGame, r4nd0m), chpLast);
-            }
         }
     } catch (error) {
         console.error("Error en la inicialización:", error);

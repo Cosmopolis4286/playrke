@@ -30,7 +30,7 @@
                                             <td>{{ $player->phone }}</td>
                                             <td>{{ $coinName }} ({{ $coinSym }})</td>
                                             <td>{{ $player->CtnsLot->sum('ctns') }}</td>
-                                            <td>{{ $player->Coin->symbol }} {{ $player->ctns_purchased }}</td>
+                                            <td>{{ $player->Coin->symbol }} {{ $player->CtnsLot->sum('sale_amount') }}</td>
                                             <td>
                                                 <a class="btn btn-sm bg-primary show-ctns" target="_blank"
                                                     href="{{ route('bingocash.in-game-commerce', ['commerce' => $commerce, 'player' => $player->link]) }}">
