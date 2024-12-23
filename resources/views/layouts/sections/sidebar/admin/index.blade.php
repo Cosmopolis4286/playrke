@@ -26,8 +26,8 @@
             </li>
         </ul>
     </li>
-    {{-- <li class="nav-item has-treeview">
-        <a href="#" class="nav-link {{ !Route::is('trivia.allRooms') ?: 'active' }}">
+    <li class="nav-item has-treeview">
+        <a href="#" class="nav-link {{ !Route::is('trivia.all-rooms') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-puzzle-piece"></i>
             <p>Trivia
                 <i class="right fas fa-angle-left"></i>
@@ -35,9 +35,9 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item ">
-                <a href="{{ route('trivia.allRooms') }}" class="nav-link {{ !Route::is('trivia.allRooms') ?: 'active' }}">
+                <a href="{{ route('trivia.all-rooms') }}" class="nav-link {{ !Route::is('trivia.all-rooms') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
-                    <p>Salas de Juego</p>
+                    <p>Salas</p>
                 </a>
             </li>
             <li class="nav-item ">
@@ -48,7 +48,7 @@
             </li>
         </ul>
     </li>
-    <li class="nav-item has-treeview">
+    {{-- <li class="nav-item has-treeview">
         <a href="#" class="nav-link {{ !Route::is('bingo.allRooms', 'bingo.winners') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo

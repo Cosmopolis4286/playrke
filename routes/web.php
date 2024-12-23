@@ -327,7 +327,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'historial', 'as' => 'histor
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'trivia', 'as' => 'trivia.'], function () {
-    Route::get('all', [TriviaController::class, 'allRooms'])->name('allRooms');
+    Route::get('rooms', [TriviaController::class, 'allRooms'])->middleware('admin')->name('all-rooms');
     Route::get('{coin}', [TriviaController::class, 'rooms'])->name('rooms');
     Route::get('time_serv', [TriviaController::class, 'time_serv'])->name('time_serv');
     Route::get('timer/{id}', [TriviaController::class, 'timer'])->name('timer');

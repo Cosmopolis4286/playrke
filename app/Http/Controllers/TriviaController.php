@@ -9,9 +9,6 @@ use App\Models\TriviaMulti;
 use App\Models\Wallet;
 use App\Models\question;
 use App\Models\TriviaIndv;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
 use App\Models\ExtrasUser;
 use App\Models\GameExtras;
 use App\Models\GameSounds;
@@ -20,76 +17,77 @@ use App\Models\HistGame;
 use App\Models\TriviaMultiCups;
 use App\Models\TriviaMultiQuest;
 use App\Traits\UserVal;
-use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Intervention\Image\Facades\Image;
+use App\Http\Controllers\Controller;
 use DateTime;
 
 class TriviaController extends Controller
 {
     use UserVal;
 
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
     ////////////////////////// Admin
-    public function edit_sound()
+    // public function edit_sound()
+    // {
+    //     $user = auth()->user()->id;
+    //     $wallet = Wallet::where("usuario_id", $user)
+    //         ->join('monedas', 'monedas.id', 'Wallets.coin')->first();
+    //     return view('modules/admin/trivia/sound')->with([
+    //         'wallet' => $wallet
+    //     ]);
+    // }
+
+    // public function store_sound(Request $request)
+    // {
+    //     if (auth()->user()->user_type == 1) {
+    //         return redirect()->back();
+    //     }
+    //     $sounds = DB::table('audio_tri')->where('id', 1)->first();
+    //     $track = $request->file('track');
+    //     $name_track = $track->getClientOriginalName();
+    //     $track->move('sounds/trivia/', $name_track);
+
+    //     $s_correct = $request->file('s_correct');
+    //     $name_scorrect = $s_correct->getClientOriginalName();
+    //     $s_correct->move('sounds/trivia/', $name_scorrect);
+
+    //     $s_incorrect = $request->file('s_incorrect');
+    //     $name_sincorrect = $s_incorrect->getClientOriginalName();
+    //     $s_incorrect->move('sounds/trivia/', $name_sincorrect);
+
+    //     if ($sounds->id != 1) {
+    //         DB::table('audio_tri')->insertGetId([
+    //             'track' => $name_track,
+    //             'correct' => $name_scorrect,
+    //             'incorrect' => $name_sincorrect
+    //         ]);
+    //     } else {
+    //         DB::table('audio_tri')->update([
+    //             'track' => $name_track,
+    //             'correct' => $name_scorrect,
+    //             'incorrect' => $name_sincorrect
+    //         ]);
+    //     }
+
+    //     Session::flash('mensaje', 'Sonidos cargados correctamente.');
+    //     return redirect()->route('trivia.index');
+    // }
+
+
+    /// CRUD ///
+
+    public function createView()
     {
-        $user = auth()->user()->id;
-        $wallet = Wallet::where("usuario_id", $user)
-            ->join('monedas', 'monedas.id', 'Wallets.coin')->first();
-        return view('modules/admin/trivia/sound')->with([
-            'wallet' => $wallet
-        ]);
-    }
-
-    public function store_sound(Request $request)
-    {
-        if (auth()->user()->user_type == 1) {
-            return redirect()->back();
-        }
-        $sounds = DB::table('audio_tri')->where('id', 1)->first();
-        $track = $request->file('track');
-        $name_track = $track->getClientOriginalName();
-        $track->move('sounds/trivia/', $name_track);
-
-        $s_correct = $request->file('s_correct');
-        $name_scorrect = $s_correct->getClientOriginalName();
-        $s_correct->move('sounds/trivia/', $name_scorrect);
-
-        $s_incorrect = $request->file('s_incorrect');
-        $name_sincorrect = $s_incorrect->getClientOriginalName();
-        $s_incorrect->move('sounds/trivia/', $name_sincorrect);
-
-        if ($sounds->id != 1) {
-            DB::table('audio_tri')->insertGetId([
-                'track' => $name_track,
-                'correct' => $name_scorrect,
-                'incorrect' => $name_sincorrect
+        return view('modules/admin/trivia/create')
+            ->with([
+                'wallet' => $this->wallet(),
+                'coins' => Coin::all()
             ]);
-        } else {
-            DB::table('audio_tri')->update([
-                'track' => $name_track,
-                'correct' => $name_scorrect,
-                'incorrect' => $name_sincorrect
-            ]);
-        }
-
-        Session::flash('mensaje', 'Sonidos cargados correctamente.');
-        return redirect()->route('trivia.index');
     }
 
-    public function create()
-    {
-        $user = auth()->user()->id;
-        $wallet = Wallet::where("usuario_id", $user)
-            ->join('monedas', 'monedas.id', 'Wallets.coin')->first();
-        $coins = DB::table('monedas')->get();
-        return view('modules/admin/trivia/create')->with(['wallet' => $wallet, 'coins' => $coins]);
-    }
-
-    public function store(Request $request)
+    public function create(Request $request)
     {
         $files = $request->file('imagen');
         if (empty($files)) {
@@ -118,6 +116,8 @@ class TriviaController extends Controller
         Session::flash('mensaje', 'Trivia creada correctamente.');
         return redirect()->route('trivia.rooms');
     }
+
+    /// CRUD ///
 
     //TRIVIA INDIVIDUAL
 
