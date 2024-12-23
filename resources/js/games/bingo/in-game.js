@@ -127,7 +127,6 @@ function handleLatestChips(latestChips) {
 
     renderChipsView();
     autoMarked();
-    vanChange = false;
     processChips();
 
     // Muestra los ganadores si el estado de la sala lo permite
@@ -136,34 +135,29 @@ function handleLatestChips(latestChips) {
     }
 }
 
-window.onblur = () => {
-    vanChange = true;
-};
-
 window.onfocus = function () {
     if (roomStatus == 3) getGameData();
 };
 
 async function getGameData() {
-    if (vanChange && endWin === 0) {
-        try {
-            const data = await $.getJSON(`${preRoute}bingocash/get/chips/${encrypted}`, {
-                '_token': $("#5K3_70K").val()
-            });
+    if (endWin !== 0) return;
+    try {
+        const data = await $.getJSON(`${preRoute}bingocash/get/chips/${encrypted}`, {
+            '_token': $("#5K3_70K").val()
+        });
 
-            // Redefinir variables
-            latestChips = data.latestChips;
-            allChips = data.allChips;
-            timeServ = Number(data.timeServ);
+        // Redefinir variables
+        latestChips = data.latestChips;
+        allChips = data.allChips;
+        timeServ = Number(data.timeServ);
 
-            console.log('latestChips', latestChips);
-            console.log('allChips', allChips);
+        console.log('latestChips', latestChips);
+        console.log('allChips', allChips);
 
-            handleLatestChips(latestChips);
+        handleLatestChips(latestChips);
 
-        } catch (error) {
-            console.error("Error al obtener los datos del juego:", error);
-        }
+    } catch (error) {
+        console.error("Error al obtener los datos del juego:", error);
     }
 }
 
@@ -220,8 +214,6 @@ function checkExitOfToken() {
         // Verificamos si el chip tiene un tiempo válido y está listo para salir
         if (chipTime && chipTime <= timeServ) {
             const nextChip = decryptChp(chip.code);
-            console.log('allChips', allChips);
-            console.log('nextChip', nextChip);
             // Si el chip no ha sido procesado, lo procesamos
             if (!allChips.includes(nextChip)) {
                 getNewChip(nextChip);
@@ -240,7 +232,7 @@ function processChips() {
 
     intervalId = setInterval(() => {
         // Condiciones para detener la ejecución
-        if (endWin || latestChips.includes(chpLast) || vanChange) {
+        if (endWin || latestChips.includes(chpLast)) {
             clearInterval(intervalId); // Detiene el intervalo si alguna condición es verdadera
             intervalId = null; // Resetea la referencia del intervalo
             return;

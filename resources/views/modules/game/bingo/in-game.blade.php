@@ -76,7 +76,6 @@
         <script>
             let loaderChip = true;
             let loadTimeServ = false;
-            let vanChange = 0;
             let actSound = 0;
             let endWin = (arrDraw.length && (roomStatus === 2 || roomStatus === 3)) ? 0 : (roomStatus >= 4 ? 1 : 0);
             let sizeCarrsel;
