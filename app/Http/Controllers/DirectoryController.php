@@ -41,7 +41,6 @@ class DirectoryController extends Controller
         if (!$country) return redirect()->back();
 
         $title = "Directorio $country->name";
-        $wallet = $this->wallet();
         $countries = Country::getCountriesById($this->getAvailableCountries($userID));
 
         $paymentType = null;
@@ -110,7 +109,7 @@ class DirectoryController extends Controller
         $viewPath = "modules.all.directory.$countryCode.index";
 
         return view($viewPath, array_merge(
-            compact('title', 'countryCode', 'countries', 'paymentType', 'name', 'wallet'),
+            compact('title', 'countryCode', 'countries', 'paymentType', 'name'),
             $additionalData
         ));
     }

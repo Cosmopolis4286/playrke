@@ -12,9 +12,10 @@ use App\Models\BingoRoom;
 use App\Models\BingoDraw;
 use App\Models\BingoRoomUser;
 use App\Models\BingoCtns;
-use App\Models\HistGame;
+use App\Models\PlayHistory;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
+use App\Models\BingoCtnsLot;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawCode;
 use App\Models\BingoRoomAutomatic;
@@ -114,7 +115,7 @@ class BingoController extends Controller
 
                 $player = Commerce::getValueByUserId($player, 'id') ? false : encrypt($player);
 
-                $moreViewData = ['player' => $player, 'wallet' => $this->wallet()];
+                $moreViewData = ['player' => $player];
                 break;
             case 'customer': // Cliente
 
@@ -807,7 +808,6 @@ class BingoController extends Controller
 
                 $moreViewData = [
                     'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
-                    'wallet' => $this->wallet(),
                     'countries' => Country::getAllAvailableCountries()
                 ];
 
@@ -1345,37 +1345,61 @@ class BingoController extends Controller
         }
     }
 
-    public function refund($id) //Reembolsar compras de la sala
+    public function refund($id) // Reembolsar compras de la sala
     {
-        $room = decrypt($id);
+        $roomID = decrypt($id);
 
-        $room = BingoRoom::where('id', $room)->first();
-        $bg_user = BingoRoomUser::where('room', $room)->get();
-
-        foreach ($bg_user as $key => $value) {
-
-            $user_bg = BingoRoomUser::where('room', $room)->where('user', $value->user)->first();
-
-            $return_balance = ($user_bg->ctns * $room->ctn_price);
-
-            $walleuser_type = Wallet::where('usuario_id', $value->user)->first();
-
-            if ($room->coin == 1) {
-                Wallet::where("usuario_id", $value->user)
-                    ->update(['usdt' => $walleuser_type->usdt + $return_balance]);
-            } else {
-                Wallet::where("usuario_id", $value->user)
-                    ->update(['saldo' => $walleuser_type->balance + $return_balance]);
-            }
-
-            //Comprobar el historial de jugadas
-            HistGame::where('game', 1)->where('room', $room)
-                ->where('user', $value->id)->update(['gain' => 'Reembolsado']);
+        if (!BingoRoomUser::where('room', $roomID)->exists()) {
+            return true;
         }
 
-        BingoRoom::where('id', $room)->update(['status' => 5]);
+        $gameID = Games::getValueByName('BINGO');
 
-        return redirect()->back()->with('message', 'El bote fue reembolsado')->with('type', 'success');;
+        foreach (BingoRoomUser::where('room', $roomID)->cursor() as $player) {
+            DB::beginTransaction(); // Iniciar transacción por cada iteración
+
+            try {
+                $user = $player->user;
+
+                $amountToReturn = BingoCtnsLot::where('room', $roomID)
+                    ->where('player_user', $user)->sum('sale_amount');
+
+                // Obtener la cartera del usuario
+                $wallet = Wallet::where('user', $user)->first();
+
+                if (!$wallet) {
+                    throw new \Exception("Cartera no encontrada para el usuario ID: $user");
+                }
+
+                if ($player->coin === 'USDT') {
+                    $wallet->usdt += $amountToReturn;
+                } else {
+                    $wallet->balance += $amountToReturn;
+                }
+
+                // Actualizar cartera
+                $wallet->save();
+
+                // Insertar historial de jugadas
+                PlayHistory::create([
+                    'game' => $gameID,
+                    'room' => $roomID,
+                    'user' => $user,
+                    'gain' => $amountToReturn,
+                    'action' => 'Retorno'
+                ]);
+
+                DB::commit(); // Confirmar transacción de la iteración
+            } catch (\Exception $e) {
+                DB::rollBack(); // Revertir solo la iteración actual en caso de error
+                Log::error("Error al reembolsar al usuario ID $user: " . $e->getMessage());
+            }
+        }
+
+        // Actualizar estado de la sala después de todas las iteraciones
+        BingoRoom::where('id', $roomID)->update(['status' => 5]);
+
+        return redirect()->back()->with('message', 'El bote fue reembolsado')->with('type', 'warning');
     }
 
     public function actWn(Request $request)
@@ -1409,10 +1433,7 @@ class BingoController extends Controller
 
                 $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($commerce->coin)]);
 
-                $moreViewData = [
-                    'commerceUUID' => $commerce->code_uuid,
-                    'wallet' => $this->wallet()
-                ];
+                $moreViewData = ['commerceUUID' => $commerce->code_uuid];
 
                 if ($creatorID == 1) $roomType = Room::getRoomTypes();
 

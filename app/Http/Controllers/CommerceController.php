@@ -350,11 +350,10 @@ class CommerceController extends Controller
     public function allDirectories()
     {
         $title = 'Datos Bancarios';
-        $wallet = $this->wallet();
 
         $pagoMovils = PagoMovil::with(['DocumentType', 'Bank'])->where("user", Auth::id())->get();
 
-        return view('modules.commerce.directory.Venezuela.index', compact('title', 'wallet', 'pagoMovils'));
+        return view('modules.commerce.directory.Venezuela.index', compact('title', 'pagoMovils'));
     }
 
     private function getCommerceCoins($commerce, $dateFilter = "today", $relation = [])
@@ -379,7 +378,6 @@ class CommerceController extends Controller
     public function reportSalesRooms($coin = '', $dateFilter = "today")
     {
         $title = 'Reporte de Ventas';
-        $wallet = $this->wallet();
 
         $commerce = $this->commerce('id')->id;
 
@@ -455,7 +453,7 @@ class CommerceController extends Controller
 
         return view(
             'modules.commerce.games.bingo.report.rooms',
-            compact('title', 'wallet', 'rooms', 'routeWithCoin', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
+            compact('title', 'rooms', 'routeWithCoin', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
         );
     }
 
@@ -482,7 +480,6 @@ class CommerceController extends Controller
 
     public function reportSalesByRoom($roomID, $coin)
     {
-        $wallet = $this->wallet();
         $commerce = $this->commerce('id')->id;
 
         $room = BingoRoom::getRoomByEncrypted($roomID, ['id', 'ctn_price', 'encrypted', 'commerce']);
@@ -525,7 +522,6 @@ class CommerceController extends Controller
             'title' => "Reporte de Sala",
             'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
             'ctnPrice' => $room->ctn_price,
-            'wallet' => $wallet,
             'sellers' => $sellers,
             'comCommerceRm' => BingoRoomConfig::getValueByRoom($room->id, 'room_commn') / 100,
             'room' => $room->encrypted,
@@ -539,7 +535,6 @@ class CommerceController extends Controller
     {
         $title = 'Mis Vendedores';
         $name = 'seller';
-        $wallet = $this->wallet();
         $commerce = $this->commerce()->id;
 
         $sellers = Seller::with(['Country', 'CountriesCoins.Coin'])->where('commerce', $commerce)->get();
@@ -552,7 +547,7 @@ class CommerceController extends Controller
 
         return view(
             'modules.commerce.sellers.index',
-            compact('title', 'name', 'wallet', 'sellers', 'countriesCommerce', 'coinsCommerce')
+            compact('title', 'name', 'sellers', 'countriesCommerce', 'coinsCommerce')
         );
     }
 
@@ -600,7 +595,6 @@ class CommerceController extends Controller
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
 
-        $wallet = $this->wallet();
         $commerce = $this->commerce()->id;
 
         app(HandleBingoRooms::class)->checkRoomClosure();
@@ -628,7 +622,6 @@ class CommerceController extends Controller
             compact(
                 'title',
                 'name',
-                'wallet',
                 'dateFilter',
                 'commerce',
                 'winners',
@@ -645,7 +638,6 @@ class CommerceController extends Controller
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
 
-        $wallet = $this->wallet();
         $commerce = $this->commerce()->id;
 
         app(HandleBingoRooms::class)->checkRoomClosure();
@@ -667,7 +659,6 @@ class CommerceController extends Controller
             compact(
                 'title',
                 'name',
-                'wallet',
                 'commerce',
                 'dateFilter',
                 'winners',
@@ -748,7 +739,6 @@ class CommerceController extends Controller
     {
         $title = 'Cartones Vendidos';
 
-        $wallet = $this->wallet();
         $commerce = $this->commerce('id')->id;
 
         $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'commerce', 'id' => $commerce]);
@@ -787,7 +777,7 @@ class CommerceController extends Controller
 
         return view(
             'modules.commerce.games.bingo.cartons.ctns-sold',
-            compact('title', 'wallet', 'ctnsSold', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coins')
+            compact('title', 'ctnsSold', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coins')
         );
     }
 
