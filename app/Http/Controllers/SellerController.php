@@ -320,7 +320,6 @@ class SellerController extends Controller
     {
         $documentType = DocumentType::where('country', 234)->get();
 
-        $wallet = $this->wallet();
         $seller = $this->seller(['commerce', 'country', 'commn', 'status']);
 
         (new HandleBingoRooms())->checkRoomClosure();
@@ -334,7 +333,6 @@ class SellerController extends Controller
         return view('modules/seller/games/bingo/cartons/generate')->with([
             'title' => 'Generar Cartón',
             'documentType' => $documentType,
-            'wallet' => $wallet,
             'status' => $seller->status,
             'commn' => $seller->commn,
             'country' => $seller->country,
@@ -522,7 +520,6 @@ class SellerController extends Controller
         return view('modules/seller/games/bingo/cartons/ctns-sold')->with([
             'title' => 'Cartones Vendidos',
             'name' => 'notify-payment-ctns-off',
-            'wallet' => $this->wallet(),
             'seller' => encrypt($seller->id),
             'allPendingCtnSale' => $allPendingCtnSale,
             'pendingCtns' => $pendingCtns,
@@ -543,7 +540,6 @@ class SellerController extends Controller
         $title = 'Ganadores';
         $name = 'notify-payment-win-ctns-off';
 
-        $wallet = $this->wallet();
         $seller = $this->seller(['id', 'commerce']);
 
         $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
@@ -599,7 +595,7 @@ class SellerController extends Controller
 
         return view(
             'modules.seller.games.bingo.cartons.awarwed',
-            compact('title', 'name', 'wallet', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
+            compact('title', 'name', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
         );
     }
 
@@ -710,7 +706,6 @@ class SellerController extends Controller
     {
         $title = 'Reporte de Ventas';
 
-        $wallet = $this->wallet();
         $seller = $this->seller(['id', 'commerce']);
 
         $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
@@ -796,7 +791,7 @@ class SellerController extends Controller
 
         return view(
             'modules.seller.games.bingo.report.rooms',
-            compact('title', 'wallet', 'rooms', 'roomsData', 'routeWithCoin', 'dateFilter', 'coins', 'coin', 'coinName', 'coinSym', 'totalSale', 'totalComision', 'totalBanca')
+            compact('title', 'rooms', 'roomsData', 'routeWithCoin', 'dateFilter', 'coins', 'coin', 'coinName', 'coinSym', 'totalSale', 'totalComision', 'totalBanca')
         );
     }
 
@@ -824,7 +819,6 @@ class SellerController extends Controller
 
         $title = 'Reporte de Sala';
         $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
-        $wallet = $this->wallet();
 
         // Realizar los cálculos de CTNs 
         $totalCtnsPurchased = $playersRoom->pluck('CtnsLot')->flatten()->sum('sale_amount');
@@ -852,7 +846,6 @@ class SellerController extends Controller
             compact(
                 'title',
                 'cardTitle',
-                'wallet',
                 'commerce',
                 'generateUniqueCodeed',
                 'playersRoom',
@@ -870,7 +863,6 @@ class SellerController extends Controller
     // public function reportSalesByRoomForPlayer($room, $player) // Muestra el reporte por Jugador y sus cartones 
     // {
     //     $seller = $this->seller();
-    //     $wallet = $this->wallet()($seller->user);
     //     $coin = decrypt($coin);
     //     $title = 'Reporte de Sala';
 
@@ -896,7 +888,7 @@ class SellerController extends Controller
 
     //     return view(
     //         'modules.seller.games.bingo.report.by-room',
-    //         compact('title', 'wallet', 'room', 'playersRoom', 'coin', 'coin', 'coins')
+    //         compact('title', 'room', 'playersRoom', 'coin', 'coin', 'coins')
     //     );
     // }
 

@@ -114,7 +114,7 @@ class BingoController extends Controller
 
                 $player = Commerce::getValueByUserId($player, 'id') ? false : encrypt($player);
 
-                $moreViewData = ['player' => $player, 'wallet' => $this->wallet()];
+                $moreViewData = ['player' => $player];
                 break;
             case 'customer': // Cliente
 
@@ -807,7 +807,6 @@ class BingoController extends Controller
 
                 $moreViewData = [
                     'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
-                    'wallet' => $this->wallet(),
                     'countries' => Country::getAllAvailableCountries()
                 ];
 
@@ -1409,10 +1408,7 @@ class BingoController extends Controller
 
                 $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($commerce->coin)]);
 
-                $moreViewData = [
-                    'commerceUUID' => $commerce->code_uuid,
-                    'wallet' => $this->wallet()
-                ];
+                $moreViewData = ['commerceUUID' => $commerce->code_uuid];
 
                 if ($creatorID == 1) $roomType = Room::getRoomTypes();
 

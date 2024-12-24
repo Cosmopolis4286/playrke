@@ -35,7 +35,6 @@ class ExchangeRateController extends Controller
                     $customer = Customer::getByUserId(Auth::id(), ['id', 'token']);
                     $isLogin = true;
 
-                    $moreViewData = ['wallet' => $this->wallet()];
                     $creatorID = $customer->id;
                 }
 
@@ -59,7 +58,6 @@ class ExchangeRateController extends Controller
 
                 $isLogin = true;
 
-                $moreViewData = ['wallet' => $this->wallet()];
                 break;
 
             default:

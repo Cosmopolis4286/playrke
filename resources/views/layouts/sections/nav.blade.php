@@ -22,6 +22,9 @@
             </a>
         </li>
         <li class="nav-item" title="Mi Perfil">
+            @php
+                $wallet = \App\Models\Wallet::with('Coin')->where('user', Auth::id())->first();
+            @endphp
             <a href="{{ route('wallet.index') }}" title="Monedero">
                 @if (isset($USDT))
                     <img src="{{ asset('imgSystem/tether.svg') }}" alt="PlayRKE" class="mb-1 brand-image"
