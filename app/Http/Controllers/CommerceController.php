@@ -394,6 +394,8 @@ class CommerceController extends Controller
             );
         }
 
+        $wallet = $this->wallet();
+
         $coin = $verifyCoin['coin'];
 
         $dataCoin = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
@@ -453,7 +455,7 @@ class CommerceController extends Controller
 
         return view(
             'modules.commerce.games.bingo.report.rooms',
-            compact('title', 'rooms', 'routeWithCoin', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
+            compact('title', 'wallet', 'rooms', 'routeWithCoin', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
         );
     }
 
@@ -503,10 +505,7 @@ class CommerceController extends Controller
             'Country',
             'CtnsLot' => function ($query) use ($room, $coin) {
                 $query->where('room', $room->id)->where('coin', $coin);
-            },
-            'ComSellerRoom' => function ($query) use ($room) {
-                $query->where('room', $room->id);
-            },
+            }
         ])->whereHas('CtnsLot', function ($query) use ($room, $coin) {
             $query->where('room', $room->id)->where('coin', $coin);
         })->where('commerce', $commerce)->get();
@@ -518,6 +517,8 @@ class CommerceController extends Controller
             'parameters' => ['room' => $roomID]
         ];
 
+        $coin = Coin::getById($coin, ['id', 'symbol']);
+
         return view('modules/commerce/games/bingo/report/by-room')->with([
             'title' => "Reporte de Sala",
             'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
@@ -526,7 +527,8 @@ class CommerceController extends Controller
             'comCommerceRm' => BingoRoomConfig::getValueByRoom($room->id, 'room_commn') / 100,
             'room' => $room->encrypted,
             'routeWithCoin' => $routeWithCoin,
-            'coin' => $coin,
+            'coin' => $coin->id,
+            'coinSym' => $coin->symbol,
             'coins' => $coins
         ]);
     }
@@ -594,6 +596,7 @@ class CommerceController extends Controller
     {
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
+        $wallet = $this->wallet();
 
         $commerce = $this->commerce()->id;
 
@@ -621,6 +624,7 @@ class CommerceController extends Controller
             'modules.commerce.games.bingo.cartons.awarwed.my-winners',
             compact(
                 'title',
+                'wallet',
                 'name',
                 'dateFilter',
                 'commerce',

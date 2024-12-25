@@ -22,7 +22,7 @@ return new class extends Migration
             $table->unsignedBigInteger('seller')->nullable();
             $table->integer('player_user')->nullable();
             $table->unsignedBigInteger('player_link')->nullable();
-            $table->string('coin', 15);
+            $table->string('coin', 15)->nullable();
             $table->string('ctns', 3);
             $table->double('automarker')->nullable();
             $table->string('winner', 1)->default('0');

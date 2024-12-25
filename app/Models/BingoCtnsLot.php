@@ -8,10 +8,6 @@ class BingoCtnsLot extends Model
 {
     protected $table = "bingo_ctns_lot";
     protected $fillable = [
-        'exchange_rate',
-        'ctns',
-        'coin',
-        'sale_amount',
         'room',
         'customer',
         'commerce',
@@ -20,6 +16,12 @@ class BingoCtnsLot extends Model
         'room_user',
         'player_user',
         'player_link',
+        'ctn_price',
+        'exchange_rate',
+        'ctns',
+        'coin',
+        'sale_amount',
+        'final_sale_amount',
         'status'
     ];
 
