@@ -20,7 +20,6 @@
                                         <th>#Ctn</th>
                                         <th>Venta</th>
                                         <th>%Com</th>
-                                        <th>Banca</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -30,18 +29,17 @@
                                                 <a class="badge bg-navy" title="Ver Reporte"
                                                     href="{{ route('seller.reportSalesByRoom', [
                                                         'room' => $data['room']->encrypted,
-                                                        'coin' => encrypt($coin)
+                                                        'coin' => encrypt($coin),
                                                     ]) }}">
                                                     {{ $data['room']->encrypted }}
                                                 </a>
                                             </td>
                                             <td>{{ \Carbon\Carbon::parse($data['room']->date)->format('d/m/y') }}</td>
                                             <td>{{ $data['room']->time }}h</td>
-                                            <td>{{ $coinName }}</td>
+                                            <td>{{ $coinName }} ({{ $coinSym }})</td>
                                             <td>{{ $data['calculatedCtns'] }}</td>
                                             <td>{{ $coinSym }} {{ $data['calculatedSale'] }}</td>
                                             <td>{{ $coinSym }} {{ $data['calculatedCom'] }}</td>
-                                            <td>{{ $coinSym }} {{ $data['calculatedBanca'] }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -51,7 +49,6 @@
                                         <td>{{ collect($roomsData)->sum('calculatedCtns') }}</td>
                                         <td>{{ $coinSym }} {{ $totalSale }}</td>
                                         <td>{{ $coinSym }} {{ $totalComision }}</td>
-                                        <td>{{ $coinSym }} {{ $totalBanca }}</td>
                                     </tr>
                                 </tfoot>
                             </table>

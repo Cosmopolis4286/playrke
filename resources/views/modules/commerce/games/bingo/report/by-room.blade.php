@@ -12,75 +12,66 @@
                             <h5>Mis Vendedores</h5>
                             <table class="table table-striped table-bordered my-2 w-100">
                                 <thead>
-                                    @php $totalCtnsBuy =  $totalAllSale = $totalComSaleSeller = $totalFinalSale = $totalJackpot = $totalComBanca = 0; @endphp
+                                    @php
+                                        $totalCtnsBuy = $totalAllSale = $totalComSaleSeller = $totalJackpot = $totalComBanca = 0;
+                                    @endphp
                                     <tr>
                                         <th>Nombre</th>
-                                        <th>Pais</th>
+                                        <th>País</th>
                                         <th>#CTN</th>
-                                        <th>Total</th>
-                                        <th>%Vendedor</th>
                                         <th>Venta</th>
-                                        <th>Bote</th>
+                                        <th>%Com</th>
                                         <th>Banca</th>
+                                        <th>Bote</th>
                                     </tr>
                                 </thead>
-                                @if (count($sellers))
-                                    <tbody>
-                                        @foreach ($sellers as $seller)
-                                            @php
-                                                $allSale = $allSalePreJackpot = 0;
-                                                $coinSym = $seller->CtnsLot[0]->Coin->symbol;
-                                                $allCtnsSeller = $seller->CtnsLot->sum('ctns');
-                                                $totalCtnsBuy += $allCtnsSeller;
+                                <tbody>
+                                    @foreach ($sellers as $seller)
+                                        @php
+                                            // Cálculos de totales por vendedor
+                                            $allCtnsSeller = $seller->CtnsLot->sum('ctns');
+                                            $saleAmountSeller = $seller->CtnsLot->sum('sale_amount');
+                                            $finalSaleAmountSeller = $seller->CtnsLot->sum('final_sale_amount');
+                                            $comSaleSeller = $saleAmountSeller - $finalSaleAmountSeller;
 
-                                                $comSellerRm = $seller->ComSellerRoom->com;
+                                            $allSalePreJackpot = $saleAmountSeller - $comSaleSeller;
+                                            $comBanca = round($allSalePreJackpot * $comCommerceRm, 2);
+                                            $jackpot = $allSalePreJackpot - $comBanca;
 
-                                                foreach ($seller->CtnsLot as $ctns) {
-                                                    $allSale += $ctns->ctns * $ctnPrice * $ctns->exchange_rate;
-                                                }
-                                                $finalSale = $seller->CtnsLot->sum('sale_amount');
-                                                $comSaleSeller = $allSale - $finalSale;
-
-                                                $totalAllSale += $allSale;
-                                                $totalComSaleSeller += $comSaleSeller;
-                                                $totalFinalSale += $finalSale;
-
-                                                $allSalePreJackpot = $allSale - $comSaleSeller;
-                                                $comBanca = round($allSalePreJackpot * $comCommerceRm, 2);
-
-                                                $jackpot = $allSalePreJackpot - $comBanca;
-                                                $totalJackpot += $jackpot;
-                                                $totalComBanca += $comBanca;
-                                            @endphp
-                                            <tr>
-                                                <td class="align-middle">
-                                                    <a class="badge bg-navy" title="Ver Vendedor" href="#">
-                                                        {{ $seller->name }}
-                                                    </a>
-                                                </td>
-                                                <td>{{ $seller->Country->name }}</td>
-                                                <td>{{ $allCtnsSeller }}</td>
-                                                <td>{{ $coinSym }} {{ $allSale }}</td>
-                                                <td>{{ $coinSym }} {{ $comSaleSeller }}</td>
-                                                <td>{{ $coinSym }} {{ $finalSale }}</td>
-                                                <td>{{ $coinSym }} {{ $jackpot }}</td>
-                                                <td>{{ $coinSym }} {{ $comBanca }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                    <tfoot>
+                                            // Acumular totales
+                                            $totalCtnsBuy += $allCtnsSeller;
+                                            $totalAllSale += $saleAmountSeller;
+                                            $totalComSaleSeller += $comSaleSeller;
+                                            $totalJackpot += $jackpot;
+                                            $totalComBanca += $comBanca;
+                                        @endphp
                                         <tr>
-                                            <td colspan="2" class="text-right"><b>Total:</b></td>
-                                            <td>{{ $totalCtnsBuy }}</td>
-                                            <td>{{ $coinSym }} {{ $totalAllSale }}</td>
-                                            <td>{{ $coinSym }} {{ $totalComSaleSeller }}</td>
-                                            <td>{{ $coinSym }} {{ $totalFinalSale }}</td>
-                                            <td>{{ $coinSym }} {{ $totalJackpot }}</td>
-                                            <td>{{ $coinSym }} {{ $totalComBanca }}</td>
+                                            <td class="align-middle">
+                                                <a class="badge bg-navy" title="Ver Vendedor" href="#">
+                                                    {{ $seller->name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ $seller->Country->name }}</td>
+                                            <td>{{ $allCtnsSeller }}</td>
+                                            <td>{{ $coinSym }} {{ number_format($saleAmountSeller, 2) }}</td>
+                                            <td>{{ $coinSym }} {{ number_format($comSaleSeller, 2) }}</td>
+                                            <td>{{ $coinSym }} {{ number_format($comBanca, 2) }}</td>
+                                            <td>{{ $coinSym }} {{ number_format($jackpot, 2) }}</td>
                                         </tr>
-                                    </tfoot>
-                                @endif
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2" class="text-right"><b>Total:</b></td>
+                                        <td>{{ $totalCtnsBuy }}</td>
+                                        <td>{{ $coinSym }} {{ number_format($totalAllSale, 2) }}</td>
+                                        <td>{{ $coinSym }} {{ number_format($totalComSaleSeller, 2) }}</td>
+                                        <td>{{ $coinSym }} {{ number_format($totalComBanca, 2) }}</td>
+                                        <td>{{ $coinSym }} {{ number_format($totalJackpot, 2) }}</td>
+                                    </tr>
+                                </tfoot>
                             </table>
+
                         </div>
                     </div>
                 </div>

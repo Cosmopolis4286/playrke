@@ -430,22 +430,33 @@ trait BingoTrait
     }
 
     // Función para crear el lote de cartones
-    private function createCtnsLot($arrCtn, $exchangeRate, $saleAmount)
+    private function createCtnsLot($arrCtn, $ctnPrice, $exchangeRate, $saleAmount)
     {
+        $seller = $arrCtn['seller'] ?? null;
+
+        $finalSaleAmount = $saleAmount;
+
+        if ($seller) {
+            $sellerCommn = Seller::getValueById($seller, 'commn');
+            $finalSaleAmount = $saleAmount * (1 - ($sellerCommn / 100));
+        }
+
         $currentTime = now();
 
         return BingoCtnsLot::insertGetId([
             'customer' => $arrCtn['customer'] ?? null,
             'commerce' => $arrCtn['commerce'] ?? null,
-            'seller' => $arrCtn['seller'] ?? null,
+            'seller' => $seller,
             'room_user' => $arrCtn['roomUser'],
             'player_user' => $arrCtn['playerUser'] ?? null,
             'player_link' => $arrCtn['playerLink'] ?? null,
             'room' => $arrCtn['room'],
+            'ctn_price' => $ctnPrice,
             'exchange_rate' => $exchangeRate,
             'ctns' => $arrCtn['numOfCtns'],
             'coin' => $arrCtn['coin'],
             'sale_amount' => $saleAmount,
+            'final_sale_amount' => $finalSaleAmount,
             'status' => 0,
             'created_at' => $currentTime,
             'updated_at' => $currentTime,
@@ -683,7 +694,7 @@ trait BingoTrait
             $totalSaleAmount = $exchangeRate * $saleAmount;
 
             // Crear lote de cartones
-            $lotID = $this->createCtnsLot($arrCtn, $exchangeRate, $totalSaleAmount);
+            $lotID = $this->createCtnsLot($arrCtn, $room->ctn_price, $exchangeRate, $totalSaleAmount);
 
             // Generar y almacenar los cartones de bingo
             $generateAndStoreCtns = $this->generateAndStoreCtns($arrCtn, $lotID);

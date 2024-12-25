@@ -727,14 +727,9 @@ class SellerController extends Controller
             'Config',
             'CtnsLot' => function ($query) use ($seller, $coin) {
                 $query->where('seller', $seller->id)->where('coin', $coin)->with('Coin');
-            },
-            'ComSeller' => function ($query) use ($seller) {
-                $query->where('seller', $seller->id);
             }
         ])->whereHas('CtnsLot', function ($query) use ($seller, $coin) {
             $query->where('seller', $seller->id)->where('coin', $coin);
-        })->whereHas('ComSeller', function ($query) use ($seller) {
-            $query->where('seller', $seller->id);
         });
 
         $roomsQuery = $this->applyDateFilter($dateFilter, $roomsQuery, 'date');
@@ -754,25 +749,18 @@ class SellerController extends Controller
 
         // Realizar los cálculos
         foreach ($rooms as $room) {
-            $roomSale = 0;
-            foreach ($room->CtnsLot as $ctn) {
-                $roomSale += $ctn->ctns * $room->ctn_price * $ctn->exchange_rate;
-            }
-
             $roomCtns = $room->CtnsLot->sum('ctns');
-            $roomBanca = $room->CtnsLot->sum('sale_amount');
-            $roomSaleCom = $roomSale - $roomBanca;
+            $roomSale = $room->CtnsLot->sum('sale_amount');
+            $roomSaleCom = $roomSale - $room->CtnsLot->sum('final_sale_amount');
 
             $totalSale += $roomSale;
             $totalComision += $roomSaleCom;
-            $totalBanca += $roomBanca;
 
             // Guardar los cálculos en la colección
             $roomsData[] = [
                 'room' => $room,
                 'calculatedSale' => $roomSale,
                 'calculatedCtns' => $roomCtns,
-                'calculatedBanca' => $roomBanca,
                 'calculatedCom' => $roomSaleCom,
             ];
         }
@@ -791,7 +779,7 @@ class SellerController extends Controller
 
         return view(
             'modules.seller.games.bingo.report.rooms',
-            compact('title', 'rooms', 'roomsData', 'routeWithCoin', 'dateFilter', 'coins', 'coin', 'coinName', 'coinSym', 'totalSale', 'totalComision', 'totalBanca')
+            compact('title', 'rooms', 'roomsData', 'routeWithCoin', 'dateFilter', 'coins', 'coin', 'coinName', 'coinSym', 'totalSale', 'totalComision')
         );
     }
 
