@@ -12,6 +12,7 @@ class TriviaMulti extends Model
         'time',
         'unix_date',
         'status',
+        'title',
         'price',
         'players',
         'all_sale',

@@ -20,9 +20,12 @@ use App\Traits\UserVal;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Intervention\Image\Facades\Image;
 use App\Http\Controllers\Controller;
 use DateTime;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Symfony\Component\Image\Image;
 
 class TriviaController extends Controller
 {
@@ -78,37 +81,148 @@ class TriviaController extends Controller
 
     public function createView()
     {
-        return view('modules/admin/trivia/creation-form')->with(['title' => 'Crear Trivia']);
+        return view('modules/admin/trivia/creation-form', ['title' => 'Crear Trivia']);
+    }
+
+    private function handleTriviaImage($imagen)
+    {
+        // Verificar si el archivo es válido y es una imagen
+        if (!$imagen->isValid() || !in_array($imagen->getClientMimeType(), ['image/jpeg', 'image/png', 'image/gif'])) {
+            return false;  // Retornar falso si no es un archivo de imagen válido
+        }
+
+        try {
+            $file = $imagen;
+            // Generar un nombre único para la imagen
+            $nombreimg = uniqid('trivia_') . '.' . $file->getClientOriginalExtension();
+            $ruta = public_path('game/trivia/img/advertising_image/' . $nombreimg);
+
+            // Cargar y redimensionar la imagen
+            $image = Image::make($file->getPathname());
+
+            // Redimensionar con el mismo aspecto
+            $image->resize(320, null, function ($constraint) {
+                $constraint->aspectRatio();
+            });
+
+            // Guardar la imagen en el directorio especificado
+            $image->save($ruta);
+
+            return $nombreimg;  // Retornar el nombre de la imagen guardada
+        } catch (\Exception $e) {
+            // Loguear el error en caso de excepciones
+            Log::error('Error al procesar la imagen: ' . $e->getMessage());
+            return false;  // Retornar falso si ocurre algún error
+        }
     }
 
     public function create(Request $request)
     {
-        $files = $request->file('imagen');
-        if (empty($files)) {
-            $nombreimg = '';
-        } else {
+        // Validar los datos antes de continuar
+        $validated = Validator::make($request->all(), [
+            'imagen' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'title' => 'required|string|max:80',
+            'commn_room' => 'required|numeric|min:1.5',
+            // 'fecha' => 'required|date',
+            // 'hora' => 'required|date_format:H:i',
+            'price_type' => 'required|string',
+            'price' => 'required|numeric|min:1',
+            'min_players' => 'required|integer|min:25'
+        ]);
+
+        DB::beginTransaction(); // Iniciar la transacción
+
+        try {
+            // Manejar la imagen
+            $advertisingImage = $this->handleTriviaImage($request->file('imagen')) ?? null;
+
+            // Crear la trivia
+            TriviaMulti::create([
+                'status' => 1,
+                'title' => $validated['title'],
+                'advertising_image' => $advertisingImage,
+                'commn_room' => $validated['commn_room'],
+                // 'fecha' => $validated['fecha'],
+                // 'hora' => $validated['hora'],
+                'price_type' => $validated['price_type'],
+                'price' => $validated['price'],
+                'min_players' => $validated['min_players']
+            ]);
+
+            DB::commit(); // Confirmar la transacción
+
+            Session::flash('message', 'Trivia creada correctamente.');
+            Session::flash('type', 'success');
+            return redirect()->route('trivia.all-rooms');
+        } catch (\Exception $e) {
+            DB::rollBack(); // Revertir la transacción en caso de error
+            // Registrar el error en los logs
+            Log::error('Error al crear trivia.', [
+                'error' => $e->getMessage(),
+                'usuario' => Auth::id() ?? 'Invitado',
+            ]);
+
+            Session::flash('error', 'Hubo un error al crear la trivia. Inténtelo de nuevo.');
+            return redirect()->back()->withInput();
+        }
+    }
+
+    public function editView($id)
+    {
+        return view('modules/admin/trivia/edit-form', [
+            'data' => $this->getInfo($id),
+            'questions' => $this->getTriviaQuestions($id)
+        ]);
+    }
+
+    public function getInfo($id, $type = "MULTI")
+    {
+        if ($type === 'MULTI') {
+            $data = TriviaMulti::with(['Status', 'Coin'])->where('id', $id)->first();
+        } else if ($type === 'INDV') {
+        } else if ($type === 'VERSUS') {
+        }
+
+        return $data;
+    }
+
+    public function getTriviaQuestions($id, $type = "MULTI")
+    {
+        if ($type === 'MULTI') {
+            $data = TriviaMultiQuest::where('room', $id)->get();
+        } else if ($type === 'INDV') {
+        } else if ($type === 'VERSUS') {
+        }
+
+        return $data;
+    }
+
+    public function update(Request $request)
+    {
+        TriviaMulti::where('id', $request->id)->update(
+            [
+                'nombre' => $request->nombre,
+                'fecha' => $request->fecha,
+                'precio' => $request->precio,
+                'hora' => $request->hora,
+                'status' => $request->status,
+                'min_pj' => $request->min_pj,
+            ]
+        );
+        if ($request->file('inpFile') != null) {
+            $files = $request->file('imagen_question');
             $nombreimg = $files->getClientOriginalName();
             $ruta = public_path('imgSystem/imgTrivia/' . $nombreimg);
-            Image::make($request->file('imagen'))
+
+            Image::make($request->file('imagen_question'))
                 ->resize(320, null, function ($constraint) {
                     $constraint->aspectRatio();
                 })->save($ruta);
+
+            TriviaMulti::where('id', $request->id)->update(['imagen' => $nombreimg]);
         }
-        TriviaMulti::create([
-            'status' => 1,
-            'nombre' => $request->nombre,
-            'imagen' => $nombreimg,
-            'fecha' => $request->fecha,
-            'hora' => $request->hora,
-            'coin' => $request->moneda,
-            'precio' => $request->precio,
-            'min_pj' => $request->min_pj,
-            'type_boat' => 1,
-            'com' => $request->comision,
-            'replay' => 0
-        ]);
-        Session::flash('mensaje', 'Trivia creada correctamente.');
-        return redirect()->route('trivia.rooms');
+        Session::flash('mensaje', 'Proceso Efectuado Con Éxito');
+        return redirect()->back();
     }
 
     /// CRUD ///
@@ -940,61 +1054,12 @@ class TriviaController extends Controller
             ->where('lose_win', 0)->update(['lose_win' => 6]);
     }
 
-    public function editTrivaMulti($id)
-    {
-        return view('modules/admin/trivia/edit')
-            ->with('data', $this->getInfoTrivia($id))
-            ->with('question', $this->triv_multi_quest($id))
-            ->with([
-                'monedas' => $walletdas,
-                'wallet' => $wallet,
-            ]);
-    }
 
-    public function getInfoTrivia($id)
-    {
-        $triviaMulti = TriviaMulti::with(['Status', 'Coin'])->where('id', $id)->first();
-        return $triviaMulti;
-    }
-
-    public function updateTriviaMulti(Request $request)
-    {
-        TriviaMulti::where('id', $request->id)->update(
-            [
-                'nombre' => $request->nombre,
-                'fecha' => $request->fecha,
-                'precio' => $request->precio,
-                'hora' => $request->hora,
-                'status' => $request->status,
-                'min_pj' => $request->min_pj,
-            ]
-        );
-        if ($request->file('inpFile') != null) {
-            $files = $request->file('imagen_question');
-            $nombreimg = $files->getClientOriginalName();
-            $ruta = public_path('imgSystem/imgTrivia/' . $nombreimg);
-
-            Image::make($request->file('imagen_question'))
-                ->resize(320, null, function ($constraint) {
-                    $constraint->aspectRatio();
-                })->save($ruta);
-
-            TriviaMulti::where('id', $request->id)->update(['imagen' => $nombreimg]);
-        }
-        Session::flash('mensaje', 'Proceso Efectuado Con Éxito');
-        return redirect()->back();
-    }
 
     public function ts()
     {
         $CommerceExchangeRate = CommerceExchangeRate::first();
         return $CommerceExchangeRate->CommerceExchangeRate_RKE;
-    }
-
-    public function triv_multi_quest($id)
-    {
-        $data = TriviaMultiQuest::where('room', $id)->get();
-        return $data;
     }
 
     public function cups($id)

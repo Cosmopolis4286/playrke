@@ -17,13 +17,14 @@ return new class extends Migration
             $table->string('time', 10);
             $table->integer('unix_date')->nullable();
             $table->unsignedBigInteger('status')->default(1);
+            $table->string('title', 25)->nullable();
             $table->double('price');
             $table->integer('players')->default(0);
             $table->double('all_sale')->default(0);
             $table->double('jackpot')->default(0);
             $table->double('room_commn')->default(0);
             $table->integer('close_room')->nullable();
-            $table->string('advertising_image', 30);
+            $table->string('advertising_image', 36);
             $table->string('code_uuid', 36)->nullable()->unique();
             $table->timestamps();
 

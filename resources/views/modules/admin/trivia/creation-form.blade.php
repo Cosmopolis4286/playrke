@@ -23,9 +23,9 @@
                             <div class="row">
                                 <!-- Descripción -->
                                 <div class="form-group col-md-8">
-                                    <label for="description">Descripción</label>
-                                    <input type="text" name="description" class="form-control"
-                                        value="{{ old('description', $data->description ?? '') }}">
+                                    <label for="title">Título</label>
+                                    <input type="text" name="title" class="form-control"
+                                        value="{{ old('title', $data->description ?? '') }}">
                                 </div>
 
                                 <!-- Comisión de Entrada -->

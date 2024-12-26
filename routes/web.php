@@ -330,7 +330,8 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'trivia', 'as' => 'trivia.']
     Route::get('rooms', [TriviaController::class, 'allRooms'])->middleware('admin')->name('all-rooms');
     Route::get('creation-form', [TriviaController::class, 'createView'])->middleware(['admin'])->name('create-view');
     Route::post('create', [TriviaController::class, 'create'])->middleware(['admin'])->name('create');
-
+    Route::get('edit/{id}', [TriviaController::class, 'editView'])->middleware(['admin'])->name('edit-view');
+    Route::put('update/{id}', [TriviaController::class, 'update'])->middleware(['admin'])->name('update');
 
 
     Route::get('{coin}', [TriviaController::class, 'rooms'])->name('rooms');
@@ -349,8 +350,6 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'trivia', 'as' => 'trivia.']
     // Route::get('usdt/{id}', [TriviaController::class, 'room_usdt]'])->name('show_usdt');
     // Route::get('room/{id}', [TriviaController::class, 'room_multi'])->name('room_multi');
     Route::get('demo', [TriviaController::class, 'demo'])->name('demo');
-    Route::get('edit/{id}', [TriviaController::class, 'editTrivaMulti'])->middleware(['admin'])->name('editTrivaMulti');
-    Route::post('update', [TriviaController::class, 'updateTriviaMulti'])->name('updateTriviaMulti');
     Route::post('insertp', [TriviaController::class, 'insertp'])->name('insertp');
     Route::post('update_p', [TriviaController::class, 'update_p'])->name('update_p');
     Route::post('update_questions', [TriviaController::class, 'respuestas'])->name('respuestas');
