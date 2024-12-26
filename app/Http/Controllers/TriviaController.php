@@ -78,11 +78,7 @@ class TriviaController extends Controller
 
     public function createView()
     {
-        return view('modules/admin/trivia/create')
-            ->with([
-                'wallet' => $this->wallet(),
-                'coins' => Coin::all()
-            ]);
+        return view('modules/admin/trivia/creation-form')->with(['title' => 'Crear Trivia']);
     }
 
     public function create(Request $request)
@@ -319,7 +315,11 @@ class TriviaController extends Controller
 
     public function allRooms()
     {
-        $viewData = ['title' => 'Trivias', 'rooms' => TriviaMulti::all()];
+        $viewData = [
+            'title' => 'Trivias',
+            'name' => 'trivia',
+            'rooms' => TriviaMulti::all()
+        ];
 
         return view('modules.admin.trivia.rooms')->with($viewData);
     }

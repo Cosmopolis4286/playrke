@@ -328,6 +328,11 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'historial', 'as' => 'histor
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'trivia', 'as' => 'trivia.'], function () {
     Route::get('rooms', [TriviaController::class, 'allRooms'])->middleware('admin')->name('all-rooms');
+    Route::get('creation-form', [TriviaController::class, 'createView'])->middleware(['admin'])->name('create-view');
+    Route::post('create', [TriviaController::class, 'create'])->middleware(['admin'])->name('create');
+
+
+
     Route::get('{coin}', [TriviaController::class, 'rooms'])->name('rooms');
     Route::get('time_serv', [TriviaController::class, 'time_serv'])->name('time_serv');
     Route::get('timer/{id}', [TriviaController::class, 'timer'])->name('timer');
@@ -337,8 +342,6 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'trivia', 'as' => 'trivia.']
     Route::get('demos', [TriviaController::class, 'demo'])->name('demo');
     Route::get('all/bs', [TriviaController::class, 'list'])->name('list');
     Route::get('all/usdt', [TriviaController::class, 'listusdt'])->name('listusdt');
-    Route::get('create', [TriviaController::class, 'create'])->middleware(['admin'])->name('create');
-    Route::post('store', [TriviaController::class, 'store'])->name('store');
     Route::post('store/cod', [TriviaController::class, 'storeCod'])->name('storeCod');
     Route::get('edit/sound', [TriviaController::class, 'edit_sound'])->name('edit_sound');
     Route::post('sound/store', [TriviaController::class, 'store_sound'])->name('store_sound');
