@@ -202,9 +202,9 @@
                 });
             }
 
-            coin.on("change", function() {
-                if (coin.val() != '') exchangeRate.attr('readonly', true), getLastValueByCoin(coin.val());
-            });
+            // coin.on("change", function() {
+            //     if (coin.val() != '') exchangeRate.attr('readonly', true), getLastValueByCoin(coin.val());
+            // });
 
             $(document).on("input", coin, function() {
                 coinName = coin.find("option:selected").text();
