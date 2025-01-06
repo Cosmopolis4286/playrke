@@ -461,13 +461,14 @@ class BingoController extends Controller
 
                     $player = $data['playerLink'];
 
-                    $roomID = PlayerLink::getValueByLink($player, 'room');
+                    $playerLink = PlayerLink::getByLink($player, ['id', 'room', 'country', 'link']);
 
-                    if (!$roomID) return ['error' => 'Sala no encontrada'];
+                    if (!$playerLink) return ['error' => 'Sala no encontrada'];
+
+                    $roomID = $playerLink->room;
 
                     $isLogin = false;
 
-                    $playerLink = PlayerLink::select('id', 'country', 'link')->where('room', $roomID)->first();
                     $roomUser =  BingoRoomUser::getValueByColumn($roomID, 'player_link', $playerLink->id, 'id');
 
                     $coin = Coin::getCoinByCountry($playerLink->country, ['id', 'symbol']);
