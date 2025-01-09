@@ -995,7 +995,7 @@ trait BingoTrait
                 $query->where('prize_type', $prizeType);
             })->where('room', $roomID)->where('winner', '>', 0)->get();
 
-        if ($roomUser) {
+        if ($roomUser && count($winners)) {
             // Verificar si el jugador específico está entre los ganadores
             $winPlayer = $winners->firstWhere('id', $roomUser);
 
@@ -1017,48 +1017,30 @@ trait BingoTrait
         ];
     }
 
-    public function getArrayWinnersData($winPlayer, $winners, $jackpot, $prizeType = 'JACKPOT')
+    public function getArrayWinnersData($winPlayer, $winners, $jackpot)
     {
         // Calcular la ganancia de acuerdo a la cantidad de ganadores
         $decimals = count($winners) > 1 ? 3 : 2;
-        $gain = rtrim(rtrim(number_format($jackpot / max(1, count($winners)), $decimals, ',', '.'), '0'), ',');
+        $gain = rtrim(number_format($jackpot / max(1, count($winners)), $decimals, ',', '.'), ',0');
 
-        // Definir array para guardar información
+        // Inicializar el array para guardar información
         $infoPlayer = ['size' => 0, 'name' => [], 'gain' => [], 'ctn' => []];
 
         // Función para agregar la información de un jugador
-        $addPlayerInfo = function ($player) use (&$infoPlayer, $gain, $prizeType) {
-
-            $playerName = BingoCtns::getCtnSerialByRoomUser($player->id);
-            // Obtener nombre o identificador del jugador
-            if (!$player->customer) {
-                if ($prizeType === 'JACKPOT') {
-                    if ($player->player_user) {
-                        $playerName = User::getValueById($player->player_user, 'username');
-                    } else {
-                        $playerLink = PlayerLink::getById($player->player_link, ['name', 'lastname']);
-                        $playerLastname = $this->initialCharacters($playerLink->lastname);
-
-                        $playerName = "$playerLink->name $playerLastname";
-                    }
-                }
-            }
-
-            $infoPlayer['name'][] = $playerName;
+        $addPlayerInfo = function ($player) use (&$infoPlayer, $gain) {
+            $infoPlayer['name'][] = BingoCtns::getCtnSerialByRoomUser($player->id);
             $infoPlayer['gain'][] = $gain;
-            $infoPlayer['ctn'][] = encrypt($player->PrizeCtns[0]->ctn);
+            $infoPlayer['ctn'][] = encrypt(optional($player->PrizeCtns[0])->ctn);
             $infoPlayer['size']++;
         };
 
-        // Añadir jugador específico si existe
-        if ($winPlayer) {
-            $addPlayerInfo($winPlayer);
-        }
+        // Crear una colección para evitar duplicados
+        $allPlayers = collect([$winPlayer])->merge($winners)->unique('id');
 
-        // Añadir todos los demás ganadores, excluyendo al jugador específico si ya fue añadido
-        foreach ($winners as $winner) {
-            if (!$winPlayer || $winPlayer->id != $winner->id) {
-                $addPlayerInfo($winner);
+        // Iterar sobre todos los jugadores únicos y agregar la información
+        foreach ($allPlayers as $player) {
+            if ($player) {
+                $addPlayerInfo($player);
             }
         }
 
@@ -1360,7 +1342,7 @@ trait BingoTrait
         // Calcular el bote de seriales de la sala con respecto a la moneda del jugador
         $serialAmount = $this->formatAmount($data['serialPrize'] * $gameExchangeRate, 'float');
 
-        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $serialAmount, 'serial');
+        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $serialAmount);
     }
 
     // Obtener Informacion de un carton especifico (encriptado)

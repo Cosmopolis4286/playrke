@@ -41,11 +41,13 @@ trait GameTrait
 
         $timestamp = Carbon::now();
 
-        $recordsToInsert = $coinsInGameRoom->map(function ($coin) use ($exchangeRates, $gameID, $room, $timestamp) {
-            // Verificar la existencia de la tasa de cambio en la sala de juego
-            if (!GameExchangeRate::existsGameExchangeRate($gameID, $room, $coin)) {
-
-                // Definir tasa de cambio dependiendo de la cantidad, calcular el promedio o tomar el unico valor
+        $recordsToInsert = $coinsInGameRoom
+            ->filter(function ($coin) use ($gameID, $room) {
+                // Filtrar las monedas que no tienen una tasa de cambio existente
+                return !GameExchangeRate::existsGameExchangeRate($gameID, $room, $coin);
+            })
+            ->map(function ($coin) use ($exchangeRates, $gameID, $room, $timestamp) {
+                // Definir tasa de cambio dependiendo de la cantidad, calcular el promedio o tomar el único valor
                 $roomExchangeRate = $exchangeRates->where('coin', $coin)->count() > 1
                     ? $exchangeRates->where('coin', $coin)->avg('exchange_rate')
                     : ($exchangeRates->where('coin', $coin)->first()->exchange_rate ?? null);
@@ -58,12 +60,12 @@ trait GameTrait
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp
                 ];
-            }
-        })->toArray();
+            })->values()->toArray();
 
         if (empty($recordsToInsert)) return true;
 
         try {
+            // Insertar los registros en la base de datos
             GameExchangeRate::insert($recordsToInsert);
             return true;
         } catch (\Exception $e) {
