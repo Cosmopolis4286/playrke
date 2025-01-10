@@ -998,15 +998,16 @@ trait BingoTrait
                 $query->where('prize_type', $prizeType);
             })->where('room', $roomID)->where('winner', '>', 0)->get();
 
-        if ($roomUser && count($winners)) {
+        if ($roomUser) {
             // Verificar si el jugador específico está entre los ganadores
             $winPlayer = $winners->firstWhere('id', $roomUser);
+            if ($winPlayer) {
+                // Definir creador de la sala
+                $creator = $winPlayer->customer ? 'customer' : 'commerce';
 
-            // Definir creador de la sala
-            $creator = $winPlayer->customer ? 'customer' : 'commerce';
-
-            // Obtener la moneda del jugador
-            $coin = $this->getCoinByPlayer($creator, $roomUser);
+                // Obtener la moneda del jugador
+                $coin = $this->getCoinByPlayer($creator, $roomUser);
+            }
         }
 
         // Obtener Premio a repartir en seriales 

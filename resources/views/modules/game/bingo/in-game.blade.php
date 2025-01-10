@@ -13,7 +13,6 @@
     <div class="col-md-11 col-lg-7 col-xl-8 m-auto">
         @include('includes.game.bingo.layout.container-last-chips')
         @include('includes.game.bingo.layout.container-bingo-info')
-        {{-- @include('includes.game.bingo.tests.btn-regenerate-draw') --}}
         @if ($room->status > 2)
             @include('includes.game.bingo.layout.container-history-chips')
         @endif
@@ -81,5 +80,4 @@
         </script>
         @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
     @endif
-    {{-- @vite('resources/js/games/bingo/tests/regenerate-draw.js') --}}
 @endsection
