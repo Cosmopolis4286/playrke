@@ -1747,6 +1747,10 @@ class BingoController extends Controller
         $chips = [];
         $updates = [];
 
+        if (!count($symbols)) {
+            $this->encryptDraw($room);
+        }
+
         foreach ($draws as $index => $draw) {
             do {
                 $rnd = mt_rand(1, 75);

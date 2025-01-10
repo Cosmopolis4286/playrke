@@ -37,9 +37,9 @@ trait BingoTrait
 {
     use UserVal, GameTrait, RouteRKE, PlayerLinkTrait, SeamlessWallet;
 
-    private function encryptDraw($id)
+    private function encryptDraw($room)
     {
-        $existingSymbols = BingoDrawCode::where('room', $id)->pluck('sym')->toArray();
+        $existingSymbols = BingoDrawCode::where('room', $room)->pluck('sym')->toArray();
 
         $symbolsCount = count($existingSymbols);
 
@@ -49,33 +49,36 @@ trait BingoTrait
 
         try {
 
-            $newSymbols = [];
+            $newSymbols = collect();
+            $timestamp = now();
 
             for ($i = $symbolsCount + 1; $i <= 10; $i++) {
-                $num = ($i == 10) ? 0 : $i;
+                $num = $i === 10 ? 0 : $i;
 
                 do {
                     $code = Str::random(3);
-                } while (in_array($code, $existingSymbols) || in_array($code, $newSymbols));
+                } while (in_array($code, $existingSymbols));
 
-                $newSymbols[] = [
+                $newSymbols->push([
                     'num' => $num,
                     'sym' => $code,
-                    'room' => $id,
-                ];
+                    'room' => $room,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ]);
 
                 $existingSymbols[] = $code;
             }
 
-            if (!empty($newSymbols)) {
-                BingoDrawCode::insert($newSymbols);
+            if ($newSymbols->isNotEmpty()) {
+                BingoDrawCode::insert($newSymbols->toArray());
             }
 
             DB::commit();
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error al crear código de encriptación de fichas para la sala de bingo {$id}: {$e->getMessage()}");
+            Log::error("Error al crear código de encriptación de fichas para la sala de bingo {$room}: {$e->getMessage()}");
             return false;
         }
     }
@@ -1069,36 +1072,39 @@ trait BingoTrait
             ->pluck('chip')
             ->toArray();
 
+        // Declarar ultima ficha
+        $lastChipNum = $lastChip->chip;
+
         // Inicializar array de jugadores únicos
         $uniquePlayers = ['playerUser' => [], 'playerLink' => []];
 
         // Buscar directamente los cartones que contengan el chip específico
         $ctnsPlayer = BingoCtns::where('room', $roomID)
-            ->where(function ($query) use ($lastChip) {
-                $query->where('b1', $lastChip->chip)
-                    ->orWhere('b2', $lastChip->chip)
-                    ->orWhere('b3', $lastChip->chip)
-                    ->orWhere('b4', $lastChip->chip)
-                    ->orWhere('b5', $lastChip->chip)
-                    ->orWhere('i1', $lastChip->chip)
-                    ->orWhere('i2', $lastChip->chip)
-                    ->orWhere('i3', $lastChip->chip)
-                    ->orWhere('i4', $lastChip->chip)
-                    ->orWhere('i5', $lastChip->chip)
-                    ->orWhere('n1', $lastChip->chip)
-                    ->orWhere('n2', $lastChip->chip)
-                    ->orWhere('n3', $lastChip->chip)
-                    ->orWhere('n4', $lastChip->chip)
-                    ->orWhere('g1', $lastChip->chip)
-                    ->orWhere('g2', $lastChip->chip)
-                    ->orWhere('g3', $lastChip->chip)
-                    ->orWhere('g4', $lastChip->chip)
-                    ->orWhere('g5', $lastChip->chip)
-                    ->orWhere('o1', $lastChip->chip)
-                    ->orWhere('o2', $lastChip->chip)
-                    ->orWhere('o3', $lastChip->chip)
-                    ->orWhere('o4', $lastChip->chip)
-                    ->orWhere('o5', $lastChip->chip);
+            ->where(function ($query) use ($lastChipNum) {
+                $query->where('b1', $lastChipNum)
+                    ->orWhere('b2', $lastChipNum)
+                    ->orWhere('b3', $lastChipNum)
+                    ->orWhere('b4', $lastChipNum)
+                    ->orWhere('b5', $lastChipNum)
+                    ->orWhere('i1', $lastChipNum)
+                    ->orWhere('i2', $lastChipNum)
+                    ->orWhere('i3', $lastChipNum)
+                    ->orWhere('i4', $lastChipNum)
+                    ->orWhere('i5', $lastChipNum)
+                    ->orWhere('n1', $lastChipNum)
+                    ->orWhere('n2', $lastChipNum)
+                    ->orWhere('n3', $lastChipNum)
+                    ->orWhere('n4', $lastChipNum)
+                    ->orWhere('g1', $lastChipNum)
+                    ->orWhere('g2', $lastChipNum)
+                    ->orWhere('g3', $lastChipNum)
+                    ->orWhere('g4', $lastChipNum)
+                    ->orWhere('g5', $lastChipNum)
+                    ->orWhere('o1', $lastChipNum)
+                    ->orWhere('o2', $lastChipNum)
+                    ->orWhere('o3', $lastChipNum)
+                    ->orWhere('o4', $lastChipNum)
+                    ->orWhere('o5', $lastChipNum);
             })->select([
                 'id',
                 'player_user',
@@ -1134,6 +1140,7 @@ trait BingoTrait
 
         foreach ($ctnsPlayer as $ctn) {
             $ctnFull = collect($ctn)->except(['id', 'player_user', 'player_link'])->values()->toArray();
+
             // Verificar si todos los valores están en $chipsDraw
             if (empty(array_diff($ctnFull, $chipsDraw))) {
                 $playerId = $ctn->player_user ?: $ctn->player_link;

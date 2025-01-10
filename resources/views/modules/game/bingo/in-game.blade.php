@@ -56,7 +56,6 @@
         let latestChips = @json($latestChips);
         let timeServ = @json($timeServ);
         let allChips = @json($allChips);
-        let allChipsSet = new Set(allChips);
         let infoGame = @json($infoGame);
     </script>
     @if ($room->status == 2)

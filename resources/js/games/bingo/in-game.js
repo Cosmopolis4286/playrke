@@ -151,9 +151,6 @@ async function getGameData() {
         allChips = data.allChips;
         timeServ = Number(data.timeServ);
 
-        console.log('latestChips', latestChips);
-        console.log('allChips', allChips);
-
         handleLatestChips(latestChips);
 
     } catch (error) {
@@ -192,13 +189,13 @@ function decryptChp(code) {
     // Construir el número descifrado
     let numDecrypt = (indexFirst + 1).toString();
 
-    if (indexFirst === -1) return "Código no válido";
+    if (indexFirst === -1) return false;
 
     if (code.length > 3) {
         const lastThreeChars = code.slice(-3);
         const indexLast = encrypt.indexOf(lastThreeChars);
 
-        if (indexLast === -1) return "Código no válido";
+        if (indexLast === -1) return false;
 
         numDecrypt += (indexLast + 1).toString();
     }
@@ -215,7 +212,7 @@ function checkExitOfToken() {
         if (chipTime && chipTime <= timeServ) {
             const nextChip = decryptChp(chip.code);
             // Si el chip no ha sido procesado, lo procesamos
-            if (!allChips.includes(nextChip)) {
+            if (nextChip && !allChips.includes(nextChip)) {
                 getNewChip(nextChip);
                 break;
             }
