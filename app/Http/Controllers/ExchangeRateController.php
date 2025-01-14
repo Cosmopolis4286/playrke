@@ -132,7 +132,6 @@ class ExchangeRateController extends Controller
             return redirect()->back()->with('message', 'La tasa de cambio ha sido cargada con exito');
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
             Log::error('Error al registar la tasa de cambio: ' . $e->getMessage());
             return redirect()->back()->with('message', 'Error al registar la tasa de cambio')->with('type', 'warning');
         }
@@ -147,24 +146,46 @@ class ExchangeRateController extends Controller
 
         try {
 
-            $exchangeRate = $request->exchange_rate;
+            $newExchangeRate = $request->exchange_rate;
 
             switch ($data['creatorType']) {
                 case 'commerce':
-                    // Buscar el registro de CommerceExchangeRate por su ID desencriptado
-                    $commerceExchangeRate = CommerceExchangeRate::findOrFail($exchangeRateID);
+                    // Buscar el ultimo registro de CommerceExchangeRate por su ID desencriptado
+                    $dataExchangeRate = CommerceExchangeRate::findOrFail($exchangeRateID);
 
-                    //$commerceExchangeRate->coin = $coin;
-                    $commerceExchangeRate->exchange_rate = $exchangeRate;
-                    $commerceExchangeRate->save();
+                    $dataExchangeRate->status = 2;
+                    $dataExchangeRate->save();
+
+                    $pct = $dataExchangeRate->exchange_rate != 0
+                        ? round(($newExchangeRate * 100) / $dataExchangeRate->exchange_rate, 2)
+                        : 0;
+
+                    CommerceExchangeRate::create([
+                        'commerce' => $dataExchangeRate->commerce,
+                        'coin' => $dataExchangeRate->coin,
+                        'exchange_rate' => $newExchangeRate,
+                        'pct' => $pct,
+                        'status' => 1
+                    ]);
                     break;
                 case 'customer':
-                    // Buscar el registro de CustomerExchangeRate por su ID desencriptado
-                    $customerExchangeRate = CustomerExchangeRate::findOrFail($exchangeRateID);
+                    // Buscar el ultimo registro de CustomerExchangeRate por su ID desencriptado
+                    $dataExchangeRate = CustomerExchangeRate::findOrFail($exchangeRateID);
 
-                    //$customerExchangeRate->coin = $coin;
-                    $customerExchangeRate->exchange_rate = $exchangeRate;
-                    $customerExchangeRate->save();
+                    $dataExchangeRate->status = 2;
+                    $dataExchangeRate->save();
+
+                    $pct = $dataExchangeRate->exchange_rate != 0
+                        ? round(($newExchangeRate * 100) / $dataExchangeRate->exchange_rate, 2)
+                        : 0;
+
+                    CustomerExchangeRate::create([
+                        'commerce' => $dataExchangeRate->commerce,
+                        'coin' => $dataExchangeRate->coin,
+                        'exchange_rate' => $newExchangeRate,
+                        'pct' => $pct,
+                        'status' => 1
+                    ]);
                     break;
                 default:
                     # code...
@@ -321,5 +342,16 @@ class ExchangeRateController extends Controller
     public function getLastValueByCoin($coin)
     {
         return ExchangeRate::getLastValueByCoin($coin) ?? 1;
+    }
+
+    public function historical($coin = 'all', $creatorType, $creatorID = '')
+    {
+        $viewData = [];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
+
+        return view('modules.all.exchange-rate.historical')->with($viewData);
     }
 }

@@ -33,8 +33,19 @@
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
-        <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info" placeholder="Precio Cartón"
-            min="0.35" value="1" step="0.05" required>
+        <div class="input-group mb-3">
+            <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
+                placeholder="Precio Cartón" min="0.35" value="1" step="0.05" required title="Precio Base">
+            <div class="input-group-append">
+                <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button" data-active="0"
+                    title="Ajustar precio por monedas">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
+        <div class="container"></div>
     </div>
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label for="small-prizes">%Cantos</label>
@@ -59,6 +70,6 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="commerce-commission">%Comercio*</label>
         <input type="number" id="commerce-commission" name="room_commission" class="form-control form-info"
-            placeholder="%Com" required value="15" step="0.05" min="15" max="50">
+            value="10" step="0.05" min="10" max="50" required>
     </div>
 </div>

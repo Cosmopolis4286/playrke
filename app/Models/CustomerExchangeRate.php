@@ -47,7 +47,7 @@ class CustomerExchangeRate extends Model
 
     public static function getAvailableExchangeRates($customer)
     {
-        return self::where('customer', $customer)->where('status', '<>', 3)->get();
+        return self::where('customer', $customer)->where('status', 1)->get();
     }
 
     public static function getCoinsByCustomer($customer, $status = '')

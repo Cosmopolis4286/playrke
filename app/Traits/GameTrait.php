@@ -92,7 +92,7 @@ trait GameTrait
         // Obtener estatus de la sala de juego
         switch ($game) {
             case 'BINGO':
-                $roomStatus = BingoRoom::getValueById($roomID, 'status');
+                $room = BingoRoom::getRoomById($roomID, ['room_type', 'status']);
                 break;
             default:
                 break;
@@ -108,12 +108,19 @@ trait GameTrait
         // Definir la tasa de cambio de acuerdo al $creator['type'] 
         if (in_array($creatorType, ['RKE', 'commerce'])) {
             $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
+
+            if ($room->room_type === 2) { // Sala pública
+                $creatorExchangeRate = CommerceExchangeRate::whereIn('commerce', function ($query) use ($roomID) {
+                    $query->select('creator_id')->from('bingo_creators')
+                        ->where('creator_type', 'commerce')->where('room', $roomID);
+                })->where('status', 1)->where('coin', $coin)->avg('exchange_rate');
+            }
         } else {
             $creatorExchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $coin);
         }
 
         // Definir Tasa de Cambio de la sala de acuerdo al estatus
-        $exchangeRate = ($roomStatus == 2)
+        $exchangeRate = ($room->status == 2)
             ? $creatorExchangeRate
             : GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin);
 

@@ -42,7 +42,7 @@ class CommerceExchangeRate extends Model
 
     public static function getAvailableExchangeRates($commerce)
     {
-        return self::where('commerce', $commerce)->where('status', '<>', 3)->get();
+        return self::where('commerce', $commerce)->where('status', 1)->get();
     }
 
     public static function getCoinsByCommerce($commerce, $status = '')
