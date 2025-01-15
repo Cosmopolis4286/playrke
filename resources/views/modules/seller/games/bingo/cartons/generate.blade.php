@@ -19,8 +19,13 @@
                             </div>
                             <div class="form-group col-6 col-sm-4">
                                 <label for="ctn-price">Precio Carton</label>
-                                <input type="hidden" id="coin" name="coin">
-                                <div class="form-control_d" id="tx-ctn-price"></div>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span id="ctn-price-symbol" class="input-group-text"></span>
+                                    </div>
+                                    <span id="ctn-price-amount" class="form-control"></span>
+                                    <input type="hidden" id="coin" name="coin">
+                                </div>
                             </div>
                             <div class="form-group col-6 col-sm-3">
                                 <label for="num-ctns">#CTNs</label>
@@ -260,7 +265,8 @@
             const exchangeRate = data.value;
             ctnPrice = formatNumber(exchangeRate * roomCtnPrice);
             $("#coin").val(data.sym);
-            $("#tx-ctn-price").text(`${data.sym} ${ctnPrice}`);
+            $("#ctn-price-symbol").text(data.sym);
+            $("#ctn-price-amount").text(ctnPrice);
             $("#tx-jackpot-room").text(formatNumber((jackpotRoom * exchangeRate), 3));
             calculateSale();
         }
@@ -313,7 +319,8 @@
                         roomCtnPrice = formatNumber(price);
                         ctnPrice = roomCtnPrice;
                         $("#coin").val(coin);
-                        $("#tx-ctn-price").text(`${coin} ${ctnPrice}`);
+                        $("#ctn-price-symbol").text(coin);
+                        $("#ctn-price-amount").text(ctnPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
                         jackpotRoom = formatNumber(jackpot, 3);

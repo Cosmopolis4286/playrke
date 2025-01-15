@@ -102,9 +102,10 @@
                                     data-type="2" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                @if ($room->status == 1 && now()->timestamp + 900 < $room->unix_date)
+                                @if ($room->status == 1)
                                     <button class="btn-{{ $name }} btn btn-sm btn-success" data-type="5"
-                                        data-id="{{ encrypt($room->id) }}" title="Publicar">
+                                        data-id="{{ encrypt($room->id) }}" title="Publicar"
+                                        @disabled(now()->timestamp + 900 >= $room->unix_date)>
                                         <i class="fa-solid fa-circle-up"></i>
                                     </button>
                                 @elseif ($room->status == 2 && $room->jackpot_prize > 0)

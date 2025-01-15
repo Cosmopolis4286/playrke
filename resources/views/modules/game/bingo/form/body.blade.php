@@ -33,7 +33,10 @@
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
-        <div class="input-group mb-3">
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text">$</span>
+            </div>
             <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
                 placeholder="Precio Cartón" min="0.35" value="1" step="0.05" required title="Precio Base">
             <div class="input-group-append">
