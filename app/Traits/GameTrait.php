@@ -111,8 +111,8 @@ trait GameTrait
 
             if ($room->room_type === 2) { // Sala pública
                 $creatorExchangeRate = CommerceExchangeRate::whereIn('commerce', function ($query) use ($roomID) {
-                    $query->select('creator_id')->from('bingo_creators')
-                        ->where('creator_type', 'commerce')->where('room', $roomID);
+                    $query->select('creator_id')->from('bingo_creator')
+                        ->where('creator_type', 3)->where('room', $roomID);
                 })->where('status', 1)->where('coin', $coin)->avg('exchange_rate');
             }
         } else {
