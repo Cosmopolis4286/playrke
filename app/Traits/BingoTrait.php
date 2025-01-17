@@ -416,7 +416,7 @@ trait BingoTrait
 
         // Comisiones del vendedor
         $saleCommn = $this->calculateSellerCommission($seller, $totalSaleCtns, $room->id);
-        $sellerSaleCommn = number_format($saleCommn / $exchangeRate, 3, '.');;
+        $sellerSaleCommn = number_format($saleCommn / $exchangeRate, 2, '.');;
 
         return ['exchangeRate' => $exchangeRate, 'sellerSaleCommn' => $sellerSaleCommn];
     }
@@ -612,23 +612,25 @@ trait BingoTrait
     {
         try {
             // Variable para definir monto a anexar al bote
-            $amountAddJackpot = $saleAmount;
+            $amountAddJackpot = $saleAmount - $sellerSaleCommn;
 
             if ($arrCtn['jackpotType'] == 2) {
                 // Si el bote es tipo "Premio"
                 $amountAddJackpot = 0;
             }
 
-            // Obtener comision del creador/casa (comision por sala)
+            // Obtener comision del creador/casa (comision por sala)\
             $creatorCommn = ($amountAddJackpot * BingoRoomConfig::getValueByRoom($room->id, 'room_commn')) / 100;
+            $creatorCommn =  number_format($creatorCommn, 3, '.');
 
+            // Restar al bote la comision del creador de la sala
             if ($creatorCommn) $amountAddJackpot -= $creatorCommn;
 
             // Preparar los datos para actualizar la sala
             $updateData = [
                 'all_sale' => $room->all_sale + $saleAmount,
                 'jackpot' => $room->jackpot + $amountAddJackpot,
-                'jackpot_prize' => $room->jackpot + $amountAddJackpot,
+                'jackpot_prize' => $room->jackpot_prize + $amountAddJackpot,
                 'ctns' => $room->ctns + $arrCtn['numOfCtns'],
                 'room_commn' => $room->room_commn + $creatorCommn
             ];
@@ -666,7 +668,7 @@ trait BingoTrait
             $numOfCtns = $arrCtn['numOfCtns'];
             $gameMode = $room->game_mode;
             $saleAmount = $numOfCtns * $room->ctn_price;
-            $sellerSaleCommn = null;
+            $sellerSaleCommn = 0;
 
             if ($customer) {
                 $customerExchangeRate = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
