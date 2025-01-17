@@ -605,7 +605,7 @@ class BingoController extends Controller
     public function inGameCommerce($commerce, $playerLink)
     {
         // Vista para el juego de un comercio especifico
-        $commerceID = PlayerLink::getValueByLink($playerLink, 'commerce');
+        $commerceID = PlayerLink::getValueByLink($playerLink, 'commerce') ?? abort(404);
 
         // Obetener codigos Unicos del comercio
         $commerce = Commerce::getById($commerceID, ['code_rke', 'code_uuid']);
