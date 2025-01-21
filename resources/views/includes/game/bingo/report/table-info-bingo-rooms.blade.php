@@ -108,11 +108,18 @@
                                         data-id="{{ encrypt($room->id) }}" title="Publicar">
                                         <i class="fa-solid fa-circle-up"></i>
                                     </button>
-                                @elseif ($room->status == 2 && $room->jackpot_prize > 0)
-                                    <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="6"
-                                        data-id="{{ encrypt($room->id) }}" title="Reembolsar">
-                                        <i class="fa-solid fa-rotate-right"></i>
-                                    </button>
+                                @elseif ($room->status == 2)
+                                    @if ($room->jackpot_prize > 0)
+                                        <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="6"
+                                            data-id="{{ encrypt($room->id) }}" title="Reembolsar">
+                                            <i class="fa-solid fa-money-bill-transfer"></i>
+                                        </button>
+                                    @else
+                                        <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="8"
+                                            data-id="{{ encrypt($room->id) }}" title="Cambiar Status">
+                                            <i class="fa-solid fa-rotate"></i>
+                                        </button>
+                                    @endif
                                 @endif
                             @elseif (!$room->replay)
                                 <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="4"

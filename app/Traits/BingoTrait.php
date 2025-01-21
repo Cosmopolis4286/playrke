@@ -404,7 +404,9 @@ trait BingoTrait
             'all_sale',
             'room_commn',
             'seller_commn',
-            'jackpot'
+            'jackpot',
+            'jackpot_prize',
+            'ctns'
         )->where('status', 2)->where('id', $roomID)->first();
     }
 
@@ -416,7 +418,7 @@ trait BingoTrait
 
         // Comisiones del vendedor
         $saleCommn = $this->calculateSellerCommission($seller, $totalSaleCtns, $room->id);
-        $sellerSaleCommn = number_format($saleCommn / $exchangeRate, 2, '.');;
+        $sellerSaleCommn = number_format($saleCommn / $exchangeRate, 8, '.');;
 
         return ['exchangeRate' => $exchangeRate, 'sellerSaleCommn' => $sellerSaleCommn];
     }
@@ -424,24 +426,27 @@ trait BingoTrait
     // Función para calcular la comisión del vendedor
     private function calculateSellerCommission($seller, $totalSaleCtns, $roomID)
     {
-        if ($seller) {
-            $commnSeller = SellerRoomLimits::getGameRoomValueBySeller(1, $seller, $roomID, 'commn') ?? Seller::getValueById($seller, 'commn');
-            SellerRoomLimits::firstOrCreate(['game' => 1, 'room' => $roomID, 'seller' => $seller], ['commn' => $commnSeller]);
-            return $commnSeller ? number_format($totalSaleCtns * ($commnSeller / 100), 2, '.', '') : 0;
-        }
-        return 0;
+        if (!$seller) return 0;
+
+        $commnSeller = SellerRoomLimits::getGameRoomValueBySeller(1, $seller, $roomID, 'commn') ?? Seller::getValueById($seller, 'commn');
+        // Registar la comision del vendedor para la sala de jeugo
+        SellerRoomLimits::firstOrCreate(['game' => 1, 'room' => $roomID, 'seller' => $seller], ['commn' => $commnSeller]);
+
+        $commnSeller = ($totalSaleCtns * $commnSeller) / 100;
+
+        return $commnSeller ? number_format($commnSeller, 2, '.') : 0;
     }
 
     // Función para crear el lote de cartones
-    private function createCtnsLot($arrCtn, $ctnPrice, $exchangeRate, $saleAmount)
+    private function createCtnsLot($arrCtn, $exchangeRate, $saleAmount)
     {
         $seller = $arrCtn['seller'] ?? null;
 
         $finalSaleAmount = $saleAmount;
 
         if ($seller) {
-            $sellerCommn = Seller::getValueById($seller, 'commn');
-            $finalSaleAmount = $saleAmount * (1 - ($sellerCommn / 100));
+            $sellerCommn = Seller::getValueById($seller, 'commn') / 100;
+            $finalSaleAmount = number_format($saleAmount * (1 - $sellerCommn), 2, '.');
         }
 
         $currentTime = now();
@@ -454,7 +459,7 @@ trait BingoTrait
             'player_user' => $arrCtn['playerUser'] ?? null,
             'player_link' => $arrCtn['playerLink'] ?? null,
             'room' => $arrCtn['room'],
-            'ctn_price' => $ctnPrice,
+            'ctn_price' => $arrCtn['ctnPrice'],
             'exchange_rate' => $exchangeRate,
             'ctns' => $arrCtn['numOfCtns'],
             'coin' => $arrCtn['coin'],
@@ -612,7 +617,7 @@ trait BingoTrait
     {
         try {
             // Variable para definir monto a anexar al bote
-            $amountAddJackpot = $saleAmount - $sellerSaleCommn;
+            $amountAddJackpot = number_format($saleAmount - $sellerSaleCommn, 6, '.');
 
             if ($arrCtn['jackpotType'] == 2) {
                 // Si el bote es tipo "Premio"
@@ -621,7 +626,7 @@ trait BingoTrait
 
             // Obtener comision del creador/casa (comision por sala)\
             $creatorCommn = ($amountAddJackpot * BingoRoomConfig::getValueByRoom($room->id, 'room_commn')) / 100;
-            $creatorCommn =  number_format($creatorCommn, 3, '.');
+            $creatorCommn =  number_format($creatorCommn, 6, '.');
 
             // Restar al bote la comision del creador de la sala
             if ($creatorCommn) $amountAddJackpot -= $creatorCommn;
@@ -648,6 +653,14 @@ trait BingoTrait
         }
     }
 
+    public function calculateCtnPrice($exchangeRate, $roomCtnPrice)
+    {
+        // Calcular precio del carton y redondear de acuerdo a la moneda 
+        $ctnPrice = number_format($exchangeRate * $roomCtnPrice, 2, '.');
+        // Calcular precio del carton en USDT 
+        return number_format($ctnPrice / $exchangeRate, 8, '.');
+    }
+
     public function cartonStore($arrCtn)
     {
         $roomID = $arrCtn['room'];
@@ -667,7 +680,7 @@ trait BingoTrait
             $coin = $arrCtn['coin'];
             $numOfCtns = $arrCtn['numOfCtns'];
             $gameMode = $room->game_mode;
-            $saleAmount = $numOfCtns * $room->ctn_price;
+            $saleAmount = $numOfCtns * $arrCtn['ctnPrice'];
             $sellerSaleCommn = 0;
 
             if ($customer) {
@@ -696,10 +709,10 @@ trait BingoTrait
             }
 
             // Definir monto total de venta
-            $totalSaleAmount = $exchangeRate * $saleAmount;
+            $totalSaleAmount = number_format($exchangeRate * $saleAmount, 2, '.');
 
             // Crear lote de cartones
-            $lotID = $this->createCtnsLot($arrCtn, $room->ctn_price, $exchangeRate, $totalSaleAmount);
+            $lotID = $this->createCtnsLot($arrCtn, $exchangeRate, $totalSaleAmount);
 
             // Generar y almacenar los cartones de bingo
             $generateAndStoreCtns = $this->generateAndStoreCtns($arrCtn, $lotID);
@@ -780,7 +793,7 @@ trait BingoTrait
     {
         $room = BingoRoom::with(['Config:room,jackpot_type'])
             ->select('id', 'room_type', 'status')
-            ->where('encrypted', $data['room'])->first();
+            ->where('id', $data['room'])->first();
 
         if ($room->status > 2) {
             return ['Error' => 'Sala no disponible'];
@@ -866,6 +879,7 @@ trait BingoTrait
                 unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastname']);
             }
 
+            // Generar cartones
             $responseCtns = $this->cartonStore($data);
 
             if (!isset($responseCtns['Error'])) {

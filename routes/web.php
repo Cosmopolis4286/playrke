@@ -403,6 +403,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
     Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [BingoController::class, 'changeStatus'])->name('change-status');
     Route::put('replay/{id}', [BingoController::class, 'replay'])->name('replay');
     Route::put('publish/{id}', [BingoController::class, 'publish'])->name('publish');
     Route::put('refund/{id}', [BingoController::class, 'refund'])->name('refund');

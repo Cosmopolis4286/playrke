@@ -144,15 +144,15 @@ trait UserVal
             DB::beginTransaction();
 
             try {
-
                 $commerceID = Commerce::getValueByUserId($user, 'id');
                 $query = CommerceExchangeRate::where('commerce', $commerceID);
 
                 if (count($coinsWithoutDirectories)) {
-                    // status => 2 Sin directorio registrado
-                    $query->whereIn('coin', $coinsWithoutDirectories)->update(['status' => 2]);
+                    // status => 4 Sin directorio registrado
+                    $query->whereIn('coin', $coinsWithoutDirectories)
+                        ->where('status', 1)->update(['status' => 4]);
                 } else {
-                    $query->update(['status' => 1]);
+                    $query->where('status', 4)->update(['status' => 1]);
                 }
 
                 DB::commit();
@@ -234,7 +234,6 @@ trait UserVal
                 'coin' => $coinInfo->symbol
             ];
         } catch (\Exception $e) {
-            dd($e->getMessage());
             return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
         }
     }

@@ -202,6 +202,16 @@
                     encryptedId
                 );
             },
+            8: function(encryptedId) {
+                showToastOptionBtns(
+                    'Deseas cambiar el status de esta sala',
+                    'question',
+                    'Sí, cambiar',
+                    '#form-other-options',
+                    `{{ route('bingo.change-status', ['id' => ':id']) }}`,
+                    encryptedId
+                );
+            }
         };
 
         $(document).on("click", "#btn-ctn-price-config", function() {

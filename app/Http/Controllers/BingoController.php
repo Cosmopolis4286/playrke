@@ -272,19 +272,16 @@ class BingoController extends Controller
 
     public function generateCarton(Request $request)
     {
-        $data = [
-            'room' => $request->room ?? null,
-            'numOfCtns' => $request->num_ctns ?? 0
-        ];
-
-        $room = BingoRoom::getRoomByEncrypted($data['room'], ['id', 'ctn_price']);
+        $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'ctn_price']);
 
         if (!$room) {
             return redirect()->back()->with('message', 'Sala no encontrada')->with('type', 'warning');
         }
 
-        $roomID = $room->id;
+        $data = ['room' => $room->id, 'numOfCtns' => $request->num_ctns ?? 1];
+
         $creator = $request->user_type;
+        $roomID = $room->id;
 
         if ($creator) {
 
@@ -320,9 +317,11 @@ class BingoController extends Controller
                 $data['customer'] = $creatorID;
                 $data['playerUser'] = $player ?? null;
                 $playerColumn = 'player_user';
+
+                // Calcular precio del carton
+                $ctnPrice = $this->calculateCtnPrice($exchangeRate, $room->ctn_price);
             } else {
                 $data['commerce'] = $creatorID;
-
 
                 if ($isLogin == true) {
                     $data['playerUser'] = $player;
@@ -338,6 +337,7 @@ class BingoController extends Controller
                     if ($balance < $saleAmount) {
                         return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
                     }
+                    $ctnPrice = $this->calculateCtnPrice($exchangeRate, $room->ctn_price);
                 } else {
                     if ($request->purchase_code) {
                         // Verificar si el Codigo de Compra es Valido
@@ -360,6 +360,7 @@ class BingoController extends Controller
                 }
             }
         } else {
+
             $seller = Seller::getByUserId(Auth::id(), ['id', 'commerce']);
             $country = $request->country;
 
@@ -370,7 +371,14 @@ class BingoController extends Controller
             $data['playerPhone'] = $request->phone ?? null;
             $data['playerName'] = $request->name ?? null;
             $data['playerLastname'] = $request->last_name ?? null;
+
+            // Calcular precio del carton
+            $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($seller->commerce, $data['coin']);
+            $ctnPrice = $this->calculateCtnPrice($exchangeRate, $room->ctn_price);
         }
+
+        // Definir precio del carton
+        $data['ctnPrice'] = $ctnPrice;
 
         $cartonStore = $this->handleCartonStore($data);
 
@@ -1344,6 +1352,14 @@ class BingoController extends Controller
             DB::rollBack();
             return redirect()->back()->with('msg-error', 'Ha ocurrido un error');
         }
+    }
+
+    public function changeStatus($id)
+    {
+        $id = decrypt($id);
+        BingoRoom::where('id', $id)->update(['status' => 1]);
+        Session::flash('message', 'Sala actualizada');
+        return redirect()->back()->with('type', 'success');
     }
 
     public function refund($id) // Reembolsar compras de la sala
