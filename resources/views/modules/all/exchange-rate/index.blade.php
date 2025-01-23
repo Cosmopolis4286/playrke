@@ -23,9 +23,7 @@
                                 @endif
                                 <th>Moneda</th>
                                 <th>Cambio</th>
-                                @if ($creator['type'] !== 'customer')
-                                    <th>%</th>
-                                @endif
+                                <th>%</th>
                                 <th>Status</th>
                                 <th>Acción</th>
                             </tr>
@@ -48,11 +46,9 @@
                                         @endif
                                         {{ $item->exchange_rate }}
                                     </td>
-                                    @if ($creator['type'] !== 'customer')
-                                        <td>
-                                            {{ $item->pct > 0 ? $item->pct . '%' : '-' }}
-                                        </td>
-                                    @endif
+                                    <td>
+                                        {{ $item->pct > 0 ? $item->pct . '%' : '-' }}
+                                    </td>
                                     <td>
                                         @if ($item->status == 0)
                                             No/Disp

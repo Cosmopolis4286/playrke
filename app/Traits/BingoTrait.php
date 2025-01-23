@@ -20,6 +20,7 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
+use App\Models\GameConfig;
 use App\Models\GameExchangeRate;
 use App\Models\PlayerLink;
 use App\Models\Seller;
@@ -617,7 +618,7 @@ trait BingoTrait
     {
         try {
             // Variable para definir monto a anexar al bote
-            $amountAddJackpot = number_format($saleAmount - $sellerSaleCommn, 6, '.');
+            $amountAddJackpot = number_format($saleAmount, 6, '.');
 
             if ($arrCtn['jackpotType'] == 2) {
                 // Si el bote es tipo "Premio"
@@ -630,6 +631,13 @@ trait BingoTrait
 
             // Restar al bote la comision del creador de la sala
             if ($creatorCommn) $amountAddJackpot -= $creatorCommn;
+
+            $gameConfig = GameConfig::getGameParam('BINGO', 'COMMN');
+
+            if ($gameConfig && $gameConfig->status == 1) {
+                $gameCommn = number_format(($amountAddJackpot * $gameConfig->param_val) / 100, 6, '.');
+                $amountAddJackpot -= $gameCommn;
+            }
 
             // Preparar los datos para actualizar la sala
             $updateData = [
@@ -926,7 +934,7 @@ trait BingoTrait
                 // Verificar y obtener el tipo de cambio
                 $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $ctn->coin) ?? 1;
 
-                $prizeWn = rtrim(rtrim(number_format($USDValue * $exchangeRate, 3, '.', ''), '0'), '.');
+                $prizeWn = rtrim(rtrim(number_format($USDValue * $exchangeRate, 2, '.', ''), '0'), '.');
 
                 $timestamp = now();
 
@@ -1411,9 +1419,7 @@ trait BingoTrait
                 $fullName = User::getValueById($ctn->player_user, 'username');
             } else {
                 $playerLink = PlayerLink::getById($ctn->player_link, ['name', 'lastname']);
-                $playerLastname = $this->initialCharacters($playerLink->lastname);
-
-                $fullName = "$playerLink->name $playerLastname";
+                $fullName = "$playerLink->name $playerLink->lastname";
             }
         }
 

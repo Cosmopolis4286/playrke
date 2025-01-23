@@ -41,14 +41,34 @@
                 placeholder="Precio Cartón" min="0.35" value="1" step="0.05" required title="Precio Base">
             <div class="input-group-append">
                 <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button" data-active="0"
-                    title="Ajustar precio por monedas">
+                    data-toggle="popover" data-trigger="hover" data-content="Ajustar precio por monedas">
                     <i class="fa-solid fa-sliders"></i>
                 </button>
             </div>
         </div>
     </div>
     <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
-        <div class="container"></div>
+        <div class="container">
+            <label>Ajustar Precio Carton</label>
+            <div class="row">
+                @foreach ($coins as $item)
+                    @continue($item->symbol === 'USDT')
+                    <div class="col-4">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">{{ $item->iso_code }}</span>
+                            </div>
+                            <input type="text" class="form-control">
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <input type="checkbox">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
     </div>
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label for="small-prizes">%Cantos</label>

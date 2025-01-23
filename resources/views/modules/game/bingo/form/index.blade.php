@@ -18,7 +18,7 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator, 'coins' => $coins])->render(),
     ])
     @include('includes.form-other-options')
     @if ($creator['type'] === 'customer')

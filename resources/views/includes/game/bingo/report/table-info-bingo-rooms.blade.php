@@ -31,11 +31,12 @@
                         ]);
                     } else {
                         if ($room->room_type == 2) {
-                            $roomRoute = route('bingocash.out-game-rke', ['room' => $roomID]);
+                            $roomRoute = route('bingocash.out-game-rke', ['room' => $roomID, 'coin' => encrypt($coin)]);
                         } else {
                             $roomRoute = route('bingocash.out-game-commerce', [
                                 'commerce' => $commerceUUID,
                                 'room' => $roomID,
+                                'coin' => encrypt($coin),
                             ]);
                         }
                     }

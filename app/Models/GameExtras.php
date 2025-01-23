@@ -7,9 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class GameExtras extends Model
 {
     protected $table = "game_extras";
-    protected $fillable = [
-        'id', 'price', 'description', 'id_game', 'status'
-    ];
+    protected $fillable = ['price', 'description', 'id_game', 'status'];
 
     public function Game()
     {
