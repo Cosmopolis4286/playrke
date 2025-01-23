@@ -48,25 +48,10 @@
         </div>
     </div>
     <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
-        <div class="container">
-            <label>Ajustar Precio Carton</label>
-            <div class="row">
-                @foreach ($coins as $item)
-                    @continue($item->symbol === 'USDT')
-                    <div class="col-4">
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">{{ $item->iso_code }}</span>
-                            </div>
-                            <input type="text" class="form-control">
-                            <div class="input-group-append">
-                                <div class="input-group-text">
-                                    <input type="checkbox">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
+        <div class="container"
+            style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
+            <label for="container-price-config" class="form-label">Ajustar Precio del Cartón</label>
+            <div id="container-price-config" class="row">
             </div>
         </div>
     </div>

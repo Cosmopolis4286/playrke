@@ -18,7 +18,7 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator, 'coins' => $coins])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
     ])
     @include('includes.form-other-options')
     @if ($creator['type'] === 'customer')
@@ -40,12 +40,14 @@
     <script>
         const name = '{{ $name }}';
         const creatorType = @json($creator['type'] ?? '');
+        const creatorID = @json($creator['id'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
         const arrRoomType = @json($roomType);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
+        let inCourse = false;
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -214,55 +216,51 @@
             }
         };
 
+        function handlePriceCtnForCoins(arrCtnPrice) {
+            let dataCoins = '';
+
+            arrCtnPrice.forEach((elem) => {
+                dataCoins += `
+            <div class="col col-sm-6 col-md-4 mt-1">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">${elem.iso_code}</span>
+                    </div>
+                    <input type="text" class="form-control" aria-label="Precio para ${elem.iso_code}" value="">
+                </div>
+            </div>`;
+            });
+
+            $('#container-price-config').html(dataCoins);
+        }
+
         $(document).on("click", "#btn-ctn-price-config", function() {
             const container = $("#container-ctn-price-config");
             // Alternar la clase y el valor del atributo 'data-active'
             const isActive = container.toggleClass("hide-elem").data("active") === 1 ? 0 : 1;
             container.data("active", isActive);
 
-            // Verificar si 'data-active' es 0
             if (isActive === 0) return;
 
-            // $.ajax({
-            //     url: `{{ route('bingo.getInfoByEncrypt', ['id' => ':id', 'mode' => ':mode', 'coin' => ':coin']) }}`
-            //         .replace(':id', roomID).replace(':mode', 'game-rooms').replace(':coin', coin),
-            //     method: 'GET',
-            //     dataType: 'json',
-            //     beforeSend: function() {
-            //         inCourse = true;
-            //         $('#container-spinner').show();
-            //     },
-            //     success: function(res) {
-            //         const room = res.room;
-            //         isLogin = Number(res.isLogin);
-            //         ctnPrice = room.ctnPrice;
-            //         numCtns = 1;
-
-            //         generateModalPurchase(roomID);
-
-            //         $('#purchase-ctns__coin-text').text(room.jackpotType);
-            //         $('.purchase-ctns__coin-label').text(room.coin);
-            //         $('#jackpot-amount').text(room.jackpotAmount);
-            //         formatDateTime(room.dateTime);
-            //         handleTotalAmount();
-
-            //         $(`#jackpot-room_${roomID}`).text(room.jackpotAmount);
-
-            //         if ($(`#ctn-price_${roomID}`).text() != ctnPrice) {
-            //             $(`#ctn-price_${roomID}`).text(ctnPrice);
-            //         }
-
-            //         $('#container-spinner').hide();
-            //         $('#container-purchase-ctns').show();
-            //     },
-            //     error: function(error) {
-            //         console.log(error);
-            //         $('#container-spinner').hide();
-            //     },
-            //     complete: function() {
-            //         inCourse = false;
-            //     }
-            // });
+            $.ajax({
+                url: `{{ route('bingo.getCtnPriceForCoin', ['creatorType' => ':1', 'creatorID' => ':2']) }}`
+                    .replace(':1', creatorType).replace(':2', creatorID),
+                method: 'GET',
+                dataType: 'json',
+                beforeSend: function() {
+                    inCourse = true;
+                    $('#container-spinner').show();
+                },
+                success: function(res) {
+                    $('#container-spinner').hide();
+                },
+                error: function(error) {
+                    $('#container-spinner').hide();
+                },
+                complete: function() {
+                    inCourse = false;
+                }
+            });
         });
     </script>
     @if ($creator['type'] === 'customer')

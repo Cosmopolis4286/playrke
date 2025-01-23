@@ -19,6 +19,11 @@ class BingoCtnPrice extends Model
         return $this->belongsTo(UserType::class, 'creator_type');
     }
 
+    public function Coin()
+    {
+        return $this->belongsTo(Coin::class, 'coin');
+    }
+
     public static function getById($id, $fields = ['*'])
     {
         return self::select($fields)->where('id', $id)->first();
@@ -27,6 +32,12 @@ class BingoCtnPrice extends Model
     public static function getValueById($id, $value)
     {
         return self::where('id', $id)->value($value);
+    }
+
+    public static function getAllCtnPrice($creatorType, $creatorID)
+    {
+        return self::with('Coin')->where('creator_type', $creatorType)
+            ->where('creator_id', $creatorID)->get();
     }
 
     public static function getCtnPrice($room, $coin, $value = 'ctn_price')

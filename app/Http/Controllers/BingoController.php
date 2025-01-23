@@ -795,7 +795,9 @@ class BingoController extends Controller
     {
         (new HandleBingoRooms())->checkRoomClosure();
 
-        switch ($creator['type']) {
+        $creatorType = $creator['type'];
+
+        switch ($creatorType) {
             case 'admin': // Admin
                 break;
             case 'commerce': // Comercio
@@ -868,6 +870,8 @@ class BingoController extends Controller
                 break;
         }
 
+        $coinsCtns = BingoCtnPrice::getAllCtnPrice($creatorType, $creatorID);
+
         // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
         // $jackpotType = JackpotType::getByIds($gameJackpotType);
 
@@ -892,6 +896,7 @@ class BingoController extends Controller
             'routeRKE' => $this->getRouteRKE(),
             'creator' => $creator,
             'coins' => $coins,
+            'coinsCtns' => $coinsCtns ?? [],
             'coin' => $coin,
             'coinSym' => $coinSym,
             'exchangeRate' => $exchangeRate ?? 1,
@@ -1081,7 +1086,7 @@ class BingoController extends Controller
                     //'val_sm_prizes' => $request->val_sm_prizes,
                 ]);
 
-                /* if ($ctnPrice) {
+                if ($ctnPrice) {
 
                     $timestamp = now();
 
@@ -1103,7 +1108,7 @@ class BingoController extends Controller
                     }
 
                     BingoCtnPrice::insert($recordsToInsert);
-                } */
+                }
 
                 DB::commit();
                 return redirect()->back()->with('message', 'Sala creada con éxito')->with('type', 'success');
@@ -1173,7 +1178,7 @@ class BingoController extends Controller
                 ]
             );
 
-            /* if ($ctnPrice) {
+            if ($ctnPrice) {
 
                 $timestamp = now();
 
@@ -1189,7 +1194,7 @@ class BingoController extends Controller
 
                     BingoCtnPrice::where('id', $item->id)->update($data);
                 }
-            } */
+            }
 
             DB::commit();
 
@@ -1208,6 +1213,21 @@ class BingoController extends Controller
         //BingoRoom::where('id', $id)->update(['status' => $status]);
 
         //return response()->json(['room' => $room]);
+    }
+
+    public function getCtnPriceForCoin($creatorType, $creatorID)
+    {
+        if (UserType::getValueById($creatorType, 'prefix') !== 'customer') {
+            $coins = Coin::where('id', '!=', 1)->get(['id', 'iso_code']);
+        } else {
+            $coins = CustomerExchangeRate::getCoinsIDsByCustomer($creatorID);
+        }
+
+        $ctnPrice = BingoCtnPrice::getAllCtnPrice($creatorType, $creatorID);
+
+        $data = 1;
+
+        return response()->json(['data' => $data]);
     }
 
     public function getInfo($id)
