@@ -48,6 +48,7 @@
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
         let inCourse = false;
+        let arrCoinsCtnPrice = false;
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -224,14 +225,17 @@
             <div class="col col-sm-6 col-md-4 mt-1">
                 <div class="input-group">
                     <div class="input-group-prepend">
-                        <span class="input-group-text">${elem.iso_code}</span>
+                        <span class="input-group-text">${elem.isoCode}</span>
                     </div>
-                    <input type="text" class="form-control" aria-label="Precio para ${elem.iso_code}" value="">
+                    <input type="text" class="form-control" aria-label="Precio para ${elem.isoCode}" value="${elem.ctnPrice}">
                 </div>
             </div>`;
             });
 
+            arrCoinsCtnPrice = true;
+
             $('#container-price-config').html(dataCoins);
+
         }
 
         $(document).on("click", "#btn-ctn-price-config", function() {
@@ -240,7 +244,7 @@
             const isActive = container.toggleClass("hide-elem").data("active") === 1 ? 0 : 1;
             container.data("active", isActive);
 
-            if (isActive === 0) return;
+            if (isActive === 0 || arrCoinsCtnPrice) return;
 
             $.ajax({
                 url: `{{ route('bingo.getCtnPriceForCoin', ['creatorType' => ':1', 'creatorID' => ':2']) }}`
@@ -252,6 +256,7 @@
                     $('#container-spinner').show();
                 },
                 success: function(res) {
+                    handlePriceCtnForCoins(res);
                     $('#container-spinner').hide();
                 },
                 error: function(error) {

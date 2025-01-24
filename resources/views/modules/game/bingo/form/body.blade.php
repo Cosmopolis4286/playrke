@@ -51,6 +51,11 @@
         <div class="container"
             style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
             <label for="container-price-config" class="form-label">Ajustar Precio del Cartón</label>
+            <div id="container-spinner" class="mt-1">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </div>
             <div id="container-price-config" class="row">
             </div>
         </div>

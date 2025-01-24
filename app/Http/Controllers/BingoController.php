@@ -21,6 +21,7 @@ use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawCode;
 use App\Models\BingoRoomAutomatic;
 use App\Models\Commerce;
+use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\GameModes;
@@ -1206,28 +1207,59 @@ class BingoController extends Controller
         }
     }
 
-    public function changeStatusRoom($id)
-    {
-        // Manejador de Status de Salas de Juego
-
-        //BingoRoom::where('id', $id)->update(['status' => $status]);
-
-        //return response()->json(['room' => $room]);
-    }
-
     public function getCtnPriceForCoin($creatorType, $creatorID)
     {
-        if (UserType::getValueById($creatorType, 'prefix') !== 'customer') {
-            $coins = Coin::where('id', '!=', 1)->get(['id', 'iso_code']);
-        } else {
-            $coins = CustomerExchangeRate::getCoinsIDsByCustomer($creatorID);
-        }
+        // Desencriptar $creatorID
+        $creatorID = decrypt($creatorID);
 
-        $ctnPrice = BingoCtnPrice::getAllCtnPrice($creatorType, $creatorID);
+        // Obtener las monedas relevantes según el tipo de creador
+        $coins = match ($creatorType) {
+            'admin' => Coin::where('id', '!=', 1)->distinct()->pluck('coin'),
+            'commerce' => collect(CommerceCountriesCoins::getAvailableCoins($creatorID)),
+            default => collect(CustomerExchangeRate::getCoinsByCustomer($creatorID)),
+        };
 
-        $data = 1;
+        // Obtener precios y monedas asociadas
+        $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($creatorType, $creatorID);
 
-        return response()->json(['data' => $data]);
+        // Inicializamos un contador para las claves incrementales
+        $counter = 0;
+
+        // Obtener información completa de las monedas en `coinsCtnPrice`
+        $presentCoinsData = $coinsCtnPrice->mapWithKeys(function ($ctnPrice, $coin) use (&$counter, $creatorType) {
+            return [
+                $counter++ => [
+                    'coin' => $coin,
+                    'isoCode' => $creatorType === 'customer'
+                        ? $coin
+                        : Coin::getValue($coin, 'iso_code'),
+                    'ctnPrice' => $ctnPrice,
+                ],
+            ];
+        });
+
+
+        // Identificar monedas faltantes
+        $missingCoins = collect($coins)->diff($coinsCtnPrice->keys());
+
+        // Procesar las monedas faltantes
+        $missingCoinsData = $missingCoins->mapWithKeys(function ($missingCoin) use (&$counter, $creatorType) {
+            return [
+                $counter++ => [
+                    'coin' => "$missingCoin",
+                    'isoCode' => $creatorType === 'customer'
+                        ? $missingCoin
+                        : Coin::getValue($missingCoin, 'iso_code'),
+                    'ctnPrice' => '', // Precio vacío
+                ],
+            ];
+        });
+
+        // Combinar los datos y estructurarlos en un arreglo con identificador clave
+        $arrCoinsCtnPrice = $presentCoinsData->merge($missingCoinsData);
+
+        // Retornar respuesta con los datos
+        return response()->json($arrCoinsCtnPrice);
     }
 
     public function getInfo($id)
