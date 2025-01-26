@@ -274,6 +274,7 @@
                 success: function(res) {
                     handlePriceCtnForCoins(res);
                     $('#container-spinner').hide();
+                    $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
                 },
                 error: function(error) {
                     $('#container-spinner').hide();
