@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
                     'resources/js/rke/format-date-time-unix.js',
                     'resources/js/rke/switch-payment-method.js',
                     'resources/js/rke/payment-confirm-button.js',
+                    'resources/js/games/bingo/ctn-price-coins.js',
                     'resources/js/games/bingo/in-game.js',
                     'resources/js/games/bingo/includes/auto-marked.js',
                     'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'
@@ -41,6 +42,7 @@ export default defineConfig(({ mode }) => {
                     'resources/js/rke/format-date-time-unix.js',
                     'resources/js/rke/switch-payment-method.js',
                     'resources/js/rke/payment-confirm-button.js',
+                    'resources/js/games/bingo/ctn-price-coins.js',
                     'resources/js/games/bingo/in-game.js',
                     'resources/js/games/bingo/includes/auto-marked.js',
                     'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'

@@ -888,12 +888,18 @@ class BingoController extends Controller
         ])->where($creator['type'], $creatorID)->orderByDesc('date')
             ->orderByDesc('time')->orderBy('status')->get();
 
+        $routeGetCtnPriceForCoin = route(
+            'bingo.getCtnPriceForCoin',
+            ['creatorType' => ':1', 'creatorID' => ':2', 'room' => ':3']
+        );
+
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo',
             'name' => 'bingocash',
             'returnBtn' => $returnBtn ?? true,
             'routeWithCoin' => $routeWithCoin,
+            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
             'routeRKE' => $this->getRouteRKE(),
             'creator' => $creator,
             'coins' => $coins,
@@ -1621,6 +1627,11 @@ class BingoController extends Controller
             ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
         );
 
+        $routeGetCtnPriceForCoin = route(
+            'bingo.getCtnPriceForCoin',
+            ['creatorType' => ':1', 'creatorID' => ':2', 'room' => ':3']
+        );
+
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo AUTO',
@@ -1630,6 +1641,7 @@ class BingoController extends Controller
             'rooms' => $automaticRooms,
             'activeRooms' => $activeRooms,
             'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
+            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
             'jackpotType' => JackpotType::all(),

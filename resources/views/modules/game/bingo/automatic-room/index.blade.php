@@ -28,6 +28,7 @@
     <script>
         const name = '{{ $name }}';
         const routeGenerateBingoRoomsJob = @json($routeGenerateBingoRoomsJob);
+        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
@@ -199,4 +200,5 @@
             },
         };
     </script>
+    @vite(['resources/js/games/bingo/ctn-price-coins.js'])
 @endsection
