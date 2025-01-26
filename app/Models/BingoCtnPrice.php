@@ -39,8 +39,24 @@ class BingoCtnPrice extends Model
         return self::where('id', $id)->value($value);
     }
 
+    public static function getCtnPriceByCreator($coin, $creatorType, $creatorID)
+    {
+        // Convertir $creatorType si es un string
+        if (is_string($creatorType)) {
+            $creatorType = UserType::getValueByPrefix($creatorType, 'id');
+        }
+
+        return self::where([
+            ['coin', $coin],
+            ['creator_type', $creatorType],
+            ['creator_id', $creatorID],
+        ])->value('ctn_price');
+    }
+
     public static function getOnlyCoinsCtnPrice($bingoCreatorID)
     {
+        if (!$bingoCreatorID) return collect();
+
         return self::where('bingo_creator_id', $bingoCreatorID)->groupBy('coin')
             ->select('coin', BingoCtnPrice::raw('MAX(ctn_price) as ctn_price'))
             ->pluck('ctn_price', 'coin');

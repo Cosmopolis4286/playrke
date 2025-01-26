@@ -77,9 +77,13 @@
             const isRequired = !isDisabled;
             let roomType = false;
 
-            arrCoinsCtnPrice = false;
-            $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
-            $('#container-price-config').html('');
+            if (type == 1) {
+                arrCoinsCtnPrice = false;
+                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
+                $('#container-price-config').html('');
+            } else {
+                getCtnPriceCoin(data.room.encrypted);
+            }
 
             gameMode.prop({
                 disabled: isDisabled,
@@ -152,8 +156,8 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'date', 'time', 'game-mode', 'ctn-price',
-                'val-serials', 'commerce-commission', 'jackpot-type'
+                'date', 'time', 'room-type', 'jackpot-type', 'game-mode',
+                'ctn-price', 'val-serials', 'commerce-commission'
             ]);
         });
 
@@ -223,8 +227,8 @@
 
         function handlePriceCtnForCoins(arrCtnPrice) {
             // Generar el contenido HTML usando map y join
-            const dataCoins = arrCtnPrice.map((elem) => 
-            `<div class="col col-sm-6 col-md-4 mt-1">
+            const dataCoins = arrCtnPrice.map((elem) =>
+                `<div class="col col-sm-6 col-md-4 mt-1">
                 <div class="input-group">
                     <div class="input-group-prepend">
                         <span class="input-group-text">${elem.isoCode}</span>
@@ -254,9 +258,13 @@
 
             if (isActive === 0 || arrCoinsCtnPrice) return;
 
+            getCtnPriceCoin();
+        });
+
+        function getCtnPriceCoin(room = '') {
             $.ajax({
-                url: `{{ route('bingo.getCtnPriceForCoin', ['creatorType' => ':1', 'creatorID' => ':2']) }}`
-                    .replace(':1', creatorType).replace(':2', creatorID),
+                url: `{{ route('bingo.getCtnPriceForCoin', ['creatorType' => ':1', 'creatorID' => ':2', 'room' => ':3']) }}`
+                    .replace(':1', creatorType).replace(':2', creatorID).replace(':3', room),
                 method: 'GET',
                 dataType: 'json',
                 beforeSend: function() {
@@ -274,7 +282,7 @@
                     inCourse = false;
                 }
             });
-        });
+        }
     </script>
     @if ($creator['type'] === 'customer')
         <script>

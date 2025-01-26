@@ -1214,7 +1214,7 @@ class BingoController extends Controller
         }
     }
 
-    public function getCtnPriceForCoin($creatorType, $creatorID)
+    public function getCtnPriceForCoin($creatorType, $creatorID, $room = '')
     {
         // Desencriptar $creatorID
         $creatorID = decrypt($creatorID);
@@ -1226,8 +1226,19 @@ class BingoController extends Controller
             default => collect(CustomerExchangeRate::getCoinsByCustomer($creatorID)),
         };
 
+        if ($room) {
+            // Obtener ID de la sala
+            $roomID = BingoRoom::getValueByEncrypted($room, 'id');
+
+            // Parámetros del creador
+            $creator = ['type' => $creatorType, 'id' => $creatorID];
+
+            // Obtener ID Bingo Creator
+            $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id') ?? '';
+        }
+
         // Obtener precios y monedas asociadas
-        $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($creatorType, $creatorID);
+        $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($bingoCreatorID ?? '');
 
         // Inicializamos un contador para las claves incrementales
         $counter = 0;
@@ -1273,7 +1284,7 @@ class BingoController extends Controller
     {
         $id = decrypt($id);
 
-        $room = BingoRoom::select('game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->where('id', $id)->firstOrFail();
+        $room = BingoRoom::select('encrypted', 'game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->where('id', $id)->firstOrFail();
 
         $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
             ->where('room', $id)->firstOrFail();

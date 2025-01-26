@@ -40,8 +40,9 @@
             <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
                 placeholder="Precio Cartón" min="0.35" value="1" step="0.05" required title="Precio Base">
             <div class="input-group-append">
-                <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button" data-active="0"
-                    data-toggle="popover" data-trigger="hover" data-content="Ajustar precio por monedas">
+                <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button"
+                    data-active="0" data-toggle="popover" data-trigger="hover"
+                    data-content="Ajustar precio por monedas">
                     <i class="fa-solid fa-sliders"></i>
                 </button>
             </div>
@@ -67,7 +68,7 @@
     </div> --}}
     <div class="form-group col-sm-6 col-md-4">
         <label for="serials-commission">%Com. Seriales</label>
-        <input type="number" value="1" min="1" max="6" step="0.01" id="serials-commission"
+        <input type="number" value="0" min="0" max="5" step="0.01" id="serials-commission"
             name="serials_commission" class="form-control form-info" placeholder="Ingrese valor">
     </div>
     <div class="form-group col-sm-6 col-md-4">

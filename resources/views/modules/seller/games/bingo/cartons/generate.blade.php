@@ -279,9 +279,9 @@
             }
         }
 
-        function getExchange(country) {
+        function getCtnPriceCoin(country) {
             $.getJSON({
-                url: `{{ route('seller.getExchangeRate', ['country' => ':country']) }}`
+                url: `{{ route('seller.getCtnPriceCoin', ['country' => ':country']) }}`
                     .replace(':country', country),
                 data: {
                     '_token': $("#5K3_70K").val()
@@ -345,7 +345,7 @@
             $(".info-player").toggleClass('hide-elem', countryVal === '');
             const country = countryVal || 0;
 
-            if (countryVal) getExchange(country);
+            if (countryVal) getCtnPriceCoin(country);
         });
 
         function insertCountries(arr) {

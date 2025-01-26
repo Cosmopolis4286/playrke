@@ -41,11 +41,19 @@ class BingoCreator extends Model
 
     public static function getByCreatorRoom($creator, $room, $fields = ['*'])
     {
-        return self::select($fields)->where($creator['type'], $creator['id'])->where('room', $room)->first();
+        return self::select($fields)->where('creator_type', $creator['type'])
+            ->where('creator_id', $creator['id'])->where('room', $room)->first();
     }
 
     public static function getValueByCreatorRoom($creator, $room, $value)
     {
-        return self::where($creator['type'], $creator['id'])->where('room', $room)->value($value);
+        // Convertir $creatorType si es un string
+        if (is_string($creator['type'])) {
+            $creatorType = UserType::getValueByPrefix($creator['type'], 'id');
+        }
+
+        return self::where('creator_type', $creatorType)
+            ->where('creator_id', $creator['id'])
+            ->where('room', $room)->value($value);
     }
 }
