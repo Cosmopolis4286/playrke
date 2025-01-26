@@ -77,6 +77,10 @@
             const isRequired = !isDisabled;
             let roomType = false;
 
+            arrCoinsCtnPrice = false;
+            $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
+            $('#container-price-config').html('');
+
             gameMode.prop({
                 disabled: isDisabled,
                 required: isRequired
@@ -218,24 +222,28 @@
         };
 
         function handlePriceCtnForCoins(arrCtnPrice) {
-            let dataCoins = '';
-
-            arrCtnPrice.forEach((elem) => {
-                dataCoins += `
-            <div class="col col-sm-6 col-md-4 mt-1">
+            // Generar el contenido HTML usando map y join
+            const dataCoins = arrCtnPrice.map((elem) => 
+            `<div class="col col-sm-6 col-md-4 mt-1">
                 <div class="input-group">
                     <div class="input-group-prepend">
                         <span class="input-group-text">${elem.isoCode}</span>
                     </div>
-                    <input type="text" class="form-control" aria-label="Precio para ${elem.isoCode}" value="${elem.ctnPrice}">
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        name="ctn_price_coins[${elem.coin}]" 
+                        id="ctn-price-coin-${elem.coin}" 
+                        aria-label="Precio para ${elem.isoCode}" 
+                        value="${elem.ctnPrice}">
                 </div>
-            </div>`;
-            });
+            </div>`).join('');
 
-            arrCoinsCtnPrice = true;
-
+            // Actualizar el contenido del contenedor
             $('#container-price-config').html(dataCoins);
 
+            // Marcar que las monedas ya han sido procesadas
+            arrCoinsCtnPrice = true;
         }
 
         $(document).on("click", "#btn-ctn-price-config", function() {

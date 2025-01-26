@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
+            $table->foreignId('bingo_creator_id')->constrained('bingo_creator')->onDelete('cascade');
             $table->string('coin', 15);
             $table->double('ctn_price');
             $table->boolean('status')->default(1);
