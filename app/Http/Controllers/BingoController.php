@@ -1647,9 +1647,6 @@ class BingoController extends Controller
             'gameModes' => GameModes::all()
         ];
 
-        app(AutoGenerateBingoRooms::class)->createBingoRooms();
-dd();
-
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);
         }
