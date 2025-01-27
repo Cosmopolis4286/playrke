@@ -24,7 +24,6 @@
                                         <span id="ctn-price-symbol" class="input-group-text"></span>
                                     </div>
                                     <span id="ctn-price-amount" class="form-control"></span>
-                                    <input type="hidden" id="coin" name="coin">
                                 </div>
                             </div>
                             <div class="form-group col-6 col-sm-3">
@@ -170,6 +169,7 @@
         const btnGenerate = $("#btn-generate-ctn");
         let roomID = '';
         let roomCtnPrice = false;
+        let coinSym = '';
         let ctnPrice = 1;
         let jackpotRoom;
         let playerInfo = '';
@@ -254,7 +254,7 @@
             let jackpotAmount = formatNumber((total - totalsellerCommn));
 
             if (roomID) {
-                $(".coin-symbol").text($("#coin").val());
+                $(".coin-symbol").text(coinSym);
                 $("#tx-total-amount").html(total);
                 $("#tx-seller-commn").html(totalsellerCommn);
                 $("#tx-commerce-amount").html(jackpotAmount);
@@ -263,9 +263,9 @@
 
         function convertCurrency(data) {
             const exchangeRate = data.exchangeRate;
+            coinSym = data.sym;
             ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
-            $("#coin").val(data.sym);
-            $("#ctn-price-symbol").text(data.sym);
+            $("#ctn-price-symbol").text(coinSym);
             $("#ctn-price-amount").text(ctnPrice);
             $("#tx-jackpot-room").text(formatNumber((jackpotRoom * exchangeRate), 3));
             calculateSale();
@@ -318,8 +318,8 @@
                         } = data;
                         roomCtnPrice = formatNumber(price);
                         ctnPrice = roomCtnPrice;
-                        $("#coin").val(coin);
-                        $("#ctn-price-symbol").text(coin);
+                        coinSym = coin;
+                        $("#ctn-price-symbol").text(coinSym);
                         $("#ctn-price-amount").text(ctnPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
