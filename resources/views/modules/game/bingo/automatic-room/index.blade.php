@@ -90,6 +90,14 @@
             const isRequired = !isDisabled;
             let roomType = false;
 
+            if (type == 1) {
+                arrCoinsCtnPrice = false;
+                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
+                $('#container-price-config').html('');
+            } else {
+                getCtnPriceCoin('A', data.room.id);
+            }
+
             gameMode.prop({
                 disabled: isDisabled,
                 required: isRequired

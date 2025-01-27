@@ -1228,24 +1228,22 @@ class BingoController extends Controller
             default => collect(CustomerExchangeRate::getCoinsByCustomer($creatorID)),
         };
 
-        if ($room) {
-            if ($type === 'M') {
-                // Obtener ID de la sala
-                $roomID = BingoRoom::getValueByEncrypted($room, 'id');
+        if ($room && $type === 'M') {
+            // Obtener ID de la sala
+            $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
-                // Parámetros del creador
-                $creator = ['type' => $creatorType, 'id' => $creatorID];
+            // Parámetros del creador
+            $creator = ['type' => $creatorType, 'id' => $creatorID];
 
-                // Obtener ID Bingo Creator
-                $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id') ?? '';
-            } else {
-            }
+            // Obtener ID Bingo Creator
+            $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id');
         }
 
         // Obtener precios y monedas asociadas
         if ($type === 'M') {
             $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($bingoCreatorID ?? '');
         } else {
+            $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($room ?? '');
         }
 
         // Inicializamos un contador para las claves incrementales
@@ -1649,6 +1647,9 @@ class BingoController extends Controller
             'gameModes' => GameModes::all()
         ];
 
+        app(AutoGenerateBingoRooms::class)->createBingoRooms();
+dd();
+
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);
         }
@@ -1804,6 +1805,7 @@ class BingoController extends Controller
         $id = decrypt($id);
 
         $room = BingoRoomAutomatic::select(
+            'id',
             'time',
             'game_mode',
             'room_type',
