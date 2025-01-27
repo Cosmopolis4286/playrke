@@ -273,154 +273,203 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function generateCarton(Request $request)
+    private function handleCartonByCreator($creator, $player, $roomCtnPrice, $data, $request)
     {
-        $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'ctn_price']);
+        $playerColumn = 'player_user';
 
-        if (!$room) {
-            return redirect()->back()->with('message', 'Sala no encontrada')->with('type', 'warning');
-        }
+        if ($creator['type'] === 'customer') {
 
-        $data = ['room' => $room->id, 'numOfCtns' => $request->num_ctns ?? 1];
+            $user = CustomerUser::getById($player, ['token', 'coin']);
 
-        $creator = $request->user_type;
-        $roomID = $room->id;
+            $customerResponse = $this->getUserBalanceFromCustomer($creator['id'], $user->token);
 
-        if ($creator) {
-
-            $creatorID = decrypt($request->user_type_val);
-            $coin = decrypt($request->coin);
-            $player = !empty($request->player) ? decrypt($request->player) : null;
-
-            $isLogin = $request->is_login ?? false;
-            $data['isLogin'] = $isLogin;
-            $data['coin'] = $coin;
-
-            if ($creator === 'customer') {
-
-                $user = CustomerUser::getById($player, ['token', 'coin']);
-
-                $customerResponse = $this->getUserBalanceFromCustomer($creatorID, $user->token);
-
-                if (isset($customerResponse['Error'])) {
-                    Log::error('Ha ocurrido un error al generar Carton del Cliente/Jugador: ' . $customerResponse['Error']);
-                    return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error en la solicitud']);
-                }
-
-                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $user->coin);
-
-                // Monto total a pagar 
-                $saleAmount = $room->ctn_price * $exchangeRate * $data['numOfCtns'];
-
-                if ($customerResponse['Data'][0]['Amount'] < $saleAmount) {
-                    // Validar saldo disponible
-                    return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
-                }
-
-                $data['customer'] = $creatorID;
-                $data['playerUser'] = $player ?? null;
-                $playerColumn = 'player_user';
-
-                // Calcular precio del carton
-                $ctnPrice = $this->calculateCtnPrice($exchangeRate, $room->ctn_price);
-            } else {
-                $data['commerce'] = $creatorID;
-
-                if ($isLogin == true) {
-                    $data['playerUser'] = $player;
-                    $playerColumn = 'player_user';
-
-                    // Determinar la columna de saldo en función de la moneda
-                    $columnBalance = $coin == 1 ? 'usdt' : 'balance';
-                    $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
-
-                    $saleAmount = $room->ctn_price * $exchangeRate * $data['numOfCtns'];
-                    $balance = Wallet::getValue($player, $columnBalance);
-
-                    if ($balance < $saleAmount) {
-                        return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
-                    }
-                    $ctnPrice = $this->calculateCtnPrice($exchangeRate, $room->ctn_price);
-                } else {
-                    if ($request->purchase_code) {
-                        // Verificar si el Codigo de Compra es Valido
-                        $purchaseCode = UserPurchaseCodes::existsPurchaseCode($request->purchase_code);
-
-                        if (!$purchaseCode) {
-                            return response()->json(['type' => 'warning', 'message' => 'Codigo de Compra no existe']);
-                        }
-                    }
-
-                    $data['playerLink'] =  $player ?? null;
-                    $playerColumn = 'player_link';
-
-                    if ($request->user_in_game) {
-                        $data['country'] = $request->country ?? null;
-                        $data['playerPhone'] = $request->phone ?? null;
-                        $data['playerName'] = $request->name ?? null;
-                        $data['playerLastname'] = $request->last_name ?? null;
-                    }
-                }
+            if (isset($customerResponse['Error'])) {
+                Log::error('Ha ocurrido un error al generar Carton del Cliente/Jugador: ' . $customerResponse['Error']);
+                return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error en la solicitud']);
             }
-        } else {
 
-            $seller = Seller::getByUserId(Auth::id(), ['id', 'commerce']);
-            $country = $request->country;
+            $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creator['id'], $user->coin);
 
-            $data['commerce'] = $seller->commerce;
-            $data['seller'] = $seller->id;
-            $data['country'] = $country;
-            $data['coin'] = Coin::getValueByCountry($country, 'id');
-            $data['playerPhone'] = $request->phone ?? null;
-            $data['playerName'] = $request->name ?? null;
-            $data['playerLastname'] = $request->last_name ?? null;
+            // Monto total a pagar 
+            $saleAmount = $roomCtnPrice * $exchangeRate * $data['numOfCtns'];
+
+            if ($customerResponse['Data'][0]['Amount'] < $saleAmount) {
+                // Validar saldo disponible
+                return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
+            }
+
+            $data['customer'] = $creator['id'];
+            $data['playerUser'] = $player ?? null;
 
             // Calcular precio del carton
-            $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($seller->commerce, $data['coin']);
-            $ctnPrice = $this->calculateCtnPrice($exchangeRate, $room->ctn_price);
+            $ctnPrice = $this->calculateCtnPrice($exchangeRate, $roomCtnPrice);
+        } else {
+            $data['commerce'] = $creator['id'];
+
+            if ($data['isLogin']) {
+                $data['playerUser'] = $player;
+
+                // Determinar la columna de saldo en función de la moneda
+                $columnBalance = $data['coin'] == 1 ? 'usdt' : 'balance';
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator['id'], $data['coin']);
+
+                $saleAmount = $roomCtnPrice * $exchangeRate * $data['numOfCtns'];
+                $balance = Wallet::getValue($player, $columnBalance);
+
+                if ($balance < $saleAmount) {
+                    return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
+                }
+                $ctnPrice = $this->calculateCtnPrice($exchangeRate, $roomCtnPrice);
+            } else {
+                if ($request->purchase_code) {
+                    // Verificar si el Codigo de Compra es Valido
+                    $purchaseCode = UserPurchaseCodes::existsPurchaseCode($request->purchase_code);
+
+                    if (!$purchaseCode) {
+                        return response()->json(['type' => 'warning', 'message' => 'Codigo de Compra no existe']);
+                    }
+                }
+
+                $data['playerLink'] =  $player ?? null;
+                $playerColumn = 'player_link';
+
+                if ($request->user_in_game) {
+                    $data['country'] = $request->country ?? null;
+                    $data['playerPhone'] = $request->phone ?? null;
+                    $data['playerName'] = $request->name ?? null;
+                    $data['playerLastname'] = $request->last_name ?? null;
+                }
+            }
         }
 
         // Definir precio del carton
         $data['ctnPrice'] = $ctnPrice;
 
-        $cartonStore = $this->handleCartonStore($data);
+        return ['data' => $data, 'playerColumn' => $playerColumn];
+    }
 
-        if (!isset($cartonStore['Error'])) {
+    private function handleCartonBySeller($data, $bingoCreatorID, $roomCtnPrice, $request)
+    {
+        $seller = Seller::getByUserId(Auth::id(), ['id', 'commerce']);
+
+        $data['commerce'] = $seller->commerce;
+        $data['seller'] = $seller->id;
+        $data['country'] = $request->country;
+        $data['coin'] = Coin::getValueByCountry($request->country, 'id');
+        $data['playerPhone'] = $request->phone ?? null;
+        $data['playerName'] = $request->name ?? null;
+        $data['playerLastname'] = $request->last_name ?? null;
+
+        $creatorPrice = BingoCtnPrice::getCtnPriceByCreator($data['coin'], $bingoCreatorID);
+        $ctnPrice = $creatorPrice
+            ? $this->calculateCtnPrice($creatorPrice)
+            : $this->calculateCtnPrice($roomCtnPrice, CommerceExchangeRate::getCommerceCoinValue($seller->commerce, $data['coin']));
+
+        // Definir precio del carton
+        $data['ctnPrice'] = $ctnPrice;
+
+        return $data;
+    }
+
+    public function generateCarton(Request $request)
+    {
+        $room = BingoRoom::with(['Config:room,jackpot_type'])
+            ->select('id', 'room_type', 'ctn_price', 'status')
+            ->where('encrypted', $request->room)->first();
+
+        if (!$room || ($room && $room->status > 2)) {
+            return redirect()->back()->with('message', 'Sala no encontrada')->with('type', 'warning');
+        }
+
+        $data = [
+            'room' => $room->id,
+            'jackpotType' => $room->Config->jackpot_type,
+            'numOfCtns' => $request->num_ctns ?? 1
+        ];
+
+        $roomCtnPrice = $room->ctn_price;
+        $bingoCreatorID = BingoCreator::getValueByRoom($data['room'], 'id');
+        $creatorType = $request->user_type;
+
+        if ($creatorType) {
+            $creator = ['type' => $creatorType, 'id' => decrypt($request->user_type_val)];
+            $player = !empty($request->player) ? decrypt($request->player) : null;
+
+            // Adicionar datos al conjunto
+            $data['isLogin'] = $request->is_login ?? false;
+            $data['coin'] = decrypt($request->coin);
+
+            $response = $this->handleCartonByCreator($creator, $player, $roomCtnPrice, $data['room'], $request);
+            $data = $response['data'];
+            $playerColumn = $response['playerColumn'];
+        } else {
+            $data = $this->handleCartonBySeller($data, $bingoCreatorID, $roomCtnPrice, $request);
+        }
+
+        // Iniciar Transaccion
+        DB::beginTransaction();
+
+        try {
+            if ($data['commerce'] || $data['seller']) {
+                // Usuario Fuera de Sesion
+                if (!isset($data['isLogin'])) {
+                    $data = $this->handlePlayerLink($data);
+                }
+            }
+
+            if (!isset($data['initials'])) {
+                // Manejar iniciales del cliente
+                $serialText = isset($data['customer'])
+                    ? Customer::getValueById($data['customer'], 'brand') ?? strtoupper(bin2hex(random_bytes(2)))
+                    : 'RKE';
+                $data['initials'] = $serialText;
+            }
+
+            // Generar cartones
+            $cartonStore = $this->cartonStore($data);
+
+            if (isset($cartonStore['Error'])) {
+                DB::rollBack();
+                $message = $cartonStore['Error'];
+                $response = isset($creator)
+                    ? response()->json(['type' => 'warning', 'message' => $message])
+                    : redirect()->back()->with(['type' => 'warning', 'message' => $message]);
+
+                return $response;
+            }
+
+            DB::commit(); // Confirmar transacción
 
             if (isset($creator)) {
-
-                if ($creator === 'customer') {
-                    DB::beginTransaction();
-                    try {
-                        // Validar transacciones del cliente
-                        app(HandleTransactions::class)->validateTransactions($creatorID);
-                        DB::commit();
-                    } catch (\Exception $e) {
-                        DB::rollBack();
-                        Log::error('Ha ocurrido un error durante la transacción: ' . $e->getMessage());
-                        return response()->json(['type' => 'warning', 'message' => 'Error en la transacción']);
-                    }
+                if ($creator['type'] === 'customer') {
+                    // Validar transacciones del cliente
+                    app(HandleTransactions::class)->validateTransactions($creator['id']);
                 }
 
-                $jackpot = number_format($this->convertPrizeValue($roomID, $coin, 'float'), 2, '.');
+                $jackpot = number_format($this->convertPrizeValue($data['room'], $data['coin'], 'float'), 2, '.');
+                $ctns = BingoRoomUser::getValueByColumn($data['room'], $playerColumn, $player, 'ctns');
 
                 return response()->json([
                     'jackpot' => $jackpot,
-                    'ctns' => BingoRoomUser::getValueByColumn($roomID, $playerColumn, $player, 'ctns'),
+                    'ctns' => $ctns,
                     'type' => 'success',
-                    'message' => 'Proceso efectuado con exito'
+                    'message' => 'Proceso efectuado con éxito'
                 ]);
-            } else {
-                Session::flash('message', 'Proceso efectuado con exito');
-                Session::flash('playerLink',  $cartonStore);
-                return redirect()->back();
             }
-        } else {
-            if (isset($creator)) {
-                return response()->json(['type' => 'warning', 'message' => $cartonStore['Error']]);
-            } else {
-                return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al procesar la solicitud']);
-            }
+
+            $responseCartonStore = $this->getGameLinkByPlayer($data['commerce'], $data['playerLink'], $room->room_type);
+            Session::flash('message', 'Proceso efectuado con éxito');
+            Session::flash('playerLink', $responseCartonStore);
+
+            return redirect()->back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $message = 'Error al procesar la solicitud';
+            $response = isset($creator)
+                ? response()->json(['type' => 'warning', 'message' => $message])
+                : redirect()->back()->with(['type' => 'warning', 'message' => $message]);
+
+            return $response;
         }
     }
 

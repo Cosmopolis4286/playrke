@@ -414,6 +414,7 @@ trait BingoTrait
     // Función para calcular el monto total de venta
     private function calculateTotalSale($saleAmount, $room, $coin, $seller, $commerce)
     {
+        dd(88);
         $exchangeRate = ($coin != 1) ? CommerceExchangeRate::getCommerceCoinValue($commerce, $coin) : 1;
         $totalSaleCtns = number_format(($saleAmount * $exchangeRate), 2, '.');
 
@@ -661,18 +662,24 @@ trait BingoTrait
         }
     }
 
-    public function calculateCtnPrice($exchangeRate, $roomCtnPrice)
+    public function calculateCtnPrice($roomCtnPrice, $exchangeRate = 1)
     {
         // Calcular precio del carton y redondear de acuerdo a la moneda 
         $ctnPrice = number_format($exchangeRate * $roomCtnPrice, 2, '.');
         // Calcular precio del carton en USDT 
-        return number_format($ctnPrice / $exchangeRate, 8, '.');
+        $formattedPrice = number_format($ctnPrice / $exchangeRate, 8, '.', '');
+
+        if (fmod($formattedPrice, 1) == 0) {
+            $formattedPrice = number_format($formattedPrice, 2, '.', '');
+        }
+        return $formattedPrice;
     }
 
     public function cartonStore($arrCtn)
     {
-        $roomID = $arrCtn['room'];
         (new HandleBingoRooms())->checkRoomClosure();
+
+        $roomID = $arrCtn['room'];
 
         $room = $this->getRoomDetails($roomID);
         if (!$room) return ['Error' => 'Sala no disponible'];
@@ -711,7 +718,6 @@ trait BingoTrait
             if ($gameMode != 1 && ($commerce || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor
                 $salesData = $this->calculateTotalSale($saleAmount, $room, $coin, $seller, $commerce);
-
                 $exchangeRate = $salesData['exchangeRate'];
                 $sellerSaleCommn = $salesData['sellerSaleCommn'];
             }
@@ -792,7 +798,7 @@ trait BingoTrait
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear los cartones: ' . $e->getMessage());
+            Log::error('Error al crear los cartones cartonStore(): ' . $e->getMessage());
             return ['Error' => 'Error al crear los cartones'];
         }
     }
@@ -805,102 +811,6 @@ trait BingoTrait
 
         if ($room->status > 2) {
             return ['Error' => 'Sala no disponible'];
-        }
-
-        $roomID = $room->id;
-
-        $isLogin = $data['isLogin'] ?? false;
-        $data['room'] = $roomID;
-        $coin = $data['coin'];
-        $commerce = $data['commerce'] ?? null;
-        $seller = $data['seller'] ?? null;
-        $serialText = 'RKE';
-
-        if ($commerce || $seller) {
-
-            if (!$isLogin) { // Usuario Fuera de Sesion
-                // Si la venta es procesada por un comercio o vendedor
-                $playerLink = $data['playerLink'] ?? null;
-                $playerPhone = $data['playerPhone'] ?? null;
-
-                $player = PlayerLink::select('id', 'name', 'lastname', 'link')
-                    ->where('game', 1)->where('room', $roomID)
-                    ->where(function ($query) use ($playerPhone, $playerLink) {
-                        $query->where('phone', $playerPhone)
-                            ->orWhere('id', $playerLink);
-                    })->first();
-
-                $playerName = $data['playerName'] ?? $player->name;
-                $playerLastname = $data['playerLastname'] ?? $player->lastname;
-                $arrInitials = $this->initialCharacters([$playerName, $playerLastname]);
-                $serialText = $arrInitials[0] . $arrInitials[1];
-            }
-        }
-
-        DB::beginTransaction();
-
-        try {
-
-            if (($commerce || $seller) && !$isLogin) {
-
-                if (!$player) {
-
-                    $playerLink = $this->createPlayerLink(1);
-
-                    $arrDataPlayer = [
-                        'game' => 1,
-                        'room' => $roomID,
-                        'commerce' => $commerce,
-                        'seller' => $seller,
-                        'country' => $data['country'],
-                        'coin' => $coin,
-                        'link' => $playerLink,
-                        'name' => $playerName,
-                        'lastname' => $playerLastname,
-                        'identification' => null,
-                        'phone' => $playerPhone
-                    ];
-
-                    $player = $this->createPlayerLinkInfo($arrDataPlayer);
-
-                    if (!$player) {
-                        DB::rollBack();
-                        Log::error('Hubo un error al crear la información del jugador');
-                        return false;
-                    }
-                } else {
-                    $playerLink = $player->link ?? null;
-                    $player = $player->id ?? null;
-                }
-            }
-
-            if (isset($data['customer'])) {
-                $serialText = Customer::getValueById($data['customer'], 'brand') ?? strtoupper(bin2hex(random_bytes(2)));
-            }
-
-            $data['jackpotType'] = $room->Config->jackpot_type;
-            $data['initials'] = $serialText;
-
-            if (($commerce || $seller)) {
-                $data['playerLink'] = $player;
-                // Eliminar Valores innecesarios
-                unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastname']);
-            }
-
-            // Generar cartones
-            $responseCtns = $this->cartonStore($data);
-
-            if (!isset($responseCtns['Error'])) {
-                DB::commit();
-                return $seller ? $this->getGameLinkByPlayer($commerce, $playerLink, $room->room_type) : true;
-            } else {
-                DB::rollBack();
-                return $responseCtns;
-            }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error en handleCartonStore(): ' . $e->getMessage());
-            return false;
         }
     }
 
