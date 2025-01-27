@@ -262,8 +262,8 @@
         }
 
         function convertCurrency(data) {
-            const exchangeRate = data.value;
-            ctnPrice = formatNumber(exchangeRate * roomCtnPrice);
+            const exchangeRate = data.exchangeRate;
+            ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
             $("#coin").val(data.sym);
             $("#ctn-price-symbol").text(data.sym);
             $("#ctn-price-amount").text(ctnPrice);

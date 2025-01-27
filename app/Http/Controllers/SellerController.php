@@ -391,13 +391,16 @@ class SellerController extends Controller
             return response()->json(['error' => 'Commerce not found'], 404);
         }
 
+        // Obtener tasa de cambio
+        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin->id);
+
         // Intentar obtener el precio configurado
-        $ctnPrice = BingoCtnPrice::getCtnPriceByCreator($coin, 'commerce', $commerce)
-            ?? CommerceExchangeRate::getCommerceCoinValue($commerce, $coin->id);
+        $ctnPrice = BingoCtnPrice::getCtnPriceByCreator($coin, 'commerce', $commerce) ?? $exchangeRate;
 
         // Construir y devolver la respuesta
         return response()->json([
             'sym' => $coin->symbol,
+            'exchangeRate' => $exchangeRate,
             'setPrice' => isset($ctnPrice),
             'value' => $ctnPrice,
         ]);

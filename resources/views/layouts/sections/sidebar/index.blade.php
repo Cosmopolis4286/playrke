@@ -109,7 +109,7 @@
                 </li>
 
                 <li class="mt-2 nav-item has-treeview" align="center">
-                    <div title="Versión 1.3.5" style="font-size:12.3px;"><b>V 1.3.5</b></div>
+                    <div title="Versión 1.3.7" style="font-size:12.3px;"><b>V 1.3.7</b></div>
                 </li>
             </ul>
         </nav>
