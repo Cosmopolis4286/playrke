@@ -34,9 +34,10 @@ $(document).on("click", "#btn-ctn-price-config", function () {
     getCtnPriceCoin();
 });
 
-function getCtnPriceCoin(room = '') {
+function getCtnPriceCoin(type, room = '') {
     $.ajax({
-        url: routeGetCtnPriceForCoin.replace(':1', creatorType).replace(':2', creatorID).replace(':3', room),
+        url: routeGetCtnPriceForCoin.replace(':1', creatorType).replace(':2', creatorID)
+            .replace(':3', type).replace(':4', room),
         method: 'GET',
         dataType: 'json',
         beforeSend: function () {
@@ -45,14 +46,14 @@ function getCtnPriceCoin(room = '') {
         },
         success: function (res) {
             handlePriceCtnForCoins(res);
-            $('#container-spinner').hide();
             $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
         },
-        error: function (error) {
-            $('#container-spinner').hide();
-        },
+        error: function (error) { },
         complete: function () {
+            $('#container-spinner').hide();
             inCourse = false;
         }
     });
 }
+
+window.getCtnPriceCoin = getCtnPriceCoin;

@@ -7,16 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class BingoCtnPrice extends Model
 {
     protected $table = 'bingo_ctn_price';
-    protected $fillable = ['room', 'creator_type', 'creator_id', 'bingo_creator_id', 'coin', 'ctn_price', 'status', 'created_at', 'updated_at'];
+    protected $fillable = ['room', 'bingo_creator_id', 'coin', 'ctn_price', 'status', 'created_at', 'updated_at'];
 
     public function Room()
     {
         return $this->belongsTo(BingoRoom::class, 'room');
-    }
-
-    public function CreatorType()
-    {
-        return $this->belongsTo(UserType::class, 'creator_type');
     }
 
     public function BingoCreator()
@@ -39,18 +34,9 @@ class BingoCtnPrice extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getCtnPriceByCreator($coin, $creatorType, $creatorID)
+    public static function getCtnPriceByCreator($coin, $bingoCreatorID)
     {
-        // Convertir $creatorType si es un string
-        if (is_string($creatorType)) {
-            $creatorType = UserType::getValueByPrefix($creatorType, 'id');
-        }
-
-        return self::where([
-            ['coin', $coin],
-            ['creator_type', $creatorType],
-            ['creator_id', $creatorID],
-        ])->value('ctn_price');
+        return self::where('bingo_creator_id', $bingoCreatorID)->where('coin', $coin)->value('ctn_price');
     }
 
     public static function getOnlyCoinsCtnPrice($bingoCreatorID)

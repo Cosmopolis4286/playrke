@@ -16,6 +16,7 @@ use App\Models\PlayHistory;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
 use App\Models\BingoCtnPrice;
+use App\Models\BingoCtnPriceAutomatic;
 use App\Models\BingoCtnsLot;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawCode;
@@ -871,8 +872,6 @@ class BingoController extends Controller
                 break;
         }
 
-        $coinsCtns = BingoCtnPrice::getAllCtnPrice($creatorType, $creatorID);
-
         // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
         // $jackpotType = JackpotType::getByIds($gameJackpotType);
 
@@ -890,7 +889,7 @@ class BingoController extends Controller
 
         $routeGetCtnPriceForCoin = route(
             'bingo.getCtnPriceForCoin',
-            ['creatorType' => ':1', 'creatorID' => ':2', 'room' => ':3']
+            ['creatorType' => ':1', 'creatorID' => ':2', 'type' => ':3', 'room' => ':4']
         );
 
         $viewData = [
@@ -903,7 +902,6 @@ class BingoController extends Controller
             'routeRKE' => $this->getRouteRKE(),
             'creator' => $creator,
             'coins' => $coins,
-            'coinsCtns' => $coinsCtns ?? [],
             'coin' => $coin,
             'coinSym' => $coinSym,
             'exchangeRate' => $exchangeRate ?? 1,
@@ -1099,11 +1097,9 @@ class BingoController extends Controller
 
                     $recordsToInsert = collect($ctnPriceCoins)
                         ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
-                        ->map(function ($ctnPrice, $coin) use ($roomID, $creatorType, $creatorID, $bingoCreatorID, $timestamp) {
+                        ->map(function ($ctnPrice, $coin) use ($roomID, $bingoCreatorID, $timestamp) {
                             return [
                                 'room' => $roomID,
-                                'creator_type' => $creatorType,
-                                'creator_id' => $creatorID,
                                 'bingo_creator_id' => $bingoCreatorID,
                                 'coin' => $coin,
                                 'ctn_price' => $ctnPrice,
@@ -1220,7 +1216,7 @@ class BingoController extends Controller
         }
     }
 
-    public function getCtnPriceForCoin($creatorType, $creatorID, $room = '')
+    public function getCtnPriceForCoin($creatorType, $creatorID, $type, $room = '')
     {
         // Desencriptar $creatorID
         $creatorID = decrypt($creatorID);
@@ -1233,18 +1229,24 @@ class BingoController extends Controller
         };
 
         if ($room) {
-            // Obtener ID de la sala
-            $roomID = BingoRoom::getValueByEncrypted($room, 'id');
+            if ($type === 'M') {
+                // Obtener ID de la sala
+                $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
-            // Parámetros del creador
-            $creator = ['type' => $creatorType, 'id' => $creatorID];
+                // Parámetros del creador
+                $creator = ['type' => $creatorType, 'id' => $creatorID];
 
-            // Obtener ID Bingo Creator
-            $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id') ?? '';
+                // Obtener ID Bingo Creator
+                $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id') ?? '';
+            } else {
+            }
         }
 
         // Obtener precios y monedas asociadas
-        $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($bingoCreatorID ?? '');
+        if ($type === 'M') {
+            $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($bingoCreatorID ?? '');
+        } else {
+        }
 
         // Inicializamos un contador para las claves incrementales
         $counter = 0;
@@ -1261,7 +1263,6 @@ class BingoController extends Controller
                 ],
             ];
         });
-
 
         // Identificar monedas faltantes
         $missingCoins = collect($coins)->diff($coinsCtnPrice->keys());
@@ -1629,7 +1630,7 @@ class BingoController extends Controller
 
         $routeGetCtnPriceForCoin = route(
             'bingo.getCtnPriceForCoin',
-            ['creatorType' => ':1', 'creatorID' => ':2', 'room' => ':3']
+            ['creatorType' => ':1', 'creatorID' => ':2', 'type' => ':3', 'room' => ':4']
         );
 
         $viewData = [
@@ -1699,7 +1700,7 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
-            BingoRoomAutomatic::create([
+            $automaticBingoID = BingoRoomAutomatic::create([
                 'time' => $request->time,
                 'game_mode' => $request->game_mode,
                 'room_type' => $request->room_type ?? 1,
@@ -1712,7 +1713,29 @@ class BingoController extends Controller
                 'num_serials' => $request->num_serials,
                 'creator_type' => $creatorType,
                 'creator_id' => $creatorID,
-            ]);
+            ])->id;
+
+            $ctnPriceCoins = $request->ctn_price_coins;
+
+            if ($ctnPriceCoins) {
+
+                $timestamp = now();
+
+                $recordsToInsert = collect($ctnPriceCoins)
+                    ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
+                    ->map(function ($ctnPrice, $coin) use ($automaticBingoID, $timestamp) {
+                        return [
+                            'automatic_bingo_id' => $automaticBingoID,
+                            'coin' => $coin,
+                            'ctn_price' => $ctnPrice,
+                            'created_at' => $timestamp,
+                            'updated_at' => $timestamp,
+                        ];
+                    })->values()->toArray();
+
+                BingoCtnPriceAutomatic::insert($recordsToInsert);
+            }
+
             DB::commit();
             return redirect()->back()->with('message', 'Registro creado con éxito')->with('type', 'success');
         } catch (\Exception $e) {
@@ -1741,6 +1764,32 @@ class BingoController extends Controller
                 'val_serials' => $request->val_serials,
                 'num_serials' => $request->num_serials,
             ]);
+
+            $ctnPriceCoins = $request->ctn_price_coins;
+
+            if ($ctnPriceCoins) {
+
+                $timestamp = now();
+
+                collect($ctnPriceCoins)->each(function ($ctnPrice, $coin) use ($id, $timestamp) {
+                    // Obtener el registro existente
+                    $bingoCtnPrice = BingoCtnPriceAutomatic::getCtnPrice($coin, $id);
+
+                    // Verificar si es necesario actualizar
+                    if ($bingoCtnPrice && $bingoCtnPrice->ctn_price != $ctnPrice) {
+                        // Construir datos para la actualización
+                        $updateData = [
+                            'ctn_price' => $ctnPrice,
+                            'status' => $ctnPrice ? 1 : 0,
+                            'updated_at' => $timestamp,
+                        ];
+
+                        // Actualizar el registro existente
+                        BingoCtnPriceAutomatic::where('id', $bingoCtnPrice->id)->update($updateData);
+                    }
+                });
+            }
+
             DB::commit();
             return redirect()->back()->with('message', 'Registro actualizado con éxito')->with('type', 'success');
         } catch (\Exception $e) {

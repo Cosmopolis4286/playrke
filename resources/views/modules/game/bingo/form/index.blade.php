@@ -83,7 +83,7 @@
                 $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
                 $('#container-price-config').html('');
             } else {
-                getCtnPriceCoin(data.room.encrypted);
+                getCtnPriceCoin('M', data.room.encrypted);
             }
 
             gameMode.prop({

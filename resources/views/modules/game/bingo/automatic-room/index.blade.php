@@ -30,11 +30,14 @@
         const routeGenerateBingoRoomsJob = @json($routeGenerateBingoRoomsJob);
         const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
+        const creatorID = @json($creator['id'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrRoomType = @json($roomType);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
+        let inCourse = false;
+        let arrCoinsCtnPrice = false;
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
