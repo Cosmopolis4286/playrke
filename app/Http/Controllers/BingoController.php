@@ -1738,7 +1738,7 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function createAutomaticRoomInfo(Request $request)
+    public function createAutomaticRoom(Request $request)
     {
         $creator = json_decode($request->creator);
         $creatorType = UserType::getValueByPrefix($creator->type, 'id');
@@ -1792,7 +1792,7 @@ class BingoController extends Controller
         }
     }
 
-    public function updateAutomaticRoomInfo(Request $request, $id)
+    public function updateAutomaticRoom(Request $request, $id)
     {
         $id = decrypt($id);
 
@@ -1868,7 +1868,7 @@ class BingoController extends Controller
         return response()->json(['room' => $room]);
     }
 
-    public function changeStatusAutomaticRoomInfo($id)
+    public function changeStatusAutomaticRoom($id)
     {
         $id = decrypt($id);
 
@@ -1888,7 +1888,7 @@ class BingoController extends Controller
         }
     }
 
-    public function deleteAutomaticRoomInfo($id)
+    public function deleteAutomaticRoom($id)
     {
         $id = decrypt($id);
 
