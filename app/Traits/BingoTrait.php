@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Events\Games\BingoOFF_ProccessDraw;
+use App\Models\BingoCtnPrice;
 use App\Models\SellerRoomLimits;
 use App\Models\BingoCtns;
 use App\Models\BingoRoom;
@@ -415,11 +416,11 @@ trait BingoTrait
     private function calculateTotalSale($saleAmount, $room, $coin, $seller, $commerce)
     {
         $exchangeRate = ($coin != 1) ? CommerceExchangeRate::getCommerceCoinValue($commerce, $coin) : 1;
-        $totalSaleCtns = number_format(($saleAmount * $exchangeRate), 2, '.');
+        $totalSaleCtns = number_format(($saleAmount / $exchangeRate), 2, '.');
 
         // Comisiones del vendedor
         $saleCommn = $this->calculateSellerCommission($seller, $totalSaleCtns, $room->id);
-        $sellerSaleCommn = number_format($saleCommn / $exchangeRate, 8, '.');;
+        $sellerSaleCommn = number_format($saleCommn, 8, '.');
 
         return ['exchangeRate' => $exchangeRate, 'sellerSaleCommn' => $sellerSaleCommn];
     }
@@ -721,6 +722,9 @@ trait BingoTrait
                 $sellerSaleCommn = $salesData['sellerSaleCommn'];
             }
 
+            // Evaluar tasa de cambio
+            $exchangeRate = BingoCtnPrice::getCtnPriceByCreator($coin, $arrCtn['bingoCreatorID']) ? 1 : $exchangeRate;
+
             // Definir monto total de venta
             $totalSaleAmount = number_format($exchangeRate * $saleAmount, 2, '.');
 
@@ -751,7 +755,13 @@ trait BingoTrait
             }
 
             // Actualizar acumulado y comisiones de la sala
-            $this->updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn);
+            $updateRoomMetrics = $this->updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn);
+
+            // Verificar si se actualizó los valores de la sala
+            if (!$updateRoomMetrics) {
+                DB::rollBack();
+                return ['Error' => 'Error al actualizar los valores de la sala'];
+            }
 
             // Definir variables dobre el juego
             $game = ['name' => 'BINGO', 'game_mode' => $gameMode];

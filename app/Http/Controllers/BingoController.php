@@ -381,14 +381,16 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'Sala no encontrada')->with('type', 'warning');
         }
 
+        $bingoCreatorID = BingoCreator::getValueByRoom($room->id, 'id');
+
         $data = [
             'room' => $room->id,
             'jackpotType' => $room->Config->jackpot_type,
+            'bingoCreatorID' => $bingoCreatorID,
             'numOfCtns' => $request->num_ctns ?? 1
         ];
 
         $roomCtnPrice = $room->ctn_price;
-        $bingoCreatorID = BingoCreator::getValueByRoom($data['room'], 'id');
         $creatorType = $request->user_type;
 
         if ($creatorType) {
