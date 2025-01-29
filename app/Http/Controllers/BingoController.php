@@ -1412,13 +1412,23 @@ class BingoController extends Controller
             'room_type' => $existingRoom->room_type ?? 1
         ];
 
-        if ($existingRoom->commerce) {
-            $createData['commerce'] = $existingRoom->commerce;
-            $createData['subsidiary'] = $existingRoom->subsidiary ?? null;
-        } else {
-            $createData['customer'] = $existingRoom->customer;
+        $creatorType = $existingRoom->commerce ? 'commerce' : 'customer';
+        $creatorID = $existingRoom->{$creatorType};
+
+        $createData[$creatorType] = $creatorID;
+        $createData['subsidiary'] = $existingRoom->subsidiary ?? null;
+
+        if ($creatorType === 'customer') {
             $createData['code_uuid'] = $this->getCodeUUID('BingoRoom');
         }
+
+        $creatorType = UserType::getValueByPrefix($creatorType, 'id');
+
+        // Definir $creator
+        $creator = ['type' => $creatorType, 'id' => $creatorID];
+
+        $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $existingRoom->id, 'id');
+        $existingRoomCtnPrice = BingoCtnPrice::getAllCtnPrice($bingoCreator);
 
         DB::beginTransaction();
 
@@ -1427,13 +1437,13 @@ class BingoController extends Controller
             $newRoom = BingoRoom::create($createData)->id;
 
             // Registar el creador de la sala
-            BingoCreator::create([
+            $newBingoCreatorID = BingoCreator::create([
                 'room' => $newRoom,
                 'creator_type' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
                 'creator_id' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
                 'creator_commn' => $existingRoomConfig->room_commn,
                 'ctn_price' => $existingRoom->ctn_price,
-            ]);
+            ])->id;
 
             BingoRoomConfig::create([
                 'room' => $newRoom,
@@ -1445,6 +1455,26 @@ class BingoController extends Controller
                 'num_serials' => $existingRoomConfig->num_serials,
                 //'val_sm_prizes' => $existingRoomConfig->val_sm_prizes,
             ]);
+
+            if ($existingRoomCtnPrice) {
+
+                $timestamp = now();
+
+                $recordsToInsert = collect($existingRoomCtnPrice)
+                    ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
+                    ->map(function ($ctnPrice, $coin) use ($newRoom, $newBingoCreatorID, $timestamp) {
+                        return [
+                            'room' => $newRoom,
+                            'bingo_creator_id' => $newBingoCreatorID,
+                            'coin' => $coin,
+                            'ctn_price' => $ctnPrice,
+                            'created_at' => $timestamp,
+                            'updated_at' => $timestamp,
+                        ];
+                    })->values()->toArray();
+
+                BingoCtnPrice::insert($recordsToInsert);
+            }
 
             DB::commit();
             return redirect()->back()->with('message', 'Sala copiada con exito')->with('type', 'success');
