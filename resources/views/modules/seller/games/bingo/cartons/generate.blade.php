@@ -281,8 +281,8 @@
 
         function getCtnPriceCoin(country) {
             $.getJSON({
-                url: `{{ route('seller.getCtnPriceCoin', ['country' => ':country']) }}`
-                    .replace(':country', country),
+                url: `{{ route('seller.getCtnPriceCoin', ['room' => ':room', 'country' => ':country']) }}`
+                    .replace(':room', roomID).replace(':country', country),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },

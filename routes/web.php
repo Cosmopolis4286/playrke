@@ -203,7 +203,7 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::get('bingocash/carton/generate', [SellerController::class, 'cartonGenerate'])->name('cartonGenerate');
     Route::post('bingocash/carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
     Route::get('bingocash/carton/get/price/{roomID}', [SellerController::class, 'getCtnPrice'])->name('getCtnPrice');
-    Route::get('bingocash/get/ctn-price-coin/{country}', [SellerController::class, 'getCtnPriceCoin'])->name('getCtnPriceCoin');
+    Route::get('bingocash/get/ctn-price-coin/{room}/{country}', [SellerController::class, 'getCtnPriceCoin'])->name('getCtnPriceCoin');
     Route::post('bingocash/player/get/player', [SellerController::class, 'getPlayer'])->name('getPlayer');
     Route::get('bingocash/carton/sold/{coin?}/{dateFilter?}', [SellerController::class, 'ctnsSold'])->name('ctnsSold');
     Route::get('bingocash/player/cartons/{playerLink}{room}', [SellerController::class, 'showPlayerCartons'])->name('showPlayerCartons');

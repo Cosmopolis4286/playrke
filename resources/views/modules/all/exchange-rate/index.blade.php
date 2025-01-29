@@ -54,7 +54,7 @@
                                             No/Disp
                                         @elseif($item->status == 1)
                                             Activo
-                                        @elseif($item->status == 2)
+                                        @elseif($item->status == 4)
                                             <a class="badge badge-danger" title="Registrar Datos Bancarios"
                                                 href="{{ route('directory.index', ['countryCode' => strtolower($item->Coin->Country->iso_code_2)]) }}">
                                                 Sin Datos Bancarios

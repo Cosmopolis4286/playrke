@@ -414,7 +414,6 @@ trait BingoTrait
     // Función para calcular el monto total de venta
     private function calculateTotalSale($saleAmount, $room, $coin, $seller, $commerce)
     {
-        dd(88);
         $exchangeRate = ($coin != 1) ? CommerceExchangeRate::getCommerceCoinValue($commerce, $coin) : 1;
         $totalSaleCtns = number_format(($saleAmount * $exchangeRate), 2, '.');
 

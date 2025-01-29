@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Banks_VEN;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
+use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\DocumentType;
 use App\Models\PagoMovil;
@@ -103,6 +104,14 @@ class DirectoryController extends Controller
                     # code...
                     break;
             }
+        }
+
+        if ($userType === 'commerce') {
+            $commerce = Commerce::getValueByUserId($userID, 'id');
+
+            $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce);
+
+            $this->checkBankDirectoriesExistence('commerce', $commerceCoins);
         }
 
         // Determinar la ruta de la vista
