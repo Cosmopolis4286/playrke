@@ -31,11 +31,12 @@
                         ]);
                     } else {
                         if ($room->room_type == 2) {
-                            $roomRoute = route('bingocash.out-game-rke', ['room' => $roomID]);
+                            $roomRoute = route('bingocash.out-game-rke', ['room' => $roomID, 'coin' => encrypt($coin)]);
                         } else {
                             $roomRoute = route('bingocash.out-game-commerce', [
                                 'commerce' => $commerceUUID,
                                 'room' => $roomID,
+                                'coin' => encrypt($coin),
                             ]);
                         }
                     }
@@ -76,10 +77,10 @@
                         {{ count($room->PlayersRoom) ?? 0 }}
                     </td>
                     <td class="align-middle">{{ $coinSym }}
-                        {{ rtrim(rtrim(number_format($allSale, 3), '0'), '.') }}</td>
+                        {{ number_format($allSale, 2, '.') }}</td>
                     <td>
                         <small>{{ $room->Config->JackpotType->description }}</small>
-                        <br>{{ $coinSym }} {{ rtrim(rtrim(number_format($jackpot, 3), '0'), '.') }}
+                        <br>{{ $coinSym }} {{ number_format($jackpot, 2, '.') }}
                     </td>
                     {{-- Estado --}}
                     <td class="align-middle">
@@ -102,16 +103,24 @@
                                     data-type="2" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                @if ($room->status == 1 && now()->timestamp + 900 < $room->unix_date)
-                                    <button class="btn-{{ $name }} btn btn-sm btn-success" data-type="5"
+                                @if ($room->status == 1)
+                                    <button class="btn-{{ $name }} btn btn-sm btn-success"
+                                        @if (now()->timestamp + 900 < $room->unix_date) data-type="5" @else data-block="1" disabled @endif
                                         data-id="{{ encrypt($room->id) }}" title="Publicar">
                                         <i class="fa-solid fa-circle-up"></i>
                                     </button>
-                                @elseif ($room->status == 2 && $room->jackpot_prize > 0)
-                                    <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="6"
-                                        data-id="{{ encrypt($room->id) }}" title="Reembolsar">
-                                        <i class="fa-solid fa-rotate-right"></i>
-                                    </button>
+                                @elseif ($room->status == 2)
+                                    @if ($room->jackpot_prize > 0)
+                                        <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="6"
+                                            data-id="{{ encrypt($room->id) }}" title="Reembolsar">
+                                            <i class="fa-solid fa-money-bill-transfer"></i>
+                                        </button>
+                                    @else
+                                        <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="8"
+                                            data-id="{{ encrypt($room->id) }}" title="Cambiar Status">
+                                            <i class="fa-solid fa-rotate"></i>
+                                        </button>
+                                    @endif
                                 @endif
                             @elseif (!$room->replay)
                                 <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="4"
@@ -131,8 +140,8 @@
         <tfoot>
             <tr>
                 <td colspan="5" class="text-right"><b>Total:</b></td>
-                <td>{{ $coinSym }} {{ rtrim(rtrim(number_format($totalAllSale, 3), '0'), '.') }}</td>
-                <td>{{ $coinSym }} {{ rtrim(rtrim(number_format($totalJackpot, 3), '0'), '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totalAllSale, 2, '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totalJackpot, 2, '.') }}</td>
                 <td colspan="3"></td>
             </tr>
         </tfoot>

@@ -50,6 +50,11 @@ class BingoRoom extends Model
     return $this->belongsTo(BingoRoomConfig::class, 'id', 'room');
   }
 
+  public function Creator()
+  {
+    return $this->hasMany(BingoCreator::class, 'room', 'id');
+  }
+
   public function Prizes()
   {
     return $this->belongsTo(BingoRoomPrizes::class, 'id', 'room');

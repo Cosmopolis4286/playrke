@@ -8,8 +8,10 @@
                 @if (!empty($coins) || $creator['type'] === 'customer')
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
                             class="fas fa-plus-square"></i> Añadir</button>
+                    <button type="button" disabled id="btn-historical" class="btn btn-sm btn-primary"
+                        data-url-template="{{ route('exchange-rate.historical', ['coin' => ':coin', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                        <i class="fa-solid fa-money-bill-trend-up"></i> Histórico</button>
                 @endif
-                <div id="chat-notification"></div>
                 <div class="table-responsive mt-2">
                     <table class="table table-striped table-bordered my-2 w-100">
                         <h6>Valores en base a Un Dólar (1 USD)</h6>
@@ -21,6 +23,7 @@
                                 @endif
                                 <th>Moneda</th>
                                 <th>Cambio</th>
+                                <th>%</th>
                                 <th>Status</th>
                                 <th>Acción</th>
                             </tr>
@@ -44,11 +47,14 @@
                                         {{ $item->exchange_rate }}
                                     </td>
                                     <td>
+                                        {{ $item->pct > 0 ? $item->pct . '%' : '-' }}
+                                    </td>
+                                    <td>
                                         @if ($item->status == 0)
                                             No/Disp
                                         @elseif($item->status == 1)
                                             Activo
-                                        @elseif($item->status == 2)
+                                        @elseif($item->status == 4)
                                             <a class="badge badge-danger" title="Registrar Datos Bancarios"
                                                 href="{{ route('directory.index', ['countryCode' => strtolower($item->Coin->Country->iso_code_2)]) }}">
                                                 Sin Datos Bancarios
@@ -99,6 +105,7 @@
         const arrCoins = @json($coins) ?? [];
         const coin = $("#coin");
 
+        let selectedCoin = 'all';
         let exchangeRateMax;
         let exchangeRateMin;
         let coinName;
@@ -202,9 +209,9 @@
                 });
             }
 
-            coin.on("change", function() {
-                if (coin.val() != '') exchangeRate.attr('readonly', true), getLastValueByCoin(coin.val());
-            });
+            // coin.on("change", function() {
+            //     if (coin.val() != '') exchangeRate.attr('readonly', true), getLastValueByCoin(coin.val());
+            // });
 
             $(document).on("input", coin, function() {
                 coinName = coin.find("option:selected").text();
@@ -245,5 +252,14 @@
 
             $(`#modal-${name}`).modal('show');
         }
+
+        $(document).on("click", "#btn-historical", function() {
+            // Obten la URL
+            const urlTemplate = $(this).data("url-template");
+            // Reemplaza los placeholders en la URL
+            const finalUrl = urlTemplate.replace(':coin', selectedCoin)
+            // Redirige a la URL final
+            window.location.href = finalUrl;
+        });
     </script>
 @endsection

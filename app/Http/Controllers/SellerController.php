@@ -16,6 +16,8 @@ use App\Traits\PlayerLinkTrait;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\BingoCreator;
+use App\Models\BingoCtnPrice;
 use App\Models\BingoCtnsPayment;
 use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
@@ -376,14 +378,39 @@ class SellerController extends Controller
         ]);
     }
 
-    public function getExchangeRate($country)
+    public function getCtnPriceCoin($room, $country)
     {
+        // Obtener moneda según el país
         $coin = Coin::getCoinByCountry($country, ['id', 'symbol']);
-        $commerce = Seller::getValueByUserId(Auth::id(), 'commerce');
+        if (!$coin) {
+            return response()->json(['error' => 'Coin not found'], 404);
+        }
 
+        // Obtener comercio asociado al usuario autenticado
+        $commerce = Seller::getValueByUserId(Auth::id(), 'commerce');
+        if (!$commerce) {
+            return response()->json(['error' => 'Commerce not found'], 404);
+        }
+
+        // Obtener tasa de cambio
         $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin->id);
 
-        return json_encode(array('sym' => $coin->symbol, 'value' => $exchangeRate));
+        $roomID = BingoRoom::getValueByEncrypted($room, 'id');
+        $creator = ['type' => 'commerce', 'id' => $commerce];
+
+        //Obtener $bingoCreatorID
+        $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id');
+
+        // Intentar obtener el precio configurado
+        $ctnPrice = BingoCtnPrice::getCtnPriceByCreator($coin->id, $bingoCreatorID) ?? '';
+
+        // Construir y devolver la respuesta
+        return response()->json([
+            'sym' => $coin->symbol,
+            'exchangeRate' => $exchangeRate,
+            'setPrice' => isset($ctnPrice),
+            'value' => $ctnPrice,
+        ]);
     }
 
     public function getPlayer(Request $request)

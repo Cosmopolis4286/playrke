@@ -90,7 +90,7 @@ class BingoCtns extends Model
     static function getCtnsByPlayerInRoom($room, $column, $value)
     {
         return self::where('room', $room)->where($column, $value)
-            ->get(['id', 'b1', 'b2', 'b3', 'b4', 'b5', 'i1', 'i2', 'i3', 'i4', 'i5', 'n1', 'n2', 'n3', 'n4', 'g1', 'g2', 'g3', 'g4', 'g5', 'o1', 'o2', 'o3', 'o4', 'o5']);
+            ->get(['id', 'serial', 'b1', 'b2', 'b3', 'b4', 'b5', 'i1', 'i2', 'i3', 'i4', 'i5', 'n1', 'n2', 'n3', 'n4', 'g1', 'g2', 'g3', 'g4', 'g5', 'o1', 'o2', 'o3', 'o4', 'o5']);
     }
 
     static function getCtnSerialByPlayerInRoom($room, $playerLink)

@@ -7,12 +7,12 @@
         @if (isset($privateRoom))
             <a class="btn btn-sm btn-secondary"
                 href="{{ route('bingo.all-rooms', ['creatorType' => $creator['type'], 'userID' => $creator['id']]) }}">
-                <i class="fas fa-globe"></i> Privadas
+                <i class="fas fa-cogs"></i> Manual
             </a>
         @else
             <a class="btn btn-sm btn-secondary"
                 href="{{ route('bingo.automatic-room.all-rooms', ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
-                <i class="fas fa-cogs"></i> Auto
+                <i class="fa-solid fa-rotate"></i> Auto
             </a>
             @if ($creator['type'] !== 'customer')
                 <a class="btn btn-sm btn-secondary"

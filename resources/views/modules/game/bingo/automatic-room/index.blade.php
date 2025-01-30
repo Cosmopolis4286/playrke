@@ -28,12 +28,16 @@
     <script>
         const name = '{{ $name }}';
         const routeGenerateBingoRoomsJob = @json($routeGenerateBingoRoomsJob);
+        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
+        const creatorID = @json($creator['id'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrRoomType = @json($roomType);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
+        let inCourse = false;
+        let arrCoinsCtnPrice = false;
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -85,6 +89,14 @@
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
             let roomType = false;
+
+            if (type == 1) {
+                arrCoinsCtnPrice = false;
+                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
+                $('#container-price-config').html('');
+            } else {
+                getCtnPriceCoin('A', data.room.id);
+            }
 
             gameMode.prop({
                 disabled: isDisabled,
@@ -199,4 +211,5 @@
             },
         };
     </script>
+    @vite(['resources/js/games/bingo/ctn-price-coins.js'])
 @endsection

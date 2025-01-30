@@ -33,8 +33,33 @@
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
-        <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info" placeholder="Precio Cartón"
-            min="0.35" value="1" step="0.05" required>
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text">$</span>
+            </div>
+            <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
+                placeholder="Precio Cartón" min="0.35" value="1" step="0.05" required title="Precio Base">
+            <div class="input-group-append">
+                <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button"
+                    data-active="0" data-toggle="popover" data-trigger="hover"
+                    data-content="Ajustar precio por monedas">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
+        <div class="container"
+            style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
+            <label for="container-price-config" class="form-label">Ajustar Precio del Cartón</label>
+            <div id="container-spinner" class="mt-1">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </div>
+            <div id="container-price-config" class="row">
+            </div>
+        </div>
     </div>
     {{-- <div class="form-group col-sm-6 col-md-4">
         <label for="small-prizes">%Cantos</label>
@@ -43,7 +68,7 @@
     </div> --}}
     <div class="form-group col-sm-6 col-md-4">
         <label for="serials-commission">%Com. Seriales</label>
-        <input type="number" value="1" min="1" max="6" step="0.01" id="serials-commission"
+        <input type="number" value="0" min="0" max="5" step="0.01" id="serials-commission"
             name="serials_commission" class="form-control form-info" placeholder="Ingrese valor">
     </div>
     <div class="form-group col-sm-6 col-md-4">
@@ -59,6 +84,6 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="commerce-commission">%Comercio*</label>
         <input type="number" id="commerce-commission" name="room_commission" class="form-control form-info"
-            placeholder="%Com" required value="15" step="0.05" min="15" max="50">
+            value="10" step="0.05" min="10" max="50" required>
     </div>
 </div>

@@ -367,6 +367,14 @@ body {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     background-color: rgb(226, 235, 255);
+    margin-bottom: 0;
+}
+
+.section-serial {
+    margin-top: 0;
+    width: 100%;
+    text-align: center;
+    background-color: rgb(209, 219, 243);
 }
 
 .container-view-carton {

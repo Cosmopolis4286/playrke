@@ -19,8 +19,12 @@
                             </div>
                             <div class="form-group col-6 col-sm-4">
                                 <label for="ctn-price">Precio Carton</label>
-                                <input type="hidden" id="coin" name="coin">
-                                <div class="form-control_d" id="tx-ctn-price"></div>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span id="ctn-price-symbol" class="input-group-text"></span>
+                                    </div>
+                                    <span id="ctn-price-amount" class="form-control"></span>
+                                </div>
                             </div>
                             <div class="form-group col-6 col-sm-3">
                                 <label for="num-ctns">#CTNs</label>
@@ -165,6 +169,7 @@
         const btnGenerate = $("#btn-generate-ctn");
         let roomID = '';
         let roomCtnPrice = false;
+        let coinSym = '';
         let ctnPrice = 1;
         let jackpotRoom;
         let playerInfo = '';
@@ -249,7 +254,7 @@
             let jackpotAmount = formatNumber((total - totalsellerCommn));
 
             if (roomID) {
-                $(".coin-symbol").text($("#coin").val());
+                $(".coin-symbol").text(coinSym);
                 $("#tx-total-amount").html(total);
                 $("#tx-seller-commn").html(totalsellerCommn);
                 $("#tx-commerce-amount").html(jackpotAmount);
@@ -257,10 +262,11 @@
         }
 
         function convertCurrency(data) {
-            const exchangeRate = data.value;
-            ctnPrice = formatNumber(exchangeRate * roomCtnPrice);
-            $("#coin").val(data.sym);
-            $("#tx-ctn-price").text(`${data.sym} ${ctnPrice}`);
+            const exchangeRate = data.exchangeRate;
+            coinSym = data.sym;
+            ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
+            $("#ctn-price-symbol").text(coinSym);
+            $("#ctn-price-amount").text(ctnPrice);
             $("#tx-jackpot-room").text(formatNumber((jackpotRoom * exchangeRate), 3));
             calculateSale();
         }
@@ -273,10 +279,10 @@
             }
         }
 
-        function getExchange(country) {
+        function getCtnPriceCoin(country) {
             $.getJSON({
-                url: `{{ route('seller.getExchangeRate', ['country' => ':country']) }}`
-                    .replace(':country', country),
+                url: `{{ route('seller.getCtnPriceCoin', ['room' => ':room', 'country' => ':country']) }}`
+                    .replace(':room', roomID).replace(':country', country),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },
@@ -312,8 +318,9 @@
                         } = data;
                         roomCtnPrice = formatNumber(price);
                         ctnPrice = roomCtnPrice;
-                        $("#coin").val(coin);
-                        $("#tx-ctn-price").text(`${coin} ${ctnPrice}`);
+                        coinSym = coin;
+                        $("#ctn-price-symbol").text(coinSym);
+                        $("#ctn-price-amount").text(ctnPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
                         jackpotRoom = formatNumber(jackpot, 3);
@@ -338,7 +345,7 @@
             $(".info-player").toggleClass('hide-elem', countryVal === '');
             const country = countryVal || 0;
 
-            if (countryVal) getExchange(country);
+            if (countryVal) getCtnPriceCoin(country);
         });
 
         function insertCountries(arr) {

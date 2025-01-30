@@ -39,13 +39,17 @@
 @section('scripts')
     <script>
         const name = '{{ $name }}';
+        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
+        const creatorID = @json($creator['id'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
         const arrRoomType = @json($roomType);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
+        let inCourse = false;
+        let arrCoinsCtnPrice = false;
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -73,6 +77,14 @@
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
             let roomType = false;
+
+            if (type == 1) {
+                arrCoinsCtnPrice = false;
+                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
+                $('#container-price-config').html('');
+            } else {
+                getCtnPriceCoin('M', data.room.encrypted);
+            }
 
             gameMode.prop({
                 disabled: isDisabled,
@@ -145,8 +157,8 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'date', 'time', 'game-mode', 'ctn-price',
-                'val-serials', 'commerce-commission', 'jackpot-type'
+                'date', 'time', 'room-type', 'jackpot-type', 'game-mode',
+                'ctn-price', 'val-serials', 'commerce-commission'
             ]);
         });
 
@@ -202,8 +214,19 @@
                     encryptedId
                 );
             },
+            8: function(encryptedId) {
+                showToastOptionBtns(
+                    'Deseas cambiar el status de esta sala',
+                    'question',
+                    'Sí, cambiar',
+                    '#form-other-options',
+                    `{{ route('bingo.change-status', ['id' => ':id']) }}`,
+                    encryptedId
+                );
+            }
         };
     </script>
+    @vite(['resources/js/games/bingo/ctn-price-coins.js'])
     @if ($creator['type'] === 'customer')
         <script>
             $(document).on("click", '#btn-game-id', function() {

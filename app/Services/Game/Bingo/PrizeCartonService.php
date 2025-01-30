@@ -23,16 +23,21 @@ class PrizeCartonService
             throw new Exception("Cliente no encontrado.");
         }
 
-        // Obtener premios no procesados del cliente
-        $prizeCtns = BingoPrizeCtns::where('customer', $customerID)
+        // Verificar si el cliente tiene premios no procesados
+        $hasPrizes = BingoPrizeCtns::where('customer', $customerID)
+            ->where('active', 'N')
+            ->exists();
+
+        if (!$hasPrizes) {
+            return ['status' => 'info', 'message' => 'No hay premios asociados a este cliente.'];
+        }
+
+        // Procesar premios en fragmentos
+        BingoPrizeCtns::where('customer', $customerID)
             ->where('active', 'N')
             ->chunk(100, function ($prizeCtns) use ($customerID) {
                 $this->processPrizeCtns($prizeCtns, $customerID);
             });
-
-        if ($prizeCtns->isEmpty()) {
-            return ['status' => 'info', 'message' => 'No hay premios asociados a este cliente.'];
-        }
 
         // Ejecutar validación de transacciones después del procesamiento
         app(HandleTransactions::class)->validateTransactions($customerID);

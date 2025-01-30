@@ -8,11 +8,10 @@
                 <th>Hora</th>
                 <th>Moneda</th>
                 <th>Ctns</th>
-                <th>Total</th>
-                <th>%Vendedor</th>
                 <th>Venta</th>
-                <th>%Bote</th>
-                <th>%Banca</th>
+                <th>Vendedor</th>
+                <th>Banca</th>
+                <th>Bote</th>
             </tr>
         </thead>
         <tbody>
@@ -30,9 +29,8 @@
                     <td>{{ $room['allCtns'] }}</td>
                     <td>{{ $coinSym }} {{ $room['allSaleRoom'] }}</td>
                     <td>{{ $coinSym }} {{ $room['comSaleSellerRoom'] }}</td>
-                    <td>{{ $coinSym }} {{ $room['finalSaleRoom'] }}</td>
-                    <td>{{ $coinSym }} {{ $room['jackpotRoom'] }}</td>
                     <td>{{ $coinSym }} {{ $room['comBancaRoom'] }}</td>
+                    <td>{{ $coinSym }} {{ $room['jackpotRoom'] }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -40,11 +38,10 @@
             <tr>
                 <td colspan="4" class="text-right"><b>Total:</b></td>
                 <td>{{ $totals['allCtns'] }}</td>
-                <td>{{ $coinSym }} {{ $totals['allSales'] }}</td>
-                <td>{{ $coinSym }} {{ $totals['comSaleSeller'] }}</td>
-                <td>{{ $coinSym }} {{ $totals['finalSale'] }}</td>
-                <td>{{ $coinSym }} {{ $totals['jackpot'] }}</td>
-                <td>{{ $coinSym }} {{ $totals['comBanca'] }}</td>
+                <td>{{ $coinSym }} {{ number_format($totals['allSales'], 2, '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totals['comSaleSeller'], 2, '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totals['comBanca'], 2, '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totals['jackpot'], 2, '.') }}</td>
             </tr>
         </tfoot>
     </table>
