@@ -420,15 +420,16 @@ class CommerceController extends Controller
         $roomData = [];
 
         foreach ($rooms as $room) {
-            $allSaleRoom = $room->CtnsLot->sum('sale_amount');
-            $finalSaleRoom = $room->CtnsLot->sum('final_sale_amount');
-            $comSaleSellerRoom = $allSaleRoom - $finalSaleRoom;
-            $comRKE = 0; // Actualiza con tu lógica real
-            $preJackpot = $allSaleRoom - $comSaleSellerRoom - $comRKE;
-            $comBancaRoom = round($preJackpot * ($room->Config->room_commn / 100), 2);
-            $jackpotRoom = $preJackpot - $comBancaRoom;
+            $comRKE = 0;
+            $allSaleRoom = number_format($room->CtnsLot->sum('sale_amount'), 2, '.');
+            $finalSaleRoom = number_format($room->CtnsLot->sum('final_sale_amount'), 2, '.');
+            $comSaleSellerRoom = number_format($allSaleRoom - $finalSaleRoom, 2, '.');
+            $comBancaRoom = number_format($allSaleRoom * ($room->Config->room_commn / 100), 2, '.');
+            $jackpotRoom = number_format($allSaleRoom - $comSaleSellerRoom - $comRKE - $comBancaRoom, 2, '.');
 
-            $totals['allCtns'] += $room->CtnsLot->sum('ctns');
+            $ctns = $room->CtnsLot->sum('ctns');
+
+            $totals['allCtns'] += $ctns;
             $totals['allSales'] += $allSaleRoom;
             $totals['comSaleSeller'] += $comSaleSellerRoom;
             $totals['finalSale'] += $finalSaleRoom;
@@ -444,7 +445,7 @@ class CommerceController extends Controller
                 'comSaleSellerRoom' => $comSaleSellerRoom,
                 'comBancaRoom' => $comBancaRoom,
                 'jackpotRoom' => $jackpotRoom,
-                'allCtns' => $room->CtnsLot->sum('ctns')
+                'allCtns' => $ctns
             ];
         }
 
@@ -501,14 +502,19 @@ class CommerceController extends Controller
             return redirect()->route('commerce.reportSalesRooms', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
         }
 
-        $sellers = Seller::with([
-            'Country',
-            'CtnsLot' => function ($query) use ($room, $coin) {
-                $query->where('room', $room->id)->where('coin', $coin);
-            }
-        ])->whereHas('CtnsLot', function ($query) use ($room, $coin) {
-            $query->where('room', $room->id)->where('coin', $coin);
-        })->where('commerce', $commerce)->get();
+        $sellers = Seller::select('id', 'name', 'country')
+            ->with([
+                'Country:id,name',
+                'CtnsLot' => fn($query) => $query->where([
+                    ['room', $room->id],
+                    ['coin', $coin]
+                ])
+            ])
+            ->where('commerce', $commerce)
+            ->whereHas('CtnsLot', fn($query) => $query->where([
+                ['room', $room->id],
+                ['coin', $coin]
+            ]))->get();
 
         $coins = $this->getCommerceCoins($commerce, '', ['CtnsLot', 'Coin']);
 

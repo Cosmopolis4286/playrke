@@ -77,10 +77,10 @@
                         {{ count($room->PlayersRoom) ?? 0 }}
                     </td>
                     <td class="align-middle">{{ $coinSym }}
-                        {{ rtrim(rtrim(number_format($allSale, 3), '0'), '.') }}</td>
+                        {{ number_format($allSale, 2, '.') }}</td>
                     <td>
                         <small>{{ $room->Config->JackpotType->description }}</small>
-                        <br>{{ $coinSym }} {{ rtrim(rtrim(number_format($jackpot, 3), '0'), '.') }}
+                        <br>{{ $coinSym }} {{ number_format($jackpot, 2, '.') }}
                     </td>
                     {{-- Estado --}}
                     <td class="align-middle">
@@ -140,8 +140,8 @@
         <tfoot>
             <tr>
                 <td colspan="5" class="text-right"><b>Total:</b></td>
-                <td>{{ $coinSym }} {{ rtrim(rtrim(number_format($totalAllSale, 3), '0'), '.') }}</td>
-                <td>{{ $coinSym }} {{ rtrim(rtrim(number_format($totalJackpot, 3), '0'), '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totalAllSale, 2, '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totalJackpot, 2, '.') }}</td>
                 <td colspan="3"></td>
             </tr>
         </tfoot>

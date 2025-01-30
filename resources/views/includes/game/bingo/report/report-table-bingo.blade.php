@@ -38,10 +38,10 @@
             <tr>
                 <td colspan="4" class="text-right"><b>Total:</b></td>
                 <td>{{ $totals['allCtns'] }}</td>
-                <td>{{ $coinSym }} {{ $totals['allSales'] }}</td>
-                <td>{{ $coinSym }} {{ $totals['comSaleSeller'] }}</td>
-                <td>{{ $coinSym }} {{ $totals['comBanca'] }}</td>
-                <td>{{ $coinSym }} {{ $totals['jackpot'] }}</td>
+                <td>{{ $coinSym }} {{ number_format($totals['allSales'], 2, '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totals['comSaleSeller'], 2, '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totals['comBanca'], 2, '.') }}</td>
+                <td>{{ $coinSym }} {{ number_format($totals['jackpot'], 2, '.') }}</td>
             </tr>
         </tfoot>
     </table>

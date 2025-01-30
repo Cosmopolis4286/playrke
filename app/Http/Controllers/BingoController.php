@@ -273,86 +273,71 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    private function handleCartonByCreator($creator, $player, $roomCtnPrice, $data, $request)
+    private function handleCartonByCreator($creator, $player, $roomCtnPrice, $creatorCtnPrice, $data, $request)
     {
         $playerColumn = 'player_user';
+        $numOfCtns = $data['numOfCtns'];
+        $exchangeRate = 1;
+        $saleAmount = 0;
 
         if ($creator['type'] === 'customer') {
-
             $user = CustomerUser::getById($player, ['token', 'coin']);
-
             $customerResponse = $this->getUserBalanceFromCustomer($creator['id'], $user->token);
 
             if (isset($customerResponse['Error'])) {
-                Log::error('Ha ocurrido un error al generar Carton del Cliente/Jugador: ' . $customerResponse['Error']);
-                return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error en la solicitud']);
+                Log::error('Error al generar Carton del Cliente/Jugador: ' . $customerResponse['Error']);
+                return ['Error' => 'Ha ocurrido un error en la solicitud'];
             }
 
             $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creator['id'], $user->coin);
-
-            // Monto total a pagar 
-            $saleAmount = $roomCtnPrice * $exchangeRate * $data['numOfCtns'];
+            $saleAmount = ($creatorCtnPrice ?? $roomCtnPrice * $exchangeRate) * $numOfCtns;
 
             if ($customerResponse['Data'][0]['Amount'] < $saleAmount) {
-                // Validar saldo disponible
-                return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
+                return ['Error' => 'Saldo insuficiente'];
             }
 
-            $data['customer'] = $creator['id'];
-            $data['playerUser'] = $player ?? null;
-            $data['exchangeRate'] = $exchangeRate;
-
-            // Calcular precio del carton
-            $ctnPrice = $this->calculateCtnPrice($exchangeRate, $roomCtnPrice);
+            $data += [
+                'customer' => $creator['id'],
+                'playerUser' => $player ?? null,
+                'exchangeRate' => $exchangeRate,
+            ];
         } else {
             $data['commerce'] = $creator['id'];
 
             if ($data['isLogin']) {
                 $data['playerUser'] = $player;
-
-                // Determinar la columna de saldo en función de la moneda
                 $columnBalance = $data['coin'] == 1 ? 'usdt' : 'balance';
                 $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator['id'], $data['coin']);
+                $saleAmount = ($creatorCtnPrice ?? $roomCtnPrice * $exchangeRate) * $numOfCtns;
 
-                $saleAmount = $roomCtnPrice * $exchangeRate * $data['numOfCtns'];
-                $balance = Wallet::getValue($player, $columnBalance);
-
-                if ($balance < $saleAmount) {
-                    return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
+                if (Wallet::getValue($player, $columnBalance) < $saleAmount) {
+                    return ['Error' => 'Saldo insuficiente'];
                 }
 
                 $data['exchangeRate'] = $exchangeRate;
-
-                $ctnPrice = $this->calculateCtnPrice($exchangeRate, $roomCtnPrice);
             } else {
-                if ($request->purchase_code) {
-                    // Verificar si el Codigo de Compra es Valido
-                    $purchaseCode = UserPurchaseCodes::existsPurchaseCode($request->purchase_code);
-
-                    if (!$purchaseCode) {
-                        return response()->json(['type' => 'warning', 'message' => 'Codigo de Compra no existe']);
-                    }
+                if ($request->purchase_code && !UserPurchaseCodes::existsPurchaseCode($request->purchase_code)) {
+                    return ['Error' => 'Código de Compra no existe'];
                 }
 
-                $data['playerLink'] =  $player ?? null;
                 $playerColumn = 'player_link';
+                $data['playerLink'] = $player ?? null;
 
                 if ($request->user_in_game) {
-                    $data['country'] = $request->country ?? null;
-                    $data['playerPhone'] = $request->phone ?? null;
-                    $data['playerName'] = $request->name ?? null;
-                    $data['playerLastname'] = $request->last_name ?? null;
+                    $data += [
+                        'country' => $request->country ?? null,
+                        'playerPhone' => $request->phone ?? null,
+                        'playerName' => $request->name ?? null,
+                        'playerLastname' => $request->last_name ?? null,
+                    ];
                 }
             }
         }
 
-        // Definir precio del carton
-        $data['ctnPrice'] = $ctnPrice;
-
         return ['data' => $data, 'playerColumn' => $playerColumn];
     }
 
-    private function handleCartonBySeller($data, $bingoCreatorID, $roomCtnPrice, $request)
+    private function handleCartonBySeller($data, $request)
     {
         $seller = Seller::getByUserId(Auth::id(), ['id', 'commerce']);
 
@@ -364,17 +349,7 @@ class BingoController extends Controller
         $data['playerName'] = $request->name ?? null;
         $data['playerLastname'] = $request->last_name ?? null;
 
-        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($seller->commerce, $data['coin']);
-
-        $creatorPrice = BingoCtnPrice::getCtnPriceByCreator($data['coin'], $bingoCreatorID);
-        $ctnPrice = $creatorPrice
-            ? $this->calculateCtnPrice($creatorPrice)
-            : $this->calculateCtnPrice($roomCtnPrice, $exchangeRate);
-
-        $data['exchangeRate'] = $exchangeRate;
-
-        // Definir precio del carton
-        $data['ctnPrice'] = $ctnPrice;
+        $data['exchangeRate'] = CommerceExchangeRate::getCommerceCoinValue($seller->commerce, $data['coin']);
 
         return $data;
     }
@@ -401,6 +376,9 @@ class BingoController extends Controller
         $roomCtnPrice = $room->ctn_price;
         $creatorType = $request->user_type;
 
+        $exchangeRate = 1;
+        $creatorCtnPrice = BingoCtnPrice::getCtnPriceByCreator($data['coin'], $bingoCreatorID);
+
         if ($creatorType) {
             $creator = ['type' => $creatorType, 'id' => decrypt($request->user_type_val)];
             $player = !empty($request->player) ? decrypt($request->player) : null;
@@ -409,12 +387,24 @@ class BingoController extends Controller
             $data['isLogin'] = $request->is_login ?? false;
             $data['coin'] = decrypt($request->coin);
 
-            $response = $this->handleCartonByCreator($creator, $player, $roomCtnPrice, $data['room'], $request);
+            $response = $this->handleCartonByCreator($creator, $player, $roomCtnPrice, $creatorCtnPrice, $data, $request);
+
+            if (isset($response['Error'])) {
+                return response()->json(['type' => 'warning', 'message' => $response['Error']]);
+            }
+
             $data = $response['data'];
             $playerColumn = $response['playerColumn'];
         } else {
-            $data = $this->handleCartonBySeller($data, $bingoCreatorID, $roomCtnPrice, $request);
+            $data = $this->handleCartonBySeller($data, $request);
         }
+
+        // Definir precio del carton
+        $ctnPrice = $creatorCtnPrice
+            ? $this->calculateCtnPrice($creatorCtnPrice)
+            : $this->calculateCtnPrice($roomCtnPrice, $exchangeRate);
+
+        $data['ctnPrice'] = $ctnPrice;
 
         // Iniciar Transaccion
         DB::beginTransaction();

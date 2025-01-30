@@ -34,9 +34,9 @@
                                             $finalSaleAmountSeller = $seller->CtnsLot->sum('final_sale_amount');
                                             $comSaleSeller = $saleAmountSeller - $finalSaleAmountSeller;
 
-                                            $allSalePreJackpot = $saleAmountSeller - $comSaleSeller;
-                                            $comBanca = round($allSalePreJackpot * $comCommerceRm, 2);
-                                            $jackpot = $allSalePreJackpot - $comBanca;
+                                            $jackpot = $saleAmountSeller - $comSaleSeller;
+                                            $comBanca = round($saleAmountSeller * $comCommerceRm, 2);
+                                            $jackpot -= $comBanca;
 
                                             // Acumular totales
                                             $totalCtnsBuy += $allCtnsSeller;
