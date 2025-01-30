@@ -300,6 +300,7 @@ class BingoController extends Controller
 
             $data['customer'] = $creator['id'];
             $data['playerUser'] = $player ?? null;
+            $data['exchangeRate'] = $exchangeRate;
 
             // Calcular precio del carton
             $ctnPrice = $this->calculateCtnPrice($exchangeRate, $roomCtnPrice);
@@ -319,6 +320,9 @@ class BingoController extends Controller
                 if ($balance < $saleAmount) {
                     return response()->json(['type' => 'warning', 'message' => 'Saldo insuficiente']);
                 }
+
+                $data['exchangeRate'] = $exchangeRate;
+
                 $ctnPrice = $this->calculateCtnPrice($exchangeRate, $roomCtnPrice);
             } else {
                 if ($request->purchase_code) {
@@ -360,10 +364,14 @@ class BingoController extends Controller
         $data['playerName'] = $request->name ?? null;
         $data['playerLastname'] = $request->last_name ?? null;
 
+        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($seller->commerce, $data['coin']);
+
         $creatorPrice = BingoCtnPrice::getCtnPriceByCreator($data['coin'], $bingoCreatorID);
         $ctnPrice = $creatorPrice
             ? $this->calculateCtnPrice($creatorPrice)
-            : $this->calculateCtnPrice($roomCtnPrice, CommerceExchangeRate::getCommerceCoinValue($seller->commerce, $data['coin']));
+            : $this->calculateCtnPrice($roomCtnPrice, $exchangeRate);
+
+        $data['exchangeRate'] = $exchangeRate;
 
         // Definir precio del carton
         $data['ctnPrice'] = $ctnPrice;

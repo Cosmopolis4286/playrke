@@ -412,19 +412,6 @@ trait BingoTrait
         )->where('status', 2)->where('id', $roomID)->first();
     }
 
-    // Función para calcular el monto total de venta
-    private function calculateTotalSale($saleAmount, $room, $coin, $seller, $commerce)
-    {
-        $exchangeRate = ($coin != 1) ? CommerceExchangeRate::getCommerceCoinValue($commerce, $coin) : 1;
-        $totalSaleCtns = number_format(($saleAmount / $exchangeRate), 2, '.');
-
-        // Comisiones del vendedor
-        $saleCommn = $this->calculateSellerCommission($seller, $totalSaleCtns, $room->id);
-        $sellerSaleCommn = number_format($saleCommn, 8, '.');
-
-        return ['exchangeRate' => $exchangeRate, 'sellerSaleCommn' => $sellerSaleCommn];
-    }
-
     // Función para calcular la comisión del vendedor
     private function calculateSellerCommission($seller, $totalSaleCtns, $roomID)
     {
@@ -436,7 +423,7 @@ trait BingoTrait
 
         $commnSeller = ($totalSaleCtns * $commnSeller) / 100;
 
-        return $commnSeller ? number_format($commnSeller, 2, '.') : 0;
+        return $commnSeller ? number_format($commnSeller, 3, '.') : 0;
     }
 
     // Función para crear el lote de cartones
@@ -618,8 +605,16 @@ trait BingoTrait
     private function updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn)
     {
         try {
+            // Recalcular venta y comisiones en base a USDT
+            $exchangeRate = $arrCtn['exchangeRate'];
+
+            if ($exchangeRate != 0) {
+                $saleAmount /= $exchangeRate;
+                $sellerSaleCommn /= $exchangeRate;
+            }
+
             // Variable para definir monto a anexar al bote
-            $amountAddJackpot = number_format($saleAmount, 6, '.');
+            $amountAddJackpot = number_format($saleAmount, 4, '.');
 
             if ($arrCtn['jackpotType'] == 2) {
                 // Si el bote es tipo "Premio"
@@ -628,15 +623,17 @@ trait BingoTrait
 
             // Obtener comision del creador/casa (comision por sala)\
             $creatorCommn = ($amountAddJackpot * BingoRoomConfig::getValueByRoom($room->id, 'room_commn')) / 100;
-            $creatorCommn =  number_format($creatorCommn, 6, '.');
+            $creatorCommn =  number_format($creatorCommn, 4, '.');
 
             // Restar al bote la comision del creador de la sala
             if ($creatorCommn) $amountAddJackpot -= $creatorCommn;
 
+            if ($sellerSaleCommn) $amountAddJackpot -= $sellerSaleCommn;
+
             $gameConfig = GameConfig::getGameParam('BINGO', 'COMMN');
 
             if ($gameConfig && $gameConfig->status == 1) {
-                $gameCommn = number_format(($amountAddJackpot * $gameConfig->param_val) / 100, 6, '.');
+                $gameCommn = number_format(($amountAddJackpot * $gameConfig->param_val) / 100, 4, '.');
                 $amountAddJackpot -= $gameCommn;
             }
 
@@ -667,7 +664,7 @@ trait BingoTrait
         // Calcular precio del carton y redondear de acuerdo a la moneda 
         $ctnPrice = number_format($exchangeRate * $roomCtnPrice, 2, '.');
         // Calcular precio del carton en USDT 
-        $formattedPrice = number_format($ctnPrice / $exchangeRate, 8, '.', '');
+        $formattedPrice = number_format($ctnPrice / $exchangeRate, 4, '.', '');
 
         if (fmod($formattedPrice, 1) == 0) {
             $formattedPrice = number_format($formattedPrice, 2, '.', '');
@@ -717,9 +714,7 @@ trait BingoTrait
 
             if ($gameMode != 1 && ($commerce || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor
-                $salesData = $this->calculateTotalSale($saleAmount, $room, $coin, $seller, $commerce);
-                $exchangeRate = $salesData['exchangeRate'];
-                $sellerSaleCommn = $salesData['sellerSaleCommn'];
+                $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $room->id);
             }
 
             // Evaluar tasa de cambio
@@ -1111,7 +1106,7 @@ trait BingoTrait
             $updateData = ['close_room' => Carbon::now()->timestamp];
 
             // Calcular premios si hay premio serial
-            if ($room->Config->val_serials > 0 && $room->serial_prize == 0 && $generateSerials > 0) {
+            if ($room->Config->val_serials && $room->serial_prize == 0 && $generateSerials) {
                 $serialPrize = $room->jackpot * $room->Config->val_serials / 100;
                 $jackpotPrize -= $serialPrize;
 

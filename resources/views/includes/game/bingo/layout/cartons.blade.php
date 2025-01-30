@@ -97,7 +97,7 @@
                     </div>
                 </div>
                 <div class="section-serial">
-                    <small>SERIAL {{ $ctn->serial }}</small>
+                    <small>{{ $ctn->serial }}</small>
                 </div>
             </div>
         </div>
