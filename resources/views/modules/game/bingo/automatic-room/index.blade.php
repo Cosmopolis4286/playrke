@@ -27,6 +27,7 @@
 @section('scripts')
     <script>
         const name = '{{ $name }}';
+        const creation = 'A';
         const routeGenerateBingoRoomsJob = @json($routeGenerateBingoRoomsJob);
         const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
@@ -95,7 +96,7 @@
                 $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
                 $('#container-price-config').html('');
             } else {
-                getCtnPriceCoin('A', data.room.id);
+                getCtnPriceCoin(data.room.id, true);
             }
 
             gameMode.prop({

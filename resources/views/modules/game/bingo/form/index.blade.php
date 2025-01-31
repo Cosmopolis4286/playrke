@@ -39,6 +39,7 @@
 @section('scripts')
     <script>
         const name = '{{ $name }}';
+        const creation = 'M';
         const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
@@ -83,7 +84,7 @@
                 $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
                 $('#container-price-config').html('');
             } else {
-                getCtnPriceCoin('M', data.room.encrypted);
+                getCtnPriceCoin(data.room.encrypted, true);
             }
 
             gameMode.prop({

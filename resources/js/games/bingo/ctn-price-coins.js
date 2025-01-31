@@ -34,10 +34,10 @@ $(document).on("click", "#btn-ctn-price-config", function () {
     getCtnPriceCoin();
 });
 
-function getCtnPriceCoin(type, room = '') {
+function getCtnPriceCoin(room = '', action = '') {
     $.ajax({
         url: routeGetCtnPriceForCoin.replace(':1', creatorType).replace(':2', creatorID)
-            .replace(':3', type).replace(':4', room),
+            .replace(':3', creation).replace(':4', room),
         method: 'GET',
         dataType: 'json',
         beforeSend: function () {
@@ -45,8 +45,10 @@ function getCtnPriceCoin(type, room = '') {
             $('#container-spinner').show();
         },
         success: function (res) {
-            handlePriceCtnForCoins(res);
-            $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
+            if (!action || res.hasPrice) {
+                handlePriceCtnForCoins(res.ctnPrice);
+                $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
+            }
         },
         error: function (error) { },
         complete: function () {

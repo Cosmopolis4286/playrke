@@ -1248,9 +1248,17 @@ class BingoController extends Controller
                             'status' => $ctnPrice ? 1 : 0,
                             'updated_at' => $timestamp,
                         ];
-
                         // Actualizar el registro existente
                         BingoCtnPrice::where('id', $bingoCtnPrice->id)->update($updateData);
+                    } else if (!$bingoCtnPrice && $ctnPrice) {
+                        // Crear nuevo registro
+                        BingoCtnPrice::create([
+                            'room' => $roomID,
+                            'bingo_creator_id' => $bingoCreatorID,
+                            'coin' => $coin,
+                            'ctn_price' => $ctnPrice,
+                            'status' => 1
+                        ]);
                     }
                 });
             }
@@ -1331,7 +1339,10 @@ class BingoController extends Controller
         $arrCoinsCtnPrice = $presentCoinsData->merge($missingCoinsData);
 
         // Retornar respuesta con los datos
-        return response()->json($arrCoinsCtnPrice);
+        return response()->json([
+            'hasPrice' => count($presentCoinsData) ? true : false,
+            'ctnPrice' => $arrCoinsCtnPrice
+        ]);
     }
 
     public function getInfo($id)
@@ -1860,9 +1871,16 @@ class BingoController extends Controller
                             'status' => $ctnPrice ? 1 : 0,
                             'updated_at' => $timestamp,
                         ];
-
                         // Actualizar el registro existente
                         BingoCtnPriceAutomatic::where('id', $bingoCtnPrice->id)->update($updateData);
+                    } else if (!$bingoCtnPrice && $ctnPrice) {
+                        // Crear nuevo registro
+                        BingoCtnPriceAutomatic::create([
+                            'automatic_bingo_id' => $id,
+                            'coin' => $coin,
+                            'ctn_price' => $ctnPrice,
+                            'status' => 1
+                        ]);
                     }
                 });
             }
