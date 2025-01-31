@@ -43,7 +43,7 @@ class HandleBingoRooms
     private function determineRoomStatus(int $roomID, bool $existsCtns, bool $existsPlayers): int
     {
         if ($existsCtns && $existsPlayers) {
-            $winChip = BingoDraw::getWinningChip($roomID) ?? $this->newDraw($roomID);
+            $winChip = BingoDraw::getWinningChip($roomID) ?? $this->handleDraw($roomID);
             return ($winChip->time <= time()) ? 4 : 3;
         }
 

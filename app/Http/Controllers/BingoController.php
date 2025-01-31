@@ -1642,7 +1642,7 @@ class BingoController extends Controller
 
         if (PlayerLink::where('link', $playerLink)->exists()) {
             $room = PlayerLink::where('link', $playerLink)->value('room');
-            $this->newDraw($room, $playerLink);
+            $this->handleDraw($room, $playerLink);
             return redirect()->back()->with('message', 'Carton Ganador Generado');
         } else {
             return redirect()->back()->with('message', 'El PlayerLink no existe');
@@ -2013,7 +2013,7 @@ class BingoController extends Controller
 
         // Validar condiciones iniciales
         if (!$draw) {
-            $this->newDraw($room);
+            $this->handleDraw($room);
 
             return response()->json([
                 'type' => 'success',
