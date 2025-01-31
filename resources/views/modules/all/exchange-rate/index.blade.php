@@ -117,7 +117,7 @@
 
         function setTextExchangeRate() {
             if (coin.val() && exchangeRate.val() > 0) {
-                $("#text-exchange-rate").text(`${exchangeRate.val()} ${coinName}`);
+                $("#text-exchange-rate").text(`${exchangeRate.val()} ${coin.find("option:selected").text()}`);
                 $("#alert-exchange-rate").removeClass('hide-elem');
             }
         }
@@ -209,10 +209,6 @@
                 });
             }
 
-            // coin.on("change", function() {
-            //     if (coin.val() != '') exchangeRate.attr('readonly', true), getLastValueByCoin(coin.val());
-            // });
-
             $(document).on("input", coin, function() {
                 coinName = coin.find("option:selected").text();
             });
@@ -254,6 +250,7 @@
         }
 
         $(document).on("click", "#btn-historical", function() {
+            return;
             // Obten la URL
             const urlTemplate = $(this).data("url-template");
             // Reemplaza los placeholders en la URL

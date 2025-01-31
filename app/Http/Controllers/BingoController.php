@@ -377,7 +377,6 @@ class BingoController extends Controller
         $creatorType = $request->user_type;
 
         $exchangeRate = 1;
-        $creatorCtnPrice = BingoCtnPrice::getCtnPriceByCreator($data['coin'], $bingoCreatorID);
 
         if ($creatorType) {
             $creator = ['type' => $creatorType, 'id' => decrypt($request->user_type_val)];
@@ -386,6 +385,8 @@ class BingoController extends Controller
             // Adicionar datos al conjunto
             $data['isLogin'] = $request->is_login ?? false;
             $data['coin'] = decrypt($request->coin);
+
+            $creatorCtnPrice = BingoCtnPrice::getCtnPriceByCreator($data['coin'], $bingoCreatorID);
 
             $response = $this->handleCartonByCreator($creator, $player, $roomCtnPrice, $creatorCtnPrice, $data, $request);
 
@@ -397,6 +398,7 @@ class BingoController extends Controller
             $playerColumn = $response['playerColumn'];
         } else {
             $data = $this->handleCartonBySeller($data, $request);
+            $creatorCtnPrice = BingoCtnPrice::getCtnPriceByCreator($data['coin'], $bingoCreatorID);
         }
 
         // Definir precio del carton
