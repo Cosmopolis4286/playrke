@@ -555,7 +555,7 @@ class BingoController extends Controller
                     } else {
                         $isLogin = false;
                         $coinID = $data['coin'];
-                        $coinSym = 'USDT';
+                        $coinSym = Coin::getValue($coinID, 'symbol');
 
                         $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($creatorID, 1);
                         $coinsAvailable = Coin::getCoinsById($commerceCoinsAvailable, ['id', 'symbol', 'long_name']);

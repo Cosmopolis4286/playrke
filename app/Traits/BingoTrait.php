@@ -1017,77 +1017,58 @@ trait BingoTrait
         // Inicializar array de jugadores únicos
         $uniquePlayers = ['playerUser' => [], 'playerLink' => []];
 
-        // Buscar directamente los cartones que contengan el chip específico
+        // Buscar los cartones que contienen el chip
         $ctnsPlayer = BingoCtns::where('room', $roomID)
-            ->where(function ($query) use ($lastChipNum) {
-                $query->where('b1', $lastChipNum)
-                    ->orWhere('b2', $lastChipNum)
-                    ->orWhere('b3', $lastChipNum)
-                    ->orWhere('b4', $lastChipNum)
-                    ->orWhere('b5', $lastChipNum)
-                    ->orWhere('i1', $lastChipNum)
-                    ->orWhere('i2', $lastChipNum)
-                    ->orWhere('i3', $lastChipNum)
-                    ->orWhere('i4', $lastChipNum)
-                    ->orWhere('i5', $lastChipNum)
-                    ->orWhere('n1', $lastChipNum)
-                    ->orWhere('n2', $lastChipNum)
-                    ->orWhere('n3', $lastChipNum)
-                    ->orWhere('n4', $lastChipNum)
-                    ->orWhere('g1', $lastChipNum)
-                    ->orWhere('g2', $lastChipNum)
-                    ->orWhere('g3', $lastChipNum)
-                    ->orWhere('g4', $lastChipNum)
-                    ->orWhere('g5', $lastChipNum)
-                    ->orWhere('o1', $lastChipNum)
-                    ->orWhere('o2', $lastChipNum)
-                    ->orWhere('o3', $lastChipNum)
-                    ->orWhere('o4', $lastChipNum)
-                    ->orWhere('o5', $lastChipNum);
-            })->select([
-                'id',
-                'player_user',
-                'player_link',
-                'b1',
-                'b2',
-                'b3',
-                'b4',
-                'b5',
-                'i1',
-                'i2',
-                'i3',
-                'i4',
-                'i5',
-                'n1',
-                'n2',
-                'n3',
-                'n4',
-                'g1',
-                'g2',
-                'g3',
-                'g4',
-                'g5',
-                'o1',
-                'o2',
-                'o3',
-                'o4',
-                'o5'
-            ])->cursor(); // Procesa en lotes pequeños
+            ->whereRaw(
+                "b1 = ? OR b2 = ? OR b3 = ? OR b4 = ? OR b5 = ? 
+                OR i1 = ? OR i2 = ? OR i3 = ? OR i4 = ? OR i5 = ?
+                OR n1 = ? OR n2 = ? OR n3 = ? OR n4 = ? 
+                OR g1 = ? OR g2 = ? OR g3 = ? OR g4 = ? OR g5 = ? 
+                OR o1 = ? OR o2 = ? OR o3 = ? OR o4 = ? OR o5 = ?",
+                array_fill(0, 24, $lastChipNum) // Repite el valor 24 veces
+            )->select(['id', 'player_user', 'player_link'])->cursor();
 
         // Filtrar cartones ganadores
         $prizeCtns = [];
+        $uniquePlayers = ['playerUser' => [], 'playerLink' => []];
 
         foreach ($ctnsPlayer as $ctn) {
-            $ctnFull = collect($ctn)->except(['id', 'player_user', 'player_link'])->values()->toArray();
+            $playerId = $ctn->player_user ?: $ctn->player_link;
+            $playerType = $ctn->player_user ? 'playerUser' : 'playerLink';
 
-            // Verificar si todos los valores están en $chipsDraw
-            if (empty(array_diff($ctnFull, $chipsDraw))) {
-                $playerId = $ctn->player_user ?: $ctn->player_link;
-                $playerType = $ctn->player_user ? 'playerUser' : 'playerLink';
+            // Evitar revalidaciones innecesarias con `isset()` en lugar de `in_array()`
+            if (!isset($uniquePlayers[$playerType][$playerId])) {
+                $cartonNumbers = BingoCtns::where('id', $ctn->id)
+                    ->select([
+                        'b1',
+                        'b2',
+                        'b3',
+                        'b4',
+                        'b5',
+                        'i1',
+                        'i2',
+                        'i3',
+                        'i4',
+                        'i5',
+                        'n1',
+                        'n2',
+                        'n3',
+                        'n4',
+                        'g1',
+                        'g2',
+                        'g3',
+                        'g4',
+                        'g5',
+                        'o1',
+                        'o2',
+                        'o3',
+                        'o4',
+                        'o5'
+                    ])->first()->toArray();
 
-                if (!in_array($playerId, $uniquePlayers[$playerType])) {
-                    $uniquePlayers[$playerType][] = $playerId;
-                    $prizeCtns[] = $ctn->id; // Guardar solo el ID del cartón ganador
+                if (count(array_intersect($cartonNumbers, $chipsDraw)) === count($cartonNumbers)) {
+                    $uniquePlayers[$playerType][$playerId] = true;
+                    $prizeCtns[] = $ctn->id;
                 }
             }
         }
@@ -1184,15 +1165,7 @@ trait BingoTrait
                 ->where('id', '<', $lastChip)->pluck('chip')->toArray());
 
             $ctnsPlayer = BingoCtns::where('room', $roomID)
-                ->whereNotIn('id', $jackpotCtnsID)
-                ->inRandomOrder()
-                ->lazy()
-                ->map(fn($ctn) => [
-                    'id' => $ctn->id,
-                    'playerId' => $ctn->player_user ?: $ctn->player_link,
-                    'playerType' => $ctn->player_user ? 'playerUser' : 'playerLink',
-                    'numbers' => collect($ctn)->except(['id', 'player_user', 'player_link'])->values()->toArray(),
-                ]);
+                ->whereNotIn('id', $jackpotCtnsID)->inRandomOrder()->lazyById(100);
 
             $countSerials = BingoRoomConfig::getValueByRoom($roomID, 'num_serials');
 
@@ -1202,16 +1175,53 @@ trait BingoTrait
 
             foreach ($ctnsPlayer as $ctn) {
                 if ($countCtns >= $countSerials) {
-                    break;
+                    break; // Detener el bucle si se alcanzó el límite
                 }
 
-                // Contar los aciertos con array_intersect()
-                $count = count(array_intersect($ctn['numbers'], array_keys($chipsDraw)));
+                // Obtener números del cartón 
+                $numbers = [
+                    $ctn->b1,
+                    $ctn->b2,
+                    $ctn->b3,
+                    $ctn->b4,
+                    $ctn->b5,
+                    $ctn->i1,
+                    $ctn->i2,
+                    $ctn->i3,
+                    $ctn->i4,
+                    $ctn->i5,
+                    $ctn->n1,
+                    $ctn->n2,
+                    $ctn->n3,
+                    $ctn->n4,
+                    $ctn->g1,
+                    $ctn->g2,
+                    $ctn->g3,
+                    $ctn->g4,
+                    $ctn->g5,
+                    $ctn->o1,
+                    $ctn->o2,
+                    $ctn->o3,
+                    $ctn->o4,
+                    $ctn->o5
+                ];
+
+                // Contar aciertos de forma más eficiente
+                $count = 0;
+                foreach ($numbers as $num) {
+                    if (isset($chipsDraw[$num])) {
+                        $count++;
+                    }
+                }
 
                 if ($count > 14 && $count < 24) {
-                    if (!isset($uniquePlayers[$ctn['playerType']][$ctn['playerId']])) {
-                        $uniquePlayers[$ctn['playerType']][$ctn['playerId']] = true; // Registrar jugador
-                        $serialCtns[] = $ctn['id'];
+                    $playerId = $ctn->player_user ?: $ctn->player_link;
+                    $playerType = $ctn->player_user ? 'playerUser' : 'playerLink';
+
+                    // Verificar si el jugador ya ha ganado antes
+                    if (!isset($uniquePlayers[$playerType][$playerId])) {
+                        $uniquePlayers[$playerType][$playerId] = true; // Registrar jugador
+                        $serialCtns[] = $ctn->id;
                         $countCtns++;
                     }
                 }
