@@ -823,14 +823,14 @@ trait BingoTrait
 
     public function convertPrizeValue($roomID, $coin, $type = 'string')
     {
-        $room = BingoRoom::getRoomById($roomID, ['commerce', 'customer', 'jackpot_prize']);
+        $room = BingoRoom::getRoomById($roomID, ['commerce', 'customer', 'jackpot']);
 
         $creatorType = $room->commerce ? 'commerce' : 'customer';
         $creatorID = $room->commerce ? $room->commerce : $room->customer;
 
         $creator = ['type' => $creatorType, 'id' => $creatorID];
 
-        $data = ['coin' => $coin, 'value' => $room->jackpot_prize, 'creator' => $creator];
+        $data = ['coin' => $coin, 'value' => $room->jackpot, 'creator' => $creator];
 
         return $this->convertValueByGame('BINGO', $roomID, $data, $type);
     }
@@ -1026,10 +1026,11 @@ trait BingoTrait
                 OR g1 = ? OR g2 = ? OR g3 = ? OR g4 = ? OR g5 = ? 
                 OR o1 = ? OR o2 = ? OR o3 = ? OR o4 = ? OR o5 = ?",
                 array_fill(0, 24, $lastChipNum) // Repite el valor 24 veces
-            )->select(['id', 'player_user', 'player_link'])->cursor();
+            )->select(['id', 'room_user', 'player_user', 'player_link'])->cursor();
 
         // Filtrar cartones ganadores
         $prizeCtns = [];
+        $roomUserIds = [];
         $uniquePlayers = ['playerUser' => [], 'playerLink' => []];
 
         foreach ($ctnsPlayer as $ctn) {
@@ -1069,6 +1070,7 @@ trait BingoTrait
                 if (count(array_intersect($cartonNumbers, $chipsDraw)) === count($cartonNumbers)) {
                     $uniquePlayers[$playerType][$playerId] = true;
                     $prizeCtns[] = $ctn->id;
+                    $roomUserIds[] = $ctn->room_user;
                 }
             }
         }
@@ -1096,11 +1098,12 @@ trait BingoTrait
             // Generar seriales ganadores si hay jugadores no ganadores
             if ($generateSerials && $room->Config->val_serials && !$room->seller_commn && !BingoPrizeCtns::existsPrizeCtns($roomID, 'SERIAL')) {
 
-                $serialWinners = $this->handleSerialWinners($roomID, $prizeCtns);
+                $serialWinners = $this->handleSerialWinners($roomID, $roomUserIds);
 
                 if ($serialWinners) {
                     // Calcular premios si hay premio serial
                     $serialPrize = $room->jackpot * $room->Config->val_serials / 100;
+
                     $jackpotPrize -= $serialPrize;
 
                     $updateData['jackpot_prize'] = $jackpotPrize;
@@ -1151,7 +1154,7 @@ trait BingoTrait
         return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $jackpot);
     }
 
-    public function handleSerialWinners($roomID, $jackpotCtnsID) // Obtener Seriales Ganadores
+    public function handleSerialWinners($roomID, $roomUserIds) // Obtener Seriales Ganadores
     {
         try {
             $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2);
@@ -1165,7 +1168,10 @@ trait BingoTrait
                 ->where('id', '<', $lastChip)->pluck('chip')->toArray());
 
             $ctnsPlayer = BingoCtns::where('room', $roomID)
-                ->whereNotIn('id', $jackpotCtnsID)->inRandomOrder()->lazyById(100);
+                ->whereNotIn('room_user', $roomUserIds)->lazyById(100);
+
+            $ctnsPlayer = collect($ctnsPlayer)->shuffle();
+
 
             $countSerials = BingoRoomConfig::getValueByRoom($roomID, 'num_serials');
 
