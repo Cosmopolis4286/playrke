@@ -614,7 +614,12 @@ class BingoController extends Controller
             $ctns = BingoCtns::getCtnsByPlayerInRoom($roomID, 'room_user', $roomUser);
         }
 
-        $infoGame = ($room->status >= 3) ? $this->getResult($room->encrypted, $roomUser ?? null, $randomKey) : [];
+        $infoGame = ($room->status >= 3) ?
+            $this->getResult(
+                ['room' => $room->encrypted, 'coin' => $coinID],
+                $roomUser ?? null,
+                $randomKey
+            ) : [];
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
@@ -807,10 +812,10 @@ class BingoController extends Controller
         ];
     }
 
-    public function getResult($roomID, $roomUser, $randomKey)
+    public function getResult($data, $roomUser, $randomKey)
     {
         // Obtener la información de los ganadores
-        $winnersInfo = self::getInfoWinners($roomID, $roomUser);
+        $winnersInfo = self::getInfoWinners($data['room'], $roomUser, $data['coin']);
 
         // Encriptar los datos de los ganadores
         $encryptedData = self::encryptData($winnersInfo, $randomKey);

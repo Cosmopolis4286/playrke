@@ -17,8 +17,6 @@ use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomUser;
 use App\Models\CoinGameRoom;
 use App\Models\Commerce;
-use App\Models\CommerceExchangeRate;
-use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\GameConfig;
@@ -358,7 +356,7 @@ trait BingoTrait
         } while (BingoRoom::where('id', $room)->where('status', 3)->exists());
     }
 
-    public function getInfoWinners($room, $roomUser)
+    public function getInfoWinners($room, $roomUser, $coin = '')
     {
         $room = BingoRoom::getRoomByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
 
@@ -374,10 +372,10 @@ trait BingoTrait
 
         if (!$countWinnersJackpot) $this->handleJackpotWinners($room->id);
 
-        $jackpotWinners = $this->getWinnersJackpot($room->id, $roomUser);
+        $jackpotWinners = $this->getWinnersJackpot($room->id, $roomUser, $coin);
 
         $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 2)) ?
-            $this->getWinnersSerials($room->id, $roomUser) : [];
+            $this->getWinnersSerials($room->id, $roomUser, $coin) : [];
 
         $prizeSerialVal = BingoRoomConfig::getValueByRoom($room->id, 'val_serials');
 
@@ -1100,12 +1098,12 @@ trait BingoTrait
             // Generar seriales ganadores si hay jugadores no ganadores
             if ($generateSerials && $room->Config->val_serials && !$room->seller_commn && !BingoPrizeCtns::existsPrizeCtns($roomID, 'SERIAL')) {
 
-                $serialWinners = $this->handleSerialWinners($roomID, $roomUserIds);
+                $serialPrize = $room->jackpot * $room->Config->val_serials / 100;
+
+                $serialWinners = $this->handleSerialWinners($roomID, $serialPrize, $roomUserIds);
 
                 if ($serialWinners) {
                     // Calcular premios si hay premio serial
-                    $serialPrize = $room->jackpot * $room->Config->val_serials / 100;
-
                     $jackpotPrize -= $serialPrize;
 
                     $updateData['jackpot_prize'] = $jackpotPrize;
@@ -1140,7 +1138,7 @@ trait BingoTrait
         }
     }
 
-    public function getWinnersJackpot($roomID, $roomUser)
+    public function getWinnersJackpot($roomID, $roomUser, $coin)
     {
         $data = $this->getWinnersData($roomID, 'JACKPOT', $roomUser);
 
@@ -1150,15 +1148,16 @@ trait BingoTrait
         // Si no hay ganadores en la sala
         if (!count($data['winners'])) $this->handleJackpotWinners($roomID);
 
+        $coin = $coin ? $coin : $data['coin'];
         $jackpotPrize = BingoRoom::getValueById($roomID, 'jackpot_prize');
 
         // Calcular el bote de la sala con respecto a la moneda del jugador
-        $jackpot = $this->formatAmount($this->convertPrizeValue($roomID, $data['coin'], $jackpotPrize), 'float');
+        $jackpot = $this->formatAmount($this->convertPrizeValue($roomID, $coin, $jackpotPrize), 'float');
 
         return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $jackpot);
     }
 
-    public function handleSerialWinners($roomID, $roomUserIds) // Obtener Seriales Ganadores
+    public function handleSerialWinners($roomID, $serialPrize, $roomUserIds) // Obtener Seriales Ganadores
     {
         try {
             $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2);
@@ -1240,7 +1239,7 @@ trait BingoTrait
             $ctnsSerials = BingoCtns::whereIn('id', $serialCtns)
                 ->where('room', $roomID)->get(['id', 'commerce', 'seller', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
 
-            $winnerJackpotPrize = BingoRoom::getSerialPrize($roomID) / count($serialCtns);
+            $winnerJackpotPrize = $serialPrize / count($serialCtns);
 
             $this->registerPrizeCtn($roomID, $ctnsSerials, 2, $winnerJackpotPrize);
             return true;
@@ -1250,15 +1249,17 @@ trait BingoTrait
         }
     }
 
-    public function getWinnersSerials($roomID, $roomUser) // Obtener Seriales Ganadores
+    public function getWinnersSerials($roomID, $roomUser, $coin) // Obtener Seriales Ganadores
     {
         $data = $this->getWinnersData($roomID, 'SERIAL', $roomUser);
 
         // Si existe algun error
         if (isset($data['Error'])) return $data['Error'];
 
+        $coin = $coin ? $coin : $data['coin'];
+
         // Obtener tasa de cambio de la sala
-        $gameExchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $data['coin']);
+        $gameExchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin);
 
         // Calcular el bote de seriales de la sala con respecto a la moneda del jugador
         $serialAmount = $this->formatAmount($data['serialPrize'] * $gameExchangeRate, 'float');
