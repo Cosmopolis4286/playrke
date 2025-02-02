@@ -203,7 +203,6 @@ class SellerController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
             Log::error('Error general: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
@@ -445,6 +444,7 @@ class SellerController extends Controller
     {
         try {
             $user = Commerce::getValueById($this->seller('commerce')->commerce, 'user');
+
             // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda decriptada
             $data = $this->getPaymentDetailsByUserId($user, decrypt($coin));
 
@@ -712,7 +712,6 @@ class SellerController extends Controller
             return response()->json(['error' => 'No se pudo descifrar el ID del cartón.'], 400);
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
             // Eliminar el archivo subido en caso de error
             if (isset($newFileName)) {
                 Storage::delete('bingo/payments/prize-ctns/' . $newFileName);

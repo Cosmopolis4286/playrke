@@ -5,41 +5,39 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class FileController extends Controller
 {
     public function showImagePaymentCtns($filename)
     {
-        return $this->showImage('payments/all-ctns/' . $filename);
+        $filePath = "bingo/payments/all-ctns/{$filename}";
+        return $this->showImage($filePath, $filename);
     }
 
     public function showImagePaymentPrizeCtns($filename)
     {
-        return $this->showImage('payments/prize-ctns/' . $filename);
+        $filePath = "bingo/payments/prize-ctns/{$filename}";
+        return $this->showImage($filePath, $filename);
     }
 
-    private function showImage($filePath)
+    private function showImage($filePath, $filename)
     {
         // Verificar si el usuario está autenticado
-        if (auth()->check()) {
-            // Verificar si el archivo existe en el disco 'public/bingo'
-            if (Storage::disk('public')->exists('bingo/' . $filePath)) {
-                // Obtener el archivo desde la carpeta storage
-                $path = storage_path('app/public/bingo/' . $filePath);
-                $file = file_get_contents($path);
-                $mimeType = mime_content_type($path);
+        abort_unless(Auth::check(), 403, 'Unauthorized action.');
 
-                // Devolver el archivo con el tipo de contenido adecuado
-                return response($file, 200)->header('Content-Type', $mimeType);
-            } else {
-                // Devolver un error si el archivo no existe
-                abort(404, 'File not found.');
-            }
-        } else {
-            // Devolver un error si el usuario no está autenticado
-            abort(403, 'Unauthorized action.');
-        }
+        // Ruta dentro de "storage/app/private"
+        $storagePath = "private/{$filePath}";
+
+        // Verificar si el archivo existe en "storage/app/private"
+        abort_if(!Storage::disk('local')->exists($storagePath), 404, 'File not found.');
+
+        // Obtener la ruta absoluta del archivo
+        $path = storage_path("app/{$storagePath}");
+
+        // Retornar el archivo con su tipo MIME correcto
+        return response()->file($path);
     }
 
     public static function resizeImage($filePath, $fileName)
@@ -47,8 +45,8 @@ class FileController extends Controller
         try {
             $fullPath = $filePath . '/' . $fileName;
 
-            if (Storage::disk('public')->exists($fullPath) && strpos(Storage::mimeType($fullPath), 'image') !== false) {
-                Image::make(storage_path('app/public/' . $fullPath))
+            if (Storage::disk('private')->exists($fullPath) && strpos(Storage::mimeType($fullPath), 'image') !== false) {
+                Image::make(storage_path("app/private/{$fullPath}"))
                     ->resize(720, null, function ($constraint) {
                         $constraint->aspectRatio();
                     })->save();

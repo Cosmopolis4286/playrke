@@ -95,7 +95,7 @@
     @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/rke/payment-confirm-button.js'])
     <script>
         const name = '{{ $name }}';
-        const coin = '{{ $coin }}';
+        const coin = '{{ encrypt($coin) }}';
         const coinName = '{{ $coinName }}';
         const allPendingCtnSale = '{{ $allPendingCtnSale }}';
         const commerceName = '{{ $commerceName }}';

@@ -1171,23 +1171,20 @@ trait BingoTrait
             $chipsDraw = array_flip(BingoDraw::where('room', $roomID)
                 ->where('id', '<', $lastChip)->pluck('chip')->toArray());
 
-            $ctnsPlayer = BingoCtns::where('room', $roomID)
-                ->whereNotIn('room_user', $roomUserIds)->lazyById(100);
-
-            $ctnsPlayer = collect($ctnsPlayer)->shuffle();
-
-
+            $countCtns = 0;
             $countSerials = BingoRoomConfig::getValueByRoom($roomID, 'num_serials');
 
-            $countCtns = 0;
+            $ctnsPlayer = BingoCtns::where('room', $roomID)
+                ->whereNotIn('room_user', $roomUserIds)
+                ->lazyById(100)
+                ->takeWhile(function () use (&$countCtns, $countSerials) {
+                    return $countCtns < $countSerials;
+                })->shuffle();
+
             $uniquePlayers = [];
             $serialCtns = [];
 
             foreach ($ctnsPlayer as $ctn) {
-                if ($countCtns >= $countSerials) {
-                    break; // Detener el bucle si se alcanzó el límite
-                }
-
                 // Obtener números del cartón 
                 $numbers = [
                     $ctn->b1,
@@ -1217,12 +1214,7 @@ trait BingoTrait
                 ];
 
                 // Contar aciertos de forma más eficiente
-                $count = 0;
-                foreach ($numbers as $num) {
-                    if (isset($chipsDraw[$num])) {
-                        $count++;
-                    }
-                }
+                $count = count(array_intersect($numbers, array_keys($chipsDraw)));
 
                 if ($count > 14 && $count < 24) {
                     $playerId = $ctn->player_user ?: $ctn->player_link;
@@ -1233,6 +1225,11 @@ trait BingoTrait
                         $uniquePlayers[$playerType][$playerId] = true; // Registrar jugador
                         $serialCtns[] = $ctn->id;
                         $countCtns++;
+
+                        // Detener la iteración si ya se alcanzó el límite
+                        if ($countCtns == $countSerials) {
+                            break;
+                        }
                     }
                 }
             }
