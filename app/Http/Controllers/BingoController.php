@@ -448,7 +448,7 @@ class BingoController extends Controller
                     app(HandleTransactions::class)->validateTransactions($creator['id']);
                 }
 
-                $jackpot = number_format($this->convertPrizeValue($data['room'], $data['coin'], 'float'), 2, '.');
+                $jackpot = number_format($this->convertPrizeValue($data['room'], $data['coin']), 2, '.');
                 $ctns = BingoRoomUser::getValueByColumn($data['room'], $playerColumn, $player, 'ctns');
 
                 return response()->json([

@@ -821,7 +821,7 @@ trait BingoTrait
         }
     }
 
-    public function convertPrizeValue($roomID, $coin, $type = 'string')
+    public function convertPrizeValue($roomID, $coin, $value = '')
     {
         $room = BingoRoom::getRoomById($roomID, ['commerce', 'customer', 'jackpot']);
 
@@ -830,9 +830,9 @@ trait BingoTrait
 
         $creator = ['type' => $creatorType, 'id' => $creatorID];
 
-        $data = ['coin' => $coin, 'value' => $room->jackpot, 'creator' => $creator];
+        $data = ['coin' => $coin, 'value' => $value ? $value : $room->jackpot, 'creator' => $creator];
 
-        return $this->convertValueByGame('BINGO', $roomID, $data, $type);
+        return $this->convertValueByGame('BINGO', $roomID, $data);
     }
 
     private function registerPrizeCtn($roomID, $cartons, $prizeType, $USDValue)
@@ -962,8 +962,10 @@ trait BingoTrait
     public function getArrayWinnersData($winPlayer, $winners, $jackpot)
     {
         // Calcular la ganancia de acuerdo a la cantidad de ganadores
-        $decimals = count($winners) > 1 ? 3 : 2;
-        $gain = rtrim(number_format($jackpot / max(1, count($winners)), $decimals, ',', '.'), ',0');
+        $countWinners = count($winners);
+        $decimals = $countWinners > 1 ? 3 : 2;
+
+        $gain = rtrim(number_format($jackpot / max(1, $countWinners), $decimals, '.', ','), '.0');
 
         // Inicializar el array para guardar información
         $infoPlayer = ['size' => 0, 'name' => [], 'gain' => [], 'ctn' => []];
@@ -1148,8 +1150,10 @@ trait BingoTrait
         // Si no hay ganadores en la sala
         if (!count($data['winners'])) $this->handleJackpotWinners($roomID);
 
-        // Calcular el bote de la sala con respecto a la monde del jugador
-        $jackpot = $this->convertPrizeValue($roomID, $data['coin'], 'float');
+        $jackpotPrize = BingoRoom::getValueById($roomID, 'jackpot_prize');
+
+        // Calcular el bote de la sala con respecto a la moneda del jugador
+        $jackpot = $this->formatAmount($this->convertPrizeValue($roomID, $data['coin'], $jackpotPrize), 'float');
 
         return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $jackpot);
     }

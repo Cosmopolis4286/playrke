@@ -135,7 +135,7 @@ trait GameTrait
         // Formatear monto/valor de acuerdo al tipo
         if ($type === 'string') {
             // Formatear como cadena y eliminar ceros y comas finales
-            return number_format($amount, 2, ',', '.') ?: '0,0';
+            return number_format($amount, 2, '.', ',') ?: '0.0';
         } else {
             // Devolver como número de punto flotante
             return (float) $amount;
