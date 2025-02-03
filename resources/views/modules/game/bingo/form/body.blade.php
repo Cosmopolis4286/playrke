@@ -28,7 +28,7 @@
     <div id="cont-fixed-jackpot-value" class="form-group col-sm-6 col-md-4 hide-elem">
         <label for="fixed-jackpot-value">Valor Fijo*</label>
         <input type="number" id="fixed-jackpot-value" name="fixed_jackpot_value" class="form-control form-info"
-            placeholder="Ingresar Monto" step="0.05" min="50" max="5000">
+            placeholder="Ingresar Monto" step="0.05" min="50" max="10000">
     </div>
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
@@ -38,11 +38,11 @@
                 <span class="input-group-text">$</span>
             </div>
             <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
-                placeholder="Precio Cartón" min="0.35" value="1" step="0.05" required title="Precio Base">
+                placeholder="Precio Cartón" min="0.35" max="50" value="1" step="0.05" required
+                title="Precio Base">
             <div class="input-group-append">
-                <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button"
-                    data-active="0" data-toggle="popover" data-trigger="hover"
-                    data-content="Ajustar precio por monedas">
+                <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button" data-active="0"
+                    data-toggle="popover" data-trigger="hover" data-content="Ajustar precio por monedas">
                     <i class="fa-solid fa-sliders"></i>
                 </button>
             </div>
@@ -66,11 +66,11 @@
         <input type="number" value="0" id="small-prizes" name="small_prizes" class="form-control form-info"
             placeholder="Ingrese monto a pagar" required>
     </div> --}}
-    <div class="form-group col-sm-6 col-md-4">
+    {{-- <div class="form-group col-sm-6 col-md-4">
         <label for="serials-commission">%Com. Seriales</label>
         <input type="number" value="0" min="0" max="5" step="0.01" id="serials-commission"
             name="serials_commission" class="form-control form-info" placeholder="Ingrese valor">
-    </div>
+    </div> --}}
     <div class="form-group col-sm-6 col-md-4">
         <label for="val-serials">%Bote Seriales</label>
         <input type="number" value="2" min="2" max="15" step="0.05" id="val-serials"
@@ -82,8 +82,8 @@
             name="num_serials" class="form-control form-info" placeholder="Ingrese la cantidad" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
-        <label for="commerce-commission">%Comercio*</label>
-        <input type="number" id="commerce-commission" name="room_commission" class="form-control form-info"
+        <label for="room-commission">%Sala*</label>
+        <input type="number" id="room-commission" name="room_commission" class="form-control form-info"
             value="10" step="0.05" min="10" max="50" required>
     </div>
 </div>

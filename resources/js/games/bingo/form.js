@@ -1,61 +1,35 @@
-function handlePriceCtnForCoins(arrCtnPrice) {
-    // Generar el contenido HTML usando map y join
-    const dataCoins = arrCtnPrice.map((elem) =>
-        `<div class="col col-sm-6 col-md-4 mt-1">
-        <div class="input-group">
-            <div class="input-group-prepend">
-                <span class="input-group-text">${elem.isoCode}</span>
-            </div>
-            <input 
-                type="text" 
-                class="form-control" 
-                name="ctn_price_coins[${elem.coin}]" 
-                id="ctn-price-coin-${elem.coin}" 
-                aria-label="Precio para ${elem.isoCode}" 
-                value="${elem.ctnPrice}">
-        </div>
-    </div>`).join('');
+function validateInput(input, min, max) {
+    let value = parseFloat($(input).val());
 
-    // Actualizar el contenido del contenedor
-    $('#container-price-config').html(dataCoins);
+    if (value < min || value > max) {
+        showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
+        value = min; // Restablecer al valor mínimo permitido
+    }
 
-    // Marcar que las monedas ya han sido procesadas
-    arrCoinsCtnPrice = true;
+    $(input).val(value.toFixed(2));
 }
 
-$(document).on("click", "#btn-ctn-price-config", function () {
-    const container = $("#container-ctn-price-config");
-    // Alternar la clase y el valor del atributo 'data-active'
-    const isActive = container.toggleClass("hide-elem").data("active") === 1 ? 0 : 1;
-    container.data("active", isActive);
-
-    if (isActive === 0 || arrCoinsCtnPrice) return;
-
-    getCtnPriceCoin();
+// Validar Bote Valor Fijo (Debe estar entre 50 y 10000 con pasos de 0.05)
+$(document).on("input", "#fixed-jackpot-value", function () {
+    validateInput(this, 50, 10000);
 });
 
-function getCtnPriceCoin(room = '', action = '') {
-    $.ajax({
-        url: routeGetCtnPriceForCoin.replace(':1', creatorType).replace(':2', creatorID)
-            .replace(':3', creation).replace(':4', room),
-        method: 'GET',
-        dataType: 'json',
-        beforeSend: function () {
-            inCourse = true;
-            $('#container-spinner').show();
-        },
-        success: function (res) {
-            if (!action || res.hasPrice) {
-                handlePriceCtnForCoins(res.ctnPrice);
-                $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
-            }
-        },
-        error: function (error) { },
-        complete: function () {
-            $('#container-spinner').hide();
-            inCourse = false;
-        }
-    });
-}
+// Validar Precio Base Carton USD (Debe estar entre 0.35 y 50 con pasos de 0.05)
+$(document).on("input", "#ctn-price", function () {
+    validateInput(this, 0.35, 50);
+});
 
-window.getCtnPriceCoin = getCtnPriceCoin;
+// Validar %Bote Seriales (Debe estar entre 2 y 15 con pasos de 0.05)
+$(document).on("input", "#val-serials", function () {
+    validateInput(this, 2, 15);
+});
+
+// Validar #Max. Seriales (Debe estar entre 5 y 15)
+$(document).on("input", "#num-serials", function () {
+    validateInput(this, 5, 15);
+});
+
+// Validar %Comercio (Debe estar entre 10 y 50 con pasos de 0.05)
+$(document).on("input", "#room-commission", function () {
+    validateInput(this, 10, 50);
+});    

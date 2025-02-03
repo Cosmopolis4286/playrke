@@ -149,7 +149,7 @@
                 $('#ctn-price').val(data.room.ctn_price);
                 $('#val-serials').val(data.config.val_serials);
                 $('#num-serials').val(data.config.num_serials);
-                $('#commerce-commission').val(data.config.room_commn);
+                $('#room-commission').val(data.config.room_commn);
                 $('#serials-commission').val(data.config.serials_commn);
             }
 
@@ -159,7 +159,7 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
                 'date', 'time', 'room-type', 'jackpot-type', 'game-mode',
-                'ctn-price', 'val-serials', 'commerce-commission'
+                'ctn-price', 'val-serials', 'room-commission'
             ]);
         });
 
@@ -227,7 +227,7 @@
             }
         };
     </script>
-    @vite(['resources/js/games/bingo/ctn-price-coins.js'])
+    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
     @if ($creator['type'] === 'customer')
         <script>
             $(document).on("click", '#btn-game-id', function() {
