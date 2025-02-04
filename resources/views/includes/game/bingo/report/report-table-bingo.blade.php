@@ -4,6 +4,7 @@
         <thead>
             <tr>
                 <th>Sala</th>
+                <th>Tipo</th>
                 <th>Fecha</th>
                 <th>Hora</th>
                 <th>Moneda</th>
@@ -23,6 +24,7 @@
                             {{ $room['encrypted'] }}
                         </a>
                     </td>
+                    <td>{{ $room['roomType'] }}</td>
                     <td>{{ \Carbon\Carbon::parse($room['date'])->format('d/m/y') }}</td>
                     <td>{{ $room['time'] }}h</td>
                     <td>{{ $coinName }}</td>
@@ -36,7 +38,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4" class="text-right"><b>Total:</b></td>
+                <td colspan="5" class="text-right"><b>Total:</b></td>
                 <td>{{ $totals['allCtns'] }}</td>
                 <td>{{ $coinSym }} {{ number_format($totals['allSales'], 2, '.') }}</td>
                 <td>{{ $coinSym }} {{ number_format($totals['comSaleSeller'], 2, '.') }}</td>

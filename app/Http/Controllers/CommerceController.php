@@ -438,6 +438,7 @@ class CommerceController extends Controller
 
             $roomData[] = [
                 'encrypted' => $room->encrypted,
+                'roomType' => $room->room_type_description,
                 'date' => $room->date,
                 'time' => $room->time,
                 'allSaleRoom' => $allSaleRoom,
@@ -463,7 +464,7 @@ class CommerceController extends Controller
     private function getRoomsData($commerce, $coin, $dateFilter = "today")
     {
         $query = BingoRoom::with([
-            'Config',
+            'Config:room,room_commn',
             'Status',
             'CtnsLot' => function ($subquery) use ($commerce, $coin) {
                 $subquery->where('commerce', $commerce)
@@ -475,7 +476,7 @@ class CommerceController extends Controller
 
         $rooms = $query->where('commerce', $commerce)
             // ID Commerce 1 es PlayRKE Sala Para todos
-            ->get(['id', 'status', 'encrypted', 'time', 'date', 'jackpot', 'ctn_price']);
+            ->get(['id', 'encrypted', 'room_type', 'status', 'time', 'date', 'jackpot', 'ctn_price']);
 
         return $rooms;
     }

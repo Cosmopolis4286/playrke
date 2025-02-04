@@ -940,8 +940,8 @@ class BingoController extends Controller
             'GameExchangeRate' => function ($query) use ($coin) {
                 $query->where('coin', $coin)->where('game', 1);
             }
-        ])->where($creator['type'], $creatorID)->orderByDesc('date')
-            ->orderByDesc('time')->orderBy('status')->get();
+        ])->where('room_type', 1)->where($creator['type'], $creatorID)
+            ->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
 
         $routeGetCtnPriceForCoin = route(
             'bingo.getCtnPriceForCoin',
