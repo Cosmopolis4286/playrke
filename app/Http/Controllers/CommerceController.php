@@ -470,7 +470,7 @@ class CommerceController extends Controller
                 $subquery->where('commerce', $commerce)
                     ->where('coin', $coin)->with('Coin');
             }
-        ]);
+        ])->whereHas('CtnsLot');
 
         $query = $this->applyDateFilter($dateFilter, $query, 'publication_date');
 
