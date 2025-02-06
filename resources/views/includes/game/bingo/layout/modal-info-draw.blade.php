@@ -8,8 +8,8 @@
             </div>
             <div class="modal-body pb-2">
                 <div class="d-flex justify-content-center">
-                    <button type="button" id="btn-buy-ctns" class="text-center mb-2 btn btn-danger">
-                        Comprar Cartones</button>
+                    {{-- <button type="button" id="btn-buy-ctns" class="text-center mb-2 btn btn-danger">
+                        Comprar Cartones</button> --}}
                 </div>
                 <div id="game-clock" class="mb-1">
                     <div id="cont-D" class="cont-time-clock"><span id="days"></span><span>D</span></div>

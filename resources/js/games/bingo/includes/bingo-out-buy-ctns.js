@@ -117,7 +117,7 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
         },
         success: function (data) {
 
-            showToast(data.message, data.msg_type);
+            showToast(data.message, data.type);
 
             if (data.jackpot) {
                 $("#jackpot-amount").text(data.jackpot);

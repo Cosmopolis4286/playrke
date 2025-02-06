@@ -45,7 +45,7 @@ class BingoCreator extends Model
             ->where('creator_id', $creator['id'])->where('room', $room)->first();
     }
 
-    public static function getValueByCreatorRoom($creator, $room, $value)
+    public static function getValueByCreatorRoom($creator, $room, $value = 'id')
     {
         // Convertir $creatorType si es un string
         if (is_string($creator['type'])) {

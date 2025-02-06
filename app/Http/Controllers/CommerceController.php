@@ -481,7 +481,6 @@ class CommerceController extends Controller
         return $rooms;
     }
 
-
     public function reportSalesByRoom($roomID, $coin)
     {
         $commerce = $this->commerce('id')->id;

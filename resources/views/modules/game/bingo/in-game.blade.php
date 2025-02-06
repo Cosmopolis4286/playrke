@@ -22,10 +22,10 @@
             @endif
             <input type="hidden" id="random" value="{{ $random }}">
         </div>
-        @include('includes.game.bingo.layout.sounds')
         @if ($room->status == 2)
             @include('includes.game.bingo.layout.modal-info-draw')
         @elseif($room->status > 2)
+            @include('includes.game.bingo.layout.sounds')
             @include('includes.game.bingo.layout.modal-info-winners')
         @endif
     </div>
