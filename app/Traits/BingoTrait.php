@@ -1401,26 +1401,32 @@ trait BingoTrait
         ]);
     }
 
-    public function verifyExistenceOfSales($coin = '', $user, $room = '')
+    public function verifyExistenceOfSales($user, $dateFilter = '', $coin = '',  $room = '')
     {
+        // Aplicar el filtro de moneda (coin) a la consulta
+        $query = BingoCtnsLot::where($user['type'], $user['id']);
+
         if ($coin) {
             try {
                 // Intentar descifrar el valor
                 $coin = decrypt($coin);
-                return ['return' => false, 'coin' => $coin];
-            } catch (DecryptException $e) {
-                $subQueryCoin = BingoCtnsLot::where($user['type'], $user['id']);
-
-                if ($room) $coin = $subQueryCoin->where('room', $room);
-
-                $coin = $subQueryCoin->value('coin');
+            } catch (DecryptException) {
+                $coin = $coin;
             }
-        } else {
-            $subQueryCoin = BingoCtnsLot::where($user['type'], $user['id']);
+            $query->where('coin', $coin);
+        }
 
-            if ($room) $coin = $subQueryCoin->where('room', $room);
+        if ($room) {
+            $query->where('room', $room);
+        }
 
-            $coin = $subQueryCoin->value('coin');
+        $existsSale = $query->exists();
+
+        if ($existsSale && $dateFilter) {
+            $existsSaleDateFilter = $this->applyDateFilter($dateFilter, $query)->exists();
+            if (!$existsSaleDateFilter) {
+                return ['return' => true, 'coin' => $coin];
+            }
         }
 
         if (!$coin && !$room) {
@@ -1432,10 +1438,11 @@ trait BingoTrait
                     $coin = Seller::getValueById($user['id'], 'coin');
                     break;
                 default:
-                    # code...
                     break;
             }
+            return ['return' => true, 'coin' => $coin];
         }
-        return ['return' => true, 'coin' => $coin];
+
+        return $coin;
     }
 }

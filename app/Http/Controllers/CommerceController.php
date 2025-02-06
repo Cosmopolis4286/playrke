@@ -380,23 +380,20 @@ class CommerceController extends Controller
         $title = 'Reporte de Ventas';
 
         $commerce = $this->commerce('id')->id;
+        $user = ['type' => 'commerce', 'id' => $commerce];
 
-        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'commerce', 'id' => $commerce]);
+        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
-        $existSale = $this->existsCoin(BingoCtnsLot::where('commerce', $commerce), $coin, $dateFilter);
-
-        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
-
-        if ($verifyCoin['return']) {
+        if (isset($verifyCoin['return'])) {
             return redirect()->route(
                 'commerce.reportSalesRooms',
                 ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
             );
         }
 
-        $wallet = $this->wallet();
+        $coin = $verifyCoin;
 
-        $coin = $verifyCoin['coin'];
+        $wallet = $this->wallet();
 
         $dataCoin = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
         $coinSym = $dataCoin->symbol;
@@ -491,11 +488,9 @@ class CommerceController extends Controller
             return redirect()->back();
         }
 
-        $coin = decrypt($coin);
-
         // Verificar la existencia de la moneda
-        $query = BingoCtnsLot::where('commerce', $commerce)->where('room', $room->id);
-        $existSale = $this->existsCoin($query, $coin);
+        $user = ['type' => 'commerce', 'id' => $commerce];
+        $existSale = $this->verifyExistenceOfSales($user, '', $coin, $roomID);
 
         if (!$existSale) {
             // si no existe venta para esa fecha
@@ -750,21 +745,18 @@ class CommerceController extends Controller
         $title = 'Cartones Vendidos';
 
         $commerce = $this->commerce('id')->id;
+        $user = ['type' => 'commerce', 'id' => $commerce];
 
-        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'commerce', 'id' => $commerce]);
+        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
-        $existSale = $this->existsCoin(BingoCtnsLot::where('commerce', $commerce), $coin, $dateFilter);
-
-        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
-
-        if ($verifyCoin['return']) {
+        if (isset($verifyCoin['return'])) {
             return redirect()->route(
                 'commerce.ctnsSold',
                 ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
             );
         }
 
-        $coin = $verifyCoin['coin'];
+        $coin = $verifyCoin;
 
         $coinSym = Coin::getValue($coin, 'symbol');
 

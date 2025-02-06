@@ -38,15 +38,6 @@ trait Filters
         return $query;
     }
 
-    protected function existsCoin($query, $coin, $dateFilter = '')
-    {
-        // Aplicar el filtro de moneda (coin) a la consulta
-        $query = $query->where('coin', $coin);
-
-        // Aplicar el filtro de fecha a la consulta
-        return $this->applyDateFilter($dateFilter, $query)->first();
-    }
-
     public function handleViewData($viewData, $creatorType = '')
     {
         // Manjador de Informacio de Vista

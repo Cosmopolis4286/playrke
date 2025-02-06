@@ -47,10 +47,14 @@
         const player = @json($player);
         const encrypt = @json($encrypt);
         const restChips = @json($chipsRest);
-        const soundNext = $('#next')[0];
-        const soundWin = $('#winner')[0];
-        soundNext.muted = true;
-        soundWin.muted = true;
+
+        if (roomStatus > 2) {
+            const soundNext = $('#next')[0];
+            const soundWin = $('#winner')[0];
+            soundNext.muted = true;
+            soundWin.muted = true;
+        }
+
         let arrDraw = @json($sort);
         let latestChips = @json($latestChips);
         let timeServ = @json($timeServ);

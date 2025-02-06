@@ -496,20 +496,18 @@ class SellerController extends Controller
     {   //Cartones Vendidos Salas Actuales Status 2 o 3
         $seller = $this->seller(['id', 'commerce']);
 
-        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
+        $user = ['type' => 'seller', 'id' => $seller->id];
 
-        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
-        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
-
-        if ($verifyCoin['return']) {
+        if (isset($verifyCoin['return'])) {
             return redirect()->route(
                 'seller.ctnsSold',
                 ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
             );
         }
 
-        $coin = Coin::getById($verifyCoin['coin']);
+        $coin = Coin::getById($verifyCoin);
 
         $ctnsSoldQuery = BingoCtnsLot::with([
             'Payment',
@@ -569,22 +567,20 @@ class SellerController extends Controller
 
         $seller = $this->seller(['id', 'commerce']);
 
-        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
+        $user = ['type' => 'seller', 'id' => $seller->id];
 
-        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
-        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
-
-        if ($verifyCoin['return']) {
+        if (isset($verifyCoin['return'])) {
             return redirect()->route(
                 'seller.ctnsAwarded',
                 ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
             );
         }
 
-        app(HandleBingoRooms::class)->checkRoomClosure();
+        $coin = $verifyCoin;
 
-        $coin = $verifyCoin['coin'];
+        app(HandleBingoRooms::class)->checkRoomClosure();
 
         $winnersQuery = BingoPrizeCtns::with([
             'Coin',
@@ -734,20 +730,18 @@ class SellerController extends Controller
 
         $seller = $this->seller(['id', 'commerce']);
 
-        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id]);
+        $user = ['type' => 'seller', 'id' => $seller->id];
 
-        $existSale = $this->existsCoin(BingoCtnsLot::where('seller', $seller->id), $coin, $dateFilter);
+        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
-        if (!$existSale && $dateFilter !== 'all') $verifyCoin['return'] = true;
-
-        if ($verifyCoin['return']) {
+        if (isset($verifyCoin['return'])) {
             return redirect()->route(
                 'seller.reportSalesRooms',
                 ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
             );
         }
 
-        $coin = $verifyCoin['coin'];
+        $coin = $verifyCoin;
 
         $roomsQuery = BingoRoom::with([
             'Config',
@@ -818,12 +812,15 @@ class SellerController extends Controller
         $generateUniqueCodeed = $room->encrypted;
 
         $seller = $this->seller(['id', 'commerce']);
+        $user = ['type' => 'seller', 'id' => $seller->id];
 
-        $verifyCoin = $this->verifyExistenceOfSales($coin, ['type' => 'seller', 'id' => $seller->id], $room->id);
+        $verifyCoin = $this->verifyExistenceOfSales($user, '', $coin, $room->id);
 
-        if ($verifyCoin['return']) return redirect()->back();
+        if (isset($verifyCoin['return'])) {
+            return redirect()->back();
+        }
 
-        $coin = $verifyCoin['coin'];
+        $coin = $verifyCoin;
 
         $playersRoom = PlayerLink::with(['Coin', 'CtnsLot'])
             ->where(['seller' => $seller->id, 'room' => $room->id, 'coin' => $coin])
