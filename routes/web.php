@@ -128,7 +128,7 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
     Route::put('change-status/{id}', [ExchangeRateController::class, 'changeStatus'])->name('change-status');
     Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
 
-    Route::get('historical/{coin}/{creatorType}/{creatorID?}', [ExchangeRateController::class, 'historical'])->name('historical');
+    Route::get('historical/{coin?}/{creatorType}/{creatorID}', [ExchangeRateController::class, 'historical'])->name('historical');
     Route::get('{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
 });
 
@@ -384,7 +384,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 
     Route::post('test/regenerateDraw', [BingoController::class, 'regenerateDraw'])->name('test.regenerateDraw');
 
-    Route::get('rooms/{creatorType}/{userID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
+    Route::get('{roomType}/{creatorType}/{userID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
 
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
         ->middleware(['auth', 'admin'])->name('game-rooms-admin');

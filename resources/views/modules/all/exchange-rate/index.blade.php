@@ -8,7 +8,7 @@
                 @if (!empty($coins) || $creator['type'] === 'customer')
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
                             class="fas fa-plus-square"></i> Añadir</button>
-                    <button type="button" disabled id="btn-historical" class="btn btn-sm btn-primary"
+                    <button type="button" disabled id="btn-historical" class="btn btn-sm btn-primary" data-block="1"
                         data-url-template="{{ route('exchange-rate.historical', ['coin' => ':coin', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                         <i class="fa-solid fa-money-bill-trend-up"></i> Histórico</button>
                 @endif

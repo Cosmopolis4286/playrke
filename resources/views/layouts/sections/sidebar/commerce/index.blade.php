@@ -73,8 +73,8 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a href="{{ route('bingo.all-rooms', ['creatorType' => 'commerce']) }}" title="Salas Bingo"
-                    class="nav-link {{ !Route::is('bingo.all-rooms') ?: 'active' }}">
+                <a href="{{ route('bingo.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => 'commerce']) }}"
+                    title="Salas Bingo" class="nav-link {{ !Route::is('bingo.all-rooms') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Salas</p>
                 </a>

@@ -488,6 +488,8 @@ class CommerceController extends Controller
             return redirect()->back();
         }
 
+        $coin = decrypt($coin);
+
         // Verificar la existencia de la moneda
         $user = ['type' => 'commerce', 'id' => $commerce];
         $existSale = $this->verifyExistenceOfSales($user, '', $coin, $roomID);

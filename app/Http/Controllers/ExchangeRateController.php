@@ -341,13 +341,46 @@ class ExchangeRateController extends Controller
         return ExchangeRate::getLastValueByCoin($coin) ?? 1;
     }
 
-    public function historical($coin = 'all', $creatorType, $creatorID = '')
+    public function historical($creatorType, $creatorID, $coin)
     {
-        $viewData = [];
+        $isLogin = true;
+        $returnBtn = false;
 
-        if (isset($moreViewData)) {
-            $viewData = array_merge($viewData, $moreViewData);
+        switch ($creatorType) {
+            case 'customer':
+                $creatorID = decrypt($creatorID);
+                $coin = decrypt($coin);
+
+                $customer = Customer::getValueByToken($creatorID, 'id');
+
+                if ($customer) {
+                    $isLogin = false;
+                    $returnBtn = false;
+                    $creatorID = $customer;
+                }
+
+                $exchangeRate = CustomerExchangeRate::getAllExchangeRatesByCoin($creatorID, $coin);
+                break;
+            case 'commerce':
+                $creatorID = decrypt($creatorID);
+                $coin = decrypt($coin);
+
+                $exchangeRate = CommerceExchangeRate::getAllExchangeRatesByCoin($creatorID, $coin);
+                break;
+            default:
+                return response()->json(['message' => 'Ruta no encontrada'], 404);
+                break;
         }
+
+        $viewData = [
+            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Histórico Tasa de Cambio',
+            'name' => 'exchange-rate-historical',
+            'returnBtn' => $returnBtn ?? true,
+            'creator' => ['type' => $creatorType, 'id' => $creatorID],
+            'coins' => $coins ?? [],
+            'exchangeRate' => $exchangeRate
+        ];
 
         return view('modules.all.exchange-rate.historical')->with($viewData);
     }
