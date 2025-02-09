@@ -848,10 +848,8 @@ class BingoController extends Controller
         }
     }
 
-    private function getPrivateGameRooms($creator, $coin, $roomType)
+    private function getPrivateGameRooms($creator, $coin)
     {
-        (new HandleBingoRooms())->checkRoomClosure();
-
         $creatorType = $creator['type'];
 
         switch ($creatorType) {
@@ -872,7 +870,7 @@ class BingoController extends Controller
                 $routeWithCoin = [
                     'route' => 'bingo.all-rooms',
                     'parameters' => [
-                        'roomType' => $roomType,
+                        'roomType' => 'private-rooms',
                         'creatorType' => 'commerce',
                         'userID' => $creator['id']
                     ]
@@ -902,7 +900,7 @@ class BingoController extends Controller
                 $routeWithCoin = [
                     'route' => 'bingo.all-rooms',
                     'parameters' => [
-                        'roomType' => $roomType,
+                        'roomType' => 'private-rooms',
                         'creatorType' => 'customer',
                         'userID' => $creator['id']
                     ]
@@ -977,19 +975,102 @@ class BingoController extends Controller
         return $viewData;
     }
 
-    private function getPublicGameRooms($creator, $coin, $roomType)
+    private function getPublicGameRooms($creator, $coin)
     {
+        $creatorType = $creator['type'];
+
+        switch ($creatorType) {
+            case 'admin': // Admin
+                break;
+            case 'commerce': // Comercio
+
+                $creatorID = decrypt($creator['id']);
+
+                $coinSym = Coin::getValue($coin, 'symbol');
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
+
+                $coins = CommerceExchangeRate::getCoinsByCommerce($creatorID);
+                $coins[] = 1; // ID Coin (USDT)
+                $coins = Coin::getCoinsById($coins);
+
+                $routeWithCoin = [
+                    'route' => 'bingo.all-rooms',
+                    'parameters' => [
+                        'roomType' => 'public-rooms',
+                        'creatorType' => 'commerce',
+                        'userID' => $creator['id']
+                    ]
+                ];
+
+                $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($coin)]);
+
+                $moreViewData = [
+                    'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
+                    'countries' => Country::getAllAvailableCountries()
+                ];
+
+                if ($creatorID == 1) $roomType = Room::getRoomTypes();
+
+                break;
+            case 'customer': // Cliente
+                return false;
+                break;
+            default:
+                return false;
+                break;
+        }
+
+        $rooms = BingoRoom::with([
+            'Config.JackpotType',
+            'GameMode',
+            'PlayersRoom' => function ($query) {
+                $query->where('winner', '>', 0);
+            },
+            'GameExchangeRate' => function ($query) use ($coin) {
+                $query->where('coin', $coin)->where('game', 1);
+            }
+        ])->where('room_type', 2)->where($creator['type'], $creatorID)
+            ->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
+
+        $routeGetCtnPriceForCoin = route(
+            'bingo.getCtnPriceForCoin',
+            ['creatorType' => ':1', 'creatorID' => ':2', 'type' => ':3', 'room' => ':4']
+        );
+
+        $viewData = [
+            'layout' => 'layouts.app_rke',
+            'title' => 'Salas de Bingo',
+            'name' => 'bingocash',
+            'returnBtn' => $returnBtn ?? true,
+            'routeWithCoin' => $routeWithCoin,
+            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
+            'routeRKE' => $this->getRouteRKE(),
+            'creator' => $creator,
+            'coins' => $coins,
+            'coin' => $coin,
+            'coinSym' => $coinSym,
+            'exchangeRate' => $exchangeRate ?? 1,
+            'rooms' => $rooms,
+            'GMRoute' => $GMRoute,
+            'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
+            'roomType' => $roomType ?? [],
+            'jackpotType' => JackpotType::all(),
+            'gameModes' => GameModes::all()
+        ];
+
         return $viewData;
     }
 
     public function getGameRoomsInfo($creator, $coin, $roomType)
     {
+        (new HandleBingoRooms())->checkRoomClosure();
+
         if ($roomType === 'private-rooms') {
             $view = 'private';
-            $viewData = $this->getPrivateGameRooms($creator, $coin, $roomType);
+            $viewData = $this->getPrivateGameRooms($creator, $coin);
         } else {
             $view = 'public';
-            $viewData = $this->getPublicGameRooms($creator, $coin, $roomType);
+            $viewData = $this->getPublicGameRooms($creator, $coin);
         }
 
         return ['route' => 'modules.game.bingo.form.' . $view, 'data' => $viewData];
@@ -997,19 +1078,28 @@ class BingoController extends Controller
 
     public function allRooms($roomType, $creatorType, $creatorID = '', $coin = '')
     {
-        switch ($creatorType) {
-            case 'admin':
-                // Lógica para "admin" si se necesita.
-                break;
+        $roomTypes = ['automatic-rooms', 'private-rooms', 'public-rooms'];
 
-            case 'commerce':
-                return $this->allCommerceRooms($roomType, $creatorID, $coin);
+        if (!in_array($roomType, $roomTypes)) {
+            return redirect()->back();
+        }
 
-            case 'customer':
-                return $this->allCustomerRooms($roomType, $creatorID, $coin);
-
-            default:
-                return redirect()->back()->with('error', 'Tipo de creador no válido.');
+        if ($roomType === 'automatic-rooms') {
+            return $this->allAutomaticRooms($creatorType, $creatorID);
+        } else {
+            switch ($creatorType) {
+                case 'admin':
+                    // Lógica para "admin" si se necesita.
+                    break;
+                case 'commerce':
+                    return $this->allCommerceRooms($roomType, $creatorID, $coin);
+                    break;
+                case 'customer':
+                    return $this->allCustomerRooms($roomType, $creatorID, $coin);
+                    break;
+                default:
+                    return redirect()->back()->with('error', 'Tipo de creador no válido.');
+            }
         }
     }
 
@@ -1025,7 +1115,7 @@ class BingoController extends Controller
             return redirect()->route('bingo.all-rooms', [
                 'roomType' => $roomType,
                 'creatorType' => 'commerce',
-                'userID' => encrypt($commerceId),
+                'creatorID' => encrypt($commerceId),
                 'coin' => encrypt(1)
             ]);
         }
@@ -1070,7 +1160,7 @@ class BingoController extends Controller
             return redirect()->route('bingo.all-rooms', [
                 'roomType' => $roomType,
                 'creatorType' => 'customer',
-                'userID' => $isLogin ? encrypt($customerID) : $customerID,
+                'creatorID' => $isLogin ? encrypt($customerID) : $customerID,
                 'coin' => encrypt($coins[0]->id)
             ]);
         }
@@ -1772,7 +1862,7 @@ class BingoController extends Controller
         return ['route' => 'modules.game.bingo.automatic-room.index', 'data' => $viewData];
     }
 
-    public function allAutomaticRooms($creatorType, $creatorID)
+    private function allAutomaticRooms($creatorType, $creatorID)
     {
         $creatorID = decrypt($creatorID);
 

@@ -6,7 +6,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
-                @include('includes.game.bingo.report.btn-group', ['automaticRoom' => true])
+                @include('includes.game.bingo.report.btn-group', ['view' => 'PUBLIC'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @include('includes.game.bingo.report.table-info-bingo-rooms')

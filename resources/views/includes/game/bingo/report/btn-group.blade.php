@@ -4,20 +4,34 @@
         <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="1">
             <i class="fas fa-plus"></i> Crear
         </button>
-        @if (isset($privateRoom))
+        @if ($view === 'AUTO')
             <a class="btn btn-sm btn-secondary"
-                href="{{ route('bingo.all-rooms', ['creatorType' => $creator['type'], 'userID' => $creator['id']]) }}">
+                href="{{ route('bingo.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                 <i class="fas fa-cogs"></i> Manual
             </a>
         @else
             <a class="btn btn-sm btn-secondary"
-                href="{{ route('bingo.automatic-room.all-rooms', ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                href="{{ route('bingo.all-rooms', ['roomType' => 'automatic-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                 <i class="fa-solid fa-rotate"></i> Auto
             </a>
             @if ($creator['type'] !== 'customer')
+                @if ($view === 'PRIVATE')
+                    @php
+                        $title = 'Publicas';
+                        $icon = 'fas fa-globe';
+                        $roomType = 'public-rooms';
+                    @endphp
+                @else
+                    @php
+                        $title = 'Privadas';
+                        $icon = 'fas fa-globe';
+                        $roomType = 'private-rooms';
+                    @endphp
+                @endif
+
                 <a class="btn btn-sm btn-secondary"
-                    href="{{ route('bingo.public-room.all-rooms', ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
-                    <i class="fas fa-globe"></i> Publicas
+                    href="{{ route('bingo.all-rooms', ['roomType' => $roomType, 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                    <i class="{{ $icon }}"></i> {{ $title }}
                 </a>
             @else
                 <button id="btn-game-id" class="btn btn-sm btn-dark">

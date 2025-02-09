@@ -384,7 +384,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 
     Route::post('test/regenerateDraw', [BingoController::class, 'regenerateDraw'])->name('test.regenerateDraw');
 
-    Route::get('{roomType}/{creatorType}/{userID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
+    Route::get('{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
 
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
         ->middleware(['auth', 'admin'])->name('game-rooms-admin');
@@ -408,7 +408,6 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::put('copy/{id}', [BingoController::class, 'copy'])->name('copy');
 
     /// Rutas de Salas Automaticas
-    Route::get('automatic-rooms/{creatorType}/{creatorID}', [BingoController::class, 'allAutomaticRooms'])->name('automatic-room.all-rooms');
     Route::get('automatic-room/getInfo/{id}', [BingoController::class, 'getInfoAutomaticRoom'])->name('automatic-room.getInfo');
     Route::post('automatic-room/create', [BingoController::class, 'createAutomaticRoom'])->name('automatic-room.create');
     Route::put('automatic-room/update/{id}', [BingoController::class, 'updateAutomaticRoom'])->name('automatic-room.update');
@@ -416,10 +415,6 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::put('automatic-room/delete/{id}', [BingoController::class, 'deleteAutomaticRoom'])->name('automatic-room.delete');
     Route::put('automatic-room/copy/{id}', [BingoController::class, 'copyAutomaticRoom'])->name('automatic-room.copy');
     Route::get('automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorID}', [BingoController::class, 'executeGenerateBingoRoomsJob'])->name('automatic-room.executeGenerateBingoRoomsJob');
-
-    // Rutas de Salas Publicas
-    Route::get('public-rooms/{creatorType}/{creatorID}', [BingoController::class, 'allPublicRooms'])
-        ->middleware(['auth', 'commerce'])->name('public-room.all-rooms');
 });
 
 Route::post('bingocash/actWn', [BingoController::class, 'actWn'])

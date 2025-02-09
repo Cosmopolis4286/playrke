@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.game.bingo.report.btn-group', ['privateRoom' => true])
+                @include('includes.game.bingo.report.btn-group', ['view' => 'AUTO'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @include('includes.game.bingo.report.table-info-automatic-bingo-rooms')
