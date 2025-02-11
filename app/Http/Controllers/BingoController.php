@@ -174,7 +174,7 @@ class BingoController extends Controller
                 'bingo.all-rooms',
                 [
                     'creatorType' => 'commerce',
-                    'userID' => encrypt($creatorID),
+                    'creatorID' => encrypt($creatorID),
                     'coin' => encrypt($coin)
                 ]
             )];
@@ -217,7 +217,7 @@ class BingoController extends Controller
                 'bingo.all-rooms',
                 [
                     'creatorType' => 'commerce',
-                    'userID' => $commerce,
+                    'creatorID' => $commerce,
                     'coin' => encrypt(1)
                 ]
             );
@@ -872,7 +872,7 @@ class BingoController extends Controller
                     'parameters' => [
                         'roomType' => 'private-rooms',
                         'creatorType' => 'commerce',
-                        'userID' => $creator['id']
+                        'creatorID' => $creator['id']
                     ]
                 ];
                 $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($coin)]);
@@ -902,7 +902,7 @@ class BingoController extends Controller
                     'parameters' => [
                         'roomType' => 'private-rooms',
                         'creatorType' => 'customer',
-                        'userID' => $creator['id']
+                        'creatorID' => $creator['id']
                     ]
                 ];
                 $GMRoute =  route(
@@ -998,7 +998,7 @@ class BingoController extends Controller
                     'parameters' => [
                         'roomType' => 'public-rooms',
                         'creatorType' => 'commerce',
-                        'userID' => $creator['id']
+                        'creatorID' => $creator['id']
                     ]
                 ];
 
@@ -1179,7 +1179,7 @@ class BingoController extends Controller
                 [
                     'roomType' => $roomType,
                     'creatorType' => 'customer',
-                    'userID' => $isLogin ? encrypt($customerID) : $customerID,
+                    'creatorID' => $isLogin ? encrypt($customerID) : $customerID,
                 ]
             );
         }
