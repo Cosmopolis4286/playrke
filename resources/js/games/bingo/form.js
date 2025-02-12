@@ -1,12 +1,14 @@
 function validateInput(input, min, max) {
-    let value = parseFloat($(input).val());
+    setTimeout(() => {
+        let value = parseFloat($(input).val());
 
-    if (value < min || value > max) {
-        showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
-        value = min; // Restablecer al valor mínimo permitido
-    }
+        if (value < min || value > max) {
+            showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
+            value = min; // Restablecer al valor mínimo permitido
+        }
 
-    $(input).val(value.toFixed(2));
+        $(input).val(value.toFixed(2));
+    }, 1500);
 }
 
 // Validar Bote Valor Fijo (Debe estar entre 50 y 10000 con pasos de 0.05)

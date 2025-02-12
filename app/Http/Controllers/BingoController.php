@@ -848,6 +848,14 @@ class BingoController extends Controller
         }
     }
 
+    private function getRouteCtnPriceForCoin()
+    {
+        return route(
+            'bingo.getCtnPriceForCoin',
+            ['creation' => ':1', 'creatorType' => ':2', 'creatorID' => ':3', 'room' => ':4']
+        );
+    }
+
     private function getPrivateGameRooms($creator, $coin)
     {
         $creatorType = $creator['type'];
@@ -942,10 +950,7 @@ class BingoController extends Controller
         ])->where('room_type', 1)->where($creator['type'], $creatorID)
             ->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
 
-        $routeGetCtnPriceForCoin = route(
-            'bingo.getCtnPriceForCoin',
-            ['creatorType' => ':1', 'creatorID' => ':2', 'type' => ':3', 'room' => ':4']
-        );
+        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
@@ -1032,10 +1037,7 @@ class BingoController extends Controller
         ])->where('room_type', 2)->where($creator['type'], $creatorID)
             ->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
 
-        $routeGetCtnPriceForCoin = route(
-            'bingo.getCtnPriceForCoin',
-            ['creatorType' => ':1', 'creatorID' => ':2', 'type' => ':3', 'room' => ':4']
-        );
+        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
         $viewData = [
             'layout' => 'layouts.app_rke',
@@ -1391,7 +1393,7 @@ class BingoController extends Controller
         }
     }
 
-    public function getCtnPriceForCoin($creatorType, $creatorID, $type, $room = '')
+    public function getCtnPriceForCoin($creation, $creatorType, $creatorID, $room = 'RKE')
     {
         // Desencriptar $creatorID
         $creatorID = decrypt($creatorID);
@@ -1403,7 +1405,7 @@ class BingoController extends Controller
             default => collect(CustomerExchangeRate::getCoinsByCustomer($creatorID)),
         };
 
-        if ($room && $type === 'M') {
+        if ($room !== 'RKE' && $creation === 'M') {
             // Obtener ID de la sala
             $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
@@ -1415,7 +1417,7 @@ class BingoController extends Controller
         }
 
         // Obtener precios y monedas asociadas
-        if ($type === 'M') {
+        if ($creation === 'M') {
             $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($bingoCreatorID ?? '');
         } else {
             $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($room ?? '');
@@ -1834,10 +1836,7 @@ class BingoController extends Controller
             ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
         );
 
-        $routeGetCtnPriceForCoin = route(
-            'bingo.getCtnPriceForCoin',
-            ['creatorType' => ':1', 'creatorID' => ':2', 'type' => ':3', 'room' => ':4']
-        );
+        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',

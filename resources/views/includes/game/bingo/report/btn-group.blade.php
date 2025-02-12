@@ -40,7 +40,7 @@
             @endif
         @endif
     </div>
-    @if (isset($automaticRoom))
+    @if ($view !== 'AUTO')
         <a href="{{ $activeRooms ? $GMRoute : '#' }}"
             class="btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}">
             <i class="fas fa-eye"></i> Ver Salas

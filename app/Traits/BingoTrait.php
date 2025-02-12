@@ -719,7 +719,7 @@ trait BingoTrait
             }
 
             // Evaluar tasa de cambio
-            $exchangeRate = BingoCtnPrice::getCtnPriceByCreator($coin, $arrCtn['bingoCreatorID']) ? 1 : $exchangeRate;
+            $exchangeRate = BingoCtnPrice::getCtnPriceByCreator($coin, $arrCtn['bingoCreatorID']) ?? 1;
 
             // Definir monto total de venta
             $totalSaleAmount = number_format($exchangeRate * $saleAmount, 2, '.');

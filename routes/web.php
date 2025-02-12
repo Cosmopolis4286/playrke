@@ -397,7 +397,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
     Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::get('getDateTimeRooms/{creatorType}/{creatorID}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
-    Route::get('getCtnPriceForCoin/{creatorType}/{creatorID}/{type}/{room?}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
+    Route::get('getCtnPriceForCoin/{creation}/{creatorType}/{creatorID}/{room}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
     Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');
@@ -428,7 +428,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('room/{room?}/{creator?}', [BingoController::class, 'outGame'])->name('out-game-rke');
 
     // Ruta /Jugador/Comercio Especifico
-    Route::get('comm/{commerce}/player/{player}/{room?}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
+    Route::get('comm/{commerce}/player/{player}', [BingoController::class, 'inGameCommerce'])->name('in-game-commerce');
     Route::get('comm/{commerce}/room/{room}/{coin}', [BingoController::class, 'outGameCommerce'])->name('out-game-commerce');
 
     // Rutas Jugador/Cliente

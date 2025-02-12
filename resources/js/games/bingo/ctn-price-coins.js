@@ -34,10 +34,10 @@ $(document).on("click", "#btn-ctn-price-config", function () {
     getCtnPriceCoin();
 });
 
-function getCtnPriceCoin(room = '', action = '') {
+function getCtnPriceCoin(room = 'RKE', action = '') {
     $.ajax({
-        url: routeGetCtnPriceForCoin.replace(':1', creatorType).replace(':2', creatorID)
-            .replace(':3', creation).replace(':4', room),
+        url: routeGetCtnPriceForCoin.replace(':1', creation).replace(':2', creatorType)
+            .replace(':3', creatorID).replace(':4', room),
         method: 'GET',
         dataType: 'json',
         beforeSend: function () {
