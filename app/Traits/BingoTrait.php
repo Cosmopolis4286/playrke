@@ -17,6 +17,7 @@ use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomUser;
 use App\Models\CoinGameRoom;
 use App\Models\Commerce;
+use App\Models\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\GameConfig;
@@ -414,7 +415,7 @@ trait BingoTrait
     }
 
     // Función para calcular la comisión del vendedor
-    private function calculateSellerCommission($seller, $totalSaleCtns, $roomID)
+    private function calculateSellerCommission($seller, $saleAmount, $roomID)
     {
         if (!$seller) return 0;
 
@@ -422,7 +423,7 @@ trait BingoTrait
         // Registar la comision del vendedor para la sala de jeugo
         SellerRoomLimits::firstOrCreate(['game' => 1, 'room' => $roomID, 'seller' => $seller], ['commn' => $commnSeller]);
 
-        $commnSeller = ($totalSaleCtns * $commnSeller) / 100;
+        $commnSeller = ($saleAmount * $commnSeller) / 100;
 
         return $commnSeller ? number_format($commnSeller, 2, '.') : 0;
     }
@@ -441,24 +442,28 @@ trait BingoTrait
 
         $currentTime = now();
 
-        return BingoCtnsLot::insertGetId([
-            'customer' => $arrCtn['customer'] ?? null,
-            'commerce' => $arrCtn['commerce'] ?? null,
-            'seller' => $seller,
-            'room_user' => $arrCtn['roomUser'],
-            'player_user' => $arrCtn['playerUser'] ?? null,
-            'player_link' => $arrCtn['playerLink'] ?? null,
-            'room' => $arrCtn['room'],
-            'ctn_price' => $arrCtn['ctnPrice'],
-            'exchange_rate' => $exchangeRate,
-            'ctns' => $arrCtn['numOfCtns'],
-            'coin' => $arrCtn['coin'],
-            'sale_amount' => $saleAmount,
-            'final_sale_amount' => $finalSaleAmount,
-            'status' => 0,
-            'created_at' => $currentTime,
-            'updated_at' => $currentTime,
-        ]);
+        try {
+            return BingoCtnsLot::insertGetId([
+                'customer' => $arrCtn['customer'] ?? null,
+                'commerce' => $arrCtn['commerce'] ?? null,
+                'seller' => $seller,
+                'room_user' => $arrCtn['roomUser'],
+                'player_user' => $arrCtn['playerUser'] ?? null,
+                'player_link' => $arrCtn['playerLink'] ?? null,
+                'room' => $arrCtn['room'],
+                'ctn_price' => $arrCtn['ctnPrice'],
+                'exchange_rate' => $exchangeRate,
+                'ctns' => $arrCtn['numOfCtns'],
+                'coin' => $arrCtn['coin'],
+                'sale_amount' => $saleAmount,
+                'final_sale_amount' => $finalSaleAmount,
+                'status' => 0,
+                'created_at' => $currentTime,
+                'updated_at' => $currentTime,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al crear lote de cartones: ' . $e->getMessage());
+        }
     }
 
     // Función optimizada para generar y almacenar cartones de bingo usando hash
@@ -693,14 +698,9 @@ trait BingoTrait
             $coin = $arrCtn['coin'];
             $numOfCtns = $arrCtn['numOfCtns'];
             $gameMode = $room->game_mode;
-            $saleAmount = $numOfCtns * $arrCtn['ctnPrice'];
-            $sellerSaleCommn = 0;
 
-            if ($customer) {
-                $customerExchangeRate = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
-                $coin = $customerExchangeRate->coin;
-                $exchangeRate = $customerExchangeRate->exchangeRate ?? 1;
-            };
+            // Formatear Monto de Venta
+            $saleAmount = number_format($numOfCtns * $arrCtn['ctnPrice'], 2, '.');
 
             // Registrar o actualizar el usuario en la sala
             $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);
@@ -719,13 +719,16 @@ trait BingoTrait
             }
 
             // Evaluar tasa de cambio
-            $exchangeRate = BingoCtnPrice::getCtnPriceByCreator($coin, $arrCtn['bingoCreatorID']) ?? 1;
-
-            // Definir monto total de venta
-            $totalSaleAmount = number_format($exchangeRate * $saleAmount, 2, '.');
+            if ($customer) {
+                $customerExchangeRate = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
+                $coin = $customerExchangeRate->coin;
+                $exchangeRate = $customerExchangeRate->exchangeRate ?? 1;
+            } else {
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin) ?? 1;
+            }
 
             // Crear lote de cartones
-            $lotID = $this->createCtnsLot($arrCtn, $exchangeRate, $totalSaleAmount);
+            $lotID = $this->createCtnsLot($arrCtn, $exchangeRate, $saleAmount);
 
             // Generar y almacenar los cartones de bingo
             $generateAndStoreCtns = $this->generateAndStoreCtns($arrCtn, $lotID);
@@ -741,7 +744,7 @@ trait BingoTrait
                 $columnBalance = $coin == 1 ? 'usdt' : 'balance';
 
                 // Descontar monto del saldo del usuario
-                $walletUpdated = Wallet::where('user', $playerUser)->decrement($columnBalance, $totalSaleAmount);
+                $walletUpdated = Wallet::where('user', $playerUser)->decrement($columnBalance, $saleAmount);
 
                 // Verificar si se actualizó algún registro
                 if ($walletUpdated === 0) {
@@ -751,7 +754,7 @@ trait BingoTrait
             }
 
             // Actualizar acumulado y comisiones de la sala
-            $updateRoomMetrics = $this->updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn);
+            $updateRoomMetrics = $this->updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn ?? 0);
 
             // Verificar si se actualizó los valores de la sala
             if (!$updateRoomMetrics) {
@@ -762,16 +765,9 @@ trait BingoTrait
             // Definir variables dobre el juego
             $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
 
-            // Definir coinISO
-            if ($customer) {
-                $coinISO = CustomerExchangeRate::getValueById($coin, 'coin');
-            } else {
-                $coinISO = $coin;
-            }
-
             //Registrar nueva moneda en juego de ser necesario
-            if (!CoinGameRoom::existsCoinGameRoom($coinISO, $roomID, 'BINGO', $gameMode)) {
-                CoinGameRoom::createNewCoinInRoom($game, $roomID, $coinISO);
+            if (!CoinGameRoom::existsCoinGameRoom($coin, $roomID, 'BINGO', $gameMode)) {
+                CoinGameRoom::createNewCoinInRoom($game, $roomID, $coin);
             }
 
             // Si la sala es de un cliente
@@ -785,7 +781,7 @@ trait BingoTrait
                     $roomID,
                     $playerUser,
                     $coin,
-                    $totalSaleAmount
+                    $saleAmount
                 );
 
                 if (isset($transactionBet['Error'])) {

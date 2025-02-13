@@ -118,6 +118,20 @@
                                     </div>
                                 </div>
                                 <div class="form-group col-12 col-sm-6 hide-elem info-player">
+                                    <label for="phone">Teléfono*</label>
+                                    <div id="cont-phone" class="form-control_d hide-elem"></div>
+                                    <div class="input-group">
+                                        <input type="text" id="phone" class="form-control info-form"
+                                            name="phone" required>
+                                        <div class="input-group-append">
+                                            <button id="btn-search-phone" class="btn btn-outline-secondary"
+                                                type="button">
+                                                <i class="fa-solid fa-magnifying-glass"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-12 col-sm-6 hide-elem info-player">
                                     <label for="name">Nombre*</label>
                                     <input id="name" class="form-control input-text info-form" type="text"
                                         name="name">
@@ -126,12 +140,6 @@
                                     <label for="last-name">Apellido*</label>
                                     <input id="last-name" class="form-control input-text info-form" type="text"
                                         name="last_name">
-                                </div>
-                                <div class="form-group col-12 col-sm-6 hide-elem info-player">
-                                    <label for="phone">Teléfono*</label>
-                                    <div id="cont-phone" class="form-control_d hide-elem"></div>
-                                    <input type="text" id="phone" class="form-control info-form" name="phone"
-                                        required>
                                 </div>
                             </div>
                         </div>
@@ -367,7 +375,7 @@
             }
         });
 
-        function getPlayer(playerInfo) {
+        function getPlayer(playerInfo, action = false) {
             $.post({
                 url: "{{ route('seller.getPlayer') }}",
                 headers: {
@@ -410,15 +418,22 @@
                         $("#player-link-rout").val('');
                         $("#new-player, #cont-info-player").addClass('hide-elem');
                         $("#get-data-player, #loader-btn-ctn").show();
-                        form.submit();
+
+                        if (action) {
+                            form.submit();
+                        }
                     }
                 }
             });
         }
 
+        $(document).on("click", "#btn-search-phone", function() {
+            getPlayer($("#phone").val());
+        });
+
         btnGenerate.on("click", function() {
             if (!playerInGame) {
-                getPlayer($("#phone").val());
+                getPlayer($("#phone").val(), true);
             } else {
                 form.submit();
             }
