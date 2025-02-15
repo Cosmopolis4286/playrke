@@ -10,9 +10,9 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CommerceController;
 use App\Http\Controllers\SellerController;
-use App\Http\Controllers\BingoController;
 use App\Http\Controllers\PollaController;
 use App\Http\Controllers\BancosController;
+use App\Http\Controllers\BingoController;
 use App\Http\Controllers\DoubleController;
 use App\Http\Controllers\RuletaController;
 use App\Http\Controllers\TriviaController;
@@ -168,13 +168,13 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
     Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
-    Route::get('bingocash/players/other-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByOtherCommerces'])->name('getBingoWinnersByOtherCommerces');
-    Route::get('bingocash/players/my-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByCommerce'])->name('getBingoWinnersByCommerce');
-    Route::get('bingocash/carton-sold/{coin?}/{dateFilter?}', [CommerceController::class, 'ctnsSold'])->name('ctnsSold');
-    Route::put('bingocash/carton-lot/payment', [CommerceController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
-    Route::post('bingocash/carton/notify/payment/win-ctn', [CommerceController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
-    Route::get('bingocash/sales-report/{coin?}/{dateFilter?}', [CommerceController::class, 'reportSalesRooms'])->name('reportSalesRooms');
-    Route::get('bingocash/sales-report/room/{room}/{coin}', [CommerceController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
+    Route::get('bingo/players/other-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByOtherCommerces'])->name('getBingoWinnersByOtherCommerces');
+    Route::get('bingo/players/my-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByCommerce'])->name('getBingoWinnersByCommerce');
+    Route::get('bingo/carton-sold/{coin?}/{dateFilter?}', [CommerceController::class, 'ctnsSold'])->name('ctnsSold');
+    Route::put('bingo/carton-lot/payment', [CommerceController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
+    Route::post('bingo/carton/notify/payment/win-ctn', [CommerceController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
+    Route::get('bingo/sales-report/{coin?}/{dateFilter?}', [CommerceController::class, 'reportSalesRooms'])->name('reportSalesRooms');
+    Route::get('bingo/sales-report/room/{room}/{coin}', [CommerceController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
 });
 
 // Commerce Options ADMIN
@@ -200,21 +200,21 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'seller', 'as' =
 //Vendedor/Agencia/Taquilla
 Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 'seller.'], function () {
     Route::get('getPaymentCommerceDetails/{coin}', [SellerController::class, 'getPaymentCommerceDetails'])->name('getPaymentCommerceDetails');
-    Route::get('bingocash/carton/generate', [SellerController::class, 'cartonGenerate'])->name('cartonGenerate');
-    Route::post('bingocash/carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
-    Route::get('bingocash/carton/get/price/{roomID}', [SellerController::class, 'getCtnPrice'])->name('getCtnPrice');
-    Route::get('bingocash/get/ctn-price-coin/{room}/{country}', [SellerController::class, 'getCtnPriceCoin'])->name('getCtnPriceCoin');
-    Route::post('bingocash/player/get/player', [SellerController::class, 'getPlayer'])->name('getPlayer');
-    Route::get('bingocash/carton/sold/{coin?}/{dateFilter?}', [SellerController::class, 'ctnsSold'])->name('ctnsSold');
-    Route::get('bingocash/player/cartons/{playerLink}{room}', [SellerController::class, 'showPlayerCartons'])->name('showPlayerCartons');
-    Route::get('bingocash/carton/awarded/{coin?}/{dateFilter?}', [SellerController::class, 'ctnsAwarded'])->name('ctnsAwarded');
-    Route::get('bingocash/getWinnerInfoForCtn/{ctnId}', [SellerController::class, 'getWinnerInfoForCtn'])->name('getWinnerInfoForCtn');
-    Route::get('bingocash/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
-    Route::post('bingocash/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
-    Route::post('bingocash/carton/notify/payment/win-ctn', [SellerController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
-    Route::get('bingocash/report/sales/rooms/{coin?}/{dateFilter?}', [SellerController::class, 'reportSalesRooms'])->name('reportSalesRooms');
-    Route::get('bingocash/sales-report/room/{room}/{coin}', [SellerController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
-    Route::get('bingocash/report/sales/room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
+    Route::get('bingo/carton/generate', [SellerController::class, 'cartonGenerate'])->name('cartonGenerate');
+    Route::post('bingo/carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
+    Route::get('bingo/carton/get/price/{roomID}', [SellerController::class, 'getCtnPrice'])->name('getCtnPrice');
+    Route::get('bingo/get/ctn-price-coin/{room}/{country}', [SellerController::class, 'getCtnPriceCoin'])->name('getCtnPriceCoin');
+    Route::post('bingo/player/get/player', [SellerController::class, 'getPlayer'])->name('getPlayer');
+    Route::get('bingo/carton/sold/{coin?}/{dateFilter?}', [SellerController::class, 'ctnsSold'])->name('ctnsSold');
+    Route::get('bingo/player/cartons/{playerLink}{room}', [SellerController::class, 'showPlayerCartons'])->name('showPlayerCartons');
+    Route::get('bingo/carton/awarded/{coin?}/{dateFilter?}', [SellerController::class, 'ctnsAwarded'])->name('ctnsAwarded');
+    Route::get('bingo/getWinnerInfoForCtn/{ctnId}', [SellerController::class, 'getWinnerInfoForCtn'])->name('getWinnerInfoForCtn');
+    Route::get('bingo/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
+    Route::post('bingo/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
+    Route::post('bingo/carton/notify/payment/win-ctn', [SellerController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
+    Route::get('bingo/report/sales/rooms/{coin?}/{dateFilter?}', [SellerController::class, 'reportSalesRooms'])->name('reportSalesRooms');
+    Route::get('bingo/sales-report/room/{room}/{coin}', [SellerController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
+    Route::get('bingo/report/sales/room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'report', 'as' => 'report.'], function () {

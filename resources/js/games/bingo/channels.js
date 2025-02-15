@@ -1,7 +1,7 @@
 function initializeEcho(generateUniqueCodeed) {
     return {
         init() {
-            Echo.channel(`bingocash.${generateUniqueCodeed}`)
+            Echo.channel(`bingo.${generateUniqueCodeed}`)
                 .listen('BingoOFF_GetRoomInfo', (event) => {
                     console.log('Second Event:', event.data);
                 })

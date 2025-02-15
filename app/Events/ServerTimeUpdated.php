@@ -30,7 +30,7 @@ class ServerTimeUpdated implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel("bingocash.{$this->playerLink}"),
+            new PrivateChannel("bingo.{$this->playerLink}"),
         ];
     }
 }

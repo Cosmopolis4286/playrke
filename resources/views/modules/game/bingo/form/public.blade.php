@@ -71,7 +71,7 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap);
+            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingo', otherCasesMap);
         });
 
         function insertInfo(type, data = '') {

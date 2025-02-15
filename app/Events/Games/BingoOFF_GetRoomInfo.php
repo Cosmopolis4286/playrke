@@ -27,7 +27,7 @@ class BingoOFF_GetRoomInfo implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new Channel("bingocash.{$this->encrypted}"),
+            new Channel("bingo.{$this->encrypted}"),
         ];
     }
 }
