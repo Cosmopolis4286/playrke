@@ -92,7 +92,7 @@
                 required: isRequired
             }).empty();
 
-            if (creatorType === 'commerce' && arrRoomType.length) {
+            if (creatorType === 'commerce') {
                 roomType = $("#room-type");
                 roomType.prop({
                     disabled: isDisabled,
@@ -105,10 +105,6 @@
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
 
-                if (creatorType === 'commerce' && arrRoomType.length) {
-                    roomType.append(defaultOption);
-                }
-
                 if (arrGameModes.length > 1) {
                     gameMode.append(defaultOption);
                 }
@@ -116,10 +112,9 @@
                 jackpotType.append(defaultOption);
             }
 
-            if (creatorType === 'commerce' && arrRoomType.length) {
+            if (creatorType === 'commerce') {
                 $.each(arrRoomType, function(index, item) {
-                    const isSelected = (type == 2 && item.id == data.room.room_type) ? 'selected' : '';
-                    roomType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                    roomType.append(`<option value="${item.id}" selected>${item.description}</option>`);
                 });
             }
 

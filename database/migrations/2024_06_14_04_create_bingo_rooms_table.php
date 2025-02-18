@@ -20,6 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('subsidiary')->nullable();
             $table->unsignedBigInteger('status')->default(1);
             $table->enum('creation', ['M', 'A'])->default('M');
+            $table->integer('bingo_creator')->nullable();
             $table->tinyInteger('room_type')->default(1);
             $table->boolean('paid_win')->default(0);
             $table->date('date');

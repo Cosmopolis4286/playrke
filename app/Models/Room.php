@@ -11,8 +11,14 @@ class Room extends Model
         ['id' => 2, 'description' => 'Pública'],
     ];
 
-    public static function getRoomTypes()
+    public static function getRoomTypes($excludeId = null)
     {
+        if ($excludeId) {
+            return array_filter(self::TYPES, function ($type) use ($excludeId) {
+                return $type['id'] !== $excludeId;
+            });
+        }
+
         return self::TYPES;
     }
 }

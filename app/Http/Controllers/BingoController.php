@@ -478,6 +478,8 @@ class BingoController extends Controller
 
     private function getGameInfo($creator, $data = [])
     {
+        $roomUser = false;
+
         switch ($creator['type']) {
             case 'customer':
 
@@ -890,7 +892,7 @@ class BingoController extends Controller
                     'countries' => Country::getAllAvailableCountries()
                 ];
 
-                if ($creatorID == 1) $roomType = Room::getRoomTypes();
+                if ($creatorID == 1) $roomType = Room::getRoomTypes(2);
 
                 break;
             case 'customer': // Cliente
@@ -1014,7 +1016,7 @@ class BingoController extends Controller
                     'countries' => Country::getAllAvailableCountries()
                 ];
 
-                if ($creatorID == 1) $roomType = Room::getRoomTypes();
+                if ($creatorID == 1) $roomType = Room::getRoomTypes(1);
 
                 break;
             case 'customer': // Cliente
@@ -1474,7 +1476,22 @@ class BingoController extends Controller
         $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
             ->where('room', $id)->firstOrFail();
 
-        return response()->json(['room' => $room, 'config' => $roomConfig]);
+        $creator = true;
+
+        $bingoRoom = BingoRoom::getValueById($id, ['bingo_creator', 'commerce']);
+
+        if ($bingoRoom->commerce) {
+            $creator = ['type' => 'commerce', 'id' => $bingoRoom->commerce];
+            $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $id);
+
+            $creator = BingoRoom::getValueByBingoCreator($bingoCreator);
+        }
+
+        return response()->json([
+            'room' => $room,
+            'config' => $roomConfig,
+            'creator' => $creator ? true : false
+        ]);
     }
 
     public function getInfoByEncrypt($id, $mode = '', $coin = '')

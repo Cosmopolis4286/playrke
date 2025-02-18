@@ -15,6 +15,7 @@ class BingoRoom extends Model
     'subsidiary',
     'status',
     'creation',
+    'bingo_creator',
     'room_type',
     'paid_win',
     'date',
@@ -121,6 +122,11 @@ class BingoRoom extends Model
   public static function getValueByEncrypted($room, $value)
   {
     return self::where('encrypted', $room)->value($value);
+  }
+
+  public static function getValueByBingoCreator($bingoCreator, $value = 'id')
+  {
+    return self::where('bingo_creator', $bingoCreator)->value($value);
   }
 
   public static function existsRoom($room)
