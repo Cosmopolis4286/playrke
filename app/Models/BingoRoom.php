@@ -46,7 +46,7 @@ class BingoRoom extends Model
 
   public function GameMode()
   {
-    return $this->belongsTo(GameModes::class, 'game_mode', 'id');
+    return $this->belongsTo(GameModes::class, 'game_mode');
   }
 
   public function Status()
