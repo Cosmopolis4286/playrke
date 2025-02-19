@@ -10,12 +10,16 @@
         <label for="time">Hora*</label>
         <input type="time" id="time" name="time" class="form-control form-info" required>
     </div>
-    @if ($creator['type'] !== 'customer' || !empty($roomType))
-        <div class="form-group col-sm-6 col-md-4">
-            <label for="room-type">Tipo de Sala*</label>
-            <select id="room-type" name="room_type" class="form-control form-info"
-                aria-label="Seleccionar tipo de sala"></select>
-        </div>
+    @if ($creator['type'] !== 'customer')
+        @if (isset($automaticRoom))
+            <div class="form-group col-sm-6 col-md-4">
+                <label for="room-type">Tipo de Sala*</label>
+                <select id="room-type" name="room_type" class="form-control form-info"
+                    aria-label="Seleccionar tipo de sala"></select>
+            </div>
+        @else
+            <input type="hidden" id="room-type" name="room_type" class="form-control" required>
+        @endif
     @endif
     <div class="form-group col-sm-6 col-md-4">
         <label for="game-mode">Modo de Juego*</label>
@@ -58,6 +62,17 @@
                 </div>
             </div>
             <div id="container-price-config" class="row">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="time-chip">Tiempo Ficha*</label>
+        <div class="input-group">
+            <input type="number" step="1" value="5" min="5" max="10" id="time-chip"
+                name="time_chip" class="form-control form-info" required>
+            <div class="input-group-append">
+                <span class="input-group-text">SEG</span>
             </div>
         </div>
     </div>

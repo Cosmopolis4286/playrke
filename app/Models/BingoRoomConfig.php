@@ -12,6 +12,7 @@ class BingoRoomConfig extends Model
     'jackpot_type',
     'fixed_jackpot_value',
     'replay',
+    'time_chip',
     'room_commn',
     'serials_commn',
     'val_serials',

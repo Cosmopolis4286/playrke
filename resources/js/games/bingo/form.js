@@ -1,13 +1,13 @@
-function validateInput(input, min, max) {
+function validateInput(input, min, max, isFloat = true) {
     setTimeout(() => {
-        let value = parseFloat($(input).val());
+        let value = isFloat ? parseFloat($(input).val()) : $(input).val();
 
         if (value < min || value > max) {
             showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
             value = min; // Restablecer al valor mínimo permitido
         }
 
-        $(input).val(value.toFixed(2));
+        $(input).val(isFloat ? parseFloat(value).toFixed(2) : value);
     }, 1500);
 }
 
@@ -19,6 +19,11 @@ $(document).on("input", "#fixed-jackpot-value", function () {
 // Validar Precio Base Carton USD (Debe estar entre 0.35 y 50 con pasos de 0.05)
 $(document).on("input", "#ctn-price", function () {
     validateInput(this, 0.35, 50);
+});
+
+// Validar Tiempo de salida de fichas (Debe estar entre 5 y 10 con pasos de 1)
+$(document).on("input", "#time-chip", function () {
+    validateInput(this, 5, 10, false);
 });
 
 // Validar %Bote Seriales (Debe estar entre 2 y 15 con pasos de 0.05)

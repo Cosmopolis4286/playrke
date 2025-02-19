@@ -909,8 +909,6 @@ class BingoController extends Controller
                     'countries' => Country::getAllAvailableCountries()
                 ];
 
-                if ($creatorID == 1) $roomType = Room::getRoomTypes(2);
-
                 break;
             case 'customer': // Cliente
 
@@ -977,7 +975,6 @@ class BingoController extends Controller
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
-            'roomType' => $roomType ?? [],
             'jackpotType' => JackpotType::all(),
             'gameModes' => GameModes::all()
         ];
@@ -1022,9 +1019,6 @@ class BingoController extends Controller
                     'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
                     'countries' => Country::getAllAvailableCountries()
                 ];
-
-                if ($creatorID == 1) $roomType = Room::getRoomTypes(1);
-
                 break;
             case 'customer': // Cliente
                 return false;
@@ -1054,10 +1048,13 @@ class BingoController extends Controller
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
-            'roomType' => $roomType ?? [],
             'jackpotType' => JackpotType::all(),
             'gameModes' => GameModes::all()
         ];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
 
         return $viewData;
     }
@@ -1252,6 +1249,7 @@ class BingoController extends Controller
                     'room' => $roomID,
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                    'time_chip' => $request->time_chip,
                     'room_commn' => $request->room_commission,
                     'serials_commn' => $request->serials_commission,
                     'val_serials' => $request->val_serials,
@@ -1344,6 +1342,7 @@ class BingoController extends Controller
                 [
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                    'time_chip' => $request->time_chip,
                     'room_commn' => $request->room_commission,
                     'serials_commn' => $request->serials_commission,
                     'val_serials' => $request->val_serials,
@@ -1470,7 +1469,7 @@ class BingoController extends Controller
 
         $room = BingoRoom::select('encrypted', 'game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->where('id', $id)->firstOrFail();
 
-        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
+        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'time_chip', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
             ->where('room', $id)->firstOrFail();
 
         $creator = true;
@@ -1500,7 +1499,7 @@ class BingoController extends Controller
         $room = BingoRoom::select('game_mode', 'unix_date', 'ctn_price', 'coin', 'jackpot_prize')
             ->where('id', $roomID)->firstOrFail();
 
-        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
+        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'time_chip', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
             ->where('room', $roomID)->firstOrFail();
 
         if ($mode) {
@@ -1594,6 +1593,7 @@ class BingoController extends Controller
                 'room' => $newRoom,
                 'jackpot_type' => $existingRoomConfig->jackpot_type,
                 'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
+                'time_chip' => $existingRoomConfig->time_chip,
                 'room_commn' => $existingRoomConfig->room_commn,
                 'serials_commn' => $existingRoomConfig->serials_commission,
                 'val_serials' => $existingRoomConfig->val_serials,
@@ -1836,6 +1836,7 @@ class BingoController extends Controller
                 'jackpot_type',
                 'fixed_jackpot_value',
                 'ctn_price',
+                'time_chip',
                 'room_commn',
                 'serials_commn',
                 'val_serials',
@@ -1925,6 +1926,7 @@ class BingoController extends Controller
                 'room_type' => $request->room_type ?? 1,
                 'jackpot_type' => $request->jackpot_type,
                 'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                'time_chip' => $request->time_chip,
                 'ctn_price' => $request->ctn_price,
                 'room_commn' => $request->room_commission,
                 'serials_commn' => $request->serials_commission,
@@ -1977,6 +1979,7 @@ class BingoController extends Controller
                 'room_type' => $request->room_type ?? 1,
                 'jackpot_type' => $request->jackpot_type,
                 'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                'time_chip' => $request->time_chip,
                 'ctn_price' => $request->ctn_price,
                 'room_commn' => $request->room_commission,
                 'serials_commn' => $request->serials_commission,

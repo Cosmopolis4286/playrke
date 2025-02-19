@@ -105,6 +105,7 @@ class AutoGenerateBingoRooms
             [
                 'jackpot_type' => $room->jackpot_type,
                 'fixed_jackpot_value' => $room->fixed_jackpot_value,
+                'time_chip' => $room->time_chip,
                 'room_commn' => $room->room_commn,
                 'serials_commn' => $room->serials_commn,
                 'val_serials' => $room->val_serials,

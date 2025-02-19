@@ -46,7 +46,6 @@
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
-        const arrRoomType = @json($roomType);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
         let inCourse = false;
@@ -77,7 +76,6 @@
         function insertInfo(type, data = '') {
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
-            let roomType = false;
 
             if (type == 1) {
                 arrCoinsCtnPrice = false;
@@ -92,14 +90,6 @@
                 required: isRequired
             }).empty();
 
-            if (creatorType === 'commerce') {
-                roomType = $("#room-type");
-                roomType.prop({
-                    disabled: isDisabled,
-                    required: isRequired
-                }).empty();
-            }
-
             jackpotType.empty();
 
             if (type == 1) {
@@ -112,11 +102,7 @@
                 jackpotType.append(defaultOption);
             }
 
-            if (creatorType === 'commerce') {
-                $.each(arrRoomType, function(index, item) {
-                    roomType.append(`<option value="${item.id}" selected>${item.description}</option>`);
-                });
-            }
+            $('#room-type').val(2);
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
@@ -154,7 +140,7 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
                 'date', 'time', 'room-type', 'jackpot-type', 'game-mode',
-                'ctn-price', 'val-serials', 'room-commission'
+                'ctn-price', 'time-chip', 'val-serials', 'room-commission'
             ]);
         });
 

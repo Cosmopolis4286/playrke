@@ -22,6 +22,7 @@ return new class extends Migration
             $table->foreignId('jackpot_type')->constrained('jackpot_types')->onDelete('cascade')->default(1);
             $table->double('fixed_jackpot_value')->nullable();
             $table->double('ctn_price');
+            $table->string('time_chip', 2)->nullable();
             $table->double('room_commn')->default(0);
             $table->double('serials_commn')->default(0);
             $table->double('val_serials')->nullable();
