@@ -858,6 +858,23 @@ class BingoController extends Controller
         );
     }
 
+    private function getInfoRooms($roomType, $coin, $creatorType, $creatorID)
+    {
+        return BingoRoom::with([
+            'Config.JackpotType',
+            'GameMode' => function ($query) {
+                $query->select('id', 'description');
+            },
+            'PlayersRoom' => function ($query) {
+                $query->where('winner', '>', 0);
+            },
+            'GameExchangeRate' => function ($query) use ($coin) {
+                $query->where('coin', $coin)->where('game', 1);
+            }
+        ])->where('room_type', $roomType)->where($creatorType, $creatorID)
+            ->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
+    }
+
     private function getPrivateGameRooms($creator, $coin)
     {
         $creatorType = $creator['type'];
@@ -940,17 +957,7 @@ class BingoController extends Controller
         // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
         // $jackpotType = JackpotType::getByIds($gameJackpotType);
 
-        $rooms = BingoRoom::with([
-            'Config.JackpotType',
-            'GameMode',
-            'PlayersRoom' => function ($query) {
-                $query->where('winner', '>', 0);
-            },
-            'GameExchangeRate' => function ($query) use ($coin) {
-                $query->where('coin', $coin)->where('game', 1);
-            }
-        ])->where('room_type', 1)->where($creator['type'], $creatorID)
-            ->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
+        $rooms = $this->getInfoRooms(1, $coin, $creator['type'], $creatorID);
 
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
@@ -1027,17 +1034,7 @@ class BingoController extends Controller
                 break;
         }
 
-        $rooms = BingoRoom::with([
-            'Config.JackpotType',
-            'GameMode',
-            'PlayersRoom' => function ($query) {
-                $query->where('winner', '>', 0);
-            },
-            'GameExchangeRate' => function ($query) use ($coin) {
-                $query->where('coin', $coin)->where('game', 1);
-            }
-        ])->where('room_type', 2)->where($creator['type'], $creatorID)
-            ->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
+        $rooms = $this->getInfoRooms(2, $coin, $creator['type'], $creatorID);
 
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
