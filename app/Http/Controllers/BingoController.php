@@ -1062,7 +1062,7 @@ class BingoController extends Controller
         return $viewData;
     }
 
-    public function getGameRoomsInfo($creator, $coin, $roomType)
+    private function getGameRoomsInfo($creator, $coin, $roomType)
     {
         (new HandleBingoRooms())->checkRoomClosure();
 
@@ -1104,7 +1104,7 @@ class BingoController extends Controller
         }
     }
 
-    public function allCommerceRooms($roomType, $creatorID, $coin = '')
+    private function allCommerceRooms($roomType, $creatorID, $coin = '')
     {
         $commerceId = Commerce::getValueByUserId(Auth::id(), 'id');
 
@@ -1132,7 +1132,7 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function allCustomerRooms($roomType, $customer = '', $coin = '')
+    private function allCustomerRooms($roomType, $customer = '', $coin = '')
     {
         $isLogin = Customer::getValueByUserId(Auth::id(), 'id');
 
