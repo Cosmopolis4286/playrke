@@ -479,15 +479,13 @@ class BingoController extends Controller
 
     public function getBingoRules()
     {
-        $rules = GameRules::getValueByGameName('BINGO');
+        $rules = GameRules::getValueByGame('BINGO');
 
         return $rules ?: view("includes.info.game.bingo");
     }
 
     private function getGameInfo($creator, $data = [])
     {
-        $roomUser = false;
-
         switch ($creator['type']) {
             case 'customer':
 
@@ -522,7 +520,7 @@ class BingoController extends Controller
                     $coinSym = CustomerExchangeRate::getValueById($coinID, 'coin');
                 }
 
-                $moreViewData['player'] = encrypt($roomUser) ?? false;
+                $moreViewData['player'] = isset($roomUser) ? encrypt($roomUser) : false;
 
                 if ($room->status == 2) {
                     $moreViewData['customerName'] = $customer->name;
@@ -584,19 +582,17 @@ class BingoController extends Controller
                 $room = BingoRoom::getRoomById($roomID, ['status', 'room_type', 'ctn_price']);
 
                 $moreViewData = [
-                    'player' => encrypt($roomUser) ?? false,
+                    'player' => isset($roomUser) ? encrypt($roomUser) : false,
                     'saleLink' => true,
                     'coinsAvailable' => $coinsAvailable ?? []
                 ];
 
-                if ($roomUser) {
-                    $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID);
-                    // Definir precio del carton 
-                    $bingoCtnPrice = BingoCtnPrice::getCtnPriceByCreator($coinID, $bingoCreatorID)
-                        ?? CommerceExchangeRate::getCommerceCoinValue($creatorID, $coinID);
+                $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID);
+                // Definir precio del carton 
+                $bingoCtnPrice = BingoCtnPrice::getCtnPriceByCreator($coinID, $bingoCreatorID)
+                    ?? CommerceExchangeRate::getCommerceCoinValue($creatorID, $coinID);
 
-                    $moreViewData['ctnPrice'] = $this->formatAmount($bingoCtnPrice, 'float');
-                }
+                $moreViewData['ctnPrice'] = $this->formatAmount($bingoCtnPrice, 'float');
 
                 $closingRoute = false;
                 break;
