@@ -7,9 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class GameSounds extends Model
 {
     protected $table = "game_sounds";
-    protected $fillable = [
-        'id', 'price', 'description', 'game', 'status'
-    ];
+    protected $fillable = ['price', 'description', 'game', 'status'];
 
     public function Game()
     {

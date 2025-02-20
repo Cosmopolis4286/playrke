@@ -24,9 +24,10 @@
                     <button disabled type="button" id="btn-view-winners" class="btn btn-sm btn-primary">
                         <i class="fa-solid fa-trophy"></i>
                     </button>
-                    {{-- <button disabled type="button" id="btn-view-history-chips" class="btn btn-sm btn-primary">
-                            <i class="fa-solid fa-clock-rotate-left"></i>
-                        </button> --}}
+                    <button type="button" class="btn btn-sm btn-primary" data-toggle="modal"
+                        data-target="#modal-bingo-rules">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </button>
                     <button type="button" id="btn-volume" class="btn btn-sm btn-secondary"
                         @if ($room->status != 3) disabled @endif>
                         <i id="icon-volume" class="fa-solid fa-volume-xmark"></i>

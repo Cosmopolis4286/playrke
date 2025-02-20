@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class GameModes extends Model
 {
     protected $table = "game_modes";
-    protected $fillable = ['id', 'description'];
+    protected $fillable = ['description'];
 
     public static function getByName($description)
     {

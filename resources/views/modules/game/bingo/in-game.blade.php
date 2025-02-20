@@ -29,6 +29,7 @@
         @elseif($room->status > 2)
             @include('includes.game.bingo.layout.modal-info-winners')
         @endif
+        @include('includes.game.bingo.layout.modal-bingo-rules')
     </div>
 @endsection
 

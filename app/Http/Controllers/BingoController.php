@@ -32,6 +32,7 @@ use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerGames;
 use App\Models\CustomerUser;
+use App\Models\GameRules;
 use App\Models\Games;
 use App\Models\Room;
 use App\Models\Seller;
@@ -476,6 +477,13 @@ class BingoController extends Controller
         }
     }
 
+    public function getBingoRules()
+    {
+        $rules = GameRules::getValueByGameName('BINGO');
+
+        return $rules ?: view("includes.info.game.bingo");
+    }
+
     private function getGameInfo($creator, $data = [])
     {
         $roomUser = false;
@@ -653,6 +661,7 @@ class BingoController extends Controller
             'vanDraw' => $vanDraw ? $vanDraw->chip : '',
             'infoGame' => $infoGame,
             'timeServ' => $dataChips['timeServ'],
+            'bingoRules' => $this->getBingoRules(),
             'closingRoute' => $closingRoute
         ];
 
