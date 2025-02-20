@@ -497,11 +497,15 @@ class BingoController extends Controller
                 $isLogin = false;
 
                 $customer = Customer::getById($creatorID, ['name', 'logo', 'token']);
+                $customerID = $customer->token;
+                $userToken = $customerID;
 
                 $moreViewData = ['custLogo' => "$customer->token/$customer->logo"];
 
                 if (isset($data['userToken'])) {
                     $user = CustomerUser::getByToken($creatorID, $data['userToken'], ['id', 'coin']);
+                    $userToken = $data['userToken'];
+
                     $coinID = $user->coin;
                     $coinSym = $coinID;
                     $roomUser = BingoRoomUser::getValueByColumn($room->id, 'player_user', $user->id, 'id');
@@ -516,6 +520,10 @@ class BingoController extends Controller
                     $moreViewData['customerName'] = $customer->name;
                 }
 
+                $closingRoute = route(
+                    'bingo.game-rooms-customer',
+                    ['customer' => $customerID, 'user' => $userToken, 'coin' => encrypt($coinID)]
+                );
                 break;
             case 'RKE';
             case 'commerce':
@@ -581,6 +589,8 @@ class BingoController extends Controller
 
                     $moreViewData['ctnPrice'] = $this->formatAmount($bingoCtnPrice, 'float');
                 }
+
+                $closingRoute = false;
                 break;
             default:
                 return false;
@@ -642,7 +652,8 @@ class BingoController extends Controller
             'allChips' => $dataChips['allChips'],
             'vanDraw' => $vanDraw ? $vanDraw->chip : '',
             'infoGame' => $infoGame,
-            'timeServ' => $dataChips['timeServ']
+            'timeServ' => $dataChips['timeServ'],
+            'closingRoute' => $closingRoute
         ];
 
         if ($room->status == 2) $viewData['coinID'] = encrypt($coinID);

@@ -18,7 +18,7 @@ document.addEventListener('dragstart', function (evt) {
     }
 });
 
-// document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("contextmenu", e => e.preventDefault());
 
 document.body.addEventListener('click', function () {
     if (actSound == 0 && endWin == 0 && latestChips && roomStatus == 3) {
@@ -29,22 +29,25 @@ document.body.addEventListener('click', function () {
     }
 });
 
-function endGame() {
-    // setTimeout(() => {
-    //     window.location.href = closingRoute;
-    // }, 10000);
+function endGame(useTimeout = true) {
+    if (!closingRoute) return;
+
+    const redirect = () => (window.location.href = closingRoute);
+
+    useTimeout ? setTimeout(redirect, 8000) : redirect();
 }
 
 // Salir de la sala
 $(document).on("click", ".leave-room", function () {
     $("#modal-info-winners").modal('hide');
+    endGame(false);
 });
 
 $(document).on("click", "#btn-close-carton-awarded", function () {
     $("#cont-ctn-award-winning").data('status', false).hide();
 });
 
-$('#btn-volume').click(function () {
+$('#btn-volume').on("click", function () {
     if (actSound === 1 || actSound === 2) {
         soundNext.muted = !soundNext.muted;
         actSound = soundNext.muted ? 2 : 1;

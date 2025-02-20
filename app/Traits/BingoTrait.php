@@ -105,7 +105,8 @@ trait BingoTrait
             // Variables de control
             $lastDrawTime = BingoDraw::where('room', $room)->max('time') ?? $dataTime;
             $currentTimestamp = now();
-            $timeIncrement = BingoRoomConfig::getValueByRoom($room, 'time_chip') ?? 7;
+            $timeChip = BingoRoomConfig::getValueByRoom($room, 'time_chip') ?? 6;
+            $timeIncrement = 8;
             $inserts = [];
             $availableChips = range(1, 75);
 
@@ -136,7 +137,7 @@ trait BingoTrait
                 ];
 
                 $lastDrawTime = $currentDrawTime;
-                $timeIncrement = 9; // Cambiar el incremento después del primer chip
+                $timeIncrement = $timeChip; // Cambiar el incremento después del primer chip
             }
 
             if (!empty($inserts)) {

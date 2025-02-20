@@ -24,8 +24,9 @@
         </div>
         @if ($room->status == 2)
             @include('includes.game.bingo.layout.modal-info-draw')
-        @elseif($room->status > 2)
+        @elseif($room->status == 3)
             @include('includes.game.bingo.layout.sounds')
+        @elseif($room->status > 2)
             @include('includes.game.bingo.layout.modal-info-winners')
         @endif
     </div>
@@ -48,7 +49,7 @@
         const encrypt = @json($encrypt);
         const restChips = @json($chipsRest);
 
-        if (roomStatus > 2) {
+        if (roomStatus == 3) {
             const soundNext = $('#next')[0];
             const soundWin = $('#winner')[0];
             soundNext.muted = true;
@@ -76,6 +77,7 @@
     @endif
     @if ($room->status > 2)
         <script>
+            const closingRoute = @json($closingRoute);
             let loaderChip = true;
             let loadTimeServ = false;
             let actSound = 0;
