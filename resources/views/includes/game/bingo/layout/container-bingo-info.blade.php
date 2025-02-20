@@ -21,11 +21,11 @@
             <div id="text-game-mode">Cartón&nbspLleno</div>
             <div id="cont-game-ops" class="mt-1">
                 <div class="btn-group" role="group" aria-label="Opciones">
-                    <button disabled type="button" id="btn-view-winners" class="btn btn-sm btn-primary">
+                    <button type="button" disabled id="btn-view-winners" class="btn btn-sm btn-primary">
                         <i class="fa-solid fa-trophy"></i>
                     </button>
-                    <button type="button" class="btn btn-sm btn-primary" data-toggle="modal"
-                        data-target="#modal-bingo-rules">
+                    <button type="button" disabled id="btn-bingo-rules" class="btn btn-sm btn-primary"
+                        data-toggle="modal" data-target="#modal-bingo-rules">
                         <i class="fa-solid fa-circle-info"></i>
                     </button>
                     <button type="button" id="btn-volume" class="btn btn-sm btn-secondary"

@@ -16,6 +16,12 @@
                     <div id="cont-H" class="cont-time-clock"><span id="hours"></span><span>H</span></div>
                     <div id="cont-M" class="cont-time-clock"><span id="minutes"></span><span>M</span></div>
                     <div id="cont-S" class="cont-time-clock"><span id="seconds"></span><span>S</span></div>
+                    <div style="position: absolute; right: 6%;">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal"
+                            data-target="#modal-bingo-rules">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card text-center hide-elem" id="card-form-buy-ctns">
                     <div class="card-header py-1">COMPRAR CARTONES</div>

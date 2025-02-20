@@ -4,6 +4,8 @@ if (restChips.length) {
     }
 }
 
+$('#btn-bingo-rules').prop('disabled', false);
+
 $(document).ajaxStart(function () {
     $('#loaderCtn').show();
 });
