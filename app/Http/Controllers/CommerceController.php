@@ -482,7 +482,7 @@ class CommerceController extends Controller
     {
         $commerce = $this->commerce('id')->id;
 
-        $room = BingoRoom::getRoomByEncrypted($roomID, ['id', 'ctn_price', 'encrypted', 'commerce']);
+        $room = BingoRoom::getByEncrypted($roomID, ['id', 'ctn_price', 'encrypted', 'commerce']);
 
         if ($room->commerce != $commerce || !$room->commerce) {
             return redirect()->back();

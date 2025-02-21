@@ -579,7 +579,7 @@ class BingoController extends Controller
                     }
                 }
 
-                $room = BingoRoom::getRoomById($roomID, ['status', 'room_type', 'ctn_price']);
+                $room = BingoRoom::getById($roomID, ['status', 'room_type', 'ctn_price']);
 
                 $moreViewData = [
                     'player' => isset($roomUser) ? encrypt($roomUser) : false,
@@ -758,7 +758,7 @@ class BingoController extends Controller
             );
         } else {
 
-            $roomCommerce = BingoRoom::getRoomByEncrypted($room, ['id', 'commerce']);
+            $roomCommerce = BingoRoom::getByEncrypted($room, ['id', 'commerce']);
 
             if (!$roomCommerce || ($roomCommerce && $roomCommerce->commerce != $commerce)) {
                 if (!$commerce) return redirect()->back();
@@ -808,7 +808,7 @@ class BingoController extends Controller
 
     public function getChips($room)
     {
-        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'status']);
+        $room = BingoRoom::getByEncrypted($room, ['id', 'status']);
 
         if (!$room) ['Error' => 'Sala no encontrada'];
 
@@ -1247,7 +1247,9 @@ class BingoController extends Controller
 
             try {
 
-                $roomID = BingoRoom::create($createData)->id;
+                $room = BingoRoom::create($createData);
+
+                $roomID = $room->id;
 
                 $creatorType = UserType::getValueByPrefix($creatorType, 'id');
                 $ctnPriceCoins = $request->ctn_price_coins;
@@ -1260,6 +1262,9 @@ class BingoController extends Controller
                     'creator_commn' => $request->room_commission,
                     'ctn_price' => $request->ctn_price,
                 ])->id;
+
+                // Actualizar ID BingoCreator
+                $room->update(['bingo_creator' => $bingoCreatorID]);
 
                 BingoRoomConfig::create([
                     'room' => $roomID,
@@ -1490,7 +1495,7 @@ class BingoController extends Controller
 
         $creator = true;
 
-        $bingoRoom = BingoRoom::getValueById($id, ['bingo_creator', 'commerce']);
+        $bingoRoom = BingoRoom::getById($id, ['bingo_creator', 'commerce']);
 
         if ($bingoRoom->commerce) {
             $creator = ['type' => 'commerce', 'id' => $bingoRoom->commerce];
@@ -1520,7 +1525,7 @@ class BingoController extends Controller
 
         if ($mode) {
 
-            $creator = BingoRoom::getRoomById($roomID, ['customer', 'commerce']);
+            $creator = BingoRoom::getById($roomID, ['customer', 'commerce']);
 
             if ($creator->customer) {
                 $isLogin = false;
@@ -1593,20 +1598,25 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
-            // Obtener ID de la nueva sala
-            $newRoom = BingoRoom::create($createData)->id;
+            // Obtener la nueva sala
+            $newRoom = BingoRoom::create($createData);
+            // Obtener ID
+            $newRoomID = $newRoom->id;
 
             // Registar el creador de la sala
             $newBingoCreatorID = BingoCreator::create([
-                'room' => $newRoom,
+                'room' => $newRoomID,
                 'creator_type' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
                 'creator_id' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
                 'creator_commn' => $existingRoomConfig->room_commn,
                 'ctn_price' => $existingRoom->ctn_price,
             ])->id;
 
+            // Actualizar ID BingoCreator
+            $newRoom->update(['bingo_creator' => $newBingoCreatorID]);
+
             BingoRoomConfig::create([
-                'room' => $newRoom,
+                'room' => $newRoomID,
                 'jackpot_type' => $existingRoomConfig->jackpot_type,
                 'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
                 'time_chip' => $existingRoomConfig->time_chip,
@@ -1623,9 +1633,9 @@ class BingoController extends Controller
 
                 $recordsToInsert = collect($existingRoomCtnPrice)
                     ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
-                    ->map(function ($ctnPrice, $coin) use ($newRoom, $newBingoCreatorID, $timestamp) {
+                    ->map(function ($ctnPrice, $coin) use ($newRoomID, $newBingoCreatorID, $timestamp) {
                         return [
-                            'room' => $newRoom,
+                            'room' => $newRoomID,
                             'bingo_creator_id' => $newBingoCreatorID,
                             'coin' => $coin,
                             'ctn_price' => $ctnPrice,

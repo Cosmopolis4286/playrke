@@ -416,7 +416,7 @@ class SellerController extends Controller
     {
         switch ($request->game) {
             case 'BINGO':
-                $room = BingoRoom::getRoomByEncrypted($request->room, ['id', 'commerce', 'room_type']);
+                $room = BingoRoom::getByEncrypted($request->room, ['id', 'commerce', 'room_type']);
 
                 $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
                     ->where('phone', $request->player_info)->where('game', 1)->where('room', $room->id)->first();
@@ -805,7 +805,7 @@ class SellerController extends Controller
 
     public function reportSalesByRoom($room, $coin) // Muestra el reporte de una sala
     {
-        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'encrypted']);
+        $room = BingoRoom::getByEncrypted($room, ['id', 'encrypted']);
 
         if (!$room) return redirect()->back();
 

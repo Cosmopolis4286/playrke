@@ -11,11 +11,11 @@ class Pix extends Model
     protected $appends = ['chave_pix'];
 
     public const TYPES = [
-        ['id' => 1, 'description' => 'CPF'],
-        ['id' => 2, 'description' => 'Celular'],
-        ['id' => 3, 'description' => 'Email'],
-        ['id' => 4, 'description' => 'Chave aleatória'],
-        ['id' => 5, 'description' => 'CPNJ']
+        ['id' => 1, 'value' => 'CPF'],
+        ['id' => 2, 'value' => 'Celular'],
+        ['id' => 3, 'value' => 'Email'],
+        ['id' => 4, 'value' => 'Chave aleatória'],
+        ['id' => 5, 'value' => 'CPNJ']
     ];
 
     public function Bank()
@@ -26,7 +26,7 @@ class Pix extends Model
     public function getChavePixAttribute()
     {
         $pixKey = collect(self::TYPES)->firstWhere('id', $this->pix_key);
-        return $pixKey['description'] ?? 'Desconocido';
+        return $pixKey['value'] ?? 'Desconocido';
     }
 
     public static function getPixKeys($excludeId = null)

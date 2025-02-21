@@ -92,7 +92,7 @@ trait GameTrait
         // Obtener estatus de la sala de juego
         switch ($game) {
             case 'BINGO':
-                $room = BingoRoom::getRoomById($roomID, ['room_type', 'status']);
+                $room = BingoRoom::getById($roomID, ['room_type', 'status']);
                 break;
             default:
                 break;

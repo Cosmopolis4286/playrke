@@ -104,12 +104,12 @@ class BingoRoom extends Model
     return $this->hasMany(GameExchangeRate::class, 'room', 'id');
   }
 
-  public static function getRoomById($room, $fields = ['*'])
+  public static function getById($room, $fields = ['*'])
   {
     return self::where('id', $room)->select($fields)->first();
   }
 
-  public static function getRoomByEncrypted($encryptedID, $fields = ['*'])
+  public static function getByEncrypted($encryptedID, $fields = ['*'])
   {
     return self::select($fields)->where('encrypted', $encryptedID)->first();
   }

@@ -55,12 +55,17 @@ class AutoGenerateBingoRooms
                 $roomData = $this->prepareRoomData($room, $roomDate, $creatorType, $creatorID);
 
                 // Crear o actualizar la sala
-                $roomID = $existingRoom
-                    ? tap($existingRoom)->update($roomData)->id
-                    : BingoRoom::create($roomData)->id;
+                $currentRoom = $existingRoom
+                    ? tap($existingRoom)->update($roomData)
+                    : BingoRoom::create($roomData);
+
+                $roomID = $currentRoom->id;
 
                 // Configurar la sala y retornar bingo_creator_id
                 $bingoCreatorID = $this->configureRoom($roomID, $room, $creatorID);
+
+                // Actualizar ID BingoCreator
+                $currentRoom->update(['bingo_creator' => $bingoCreatorID]);
 
                 // Asociar precios de monedas a la sala
                 $this->associateCtnPrices($room->id, $roomID, $bingoCreatorID);

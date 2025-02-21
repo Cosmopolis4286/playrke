@@ -95,7 +95,7 @@ trait BingoTrait
             $this->encryptDraw($room);
 
             // Obtener la información de la sala y la hora base
-            $roomInfo = BingoRoom::getRoomById($room, ['date', 'time']);
+            $roomInfo = BingoRoom::getById($room, ['date', 'time']);
             $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
 
             // Obtener chips existentes y símbolos
@@ -360,7 +360,7 @@ trait BingoTrait
 
     public function getInfoWinners($room, $roomUser, $coin = '')
     {
-        $room = BingoRoom::getRoomByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
+        $room = BingoRoom::getByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
 
         // Obtener tiempo de salida de la ficha bandera
         $lastChipTime = BingoDraw::where('win', 1)->where('room', $room->id)->value('time');
@@ -818,7 +818,7 @@ trait BingoTrait
 
     public function convertPrizeValue($roomID, $coin, $value = '')
     {
-        $room = BingoRoom::getRoomById($roomID, ['commerce', 'customer', 'jackpot']);
+        $room = BingoRoom::getById($roomID, ['commerce', 'customer', 'jackpot']);
 
         $creatorType = $room->commerce ? 'commerce' : 'customer';
         $creatorID = $room->commerce ? $room->commerce : $room->customer;

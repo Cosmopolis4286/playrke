@@ -206,23 +206,23 @@ trait UserVal
                     break;
                 case 3:
                     // R$ (Brasil) Pix
-                    $pix = Pix::with('ChavePix')->where('user', $user)->first();
+                    $pix = Pix::where('user', $user)->first();
 
                     if (!$pix) {
                         return response()->json(['error' => 'El usuario no ha cargado los datos bancarios.'], 404);
                     }
 
-                    $paymentMethod = ['0' => ["{$pix->ChavePix->value}: {$pix->pix_key_value}"]];
+                    $paymentMethod = ['0' => ["{$pix->chave_pix}: {$pix->pix_key_value}"]];
                     break;
                 case 4:
                     // $ (Colombia) Pix
-                    $pix = Pix::with('ChavePix')->where('user', $user)->first();
+                    $pix = Pix::where('user', $user)->first();
 
                     if (!$pix) {
                         return response()->json(['error' => 'El usuario no ha cargado los datos bancarios.'], 404);
                     }
 
-                    $paymentMethod = ['0' => ["{$pix->ChavePix->value}: {$pix->pix_key_value}"]];
+                    $paymentMethod = ['0' => ["{$pix->chave_pix}: {$pix->pix_key_value}"]];
                     break;
                 default:
                     return response()->json(['error' => 'Tipo de moneda no soportado.'], 400);

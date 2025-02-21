@@ -31,7 +31,7 @@ class DirectoryController extends Controller
         }
 
         $countryCode = strtolower($countryCode);
-        $validCodes = ['usdt', 'br', 'co', 've'];
+        $validCodes = ['br', 'co', 've'];
 
         // Redirigir si el código del país no es válido
         if (!in_array($countryCode, $validCodes)) {
@@ -69,7 +69,7 @@ class DirectoryController extends Controller
                 $paymentType = 'Pix';
                 $name = 'Pix';
                 $additionalData = [
-                    'pixs' => Pix::with('ChavePix')->where('user', $userID)->get(),
+                    'pixs' => Pix::where('user', $userID)->get(),
                     'pixKeys' => Pix::getPixKeys()
                 ];
                 break;
