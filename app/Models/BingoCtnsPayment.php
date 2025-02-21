@@ -8,14 +8,20 @@ class BingoCtnsPayment extends Model
 {
     protected $table = "bingo_ctns_payment";
     protected $fillable = [
-        'operation', 'room', 'commerce', 'subsidiary', 'seller', 'player_link',
-        'payment_type', 'coin', 'lot', 'amount', 'payment_proof', 'created_at', 'updated_at'
+        'operation',
+        'room',
+        'commerce',
+        'subsidiary',
+        'seller',
+        'player_link',
+        'payment_type',
+        'coin',
+        'lot',
+        'amount',
+        'payment_proof',
+        'created_at',
+        'updated_at'
     ];
-
-    public function TypeOpt()
-    {
-        return $this->belongsTo(TransactionType::class, 'operation');
-    }
 
     public function Room()
     {

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class StatusGame extends Model
 {
     protected $table = "game_status";
-    protected $fillable = ['id', 'info'];
+    protected $fillable = ['info'];
 
     public function Status()
     {

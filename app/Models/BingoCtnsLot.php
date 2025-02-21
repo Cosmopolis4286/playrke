@@ -49,7 +49,6 @@ class BingoCtnsLot extends Model
         return $this->belongsTo(PlayerLink::class, 'player_link', 'id');
     }
 
-
     // Relación con los cartones
     public function Ctns()
     {

@@ -8,15 +8,36 @@ class Pix extends Model
 {
     protected $table = "pix";
     protected $fillable = ['name', 'bank', 'pix_key', 'pix_key_value', 'user'];
+    protected $appends = ['chave_pix'];
+
+    public const TYPES = [
+        ['id' => 1, 'description' => 'CPF'],
+        ['id' => 2, 'description' => 'Celular'],
+        ['id' => 3, 'description' => 'Email'],
+        ['id' => 4, 'description' => 'Chave aleatória'],
+        ['id' => 5, 'description' => 'CPNJ']
+    ];
 
     public function Bank()
     {
         return $this->belongsTo(Banks_BRA::class, 'bank');
     }
 
-    public function ChavePix()
+    public function getChavePixAttribute()
     {
-        return $this->belongsTo(PixKeys::class, 'pix_key');
+        $pixKey = collect(self::TYPES)->firstWhere('id', $this->pix_key);
+        return $pixKey['description'] ?? 'Desconocido';
+    }
+
+    public static function getPixKeys($excludeId = null)
+    {
+        if ($excludeId) {
+            return array_filter(self::TYPES, function ($type) use ($excludeId) {
+                return $type['id'] !== $excludeId;
+            });
+        }
+
+        return self::TYPES;
     }
 
     public static function getById($id, $fields = ['*'])

@@ -27,7 +27,7 @@
                                 <tr>
                                     <td>{{ $pix->name }}</td>
                                     <td>{{ $pix->Bank->name }}</td>
-                                    <td>{{ $pix->ChavePix->value }}</td>
+                                    <td>{{ $pix->chave_pix }}</td>
                                     <td>{{ $pix->pix_key_value }}</td>
                                     <td>
                                         @include('includes.btn-group', [

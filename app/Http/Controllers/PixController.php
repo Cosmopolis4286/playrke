@@ -24,7 +24,7 @@ class PixController extends Controller
         if ($wallet->coin != 2) return redirect()->back();
 
         $pixs = Pix::with('Bank')->where("user", Auth::id())->get();
-        $typeChave = PixKeys::all();
+        $typeChave = Pix::getPixKeys();
 
         return view('all.directory.br.index', compact('wallet', 'pixs', 'typeChave'));
     }

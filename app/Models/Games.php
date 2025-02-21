@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Games extends Model
 {
     protected $table = "games";
-    protected $fillable = ['id', 'name', 'status'];
+    protected $fillable = ['name', 'status'];
 
     public static function getById($id, $fields = ['*'])
     {

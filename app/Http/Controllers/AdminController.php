@@ -14,7 +14,9 @@ use App\Models\User;
 use App\Traits\EncryptRKE;
 use App\Traits\UserVal;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -60,69 +62,31 @@ class AdminController extends Controller
         ]);
     }
 
-    public function storeCommerce(Request $request)
-    {
-        if ($this->user(['user_type']) != 2) return redirect()->back();
-
-        $newPassw = $this->valEncrypt();
-
-        $newUser =  User::create([
-            'username' => null,
-            'email' => $request->email,
-            'password' => Hash::make($newPassw),
-            'country' => $request->country,
-            'referral_code' => User::getUniqueReferralCode(),
-            'referred_by' => null,
-        ]);
-
-        Commerce::create([
-            'description' => $request->description,
-            'com' => $request->valCom,
-            'telefono' => $request->telefono,
-            'country' => $request->country,
-            'status' => 1,
-            'user' => $newUser->id
-        ]);
-
-        Session::flash('message', 'La contraseña de la Comercializadora ' . $request['description']
-            . ' es: <b>' . '<a class="copyInfo">' . $newPassw . '</a>' . '</b>');
-        Session::flash('passwCommerce', $newPassw);
-
-        return redirect()->back();
-    }
-
     public function promoteUserToCommerce(Request $request)
     { // Convierte un usuario ya registrado en Comercializadora
+        $codeRKE = $request->code_rke;
+        $existsCodeRKE = Commerce::existsValue('code_rke', $codeRKE);
 
-    }
-
-    public function updateCommissionForAllCommerce(Request $request)
-    {
-        Commerce::where('status', 1)->update(['com' => $request->com]);
-        return redirect()->back()->with('message', 'La comision ha sido actualizada');
-    }
-
-    public function updateCommerce(Request $request)
-    {
-        $commerce = Commerce::findOrFail($request->id);
-
-        if ($commerce) {
-            $commerce->description = $request->descriptionCommerce;
-            $commerce->com = $request->comCommerce;
-            $commerce->telefono = $request->telefonoCommerce;
-            $commerce->country = $request->countryCommerce;
-            $commerce->save();
-
-            Session::flash('message', 'La informacion fue actualizada');
+        if ($existsCodeRKE) {
+            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
         }
-        return redirect()->back();
-    }
 
-    public function deleteCommerce(Request $request)
-    {
-        $Commerce = Commerce::findOrFail($request->id);
-        $Commerce->delete();
+        DB::beginTransaction();
 
-        return redirect()->back()->with('message', 'La Comercializadora <b>' . $Commerce->description . '</b> fue eliminad@');
+        try {
+            Commerce::create([
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'coin' => $request->coin,
+                'country' => $request->country,
+                'status' => 1,
+                'user' => $request->user_id,
+                'code_rke' => $this->replaceLettersWithNumbers($codeRKE),
+                'code_uuid' => $this->getCodeUUID('Commerce')
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al promover usuario a tipo comercializadora: ' . $e->getMessage());
+        }
     }
 }

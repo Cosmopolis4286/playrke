@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Banks_VEN;
+use App\Models\BinanceAccounts;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
@@ -30,31 +31,46 @@ class DirectoryController extends Controller
         }
 
         $countryCode = strtolower($countryCode);
-        $validCodes = ['br', 'co', 've'];
+        $validCodes = ['usdt', 'br', 'co', 've'];
 
         // Redirigir si el código del país no es válido
         if (!in_array($countryCode, $validCodes)) {
             return redirect()->back();
         }
 
-        $country = Country::getCountryByIsoCode($countryCode);
+        if ($countryCode === 'usdt') {
+            $title = "Directorio Binance";
+            $isoCode3 = 'USDT';
+        } else {
+            $country = Country::getCountryByIsoCode($countryCode);
+            if (!$country) return redirect()->back();
 
-        if (!$country) return redirect()->back();
+            $title = "Directorio $country->name";
+            $isoCode3 = $country->iso_code_3;
+        }
 
-        $title = "Directorio $country->name";
         $countries = Country::getCountriesById($this->getAvailableCountries($userID));
 
         $paymentType = null;
         $name = null;
         $additionalData = [];
 
-        switch ($country->iso_code_3) {
+        switch ($isoCode3) {
+            case 'USDT':
+                $paymentType = 'Registro';
+                $name = 'payment-method-usdt';
+                $additionalData = [
+                    'accounts' => BinanceAccounts::where('user', $userID)->get(),
+                    'accountTypes' => BinanceAccounts::getAccountTypes()
+                ];
+                break;
+
             case 'BRA': // Brasil
                 $paymentType = 'Pix';
                 $name = 'Pix';
                 $additionalData = [
                     'pixs' => Pix::with('ChavePix')->where('user', $userID)->get(),
-                    'pixKeys' => PixKeys::all()
+                    'pixKeys' => Pix::getPixKeys()
                 ];
                 break;
 
@@ -76,34 +92,6 @@ class DirectoryController extends Controller
                     'banks' => Banks_VEN::all()
                 ];
                 break;
-        }
-
-        if (isset($coinNotPayment)) {
-
-            switch ($userType) {
-                case 'admin':
-                    # code...
-                    break;
-                case 'commerce':
-                    $commerce = Commerce::getValueByUserId($userID, 'id');
-
-                    $coins = CommerceCountriesCoins::getAvailableCoins($commerce);
-
-                    $country = CommerceCountriesCoins::where('commerce', $commerce)
-                        ->whereNot('country', $coinNotPayment)->value('country');
-
-                    $countryCode = strtolower(Country::getValue($country, 'iso_code_2'));
-
-                    return redirect()->route('directory.index', ['countryCode' => $countryCode]);
-                    break;
-                case 'seller':
-                    # code...
-                    break;
-
-                default:
-                    # code...
-                    break;
-            }
         }
 
         if ($userType === 'commerce') {
