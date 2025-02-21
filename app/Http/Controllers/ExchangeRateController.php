@@ -49,7 +49,9 @@ class ExchangeRateController extends Controller
 
                 $this->checkBankDirectoriesExistence('commerce', $commerceCoins);
 
-                $coins = Coin::whereIn('id', $this->getAvailableCoins($commerce->user))
+                $array = array_filter($this->getAvailableCoins($commerce->user), fn($value) => $value !== 1);
+
+                $coins = Coin::whereIn('id', $array)
                     ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($creatorID) {
                         $query->where('commerce', $creatorID);
                     })->get(['id', 'symbol', 'long_name']);

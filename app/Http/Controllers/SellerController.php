@@ -382,13 +382,13 @@ class SellerController extends Controller
         // Obtener moneda según el país
         $coin = Coin::getCoinByCountry($country, ['id', 'symbol']);
         if (!$coin) {
-            return response()->json(['error' => 'Coin not found'], 404);
+            return response()->json(['error' => 'Moneda no encontrada'], 404);
         }
 
         // Obtener comercio asociado al usuario autenticado
         $commerce = Seller::getValueByUserId(Auth::id(), 'commerce');
         if (!$commerce) {
-            return response()->json(['error' => 'Commerce not found'], 404);
+            return response()->json(['error' => 'Comercio no encontrado'], 404);
         }
 
         // Obtener tasa de cambio
@@ -397,18 +397,26 @@ class SellerController extends Controller
         $roomID = BingoRoom::getValueByEncrypted($room, 'id');
         $creator = ['type' => 'commerce', 'id' => $commerce];
 
+        $setPrice = false;
+        $value = $exchangeRate;
+
         //Obtener $bingoCreatorID
         $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id');
 
         // Intentar obtener el precio configurado
-        $ctnPrice = BingoCtnPrice::getCtnPriceByCreator($coin->id, $bingoCreatorID) ?? '';
+        $ctnPrice = BingoCtnPrice::getCtnPriceByCreator($coin->id, $bingoCreatorID);
+
+        if ($ctnPrice) {
+            $setPrice = true;
+            $value = $ctnPrice;
+        }
 
         // Construir y devolver la respuesta
         return response()->json([
             'sym' => $coin->symbol,
             'exchangeRate' => $exchangeRate,
-            'setPrice' => isset($ctnPrice),
-            'value' => $ctnPrice,
+            'setPrice' => $setPrice,
+            'value' => $value,
         ]);
     }
 

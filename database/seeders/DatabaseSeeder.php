@@ -27,7 +27,6 @@ class DatabaseSeeder extends Seeder
             GamePrizesSeeder::class,
             JackpotTypeSeeder::class,
             GameJackpotTypeSeeder::class,
-            PixKeysSeeder::class,
             SettingsSeeder::class,
             UsersSeeder::class
         ]);

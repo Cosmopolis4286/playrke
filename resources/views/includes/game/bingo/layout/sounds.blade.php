@@ -8,6 +8,6 @@
 
 @foreach ($audioFiles as $id => $file)
     <audio id="{{ $id }}">
-        <source src="{{ asset('storage/' . $file) }}" type="audio/mp3">
+        <source src="{{ asset($file) }}" type="audio/mp3">
     </audio>
 @endforeach

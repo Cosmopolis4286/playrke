@@ -24,7 +24,7 @@
                 @else
                     @php
                         $title = 'Privadas';
-                        $icon = 'fas fa-globe';
+                        $icon = 'fa-solid fa-shield-halved';
                         $roomType = 'private-rooms';
                     @endphp
                 @endif
