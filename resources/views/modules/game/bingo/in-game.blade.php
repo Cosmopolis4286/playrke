@@ -69,6 +69,7 @@
             const creatorID = @json($creatorID);
             const coinID = @json($coinID);
             const ctnPrice = @json($ctnPrice);
+            const getInfoRoomURL = `{{ route('bingo.getInfo', ['id' => ':1', 'starTime' => ':2']) }}`;
             const commerceDetailsURL =
                 `{{ route('commerce.getPaymentCommerceDetails', ['commerce' => ':commerce', 'coin' => ':coin']) }}`;
             const generateCartonURL = `{{ route('bingocash.generateCarton') }}`;

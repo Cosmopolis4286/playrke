@@ -78,6 +78,7 @@
                 @endforeach
             </div>
         </div>
+        @include('includes.game.bingo.layout.modal-bingo-rules')
     </div>
 @endsection
 

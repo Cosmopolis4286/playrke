@@ -381,7 +381,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 });
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
-    Route::get('getInfo/{id}', [BingoController::class, 'getInfo'])->name('getInfo');
+    Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::get('getDateTimeRooms/{creatorType}/{creatorID}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
     Route::get('getCtnPriceForCoin/{creation}/{creatorType}/{creatorID}/{room}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
@@ -410,7 +410,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
 
     Route::get('game-rooms/cust/{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('game-rooms-customer');
 
-    Route::get('game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
+    Route::get('{roomType}/game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
         ->middleware(['auth', 'commerce'])->name('game-rooms-commerce');
 
     Route::get('{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');

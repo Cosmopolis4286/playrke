@@ -5,6 +5,17 @@ let ctnPriceSale = ctnPrice;
 let numCtns = $("#num-ctns").val() ?? 1;
 let available = true;
 
+window.onfocus = function () {
+    const url = getInfoRoomURL.replace(':1', encrypted).replace(':2', true);
+    $.getJSON(url, { _token: $("#5K3_70K").val() })
+        .done((response) => {
+            startTime = response;
+        })
+        .fail((jqXHR, textStatus, errorThrown) => {
+            console.error(`Error: ${textStatus}`, errorThrown);
+        });
+};
+
 function toggleModalInfo() {
     $("#card-form-buy-ctns").toggleClass('hide-elem');
     $("#btn-buy-ctns, #game-clock").toggle();

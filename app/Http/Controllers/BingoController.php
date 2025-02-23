@@ -96,6 +96,10 @@ class BingoController extends Controller
 
     private function getGamesRoomsView($creator, $data = [])
     {
+        if (!in_array($data['roomType'], ['private', 'public'])) {
+            return ['redirect' => 'redirect-back'];
+        }
+
         // Verificar Cierre de Salas
         (new HandleBingoRooms())->checkRoomClosure();
 
@@ -144,6 +148,9 @@ class BingoController extends Controller
                 break;
         }
 
+        // Definir roomType
+        $roomType = $data['roomType'] === 'private' ? 1 : 2;
+
         $rooms = BingoRoom::with([
             'Config' => function ($query) {
                 $query->select('room', 'jackpot_type');
@@ -166,7 +173,7 @@ class BingoController extends Controller
             'jackpot_prize',
             'ctns',
             'encrypted'
-        ])->where($creator['type'], $creatorID)
+        ])->where($creator['type'], $creatorID)->where('room_type', $roomType)
             ->whereIn('status', [2, 3])->orderBy('unix_date')->get();
 
         // Redirigir si no hay salas disponibles
@@ -174,6 +181,7 @@ class BingoController extends Controller
             return ['redirect' => route(
                 'bingo.all-rooms',
                 [
+                    'roomType' => $roomType == 1 ? 'public-rooms' : 'private-rooms',
                     'creatorType' => 'commerce',
                     'creatorID' => encrypt($creatorID),
                     'coin' => encrypt($coin)
@@ -191,6 +199,7 @@ class BingoController extends Controller
             'exchangeRate' => $exchangeRate ?? 1,
             'creator' => $creator,
             'rooms' => $rooms,
+            'bingoRules' => $this->getBingoRules(),
             'dateTimeRooms' => $this->getDateTimeRooms($creator['type'], $creator['id']),
             'route' => route('bingo.get-datetime-rooms', ['creatorType' => $creator['type'], 'creatorID' => $creator['id']])
         ];
@@ -206,7 +215,7 @@ class BingoController extends Controller
 
     public function gamesRoomsAdmin() {}
 
-    public function gamesRoomsCommerce($coin = '')
+    public function gamesRoomsCommerce($roomType = 'private', $coin = '')
     {
         // Vista para todas las salas disponibles o en juego de un comercio 
 
@@ -217,6 +226,7 @@ class BingoController extends Controller
             return redirect()->route(
                 'bingo.all-rooms',
                 [
+                    'roomType' => $roomType === 'private' ? 'private-rooms' : 'public-rooms',
                     'creatorType' => 'commerce',
                     'creatorID' => $commerce,
                     'coin' => encrypt(1)
@@ -226,7 +236,11 @@ class BingoController extends Controller
 
         $creator = ['type' => 'commerce', 'id' => $commerce];
 
-        $viewData = self::getGamesRoomsView($creator, ['coin' => decrypt($coin)]);
+        $viewData = self::getGamesRoomsView(
+            $creator,
+            ['coin' => decrypt($coin), 'roomType' => $roomType]
+        );
+
 
         // Retorna a vista con la informacion 
         return $this->handleViewData($viewData, $creator['type']);
@@ -918,7 +932,7 @@ class BingoController extends Controller
                         'creatorID' => $creator['id']
                     ]
                 ];
-                $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($coin)]);
+                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'private', 'coin' => encrypt($coin)]);
 
                 $moreViewData = [
                     'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
@@ -1029,7 +1043,7 @@ class BingoController extends Controller
                     ]
                 ];
 
-                $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($coin)]);
+                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($coin)]);
 
                 $moreViewData = [
                     'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
@@ -1484,8 +1498,13 @@ class BingoController extends Controller
         ]);
     }
 
-    public function getInfo($id)
+    public function getInfo($id, $starTime = '')
     {
+        if ($starTime) {
+            $room = BingoRoom::getByEncrypted($id, ['date', 'time']);
+            return response()->json($this->convertToUnixTimestamp($room->date, $room->time));
+        }
+
         $id = decrypt($id);
 
         $room = BingoRoom::select('encrypted', 'game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->where('id', $id)->firstOrFail();
@@ -1524,7 +1543,6 @@ class BingoController extends Controller
             ->where('room', $roomID)->firstOrFail();
 
         if ($mode) {
-
             $creator = BingoRoom::getById($roomID, ['customer', 'commerce']);
 
             if ($creator->customer) {
@@ -1823,7 +1841,7 @@ class BingoController extends Controller
 
                 $commerce = Commerce::getById($creatorID, ['coin', 'code_uuid']);
 
-                $GMRoute =  route('bingo.game-rooms-commerce', ['coin' => encrypt($commerce->coin)]);
+                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($commerce->coin)]);
 
                 $moreViewData = ['commerceUUID' => $commerce->code_uuid];
 

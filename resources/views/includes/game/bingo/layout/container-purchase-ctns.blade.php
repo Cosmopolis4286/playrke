@@ -56,7 +56,14 @@
                 <span id="total-amount"></span>
                 <small class="purchase-ctns__coin-label"></small>
             </div>
-            <div id="purchase-ctns__body-form-section-right"></div>
+            <div id="purchase-ctns__body-form-section-right">
+                <div>
+                    <div class="text-muted" style="cursor: pointer" data-toggle="modal"
+                        data-target="#modal-bingo-rules">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="purchase-ctns__footer card-footer">
             <button type="button" id="btn-container-purchase-close" class="mr-1 btn btn-secondary">Cancelar</button>

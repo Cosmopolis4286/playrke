@@ -48,7 +48,11 @@ trait Filters
                 return redirect($viewData['redirect'] ?? '/');
             }
         } elseif (isset($viewData['redirect'])) {
-            return redirect($viewData['redirect'] ?? '/');
+            if ($viewData['redirect'] === 'redirect-back') {
+                return redirect()->back();
+            } else {
+                return redirect($viewData['redirect'] ?? '/');
+            }
         }
 
         return view($viewData['route'])->with($viewData['data']);
