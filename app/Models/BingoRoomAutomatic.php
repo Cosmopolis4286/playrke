@@ -17,6 +17,7 @@ class BingoRoomAutomatic extends Model
     'fixed_jackpot_value',
     'room_type',
     'ctn_price',
+    'time_chip',
     'room_commn',
     'serials_commn',
     'val_serials',

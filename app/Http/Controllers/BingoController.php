@@ -888,6 +888,8 @@ class BingoController extends Controller
 
     private function getInfoRooms($roomType, $coin, $creatorType, $creatorID)
     {
+        $roomType = $roomType === 'private-rooms' ? 1 : 2;
+
         return BingoRoom::with([
             'Config.JackpotType',
             'GameMode' => function ($query) {
@@ -903,15 +905,16 @@ class BingoController extends Controller
             ->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
     }
 
-    private function getPrivateGameRooms($creator, $coin)
+    private function getGameRoomsInfo($creator, $coin, $roomType)
     {
-        $creatorType = $creator['type'];
+        (new HandleBingoRooms())->checkRoomClosure();
 
-        switch ($creatorType) {
+        $view = $roomType === 'private-rooms' ? 'private' : 'public';
+
+        switch ($creator['type']) {
             case 'admin': // Admin
                 break;
             case 'commerce': // Comercio
-
                 $creatorID = decrypt($creator['id']);
 
                 $isLogin = true;
@@ -925,12 +928,13 @@ class BingoController extends Controller
                 $routeWithCoin = [
                     'route' => 'bingo.all-rooms',
                     'parameters' => [
-                        'roomType' => 'private-rooms',
+                        'roomType' => $roomType,
                         'creatorType' => 'commerce',
                         'creatorID' => $creator['id']
                     ]
                 ];
-                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'private', 'coin' => encrypt($coin)]);
+
+                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => $view, 'coin' => encrypt($coin)]);
 
                 $moreViewData = [
                     'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
@@ -953,7 +957,7 @@ class BingoController extends Controller
                 $routeWithCoin = [
                     'route' => 'bingo.all-rooms',
                     'parameters' => [
-                        'roomType' => 'private-rooms',
+                        'roomType' => $roomType,
                         'creatorType' => 'customer',
                         'creatorID' => $creator['id']
                     ]
@@ -980,10 +984,7 @@ class BingoController extends Controller
                 break;
         }
 
-        // $gameJackpotType = GameJackpotType::getAvailableByGameMode(1, 2);
-        // $jackpotType = JackpotType::getByIds($gameJackpotType);
-
-        $rooms = $this->getInfoRooms(1, $coin, $creator['type'], $creatorID);
+        $rooms = $this->getInfoRooms($roomType, $coin, $creator['type'], $creatorID);
 
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
@@ -1009,94 +1010,6 @@ class BingoController extends Controller
 
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);
-        }
-
-        return $viewData;
-    }
-
-    private function getPublicGameRooms($creator, $coin)
-    {
-        $creatorType = $creator['type'];
-
-        switch ($creatorType) {
-            case 'admin': // Admin
-                break;
-            case 'commerce': // Comercio
-
-                $creatorID = decrypt($creator['id']);
-
-                $coinSym = Coin::getValue($coin, 'symbol');
-                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
-
-                $coins = CommerceExchangeRate::getCoinsByCommerce($creatorID);
-                $coins[] = 1; // ID Coin (USDT)
-                $coins = Coin::getCoinsById($coins);
-
-                $routeWithCoin = [
-                    'route' => 'bingo.all-rooms',
-                    'parameters' => [
-                        'roomType' => 'public-rooms',
-                        'creatorType' => 'commerce',
-                        'creatorID' => $creator['id']
-                    ]
-                ];
-
-                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($coin)]);
-
-                $moreViewData = [
-                    'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
-                    'countries' => Country::getAllAvailableCountries()
-                ];
-                break;
-            case 'customer': // Cliente
-                return false;
-                break;
-            default:
-                return false;
-                break;
-        }
-
-        $rooms = $this->getInfoRooms(2, $coin, $creator['type'], $creatorID);
-
-        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
-
-        $viewData = [
-            'layout' => 'layouts.app_rke',
-            'title' => 'Salas de Bingo',
-            'name' => 'bingocash',
-            'returnBtn' => $returnBtn ?? true,
-            'routeWithCoin' => $routeWithCoin,
-            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
-            'routeRKE' => $this->getRouteRKE(),
-            'creator' => $creator,
-            'coins' => $coins,
-            'coin' => $coin,
-            'coinSym' => $coinSym,
-            'exchangeRate' => $exchangeRate ?? 1,
-            'rooms' => $rooms,
-            'GMRoute' => $GMRoute,
-            'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
-            'jackpotType' => JackpotType::all(),
-            'gameModes' => GameModes::all()
-        ];
-
-        if (isset($moreViewData)) {
-            $viewData = array_merge($viewData, $moreViewData);
-        }
-
-        return $viewData;
-    }
-
-    private function getGameRoomsInfo($creator, $coin, $roomType)
-    {
-        (new HandleBingoRooms())->checkRoomClosure();
-
-        if ($roomType === 'private-rooms') {
-            $view = 'private';
-            $viewData = $this->getPrivateGameRooms($creator, $coin);
-        } else {
-            $view = 'public';
-            $viewData = $this->getPublicGameRooms($creator, $coin);
         }
 
         return ['route' => 'modules.game.bingo.form.' . $view, 'data' => $viewData];
@@ -2085,6 +1998,7 @@ class BingoController extends Controller
             'jackpot_type',
             'fixed_jackpot_value',
             'ctn_price',
+            'time_chip',
             'room_commn',
             'serials_commn',
             'val_serials',

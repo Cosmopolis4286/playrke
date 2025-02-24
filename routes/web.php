@@ -10,30 +10,19 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CommerceController;
 use App\Http\Controllers\SellerController;
-use App\Http\Controllers\PollaController;
-use App\Http\Controllers\BancosController;
 use App\Http\Controllers\BingoController;
-use App\Http\Controllers\DoubleController;
-use App\Http\Controllers\RuletaController;
 use App\Http\Controllers\TriviaController;
 use App\Http\Controllers\WalletController;
-use App\Http\Controllers\LimitsController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\ReportsController;
-use App\Http\Controllers\RetirosController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\GameController;
-use App\Http\Controllers\RecargasController;
 use App\Http\Controllers\ReferralController;
-use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\IframeController;
 use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
-use App\Http\Controllers\LotteryController;
 use App\Http\Controllers\PaymentMethodsCOLController;
 use App\Http\Controllers\PredictionController;
-use App\Http\Controllers\TrikiController;
 use App\Http\Controllers\YankenpoController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
@@ -107,13 +96,6 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'info', 'as' => 'info.'], fu
     Route::get('power-of-knowledge', [InformationController::class, 'powerOfKnowledge'])->name('power-of-knowledge');
 });
 
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'limits', 'as' => 'limits.'], function () {
-    Route::get('', [LimitsController::class, 'index'])->name('index');
-    Route::post('dp', [LimitsController::class, 'store_dp'])->name('store_dp');
-    Route::post('rt', [LimitsController::class, 'store_rt'])->name('store_rt');
-    Route::post('transfer', [LimitsController::class, 'store_transfer'])->name('store_transfer');
-});
-
 // Rutas del Conn
 Route::group(['middleware' => ['auth'], 'prefix' => 'payment', 'as' => 'payment.'], function () {
     Route::get('proof/{fileName}', [PaymentController::class, 'showPaymentProof'])->name('proof');
@@ -127,7 +109,6 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
     Route::put('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [ExchangeRateController::class, 'changeStatus'])->name('change-status');
     Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
-
     Route::get('historical/{coin?}/{creatorType}/{creatorID}', [ExchangeRateController::class, 'historical'])->name('historical');
     Route::get('{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
 });
@@ -217,20 +198,6 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::get('bingo/report/sales/room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 });
 
-Route::group(['middleware' => ['auth'], 'prefix' => 'report', 'as' => 'report.'], function () {
-    Route::get('', [ReportsController::class, 'index'])->name('index');
-    Route::post('store', [ReportsController::class, 'store'])->name('store');
-});
-
-Route::group(['middleware' => ['auth'], 'prefix' => 'banco', 'as' => 'banco.'], function () {
-    Route::get('', [BancosController::class, 'index'])->name('index');
-    Route::get('add', [BancosController::class, 'create'])->name('create');
-    Route::get('edit/{id}', [BancosController::class, 'edit'])->name('edit');
-    Route::post('store', [BancosController::class, 'store'])->name('store');
-    Route::put('edit/{id}', [BancosController::class, 'update'])->name('update');
-    Route::get('delete/{id}', [BancosController::class, 'delete'])->name('delete');
-});
-
 Route::group(['middleware' => ['auth'], 'prefix' => 'pagomovil', 'as' => 'pagomovil.'], function () {
     Route::get('', [PagoMovilController::class, 'index'])->name('index');
     Route::get('add', [PagoMovilController::class, 'add'])->name('add');
@@ -257,14 +224,6 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment-method-col', 'as' =
     Route::get('getInfo/{id}', [PaymentMethodsCOLController::class, 'getInfo'])->name('getInfo');
 });
 
-// Route::group(['middleware' => ['auth'], 'prefix' => 'wallet', 'as' => 'wallet.'], function () {
-//     Route::get('', [CryptoWalletController::class, 'index'])->name('index');
-//     Route::get('BinancePay', [CryptoWalletController::class, 'BPay'])->name('BPay');
-//     Route::get('add', [CryptoWalletController::class, 'create'])->name('create');
-//     Route::post('store', [CryptoWalletController::class, 'store'])->name('store');
-//     Route::post('store/PayID', [CryptoWalletController::class, 'storeBPay'])->name('storeBPay');
-// });
-
 Route::group(['middleware' => ['auth'], 'prefix' => 'wallet', 'as' => 'wallet.'], function () {
     Route::get('', [WalletController::class, 'index'])->name('index');
     Route::get('deposit/pagomovil', [WalletController::class, 'createPM'])->name('createPM');
@@ -289,42 +248,9 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'wallet', 'as' => 'wallet.']
     Route::get('Wallet/dbusdt/{id}/{id2}', [WalletController::class, 'dbusdt'])->name('dbusdt');
 });
 
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'recarga', 'as' => 'recarga.'], function () {
-    Route::get('bs', [RecargasController::class, 'transk_bs'])->name('transk_bs');
-    Route::get('accept_bs/{id}', [RecargasController::class, 'accept_bs'])->name('accept_bs');
-    Route::get('decline_bs', [RecargasController::class, 'decline_bs'])->name('decline_bs');
-    Route::get('freeze_bs/{id}', [RecargasController::class, 'freeze_bs'])->name('freeze_bs');
-    Route::post('run_freeze/ves', [RecargasController::class, 'run_freeze'])->name('run_freeze');
-    Route::get('liberate_bs/{id}', [RecargasController::class, 'liberate_bs'])->name('liberate_bs');
-    Route::get('clp', [RecargasController::class, 'transk_clp'])->name('transk_clp');
-    Route::get('BPay', [RecargasController::class, 'transk_BPay'])->name('transk_BPay');
-    Route::get('usdt', [RecargasController::class, 'cryptos'])->name('cryptos');
-    Route::get('accept_bpay/{id}', [RecargasController::class, 'accept_bpay'])->name('accept_bpay');
-    Route::get('decline_bpay', [RecargasController::class, 'decline_bpay'])->name('decline_bpay');
-    Route::get('freeze_bpay/{id}', [RecargasController::class, 'freeze_bpay'])->name('freeze_bpay');
-    Route::post('run_freeze/bpay', [RecargasController::class, 'run_freeze_bpay'])->name('run_freeze_bpay');
-    Route::get('liberate_bpay/{id}', [RecargasController::class, 'liberate_bpay'])->name('liberate_bpay');
-});
-
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'retiro', 'as' => 'retiro.'], function () {
-    Route::get('ves', [RetirosController::class, 'transk_bs'])->name('transk_bs');
-    Route::get('accept_bs/{id}', [RecargasController::class, 'accept_bs'])->name('accept_bs');
-    Route::get('decline_bs/{id}', [RecargasController::class, 'decline_bs'])->name('decline_bs');
-    Route::get('BPay', [RetirosController::class, 'transk_BPay'])->name('transk_BPay');
-    Route::get('accept_bpay/{id}', [RecargasController::class, 'accept_bpay'])->name('accept_bpay');
-    Route::get('decline_bpay/{id}', [RecargasController::class, 'decline_bpay'])->name('decline_bpay');
-    Route::get('usdt', [RetirosController::class, 'cryptos'])->name('cryptos');
-});
-
 Route::group(['middleware' => ['auth'], 'prefix' => 'games', 'as' => 'games.'], function () {
     Route::put('handleCustomerGames/{id?}', [GameController::class, 'handleCustomerGames'])
         ->name('handleCustomerGames')->withoutMiddleware(['auth']);
-});
-
-Route::group(['middleware' => ['auth'], 'prefix' => 'historial', 'as' => 'historial.'], function () {
-    Route::get('', [HistorialController::class, 'index'])->name('index');
-    Route::get('codigos', [HistorialController::class, 'codes'])->name('codes');
-    Route::get('sorteos', [HistorialController::class, 'luck'])->name('luck');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'trivia', 'as' => 'trivia.'], function () {
@@ -441,36 +367,8 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('viewCtn/{ctnId}', [BingoController::class, 'viewCtn'])->name('viewCtn');
 });
 
-// PollaExpress -Jugador-
-Route::group(['prefix' => 'polla-rke', 'as' => 'polla.'], function () {
-
-    Route::get('rooms/admin/{user}/{coin?}', [PollaController::class, 'allRooms'])
-        ->middleware(['auth', 'admin'])->name('all-rooms');
-
-    Route::get('rooms/{coin?}', [PollaController::class, 'allCommerceRooms'])
-        ->middleware(['auth', 'commerce'])->name('all-commerce-rooms');
-
-    Route::get('rooms-sales-report/{coin?}/{dateFilter?}', [PollaController::class, 'roomsSalesReport'])->name('roomsSalesReport');
-
-    Route::get('winners/{coin?}/{dateFilter?}', [PollaController::class, 'winners'])->name('winners');
-});
-
-Route::group(['prefix' => 'lottery', 'as' => 'lottery.'], function () {
-    Route::get('results/{game}', [LotteryController::class, 'lotteryResults'])->name('results');
-});
-
 Route::group(['prefix' => 'predict', 'as' => 'predict.'], function () {
     Route::get('/predict', [PredictionController::class, 'generatePrediction']);
-});
-
-Route::group(['middleware' => ['auth'], 'prefix' => 'ruleta', 'as' => 'ruleta.'], function () {
-    Route::get('room', [RuletaController::class, 'index'])->name('index');
-    Route::post('store', [RuletaController::class, 'num_store'])->name('store');
-});
-
-Route::group(['middleware' => ['auth'], 'prefix' => 'triki', 'as' => 'triki.'], function () {
-    Route::get('', [TrikiController::class, 'rooms'])->name('rooms');
-    Route::get('pdf', [TrikiController::class, 'pdf'])->name('pdf');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'yankenpo', 'as' => 'yankenpo.'], function () {
@@ -479,8 +377,4 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'yankenpo', 'as' => 'yankenp
     Route::get('room/{id}', [YankenpoController::class, 'game'])->name('game');
     Route::post('select', [YankenpoController::class, 'select_ppt'])->name('select_ppt');
     Route::get('check_ppt/{id}', [YankenpoController::class, 'check_ppt'])->name('check_ppt');
-});
-
-Route::group(['middleware' => ['auth'], 'prefix' => 'double', 'as' => 'double.'], function () {
-    Route::get('', [DoubleController::class, 'index'])->name('index');
 });
