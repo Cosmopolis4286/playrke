@@ -198,6 +198,11 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::get('bingo/report/sales/room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 });
 
+Route::group(['middleware' => ['auth'], 'prefix' => 'report', 'as' => 'report.'], function () {
+    Route::get('', [ReportsController::class, 'index'])->name('index');
+    Route::post('store', [ReportsController::class, 'store'])->name('store');
+});
+
 Route::group(['middleware' => ['auth'], 'prefix' => 'pagomovil', 'as' => 'pagomovil.'], function () {
     Route::get('', [PagoMovilController::class, 'index'])->name('index');
     Route::get('add', [PagoMovilController::class, 'add'])->name('add');
