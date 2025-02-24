@@ -666,16 +666,20 @@ trait BingoTrait
         }
     }
 
-    public function calculateCtnPrice($roomCtnPrice, $exchangeRate = 1)
+    public function calculateCtnPrice($bingoCtnPrice, $setPrice = false, $exchangeRate = 1)
     {
-        // Calcular precio del carton y redondear de acuerdo a la moneda 
-        $ctnPrice = number_format($exchangeRate * $roomCtnPrice, 2, '.');
         // Calcular precio del carton en USDT 
-        $formattedPrice = number_format($ctnPrice / $exchangeRate, 3, '.', '');
+        $formattedPrice = number_format($exchangeRate * $bingoCtnPrice, 2, '.');
 
-        if (fmod($formattedPrice, 1) == 0) {
-            $formattedPrice = number_format($formattedPrice, 2, '.', '');
+        if ($setPrice) {
+            // Calcular precio del carton en USDT y redondear de acuerdo a la moneda 
+            $formattedPrice = number_format($formattedPrice / $exchangeRate, 3, '.', '');
+
+            if (fmod($formattedPrice, 1) == 0) {
+                $formattedPrice = number_format($formattedPrice, 2, '.', '');
+            }
         }
+
         return $formattedPrice;
     }
 
@@ -797,7 +801,7 @@ trait BingoTrait
             }
 
             DB::commit();
-            return true;
+            return $roomUser;
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al crear los cartones cartonStore(): ' . $e->getMessage());

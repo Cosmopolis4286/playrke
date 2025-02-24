@@ -117,6 +117,10 @@
             });
         });
 
+        $(document).on("input", "#commission", function() {
+            validateInput(this, 3, 35);
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             $('[data-toggle="popover"]').popover({
                 html: true

@@ -393,8 +393,6 @@ class BingoController extends Controller
         $roomCtnPrice = $room->ctn_price;
         $creatorType = $request->user_type;
 
-        $exchangeRate = 1;
-
         if ($creatorType) {
             $creator = ['type' => $creatorType, 'id' => decrypt($request->user_type_val)];
 
@@ -419,8 +417,8 @@ class BingoController extends Controller
 
         // Definir precio del carton
         $ctnPrice = $creatorCtnPrice
-            ? $this->calculateCtnPrice($creatorCtnPrice)
-            : $this->calculateCtnPrice($roomCtnPrice, $exchangeRate);
+            ? $this->calculateCtnPrice($creatorCtnPrice, true)
+            : $this->calculateCtnPrice($roomCtnPrice, false, $data['exchangeRate']);
 
         $data['ctnPrice'] = $ctnPrice;
 
@@ -465,7 +463,7 @@ class BingoController extends Controller
                 }
 
                 $jackpot = number_format($this->convertPrizeValue($data['room'], $data['coin']), 2, '.');
-                $ctns = BingoRoomUser::getValueByColumn($data['room'], $playerColumn, $player, 'ctns');
+                $ctns = BingoRoomUser::getValue($cartonStore, 'ctns');
 
                 return response()->json([
                     'jackpot' => $jackpot,
@@ -1434,8 +1432,8 @@ class BingoController extends Controller
         // Obtener las monedas relevantes según el tipo de creador
         $coins = match ($creatorType) {
             'admin' => Coin::where('id', '!=', 1)->distinct()->pluck('coin'),
-            'commerce' => collect(CommerceCountriesCoins::getAvailableCoins($creatorID)),
-            default => collect(CustomerExchangeRate::getCoinsByCustomer($creatorID)),
+            'commerce' => CommerceCountriesCoins::getAvailableCoins($creatorID, 1),
+            default => CustomerExchangeRate::getCoinsByCustomer($creatorID),
         };
 
         if ($room !== 'RKE' && $creation === 'M') {

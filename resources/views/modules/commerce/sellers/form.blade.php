@@ -11,7 +11,7 @@
             <span class="invalid-feedback">{{ $message }}</span>
         @enderror
     </div>
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-sm-5">
         <label for="username">Username*</label>
         <input type="text" id="username" name="username" minlength="5" maxlength="20"
             class="form-control @error('username') is-invalid @enderror" required value="{{ old('username') }}">
@@ -19,7 +19,18 @@
             <span class="invalid-feedback">{{ $message }}</span>
         @enderror
     </div>
-    <div class="form-group col-sm-6 col-md-5">
+    <div class="form-group col-sm-6 col-md-3">
+        <label for="commission">%Comisión*</label>
+        <div class="input-group">
+            <input type="number" id="commission" name="commission" class="form-control" placeholder="%Com" required
+                value="{{ old('commission', '3.00') }}" step="0.25" min="3.00" max="35">
+        </div>
+    </div>
+    <div class="form-group col-sm-4">
+        <label for="country">País*</label>
+        <select id="country" name="country" class="form-control" required></select>
+    </div>
+    <div class="form-group col-sm-6">
         <label for="phone">Teléfono*</label>
         <input type="text" id="phone" name="phone" class="form-control @error('phone') is-invalid @enderror"
             required value="{{ old('username') }}" placeholder="Ingresa el número" required value="{{ old('phone') }}">
@@ -28,27 +39,11 @@
                 <small>{{ $message }}</small>
             </span>
         @enderror
-    </div>
-    <div class="form-group col-sm-6 col-md-3">
-        <label for="commission">Comision*</label>
-        <div class="input-group">
-            <div class="input-group-append">
-                <span class="input-group-text" id="basic-addon2">%</span>
-            </div>
-            <input type="number" id="commission" name="commission" class="form-control" placeholder="%Com" required
-                value="{{ old('commission', '3.5') }}" step="0.5" min="3.5" max="30">
-        </div>
-    </div>
-    <div class="form-group col-sm-6">
-        <label for="country">País*</label>
-        <select id="country" name="country" class="form-control" required>
-            <option value="">Selecciona un país</option>
-        </select>
-    </div>
+    </div>   
     <div class="form-group col-sm-6">
         <label for="coin">Moneda*</label>
-        <input type="text" id="coin-text" class="form-control" disabled />
-        <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}" />
+        <input type="text" id="coin-text" class="form-control" disabled>
+        <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}">
     </div>
     <div id="cont-other-coins" class="form-group col-sm hide-elem">
         <label for="other-coins">Otras Monedas:</label>

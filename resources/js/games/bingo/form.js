@@ -1,16 +1,3 @@
-function validateInput(input, min, max, isFloat = true) {
-    setTimeout(() => {
-        let value = isFloat ? parseFloat($(input).val()) : $(input).val();
-
-        if (value < min || value > max) {
-            showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
-            value = min; // Restablecer al valor mínimo permitido
-        }
-
-        $(input).val(isFloat ? parseFloat(value).toFixed(2) : value);
-    }, 1500);
-}
-
 // Validar Bote Valor Fijo (Debe estar entre 30 y 10000 con pasos de 0.05)
 $(document).on("input", "#fixed-jackpot-value", function () {
     validateInput(this, 30, 10000);

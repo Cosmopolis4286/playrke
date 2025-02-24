@@ -24,10 +24,9 @@
         </div>
         @if ($room->status == 2)
             @include('includes.game.bingo.layout.modal-info-draw')
-        @elseif($room->status == 3)
-            @include('includes.game.bingo.layout.sounds')
         @elseif($room->status > 2)
             @include('includes.game.bingo.layout.modal-info-winners')
+            @include('includes.game.bingo.layout.sounds')
         @endif
         @include('includes.game.bingo.layout.modal-bingo-rules')
     </div>
@@ -45,17 +44,9 @@
         const valSongs = '{{ $room->val_songs }}';
         const images = [];
         const chpLast = @json($vanDraw);
-        const startTime = @json($startTime);
         const player = @json($player);
         const encrypt = @json($encrypt);
         const restChips = @json($chipsRest);
-
-        if (roomStatus == 3) {
-            const soundNext = $('#next')[0];
-            const soundWin = $('#winner')[0];
-            soundNext.muted = true;
-            soundWin.muted = true;
-        }
 
         let arrDraw = @json($sort);
         let latestChips = @json($latestChips);
@@ -73,18 +64,26 @@
             const commerceDetailsURL =
                 `{{ route('commerce.getPaymentCommerceDetails', ['commerce' => ':commerce', 'coin' => ':coin']) }}`;
             const generateCartonURL = `{{ route('bingocash.generateCarton') }}`;
+            let gameStartTime = @json($startTime);
             let amount = ctnPrice;
         </script>
         @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'])
     @endif
     @if ($room->status > 2)
         <script>
+            const startTime = @json($startTime);
+            const soundNext = $('#next')[0];
+            const soundWin = $('#winner')[0];
             const closingRoute = @json($closingRoute);
+
             let loaderChip = true;
             let loadTimeServ = false;
             let actSound = 0;
             let endWin = (arrDraw.length && (roomStatus === 2 || roomStatus === 3)) ? 0 : (roomStatus >= 4 ? 1 : 0);
             let sizeCarrsel;
+
+            soundNext.muted = true;
+            soundWin.muted = true;
         </script>
         @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
     @endif

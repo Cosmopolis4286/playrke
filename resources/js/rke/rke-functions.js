@@ -163,6 +163,19 @@ function getInfo(route, id) {
     });
 }
 
+function validateInput(input, min, max, isFloat = true) {
+    setTimeout(() => {
+        let value = isFloat ? parseFloat($(input).val()) : $(input).val();
+
+        if (value < min || value > max) {
+            showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
+            value = min; // Restablecer al valor mínimo permitido
+        }
+
+        $(input).val(isFloat ? parseFloat(value).toFixed(2) : value);
+    }, 1500);
+}
+
 // Exponer las funciones al objeto window
 window.ajaxStart = ajaxStart;
 window.ajaxStop = ajaxStop;
@@ -172,3 +185,4 @@ window.setExtraInfo = setExtraInfo;
 window.submitForm = submitForm;
 window.formCRUD = formCRUD;
 window.getInfo = getInfo;
+window.validateInput = validateInput;

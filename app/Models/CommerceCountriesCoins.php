@@ -34,10 +34,13 @@ class CommerceCountriesCoins extends Model
         return $this->hasMany(BingoCtnsLot::class, 'commerce', 'commerce');
     }
 
-    public static function getAvailableCoins($commerce)
+    public static function getAvailableCoins($commerce, $exceptCoin = '')
     {
-        return self::where('commerce', $commerce)->where('status', 1)
-            ->distinct('coin')->pluck('coin')->toArray();
+        return self::where('commerce', $commerce)
+            ->where('status', 1)
+            ->when($exceptCoin, function ($query, $exceptCoin) {
+                return $query->where('coin', '<>', $exceptCoin);
+            })->distinct()->pluck('coin')->toArray();
     }
 
     public static function getAllAvailableCountriesCoins($commerce, $fields = ['*'])

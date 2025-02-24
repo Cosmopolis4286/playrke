@@ -5,14 +5,17 @@ let ctnPriceSale = ctnPrice;
 let numCtns = $("#num-ctns").val() ?? 1;
 let available = true;
 
+const tokenValue = $("#5K3_70K").val();
+
 window.onfocus = function () {
     const url = getInfoRoomURL.replace(':1', encrypted).replace(':2', true);
-    $.getJSON(url, { _token: $("#5K3_70K").val() })
+
+    $.getJSON(url, { _token: tokenValue })
         .done((response) => {
-            startTime = response;
+            gameStartTime = response;
         })
         .fail((jqXHR, textStatus, errorThrown) => {
-            console.error(`Error: ${textStatus}`, errorThrown);
+            console.error(`Request failed with status: ${textStatus}, Error: ${errorThrown}`);
         });
 };
 
@@ -36,7 +39,7 @@ function setAmount() {
 function getCommerceDetails(coinSale) {
     if (!available) return;
     const url = commerceDetailsURL.replace(':commerce', creatorID).replace(':coin', coinSale);
-    $.getJSON(url, { _token: $("#5K3_70K").val() })
+    $.getJSON(url, { _token: tokenValue })
         .done((response) => {
             const { commerce, paymentDetails, exchangeRate } = response;
 
@@ -151,9 +154,9 @@ function adjustHeightBoxes() {
 
 let waitingTime = false;
 
-function countdownt(startTime) {
+function countdownt(gameStartTime) {
     // Establece la fecha y hora de destino
-    const targetDate = startTime;
+    const targetDate = gameStartTime;
 
     // Calcula la diferencia entre la fecha de destino y la fecha actual en segundos
     const distance = Math.floor((targetDate - timeServ));
@@ -204,9 +207,9 @@ $(document).ready(function () {
     });
 
     $('.container-carton').css('visibility', 'visible');
-    $('#modal-info-draw-title').text(convertAndDisplay(startTime));
+    $('#modal-info-draw-title').text(convertAndDisplay(gameStartTime));
     waitingTime = setInterval(() => {
-        countdownt(startTime);
+        countdownt(gameStartTime);
         timeServ++;
     }, 1000);
     $("#modal-info-draw").modal('show');

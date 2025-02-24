@@ -403,6 +403,7 @@
                         $('#player-link-rout').val(data.ctnsLink[2]);
                         $("#new-player, #cont-info-player").removeClass('hide-elem');
                         playerInGame = true;
+                        btnGenerate.prop('disabled', false);
                     } else {
                         $('#name, #last-name, #phone').prop('required', true).prop('readonly', false);
                         $("#player-link-rout").val('');
@@ -416,10 +417,11 @@
                                 btnSearchPhone.html('fa-solid fa-magnifying-glass').data('id', 2);
                             }
                             showToast('Numero no registrado', 'info');
+                            btnGenerate.prop('disabled', false);
                         }
                     }
                 },
-                complete: function() {
+                error: function() {
                     btnGenerate.prop('disabled', false);
                 }
             });

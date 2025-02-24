@@ -149,7 +149,7 @@
 
             if (type == 1) {
                 $('#customer-key').val(generateUUID());
-                country.append(`<option value="" disabled selected>Seleccionar:</option>`);
+                country.append(`<option value="" disabled selected>Seleccionar País:</option>`);
             }
 
             $.each(arrCountries, function(index, item) {

@@ -128,6 +128,7 @@
                 $('#date').val(data.room.date);
                 $('#time').val(data.room.time);
                 $('#ctn-price').val(data.room.ctn_price);
+                $('#time-chip').val(data.config.time_chip);
                 $('#val-serials').val(data.config.val_serials);
                 $('#num-serials').val(data.config.num_serials);
                 $('#room-commission').val(data.config.room_commn);

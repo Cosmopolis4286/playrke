@@ -21,9 +21,7 @@
     </div>
     <div class="form-group col-sm-6">
         <label for="country">País*</label>
-        <select id="country" name="country" class="form-control" required>
-            <option value="">Selecciona un país</option>
-        </select>
+        <select id="country" name="country" class="form-control" required></select>
     </div>
     <div class="form-group col-sm-6">
         <label for="phone">Teléfono*</label>
