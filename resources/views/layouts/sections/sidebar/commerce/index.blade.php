@@ -26,45 +26,6 @@
 
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('polla.all-commerce-rooms', 'polla.winners', 'polla.roomsSalesReport') ?: 'active' }} ">
-            <i class="nav-icon fa-solid fa-splotch"></i>
-            <p>Polla RKE
-                <i class="right fas fa-angle-left"></i>
-            </p>
-        </a>
-        <ul class="nav nav-treeview">
-            <li class="nav-item">
-                <a href="{{ route('polla.all-commerce-rooms') }}" title="Polla RKE"
-                    class="nav-link {{ !Route::is('polla.all-commerce-rooms') ?: 'active' }}">
-                    <i class="fa-solid fa-caret-right nav-icon"></i>
-                    <p>Salas</p>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('polla.winners') }}" title="Ganadores"
-                    class="nav-link {{ !Route::is('commerce.winnersByCommerce') ?: 'active' }}">
-                    <i class="fa-solid fa-caret-right nav-icon"></i>
-                    <p>Ganadores</p>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('lottery.results', ['game' => 'polla-rke']) }}" title="Resultados"
-                    class="nav-link {{ !Route::is('lottery.results') ?: 'active' }}">
-                    <i class="fa-solid fa-caret-right nav-icon"></i>
-                    <p>Resultados</p>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('polla.roomsSalesReport') }}" title="Reporte de Ventas"
-                    class="nav-link {{ !Route::is('polla.reportSalesRooms') ?: 'active' }}">
-                    <i class="fa-solid fa-caret-right nav-icon"></i>
-                    <p>Reporte de Ventas</p>
-                </a>
-            </li>
-        </ul>
-    </li>
-    <li class="nav-item has-treeview">
-        <a href="#"
             class="nav-link {{ !Route::is('bingo.all-rooms', 'commerce.getBingoWinnersByCommerce', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
