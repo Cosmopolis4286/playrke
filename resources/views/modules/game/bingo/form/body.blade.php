@@ -31,8 +31,13 @@
     </div>
     <div id="cont-fixed-jackpot-value" class="form-group col-sm-6 col-md-4 hide-elem">
         <label for="fixed-jackpot-value">Valor Fijo*</label>
-        <input type="number" id="fixed-jackpot-value" name="fixed_jackpot_value" class="form-control form-info"
-            placeholder="Ingresar Monto" step="0.05" min="50" max="10000">
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text">$</span>
+            </div>
+            <input type="number" id="fixed-jackpot-value" name="fixed_jackpot_value" class="form-control form-info"
+                step="0.05" value="20" min="20" max="10000">
+        </div>
     </div>
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
@@ -69,7 +74,7 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="time-chip">Tiempo Ficha*</label>
         <div class="input-group">
-            <input type="number" step="1" value="5" min="5" max="10" id="time-chip"
+            <input type="number" step="1" value="5" min="3" max="10" id="time-chip"
                 name="time_chip" class="form-control form-info" required>
             <div class="input-group-append">
                 <span class="input-group-text">SEG</span>
@@ -88,17 +93,17 @@
     </div> --}}
     <div class="form-group col-sm-6 col-md-4">
         <label for="val-serials">%Bote Seriales</label>
-        <input type="number" value="2" min="2" max="15" step="0.05" id="val-serials"
+        <input type="number" value="5" min="2" max="35" step="0.05" id="val-serials"
             name="val_serials" class="form-control form-info" placeholder="Ingrese valor" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="num-serials">#Max. Seriales</label>
-        <input type="number" step="1" value="5" min="5" max="15" id="num-serials"
+        <input type="number" step="1" value="5" min="3" max="25" id="num-serials"
             name="num_serials" class="form-control form-info" placeholder="Ingrese la cantidad" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="room-commission">%Sala*</label>
         <input type="number" id="room-commission" name="room_commission" class="form-control form-info"
-            value="10" step="0.05" min="10" max="50" required>
+            value="10" step="0.05" min="5" max="50" required>
     </div>
 </div>

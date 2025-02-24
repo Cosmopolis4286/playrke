@@ -17,14 +17,13 @@ return new class extends Migration
             $table->id();
             $table->string('name', 35)->nullable();
             $table->unsignedBigInteger('bank');
-            $table->unsignedBigInteger('pix_key');
+            $table->enum('pix_key', ['1', '2', '3', '4', '5']);
             $table->string('pix_key_value', 50);
             $table->unsignedBigInteger('user');
             $table->timestamps();
 
             // Foreign keys
             $table->foreign('bank')->references('id')->on('banks_bra');
-            $table->foreign('pix_key')->references('id')->on('pix_keys');
             $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
         });
     }

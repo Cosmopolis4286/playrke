@@ -78,6 +78,7 @@ class PixController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Ha ocurrido un error al registar el Pix ' . $e->getMessage());
             return redirect()->back()->with([
                 'message' => 'Ocurrió un error',
                 'type' => 'warning',
@@ -120,6 +121,7 @@ class PixController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Ha ocurrido un error al actualizar el Pix ' . $e->getMessage());
             return redirect()->back()->with([
                 'message' => 'Ha ocurrido un error al actualizar el Pix. Inténtalo de nuevo.',
                 'type' => 'warning',

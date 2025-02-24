@@ -1552,8 +1552,11 @@ class BingoController extends Controller
                 $exchangeRate = $custCoin->exchange_rate;
             } else {
                 $coin = decrypt($coin);
+                $exchangeRate = 1;
                 $isLogin = ($coin == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
-                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator->commerce, $coin);
+                if ($coin != 1) {
+                    $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator->commerce, $coin);
+                }
                 $coin = Coin::getValue($coin, 'symbol');
             }
 
