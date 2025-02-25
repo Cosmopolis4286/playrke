@@ -15,17 +15,16 @@ class YankenpoController extends Controller
     public function rooms()
     {
         $user = auth()->user()->id;
+        
         $wallet = Wallet::where("usuario_id", $user)
             ->leftjoin('monedas', 'monedas.id', 'Wallets.coin')->first();
+
         if (auth()->user()->user_type == 2) {
             return view('modules/admin/yankenpo/rooms')->with([
                 'wallet' => $wallet,
             ]);
         } elseif ((auth()->user()->user_type == 1)) {
-            return view('modules/user/yankenpo/rooms')->with([
-                'wallet' => $wallet
-
-            ]);
+            return view('modules/user/yankenpo/rooms')->with([]);
         }
     }
 

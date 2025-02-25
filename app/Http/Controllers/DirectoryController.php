@@ -5,14 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Banks_VEN;
 use App\Models\BinanceAccounts;
 use App\Models\Commerce;
-use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\DocumentType;
 use App\Models\PagoMovil;
 use App\Models\PaymentMethodsCOL;
 use App\Models\Pix;
-use App\Models\PixKeys;
 use App\Models\UserType;
 use App\Traits\UserVal;
 
@@ -58,7 +56,7 @@ class DirectoryController extends Controller
         switch ($isoCode3) {
             case 'USDT':
                 $paymentType = 'Registro';
-                $name = 'payment-method-usdt';
+                $name = 'binance';
                 $additionalData = [
                     'accounts' => BinanceAccounts::where('user', $userID)->get(),
                     'accountTypes' => BinanceAccounts::getAccountTypes()

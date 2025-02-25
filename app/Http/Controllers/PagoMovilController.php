@@ -4,10 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Banks_VEN;
 use App\Models\PagoMovil;
-use App\Models\CodTef;
-use App\Models\DocumentType;
 use App\Traits\UserVal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,29 +17,9 @@ class PagoMovilController extends Controller
     public function index()
     {
         $user = $this->user(['id'])->id;
-        $wallet = $this->wallet();
-
-        if ($wallet->coin != 2) return redirect()->back();
-
         $pagoMovils = PagoMovil::where("user", $user)->get();
 
-        return view('modules.user.directory.ve.pagomovil.index', compact('wallet', 'pagoMovils'));
-    }
-
-    public function list() // Falta Ajustar
-    {
-        $user = $this->user(['id']);
-        $wallet = $this->wallet();
-        $banks = Banks_VEN::All();
-        $codTelfVe = CodTef::All();
-        $typeIdent = DocumentType::where('country', 234)->where('status', 1)->get();
-        $pagoMovil = PagoMovil::where('user', $user)->count();
-        dd(444);
-
-        return view(
-            'modules.user.pagomovil.create',
-            compact('user', 'wallet', 'banks', 'codTelfVe', 'typeIdent', 'pagoMovil')
-        );
+        return view('modules.user.directory.ve.pagomovil.index', compact('pagoMovils'));
     }
 
     public function create(Request $request)

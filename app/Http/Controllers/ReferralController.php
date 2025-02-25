@@ -13,16 +13,14 @@ class ReferralController extends Controller
     public function index(Request $request, $referralCode)
     {
         $user = auth()->user()->id;
-        $wallet = Wallet::where("usuario_id", $user)
-            ->leftjoin('monedas', 'monedas.id', 'Wallets.coin')->first();
+
         $referidos = User::where("referred_by", $user)->get();
         $pais = Country::all();
 
         return view('modules/user/referidos/index')->with([
             'referralLink' => $request->root() . '/' . $referralCode,
             'referidos' => $referidos,
-            'pais' => $pais,
-            'wallet' => $wallet,
+            'pais' => $pais
         ]);
     }
 

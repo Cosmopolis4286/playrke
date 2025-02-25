@@ -67,33 +67,25 @@
             formCRUD($(this), name, 'Datos Binance', `{{ asset('') }}${name}`)
         });
 
-        $(document).ready(function() {
-            $("#acc-number").mask("000000000000");
-            $("#document-number").mask("000000000000");
-        });
-
         function insertInfo(type, data = '') {
-            $("#acc-number, #user-name, #document-number").empty();
+            $("#data-value").empty();
 
-            if (type == 1) $('#gateway').append(`<option value=""  disabled selected>Seleccionar:</option>`);
+            if (type == 1) $('#account-type').append(`<option value="" disabled selected>Seleccionar:</option>`);
 
-            // Pasarela de Pago
-            $.each(accountTypes, function(index, item) {
-                const isSelected = (type == 2 && index == data.gateway) ? 'selected' : '';
-                $('#gateway').append(`<option value="${index}" ${isSelected}>${item}</option>`);
+            accountTypes.forEach(function(item) {
+                const isSelected = (type == 2 && item.id == data.account_type) ? 'selected' : '';
+                $('#account-type').append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             if (type == 2) {
-                $('#acc-number').val(data.acc_number);
-                $('#user-name').val(data.user_name);
-                $('#document-number').val(data.document_number);
+                $('#data-value').val(data.data_value);
             };
 
             $(`#modal-${name}`).modal('show');
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['gateway', 'acc-number', 'user-name', 'document-number']);
+            submitForm(name, ['account-type', 'data-value']);
         });
 
         function deleteInfo(encryptedId) {
@@ -102,7 +94,7 @@
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `{{ route('payment-method-col.delete', ['id' => ':id']) }}`,
+                `{{ route('binance.delete', ['id' => ':id']) }}`,
                 encryptedId
             );
         }

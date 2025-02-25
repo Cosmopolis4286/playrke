@@ -393,8 +393,6 @@ class CommerceController extends Controller
 
         $coin = $verifyCoin;
 
-        $wallet = $this->wallet();
-
         $dataCoin = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
         $coinSym = $dataCoin->symbol;
         $coinName = "$dataCoin->short_name ($dataCoin->iso_code)";
@@ -454,7 +452,7 @@ class CommerceController extends Controller
 
         return view(
             'modules.commerce.games.bingo.report.rooms',
-            compact('title', 'wallet', 'rooms', 'routeWithCoin', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
+            compact('title', 'rooms', 'routeWithCoin', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'totals', 'roomData')
         );
     }
 
@@ -599,7 +597,6 @@ class CommerceController extends Controller
     {
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
-        $wallet = $this->wallet();
 
         $commerce = $this->commerce()->id;
 
@@ -627,7 +624,6 @@ class CommerceController extends Controller
             'modules.commerce.games.bingo.cartons.awarwed.my-winners',
             compact(
                 'title',
-                'wallet',
                 'name',
                 'dateFilter',
                 'commerce',

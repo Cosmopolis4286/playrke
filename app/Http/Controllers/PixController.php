@@ -19,14 +19,10 @@ class PixController extends Controller
 
     public function index()
     {
-        $wallet = $this->wallet();
-
-        if ($wallet->coin != 2) return redirect()->back();
-
         $pixs = Pix::with('Bank')->where("user", Auth::id())->get();
         $typeChave = Pix::getPixKeys();
 
-        return view('all.directory.br.index', compact('wallet', 'pixs', 'typeChave'));
+        return view('all.directory.br.index', compact('pixs', 'typeChave'));
     }
 
     private function insertNewBank($infoBank)

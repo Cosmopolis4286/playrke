@@ -21,9 +21,8 @@ class ProfileController extends Controller
         $title = 'Mi Perfil';
         $user = User::select('user_type', 'username', 'country')->where('id', Auth::id())->first();
         $document = DocumentType::getDocumentTypeByCountry($user->country);
-        $wallet = $this->wallet();
 
-        return view('modules.all.profile.index', compact('title', 'user', 'document', 'wallet'));
+        return view('modules.all.profile.index', compact('title', 'user', 'document'));
     }
 
     public function update(validationPerfil $request, $id)

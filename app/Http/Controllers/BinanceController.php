@@ -15,14 +15,10 @@ class BinanceController extends Controller
 
     public function index()
     {
-        $wallet = $this->wallet();
-
-        if ($wallet->coin != 2) return redirect()->back();
-
         $accounts = BinanceAccounts::with('Bank')->where("user", Auth::id())->get();
         $accountTypes = BinanceAccounts::getAccountTypes();
 
-        return view('all.directory.usdt.index', compact('wallet', 'accounts', 'accountTypes'));
+        return view('all.directory.usdt.index', compact('accounts', 'accountTypes'));
     }
 
     public function create(Request $request)
@@ -65,9 +61,6 @@ class BinanceController extends Controller
         DB::beginTransaction();
 
         try {
-
-            $bankID = $this->insertNewBank($request->arr_bank);
-
             $pixKey = $request->pix_key;
             $pixKeyVal = $request->pix_key_value;
 
@@ -118,6 +111,6 @@ class BinanceController extends Controller
 
     public function getInfo($id)
     {
-        return BinanceAccounts::getById(decrypt($id), ['name', 'bank', 'pix_key', 'pix_key_value']);
+        return BinanceAccounts::getById(decrypt($id), ['account_type', 'data_value']);
     }
 }

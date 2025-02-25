@@ -21,7 +21,6 @@ class HomeController extends Controller
 
         $data = [
             'title' => 'Tablero',
-            'wallet' => $this->wallet(),
             'exchangeRate' => $exchangeRate ?? 1,
             'balance' => $this->getBalance(),
         ];

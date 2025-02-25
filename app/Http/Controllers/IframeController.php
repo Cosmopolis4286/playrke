@@ -39,7 +39,6 @@ class IframeController extends Controller
 
         return view('modules.all.iframe.index')->with([
             'title' => 'Iframes',
-            'wallet' => $this->wallet(),
             'iframes' => $iframes
         ]);
     }

@@ -39,6 +39,11 @@ class BinanceAccounts extends Model
 		return self::TYPES;
 	}
 
+	public static function getById($id, $fields = ['*'])
+	{
+		return self::select($fields)->where('id', $id)->first();
+	}
+
 	public static function existsAccount($accountType, $dataValue, $user = false)
 	{
 		return self::where([['account_type', $accountType], ['data_value', $dataValue]])

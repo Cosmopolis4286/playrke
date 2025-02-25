@@ -13,24 +13,24 @@ class InformationController extends Controller
 
     public function terms()
     {
-        return view('modules.all.info-rke.terms', with(['wallet' => $this->wallet(Auth::id())]));
+        return view('modules.all.info-rke.terms');
     }
 
     public function about()
     {
-        return view('modules.all.info-rke.about', with(['wallet' => $this->wallet(Auth::id())]));
+        return view('modules.all.info-rke.about');
     }
 
     public function privacy()
     {
-        return view('modules.all.info-rke.privacy', with(['wallet' => $this->wallet(Auth::id())]));
+        return view('modules.all.info-rke.privacy');
     }
 
     public function helpCenter()
     {
         return view(
             'modules.all.info-rke.help-center',
-            with(['wallet' => $this->wallet(Auth::id()), 'title' => 'Centro de Ayuda'])
+            with(['title' => 'Centro de Ayuda'])
         );
     }
 
@@ -40,7 +40,7 @@ class InformationController extends Controller
 
         if ($creatorType != 1) return redirect()->back();
 
-        return view('modules.all.info-rke.power-of-knowledge', with(['wallet' => $this->wallet(Auth::id())]));
+        return view('modules.all.info-rke.power-of-knowledge');
     }
 
     public function getTimeServer($timeZone = 'America/Caracas')
