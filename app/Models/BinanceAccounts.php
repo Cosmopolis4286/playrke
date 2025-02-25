@@ -10,17 +10,16 @@ class BinanceAccounts extends Model
 	protected $fillable = ['account_type', 'data_value', 'user', 'status'];
 
 	public const TYPES = [
-		['id' => 'E', 'description' => 'E-mail'],
-		['id' => 'P', 'description' => 'Num. Celular'],
-		['id' => 'B', 'description' => 'Id de Binance'],
+		'E' => 'E-mail',
+		'P' => 'Num. Celular',
+		'B' => 'Id de Binance',
 	];
 
 	protected $appends = ['account_type_description'];
 
-	public function getAccountTypeAttribute()
+	public function getAccountTypeDescriptionAttribute()
 	{
-		$accountType = collect(self::TYPES)->firstWhere('id', $this->account_type);
-		return $accountType['description'] ?? 'Desconocido';
+		return self::TYPES[$this->account_type] ?? 'Desconocido';
 	}
 
 	public function User()
@@ -31,9 +30,9 @@ class BinanceAccounts extends Model
 	public static function getAccountTypes($excludeId = null)
 	{
 		if ($excludeId) {
-			return array_filter(self::TYPES, function ($type) use ($excludeId) {
-				return $type['id'] !== $excludeId;
-			});
+			return array_filter(self::TYPES, function ($description, $id) use ($excludeId) {
+				return $id !== $excludeId;
+			}, ARRAY_FILTER_USE_BOTH);
 		}
 
 		return self::TYPES;

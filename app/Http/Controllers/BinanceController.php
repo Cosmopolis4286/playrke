@@ -15,7 +15,7 @@ class BinanceController extends Controller
 
     public function index()
     {
-        $accounts = BinanceAccounts::with('Bank')->where("user", Auth::id())->get();
+        $accounts = BinanceAccounts::where("user", Auth::id())->get();
         $accountTypes = BinanceAccounts::getAccountTypes();
 
         return view('all.directory.usdt.index', compact('accounts', 'accountTypes'));
@@ -23,32 +23,35 @@ class BinanceController extends Controller
 
     public function create(Request $request)
     {
+        $accountType = $request->account_type;
+        $dataValue = $request->data_value;
+
         DB::beginTransaction();
 
         try {
-            if (BinanceAccounts::existsAccount($pixKey, $pixKeyVal)) {
+            if (BinanceAccounts::existsAccount($accountType, $dataValue)) {
                 return redirect()->back()->with([
-                    'message' => 'Esta Chave Pix ya se encuentra registrada',
+                    'message' => 'Estos datos ya se encuentran registrados',
                     'type' => 'warning',
                 ]);
             }
 
             BinanceAccounts::create([
-                'name' => $request->name,
-                'bank' => $bankID,
-                'pix_key' => $request->pix_key,
-                'pix_key_value' => $request->pix_key_value,
-                'user' => Auth::id()
+                'account_type' => $accountType,
+                'data_value' => $dataValue,
+                'user' => Auth::id(),
+                'status' => 1
             ]);
 
             DB::commit();
 
             return redirect()->back()->with([
-                'message' => 'Pix registrado con éxito',
+                'message' => 'Registro con éxito',
                 'type' => 'success',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Ha ocurrido un error al registrar datos de Binance: ' . $e->getMessage());
             return redirect()->back()->with([
                 'message' => 'Ocurrió un error',
                 'type' => 'warning',
@@ -58,38 +61,35 @@ class BinanceController extends Controller
 
     public function update(Request $request, $id)
     {
+        $accountType = $request->account_type;
+        $dataValue = $request->data_value;
+
         DB::beginTransaction();
 
         try {
-            $pixKey = $request->pix_key;
-            $pixKeyVal = $request->pix_key_value;
-
-            if (BinanceAccounts::existsAccount($pixKey, $pixKeyVal, Auth::id())) {
+            if (BinanceAccounts::existsAccount($accountType, $dataValue, Auth::id())) {
                 return redirect()->back()->with([
-                    'message' => 'Esta Chave Pix ya se encuentra registrada',
+                    'message' => 'Estos datos ya se encuentran registrados',
                     'type' => 'warning',
                 ]);
             }
 
-            $pix = BinanceAccounts::findOrFail(decrypt($id));
+            $account = BinanceAccounts::findOrFail(decrypt($id));
 
-            $pix->update([
-                'name' => $request->name,
-                'bank' => $bankID,
-                'pix_key' => $pixKey,
-                'pix_key_value' => $pixKeyVal
-            ]);
+            $account->update(['account_type' => $accountType, 'data_value' => $dataValue]);
 
             DB::commit();
 
             return redirect()->back()->with([
-                'message' => 'Pix actualizado con éxito',
+                'message' => 'Registro actualizado con éxito',
                 'type' => 'success',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Ha ocurrido un error al actulizar los datos de Binance: ' . $e->getMessage());
+
             return redirect()->back()->with([
-                'message' => 'Ha ocurrido un error al actualizar el Pix. Inténtalo de nuevo.',
+                'message' => 'Ha ocurrido un error al actualizar',
                 'type' => 'warning',
             ]);
         }
@@ -102,10 +102,10 @@ class BinanceController extends Controller
         try {
             BinanceAccounts::destroy(decrypt($request->id));
             DB::commit();
-            return redirect()->back()->with('message', 'Esta Chave Pix ha sido eliminada')->with('type', 'success');
+            return redirect()->back()->with('message', 'El registro ha sido eliminado')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al eliminar Pix: ' . $e->getMessage());
+            Log::error('Error al eliminar registro de cuenta Binance: ' . $e->getMessage());
         }
     }
 

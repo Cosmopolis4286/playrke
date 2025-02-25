@@ -72,9 +72,9 @@
 
             if (type == 1) $('#account-type').append(`<option value="" disabled selected>Seleccionar:</option>`);
 
-            accountTypes.forEach(function(item) {
-                const isSelected = (type == 2 && item.id == data.account_type) ? 'selected' : '';
-                $('#account-type').append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+            $.each(accountTypes, function(index, item) {
+                const isSelected = (type == 2 && item == data.account_type) ? 'selected' : '';
+                $('#account-type').append(`<option value="${index}" ${isSelected}>${item}</option>`);
             });
 
             if (type == 2) {
