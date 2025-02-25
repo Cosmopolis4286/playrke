@@ -15,20 +15,16 @@
                     <table class="table table-striped table-bordered my-2 w-100">
                         <thead>
                             <tr>
-                                <th>Método</th>
-                                <th>#Número</th>
-                                <th>Usuario</th>
-                                <th>Núm.Doc</th>
+                                <th>Tipo</th>
+                                <th>Data</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($paymentMethods as $item)
+                            @foreach ($accounts as $item)
                                 <tr>
-                                    <td>{{ $item->gateway }}</td>
-                                    <td>{{ $item->acc_number }}</td>
-                                    <td>{{ $item->user_name }}</td>
-                                    <td>{{ $item->document_number }}</td>
+                                    <td>{{ $item->account_type_description }}</td>
+                                    <td>{{ $item->data_value }}</td>
                                     <td>
                                         @include('includes.btn-group', [
                                             'name' => $name,
@@ -57,7 +53,7 @@
     </div>
     @include('includes.modal-form', [
         'name' => $name,
-        'dataForm' => view('modules.all.directory.co.form')->render(),
+        'dataForm' => view('modules.all.directory.usdt.form')->render(),
     ])
     @include('includes.form-other-options')
 @endsection
@@ -65,10 +61,10 @@
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
         const name = '{{ $name }}';
-        const arrPaymentMethod = @json($arrPaymentMethod);
+        const accountTypes = @json($accountTypes);
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Datos Bancarios', '{{ asset('') }}payment-method-col')
+            formCRUD($(this), name, 'Datos Binance', `{{ asset('') }}${name}`)
         });
 
         $(document).ready(function() {
@@ -82,7 +78,7 @@
             if (type == 1) $('#gateway').append(`<option value=""  disabled selected>Seleccionar:</option>`);
 
             // Pasarela de Pago
-            $.each(arrPaymentMethod, function(index, item) {
+            $.each(accountTypes, function(index, item) {
                 const isSelected = (type == 2 && index == data.gateway) ? 'selected' : '';
                 $('#gateway').append(`<option value="${index}" ${isSelected}>${item}</option>`);
             });

@@ -31,7 +31,7 @@ class DirectoryController extends Controller
         }
 
         $countryCode = strtolower($countryCode);
-        $validCodes = ['br', 'co', 've'];
+        $validCodes = ['usdt', 'br', 'co', 've'];
 
         // Redirigir si el código del país no es válido
         if (!in_array($countryCode, $validCodes)) {

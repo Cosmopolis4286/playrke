@@ -1409,6 +1409,11 @@ class BingoController extends Controller
         ]);
     }
 
+    public function configuration()
+    {
+        return redirect()->back();
+    }
+
     public function getInfo($id, $starTime = '')
     {
         if ($starTime) {
@@ -1814,7 +1819,7 @@ class BingoController extends Controller
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo AUTO',
-            'name' => 'bingocash',
+            'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'creator' => $creator,
             'rooms' => $automaticRooms,

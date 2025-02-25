@@ -149,11 +149,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Vendedor', '{{ asset('') }}seller');
+            formCRUD(elem, name, 'Vendedor', `{{ asset('') }}${name}`);
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Vendedor', '{{ asset('') }}seller', otherCasesMap)
+            formCRUD($(this), name, 'Vendedor', `{{ asset('') }}${name}`, otherCasesMap)
         });
 
         country.on("change", function() {

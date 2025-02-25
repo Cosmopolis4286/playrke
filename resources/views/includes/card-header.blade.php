@@ -9,6 +9,11 @@
             @endif
             @php $displayTitle = $cardTitle ?? $title; @endphp
             <h5 class="m-0">{!! $displayTitle !!}</h5>
+            @isset($btnCardHeader)
+                <a href="{{ $btnCardHeader['route'] }}" class="text-muted ml-2 mb-n1">
+                    <i class="{{ $btnCardHeader['icon'] }}"></i>
+                </a>
+            @endisset
         </div>
         <div id="loader-sm" class="spinner-border spinner-border-sm text-primary" role="status" style="display: none;">
             <span class="sr-only">Loading...</span>

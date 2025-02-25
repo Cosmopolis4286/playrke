@@ -83,7 +83,7 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingo/automatic-room', otherCasesMap);
+            formCRUD($(this), name, 'Nueva Sala', `{{ asset('') }}${name}/automatic-room`, otherCasesMap);
         });
 
         function insertInfo(type, data = '') {

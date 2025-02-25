@@ -7,6 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\BinanceController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CommerceController;
 use App\Http\Controllers\SellerController;
@@ -229,6 +230,13 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment-method-col', 'as' =
     Route::get('getInfo/{id}', [PaymentMethodsCOLController::class, 'getInfo'])->name('getInfo');
 });
 
+Route::group(['middleware' => ['auth'], 'prefix' => 'binance', 'as' => 'binance.'], function () {
+    Route::post('create', [BinanceController::class, 'create'])->name('create');
+    Route::put('update/{id}', [BinanceController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [BinanceController::class, 'delete'])->name('delete');
+    Route::get('getInfo/{id}', [BinanceController::class, 'getInfo'])->name('getInfo');
+});
+
 Route::group(['middleware' => ['auth'], 'prefix' => 'wallet', 'as' => 'wallet.'], function () {
     Route::get('', [WalletController::class, 'index'])->name('index');
     Route::get('deposit/pagomovil', [WalletController::class, 'createPM'])->name('createPM');
@@ -312,6 +320,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 });
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
+    Route::get('configuration', [BingoController::class, 'configuration'])->name('configuration');
     Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::get('getDateTimeRooms/{creatorType}/{creatorID}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');

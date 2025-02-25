@@ -68,7 +68,7 @@
         const arrBanks = @json($banks);
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Pago Movil', '{{ asset('') }}pagomovil')
+            formCRUD($(this), name, 'Pago Movil', `{{ asset('') }}${name}`)
         });
 
         $(document).ready(function() {

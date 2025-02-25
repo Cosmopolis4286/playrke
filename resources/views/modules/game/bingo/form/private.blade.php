@@ -3,7 +3,9 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header')
+            @include('includes.card-header', [
+                'btnCardHeader' => ['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear'],
+            ])
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
                 @include('includes.game.bingo.report.btn-group', ['view' => 'PRIVATE'])
@@ -70,7 +72,7 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingo', otherCasesMap);
+            formCRUD($(this), name, 'Nueva Sala', `{{ asset('') }}${name}`, otherCasesMap);
         });
 
         function insertInfo(type, data = '') {

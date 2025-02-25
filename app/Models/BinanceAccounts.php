@@ -15,9 +15,12 @@ class BinanceAccounts extends Model
 		['id' => 'B', 'description' => 'Id de Binance'],
 	];
 
-	public function AccountType()
+	protected $appends = ['account_type_description'];
+
+	public function getAccountTypeAttribute()
 	{
-		return $this->belongsTo(User::class, 'account_type');
+		$accountType = collect(self::TYPES)->firstWhere('id', $this->account_type);
+		return $accountType['description'] ?? 'Desconocido';
 	}
 
 	public function User()

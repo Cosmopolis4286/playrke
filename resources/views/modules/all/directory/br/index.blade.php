@@ -72,7 +72,7 @@
         let banks = [];
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Pix', '{{ asset('') }}pix')
+            formCRUD($(this), name, 'Pix', `{{ asset('') }}${name}`)
         });
 
         $(document).ready(function() {

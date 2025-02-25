@@ -1,16 +1,8 @@
 <div class="form-group">
-    <label for="gateway">Método*</label>
-    <select required class="form-control" id="gateway" name="gateway"></select>
+    <label for="account-type">Tipo*</label>
+    <select required class="form-control" id="account-type" name="account_type"></select>
 </div>
 <div class="form-group">
-    <label for="acc-number">#Número*</label>
-    <input type="text" class="form-control" id="acc-number" name="acc_number">
-</div>
-<div class="form-group">
-    <label for="user-name">Usuario*</label>
-    <input type="text" class="form-control" id="user-name" name="user_name">
-</div>
-<div class="form-group">
-    <label for="document-number">Núm.Doc*</label>
-    <input type="text" class="form-control" id="document-number" name="document_number">
+    <label for="data-value">Data*</label>
+    <input type="text" class="form-control" id="data-value" name="data_value">
 </div>

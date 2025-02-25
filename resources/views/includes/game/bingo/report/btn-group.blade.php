@@ -43,7 +43,7 @@
     @if ($view !== 'AUTO')
         <a href="{{ $activeRooms ? $GMRoute : '#' }}"
             class="btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}">
-            <i class="fas fa-eye"></i> Ver Salas
+            <i class="fas fa-eye"></i> Ver salas
         </a>
     @else
         <button type="button" id="btn-execute-job" class="btn btn-sm btn-primary {{ $rooms ? '' : 'disabled' }}">

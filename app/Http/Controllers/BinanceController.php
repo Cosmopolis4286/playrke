@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class PixController extends Controller
+class BinanceController extends Controller
 {
     use UserVal;
 
