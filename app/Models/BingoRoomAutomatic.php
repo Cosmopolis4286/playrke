@@ -19,9 +19,9 @@ class BingoRoomAutomatic extends Model
     'ctn_price',
     'time_chip',
     'room_commn',
-    'serials_commn',
-    'val_serials',
+    'pct_serials',
     'num_serials',
+    'serials_commn',
     'creator_type',
     'creator_id',
     'status'

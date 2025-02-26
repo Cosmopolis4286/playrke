@@ -9,9 +9,7 @@ class BingoRoomUser extends Model
     protected $table = 'bingo_rooms_user';
     protected $fillable = [
         'room',
-        'customer',
-        'commerce',
-        'subsidiary',
+        'bingo_creator',
         'seller',
         'player_user',
         'player_link',
@@ -24,21 +22,6 @@ class BingoRoomUser extends Model
     public function Room()
     {
         return $this->belongsTo(BingoRoomUser::class, 'room');
-    }
-
-    public function Customer()
-    {
-        return $this->belongsTo(Customer::class, 'customer');
-    }
-
-    public function Commerce()
-    {
-        return $this->belongsTo(Commerce::class, 'commerce');
-    }
-
-    public function Seller()
-    {
-        return $this->belongsTo(Seller::class, 'seller');
     }
 
     public function Coin()

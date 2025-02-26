@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('time_chip', 2)->nullable();
             $table->double('room_commn')->default(0);
             $table->double('serials_commn')->default(0);
-            $table->double('val_serials')->nullable();
+            $table->double('pct_serials')->nullable();
             $table->double('num_serials', 2)->nullable();
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');

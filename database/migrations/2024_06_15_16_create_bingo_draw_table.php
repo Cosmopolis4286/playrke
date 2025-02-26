@@ -21,8 +21,6 @@ return new class extends Migration
             $table->integer('time');
             $table->boolean('status')->default(0);
             $table->timestamps();
-
-            $table->foreign('room')->references('id')->on('bingo_rooms');
         });
     }
 

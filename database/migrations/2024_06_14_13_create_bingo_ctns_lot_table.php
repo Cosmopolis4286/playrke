@@ -16,9 +16,7 @@ return new class extends Migration
         Schema::create('bingo_ctns_lot', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
-            $table->unsignedBigInteger('customer')->nullable();
-            $table->unsignedBigInteger('commerce')->nullable();
-            $table->unsignedBigInteger('subsidiary')->nullable();
+            $table->unsignedBigInteger('bingo_creator_id');
             $table->unsignedBigInteger('seller')->nullable();
             $table->unsignedBigInteger('room_user');
             $table->integer('player_user')->nullable();
@@ -33,14 +31,12 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('customer')->references('id')->on('customers');
-            $table->foreign('commerce')->references('id')->on('commerces');
-            $table->foreign('subsidiary')->references('id')->on('subsidiaries');
+            $table->foreign('bingo_creator_id')->references('id')->on('bingo_creator');
             $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('room_user')->references('id')->on('bingo_rooms_user');
             $table->foreign('player_link')->references('id')->on('player_link');
 
-            $table->index(['room', 'commerce']);
+            $table->index(['room']);
         });
     }
 

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('bingo_images', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user')->constrained('users')->onDelete('cascade')->nullable();
             $table->enum('type', ['1', '2']);
             $table->string('param', 15);
             $table->string('route', 35);

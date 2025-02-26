@@ -10,8 +10,7 @@ class PlayerLink extends Model
   protected $fillable = [
     'game',
     'room',
-    'commerce',
-    'subsidiary',
+    'game_creator_id',
     'seller',
     'user',
     'link',
@@ -84,7 +83,7 @@ class PlayerLink extends Model
     return self::select($fields)->where('id', $id)->first();
   }
 
-  public static function getValueById($id, $value)
+  public static function getValueById($id, $value = 'id')
   {
     return self::where('id', $id)->value($value);
   }

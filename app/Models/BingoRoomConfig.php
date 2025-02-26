@@ -32,6 +32,11 @@ class BingoRoomConfig extends Model
   {
     return $this->belongsTo(BingoRoom::class, 'room');
   }
+  
+  public function GameMode()
+  {
+    return $this->belongsTo(GameModes::class, 'game_mode');
+  }
 
   public function JackpotType()
   {

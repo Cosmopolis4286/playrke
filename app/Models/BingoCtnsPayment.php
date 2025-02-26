@@ -10,8 +10,7 @@ class BingoCtnsPayment extends Model
     protected $fillable = [
         'operation',
         'room',
-        'commerce',
-        'subsidiary',
+        'bingo_creator',
         'seller',
         'player_link',
         'payment_type',

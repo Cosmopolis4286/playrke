@@ -17,8 +17,7 @@ return new class extends Migration
             $table->id();
             $table->string('operation', 1);
             $table->unsignedBigInteger('room');
-            $table->unsignedBigInteger('commerce')->nullable();
-            $table->unsignedBigInteger('subsidiary')->nullable();
+            $table->unsignedBigInteger('bingo_creator_id');
             $table->unsignedBigInteger('seller')->nullable();
             $table->integer('user')->nullable();
             $table->unsignedBigInteger('player_link');
@@ -30,15 +29,14 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('commerce')->references('id')->on('commerces');
-            $table->foreign('subsidiary')->references('id')->on('subsidiaries');
+            $table->foreign('bingo_creator_id')->references('id')->on('bingo_creator');
             $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade');
             $table->foreign('player_link')->references('id')->on('player_link');
             $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
 
             // índice compuesto
-            $table->index(['room', 'commerce', 'seller']);
+            $table->index(['room', 'seller']);
         });
     }
 

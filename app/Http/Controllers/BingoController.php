@@ -886,14 +886,20 @@ class BingoController extends Controller
         );
     }
 
-    private function getInfoRooms($roomType, $coin, $creatorType, $creatorID)
+    private function getInfoRooms($roomType, $coin, $creator)
     {
-        $roomType = $roomType === 'private-rooms' ? 1 : 2;
+        $creatorType = UserType::getValueByPrefix($creator['type']);
+        $creatorID = decrypt($creator['id']);
+
+        $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
 
         return BingoRoom::with([
             'Config.JackpotType',
-            'GameMode' => function ($query) {
-                $query->select('id', 'description');
+            'Config.GameMode:id,description',
+            'Creator' => function ($query) use ($creatorType, $creatorID) {
+                $query->select('id', 'room', 'creator_type', 'creator_id')
+                    ->where('creator_type', $creatorType)
+                    ->where('creator_id', $creatorID);
             },
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
@@ -901,8 +907,7 @@ class BingoController extends Controller
             'GameExchangeRate' => function ($query) use ($coin) {
                 $query->where('coin', $coin)->where('game', 1);
             }
-        ])->where('room_type', $roomType)->where($creatorType, $creatorID)
-            ->orderByDesc('date')->orderByDesc('time')->orderBy('status')->get();
+        ])->orderBy('status')->get();
     }
 
     private function getGameRoomsInfo($creator, $coin, $roomType)
@@ -984,7 +989,9 @@ class BingoController extends Controller
                 break;
         }
 
-        $rooms = $this->getInfoRooms($roomType, $coin, $creator['type'], $creatorID);
+        $rooms = $this->getInfoRooms($roomType, $coin, $creator);
+
+        dd($rooms);
 
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
