@@ -9,15 +9,22 @@ class BingoRoomConfig extends Model
   protected $table = "bingo_rooms_config";
   protected $fillable = [
     'room',
+    'creation',
+    'room_type',
+    'game_mode',
+    'date',
+    'time',
+    'unix_date',
+    'country',
+    'coin',
+    'ctn_price',
     'jackpot_type',
     'fixed_jackpot_value',
-    'replay',
     'time_chip',
-    'room_commn',
-    'serials_commn',
-    'val_serials',
+    'pct_serials',
     'num_serials',
-    'val_sm_prizes',
+    'serials_commn',
+    'val_types_plays',
     'types_plays'
   ];
 

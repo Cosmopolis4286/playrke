@@ -7,16 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Room extends Model
 {
     public const TYPES = [
-        ['id' => 1, 'description' => 'Privada'],
-        ['id' => 2, 'description' => 'Pública'],
+        'PV' => 'Privada',
+        'PB' => 'Pública'
     ];
 
     public static function getRoomTypes($excludeId = null)
     {
         if ($excludeId) {
-            return array_filter(self::TYPES, function ($type) use ($excludeId) {
-                return $type['id'] !== $excludeId;
-            });
+            return array_filter(self::TYPES, function ($id) use ($excludeId) {
+                return $id !== $excludeId;
+            }, ARRAY_FILTER_USE_BOTH);
         }
 
         return self::TYPES;

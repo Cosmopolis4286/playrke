@@ -1143,30 +1143,15 @@ class BingoController extends Controller
 
             date_default_timezone_set(config('app.timezone'));
 
-            $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
+            $boat = ($request->jackpot_type === 'PV') ? $request->fixed_jackpot_value : 0;
             $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
 
             $createData = [
-                'game_mode' => $request->game_mode,
-                'status' => 1,
-                'creation' => 'M',
-                'date' => $request->date,
-                'time' => $request->time,
-                'unix_date' => strtotime("{$request->date} {$request->time}"),
-                'coin' => $coin,
-                'ctn_price' => $request->ctn_price,
-                'jackpot' => $boat,
                 'encrypted' => $this->generateUniqueCode('bingo_rooms'),
-                'room_type' => $request->room_type ?? 1
+                'status' => 1,
+                'jackpot' => $boat,
+                'code_uuid' => $this->getCodeUUID('BingoRoom')
             ];
-
-            if ($creatorType === 'commerce') {
-                $createData['commerce'] = $creatorID;
-                $createData['subsidiary'] = $request->subsidiary ?? null;
-            } else {
-                $createData['customer'] = $creatorID;
-                $createData['code_uuid'] = $this->getCodeUUID('BingoRoom');
-            }
 
             DB::beginTransaction();
 
@@ -1193,14 +1178,20 @@ class BingoController extends Controller
 
                 BingoRoomConfig::create([
                     'room' => $roomID,
+                    'room_type' => $request->room_type,
+                    'creation' => 'M',
+                    'game_mode' => $request->game_mode,
+                    'date' => $request->date,
+                    'time' => $request->time,
+                    'unix_date' => strtotime("{$request->date} {$request->time}"),
+                    'coin' => $coin,
+                    'ctn_price' => $request->ctn_price,
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
                     'time_chip' => $request->time_chip,
                     'room_commn' => $request->room_commission,
-                    'serials_commn' => $request->serials_commission,
-                    'val_serials' => $request->val_serials,
+                    'pct_serials' => $request->pct_serials,
                     'num_serials' => $request->num_serials,
-                    //'val_sm_prizes' => $request->val_sm_prizes,
                 ]);
 
                 if ($ctnPriceCoins) {
@@ -1253,7 +1244,7 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
-            $boat = ($request->jackpot_type > 1) ? $request->fixed_jackpot_value : 0;
+            $boat = ($request->jackpot_type === 'PV') ? $request->fixed_jackpot_value : 0;
             $coin = $request->coin ?? 1;
             $ctnPriceCoins = $request->ctn_price_coins;
 
@@ -1423,10 +1414,21 @@ class BingoController extends Controller
 
         $id = decrypt($id);
 
-        $room = BingoRoom::select('encrypted', 'game_mode', 'date', 'time', 'ctn_price', 'jackpot', 'players')->where('id', $id)->firstOrFail();
+        $room = BingoRoom::select('encrypted', 'jackpot', 'players')->where('id', $id)->firstOrFail();
 
-        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'time_chip', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
-            ->where('room', $id)->firstOrFail();
+        $roomConfig = BingoRoomConfig::select(
+            'game_mode',
+            'date',
+            'time',
+            'ctn_price',
+            'jackpot_type',
+            'fixed_jackpot_value',
+            'time_chip',
+            'room_commn',
+            'serials_commn',
+            'val_serials',
+            'num_serials'
+        )->where('room', $id)->firstOrFail();
 
         $creator = true;
 

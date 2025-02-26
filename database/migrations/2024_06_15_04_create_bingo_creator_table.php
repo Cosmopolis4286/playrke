@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
             $table->double('creator_commn')->default(0);
-            $table->double('ctn_price')->default(0.5);
+            $table->double('ctn_price');
             $table->timestamps();
         });
     }

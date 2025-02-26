@@ -15,11 +15,10 @@ return new class extends Migration
     {
         Schema::create('bingo_draw', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('room');
-            $table->unsignedTinyInteger('chip');
+            $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->string('chip', 2);
             $table->string('code', 8);
             $table->integer('time');
-            $table->boolean('win')->default(0);
             $table->boolean('status')->default(0);
             $table->timestamps();
 

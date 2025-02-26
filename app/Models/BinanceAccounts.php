@@ -30,7 +30,7 @@ class BinanceAccounts extends Model
 	public static function getAccountTypes($excludeId = null)
 	{
 		if ($excludeId) {
-			return array_filter(self::TYPES, function ($description, $id) use ($excludeId) {
+			return array_filter(self::TYPES, function ($id) use ($excludeId) {
 				return $id !== $excludeId;
 			}, ARRAY_FILTER_USE_BOTH);
 		}

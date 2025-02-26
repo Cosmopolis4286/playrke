@@ -14,22 +14,9 @@ return new class extends Migration
         Schema::create('bingo_rooms', function (Blueprint $table) {
             $table->id();
             $table->string('encrypted', 18)->unique();
-            $table->unsignedBigInteger('game_mode');
-            $table->unsignedBigInteger('customer')->nullable();
-            $table->unsignedBigInteger('commerce')->nullable();
-            $table->unsignedBigInteger('subsidiary')->nullable();
-            $table->unsignedBigInteger('status')->default(1);
-            $table->enum('creation', ['M', 'A'])->default('M');
+            $table->foreignId('status')->constrained('game_status')->onDelete('cascade')->default(1);
             $table->integer('bingo_creator')->nullable();
-            $table->tinyInteger('room_type')->default(1);
-            $table->boolean('paid_win')->default(0);
-            $table->date('date');
-            $table->string('time', 10);
-            $table->integer('unix_date')->nullable();
-            $table->unsignedBigInteger('country')->nullable();
-            $table->string('coin', 15)->nullable();
             $table->timestamp('publication_date')->nullable();
-            $table->double('ctn_price');
             $table->integer('players')->default(0);
             $table->double('all_sale')->default(0);
             $table->double('room_commn')->default(0);
@@ -38,17 +25,10 @@ return new class extends Migration
             $table->double('jackpot_prize')->default(0);
             $table->double('serial_prize')->default(0);
             $table->integer('ctns')->default(0);
+            $table->boolean('paid_win')->default(0);
             $table->integer('close_room')->nullable();
             $table->string('code_uuid', 36)->nullable()->unique();
-            $table->timestamps();
-
-            // Definición de las claves foráneas
-            $table->foreign('game_mode')->references('id')->on('game_modes');
-            $table->foreign('status')->references('id')->on('game_status');
-            $table->foreign('customer')->references('id')->on('customers');
-            $table->foreign('commerce')->references('id')->on('commerces');
-            $table->foreign('subsidiary')->references('id')->on('subsidiaries');
-            $table->foreign('country')->references('id')->on('countries');
+            $table->timestamps();          
         });
     }
 
@@ -60,14 +40,7 @@ return new class extends Migration
     public function down()
     {
         Schema::table('bingo_rooms', function (Blueprint $table) {
-            // Eliminar claves foráneas antes de eliminar la tabla
-            $table->dropForeign(['game_mode']);
             $table->dropForeign(['status']);
-            $table->dropForeign(['customer']);
-            $table->dropForeign(['commerce']);
-            $table->dropForeign(['subsidiary']);
-            $table->dropForeign(['country']);
-            $table->dropForeign(['coin']);
         });
 
         Schema::dropIfExists('bingo_rooms');

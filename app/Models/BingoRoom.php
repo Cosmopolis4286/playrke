@@ -44,11 +44,6 @@ class BingoRoom extends Model
     return $roomType['description'] ?? 'Desconocido';
   }
 
-  public function GameMode()
-  {
-    return $this->belongsTo(GameModes::class, 'game_mode');
-  }
-
   public function Status()
   {
     return $this->belongsTo(StatusGame::class, 'status');
@@ -67,21 +62,6 @@ class BingoRoom extends Model
   public function Prizes()
   {
     return $this->belongsTo(BingoRoomPrizes::class, 'id', 'room');
-  }
-
-  public function Coin()
-  {
-    return $this->belongsTo(Coin::class, 'coin');
-  }
-
-  public function Customer()
-  {
-    return $this->belongsTo(Customer::class, 'customer');
-  }
-
-  public function Commerce()
-  {
-    return $this->belongsTo(Commerce::class, 'commerce');
   }
 
   public function CtnsLot()
