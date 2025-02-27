@@ -106,7 +106,7 @@ class AutoGenerateBingoRooms
             [
                 'creation' => 'A',
                 'game_mode' => $dataRoom->game_mode,
-                'date' => $dataRoom->date,
+                'date' => $roomDate,
                 'time' => $dataRoom->time,
                 'unix_date' => $unixDate,
                 'ctn_price' => $dataRoom->ctn_price,
