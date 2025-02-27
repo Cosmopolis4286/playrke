@@ -2,32 +2,28 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCtns, BingoDraw, BingoPrizeCtns, BingoRoom, BingoRoomUser};
+use App\Models\{BingoCreator, BingoCtns, BingoDraw, BingoPrizeCtns, BingoRoom, BingoRoomUser, User, UserType};
 use App\Traits\BingoTrait;
 
 class HandleBingoRooms
 {
     use BingoTrait;
 
-    public function checkRoomClosure(int $room = null, array $creator = []): void
+    public function checkRoomClosure(int $room = null, bool $creatorUser = false): void
     {
-        $fields = ['id', 'unix_date'];
-        if (!empty($creator)) {
-            $fields[] = $creator['type'];
-        }
-
-        BingoRoom::whereIn('status', [2, 3]) // Filtramos por status
-            ->when(!empty($creator), fn($query) => $query->where($creator['type'], $creator['id'])) // Condición para creator
+        BingoRoom::with('Config:room,unix_date')->whereIn('status', [2, 3]) // Filtramos por status
+            ->when($creatorUser, fn($query) => $query->where('user', $creatorUser)) // Condición para creator
             ->when($room, fn($query) => $query->where('id', $room)) // Condición para room
-            ->get($fields) // Obtener solo los campos necesarios
-            ->each(fn($room) => $this->processRoomClosure($room)); // Procesar cada sala
+            ->get('id')->each(fn($room) => $this->processRoomClosure($room)); // Procesar cada sala
 
-        $this->handleFinishedRooms($creator);
+        $this->handleFinishedRooms($creatorUser);
     }
 
     private function processRoomClosure($room): void
     {
-        if (time() < $room->unix_date) {
+        date_default_timezone_set(config('app.timezone'));
+
+        if (time() < $room->Config->unix_date) {
             return;
         }
 
@@ -50,16 +46,11 @@ class HandleBingoRooms
         return 1; // Status 1: Borrador
     }
 
-    public function handleFinishedRooms(array $creator = []): void
+    public function handleFinishedRooms($creatorUser = false): void
     {
-        $fields = ['id', 'date', 'time', 'commerce', 'customer'];
-        if (!empty($creator)) {
-            $fields[] = $creator['type'];
-        }
-
-        BingoRoom::where('status', 4) // Filtramos por el Status
-            ->when(!empty($creator), fn($query) => $query->where($creator['type'], $creator['id']))
-            ->get($fields)->each(fn($room) => $this->processFinishedRoom($room));
+        BingoRoom::with('Config:room,date,time')->where('status', 4)
+            ->when($creatorUser, fn($query) => $query->where('user', $creatorUser))
+            ->get(['id', 'user'])->each(fn($room) => $this->processFinishedRoom($room));
     }
 
     private function processFinishedRoom($room): void
@@ -68,12 +59,16 @@ class HandleBingoRooms
             $this->handleJackpotWinners($room->id);
         }
 
-        if ($room->commerce) {
+        $userCreatorType = User::getValueById($room->user, 'user_type');
+        $creatorUserType = UserType::getValueById($userCreatorType, 'prefix');
+
+        if ($creatorUserType === 'commerce') {
             // Actulizar estado de los cartones ganadores
             BingoPrizeCtns::where('room', $room->id)->update(['active' => 'Y']);
-        } else if ($room->customer) {
+        } else if ($creatorUserType === 'customer') {
             // Verificar si existen pagos que procesar
-            (new PrizeCartonService())->handleCustomerPrizeCarton($room->customer);
+            $customerID = BingoCreator::getValueByRoom($room->id, 'creator_id');
+            (new PrizeCartonService())->handleCustomerPrizeCarton($customerID);
         }
 
         $this->checkAndHideRoom($room);
@@ -81,7 +76,9 @@ class HandleBingoRooms
 
     private function checkAndHideRoom($room): void
     {
-        $dataTime2Week = strtotime("{$room->date} {$room->time}") + (2 * 7 * 24 * 60 * 60); // Sumar 2 semanas
+        date_default_timezone_set(config('app.timezone'));
+
+        $dataTime2Week = strtotime("{$room->Config->date} {$room->Config->time}") + (2 * 7 * 24 * 60 * 60); // Sumar 2 semanas
 
         if ($dataTime2Week <= time()) {
             BingoRoom::where('id', $room->id)->update(['status' => 6]); // Status 6: Sala Oculta

@@ -907,7 +907,7 @@ class BingoController extends Controller
 
     private function getGameRoomsInfo($creator, $coin, $roomType)
     {
-        //(new HandleBingoRooms())->checkRoomClosure();
+        (new HandleBingoRooms())->checkRoomClosure();
 
         $view = $roomType === 'private-rooms' ? 'private' : 'public';
 
@@ -1591,7 +1591,8 @@ class BingoController extends Controller
     public function replay($id)
     {
         $room = BingoRoom::with('Config')->findOrFail("id", decrypt($id));
-        $this->handleCreateAutomaticRoom($room, true);
+        $response = $this->handleCreateAutomaticRoom($room, true);
+        return redirect()->back()->with(['type' => $response['type'], 'message' => $response['message']]);
     }
 
     public function publish($id)
@@ -1747,7 +1748,9 @@ class BingoController extends Controller
             case 'commerce': // Comercio
                 $isLogin = true;
 
-                $commerce = Commerce::getById($creatorID, ['coin', 'code_uuid']);
+                $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
+
+                $creatorUser = $commerce->user;
 
                 $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($commerce->coin)]);
 
@@ -1760,7 +1763,9 @@ class BingoController extends Controller
 
                 $isLogin = $returnBtn = false;
 
-                $token = Customer::getValueById($creatorID, 'token');
+                $customer = Customer::getById($creatorID, ['user', 'token']);
+                $creatorUser = $customer->user;
+                $token = $customer->token;
 
                 $GMRoute =  route(
                     'bingo.game-rooms-customer',
@@ -1796,7 +1801,7 @@ class BingoController extends Controller
                 'status'
             ]);
 
-        $activeRooms = BingoRoom::where($creator['type'], $creatorID)->whereIn('status', [2, 3])->exists();
+        $activeRooms = BingoRoom::where('user', $creatorUser)->whereIn('status', [2, 3])->exists();
 
         $routeExecuteGenerateBingoRoomsJob = route(
             'bingo.automatic-room.executeGenerateBingoRoomsJob',
@@ -1865,13 +1870,10 @@ class BingoController extends Controller
 
     private function handleCreateAutomaticRoom($data, $replay = false)
     {
-        $creator = json_decode($data->creator);
-        $creatorType = UserType::getValueByPrefix($creator->type, 'id');
-        $creatorID = decrypt($creator->id);
-
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
+
+            $creator = json_decode($data->creator);
             $automaticBingoID = BingoRoomAutomatic::create([
                 'time' => $data->time,
                 'game_mode' => $data->game_mode,
@@ -1884,43 +1886,38 @@ class BingoController extends Controller
                 'serials_commn' => $data->serials_commission,
                 'pct_serials' => $data->pct_serials,
                 'num_serials' => $data->num_serials,
-                'creator_type' => $creatorType,
-                'creator_id' => $creatorID,
+                'creator_type' => UserType::getValueByPrefix($creator->type, 'id'),
+                'creator_id' => decrypt($creator->id),
             ])->id;
 
-            $ctnPriceCoins = $data->ctn_price_coins;
-
-            if ($ctnPriceCoins) {
-
+            if (!empty($data->ctn_price_coins)) {
                 $timestamp = now();
 
-                $recordsToInsert = collect($ctnPriceCoins)
-                    ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
-                    ->map(function ($ctnPrice, $coin) use ($automaticBingoID, $timestamp) {
-                        return [
-                            'automatic_bingo_id' => $automaticBingoID,
-                            'coin' => $coin,
-                            'ctn_price' => $ctnPrice,
-                            'created_at' => $timestamp,
-                            'updated_at' => $timestamp,
-                        ];
-                    })->values()->toArray();
+                $recordsToInsert = array_map(fn($coin, $ctnPrice) =>
+                $ctnPrice ? [
+                    'automatic_bingo_id' => $automaticBingoID,
+                    'coin' => $coin,
+                    'ctn_price' => $ctnPrice,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ] : null, array_keys((array) $data->ctn_price_coins), (array) $data->ctn_price_coins);
 
-                BingoCtnPriceAutomatic::insert($recordsToInsert);
+                BingoCtnPriceAutomatic::insert(array_filter($recordsToInsert));
             }
 
             DB::commit();
-            return redirect()->back()->with('message', 'Registro creado con éxito')->with('type', 'success');
+            return ['type' => 'success', 'message' => 'Registro creado con éxito'];
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear información de una sala automática: ' . $e->getMessage());
-            return redirect()->back()->with('msg-error', 'Hubo un error al crear la información');
+            Log::error('Error al crear sala automática: ' . $e->getMessage());
+            return ['type' => 'warning', 'message' => 'Hubo un error al crear la sala'];
         }
     }
 
     public function createAutomaticRoom(Request $request)
     {
-        $this->handleCreateAutomaticRoom($request);
+        $response = $this->handleCreateAutomaticRoom($request);
+        return redirect()->back()->with(['type' => $response['type'], 'message' => $response['message']]);
     }
 
     public function updateAutomaticRoom(Request $request, $id)
@@ -1939,9 +1936,8 @@ class BingoController extends Controller
                 'time_chip' => $request->time_chip,
                 'ctn_price' => $request->ctn_price,
                 'room_commn' => $request->room_commn,
-                'serials_commn' => $request->serials_commission,
                 'pct_serials' => $request->pct_serials,
-                'num_serials' => $request->num_serials,
+                'num_serials' => $request->num_serials
             ]);
 
             $ctnPriceCoins = $request->ctn_price_coins;

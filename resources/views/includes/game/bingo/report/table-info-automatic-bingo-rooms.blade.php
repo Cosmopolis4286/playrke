@@ -10,7 +10,6 @@
                 <th>Bote</th>
                 <th>%Com</th>
                 <th>%Bote Serial</th>
-                <th>%Serial</th>
                 <th>Máx Serial</th>
                 <th>Status</th>
                 <th>Acción</th>
@@ -24,11 +23,10 @@
                     </td>
                     <td>{{ $room->GameMode->description }}</td>
                     <td>{{ $room->time }} H</td>
-                    <td>USDT&nbsp{{ $room->ctn_price }}</td>
+                    <td>{{ $room->ctn_price }}&nbsp<small>USDT</small></td>
                     <td>{{ $room->JackpotType->description }}</td>
                     <td>{{ $room->room_commn }}%</td>
-                    <td>{{ $room->val_serials }}%</td>
-                    <td>{{ $room->serials_commn }}%</td>
+                    <td>{{ $room->pct_serials }}%</td>
                     <td>{{ $room->num_serials }}</td>
                     <td class="align-middle">
                         @if ($room->status == 1)

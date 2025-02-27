@@ -34,7 +34,8 @@
         const creatorID = @json($creator['id'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
-        const arrRoomType = @json($roomType);
+        const roomTypes = @json($roomType);
+        const existsRoomTypes = !$.isEmptyObject(roomTypes);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
         let inCourse = false;
@@ -104,7 +105,7 @@
                 required: isRequired
             }).empty();
 
-            if (creatorType !== 'customer' && arrRoomType.length) {
+            if (creatorType !== 'customer' && existsRoomTypes) {
                 roomType = $("#room-type");
                 roomType.prop({
                     disabled: isDisabled,
@@ -117,7 +118,7 @@
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
 
-                if (creatorType !== 'customer' && arrRoomType.length) {
+                if (creatorType !== 'customer' && existsRoomTypes) {
                     roomType.append(defaultOption);
                 }
 
@@ -130,10 +131,10 @@
                 jackpotType.append(defaultOption);
             }
 
-            if (creatorType !== 'customer' && arrRoomType.length) {
-                $.each(arrRoomType, function(index, item) {
-                    const isSelected = (type == 2 && item.id == data.room.room_type) ? 'selected' : '';
-                    roomType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+            if (creatorType !== 'customer' && existsRoomTypes) {
+                $.each(roomTypes, function(index, item) {
+                    const isSelected = (type == 2 && index == data.config.room_type) ? 'selected' : '';
+                    roomType.append(`<option value="${index}" ${isSelected}>${item}</option>`);
                 });
             }
 
@@ -155,16 +156,14 @@
             if (type == 1) {
                 changeFixedJackpot(1);
             } else if (type == 2) {
-
                 const config = data.config;
 
-                $('#date').val(config.room.date);
                 $('#time').val(config.time);
+                $('#room-commn').val(config.room_commn);
                 $('#ctn-price').val(config.ctn_price);
                 $('#time-chip').val(config.time_chip);
                 $('#pct-serials').val(config.pct_serials);
                 $('#num-serials').val(config.num_serials);
-                $('#room-commn').val(config.room_commn);
                 $('#serials-commn').val(config.serials_commn);
 
                 if (config.jackpot_type > 1) {

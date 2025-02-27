@@ -128,9 +128,9 @@
 
                 $('#date').val(config.date);
                 $('#time').val(config.time);
+                $('#room-commn').val(config.room_commn);
                 $('#ctn-price').val(config.ctn_price);
                 $('#time-chip').val(config.time_chip);
-                $('#room-commn').val(config.room_commn);
                 $('#pct-serials').val(config.pct_serials);
                 $('#num-serials').val(config.num_serials);
                 $('#serials-commn').val(config.serials_commn);
