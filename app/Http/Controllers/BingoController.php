@@ -1499,35 +1499,35 @@ class BingoController extends Controller
 
     public function copy($id)
     {
-        $existingRoom = BingoRoom::findOrFail(decrypt($id));
-        $existingRoomConfig = BingoRoomConfig::where('room', $existingRoom->id)->firstOrFail();
+        $roomID = decrypt($id);
+
+        $existingRoom = BingoRoom::findOrFail($roomID);
+        $existingRoomConfig = BingoRoomConfig::where('room', $roomID)->firstOrFail();
+        $existingRoomCreator = BingoCreator::getByRoom($roomID);
 
         date_default_timezone_set(config('app.timezone'));
 
-        $boat = $existingRoom->jackpot_type > 1 ? $existingRoom->fixed_jackpot_value : 0;
-        $coin = $existingRoom->coin ?? 1; // ID Coin == 1 (USDT)
+        $boat = $existingRoomConfig->jackpot_type > 1 ? $existingRoomConfig->fixed_jackpot_value : 0;
+        $coin = $existingRoomConfig->coin ?? 1; // ID Coin == 1 (USDT)
+
+        $model = 'BingoRoom';
 
         $createData = [
-            'game_mode' => $existingRoom->game_mode,
+            'encrypted' => $this->generateUniqueCode($model),
             'status' => 1,
-            'creation' => 'M',
-            'date' => $existingRoom->date,
-            'time' => $existingRoom->time,
-            'unix_date' => strtotime("{$existingRoom->date} {$existingRoom->time}"),
-            'coin' => $coin,
-            'ctn_price' => $existingRoom->ctn_price,
+            'room_type' => $existingRoom->room_type,
+            'user' => $existingRoom->user,
             'jackpot' => $boat,
-            'encrypted' => $this->generateUniqueCode('BingoRoom'),
-            'room_type' => $existingRoom->room_type
+            'code_uuid' => $this->getCodeUUID($model)
         ];
 
-        $creatorID = $existingRoom->{$creatorType};
-        $creatorType = UserType::getValueByPrefix($creatorType, 'id');
-
         // Definir $creator
-        $creator = ['type' => $creatorType, 'id' => $creatorID];
+        $creator = [
+            'type' => $existingRoomCreator->creator_type,
+            'id' => $existingRoomCreator->creator_id
+        ];
 
-        $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $existingRoom->id, 'id');
+        $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id');
         $existingRoomCtnPrice = BingoCtnPrice::getAllCtnPrice($bingoCreator);
 
         DB::beginTransaction();
@@ -1536,25 +1536,35 @@ class BingoController extends Controller
             // Obtener la nueva sala
             $newRoomID = BingoRoom::create($createData)->id;
 
-            BingoRoomConfig::create([
+            $configData = BingoRoomConfig::create([
                 'room' => $newRoomID,
+                'creation' => 'A',
+                'game_mode' => $existingRoomConfig->game_mode,
+                'date' => $existingRoomConfig->date,
+                'time' => $existingRoomConfig->time,
+                'unix_date' => strtotime("{$existingRoomConfig->date} {$existingRoomConfig->time}"),
+                'coin' => $coin,
+                'ctn_price' => $existingRoomConfig->ctn_price,
+                'room_commn' => $existingRoomConfig->room_commn,
                 'jackpot_type' => $existingRoomConfig->jackpot_type,
                 'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
                 'time_chip' => $existingRoomConfig->time_chip,
-                'room_commn' => $existingRoomConfig->room_commn,
-                'serials_commn' => $existingRoomConfig->serials_commission,
                 'pct_serials' => $existingRoomConfig->pct_serials,
                 'num_serials' => $existingRoomConfig->num_serials,
-                //'val_sm_prizes' => $existingRoomConfig->val_sm_prizes,
+                'serials_commn' => $existingRoomConfig->serials_commn,
+                // 'val_types_plays' => '',
+                // 'types_plays' => ''
             ]);
+
+            BingoRoomConfig::create($configData);
 
             // Registar el creador de la sala
             $newBingoCreatorID = BingoCreator::create([
                 'room' => $newRoomID,
-                'creator_type' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
-                'creator_id' => $existingRoom->commerce ? $existingRoom->commerce : $existingRoom->customer,
-                'creator_commn' => $existingRoomConfig->room_commn,
-                'ctn_price' => $existingRoom->ctn_price,
+                'creator_type' => $existingRoomCreator->creator_type,
+                'creator_id' => $existingRoomCreator->creator_id,
+                'creator_commn' => $existingRoomCreator->room_commn,
+                'ctn_price' => $existingRoomCreator->ctn_price
             ])->id;
 
             if ($existingRoomCtnPrice) {
