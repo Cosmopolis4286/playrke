@@ -95,7 +95,7 @@ class AutoGenerateBingoRooms
             'status' => 2,
             'creation' => 'A',
             'publication_date' => "{$roomDate} {$room->time}",
-            'encrypted' => $this->generateUniqueCode('bingo_rooms'),
+            'encrypted' => $this->generateUniqueCode('BingoRoom'),
             'room_type' => $room->room_type,
         ];
     }

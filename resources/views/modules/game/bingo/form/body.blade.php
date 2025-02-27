@@ -81,29 +81,19 @@
             </div>
         </div>
     </div>
-    {{-- <div class="form-group col-sm-6 col-md-4">
-        <label for="small-prizes">%Cantos</label>
-        <input type="number" value="0" id="small-prizes" name="small_prizes" class="form-control form-info"
-            placeholder="Ingrese monto a pagar" required>
-    </div> --}}
-    {{-- <div class="form-group col-sm-6 col-md-4">
-        <label for="serials-commission">%Com. Seriales</label>
-        <input type="number" value="0" min="0" max="5" step="0.01" id="serials-commission"
-            name="serials_commission" class="form-control form-info" placeholder="Ingrese valor">
-    </div> --}}
     <div class="form-group col-sm-6 col-md-4">
-        <label for="val-serials">%Bote Seriales</label>
-        <input type="number" value="5" min="2" max="35" step="0.05" id="val-serials"
-            name="val_serials" class="form-control form-info" placeholder="Ingrese valor" required>
+        <label for="pct-serials">%Bote Seriales</label>
+        <input type="number" value="5" min="2" max="35" step="0.05" id="pct-serials"
+            name="pct_serials" class="form-control form-info" placeholder="Ingrese valor" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="num-serials">#Max. Seriales</label>
-        <input type="number" step="1" value="5" min="3" max="25" id="num-serials"
+        <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
             name="num_serials" class="form-control form-info" placeholder="Ingrese la cantidad" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
-        <label for="room-commission">%Sala*</label>
-        <input type="number" id="room-commission" name="room_commission" class="form-control form-info"
-            value="10" step="0.05" min="5" max="50" required>
+        <label for="room-commn">%Sala*</label>
+        <input type="number" id="room-commn" name="room_commn" class="form-control form-info" value="10"
+            step="0.05" min="5" max="50" required>
     </div>
 </div>

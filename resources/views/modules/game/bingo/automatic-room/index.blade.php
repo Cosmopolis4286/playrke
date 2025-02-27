@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header')
+            @include('includes.card-header', ['subTitle' => 'Automáticas'])
             <div class="card-body">
                 @include('includes.game.bingo.report.btn-group', ['view' => 'AUTO'])
                 <div class="tab-content" id="myTabContent">

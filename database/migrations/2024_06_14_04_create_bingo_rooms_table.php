@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('encrypted', 18)->unique();
             $table->foreignId('status')->constrained('game_status')->onDelete('cascade')->default(1);
-            $table->integer('bingo_creator_id')->nullable();
+            $table->enum('room_type', ['PV', 'PB'])->default('PV');
+            $table->foreignId('user')->constrained('users')->onDelete('cascade');
             $table->boolean('paid_win')->default(0);
             $table->timestamp('publication_date')->nullable();
             $table->integer('players')->default(0);
@@ -28,7 +29,7 @@ return new class extends Migration
             $table->double('serial_prize')->default(0);
             $table->integer('close_room')->nullable();
             $table->string('code_uuid', 36)->nullable()->unique();
-            $table->timestamps();          
+            $table->timestamps();
         });
     }
 
@@ -40,7 +41,7 @@ return new class extends Migration
     public function down()
     {
         Schema::table('bingo_rooms', function (Blueprint $table) {
-            $table->dropForeign(['status']);
+            $table->dropForeign(['status', 'user']);
         });
 
         Schema::dropIfExists('bingo_rooms');

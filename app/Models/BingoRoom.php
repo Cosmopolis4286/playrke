@@ -10,8 +10,9 @@ class BingoRoom extends Model
   protected $fillable = [
     'encrypted',
     'status',
+    'room_type',
     'creation',
-    'bingo_creator',
+    'user',
     'paid_win',
     'publication_date',
     'ctn_price',
@@ -24,7 +25,7 @@ class BingoRoom extends Model
     'jackpot_prize',
     'serial_prize',
     'close_room',
-    'code_uuid'
+    'code_uuid',
   ];
 
   protected $appends = ['room_type_description'];
@@ -48,11 +49,6 @@ class BingoRoom extends Model
   public function Creator()
   {
     return $this->hasMany(BingoCreator::class, 'room', 'id');
-  }
-
-  public function Prizes()
-  {
-    return $this->belongsTo(BingoRoomPrizes::class, 'id', 'room');
   }
 
   public function CtnsLot()

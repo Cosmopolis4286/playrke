@@ -3,7 +3,6 @@
 namespace App\Traits;
 
 use App\Events\Games\BingoOFF_ProccessDraw;
-use App\Models\BingoCtnPrice;
 use App\Models\SellerRoomLimits;
 use App\Models\BingoCtns;
 use App\Models\BingoRoom;
@@ -401,11 +400,10 @@ trait BingoTrait
     // Función para obtener detalles de la sala
     private function getRoomDetails($roomID)
     {
-        return BingoRoom::select(
+        return BingoRoom::with(['Config:room,game_mode'])->select(
             'id',
             'game_mode',
             'players',
-            'ctn_price',
             'all_sale',
             'room_commn',
             'seller_commn',
@@ -702,7 +700,7 @@ trait BingoTrait
             $playerUser = $arrCtn['playerUser'] ?? null;
             $coin = $arrCtn['coin'];
             $numOfCtns = $arrCtn['numOfCtns'];
-            $gameMode = $room->game_mode;
+            $gameMode = $room->Config->game_mode;
 
             // Formatear Monto de Venta
             $saleAmount = number_format($numOfCtns * $arrCtn['ctnPrice'], 2, '.');
@@ -720,7 +718,7 @@ trait BingoTrait
 
             if ($gameMode != 1 && ($commerce || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor
-                $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $room->id);
+                $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $roomID);
             }
 
             // Evaluar tasa de cambio

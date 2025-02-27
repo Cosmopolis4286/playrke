@@ -4,6 +4,7 @@
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
             @include('includes.card-header', [
+                'subTitle' => 'Privadas',
                 'btnCardHeader' => ['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear'],
             ])
             <div class="card-body">
@@ -104,7 +105,7 @@
                 jackpotType.append(defaultOption);
             }
 
-            $('#room-type').val(1);
+            $('#room-type').val('PV');
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
@@ -143,7 +144,7 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
                 'date', 'time', 'room-type', 'jackpot-type', 'game-mode',
-                'ctn-price', 'time-chip', 'val-serials', 'room-commission'
+                'ctn-price', 'time-chip', 'pct-serials', 'room-commn'
             ]);
         });
 

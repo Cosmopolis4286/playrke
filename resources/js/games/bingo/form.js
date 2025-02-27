@@ -14,16 +14,16 @@ $(document).on("input", "#time-chip", function () {
 });
 
 // Validar %Bote Seriales (Debe estar entre 2 y 35 con pasos de 0.05)
-$(document).on("input", "#val-serials", function () {
+$(document).on("input", "#pct-serials", function () {
     validateInput(this, 2, 35);
 });
 
-// Validar #Max. Seriales (Debe estar entre 3 y 25)
+// Validar #Max. Seriales (Debe estar entre 3 y 30)
 $(document).on("input", "#num-serials", function () {
-    validateInput(this, 3, 25);
+    validateInput(this, 3, 30);
 });
 
 // Validar %Comercio (Debe estar entre 5 y 50 con pasos de 0.05)
-$(document).on("input", "#room-commission", function () {
+$(document).on("input", "#room-commn", function () {
     validateInput(this, 5, 50);
 });    

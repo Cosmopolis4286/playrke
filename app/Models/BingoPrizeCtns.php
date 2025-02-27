@@ -11,7 +11,7 @@ class BingoPrizeCtns extends Model
         'id',
         'active',
         'room',
-        'bingo_creator',
+        'bingo_creator_id',
         'seller',
         'room_user',
         'player_user',
@@ -43,11 +43,6 @@ class BingoPrizeCtns extends Model
     public function Seller()
     {
         return $this->belongsTo(Seller::class, 'seller');
-    }
-
-    public function Provider()
-    {
-        return $this->belongsTo(ProviderRKE::class, 'provider');
     }
 
     public function PlayerLink()

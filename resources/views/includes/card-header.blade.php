@@ -3,17 +3,22 @@
     <div class="d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center">
             @if (isset($returnBtn) || !isset($returnBtn))
-                <a href="{{ route('dashboard') }}" title="Regresar" class="mr-1 mb-n1">
+                <a href="{{ route('dashboard') }}" title="Regresar" class="mr-2 mb-n1">
                     <i class="fas fa-arrow-circle-left" style="font-size: 20px;"></i>
                 </a>
             @endif
             @php $displayTitle = $cardTitle ?? $title; @endphp
-            <h5 class="m-0">{!! $displayTitle !!}</h5>
-            @isset($btnCardHeader)
-                <a href="{{ $btnCardHeader['route'] }}" class="text-muted ml-2 mb-n1">
-                    <i class="{{ $btnCardHeader['icon'] }}"></i>
-                </a>
-            @endisset
+            <div>
+                <div class="d-flex mb-n3">
+                    <h5>{!! $displayTitle !!}</h5>
+                    @isset($btnCardHeader)
+                        <a href="{{ $btnCardHeader['route'] }}" class="text-muted ml-2 mb-n1">
+                            <i class="{{ $btnCardHeader['icon'] }}"></i>
+                        </a>
+                    @endisset
+                </div>
+                <small>{{ $subTitle }}</small>
+            </div>
         </div>
         <div id="loader-sm" class="spinner-border spinner-border-sm text-primary" role="status" style="display: none;">
             <span class="sr-only">Loading...</span>

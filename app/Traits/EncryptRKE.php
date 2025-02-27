@@ -9,11 +9,11 @@ use Illuminate\Support\Str;
 
 trait EncryptRKE
 {
-    public function generateUniqueCode($table, $size = 14)
+    public function generateUniqueCode($model, $size = 14)
     {
         do {
             $code = Str::random($size);
-        } while (DB::table($table)->where('encrypted', $code)->exists());
+        } while (app("App\\Models\\$model")::where('encrypted', $code)->exists());
 
         return $code;
     }

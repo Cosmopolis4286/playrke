@@ -17,11 +17,9 @@ class CreateBingoRoomConfigTable extends Migration
             $table->id();
             $table->unsignedBigInteger('room');
             $table->enum('creation', ['M', 'A'])->default('M');
-            $table->enum('room_type', ['PV', 'PB'])->default('PV');
             $table->unsignedBigInteger('game_mode');
             $table->date('date');
             $table->string('time', 10);
-            $table->integer('unix_date');
             $table->unsignedBigInteger('country')->nullable();
             $table->string('coin', 15)->nullable();
             $table->double('ctn_price');

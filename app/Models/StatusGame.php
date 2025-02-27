@@ -8,9 +8,4 @@ class StatusGame extends Model
 {
     protected $table = "game_status";
     protected $fillable = ['info'];
-
-    public function Status()
-    {
-        return $this->hasMany(BingoRoom::class, 'id');
-    }
 }

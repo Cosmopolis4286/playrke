@@ -886,33 +886,26 @@ class BingoController extends Controller
         );
     }
 
-    private function getInfoRooms($roomType, $coin, $creator)
+    private function getInfoRooms($roomType, $coin)
     {
-        $creatorType = UserType::getValueByPrefix($creator['type']);
-        $creatorID = decrypt($creator['id']);
-
+        $gameID = Games::getValueByName('BINGO');
         $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
 
         return BingoRoom::with([
             'Config.JackpotType',
             'Config.GameMode:id,description',
-            'Creator' => function ($query) use ($creatorType, $creatorID) {
-                $query->select('id', 'room', 'creator_type', 'creator_id')
-                    ->where('creator_type', $creatorType)
-                    ->where('creator_id', $creatorID);
-            },
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
             },
-            'GameExchangeRate' => function ($query) use ($coin) {
-                $query->where('coin', $coin)->where('game', 1);
+            'GameExchangeRate' => function ($query) use ($coin, $gameID) {
+                $query->where('coin', $coin)->where('game', $gameID);
             }
-        ])->orderBy('status')->get();
+        ])->where('room_type', $roomType)->orderBy('status')->get();
     }
 
     private function getGameRoomsInfo($creator, $coin, $roomType)
     {
-        (new HandleBingoRooms())->checkRoomClosure();
+        //(new HandleBingoRooms())->checkRoomClosure();
 
         $view = $roomType === 'private-rooms' ? 'private' : 'public';
 
@@ -989,16 +982,14 @@ class BingoController extends Controller
                 break;
         }
 
-        $rooms = $this->getInfoRooms($roomType, $coin, $creator);
-
-        dd($rooms);
+        $rooms = $this->getInfoRooms($roomType, $coin);
 
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo',
-            'name' => 'bingocash',
+            'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'routeWithCoin' => $routeWithCoin,
             'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
@@ -1153,11 +1144,15 @@ class BingoController extends Controller
             $boat = ($request->jackpot_type === 'PV') ? $request->fixed_jackpot_value : 0;
             $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
 
+            $model = 'BingoRoom';
+
             $createData = [
-                'encrypted' => $this->generateUniqueCode('bingo_rooms'),
+                'encrypted' => $this->generateUniqueCode($model),
                 'status' => 1,
+                'room_type' => $request->room_type,
+                'user' => Auth::id(),
                 'jackpot' => $boat,
-                'code_uuid' => $this->getCodeUUID('BingoRoom')
+                'code_uuid' => $this->getCodeUUID($model)
             ];
 
             DB::beginTransaction();
@@ -1176,7 +1171,7 @@ class BingoController extends Controller
                     'room' => $roomID,
                     'creator_type' => $creatorType,
                     'creator_id' => $creatorID,
-                    'creator_commn' => $request->room_commission,
+                    'creator_commn' => $request->room_commn,
                     'ctn_price' => $request->ctn_price,
                 ])->id;
 
@@ -1185,7 +1180,6 @@ class BingoController extends Controller
 
                 BingoRoomConfig::create([
                     'room' => $roomID,
-                    'room_type' => $request->room_type,
                     'creation' => 'M',
                     'game_mode' => $request->game_mode,
                     'date' => $request->date,
@@ -1196,7 +1190,7 @@ class BingoController extends Controller
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
                     'time_chip' => $request->time_chip,
-                    'room_commn' => $request->room_commission,
+                    'room_commn' => $request->room_commn,
                     'pct_serials' => $request->pct_serials,
                     'num_serials' => $request->num_serials,
                 ]);
@@ -1262,7 +1256,7 @@ class BingoController extends Controller
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
                 'jackpot' => $room->jackpot + $boat,
-                'room_type' => $request->room_type ?? 1
+                'room_type' => $request->room_type
             ];
 
             // Solo añadir 'game_mode' si el jackpot es 0
@@ -1276,7 +1270,7 @@ class BingoController extends Controller
             $bingoCreator = BingoCreator::where('room', $roomID)->firstOrFail();
 
             $bingoCreator->update([
-                'creator_commn' => $request->room_commission,
+                'creator_commn' => $request->room_commn,
                 'ctn_price' => $request->ctn_price,
             ]);
 
@@ -1287,7 +1281,7 @@ class BingoController extends Controller
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
                     'time_chip' => $request->time_chip,
-                    'room_commn' => $request->room_commission,
+                    'room_commn' => $request->room_commn,
                     'serials_commn' => $request->serials_commission,
                     'val_serials' => $request->val_serials,
                     'num_serials' => $request->num_serials
@@ -1519,8 +1513,8 @@ class BingoController extends Controller
             'coin' => $coin,
             'ctn_price' => $existingRoom->ctn_price,
             'jackpot' => $boat,
-            'encrypted' => $this->generateUniqueCode('bingo_rooms'),
-            'room_type' => $existingRoom->room_type ?? 1
+            'encrypted' => $this->generateUniqueCode('BingoRoom'),
+            'room_type' => $existingRoom->room_type
         ];
 
         $creatorType = $existingRoom->commerce ? 'commerce' : 'customer';
@@ -1606,8 +1600,8 @@ class BingoController extends Controller
 
     public function replay($id)
     {
-        BingoRoomConfig::where("room", decrypt($id))->update(['replay' => 1]);
-        return redirect()->back()->with('message', 'Esta sala se publicara cada 24h')->with('type', 'success');
+        $room = BingoRoom::with('Config')->findOrFail("id", decrypt($id));
+        $this->handleCreateAutomaticRoom($room, true);
     }
 
     public function publish($id)
@@ -1883,9 +1877,9 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function createAutomaticRoom(Request $request)
+    private function handleCreateAutomaticRoom($data, $replay = false)
     {
-        $creator = json_decode($request->creator);
+        $creator = json_decode($data->creator);
         $creatorType = UserType::getValueByPrefix($creator->type, 'id');
         $creatorID = decrypt($creator->id);
 
@@ -1893,22 +1887,22 @@ class BingoController extends Controller
 
         try {
             $automaticBingoID = BingoRoomAutomatic::create([
-                'time' => $request->time,
-                'game_mode' => $request->game_mode,
-                'room_type' => $request->room_type ?? 1,
-                'jackpot_type' => $request->jackpot_type,
-                'fixed_jackpot_value' => $request->fixed_jackpot_value,
-                'time_chip' => $request->time_chip,
-                'ctn_price' => $request->ctn_price,
-                'room_commn' => $request->room_commission,
-                'serials_commn' => $request->serials_commission,
-                'val_serials' => $request->val_serials,
-                'num_serials' => $request->num_serials,
+                'time' => $data->time,
+                'game_mode' => $data->game_mode,
+                'room_type' => $data->room_type,
+                'jackpot_type' => $data->jackpot_type,
+                'fixed_jackpot_value' => $data->fixed_jackpot_value,
+                'time_chip' => $data->time_chip,
+                'ctn_price' => $data->ctn_price,
+                'room_commn' => $data->room_commn,
+                'serials_commn' => $data->serials_commission,
+                'val_serials' => $data->val_serials,
+                'num_serials' => $data->num_serials,
                 'creator_type' => $creatorType,
                 'creator_id' => $creatorID,
             ])->id;
 
-            $ctnPriceCoins = $request->ctn_price_coins;
+            $ctnPriceCoins = $data->ctn_price_coins;
 
             if ($ctnPriceCoins) {
 
@@ -1938,6 +1932,11 @@ class BingoController extends Controller
         }
     }
 
+    public function createAutomaticRoom(Request $request)
+    {
+        $this->handleCreateAutomaticRoom($request);
+    }
+
     public function updateAutomaticRoom(Request $request, $id)
     {
         $id = decrypt($id);
@@ -1948,12 +1947,12 @@ class BingoController extends Controller
             BingoRoomAutomatic::where('id', $id)->update([
                 'time' => $request->time,
                 'game_mode' => $request->game_mode,
-                'room_type' => $request->room_type ?? 1,
+                'room_type' => $request->room_type,
                 'jackpot_type' => $request->jackpot_type,
                 'fixed_jackpot_value' => $request->fixed_jackpot_value,
                 'time_chip' => $request->time_chip,
                 'ctn_price' => $request->ctn_price,
-                'room_commn' => $request->room_commission,
+                'room_commn' => $request->room_commn,
                 'serials_commn' => $request->serials_commission,
                 'val_serials' => $request->val_serials,
                 'num_serials' => $request->num_serials,

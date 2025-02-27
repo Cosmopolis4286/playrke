@@ -9,7 +9,7 @@ class BingoCtnsLot extends Model
     protected $table = "bingo_ctns_lot";
     protected $fillable = [
         'room',
-        'bingo_creator',
+        'bingo_creator_id',
         'seller',
         'room_user',
         'player_user',
