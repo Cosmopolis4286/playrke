@@ -17,6 +17,7 @@ class BingoRoomConfig extends Model
     'country',
     'coin',
     'ctn_price',
+    'room_commn',
     'jackpot_type',
     'fixed_jackpot_value',
     'time_chip',

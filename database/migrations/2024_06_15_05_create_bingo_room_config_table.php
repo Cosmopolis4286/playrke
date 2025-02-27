@@ -20,9 +20,11 @@ class CreateBingoRoomConfigTable extends Migration
             $table->unsignedBigInteger('game_mode');
             $table->date('date');
             $table->string('time', 10);
+            $table->integer('unix_date');
             $table->unsignedBigInteger('country')->nullable();
             $table->string('coin', 15)->nullable();
             $table->double('ctn_price');
+            $table->double('room_commn')->nullable();
             $table->unsignedBigInteger('jackpot_type')->default(1);
             $table->double('fixed_jackpot_value')->nullable();
             $table->string('time_chip', 2)->nullable();
