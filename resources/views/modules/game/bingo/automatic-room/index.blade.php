@@ -32,6 +32,7 @@
         const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
+        const roomType = $("#room-type");
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const roomTypes = @json($roomType);
@@ -88,10 +89,6 @@
         });
 
         function insertInfo(type, data = '') {
-            const isDisabled = type === 2 && data.room.players;
-            const isRequired = !isDisabled;
-            let roomType = false;
-
             if (type == 1) {
                 arrCoinsCtnPrice = false;
                 $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
@@ -100,17 +97,10 @@
                 getCtnPriceCoin(data.room.id, true);
             }
 
-            gameMode.prop({
-                disabled: isDisabled,
-                required: isRequired
-            }).empty();
+            gameMode.empty();
 
             if (creatorType !== 'customer' && existsRoomTypes) {
-                roomType = $("#room-type");
-                roomType.prop({
-                    disabled: isDisabled,
-                    required: isRequired
-                }).empty();
+                roomType.empty();
             }
 
             jackpotType.empty();
@@ -133,19 +123,19 @@
 
             if (creatorType !== 'customer' && existsRoomTypes) {
                 $.each(roomTypes, function(index, item) {
-                    const isSelected = (type == 2 && index == data.config.room_type) ? 'selected' : '';
+                    const isSelected = (type == 2 && index == data.room.room_type) ? 'selected' : '';
                     roomType.append(`<option value="${index}" ${isSelected}>${item}</option>`);
                 });
             }
 
             $.each(arrJackpotType, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == data.room.jackpot_type) ? 'selected' : '';
                 jackpotType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             if (creatorType !== 'customer' && arrGameModes.length) {
                 $.each(arrGameModes, function(index, item) {
-                    const isSelected = (type == 2 && item.id == data.config.game_mode) ? 'selected' : '';
+                    const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
 
                     if ((creatorType === 'customer' && item.id == 1) || creatorType !== 'customer') {
                         gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
@@ -156,19 +146,19 @@
             if (type == 1) {
                 changeFixedJackpot(1);
             } else if (type == 2) {
-                const config = data.config;
+                const room = data.room;
 
-                $('#time').val(config.time);
-                $('#room-commn').val(config.room_commn);
-                $('#ctn-price').val(config.ctn_price);
-                $('#time-chip').val(config.time_chip);
-                $('#pct-serials').val(config.pct_serials);
-                $('#num-serials').val(config.num_serials);
-                $('#serials-commn').val(config.serials_commn);
+                $('#time').val(room.time);
+                $('#room-commn').val(room.room_commn);
+                $('#ctn-price').val(room.ctn_price);
+                $('#time-chip').val(room.time_chip);
+                $('#pct-serials').val(room.pct_serials);
+                $('#num-serials').val(room.num_serials);
+                $('#serials-commn').val(room.serials_commn);
 
-                if (config.jackpot_type > 1) {
+                if (room.jackpot_type > 1) {
                     changeFixedJackpot(2);
-                    $('#fixed-jackpot-value').val(config.fixed_jackpot_value);
+                    $('#fixed-jackpot-value').val(room.fixed_jackpot_value);
                 }
             }
 

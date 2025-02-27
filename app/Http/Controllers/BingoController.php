@@ -1185,7 +1185,6 @@ class BingoController extends Controller
                 ]);
 
                 $creatorType = UserType::getValueByPrefix($creatorType, 'id');
-                $ctnPriceCoins = $request->ctn_price_coins;
 
                 // Registar el creador de la sala
                 $bingoCreatorID = BingoCreator::create([
@@ -1194,7 +1193,9 @@ class BingoController extends Controller
                     'creator_id' => $creatorID,
                     'creator_commn' => $request->room_commn,
                     'ctn_price' => $request->ctn_price,
-                ]);
+                ])->id;
+
+                $ctnPriceCoins = $request->ctn_price_coins;
 
                 if ($ctnPriceCoins) {
 
@@ -1221,7 +1222,7 @@ class BingoController extends Controller
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('Error al crear la sala: ' . $e->getMessage());
-                return redirect()->back()->with('msg-error', 'Hubo un problema al crear la sala: ' . $e->getMessage());
+                return redirect()->back()->with(['type' => 'warning', 'message', 'Error al crear la sala: ' . $e->getMessage()]);
             }
         }
 
@@ -1247,7 +1248,6 @@ class BingoController extends Controller
 
         $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
         $coin = $request->coin ?? 1;
-        $ctnPriceCoins = $request->ctn_price_coins;
 
         $updateDataRoom = ['room_type' => $request->room_type, 'jackpot' => $room->jackpot + $boat];
 
@@ -1290,6 +1290,8 @@ class BingoController extends Controller
 
             $bingoCreatorID = $bingoCreator->id;
 
+            $ctnPriceCoins = $request->ctn_price_coins;
+
             if ($ctnPriceCoins) {
 
                 $timestamp = now();
@@ -1327,7 +1329,7 @@ class BingoController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Hubo un problema al actualizar la información de la sala: ' . $e->getMessage());
-            return redirect()->back()->with('message', 'Hubo un problema al actualizar la información')->with('type', 'warning');
+            return redirect()->back()->with(['type' => 'warning', 'message', 'Hubo un problema al actualizar la información']);
         }
     }
 
@@ -1822,7 +1824,7 @@ class BingoController extends Controller
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
-            'title' => 'Salas de Bingo AUTO',
+            'title' => 'Salas de Bingo',
             'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'creator' => $creator,
@@ -1880,10 +1882,11 @@ class BingoController extends Controller
 
     private function handleCreateAutomaticRoom($data, $replay = false)
     {
-        try {
-            DB::beginTransaction();
+        DB::beginTransaction();
 
+        try {
             $creator = json_decode($data->creator);
+
             $automaticBingoID = BingoRoomAutomatic::create([
                 'time' => $data->time,
                 'game_mode' => $data->game_mode,
@@ -2002,12 +2005,12 @@ class BingoController extends Controller
             'room_type',
             'jackpot_type',
             'fixed_jackpot_value',
+            'room_commn',
             'ctn_price',
             'time_chip',
-            'room_commn',
-            'serials_commn',
             'pct_serials',
             'num_serials',
+            'serials_commn',
             'status'
         )->where('id', $id)->firstOrFail();
 

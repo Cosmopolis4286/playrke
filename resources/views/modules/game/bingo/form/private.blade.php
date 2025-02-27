@@ -165,9 +165,9 @@
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Repetir esta sala cada 24h',
+                    'Auto-Generar esta sala',
                     'question',
-                    'Sí, repetir',
+                    'Sí, auto-generar',
                     '#form-other-options',
                     `{{ route('bingo.replay', ['id' => ':id']) }}`,
                     encryptedId

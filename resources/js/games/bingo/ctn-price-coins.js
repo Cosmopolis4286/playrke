@@ -35,6 +35,9 @@ $(document).on("click", "#btn-ctn-price-config", function () {
 });
 
 function getCtnPriceCoin(room = 'RKE', action = '') {
+    
+    $('#container-price-config').html('');
+
     $.ajax({
         url: routeGetCtnPriceForCoin.replace(':1', creation).replace(':2', creatorType)
             .replace(':3', creatorID).replace(':4', room),
