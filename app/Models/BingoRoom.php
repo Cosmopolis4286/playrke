@@ -28,14 +28,6 @@ class BingoRoom extends Model
     'code_uuid',
   ];
 
-  protected $appends = ['room_type_description'];
-
-  public function getRoomTypeDescriptionAttribute()
-  {
-    $roomType = collect(Room::TYPES)->firstWhere('id', $this->room_type);
-    return $roomType['description'] ?? 'Desconocido';
-  }
-
   public function Status()
   {
     return $this->belongsTo(StatusGame::class, 'status');
@@ -93,7 +85,7 @@ class BingoRoom extends Model
 
   public static function getValueByBingoCreator($bingoCreator, $value = 'id')
   {
-    return self::where('bingo_creator', $bingoCreator)->value($value);
+    return self::where('user', $bingoCreator)->value($value);
   }
 
   public static function existsRoom($room)

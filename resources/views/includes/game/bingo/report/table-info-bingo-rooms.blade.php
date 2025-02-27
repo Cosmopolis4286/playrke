@@ -50,7 +50,7 @@
                 @endphp
                 <tr>
                     <td class="align-middle">
-                        <small>Modo: {{ $room->GameMode->description }}</small>
+                        <small>Modo: {{ $room->Config->GameMode->description }}</small>
                         @if ($room->status > 1)
                             <a href="{{ $roomRoute }}" class="badge badge-dark" target="_blank">
                                 <i class="fa-regular fa-eye"></i>
@@ -66,9 +66,9 @@
                         </a>
                     </td>
                     <td class="align-middle">
-                        {{ \Carbon\Carbon::parse($room->date)->format('d/m/y') }}
+                        {{ \Carbon\Carbon::parse($room->Config->date)->format('d/m/y') }}
                     </td>
-                    <td class="align-middle">{{ $room->time }} H</td>
+                    <td class="align-middle">{{ $room->Config->time }} H</td>
                     <td class="align-middle">{{ $coinSym }} {{ $ctnPrice }}</td>
                     <td class="align-middle">
                         <i class="fa-solid fa-users mr-1" title="Jugadores"></i>

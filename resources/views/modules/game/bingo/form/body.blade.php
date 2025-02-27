@@ -30,16 +30,21 @@
         <select id="jackpot-type" name="jackpot_type" class="form-control form-info" required></select>
     </div>
     <div id="cont-fixed-jackpot-value" class="form-group col-sm-6 col-md-4 hide-elem">
-        <label for="fixed-jackpot-value">Valor Fijo*</label>
+        <label for="fixed-jackpot-value">Valor Fijo/Agregado*</label>
         <div class="input-group">
             <div class="input-group-prepend">
                 <span class="input-group-text">$</span>
             </div>
             <input type="number" id="fixed-jackpot-value" name="fixed_jackpot_value" class="form-control form-info"
-                step="0.05" value="20" min="20" max="10000">
+                step="0.05" min="20" max="10000">
         </div>
     </div>
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="room-commn">%Sala*</label>
+        <input type="number" id="room-commn" name="room_commn" class="form-control form-info" value="10"
+            step="0.05" min="5" max="50" required>
+    </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
         <div class="input-group">
@@ -70,7 +75,6 @@
             </div>
         </div>
     </div>
-
     <div class="form-group col-sm-6 col-md-4">
         <label for="time-chip">Tiempo Ficha*</label>
         <div class="input-group">
@@ -90,10 +94,5 @@
         <label for="num-serials">#Max. Seriales</label>
         <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
             name="num_serials" class="form-control form-info" placeholder="Ingrese la cantidad" required>
-    </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="room-commn">%Sala*</label>
-        <input type="number" id="room-commn" name="room_commn" class="form-control form-info" value="10"
-            step="0.05" min="5" max="50" required>
     </div>
 </div>

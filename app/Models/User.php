@@ -23,14 +23,19 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
     ];
 
-    public function referredBy()
+    public function ReferredBy()
     {
         return $this->belongsTo(User::class, 'referred_by');
     }
 
-    public function referrals()
+    public function Referrals()
     {
         return $this->hasMany(User::class, 'referred_by');
+    }
+
+    public function UserType()
+    {
+        return $this->belongsTo(User::class, 'id', 'user');
     }
 
     public function Commerce()

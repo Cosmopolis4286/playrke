@@ -36,6 +36,7 @@ use App\Models\GameRules;
 use App\Models\Games;
 use App\Models\Room;
 use App\Models\Seller;
+use App\Models\User;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
 use App\Services\Customer\HandleTransactions;
@@ -893,6 +894,7 @@ class BingoController extends Controller
 
         return BingoRoom::with([
             'Config.JackpotType',
+            'Config:room,game_mode,jackpot_type,date,time',
             'Config.GameMode:id,description',
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
@@ -1143,7 +1145,7 @@ class BingoController extends Controller
 
             $fixedJackpotValue = $request->fixed_jackpot_value;
 
-            $boat = $request->jackpot_type == 1 ? $fixedJackpotValue : 0;
+            $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
             $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
 
             $model = 'BingoRoom';
@@ -1178,8 +1180,8 @@ class BingoController extends Controller
                     'pct_serials' => $request->pct_serials,
                     'num_serials' => $request->num_serials,
                     'serials_commn' => $request->serials_commn,
-                    'val_types_plays' => '',
-                    'types_plays' => ''
+                    // 'val_types_plays' => '',
+                    // 'types_plays' => ''
                 ]);
 
                 $creatorType = UserType::getValueByPrefix($creatorType, 'id');
@@ -1243,7 +1245,7 @@ class BingoController extends Controller
 
         $fixedJackpotValue = $request->fixed_jackpot_value;
 
-        $boat = $request->jackpot_type == 1 ? $fixedJackpotValue : 0;
+        $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
         $coin = $request->coin ?? 1;
         $ctnPriceCoins = $request->ctn_price_coins;
 
@@ -1259,11 +1261,11 @@ class BingoController extends Controller
             'jackpot_type' => $request->jackpot_type,
             'fixed_jackpot_value' => $request->fixed_jackpot_value,
             'time_chip' => $request->time_chip,
-            'pct_serials' => $request->val_serials,
+            'pct_serials' => $request->pct_serials,
             'num_serials' => $request->num_serials,
             'serials_commn' => $request->serials_commn,
-            'val_types_plays' => '',
-            'types_plays' => ''
+            // 'val_types_plays' => '',
+            // 'types_plays' => ''
         ];
 
         // Solo añadir 'game_mode' si el jackpot es 0
@@ -1281,10 +1283,12 @@ class BingoController extends Controller
 
             $bingoCreator = BingoCreator::where('room', $roomID)->firstOrFail();
 
-            $bingoCreatorID = $bingoCreator->update([
+            $bingoCreator->update([
                 'creator_commn' => $request->room_commn,
                 'ctn_price' => $request->ctn_price,
-            ])->id;
+            ]);
+
+            $bingoCreatorID = $bingoCreator->id;
 
             if ($ctnPriceCoins) {
 
@@ -1415,35 +1419,37 @@ class BingoController extends Controller
 
         $room = BingoRoom::select('encrypted', 'jackpot', 'players')->where('id', $id)->firstOrFail();
 
-        $roomConfig = BingoRoomConfig::select(
+        $config = BingoRoomConfig::select(
             'game_mode',
             'date',
             'time',
             'ctn_price',
+            'room_commn',
             'jackpot_type',
             'fixed_jackpot_value',
             'time_chip',
-            'room_commn',
-            'serials_commn',
-            'val_serials',
-            'num_serials'
+            'pct_serials',
+            'num_serials',
+            'serials_commn'
         )->where('room', $id)->firstOrFail();
 
-        $creator = true;
+        $bingoCreator = true;
 
-        $bingoRoom = BingoRoom::getById($id, ['bingo_creator', 'commerce']);
+        $creatorUserID = BingoRoom::getValueById($room, 'user');
+        $userType = User::getValueById($creatorUserID, 'user_type');
 
-        if ($bingoRoom->commerce) {
-            $creator = ['type' => 'commerce', 'id' => $bingoRoom->commerce];
-            $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $id);
+        $creatorType = UserType::getValueById($userType, 'prefix');
 
-            $creator = BingoRoom::getValueByBingoCreator($bingoCreator);
+        if ($creatorType === 'commerce') {
+            $creatorID = BingoCreator::getByRoom($id, 'creator_id');
+            $creator = ['type' => $userType, 'id' => $creatorID];
+            $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $id) ?? false;
         }
 
         return response()->json([
             'room' => $room,
-            'config' => $roomConfig,
-            'creator' => $creator ? true : false
+            'config' => $config,
+            'creator' => $bingoCreator
         ]);
     }
 
@@ -1456,7 +1462,7 @@ class BingoController extends Controller
         $room = BingoRoom::select('game_mode', 'unix_date', 'ctn_price', 'coin', 'jackpot_prize')
             ->where('id', $roomID)->firstOrFail();
 
-        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'time_chip', 'room_commn', 'serials_commn', 'val_serials', 'num_serials')
+        $roomConfig = BingoRoomConfig::select('jackpot_type', 'fixed_jackpot_value', 'time_chip', 'room_commn', 'serials_commn', 'pct_serials', 'num_serials')
             ->where('room', $roomID)->firstOrFail();
 
         if ($mode) {
@@ -1498,7 +1504,7 @@ class BingoController extends Controller
 
         date_default_timezone_set(config('app.timezone'));
 
-        $boat = ($existingRoom->jackpot_type > 1) ? $existingRoom->fixed_jackpot_value : 0;
+        $boat = $existingRoom->jackpot_type > 1 ? $existingRoom->fixed_jackpot_value : 0;
         $coin = $existingRoom->coin ?? 1; // ID Coin == 1 (USDT)
 
         $createData = [
@@ -1537,7 +1543,7 @@ class BingoController extends Controller
                 'time_chip' => $existingRoomConfig->time_chip,
                 'room_commn' => $existingRoomConfig->room_commn,
                 'serials_commn' => $existingRoomConfig->serials_commission,
-                'val_serials' => $existingRoomConfig->val_serials,
+                'pct_serials' => $existingRoomConfig->pct_serials,
                 'num_serials' => $existingRoomConfig->num_serials,
                 //'val_sm_prizes' => $existingRoomConfig->val_sm_prizes,
             ]);
@@ -1606,11 +1612,7 @@ class BingoController extends Controller
 
         try {
             // Actualiza el estado y la fecha de publicación.
-            $bingoRoom->update([
-                'status' => 2,
-                'unix_date' => strtotime($publicationDate),
-                'publication_date' => $publicationDate
-            ]);
+            $bingoRoom->update(['status' => 2, 'publication_date' => $publicationDate]);
 
             DB::commit();
 
@@ -1789,7 +1791,7 @@ class BingoController extends Controller
                 'time_chip',
                 'room_commn',
                 'serials_commn',
-                'val_serials',
+                'pct_serials',
                 'num_serials',
                 'status'
             ]);
@@ -1880,7 +1882,7 @@ class BingoController extends Controller
                 'ctn_price' => $data->ctn_price,
                 'room_commn' => $data->room_commn,
                 'serials_commn' => $data->serials_commission,
-                'val_serials' => $data->val_serials,
+                'pct_serials' => $data->pct_serials,
                 'num_serials' => $data->num_serials,
                 'creator_type' => $creatorType,
                 'creator_id' => $creatorID,
@@ -1938,7 +1940,7 @@ class BingoController extends Controller
                 'ctn_price' => $request->ctn_price,
                 'room_commn' => $request->room_commn,
                 'serials_commn' => $request->serials_commission,
-                'val_serials' => $request->val_serials,
+                'pct_serials' => $request->pct_serials,
                 'num_serials' => $request->num_serials,
             ]);
 
@@ -1998,7 +2000,7 @@ class BingoController extends Controller
             'time_chip',
             'room_commn',
             'serials_commn',
-            'val_serials',
+            'pct_serials',
             'num_serials',
             'status'
         )->where('id', $id)->firstOrFail();

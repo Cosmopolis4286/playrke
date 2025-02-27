@@ -137,16 +137,14 @@
                 });
             }
 
-            const config = data.config !== undefined ? data.config : data.room;
-
             $.each(arrJackpotType, function(index, item) {
-                const isSelected = (type == 2 && item.id == config.jackpot_type) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
                 jackpotType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             if (creatorType !== 'customer' && arrGameModes.length) {
                 $.each(arrGameModes, function(index, item) {
-                    const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
+                    const isSelected = (type == 2 && item.id == data.config.game_mode) ? 'selected' : '';
 
                     if ((creatorType === 'customer' && item.id == 1) || creatorType !== 'customer') {
                         gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
@@ -156,20 +154,23 @@
 
             if (type == 1) {
                 changeFixedJackpot(1);
-            } else if (type == 2 && config.jackpot_type > 1) {
-                changeFixedJackpot(2);
-                $('#fixed-jackpot-value').val(config.fixed_jackpot_value);
-            }
+            } else if (type == 2) {
 
-            if (type == 2) {
-                $('#date').val(data.room.date);
-                $('#time').val(data.room.time);
-                $('#ctn-price').val(data.room.ctn_price);
+                const config = data.config;
+
+                $('#date').val(config.room.date);
+                $('#time').val(config.time);
+                $('#ctn-price').val(config.ctn_price);
                 $('#time-chip').val(config.time_chip);
-                $('#val-serials').val(config.val_serials);
+                $('#pct-serials').val(config.pct_serials);
                 $('#num-serials').val(config.num_serials);
-                $('#commerce-commission').val(config.room_commn);
-                $('#serials-commission').val(config.serials_commn);
+                $('#room-commn').val(config.room_commn);
+                $('#serials-commn').val(config.serials_commn);
+
+                if (config.jackpot_type > 1) {
+                    changeFixedJackpot(2);
+                    $('#fixed-jackpot-value').val(config.fixed_jackpot_value);
+                }
             }
 
             $(`#modal-${name}`).modal('show');
