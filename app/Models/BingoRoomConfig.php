@@ -10,6 +10,7 @@ class BingoRoomConfig extends Model
   protected $fillable = [
     'room',
     'creation',
+    'user',
     'game_mode',
     'date',
     'time',

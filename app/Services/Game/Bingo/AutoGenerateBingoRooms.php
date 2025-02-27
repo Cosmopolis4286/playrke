@@ -36,23 +36,20 @@ class AutoGenerateBingoRooms
 
         try {
             foreach ($automaticRooms as $room) {
-                $creatorType = UserType::getValueById($room->creator_type, 'prefix');
-                $creatorID = $room->creator_id;
-
                 // Calcular fecha y hora de la sala
                 $roomTime = Carbon::parse("{$now->format('Y-m-d')} {$room->time}");
                 $roomDate = $this->calculateRoomDate($roomTime, $now);
 
                 // Verificar si la sala ya existe
-                $existingRoom = $this->existingRoom($creatorType, $creatorID, $roomDate, $room->time, $room->ctn_price);
+                $existingRoom = $this->existingRoom($room->user, $roomDate, $room->time, $room->ctn_price);
 
                 // Saltar si la sala existente tiene un estado >= 2
-                if ($existingRoom && $existingRoom->status >= 2) {
+                if ($existingRoom && $existingRoom >= 2) {
                     continue;
                 }
 
                 // Preparar datos de la sala
-                $roomData = $this->prepareRoomData($room, $roomDate, $creatorType, $creatorID);
+                $roomData = $this->prepareRoomData($room);
 
                 // Crear o actualizar la sala
                 $currentRoom = $existingRoom
@@ -62,10 +59,7 @@ class AutoGenerateBingoRooms
                 $roomID = $currentRoom->id;
 
                 // Configurar la sala y retornar bingo_creator_id
-                $bingoCreatorID = $this->configureRoom($roomID, $room, $creatorID);
-
-                // Actualizar ID BingoCreator
-                $currentRoom->update(['bingo_creator' => $bingoCreatorID]);
+                $bingoCreatorID = $this->configureRoom($roomID, $room, $roomDate);
 
                 // Asociar precios de monedas a la sala
                 $this->associateCtnPrices($room->id, $roomID, $bingoCreatorID);
@@ -83,48 +77,56 @@ class AutoGenerateBingoRooms
     /**
      * Prepara los datos para una sala.
      */
-    private function prepareRoomData($room, $roomDate, $creatorType, $creatorID)
+    private function prepareRoomData($room)
     {
+        $model = 'BingoRooms';
+
+        $fixedJackpotValue = $room->fixed_jackpot_value;
+        $boat = $room->jackpot_type > 1 ? $fixedJackpotValue : 0;
+
         return [
-            'date' => $roomDate,
-            'time' => $room->time,
-            'unix_date' => Carbon::createFromFormat('Y-m-d H:i', "{$roomDate} {$room->time}")->timestamp,
-            'game_mode' => $room->game_mode,
-            'ctn_price' => $room->ctn_price,
-            $creatorType => $creatorID,
+            'encrypted' => $this->generateUniqueCode($model),
             'status' => 2,
-            'creation' => 'A',
-            'publication_date' => "{$roomDate} {$room->time}",
-            'encrypted' => $this->generateUniqueCode('BingoRoom'),
             'room_type' => $room->room_type,
+            'user' => $room->user,
+            'jackpot' => $boat,
+            'code_uuid' => $this->getCodeUUID($model)
         ];
     }
 
     /**
      * Configura una sala con sus detalles.
      */
-    private function configureRoom($roomID, $room, $creatorID)
+    private function configureRoom($roomID, $dataRoom, $roomDate)
     {
+        $unixDate = Carbon::createFromFormat('Y-m-d H:i', "{$roomDate} {$dataRoom->time}")->timestamp;
+
         BingoRoomConfig::updateOrCreate(
             ['room' => $roomID],
             [
-                'jackpot_type' => $room->jackpot_type,
-                'fixed_jackpot_value' => $room->fixed_jackpot_value,
-                'time_chip' => $room->time_chip,
-                'room_commn' => $room->room_commn,
-                'serials_commn' => $room->serials_commn,
-                'val_serials' => $room->val_serials,
-                'num_serials' => $room->num_serials,
+                'creation' => 'A',
+                'game_mode' => $dataRoom->game_mode,
+                'date' => $dataRoom->date,
+                'time' => $dataRoom->time,
+                'unix_date' => $unixDate,
+                'ctn_price' => $dataRoom->ctn_price,
+                'room_commn' => $dataRoom->room_commn,
+                'jackpot_type' => $dataRoom->jackpot_type,
+                'fixed_jackpot_value' => $dataRoom->fixed_jackpot_value,
+                'time_chip' => $dataRoom->time_chip,
+                'pct_serials' => $dataRoom->pct_serials,
+                'num_serials' => $dataRoom->num_serials,
+                'serials_commn' => $dataRoom->serials_commn,
             ]
         );
 
         $bingoCreatorID = BingoCreator::updateOrCreate(
             ['room' => $roomID],
             [
-                'creator_type' => $room->creator_type,
-                'creator_id' => $creatorID,
-                'creator_commn' => $room->room_commn,
-                'ctn_price' => $room->ctn_price,
+                'creator_type' => $dataRoom->creator_type,
+                'creator_id' => $roomDate->creator_id,
+                'creator_commn' => $dataRoom->room_commn,
+                'ctn_price' => $dataRoom->ctn_price,
             ]
         )->id;
 
@@ -149,6 +151,8 @@ class AutoGenerateBingoRooms
                 ]
             );
         }
+
+        return true;
     }
 
     private function calculateRoomDate($roomTime, $now)
@@ -158,14 +162,14 @@ class AutoGenerateBingoRooms
             : $now->format('Y-m-d');
     }
 
-    private function existingRoom($creatorType, $creatorID, $date, $time, $ctnPrice)
+    private function existingRoom($creatorUser, $date, $time, $ctnPrice)
     {
         $startDate = Carbon::parse($date)->subDay()->format('Y-m-d');
 
-        return BingoRoom::where($creatorType, $creatorID)
+        $id = BingoRoomConfig::where('user', $creatorUser)
             ->whereBetween('date', [$startDate, $date])
-            ->where('time', $time)
-            ->where('ctn_price', $ctnPrice)
-            ->first();
+            ->where('time', $time)->where('ctn_price', $ctnPrice)->value('id');
+
+        return BingoRoom::getValueById($id, 'status');
     }
 }

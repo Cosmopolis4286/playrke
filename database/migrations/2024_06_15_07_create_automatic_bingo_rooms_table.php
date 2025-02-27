@@ -29,6 +29,7 @@ return new class extends Migration
             $table->double('serials_commn')->nullable();
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
+            $table->foreignId('user')->constrained('users')->onDelete('cascade');
             $table->string('status', 1)->default(0);
             $table->timestamps();
         });

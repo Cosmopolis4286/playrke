@@ -1143,6 +1143,7 @@ class BingoController extends Controller
 
             date_default_timezone_set(config('app.timezone'));
 
+            $userID = Auth::id();
             $fixedJackpotValue = $request->fixed_jackpot_value;
 
             $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
@@ -1154,7 +1155,7 @@ class BingoController extends Controller
                 'encrypted' => $this->generateUniqueCode($model),
                 'status' => 1,
                 'room_type' => $request->room_type,
-                'user' => Auth::id(),
+                'user' => $userID,
                 'jackpot' => $boat,
                 'code_uuid' => $this->getCodeUUID($model)
             ];
@@ -1167,6 +1168,7 @@ class BingoController extends Controller
                 BingoRoomConfig::create([
                     'room' => $roomID,
                     'creation' => 'M',
+                    'user' => $userID,
                     'game_mode' => $request->game_mode,
                     'date' => $request->date,
                     'time' => $request->time,
@@ -1509,6 +1511,7 @@ class BingoController extends Controller
 
         date_default_timezone_set(config('app.timezone'));
 
+        $userID = $existingRoom->user;
         $boat = $existingRoomConfig->jackpot_type > 1 ? $existingRoomConfig->fixed_jackpot_value : 0;
         $coin = $existingRoomConfig->coin ?? 1; // ID Coin == 1 (USDT)
 
@@ -1518,7 +1521,7 @@ class BingoController extends Controller
             'encrypted' => $this->generateUniqueCode($model),
             'status' => 1,
             'room_type' => $existingRoom->room_type,
-            'user' => $existingRoom->user,
+            'user' => $userID,
             'jackpot' => $boat,
             'code_uuid' => $this->getCodeUUID($model)
         ];
@@ -1541,6 +1544,7 @@ class BingoController extends Controller
             $configData = BingoRoomConfig::create([
                 'room' => $newRoomID,
                 'creation' => 'A',
+                'user' => $userID,
                 'game_mode' => $existingRoomConfig->game_mode,
                 'date' => $existingRoomConfig->date,
                 'time' => $existingRoomConfig->time,
@@ -1901,6 +1905,7 @@ class BingoController extends Controller
                 'num_serials' => $data->num_serials,
                 'creator_type' => UserType::getValueByPrefix($creator->type, 'id'),
                 'creator_id' => decrypt($creator->id),
+                'user' => Auth::id()
             ])->id;
 
             if (!empty($data->ctn_price_coins)) {
