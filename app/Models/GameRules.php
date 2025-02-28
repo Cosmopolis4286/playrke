@@ -19,10 +19,22 @@ class GameRules extends Model
         return $this->belongsTo(User::class, 'user');
     }
 
-    public static function getValueByGame($game, $value = 'rules')
+    public static function getByGame($game, $user = null, array $fields = ['*'])
     {
         $gameID = is_string($game) ? Games::getValueByName($game) : $game;
 
-        return self::where('game', $gameID)->value($value);
+        return self::select($fields)
+            ->where('game', $gameID)
+            ->when($user, fn($query) => $query->where('user', $user))
+            ->first();
+    }
+
+    public static function getValueByGame($game, $user = false, $value = 'rules')
+    {
+        $gameID = is_string($game) ? Games::getValueByName($game) : $game;
+
+        return self::where('game', $gameID)
+            ->when($user, fn($query) => $query->where('user', $user))
+            ->value($value);
     }
 }

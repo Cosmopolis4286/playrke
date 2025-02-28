@@ -9,7 +9,7 @@
             @endif
             @php $displayTitle = $cardTitle ?? $title; @endphp
             <div>
-                <div class="d-flex mb-n3">
+                <div class="d-flex @if (isset($subTitle)) mb-n3 @else mb-n2 @endif">
                     <h5>{!! $displayTitle !!}</h5>
                     @isset($btnCardHeader)
                         <a href="{{ $btnCardHeader['route'] }}" class="text-muted ml-2 mb-n1">
@@ -17,7 +17,9 @@
                         </a>
                     @endisset
                 </div>
-                <small>{{ $subTitle }}</small>
+                @isset($subTitle)
+                    <small>{{ $subTitle }}</small>
+                @endisset
             </div>
         </div>
         <div id="loader-sm" class="spinner-border spinner-border-sm text-primary" role="status" style="display: none;">

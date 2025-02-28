@@ -1407,9 +1407,61 @@ class BingoController extends Controller
         ]);
     }
 
-    public function configuration()
+    public function configuration($userToken = false)
     {
-        return redirect()->back();
+        if ($userToken) {
+            $userType = 'customer';
+            $userToken = true;
+        } else {
+            $userTypeID = User::getValueById(Auth::id(), 'user_type');
+            $userType = UserType::getValueById($userTypeID, 'prefix');
+        }
+
+        if (!in_array($userType, ['admin', 'commerce', 'customer'])) {
+            return redirect()->back();
+        }
+
+        $IDRules = GameRules::getValueByGame('BINGO', Auth::id(), 'id');
+
+        $viewData = [
+            'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Bingo Configuración',
+            'userToken' => $userToken,
+            'IDRules' => encrypt($IDRules) ?? ''
+        ];
+
+        $viewData = ['route' => 'modules.game.bingo.configuration.index', 'data' => $viewData];
+
+        return $this->handleViewData($viewData, $userType);
+    }
+
+    public function handleBingoRules(Request $request, $id = '')
+    {
+        if (!$request->rules) return redirect()->back();
+
+        if ($id) {
+            $idRules = decrypt($id);
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            GameRules::all();
+
+            DB::commit();
+            return redirect()->back()->with([
+                'type' => 'success',
+                'message' => 'Proceso existoso'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear o actualizar el reglamento del Juego de Bingo: ' . $e->getMessage());
+            return redirect()->back()->with([
+                'type' => 'warning',
+                'message' => 'Error al crear o actualizar el reglamento'
+            ]);
+        }
     }
 
     public function getInfo($id, $starTime = '')

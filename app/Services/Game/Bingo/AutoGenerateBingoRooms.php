@@ -44,7 +44,7 @@ class AutoGenerateBingoRooms
                 $existingRoom = $this->existingRoom($room->user, $roomDate, $room->time, $room->ctn_price);
 
                 // Saltar si la sala existente tiene un estado >= 2
-                if ($existingRoom && $existingRoom >= 2) {
+                if ($existingRoom && $existingRoom->Room->status >= 2) {
                     continue;
                 }
 
@@ -166,10 +166,8 @@ class AutoGenerateBingoRooms
     {
         $startDate = Carbon::parse($date)->subDay()->format('Y-m-d');
 
-        $id = BingoRoomConfig::where('user', $creatorUser)
-            ->whereBetween('date', [$startDate, $date])
-            ->where('time', $time)->where('ctn_price', $ctnPrice)->value('id');
-
-        return BingoRoom::getValueById($id, 'status');
+        return BingoRoomConfig::with('Room:id,status')->select('room')
+            ->where('user', $creatorUser)->whereBetween('date', [$startDate, $date])
+            ->where('time', $time)->where('ctn_price', $ctnPrice)->first();
     }
 }
