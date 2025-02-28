@@ -17,6 +17,7 @@ use App\Models\BingoRoomUser;
 use App\Models\CoinGameRoom;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
+use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
 use App\Models\GameConfig;
@@ -24,6 +25,7 @@ use App\Models\GameExchangeRate;
 use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\User;
+use App\Models\UserType;
 use App\Models\Wallet;
 use App\Services\Customer\HandleTransactions;
 use App\Services\Game\Bingo\HandleBingoRooms;
@@ -443,8 +445,7 @@ trait BingoTrait
 
         try {
             return BingoCtnsLot::insertGetId([
-                'customer' => $arrCtn['customer'] ?? null,
-                'commerce' => $arrCtn['commerce'] ?? null,
+                'user_creator' => $arrCtn['userCreator']['user_id'],
                 'seller' => $seller,
                 'room_user' => $arrCtn['roomUser'],
                 'player_user' => $arrCtn['playerUser'] ?? null,
@@ -529,8 +530,7 @@ trait BingoTrait
     {
         return [
             'room' => $arrCtn['room'],
-            'customer' => $arrCtn['customer'] ?? null,
-            'commerce' => $arrCtn['commerce'] ?? null,
+            'user_creator' => $arrCtn['userCreator']['user_id'],
             'seller' => $arrCtn['seller'] ?? null,
             'room_user' => $arrCtn['roomUser'],
             'player_user' => $arrCtn['playerUser'] ?? null,
@@ -579,8 +579,7 @@ trait BingoTrait
 
             $defaultValues = [
                 'room' => $arrCtn['room'],
-                'customer' => $arrCtn['customer'] ?? null,
-                'commerce' => $arrCtn['commerce'] ?? null,
+                'user_creator' => $arrCtn['userCreator']['user_id'],
                 'seller' => $arrCtn['seller'] ?? null,
                 'player_user' => $playerUser,
                 'player_link' => $arrCtn['playerLink'] ?? null,
@@ -694,8 +693,9 @@ trait BingoTrait
 
         try {
             // Inicialización de variables
-            $customer = $arrCtn['customer'] ?? null;
-            $commerce = $arrCtn['commerce'] ?? null;
+            $userCreator = $arrCtn['userCreator'];
+            $userCreatorType = $userCreator['type'];
+
             $seller = $arrCtn['seller'] ?? null;
             $playerUser = $arrCtn['playerUser'] ?? null;
             $coin = $arrCtn['coin'];
@@ -716,18 +716,18 @@ trait BingoTrait
             // Anexar atributo al array
             $arrCtn['roomUser'] = $roomUser;
 
-            if ($gameMode != 1 && ($commerce || $seller)) {
+            if ($gameMode != 1 && ($userCreatorType === 'commerce' || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor
                 $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $roomID);
             }
 
             // Evaluar tasa de cambio
-            if ($customer) {
+            if ($userCreatorType === 'customer') {
                 $customerExchangeRate = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
                 $coin = $customerExchangeRate->coin;
                 $exchangeRate = $customerExchangeRate->exchangeRate ?? 1;
             } else {
-                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin) ?? 1;
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($userCreator['id'], $coin) ?? 1;
             }
 
             // Crear lote de cartones
@@ -742,7 +742,7 @@ trait BingoTrait
             }
 
             // Si no es modo offline y el creador es un comercio, actualizar la billetera del jugador
-            if ($gameMode != 2 && $commerce) {
+            if ($gameMode != 2 && $userCreatorType) {
                 // Determinar la columna de saldo en función de la moneda
                 $columnBalance = $coin == 1 ? 'usdt' : 'balance';
 
@@ -774,13 +774,13 @@ trait BingoTrait
             }
 
             // Si la sala es de un cliente
-            if ($customer) {
+            if ($userCreatorType === 'customer') {
                 // Registrar transacción (se consulta nuvamente el saldo del juagdor)
                 $roomID = BingoRoom::getValueById($roomID, 'code_uuid') ?? $this->getCodeUUID('BingoRoom');
 
                 $transactionBet = $this->handleTransactionByBET(
                     $game,
-                    $customer,
+                    $userCreator['id'],
                     $roomID,
                     $playerUser,
                     $coin,
@@ -820,10 +820,11 @@ trait BingoTrait
 
     public function convertPrizeValue($roomID, $coin, $value = '')
     {
-        $room = BingoRoom::getById($roomID, ['commerce', 'customer', 'jackpot']);
+        $room = BingoRoom::getById($roomID, ['user_creator', 'jackpot']);
 
-        $creatorType = $room->commerce ? 'commerce' : 'customer';
-        $creatorID = $room->commerce ? $room->commerce : $room->customer;
+        $userCreator = $room->user_creator;
+        $creatorType = User::getValueById($userCreator, 'user_type');
+        $creatorID = User::getCreatorIDByUserType($userCreator, $creatorType);
 
         $creator = ['type' => $creatorType, 'id' => $creatorID];
 
@@ -855,9 +856,8 @@ trait BingoTrait
                 $record = [
                     'active' => 'N',
                     'room' => $roomID,
+                    'user_creator' => $ctn->user_creator,
                     'room_user' => $ctn->room_user,
-                    'customer' => $ctn->customer,
-                    'commerce' => $ctn->commerce,
                     'seller' => $ctn->seller,
                     'player_user' => $ctn->player_user,
                     'player_link' => $ctn->player_link,
@@ -923,7 +923,8 @@ trait BingoTrait
 
     public function getWinnersData($roomID, $prizeType, $roomUser = '')
     {
-        $room = BingoRoom::where('id', $roomID)->where('status', '>=', 3)->exists();
+        $room = BingoRoom::select('user_creator')->where('id', $roomID)
+            ->where('status', '>=', 3)->first();
 
         if (!$room) return ['Error' => 'Sala no disponible'];
 
@@ -931,18 +932,19 @@ trait BingoTrait
         $prizeType = $prizeType === 'JACKPOT' ? 1 : 2;
 
         // Obtener todos los ganadores por tipo de premio 
-        $winners = BingoRoomUser::with(['PrizeCtns:customer,room_user,prize_type,ctn'])
+        $winners = BingoRoomUser::with(['PrizeCtns:user_creator,room_user,prize_type,ctn'])
             ->whereHas('PrizeCtns', function ($query) use ($prizeType) {
                 $query->where('prize_type', $prizeType);
             })->where('room', $roomID)->where('winner', '>', 0)->get();
 
         if ($roomUser) {
             // Obtener el creador de la sala
-            $creator = BingoRoomUser::where('id', $roomUser)
-                ->whereNotNull('customer')->exists() ? 'customer' : 'commerce';
+            $userCreatorType = User::getValueById($room->user_creator, 'user_type');
+
+            $userType = UserType::getValueById($userCreatorType, 'prefix');
 
             // Obtener la moneda del jugador
-            $coin = $this->getCoinByPlayer($creator, $roomUser);
+            $coin = $this->getCoinByPlayer($userType, $roomUser);
         }
 
         // Obtener Premio a repartir en seriales 
@@ -991,8 +993,8 @@ trait BingoTrait
     public function handleJackpotWinners($roomID)
     {
         // Obtener la información de la sala
-        $room = BingoRoom::with((['Config:room,val_serials']))
-            ->select('id', 'customer', 'jackpot', 'jackpot_prize', 'serial_prize')
+        $room = BingoRoom::with('Config:room,val_serials')
+            ->select('user_creator', 'jackpot', 'jackpot_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 
         // Verificar si ya hay ganadores del premio mayor
@@ -1076,7 +1078,7 @@ trait BingoTrait
 
         // Obtener información de los cartones ganadores
         $ctnsJackpot = BingoCtns::where('room', $roomID)->whereIn('id', $prizeCtns)
-            ->get(['id', 'customer', 'commerce', 'seller', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
+            ->get(['id', 'user_creator', 'seller', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
 
         // Obtener la cantidad de ganadores
         $winnersCount = count(array_merge($uniquePlayers['playerUser'], $uniquePlayers['playerLink']));
@@ -1132,8 +1134,9 @@ trait BingoTrait
         }
 
         // Validar Transacciones
-        if ($room->customer) {
-            app(HandleTransactions::class)->validateTransactions($room->customer);
+        if (UserType::getValueById(User::getValueById($room->user_creator, 'user_type'), 'prefix') === 'customer') {
+            $customer = Customer::getValueByUserId($room->user_creator, 'id');
+            app(HandleTransactions::class)->validateTransactions($customer);
         }
     }
 
@@ -1236,7 +1239,7 @@ trait BingoTrait
             if ($countCtns === 0) return false;
 
             $ctnsSerials = BingoCtns::whereIn('id', $serialCtns)
-                ->where('room', $roomID)->get(['id', 'commerce', 'seller', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
+                ->where('room', $roomID)->get(['id', 'seller', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
 
             $winnerJackpotPrize = $serialPrize / count($serialCtns);
 
@@ -1306,7 +1309,7 @@ trait BingoTrait
         // Obtener el nombre del jugador si existe
         $fullName = BingoCtns::getCtnSerialByRoomUser($ctn->room_user);
 
-        if (!$ctn->customer) {
+        if (!UserType::getValueById(User::getValueById($ctn->user_creator, 'user_type'), 'prefix') === 'customer') {
             if ($ctn->player_user) {
                 $fullName = User::getValueById($ctn->player_user, 'username');
             } else {
@@ -1403,7 +1406,7 @@ trait BingoTrait
     public function verifyExistenceOfSales($user, $dateFilter = '', $coin = '',  $room = '')
     {
         // Aplicar el filtro de moneda (coin) a la consulta
-        $query = BingoCtnsLot::where($user['type'], $user['id']);
+        $query = BingoCtnsLot::where('user_creator', $user['id']);
 
         if ($coin) {
             try {

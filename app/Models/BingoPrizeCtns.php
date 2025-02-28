@@ -11,7 +11,7 @@ class BingoPrizeCtns extends Model
         'id',
         'active',
         'room',
-        'bingo_creator_id',
+        'user_creator',
         'seller',
         'room_user',
         'player_user',

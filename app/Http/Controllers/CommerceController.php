@@ -456,20 +456,20 @@ class CommerceController extends Controller
         );
     }
 
-    private function getRoomsData($commerce, $coin, $dateFilter = "today")
+    private function getRoomsData($userCreator, $coin, $dateFilter = "today")
     {
         $query = BingoRoom::with([
             'Config:room,room_commn',
             'Status',
-            'CtnsLot' => function ($subquery) use ($commerce, $coin) {
-                $subquery->where('commerce', $commerce)
+            'CtnsLot' => function ($subquery) use ($userCreator, $coin) {
+                $subquery->where('user_creator', $userCreator)
                     ->where('coin', $coin)->with('Coin');
             }
         ])->whereHas('CtnsLot');
 
         $query = $this->applyDateFilter($dateFilter, $query, 'publication_date');
 
-        $rooms = $query->where('commerce', $commerce)
+        $rooms = $query->where('user', $userCreator)
             // ID Commerce 1 es PlayRKE Sala Para todos
             ->get(['id', 'encrypted', 'room_type', 'status', 'time', 'date', 'jackpot', 'ctn_price']);
 

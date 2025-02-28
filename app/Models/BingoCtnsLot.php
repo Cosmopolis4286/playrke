@@ -9,7 +9,7 @@ class BingoCtnsLot extends Model
     protected $table = "bingo_ctns_lot";
     protected $fillable = [
         'room',
-        'bingo_creator_id',
+        'user_creator',
         'seller',
         'room_user',
         'player_user',
@@ -33,12 +33,6 @@ class BingoCtnsLot extends Model
     public function Coin()
     {
         return $this->belongsTo(Coin::class, 'coin');
-    }
-
-    // Relación con el enlace del cliente
-    public function Customer()
-    {
-        return $this->belongsTo(Customer::class, 'customer', 'id');
     }
 
     // Relación con el enlace del jugador

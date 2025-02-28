@@ -374,8 +374,8 @@ class BingoController extends Controller
 
     public function generateCarton(Request $request)
     {
-        $room = BingoRoom::with(['Config:room,jackpot_type'])
-            ->select('id', 'room_type', 'ctn_price', 'status')
+        $room = BingoRoom::with('Config:room,jackpot_type,ctn_price')
+            ->select('id', 'room_type', 'status')
             ->where('encrypted', $request->room)->first();
 
         if (!$room || ($room && $room->status > 2)) {
@@ -391,7 +391,7 @@ class BingoController extends Controller
             'numOfCtns' => $request->num_ctns ?? 1
         ];
 
-        $roomCtnPrice = $room->ctn_price;
+        $roomCtnPrice = $room->Config->ctn_price;
         $creatorType = $request->user_type;
 
         if ($creatorType) {
@@ -904,7 +904,7 @@ class BingoController extends Controller
         );
     }
 
-    private function getInfoRooms($roomType, $coin)
+    private function getInfoRooms($userCreator, $roomType, $coin)
     {
         $gameID = Games::getValueByName('BINGO');
         $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
@@ -921,7 +921,7 @@ class BingoController extends Controller
             'GameExchangeRate' => function ($query) use ($coin, $gameID) {
                 $query->where('coin', $coin)->where('game', $gameID);
             }
-        ])->where('room_type', $roomType)
+        ])->where('user_creator', $userCreator)->where('room_type', $roomType)
             ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
             ->get();
     }
@@ -1005,7 +1005,7 @@ class BingoController extends Controller
                 break;
         }
 
-        $rooms = $this->getInfoRooms($roomType, $coin);
+        $rooms = $this->getInfoRooms($creator['user_id'], $roomType, $coin);
 
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('bingo_creator', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->foreignId('user_creator')->constrained('users')->onDelete('cascade')->nullable();
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
             $table->double('creator_commn')->default(0);
