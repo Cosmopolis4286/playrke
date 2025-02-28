@@ -1429,8 +1429,10 @@ class BingoController extends Controller
         if ($userToken) {
             $userType = 'customer';
             $userToken = true;
+            $user = Customer::getValueByToken($userToken, 'user');
         } else {
-            $userTypeID = User::getValueById(Auth::id(), 'user_type');
+            $user = Auth::id();
+            $userTypeID = User::getValueById($user, 'user_type');
             $userType = UserType::getValueById($userTypeID, 'prefix');
         }
 
@@ -1438,7 +1440,7 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $creator = ['type' => $userType, 'id' => $creatorID ?? ''];
+        $creator = ['type' => $userType, 'id' => User::getCreatorIDByUserType($user, $userType)];
 
         $game = GameRules::getByGame('BINGO', Auth::id(), ['id', 'rules']);
         $rulesID = '';

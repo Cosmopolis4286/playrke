@@ -8,11 +8,13 @@
                 <form id="form-bingo-rules" action="{{ route('bingo.handleBingoRules', $rulesID) }}" method="POST">
                     @csrf @method('PUT')
                     <div class="form-group">
-                        <label for="bingo-rules">Reglamento:</label>
-                        <button type="button" class="ml-1 btn btn-sm btn-secondary" data-toggle="modal"
-                            data-target="#modal-bingo-rules">
-                            <i class="fas fa-eye"></i>
-                        </button>
+                        <div class="d-flex justify-content-between">
+                            <label for="bingo-rules">Reglamento:</label>
+                            <button type="button" class="mb-2 btn btn-sm btn-secondary" data-toggle="modal"
+                                data-target="#modal-bingo-rules">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
+                        </div>
                         <textarea class="form-control" id="bingo-rules" name="rules" rows="14">{{ $gameRules }}</textarea>
                     </div>
                     <div class="d-flex justify-content-center">

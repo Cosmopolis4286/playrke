@@ -13,11 +13,23 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $table = "users";
     protected $primaryKey = 'id';
     protected $fillable = [
-        'username', 'user_type', 'first_name', 'last_name', 'password', 'photo', 
-        'email', 'phone', 'country', 'time_zone', 'referral_code', 'referred_by', 'email_verified_at'
+        'username',
+        'user_type',
+        'first_name',
+        'last_name',
+        'password',
+        'photo',
+        'email',
+        'phone',
+        'country',
+        'time_zone',
+        'referral_code',
+        'referred_by',
+        'email_verified_at'
     ];
     protected $hidden = [
-        'password', 'remember_token',
+        'password',
+        'remember_token',
     ];
     protected $casts = [
         'email_verified_at' => 'datetime',
@@ -46,6 +58,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function Seller()
     {
         return $this->belongsTo(Seller::class, 'id', 'user');
+    }
+
+    public static function getCreatorIDByUserType($user, $userType = '')
+    {
+        $model = ucfirst($userType);
+
+        return (app("App\\Models\\$model")::where('user', $user)->value('id'));
     }
 
     public static function getById($userId, $fields = ['*'])
