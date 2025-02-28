@@ -5,11 +5,15 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                <form id="form-bingo-rules" action="{{ route('bingo.handleBingoRules', $IDRules) }}" method="POST">
+                <form id="form-bingo-rules" action="{{ route('bingo.handleBingoRules', $rulesID) }}" method="POST">
                     @csrf @method('PUT')
                     <div class="form-group">
                         <label for="bingo-rules">Reglamento:</label>
-                        <textarea class="form-control" id="bingo-rules" name="rules" rows="15"></textarea>
+                        <button type="button" class="ml-1 btn btn-sm btn-secondary" data-toggle="modal"
+                            data-target="#modal-bingo-rules">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <textarea class="form-control" id="bingo-rules" name="rules" rows="14">{{ $gameRules }}</textarea>
                     </div>
                     <div class="d-flex justify-content-center">
                         <button type="button" id="btn-form-bingo-rules" class="btn btn-primary">
@@ -21,6 +25,7 @@
                 </form>
             </div>
         </div>
+        @include('includes.game.bingo.layout.modal-bingo-rules')
     </div>
 @endsection
 @section('scripts')

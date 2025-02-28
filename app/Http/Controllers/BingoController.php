@@ -200,7 +200,7 @@ class BingoController extends Controller
             'exchangeRate' => $exchangeRate ?? 1,
             'creator' => $creator,
             'rooms' => $rooms,
-            'bingoRules' => $this->getBingoRules(),
+            'bingoRules' => $this->getBingoRules($creator),
             'dateTimeRooms' => $this->getDateTimeRooms($creator['type'], $creator['id']),
             'route' => route('bingo.get-datetime-rooms', ['creatorType' => $creator['type'], 'creatorID' => $creator['id']])
         ];
@@ -490,9 +490,26 @@ class BingoController extends Controller
         }
     }
 
-    public function getBingoRules()
+    public function getBingoRules($creator)
     {
-        $rules = GameRules::getValueByGame('BINGO');
+        $creatorID = $creator['id'];
+        $user = false;
+
+        switch ($creator['type']) {
+            case 'admin':
+                break;
+            case 'commerce':
+                $user = Commerce::getValueById($creatorID, 'user');
+                break;
+            case 'customer':
+                $user = Customer::getValueById($creatorID, 'user');
+                break;
+            default:
+                # code...
+                break;
+        }
+
+        $rules = GameRules::getValueByGame('BINGO', $user);
 
         return $rules ?: view("includes.info.game.bingo");
     }
@@ -670,7 +687,7 @@ class BingoController extends Controller
             'vanDraw' => $vanDraw ? $vanDraw->chip : '',
             'infoGame' => $infoGame,
             'timeServ' => $dataChips['timeServ'],
-            'bingoRules' => $this->getBingoRules(),
+            'bingoRules' => $this->getBingoRules($creator),
             'closingRoute' => $closingRoute
         ];
 
@@ -1421,13 +1438,24 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $IDRules = GameRules::getValueByGame('BINGO', Auth::id(), 'id');
+        $creator = ['type' => $userType, 'id' => $creatorID ?? ''];
+
+        $game = GameRules::getByGame('BINGO', Auth::id(), ['id', 'rules']);
+        $rulesID = '';
+        $gameRules = '';
+
+        if ($game) {
+            $rulesID = encrypt($game->id);
+            $gameRules = $game->rules;
+        }
 
         $viewData = [
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Bingo Configuración',
             'userToken' => $userToken,
-            'IDRules' => encrypt($IDRules) ?? ''
+            'rulesID' => $rulesID,
+            'gameRules' => $gameRules,
+            'bingoRules' => $this->getBingoRules($creator),
         ];
 
         $viewData = ['route' => 'modules.game.bingo.configuration.index', 'data' => $viewData];
@@ -1445,14 +1473,29 @@ class BingoController extends Controller
         }
 
         if ($id) {
-            $idRules = decrypt($id);
+            $rulesID = decrypt($id);
         }
 
         DB::beginTransaction();
 
         try {
 
-            GameRules::all();
+            if (!empty($rulesID)) {
+                $game = GameRules::findOrFail($rulesID);
+
+                if ($game->rules !== $request->rules) {
+                    $game->update(['rules' => $request->rules]);
+                }
+            } else {
+                $gameID = Games::getValueByName('BINGO');
+
+                GameRules::create([
+                    'user' => Auth::id(),
+                    'game' => $gameID,
+                    'rules' => $request->rules,
+                    'status' => 1
+                ]);
+            }
 
             DB::commit();
             return redirect()->back()->with([
