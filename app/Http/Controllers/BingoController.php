@@ -911,7 +911,9 @@ class BingoController extends Controller
 
         return BingoRoom::with([
             'Config.JackpotType',
-            'Config:room,game_mode,jackpot_type,date,time',
+            'Config' => function ($query) {
+                $query->select('room', 'game_mode', 'jackpot_type', 'date', 'time', 'unix_date');
+            },
             'Config.GameMode:id,description',
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
@@ -919,7 +921,9 @@ class BingoController extends Controller
             'GameExchangeRate' => function ($query) use ($coin, $gameID) {
                 $query->where('coin', $coin)->where('game', $gameID);
             }
-        ])->where('room_type', $roomType)->orderBy('status')->get();
+        ])->where('room_type', $roomType)
+            ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
+            ->get();
     }
 
     private function getGameRoomsInfo($creator, $coin, $roomType)
@@ -1241,7 +1245,7 @@ class BingoController extends Controller
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('Error al crear la sala: ' . $e->getMessage());
-                return redirect()->back()->with(['type' => 'warning', 'message', 'Error al crear la sala: ' . $e->getMessage()]);
+                return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al crear la sala']);
             }
         }
 
@@ -1720,8 +1724,7 @@ class BingoController extends Controller
 
         date_default_timezone_set(config('app.timezone'));
 
-        $publicationDate = "{$bingoRoom->date} {$bingoRoom->time}";
-        $unixDate = strtotime($publicationDate);
+        $unixDate = strtotime("{$bingoRoom->date} {$bingoRoom->time}");
 
         if ($unixDate < time()) {
             return redirect()->back()->with('message', 'Fecha/Hora no perimitidas')->with('type', 'warning');
@@ -1731,7 +1734,7 @@ class BingoController extends Controller
 
         try {
             // Actualiza el estado y la fecha de publicación.
-            $bingoRoom->update(['status' => 2, 'publication_date' => $publicationDate]);
+            $bingoRoom->update(['status' => 2, 'publication_date' => Carbon::now()]);
 
             DB::commit();
 
