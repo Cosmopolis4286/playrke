@@ -1437,7 +1437,12 @@ class BingoController extends Controller
 
     public function handleBingoRules(Request $request, $id = '')
     {
-        if (!$request->rules) return redirect()->back();
+        if (!$request->rules) {
+            return redirect()->back()->with([
+                'type' => 'info',
+                'message' => 'La información es obligatoria'
+            ]);
+        }
 
         if ($id) {
             $idRules = decrypt($id);
