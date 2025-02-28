@@ -88,7 +88,7 @@ class AutoGenerateBingoRooms
             'encrypted' => $this->generateUniqueCode($model),
             'status' => 2,
             'room_type' => $room->room_type,
-            'user' => $room->user,
+            'creator_user' => $room->creator_user,
             'jackpot' => $boat,
             'code_uuid' => $this->getCodeUUID($model)
         ];
@@ -167,7 +167,7 @@ class AutoGenerateBingoRooms
         $startDate = Carbon::parse($date)->subDay()->format('Y-m-d');
 
         return BingoRoomConfig::with('Room:id,status')->select('room')
-            ->where('user', $creatorUser)->whereBetween('date', [$startDate, $date])
+            ->where('creator_user', $creatorUser)->whereBetween('date', [$startDate, $date])
             ->where('time', $time)->where('ctn_price', $ctnPrice)->first();
     }
 }

@@ -9,7 +9,7 @@ class BingoRoomUser extends Model
     protected $table = 'bingo_rooms_user';
     protected $fillable = [
         'room',
-        'user_creator',
+        'creator_user',
         'seller',
         'player_user',
         'player_link',

@@ -11,7 +11,7 @@ class BingoRoom extends Model
     'encrypted',
     'status',
     'room_type',
-    'user_creator',
+    'creator_user',
     'paid_win',
     'publication_date',
     'ctn_price',

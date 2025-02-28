@@ -24,7 +24,7 @@ class BingoRoomAutomatic extends Model
     'serials_commn',
     'creator_type',
     'creator_id',
-    'user',
+    'creator_user',
     'status'
   ];
 

@@ -9,10 +9,10 @@ class HandleBingoRooms
 {
     use BingoTrait;
 
-    public function checkRoomClosure(int $room = null, bool $creatorUser = false): void
+    public function checkRoomClosure($room = '', bool $creatorUser = false): void
     {
         BingoRoom::with('Config:room,unix_date')->whereIn('status', [2, 3]) // Filtramos por status
-            ->when($creatorUser, fn($query) => $query->where('user', $creatorUser)) // Condición para creator
+            ->when($creatorUser, fn($query) => $query->where('creator_user', $creatorUser)) // Condición para creator
             ->when($room, fn($query) => $query->where('id', $room)) // Condición para room
             ->get('id')->each(fn($room) => $this->processRoomClosure($room)); // Procesar cada sala
 
@@ -49,8 +49,8 @@ class HandleBingoRooms
     public function handleFinishedRooms($creatorUser = false): void
     {
         BingoRoom::with('Config:room,date,time')->where('status', 4)
-            ->when($creatorUser, fn($query) => $query->where('user', $creatorUser))
-            ->get(['id', 'user'])->each(fn($room) => $this->processFinishedRoom($room));
+            ->when($creatorUser, fn($query) => $query->where('creator_user', $creatorUser))
+            ->get(['id', 'creator_user'])->each(fn($room) => $this->processFinishedRoom($room));
     }
 
     private function processFinishedRoom($room): void
@@ -59,8 +59,8 @@ class HandleBingoRooms
             $this->handleJackpotWinners($room->id);
         }
 
-        $userCreatorType = User::getValueById($room->user, 'user_type');
-        $creatorUserType = UserType::getValueById($userCreatorType, 'prefix');
+        $creatorUserType = User::getValueById($room->user, 'user_type');
+        $creatorUserType = UserType::getValueById($creatorUserType, 'prefix');
 
         if ($creatorUserType === 'commerce') {
             // Actulizar estado de los cartones ganadores

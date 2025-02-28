@@ -904,7 +904,7 @@ class BingoController extends Controller
         );
     }
 
-    private function getInfoRooms($userCreator, $roomType, $coin)
+    private function getInfoRooms($creatorUser, $roomType, $coin)
     {
         $gameID = Games::getValueByName('BINGO');
         $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
@@ -921,7 +921,7 @@ class BingoController extends Controller
             'GameExchangeRate' => function ($query) use ($coin, $gameID) {
                 $query->where('coin', $coin)->where('game', $gameID);
             }
-        ])->where('user_creator', $userCreator)->where('room_type', $roomType)
+        ])->where('creator_user', $creatorUser)->where('room_type', $roomType)
             ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
             ->get();
     }
@@ -2010,7 +2010,7 @@ class BingoController extends Controller
                 'num_serials' => $data->num_serials,
                 'creator_type' => UserType::getValueByPrefix($creator->type, 'id'),
                 'creator_id' => decrypt($creator->id),
-                'user' => Auth::id()
+                'creator_user' => Auth::id()
             ])->id;
 
             if (!empty($data->ctn_price_coins)) {
