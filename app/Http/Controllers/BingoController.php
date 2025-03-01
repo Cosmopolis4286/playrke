@@ -1083,6 +1083,7 @@ class BingoController extends Controller
         $creator = [
             'type' => 'commerce',
             'id' => encrypt($commerceId),
+            'user_id' => Auth::id()
         ];
 
         $viewData = $this->getGameRoomsInfo($creator, decrypt($coin), $roomType);
@@ -1091,23 +1092,25 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    private function allCustomerRooms($roomType, $customer = '', $coin = '')
+    private function allCustomerRooms($roomType, $creatorID = '', $coin = '')
     {
-        $isLogin = Customer::getValueByUserId(Auth::id(), 'id');
+        $customer = Customer::getByUserId(Auth::id(), ['id', 'user']);
 
-        if (!$isLogin) {
-            $customerID = Customer::getValueByToken($customer, 'id');
+        if (!$customer) {
+            $isLogin = false;
+            $customerID = Customer::getValueByToken($creatorID, 'id');
 
             // Verificar si el cliente existe
             if (!$customerID) {
                 return response()->json(['message' => 'Token del cliente no existe'], 404);
             }
         } else {
-            $customerID = $isLogin;
+            $isLogin = true;
+            $customerID = $customer->id;
         }
 
         // Si no se proporciona moneda, obtener la primera disponible
-        if (!$coin || !$customer) {
+        if (!$coin) {
 
             $coins = CustomerExchangeRate::getCoinsIDsByCustomer($customerID);
 
@@ -1144,7 +1147,11 @@ class BingoController extends Controller
             );
         }
 
-        $creator = ['type' => 'customer', 'id' => encrypt($customerID)];
+        $creator = [
+            'type' => 'customer',
+            'id' => encrypt($customerID),
+            'user_id' => $customer->user
+        ];
 
         // Obtener la información de las salas de juego
         $viewData = $this->getGameRoomsInfo($creator, $coin, $roomType);
@@ -1176,7 +1183,7 @@ class BingoController extends Controller
                 'encrypted' => $this->generateUniqueCode($model),
                 'status' => 1,
                 'room_type' => $request->room_type,
-                'user' => $userID,
+                'creator_user' => $userID,
                 'jackpot' => $boat,
                 'code_uuid' => $this->getCodeUUID($model)
             ];
@@ -1871,8 +1878,6 @@ class BingoController extends Controller
 
                 $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
 
-                $creatorUser = $commerce->user;
-
                 $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($commerce->coin)]);
 
                 $moreViewData = ['commerceUUID' => $commerce->code_uuid];
@@ -1885,7 +1890,6 @@ class BingoController extends Controller
                 $isLogin = $returnBtn = false;
 
                 $customer = Customer::getById($creatorID, ['user', 'token']);
-                $creatorUser = $customer->user;
                 $token = $customer->token;
 
                 $GMRoute =  route(
@@ -1902,10 +1906,8 @@ class BingoController extends Controller
                 break;
         }
 
-        $userType = UserType::getValueByPrefix($creatorType, 'id');
-
-        $automaticRooms = BingoRoomAutomatic::where('creator_type', $userType)
-            ->where('creator_id', $creatorID)->whereNot('status', 3)
+        $automaticRooms = BingoRoomAutomatic::where('creator_user', $creator['user_id'])
+            ->whereNot('status', 3)
             ->get([
                 'id',
                 'time',
@@ -1922,7 +1924,7 @@ class BingoController extends Controller
                 'status'
             ]);
 
-        $activeRooms = BingoRoom::where('user', $creatorUser)->whereIn('status', [2, 3])->exists();
+        $activeRooms = BingoRoom::where('user', $creator['user_id'])->whereIn('status', [2, 3])->exists();
 
         $routeExecuteGenerateBingoRoomsJob = route(
             'bingo.automatic-room.executeGenerateBingoRoomsJob',
@@ -1960,18 +1962,21 @@ class BingoController extends Controller
 
         switch ($creatorType) {
             case 'commerce':
-                $creatorID = Commerce::getValueById($creatorID, 'id');
+                $creator = Commerce::getById($creatorID, ['id', 'user']);
                 // Verificar si el comercio existe
-                if (!$creatorID) {
-                    return response()->json(['message' => 'Token del cliente no existe'], 404);
+                if (!$creator) {
+                    return response()->json(['message' => 'El Comercio no existe'], 404);
                 }
                 break;
 
             case 'customer':
-                $creatorID = Auth::id() ? $creatorID : Customer::getValueByToken($creatorID, 'id');
+                $creator = Customer::getByToken($creatorID, ['id', 'user']);
                 // Verificar si el cliente existe
-                if (!$creatorID) {
-                    return response()->json(['message' => 'Token del cliente no existe'], 404);
+                if (!$creator) {
+                    $creator = Customer::getByUserId(Auth::id(), ['id', 'user']);
+                    if (!$creator) {
+                        return response()->json(['message' => 'Token del cliente no existe'], 404);
+                    }
                 }
                 break;
 
@@ -1980,7 +1985,11 @@ class BingoController extends Controller
                 break;
         }
 
-        $creator = ['type' => $creatorType, 'id' => encrypt($creatorID)];
+        $creator = [
+            'type' => $creatorType,
+            'id' => encrypt($creator->id),
+            'user_id' => $creator->user
+        ];
 
         // Obtener la información de configuracion de salas automaticas
         $viewData = $this->getAutomaticRoomsInfo($creator);

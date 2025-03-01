@@ -30,7 +30,6 @@ class CreateBingoRoomConfigTable extends Migration
             $table->double('fixed_jackpot_value')->nullable();
             $table->string('time_chip', 2)->nullable();
             $table->boolean('replay')->default(0);
-            $table->double('room_commn')->default(10);
             $table->double('pct_serials')->nullable();
             $table->string('num_serials', 2)->nullable();
             $table->double('serials_commn')->nullable();

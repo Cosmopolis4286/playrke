@@ -20,6 +20,7 @@ use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
+use App\Models\PhoneNumbers;
 use App\Models\SellerCountriesCoins;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
@@ -166,18 +167,25 @@ class CommerceController extends Controller
                 'country' => $request->country,
                 'email_verified_at' => Carbon::now(),
                 'referral_code' => User::getUniqueReferralCode(),
-            ]);
+            ])->id;
 
             // Crear un nuevo Wallet para el usuario
-            Wallet::create(['coin' => $request->coin, 'user' => $newUser->id]);
+            Wallet::create(['coin' => $request->coin, 'user' => $newUser]);
+
+            $phoneNumber = $request->phone;
+            PhoneNumbers::create([
+                'user' => $newUser,
+                'country' => $request->country,
+                'phone_number' => $phoneNumber
+            ]);
 
             $commerce = Commerce::create([
                 'name' => $request->name,
-                'phone' => $request->phone,
+                'phone' => $phoneNumber,
                 'coin' => $request->coin,
                 'country' => $request->country,
                 'status' => 1,
-                'user' => $newUser->id,
+                'user' => $newUser,
                 'code_rke' => $this->replaceLettersWithNumbers($codeRKE),
                 'code_uuid' => $this->getCodeUUID('Commerce')
             ]);
@@ -286,6 +294,15 @@ class CommerceController extends Controller
                     'phone' => $request->phone,
                     'code_rke' => $codeRKE
                 ]);
+
+                $phoneNumber = $request->phone;
+
+                if ($phoneNumber <> $commerce->phone) {
+                    PhoneNumbers::where('user', $commerce->user)->update([
+                        'country' => $request->country,
+                        'phone_number' => $phoneNumber
+                    ]);
+                }
 
                 if ($coinChange) {
                     // Actualizar moneda Principal

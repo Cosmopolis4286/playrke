@@ -26,6 +26,7 @@ use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
+use App\Models\PhoneNumbers;
 use App\Models\SellerCountriesCoins;
 use App\Models\User;
 use App\Models\UserType;
@@ -169,20 +170,27 @@ class SellerController extends Controller
                 'country' => $request->country,
                 'email_verified_at' => Carbon::now(),
                 'referral_code' => User::getUniqueReferralCode(),
-            ]);
+            ])->id;
 
             // Crear un nuevo Wallet para el usuario
-            Wallet::create(['coin' => $request->coin, 'user' => $newUser->id]);
+            Wallet::create(['coin' => $request->coin, 'user' => $newUser]);
+
+            $phoneNumber = $request->phone;
+            PhoneNumbers::create([
+                'user' => $newUser,
+                'country' => $request->country,
+                'phone_number' => $phoneNumber
+            ]);
 
             $seller = Seller::create([
                 'name' => $request->name,
-                'phone' => $request->phone,
+                'phone' => $phoneNumber,
                 'coin' => $request->coin,
                 'country' => $request->country,
                 'commerce' => Commerce::getValueByUserId(Auth::id(), 'id'),
                 'commn' => $request->commission,
                 'status' => 1,
-                'user' => $newUser->id
+                'user' => $newUser
             ]);
 
             // Registar moneda Principal
@@ -249,12 +257,21 @@ class SellerController extends Controller
                 // Verificar si la moneda principal ha cambiado
                 $coinChange = $seller->coin !== $request->coin;
 
+                $phoneNumber = $request->phone;
+
+                if ($phoneNumber <> $seller->phone) {
+                    PhoneNumbers::where('user', $seller->user)->update([
+                        'country' => $request->country,
+                        'phone_number' => $phoneNumber
+                    ]);
+                }
+
                 // Actualizar los campos del vendedor
                 $seller->update([
                     'name' => $request->name,
                     'country' => $request->country,
                     'coin' => $request->coin,
-                    'phone' => $request->phone,
+                    'phone' => $phoneNumber,
                     'commn' => $request->commission
                 ]);
 

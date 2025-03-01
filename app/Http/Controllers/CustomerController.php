@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerUser;
+use App\Models\PhoneNumbers;
 use App\Models\User;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
@@ -143,10 +144,17 @@ class CustomerController extends Controller
                 'country' => $request->country,
                 'email_verified_at' => Carbon::now(),
                 'referral_code' => User::getUniqueReferralCode(),
-            ]);
+            ])->id;
 
             // Crear un nuevo Wallet para el usuario
-            Wallet::create(['coin' => $request->coin ?? 1, 'user' => $newUser->id]);
+            Wallet::create(['coin' => $request->coin ?? 1, 'user' => $newUser]);
+
+            $phoneNumber = $request->phone;
+            PhoneNumbers::create([
+                'user' => $newUser,
+                'country' => $request->country,
+                'phone_number' => $phoneNumber
+            ]);
 
             $keys = $this->getEncryptionKeyForClient($request->customer_key);
 
@@ -158,8 +166,8 @@ class CustomerController extends Controller
             Customer::create([
                 'name' => $request->name,
                 'country' => $request->country,
-                'phone' => $request->phone,
-                'user' => $newUser->id,
+                'phone' => $phoneNumber,
+                'user' => $newUser,
                 'logo' => $logo,
                 'link_route' => $request->api_route,
                 'token' => $codeUUID,
@@ -239,10 +247,19 @@ class CustomerController extends Controller
                 $fileLogo = $request->file('logo');
                 $logo = $fileLogo ? $this->saveLogo($fileLogo, $customer->token) : null;
 
+                $phoneNumber = $request->phone;
+
+                if ($phoneNumber <> $customer->phone) {
+                    PhoneNumbers::where('user', $customer->user)->update([
+                        'country' => $request->country,
+                        'phone_number' => $phoneNumber
+                    ]);
+                }
+
                 $data = [
                     'name' => $request->name,
                     'country' => $request->country,
-                    'phone' => $request->phone,
+                    'phone' => $phoneNumber,
                     'logo' => $logo,
                     'link_route' => $request->api_route
                 ];

@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreignId('status')->constrained('game_status')->onDelete('cascade')->default(1);
             $table->enum('room_type', ['PV', 'PB'])->default('PV');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
-            $table->foreignId('user')->constrained('users')->onDelete('cascade');
             $table->boolean('paid_win')->default(0);
             $table->timestamp('publication_date')->nullable();
             $table->integer('players')->default(0);
