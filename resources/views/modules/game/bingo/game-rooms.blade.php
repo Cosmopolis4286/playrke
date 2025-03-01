@@ -66,7 +66,7 @@
                                 </div>
                                 <span class="card-game-room__ctn-price">
                                     Cartón: <span id="ctn-price_{{ $room->encrypted }}">
-                                        {{ number_format($room->ctn_price * $exchangeRate, 2) }}
+                                        {{ number_format($room->Config->ctn_price * $exchangeRate, 2) }}
                                     </span> {{ $coinSym }}
                                 </span>
                                 <span class="card-game-room__status" id="card-game-room__status_{{ $room->encrypted }}">
@@ -149,7 +149,7 @@
             data.forEach((value, index) => {
                 arrRooms[index] = {
                     id: value.encrypted,
-                    dateTime: value.unix_date
+                    dateTime: value.config.unix_date
                 };
             });
         }
@@ -201,7 +201,6 @@
                     $('#container-purchase-ctns').show();
                 },
                 error: function(error) {
-                    console.log(error);
                     $('#container-spinner').hide();
                 },
                 complete: function() {

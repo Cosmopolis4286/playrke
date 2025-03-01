@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('bingo_ctn_price', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->foreignId('bingo_creator_id')->constrained('bingo_creator')->onDelete('cascade');
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->string('coin', 15);
             $table->double('ctn_price');
             $table->boolean('status')->default(1);

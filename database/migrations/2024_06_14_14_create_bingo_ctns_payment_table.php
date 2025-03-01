@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->string('operation', 1);
             $table->unsignedBigInteger('room');
-            $table->unsignedBigInteger('bingo_creator_id');
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->unsignedBigInteger('seller')->nullable();
             $table->integer('user')->nullable();
             $table->unsignedBigInteger('player_link');
@@ -29,7 +29,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('bingo_creator_id')->references('id')->on('bingo_creator');
             $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade');
             $table->foreign('player_link')->references('id')->on('player_link');
             $table->foreign('coin')->references('id')->on('coins');

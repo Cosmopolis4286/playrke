@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('prize_ctn');
             $table->string('operation', 1);
             $table->unsignedBigInteger('room');
-            $table->unsignedBigInteger('bingo_creator_id');
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->unsignedBigInteger('seller');
             $table->unsignedBigInteger('player_link');
             $table->unsignedBigInteger('sender');
@@ -32,7 +32,7 @@ return new class extends Migration
 
             $table->foreign('prize_ctn')->references('id')->on('bingo_prize_ctns');
             $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('bingo_creator_id')->references('id')->on('bingo_creator')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('player_link')->references('id')->on('player_link')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('sender')->references('id')->on('users')->onDelete('cascade');

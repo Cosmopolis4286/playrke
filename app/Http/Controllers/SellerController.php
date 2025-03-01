@@ -421,7 +421,7 @@ class SellerController extends Controller
         $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id');
 
         // Intentar obtener el precio configurado
-        $ctnPrice = BingoCtnPrice::getCtnPriceByCreator($coin->id, $bingoCreatorID);
+        $ctnPrice = BingoCtnPrice::getCtnPriceByCreatorUser($coin->id, $bingoCreatorID);
 
         if ($ctnPrice) {
             $setPrice = true;

@@ -58,11 +58,11 @@ class AutoGenerateBingoRooms
 
                 $roomID = $currentRoom->id;
 
-                // Configurar la sala y retornar bingo_creator_id
-                $bingoCreatorID = $this->configureRoom($roomID, $room, $roomDate);
+                // Configurar la sala
+                $this->configureRoom($roomID, $room, $roomDate);
 
                 // Asociar precios de monedas a la sala
-                $this->associateCtnPrices($room->id, $roomID, $bingoCreatorID);
+                $this->associateCtnPrices($room->id, $roomID, $room->creator_user);
             }
 
             DB::commit();
@@ -138,7 +138,7 @@ class AutoGenerateBingoRooms
     /**
      * Asocia los precios de monedas (ctn) a una sala.
      */
-    private function associateCtnPrices($automaticBingoID, $roomID, $bingoCreatorID)
+    private function associateCtnPrices($automaticBingoID, $roomID, $creatorUser)
     {
         $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($automaticBingoID ?? '');
 
@@ -148,7 +148,7 @@ class AutoGenerateBingoRooms
             BingoCtnPrice::updateOrCreate(
                 ['room' => $roomID, 'coin' => $key],
                 [
-                    'bingo_creator_id' => $bingoCreatorID,
+                    'creator_user' => $creatorUser,
                     'ctn_price' => $ctnPrice,
                 ]
             );

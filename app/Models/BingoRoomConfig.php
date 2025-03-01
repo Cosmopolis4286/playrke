@@ -34,7 +34,7 @@ class BingoRoomConfig extends Model
   public function getRoomTypeDescriptionAttribute()
   {
     $roomType = collect(Room::TYPES)->firstWhere('id', $this->room_type);
-    return $roomType['description'] ?? 'Desconocido';
+    return $roomType['description'] ?? '';
   }
 
   public function Room()

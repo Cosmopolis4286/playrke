@@ -42,6 +42,11 @@ class BingoRoom extends Model
     return $this->hasMany(BingoCreator::class, 'room', 'id');
   }
 
+  public function CtnPrice()
+  {
+    return $this->hasMany(BingoCtnPrice::class, 'room', 'id');
+  }
+
   public function CtnsLot()
   {
     return $this->hasMany(BingoCtnsLot::class, 'room', 'id');
