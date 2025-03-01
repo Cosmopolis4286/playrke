@@ -105,6 +105,7 @@ class AutoGenerateBingoRooms
             ['room' => $roomID],
             [
                 'creation' => 'A',
+                'creator_user' => $dataRoom->creator_user,
                 'game_mode' => $dataRoom->game_mode,
                 'date' => $roomDate,
                 'time' => $dataRoom->time,
@@ -123,6 +124,7 @@ class AutoGenerateBingoRooms
         $bingoCreatorID = BingoCreator::updateOrCreate(
             ['room' => $roomID],
             [
+                'creator_user' => $dataRoom->creator_user,
                 'creator_type' => $dataRoom->creator_type,
                 'creator_id' => $roomDate->creator_id,
                 'creator_commn' => $dataRoom->room_commn,

@@ -323,7 +323,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
     Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{mode?}/{coin?}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
-    Route::get('getDateTimeRooms/{creatorType}/{creatorID}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
+    Route::get('getDateTimeRooms/{creatorUser}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
     Route::get('getCtnPriceForCoin/{creation}/{creatorType}/{creatorID}/{room}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
 
     Route::put('handle-bingo-rules/{id?}', [BingoController::class, 'handleBingoRules'])->name('handleBingoRules');
