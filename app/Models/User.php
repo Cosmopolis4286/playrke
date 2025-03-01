@@ -62,9 +62,10 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public static function getCreatorIDByUserType($user, $userType = '')
     {
-        $model = ucfirst($userType);
+        $prefix = UserType::getValueById($userType, 'prefix');
+        $model = ucfirst(is_string($userType) ? $userType : $prefix);
 
-        return (app("App\\Models\\$model")::where('user', $user)->value('id'));
+        return app("App\\Models\\$model")::where('user', $user)->value('id');
     }
 
     public static function getById($userId, $fields = ['*'])

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BingoDraw extends Model
 {
     protected $table = 'bingo_draw';
-    protected $fillable = ['chip', 'code', 'room', 'time', 'win', 'status', 'created_at', 'updated_at'];
+    protected $fillable = ['chip', 'code', 'room', 'time', 'status', 'created_at', 'updated_at'];
 
     public function Room()
     {

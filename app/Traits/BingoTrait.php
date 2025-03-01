@@ -327,7 +327,7 @@ trait BingoTrait
             }
 
             if ($winningChip) {
-                BingoDraw::where('chip', $winningChip)->where('room', $room)->update(['win' => 1]);
+                BingoDraw::where('chip', $winningChip)->where('room', $room)->update(['status' => 3]);
             }
 
             $this->insertGameExchangeRate($room, 'BINGO'); // Registrar Tasas de Cambio
@@ -344,10 +344,11 @@ trait BingoTrait
     public function recorrersorteo($room)
     {
         $encrypted = BingoRoom::getValueById($room, 'encrypted');
+        date_default_timezone_set(config('app.timezone'));
 
         $result = false;
         do {
-            $chip = BingoDraw::select('id', 'chip', 'status', 'win')->where('room', $room)
+            $chip = BingoDraw::select('id', 'chip', 'status')->where('room', $room)
                 ->where('time', '<=', time())->where('status', 1)->first();
 
             //if ($chip->win == 1) $result = $this->getInfoWinners($room);
@@ -361,10 +362,12 @@ trait BingoTrait
 
     public function getInfoWinners($room, $roomUser, $coin = '')
     {
+        date_default_timezone_set(config('app.timezone'));
+
         $room = BingoRoom::getByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
 
-        // Obtener tiempo de salida de la ficha bandera
-        $lastChipTime = BingoDraw::where('win', 1)->where('room', $room->id)->value('time');
+        // Obtener tiempo de salida de la ficha jackpot
+        $lastChipTime = BingoDraw::where('status', 3)->where('room', $room->id)->value('time');
 
         if ($room->status == 3 && ($lastChipTime && $lastChipTime <= time())) {
             $room->update(['status' => 4]);
@@ -445,7 +448,7 @@ trait BingoTrait
 
         try {
             return BingoCtnsLot::insertGetId([
-                'creator_user' => $arrCtn['creatorUser']['user_id'],
+                'creator_user' => $arrCtn['creator']['userId'],
                 'seller' => $seller,
                 'room_user' => $arrCtn['roomUser'],
                 'player_user' => $arrCtn['playerUser'] ?? null,
@@ -530,7 +533,7 @@ trait BingoTrait
     {
         return [
             'room' => $arrCtn['room'],
-            'creator_user' => $arrCtn['creatorUser']['user_id'],
+            'creator_user' => $arrCtn['creator']['userId'],
             'seller' => $arrCtn['seller'] ?? null,
             'room_user' => $arrCtn['roomUser'],
             'player_user' => $arrCtn['playerUser'] ?? null,
@@ -579,7 +582,7 @@ trait BingoTrait
 
             $defaultValues = [
                 'room' => $arrCtn['room'],
-                'creator_user' => $arrCtn['creatorUser']['user_id'],
+                'creator_user' => $arrCtn['creator']['userId'],
                 'seller' => $arrCtn['seller'] ?? null,
                 'player_user' => $playerUser,
                 'player_link' => $arrCtn['playerLink'] ?? null,
@@ -687,15 +690,14 @@ trait BingoTrait
         $roomID = $arrCtn['room'];
 
         $room = $this->getRoomDetails($roomID);
+
         if (!$room) return ['Error' => 'Sala no disponible'];
 
         DB::beginTransaction();
 
         try {
             // Inicialización de variables
-            $creatorUser = $arrCtn['creatorUser'];
-            $creatorUserType = $creatorUser['type'];
-
+            $creator = $arrCtn['creator'];
             $seller = $arrCtn['seller'] ?? null;
             $playerUser = $arrCtn['playerUser'] ?? null;
             $coin = $arrCtn['coin'];
@@ -716,18 +718,18 @@ trait BingoTrait
             // Anexar atributo al array
             $arrCtn['roomUser'] = $roomUser;
 
-            if ($gameMode != 1 && ($creatorUserType === 'commerce' || $seller)) {
+            if ($gameMode != 1 && ($creator['type'] === 'commerce' || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor
                 $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $roomID);
             }
 
             // Evaluar tasa de cambio
-            if ($creatorUserType === 'customer') {
+            if ($creator['type'] === 'customer') {
                 $customerExchangeRate = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
                 $coin = $customerExchangeRate->coin;
                 $exchangeRate = $customerExchangeRate->exchangeRate ?? 1;
             } else {
-                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorUser['id'], $coin) ?? 1;
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator['id'], $coin) ?? 1;
             }
 
             // Crear lote de cartones
@@ -742,7 +744,7 @@ trait BingoTrait
             }
 
             // Si no es modo offline y el creador es un comercio, actualizar la billetera del jugador
-            if ($gameMode != 2 && $creatorUserType) {
+            if ($gameMode != 2 && $creator['type']) {
                 // Determinar la columna de saldo en función de la moneda
                 $columnBalance = $coin == 1 ? 'usdt' : 'balance';
 
@@ -774,13 +776,13 @@ trait BingoTrait
             }
 
             // Si la sala es de un cliente
-            if ($creatorUserType === 'customer') {
+            if ($creator['type'] === 'customer') {
                 // Registrar transacción (se consulta nuvamente el saldo del juagdor)
                 $roomID = BingoRoom::getValueById($roomID, 'code_uuid') ?? $this->getCodeUUID('BingoRoom');
 
                 $transactionBet = $this->handleTransactionByBET(
                     $game,
-                    $creatorUser['id'],
+                    $creator['id'],
                     $roomID,
                     $playerUser,
                     $coin,
@@ -939,9 +941,9 @@ trait BingoTrait
 
         if ($roomUser) {
             // Obtener el creador de la sala
-            $creatorUserType = User::getValueById($room->creator_user, 'user_type');
+            $creator['type'] = User::getValueById($room->creator_user, 'user_type');
 
-            $userType = UserType::getValueById($creatorUserType, 'prefix');
+            $userType = UserType::getValueById($creator['type'], 'prefix');
 
             // Obtener la moneda del jugador
             $coin = $this->getCoinByPlayer($userType, $roomUser);
@@ -1004,7 +1006,7 @@ trait BingoTrait
         if ($prizeCtns && $winners) return false; // Ya existen cartones premiados (jackpot)
 
         // Obtener el último chip sorteado
-        $lastChip = BingoDraw::select('id', 'chip')->where('win', 1)->where('room', $roomID)->first();
+        $lastChip = BingoDraw::select('id', 'chip')->where('win', 3)->where('room', $roomID)->first();
 
         // Obtener todos los chips sorteados hasta el último
         $chipsDraw = BingoDraw::where('room', $roomID)
@@ -1167,7 +1169,7 @@ trait BingoTrait
             if ($getWinners) return false;
 
             // Obtener ultima ficha en salir (ganadora) 
-            $lastChip = BingoDraw::where('room', $roomID)->where('win', 1)->value('id');
+            $lastChip = BingoDraw::where('room', $roomID)->where('win', 3)->value('id');
 
             $chipsDraw = array_flip(BingoDraw::where('room', $roomID)
                 ->where('id', '<', $lastChip)->pluck('chip')->toArray());

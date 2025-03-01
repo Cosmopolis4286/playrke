@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('chip', 2);
             $table->string('code', 8);
             $table->integer('time');
-            $table->boolean('status')->default(0);
+            $table->string('status',)->default('0');
             $table->timestamps();
         });
     }

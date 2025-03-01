@@ -65,7 +65,7 @@ class DirectoryController extends Controller
 
             case 'BRA': // Brasil
                 $paymentType = 'Pix';
-                $name = 'Pix';
+                $name = 'pix';
                 $additionalData = [
                     'pixs' => Pix::where('user', $userID)->get(),
                     'pixKeys' => Pix::getPixKeys()
@@ -83,7 +83,7 @@ class DirectoryController extends Controller
 
             case 'VEN': // Venezuela
                 $paymentType = 'Pago Movil';
-                $name = 'PagoMovil';
+                $name = 'pagomovil';
                 $additionalData = [
                     'pagomovils' => PagoMovil::with('Bank')->where('user', $userID)->get(),
                     'documentType' => DocumentType::getDocumentTypeByCountry($country->id),

@@ -80,6 +80,7 @@ trait EncryptRKE
 
     public function getHashMD5($value = '', $num = 7)
     {
+        date_default_timezone_set(config('app.timezone'));
         $timestamp = time();
 
         // Concatenar los valores con una cadena aleatoria para asegurar unicidad
