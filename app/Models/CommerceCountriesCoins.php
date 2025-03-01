@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CommerceCountriesCoins extends Model
 {
     protected $table = "commerces_countries_coins";
-    protected $fillable = ['commerce', 'country', 'coin', 'status'];
+    protected $fillable = ['commerce', 'country', 'coin', 'creator_user', 'status'];
 
     public function Commerce()
     {
@@ -26,12 +26,12 @@ class CommerceCountriesCoins extends Model
 
     public function PlayerLink()
     {
-        return $this->hasMany(PlayerLink::class, 'commerce', 'commerce');
+        return $this->hasMany(PlayerLink::class, 'creator_user', 'creator_user');
     }
 
     public function CtnsLot()
     {
-        return $this->hasMany(BingoCtnsLot::class, 'commerce', 'commerce');
+        return $this->hasMany(BingoCtnsLot::class, 'creator_user', 'creator_user');
     }
 
     public static function getAvailableCoins($commerce, $exceptCoin = '')

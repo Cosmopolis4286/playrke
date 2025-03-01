@@ -92,7 +92,7 @@ class CommerceController extends Controller
         return $validator; // Devuelve el validador en caso de éxito
     }
 
-    private function insertOtherCoins($commerce, $otherCoins)
+    private function insertOtherCoins($commerceID, $creatorUser, $otherCoins)
     {
         if (!empty($otherCoins) && is_array($otherCoins)) {
 
@@ -102,9 +102,10 @@ class CommerceController extends Controller
 
             foreach ($otherCoins as $coin) {
                 $coinsToCreate[] = [
-                    'commerce' => $commerce,
+                    'commerce' => $commerceID,
                     'country' => $coin->country,
                     'coin' => $coin->id,
+                    'creator_user' => $creatorUser,
                     'status' => 1,
                     'created_at' => now(),
                     'updated_at' => now()
@@ -112,18 +113,18 @@ class CommerceController extends Controller
             }
 
             // Manejo de transacción para insertar las nuevas monedas
-            DB::transaction(function () use ($commerce, $coinsToCreate) {
+            DB::transaction(function () use ($commerceID, $coinsToCreate) {
                 try {
                     foreach ($coinsToCreate as $coinData) {
                         // Insertar la moneda si no existe para ese vendedor
                         CommerceCountriesCoins::firstOrCreate(
-                            ['commerce' => $commerce, 'coin' => $coinData['coin']],
+                            ['commerce' => $commerceID, 'coin' => $coinData['coin']],
                             $coinData
                         );
                     }
 
                     // Habilitar solo las monedas seleccionadas
-                    CommerceCountriesCoins::where('commerce', $commerce)
+                    CommerceCountriesCoins::where('commerce', $commerceID)
                         ->whereIn('coin', array_column($coinsToCreate, 'coin'))->update(['status' => 1]);
                 } catch (\Exception $e) {
                     // Captura de cualquier otra excepción
@@ -195,6 +196,7 @@ class CommerceController extends Controller
                 'commerce' => $commerce->id,
                 'country' => $commerce->country,
                 'coin' => $commerce->coin,
+                'creator_user' => $newUser,
                 'status' => 1
             ]);
 
@@ -210,6 +212,7 @@ class CommerceController extends Controller
                         'commerce' => $commerce->id,
                         'country' => $coin->country,
                         'coin' => $coin->id,
+                        'creator_user' => $newUser,
                         'status' => 1,
                         'created_at' => $timestamp,
                         'updated_at' => $timestamp
@@ -306,15 +309,16 @@ class CommerceController extends Controller
 
                 if ($coinChange) {
                     // Actualizar moneda Principal
-                    CommerceCountriesCoins::where('commerce', $commerce->id)
-                        ->where('coin', $commerce->coin)->update([
+                    CommerceCountriesCoins::where('creator_user', $commerce->user)
+                        ->where('coin', $commerce->coin)
+                        ->update([
                             'country' => $commerce->country,
                             'coin' => $commerce->coin
                         ]);
                 }
 
                 $otherCoins = $request->other_coins;
-                $this->insertOtherCoins($commerce->id, $otherCoins);
+                $this->insertOtherCoins($commerce->id, $commerce->user, $otherCoins);
 
                 DB::commit();
 
@@ -373,12 +377,12 @@ class CommerceController extends Controller
         return view('modules.commerce.directory.Venezuela.index', compact('title', 'pagoMovils'));
     }
 
-    private function getCommerceCoins($commerce, $dateFilter = "today", $relation = [])
+    private function getCommerceCoins($creatorUser, $dateFilter = "today", $relation = [])
     {
         $query = CommerceCountriesCoins::with($relation[0])
-            ->whereHas($relation[0], function ($subquery) use ($commerce, $relation, $dateFilter) {
+            ->whereHas($relation[0], function ($subquery) use ($creatorUser, $relation, $dateFilter) {
                 $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
-                    ->where('commerce', $commerce);
+                    ->where('creator_user', $creatorUser);
 
                 if (count($relation) > 1) {
                     $subquery->with($relation[1]);
@@ -396,8 +400,9 @@ class CommerceController extends Controller
     {
         $title = 'Reporte de Ventas';
 
-        $commerce = $this->commerce('id')->id;
-        $user = ['type' => 'commerce', 'id' => $commerce];
+        $commerce = $this->commerce(['id', 'user']);
+
+        $user = ['type' => 'commerce', 'id' => $commerce->id];
 
         $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
@@ -415,9 +420,9 @@ class CommerceController extends Controller
         $coinName = "$dataCoin->short_name ($dataCoin->iso_code)";
 
         // Obtener los datos de los ganadores
-        $rooms = $this->getRoomsData($commerce, $coin, $dateFilter);
+        $rooms = $this->getRoomsData($commerce->user, $coin, $dateFilter);
 
-        $coins = $this->getCommerceCoins($commerce, $dateFilter, ['CtnsLot', 'Coin']);
+        $coins = $this->getCommerceCoins($commerce->user, $dateFilter, ['CtnsLot', 'Coin']);
 
         // Inicialización de los totales
         $totals = [
@@ -476,7 +481,7 @@ class CommerceController extends Controller
     private function getRoomsData($creatorUser, $coin, $dateFilter = "today")
     {
         $query = BingoRoom::with([
-            'Config:room,room_commn',
+            'Config:room,date,time,ctn_price,room_commn',
             'Status',
             'CtnsLot' => function ($subquery) use ($creatorUser, $coin) {
                 $subquery->where('creator_user', $creatorUser)
@@ -486,9 +491,8 @@ class CommerceController extends Controller
 
         $query = $this->applyDateFilter($dateFilter, $query, 'publication_date');
 
-        $rooms = $query->where('user', $creatorUser)
-            // ID Commerce 1 es PlayRKE Sala Para todos
-            ->get(['id', 'encrypted', 'room_type', 'status', 'time', 'date', 'jackpot', 'ctn_price']);
+        $rooms = $query->where('creator_user', $creatorUser)
+            ->get(['id', 'encrypted', 'room_type', 'status', 'jackpot']);
 
         return $rooms;
     }
@@ -615,26 +619,28 @@ class CommerceController extends Controller
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
 
-        $commerce = $this->commerce()->id;
+        $commerce = $this->commerce(['id', 'user']);
+        $commerceID = $commerce->id;
+        $creatorUser = $commerce->user;
 
         app(HandleBingoRooms::class)->checkRoomClosure();
 
         // Obtener los datos de los ganadores
-        $winners = $this->getWinnersData($commerce, $dateFilter);
+        $winners = $this->getWinnersData($creatorUser, $dateFilter);
 
         // Pagos Pendientes de otros comercios
         $paymentsOtherCommerces = 0;
 
         // Contar los ganadores pendientes de pago para otros comercios
-        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCommerce($commerce);
+        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($creatorUser);
 
         // Contar los ganadores pendientes de pago para el propio comercio
-        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCommerce($commerce);
+        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($creatorUser);
 
         // Obtener las monedas asociadas al comercio
-        $coins = $this->getByIdsForCommerce($commerce);
+        $coins = $this->getByIdsForCommerce($creatorUser);
 
-        $commerce = Commerce::getById($commerce, ['code_rke', 'code_uuid']);
+        $commerce = Commerce::getById($commerceID, ['code_rke', 'code_uuid']);
         $commerce = $commerce->code_rke ?? $commerce->code_uuid;
 
         return view(
@@ -666,10 +672,10 @@ class CommerceController extends Controller
         $winners = $this->getWinnersData($commerce, $dateFilter, true);
 
         // Contar los ganadores pendientes de pago para otros comercios
-        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCommerce($commerce);
+        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($commerce);
 
         // Contar los ganadores pendientes de pago para el propio comercio
-        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCommerce($commerce);
+        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($commerce);
 
         // Obtener las monedas asociadas al comercio
         $coins = $this->getByIdsForCommerce($commerce);
@@ -689,11 +695,10 @@ class CommerceController extends Controller
         );
     }
 
-    private function getWinnersData($commerce = '', $dateFilter = "today", $others = false)
+    private function getWinnersData($creatorUser, $dateFilter = "today", $others = false)
     {
         $winnersQuery = BingoPrizeCtns::with([
             'Room',
-            'Commerce',
             'Coin',
             'PlayerLink.Country',
             'Payment',
@@ -711,9 +716,9 @@ class CommerceController extends Controller
         })->whereHas('Seller')->whereHas('GameExchangeRate');
 
         if (!$others) {
-            $winnersQuery->where('commerce', $commerce);
+            $winnersQuery->where('creator_user', $creatorUser);
         } else {
-            $winnersQuery->whereNot('commerce', $commerce);
+            $winnersQuery->whereNot('creator_user', $creatorUser);
         }
 
         $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
@@ -724,13 +729,13 @@ class CommerceController extends Controller
         //$winnersSerials = $winners->where('prize_type', 2)->count();
     }
 
-    private function getByIdsForCommerce($commerce)
+    private function getByIdsForCommerce($creatorUser)
     {
         // Lógica para obtener las monedas asociadas al comercio
         $coinsCommerce =  CommerceCountriesCoins::with('Coin', 'PlayerLink.PlayerGame')
-            ->whereHas('PlayerLink', function ($query) use ($commerce) {
+            ->whereHas('PlayerLink', function ($query) use ($creatorUser) {
                 $query->whereColumn('coin', 'commerces_countries_coins.coin')
-                    ->where('commerce', $commerce);
+                    ->where('creator_user', $creatorUser);
             })->whereHas('PlayerLink.PlayerGame', function ($query) {
                 $query->where('winner', '>', 0);
             })->where('status', 1)->orderBy('country')->pluck('coin');
@@ -759,8 +764,10 @@ class CommerceController extends Controller
     {
         $title = 'Cartones Vendidos';
 
-        $commerce = $this->commerce('id')->id;
-        $user = ['type' => 'commerce', 'id' => $commerce];
+        $commerce = $this->commerce(['id', 'user']);
+        $creatorUser = $commerce->user;
+
+        $user = ['type' => 'commerce', 'id' => $commerce->id];
 
         $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
@@ -776,16 +783,16 @@ class CommerceController extends Controller
         $coinSym = Coin::getValue($coin, 'symbol');
 
         $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
-            ->whereHas('Room', function ($query) use ($commerce) {
-                $query->where('commerce', $commerce)->whereIn('status', [2, 3, 4]);
+            ->whereHas('Room', function ($query) use ($creatorUser) {
+                $query->where('creator_user', $creatorUser)->whereIn('status', [2, 3, 4]);
             });
 
         $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
-        $ctnsSold = $ctnsSoldQuery->where('coin', $coin)->where('commerce', $commerce)
+        $ctnsSold = $ctnsSoldQuery->where('coin', $coin)->where('creator_user', $creatorUser)
             ->whereHas('Seller')->orderBy('status')->orderByDesc('id')->get();
 
-        $coins = $this->getCommerceCoins($commerce, $dateFilter, ['CtnsLot', 'Coin']);
+        $coins = $this->getCommerceCoins($creatorUser, $dateFilter, ['CtnsLot', 'Coin']);
 
         $routeWithCoin = [
             'route' => 'commerce.ctnsSold',

@@ -2287,7 +2287,7 @@ class BingoController extends Controller
         $currentTimestamp = now()->addMinutes(1)->timestamp;
         $timeIncrement = 8;
 
-        // Eliminar Ultima Ficha en (ganadora)
+        // Eliminar Ultima Ficha en salir (ganadora)
         BingoDraw::where('room', $room)->where('status', 3)->update(['status' => 0]);
 
         $chips = [];

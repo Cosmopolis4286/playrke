@@ -10,7 +10,7 @@ class PlayerLink extends Model
   protected $fillable = [
     'game',
     'room',
-    'game_creator_id',
+    'creator_user',
     'seller',
     'user',
     'link',
@@ -22,6 +22,21 @@ class PlayerLink extends Model
     'phone',
     'purchase_code'
   ];
+
+  public function Game()
+  {
+    return $this->belongsTo(Games::class, 'game');
+  }
+
+  public function Room()
+  {
+    return $this->belongsTo(BingoRoom::class, 'room');
+  }
+
+  public function CreatorUser()
+  {
+    return $this->belongsTo(User::class, 'creator_user');
+  }
 
   public function Country()
   {
@@ -46,16 +61,6 @@ class PlayerLink extends Model
   public function Seller()
   {
     return $this->belongsTo(Seller::class, 'seller');
-  }
-
-  public function User()
-  {
-    return $this->belongsTo(User::class, 'user');
-  }
-
-  public function Room()
-  {
-    return $this->belongsTo(BingoRoom::class, 'room');
   }
 
   public function PlayerGame()

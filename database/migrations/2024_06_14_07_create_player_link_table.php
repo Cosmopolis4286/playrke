@@ -16,11 +16,11 @@ class CreatePlayerLinkTable extends Migration
         Schema::create('player_link', function (Blueprint $table) {
             $table->id();
             $table->string('link', 25);
-            $table->unsignedBigInteger('country');
-            $table->unsignedBigInteger('coin');
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('room');
-            $table->integer('game_creator_id');
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->unsignedBigInteger('country');
+            $table->unsignedBigInteger('coin');
             $table->unsignedBigInteger('seller')->nullable();
             $table->unsignedBigInteger('user')->nullable();
             $table->string('name', 20);

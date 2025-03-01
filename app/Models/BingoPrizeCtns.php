@@ -30,16 +30,6 @@ class BingoPrizeCtns extends Model
         return $this->belongsTo(BingoRoom::class, 'room');
     }
 
-    public function Customer()
-    {
-        return $this->belongsTo(Customer::class, 'customer');
-    }
-
-    public function Commerce()
-    {
-        return $this->belongsTo(Commerce::class, 'commerce');
-    }
-
     public function Seller()
     {
         return $this->belongsTo(Seller::class, 'seller');
@@ -118,15 +108,15 @@ class BingoPrizeCtns extends Model
         return self::where(['room' => $room, 'prize_type' => $prizeType])->count();
     }
 
-    public static function getPendingPaymentsCountByCommerce($commerce)
+    public static function getPendingPaymentsCountByCreator($creatorUser)
     {
-        return self::where('commerce', $commerce)->where('active', 'Y')
+        return self::where('creator_user', $creatorUser)->where('active', 'Y')
             ->where('player_link', '<>', '')->where('status', '<', 2)->count();
     }
 
-    public static function getPendingPaymentsCountExcludingCommerce($commerce)
+    public static function getPendingPaymentsCountExcludingCreator($creatorUser)
     {
-        return self::whereNot('commerce', $commerce)->where('active', 'Y')
+        return self::whereNot('creator_user', $creatorUser)->where('active', 'Y')
             ->where('player_link', '<>', '')->where('status', '<>', 3)->count();
     }
 }
