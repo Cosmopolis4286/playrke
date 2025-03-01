@@ -119,8 +119,8 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
         dataType: 'json',
         data: {
             room: encrypted,
-            user_type: creatorType,
-            user_type_val: creatorID,
+            creator_type: creatorType,
+            creator_id: creatorID,
             player: player,
             coin: coinSale,
             num_ctns: numCtns,

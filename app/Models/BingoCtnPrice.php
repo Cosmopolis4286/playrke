@@ -29,7 +29,7 @@ class BingoCtnPrice extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getCtnPriceByCreatorUserUser($coin, $creatorUser)
+    public static function getCtnPriceByCreatorUser($coin, $creatorUser)
     {
         return self::where('creator_user', $creatorUser)->where('coin', $coin)->value('ctn_price');
     }
