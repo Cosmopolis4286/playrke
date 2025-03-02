@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\Games\BingoOFF_GetRoomInfo;
-use App\Events\Games\BingoOFF_ProccessDraw;
 use App\Traits\UserVal;
 use App\Traits\EncryptRKE;
 use App\Models\Wallet;
@@ -54,6 +52,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
 
 class BingoController extends Controller
 {
@@ -1468,14 +1467,14 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $creator = ['type' => $userType, 'id' => User::getCreatorIDByUserType($user, $userType)];
-
-        $game = GameRules::getByGame('BINGO', Auth::id(), ['id', 'rules']);
+        $game = GameRules::getByGame('BINGO', $user, ['id', 'image', 'rules', 'encrypted']);
         $rulesID = '';
         $gameRules = '';
+        $image = false;
 
         if ($game) {
             $rulesID = encrypt($game->id);
+            $image = "bingo-rules/$game->encrypted/$game->image";
             $gameRules = $game->rules;
         }
 
@@ -1485,7 +1484,8 @@ class BingoController extends Controller
             'userToken' => $userToken,
             'rulesID' => $rulesID,
             'gameRules' => $gameRules,
-            'bingoRules' => $this->getBingoRules($creator['userId']),
+            'image' => $image,
+            'bingoRules' => $this->getBingoRules($user),
         ];
 
         $viewData = ['route' => 'modules.game.bingo.configuration.index', 'data' => $viewData];
@@ -1510,19 +1510,45 @@ class BingoController extends Controller
 
         try {
 
+            $fileImage = $request->file('image');
+
             if (!empty($rulesID)) {
+
                 $game = GameRules::findOrFail($rulesID);
 
+                $updateData = [];
+
+                if ($fileImage) {
+                    $folder = 'game/bingo/bingo-rules';
+                    $image = $fileImage ? $this->saveImage($fileImage, $folder, $game->encrypted) : null;
+
+                    $updateData['image'] = $image;
+                }
+
                 if ($game->rules !== $request->rules) {
-                    $game->update(['rules' => $request->rules]);
+                    $updateData['rules'] = $request->rules;
+                }
+
+                if (!empty($updateData)) {
+                    $game->update($updateData);
                 }
             } else {
+
                 $gameID = Games::getValueByName('BINGO');
+
+                $code = $this->generateUniqueCode('GameRules', 12);
+
+                if ($fileImage) {
+                    $folder = 'game/bingo/bingo-rules';
+                    $image = $fileImage ? $this->saveImage($fileImage, $folder, $code) : null;
+                }
 
                 GameRules::create([
                     'user' => Auth::id(),
                     'game' => $gameID,
+                    'image' => $image,
                     'rules' => $request->rules,
+                    'encrypted' => $code,
                     'status' => 1
                 ]);
             }

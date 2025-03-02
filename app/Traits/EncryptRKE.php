@@ -3,8 +3,13 @@
 namespace App\Traits;
 
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 trait EncryptRKE
@@ -143,6 +148,37 @@ trait EncryptRKE
             //throw $th;
             DB::rollBack();
             return ['Error' => true];
+        }
+    }
+
+    private function saveImage(UploadedFile $image, $folder, $creatorID)
+    {
+        try {
+            if ($image && $image->isValid()) {
+                // Crear un nombre único para el archivo
+                $fileName = Carbon::now()->timestamp . '.' . $image->getClientOriginalExtension();
+
+                // Crear una carpeta personalizada usando el ID del creator
+                $creatorFolder = "$folder/$creatorID";
+
+                // Eliminar cualquier archivo existente en la carpeta
+                Storage::disk('public')->deleteDirectory($creatorFolder);
+
+                // Guardar el nuevo archivo en la carpeta específica
+                $image->storeAs($creatorFolder, $fileName, 'public');
+
+                return $fileName;
+            }
+
+            throw new \Exception('El archivo no es válido o está corrupto.');
+        } catch (\Exception $e) {
+            // Registrar el error para depuración
+            Log::error("Error al guardar la imagen: " . $e->getMessage());
+
+            throw new HttpResponseException(response()->json([
+                'message' => 'Error al guardar la imagen. Inténtalo de nuevo.',
+                'error' => $e->getMessage()
+            ], 500));
         }
     }
 }

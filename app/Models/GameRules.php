@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class GameRules extends Model
 {
     protected $table = "game_rules";
-    protected $fillable = ['user', 'game', 'rules', 'status'];
+    protected $fillable = ['user', 'game', 'image', 'rules', 'encrypted', 'status'];
 
     public function Game()
     {
@@ -36,5 +36,10 @@ class GameRules extends Model
         return self::where('game', $gameID)
             ->when($user, fn($query) => $query->where('user', $user))
             ->value($value);
+    }
+
+    public static function existsCode($encrypted)
+    {
+        return self::where('encrypted', $encrypted)->exists();
     }
 }

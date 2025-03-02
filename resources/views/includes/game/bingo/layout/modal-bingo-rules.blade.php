@@ -7,7 +7,13 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">{!! $bingoRules !!}</div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-center">
+                    <img style="max-height: 85px" src="{{ asset("storage/game/bingo/$image") }}" alt="Game Image">
+                </div>
+                <hr>
+                <div>{!! $bingoRules !!}</div>
+            </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" id="close">Cerrar</button>
             </div>

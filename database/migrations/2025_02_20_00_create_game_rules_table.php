@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user')->constrained('users')->onDelete('cascade');
             $table->foreignId('game')->constrained('games')->onDelete('cascade');
+            $table->string('image', 30)->nullable();
             $table->text('rules');
+            $table->string('encrypted', 12);
             $table->boolean('status')->default(1);
             $table->timestamps();
         });

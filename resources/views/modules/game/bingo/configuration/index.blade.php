@@ -5,17 +5,26 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                <form id="form-bingo-rules" action="{{ route('bingo.handleBingoRules', $rulesID) }}" method="POST">
+                <button type="button" class="mb-2 btn btn-sm btn-success" data-toggle="modal" data-target="#modal-bingo-rules">
+                    <i class="fas fa-eye"></i> Ver Reglamento
+                </button>
+                <hr class="mt-2">
+                <form id="form-bingo-rules" action="{{ route('bingo.handleBingoRules', $rulesID) }}" method="POST"
+                    enctype="multipart/form-data">
                     @csrf @method('PUT')
-                    <div class="form-group">
-                        <div class="d-flex justify-content-between">
-                            <label for="bingo-rules">Reglamento:</label>
-                            <button type="button" class="mb-2 btn btn-sm btn-secondary" data-toggle="modal"
-                                data-target="#modal-bingo-rules">
-                                <i class="fas fa-eye"></i> Ver
-                            </button>
+                    <div class="d-flex justify-content-between">
+                        <div class="form-group">
+                            <label for="image">Imagen</label>
+                            <input type="file" id="image" class="form-control-file" name="image"
+                                accept="image/png, image/jpeg">
                         </div>
-                        <textarea class="form-control" id="bingo-rules" name="rules" rows="14">{{ $gameRules }}</textarea>
+                        <div class="mr-2">
+                            <img style="max-height: 68px" src="{{ asset("storage/game/bingo/$image") }}" alt="Game Image">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="bingo-rules">Reglamento:</label>
+                        <textarea class="form-control" id="bingo-rules" name="rules" rows="10">{{ $gameRules }}</textarea>
                     </div>
                     <div class="d-flex justify-content-center">
                         <button type="button" id="btn-form-bingo-rules" class="btn btn-primary">
