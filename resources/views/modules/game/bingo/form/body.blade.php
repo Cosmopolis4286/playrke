@@ -30,7 +30,7 @@
         <select id="jackpot-type" name="jackpot_type" class="form-control form-info" required></select>
     </div>
     <div id="cont-fixed-jackpot-value" class="form-group col-sm-6 col-md-4 hide-elem">
-        <label for="fixed-jackpot-value">Valor Fijo/Agregado*</label>
+        <label for="fixed-jackpot-value">Valor Fijo/Extra*</label>
         <div class="input-group">
             <div class="input-group-prepend">
                 <span class="input-group-text">$</span>

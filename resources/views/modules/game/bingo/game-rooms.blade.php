@@ -171,7 +171,7 @@
 
             $.ajax({
                 url: `{{ route('bingo.getInfoByEncrypt', ['id' => ':1', 'creatorUser' => ':2', 'coin' => ':3']) }}`
-                    .replace(':1', roomID).replace(':creatorUser', 'game-rooms').replace(':3', coin),
+                    .replace(':1', roomID).replace(':2', creatorUser).replace(':3', coin),
                 method: 'GET',
                 dataType: 'json',
                 beforeSend: function() {

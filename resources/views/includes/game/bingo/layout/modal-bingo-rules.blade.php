@@ -8,10 +8,13 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div class="d-flex justify-content-center">
-                    <img style="max-height: 85px" src="{{ asset("storage/game/bingo/$imageBingoRules") }}" alt="Game Image">
-                </div>
-                <hr>
+                @if ($imageBingoRules)
+                    <div class="d-flex justify-content-center">
+                        <img style="max-height: 85px" src="{{ asset("storage/game/bingo/$imageBingoRules") }}"
+                            alt="Game Image">
+                    </div>
+                    <hr>
+                @endif
                 <div>{!! $bingoRules !!}</div>
             </div>
             <div class="modal-footer">

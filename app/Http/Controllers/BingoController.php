@@ -445,7 +445,7 @@ class BingoController extends Controller
             $data['isLogin'] = $request->is_login ?? false;
             $data['coin'] = decrypt($request->coin);
 
-            $creatorCtnPrice = BingoCtnPrice::getCtnPriceByCreatorUser($data['coin'], $creator['userId']);
+            $creatorCtnPrice = BingoCtnPrice::getValueCtnPrice($room->id, $data['coin'], $creator['userId']);
 
             $response = $this->handleCartonByCreator($creator, $roomCtnPrice, $creatorCtnPrice, $data, $request);
 
@@ -456,7 +456,7 @@ class BingoController extends Controller
             $data = $response;
         } else {
             $data = $this->handleCartonBySeller($data, $request);
-            $creatorCtnPrice = BingoCtnPrice::getCtnPriceByCreatorUser($data['coin'], $data['creatorUser']);
+            $creatorCtnPrice = BingoCtnPrice::getValueCtnPrice($room->id, $data['coin'], $data['creatorUser']);
         }
 
         // Definir precio del carton
@@ -663,9 +663,9 @@ class BingoController extends Controller
                     'coinsAvailable' => $coinsAvailable ?? []
                 ];
 
-                $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID);
+                $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
                 // Definir precio del carton 
-                $bingoCtnPrice = BingoCtnPrice::getCtnPriceByCreatorUser($coinID, $bingoCreatorID)
+                $bingoCtnPrice = BingoCtnPrice::getValueCtnPrice($roomID, $coinID, $bingoCreatorUser)
                     ?? CommerceExchangeRate::getCommerceCoinValue($creatorID, $coinID);
 
                 $moreViewData['ctnPrice'] = $this->formatAmount($bingoCtnPrice, 'float');
@@ -1430,13 +1430,13 @@ class BingoController extends Controller
             // Parámetros del creador
             $creator = ['type' => $creatorType, 'id' => $creatorID];
 
-            // Obtener ID Bingo Creator
-            $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id');
+            // Obtener ID Bingo Creator-User
+            $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
         }
 
         // Obtener precios y monedas asociadas
         if ($creation === 'M') {
-            $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($bingoCreatorID ?? '');
+            $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($roomID, $bingoCreatorUser ?? false);
         } else {
             $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($room ?? '');
         }
@@ -1665,29 +1665,34 @@ class BingoController extends Controller
 
         if (in_array($roomConfig->game_mode, [2, 3])) {
 
+            $coin = decrypt($coin);
+            $exchangeRate = 1;
+
             $creatorUser = decrypt($creatorUser);
             $creatorType = User::getUserTypePrefix($creatorUser);
 
             if ($creatorType === 'customer') {
                 $isLogin = false;
-                $custCoin = CustomerExchangeRate::getById(decrypt($coin), ['coin', 'exchange_rate']);
+                $custCoin = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
                 $coin = $custCoin->coin;
                 $exchangeRate = $custCoin->exchange_rate;
             } else {
-                $coin = decrypt($coin);
-                $exchangeRate = 1;
                 $isLogin = ($coin == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
+
                 if ($coin != 1) {
-                    $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator->commerce, $coin);
+                    $commerce = Commerce::getValueByUserId($creatorUser, 'commerce');
+                    $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin);
                 }
+
                 $coin = Coin::getValue($coin, 'symbol');
             }
 
             $ctnPrice = $roomConfig->ctn_price * $exchangeRate;
 
-            $bingoCtnPrice = BingoCtnPrice::all();
+            $bingoCtnPrice = BingoCtnPrice::getValueCtnPrice($room->id, $coin, $creatorUser);
 
             if ($bingoCtnPrice) {
+                $ctnPrice = $bingoCtnPrice;
             }
 
             $room = [
@@ -1735,8 +1740,8 @@ class BingoController extends Controller
             'id' => $existingRoomCreator->creator_id
         ];
 
-        $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id');
-        $existingRoomCtnPrice = BingoCtnPrice::getAllCtnPrice($bingoCreator);
+        $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
+        $existingRoomCtnPrice = BingoCtnPrice::getAllCtnPrice($roomID, $bingoCreatorUser);
 
         DB::beginTransaction();
 

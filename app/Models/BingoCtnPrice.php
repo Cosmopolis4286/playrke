@@ -29,23 +29,24 @@ class BingoCtnPrice extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getCtnPriceByCreatorUser($coin, $creatorUser)
+    public static function getValueCtnPrice($room, $coin, $creatorUser)
     {
-        return self::where('creator_user', $creatorUser)->where('coin', $coin)->value('ctn_price');
+        return self::where('room', $room)->where('coin', $coin)
+            ->where('creator_user', $creatorUser)->value('ctn_price');
     }
 
-    public static function getOnlyCoinsCtnPrice($creatorUser)
+    public static function getOnlyCoinsCtnPrice($room, $creatorUser)
     {
         if (!$creatorUser) return collect();
 
-        return self::where('creator_user', $creatorUser)->groupBy('coin')
+        return self::where('room', $room)->where('creator_user', $creatorUser)->groupBy('coin')
             ->select('coin', BingoCtnPrice::raw('MAX(ctn_price) as ctn_price'))
             ->pluck('ctn_price', 'coin');
     }
 
-    public static function getAllCtnPrice($creatorUser)
+    public static function getAllCtnPrice($room, $creatorUser)
     {
-        return self::with('Coin')->where('creator_user', $creatorUser)->get();
+        return self::with('Coin')->where('room', $room)->where('creator_user', $creatorUser)->get();
     }
 
     public static function getCtnPrice($room, $coin, $creatorUser, $fields = ['id', 'ctn_price', 'status'])
