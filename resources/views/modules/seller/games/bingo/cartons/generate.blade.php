@@ -96,7 +96,14 @@
                             </div>
                         </div>
                         <div class="ctn-player-info mt-1 hide-elem">
+
                             <div class="row">
+                                <div class="form-group col-12 col-sm-6">
+                                    <label for="type-sale">Venta*</label>
+                                    <select id="type-sale" class="form-control info-form" name="type_sale" required>
+                                        <option value="currency" selected>Moneda Local</option>
+                                    </select>
+                                </div>
                                 <div class="form-group col-12 col-sm-6">
                                     <label for="country">Pais*</label>
                                     <select id="country" class="form-control info-form" name="country" required></select>
@@ -107,8 +114,8 @@
                                         <input type="text" id="phone" class="form-control info-form" name="phone"
                                             required>
                                         <div class="input-group-append">
-                                            <button id="btn-search-phone" class="btn btn-outline-secondary" type="button"
-                                                data-id="1">
+                                            <button id="btn-search-phone" class="btn btn-outline-secondary"
+                                                type="button" data-id="1">
                                                 <i class="fa-solid fa-magnifying-glass"></i>
                                             </button>
                                         </div>
@@ -154,6 +161,7 @@
         const room = $("#room");
         const rooms = @json($rooms);
         const numCtns = $("#num-ctns");
+        const typeSale = $("type-sale");
         const country = $("#country");
         const sellerCommn = @json($commn);
         const form = $("#form-ctns");
@@ -161,6 +169,7 @@
         const btnSearchPhone = $("#btn-search-phone");
         let roomID = '';
         let roomCtnPrice = false;
+        let allowsUSDT = false;
         let coinSym = '';
         let ctnPrice = 1;
         let jackpotRoom;
@@ -202,12 +211,12 @@
             // Iterar sobre los elementos rooms
             $.each(rooms, function(index, item) {
                 // Convertir la fecha a un formato legible
-                const formattedDate = convertAndDisplay(item.unix_date);
+                const formattedDate = convertAndDisplay(item.config.unix_date);
                 // Crear la opción con la fecha y hora
                 const option = `<option value="${item.encrypted}">${formattedDate}</option>`;
 
                 // Anexar al grupo correspondiente y marcar que el grupo tiene al menos una sala
-                if (item.room_type == 1) {
+                if (item.room_type === 'PV') {
                     privateGroup.append(option);
                     hasPrivateRooms = true;
                 } else {
@@ -271,6 +280,15 @@
             }
         }
 
+        function handleAllowsUSDT(USDT) {
+            allowsUSDT = USDT;
+            if (allowsUSDT) {
+
+            } else {
+
+            }
+        }
+
         function getCtnPriceCoin(country) {
             $.getJSON({
                 url: `{{ route('seller.getCtnPriceCoin', ['room' => ':room', 'country' => ':country']) }}`
@@ -301,13 +319,20 @@
                         'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
                     success: function(data) {
+                        if (data.message) {
+                            showToast(data.message, data.type);
+                            return;
+                        }
                         const {
                             jackpot,
                             jackpotType,
                             price,
                             coin,
-                            countries
+                            countries,
+                            USDT
                         } = data;
+
+                        handleAllowsUSDT(USDT);
                         roomCtnPrice = formatNumber(price);
                         ctnPrice = roomCtnPrice;
                         coinSym = coin;

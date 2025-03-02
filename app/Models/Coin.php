@@ -85,6 +85,11 @@ class Coin extends Model
         return self::select($fields)->whereIn('id', $arrCoins)->get();
     }
 
+    public static function getCoinsInArray()
+    {
+        return self::pluck('coin')->unique()->toArray();
+    }   
+
     public static function getCoinsByCountry($countries)
     {
         return self::whereIn('country', $countries)->pluck('id')->toArray();

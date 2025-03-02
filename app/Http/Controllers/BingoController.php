@@ -1643,7 +1643,7 @@ class BingoController extends Controller
         ]);
     }
 
-    public function getInfoByEncrypt($id, $creatorUser, $coin = '')
+    public function getInfoByEncrypt($id, $creatorUser, $coin)
     {
         $room = BingoRoom::getByEncrypted($id, ['id', 'jackpot_prize']);
 

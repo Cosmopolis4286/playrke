@@ -348,14 +348,14 @@ class SellerController extends Controller
             'Config' => function ($query) {
                 $query->select('room', 'game_mode', 'unix_date');
             }
-        ])->select('encrypted', 'room_type')
+        ])->select('id', 'encrypted', 'room_type')
             ->where('status', 2)
             ->where(function ($query) use ($creatorUser) {
                 $query->where('creator_user', $creatorUser)
                     ->orWhere('room_type', 'PV');
             })
             ->whereHas('Config', function ($query) {
-                $query->whereIn('game_mode', 2)
+                $query->where('game_mode', 2)
                     ->whereNotNull('room');
             })
             ->orderByRaw("(SELECT unix_date FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
@@ -375,35 +375,43 @@ class SellerController extends Controller
     {
         $seller = $this->seller(['id', 'commerce']);
 
-        $countryCoinsSeller = SellerCountriesCoins::getAvailableCountries($seller->id);
+        $coinsSeller = SellerCountriesCoins::getAvailableCoins($seller->id);
 
-        $commerceCoinsAvailable = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1);
+        $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1);
 
-        $commerceCountries = Coin::getCountriesByCoinInArray($commerceCoinsAvailable);
+        $coinsAvailable = array_intersect($commerceCoins, $coinsSeller);
 
-        $coinsAvailable = array_intersect($commerceCountries, $countryCoinsSeller);
+        if (in_array('1', $coinsAvailable)) {
+            $coinsAvailable = array_diff($coinsAvailable, ['1']);
+            $USDT = true;
+        }
 
-        return Country::getCountries($coinsAvailable, ['id', 'name']);
+        $countriesAvailable = Coin::getCountriesByCoinInArray($coinsAvailable);
+
+        $countries = Country::getCountries($countriesAvailable, ['id', 'name']);
+
+        return ['countries' => $countries, 'USDT' => isset($USDT)];
     }
 
     public function getCtnPrice($roomID)
     {
-        $room = BingoRoom::with('Config:room,jackpot_type')
-            ->select('id', 'encrypted', 'jackpot', 'ctn_price')
+        $room = BingoRoom::with('Config:room,jackpot_type,ctn_price')
+            ->select('id', 'encrypted', 'jackpot')
             ->where('encrypted', $roomID)->first();
 
         if (!$room) {
-            return response()->json(['error' => 'Sala no encontrada'], 404);
+            return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
         }
 
-        $countries = $this->getAvailableCountriesBySeller();
+        $countriesCoins = $this->getAvailableCountriesBySeller();
 
         return response()->json([
             'jackpotType' => $room->Config->jackpot_type,
             'jackpot' => $room->jackpot,
             'coin' => 'USDT',
-            'price' => $room->ctn_price,
-            'countries' => $countries
+            'price' => $room->Config->ctn_price,
+            'countries' => $countriesCoins['countries'],
+            'USDT' => $countriesCoins['USDT']
         ]);
     }
 
@@ -434,7 +442,7 @@ class SellerController extends Controller
         $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id');
 
         // Intentar obtener el precio configurado
-        $ctnPrice = BingoCtnPrice::getValueCtnPrice($coin->id, $bingoCreatorID);
+        $ctnPrice = BingoCtnPrice::getValueCtnPrice($roomID, $coin->id, $bingoCreatorID);
 
         if ($ctnPrice) {
             $setPrice = true;

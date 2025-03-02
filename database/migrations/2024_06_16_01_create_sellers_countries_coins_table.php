@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('sellers_countries_coins', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('seller');
-            $table->unsignedBigInteger('country');
+            $table->unsignedBigInteger('country')->nullable();
             $table->unsignedBigInteger('coin');
             $table->boolean('status')->default(0);
             $table->timestamps();
