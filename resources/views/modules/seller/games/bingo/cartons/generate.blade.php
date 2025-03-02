@@ -100,11 +100,10 @@
                             <div class="row">
                                 <div class="form-group col-12 col-sm-6">
                                     <label for="type-sale">Venta*</label>
-                                    <select id="type-sale" class="form-control info-form" name="type_sale" required>
-                                        <option value="currency" selected>Moneda Local</option>
-                                    </select>
+                                    <select id="type-sale" class="form-control info-form" name="type_sale"
+                                        required></select>
                                 </div>
-                                <div class="form-group col-12 col-sm-6">
+                                <div class="form-group col-12 col-sm-6" id="cont-country">
                                     <label for="country">Pais*</label>
                                     <select id="country" class="form-control info-form" name="country" required></select>
                                 </div>
@@ -161,7 +160,7 @@
         const room = $("#room");
         const rooms = @json($rooms);
         const numCtns = $("#num-ctns");
-        const typeSale = $("type-sale");
+        const typeSale = $("#type-sale");
         const country = $("#country");
         const sellerCommn = @json($commn);
         const form = $("#form-ctns");
@@ -280,12 +279,18 @@
             }
         }
 
+        typeSale.on("change", function() {
+            if (allowsUSDT) {
+                $('#cont-country').hide();
+            }
+        });
+
         function handleAllowsUSDT(USDT) {
             allowsUSDT = USDT;
+            typeSale.empty().append('<option value="currency" selected>Moneda Local</option>');
+
             if (allowsUSDT) {
-
-            } else {
-
+                typeSale.append('<option value="usdt">Venta en USDT</option>');
             }
         }
 

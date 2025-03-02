@@ -405,9 +405,8 @@ trait BingoTrait
     // Función para obtener detalles de la sala
     private function getRoomDetails($roomID)
     {
-        return BingoRoom::with(['Config:room,game_mode'])->select(
+        return BingoRoom::with('Config:room,game_mode')->select(
             'id',
-            'game_mode',
             'players',
             'all_sale',
             'room_commn',

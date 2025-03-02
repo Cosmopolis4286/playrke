@@ -407,12 +407,13 @@ class BingoController extends Controller
 
         $data = [
             'room' => $room->id,
+            'typeSale' => $request->type_sale,
             'jackpotType' => $room->Config->jackpot_type,
             'numOfCtns' => $request->num_ctns ?? 1
         ];
 
         $roomCtnPrice = $room->Config->ctn_price;
-        $creatorType = $request->creator_type;
+        $creatorType = $request->creator_type ?? false;
 
         if ($creatorType) {
 
@@ -456,7 +457,7 @@ class BingoController extends Controller
             $data = $response;
         } else {
             $data = $this->handleCartonBySeller($data, $request);
-            $creatorCtnPrice = BingoCtnPrice::getValueCtnPrice($room->id, $data['coin'], $data['creatorUser']);
+            $creatorCtnPrice = BingoCtnPrice::getValueCtnPrice($room->id, $data['coin'], $data['creator']['userId']);
         }
 
         // Definir precio del carton
@@ -500,7 +501,7 @@ class BingoController extends Controller
 
             DB::commit(); // Confirmar transacción
 
-            if (isset($creator)) {
+            if ($creatorType && isset($creator)) {
                 if ($creator['type'] === 'customer') {
                     // Validar transacciones del cliente
                     app(HandleTransactions::class)->validateTransactions($creator['id']);
@@ -524,6 +525,7 @@ class BingoController extends Controller
             return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al procesar la solicitud generateCarton(): ' . $e->getMessage());
             $message = 'Error al procesar la solicitud';
             $response = isset($creator)
                 ? response()->json(['type' => 'warning', 'message' => $message])
@@ -753,13 +755,15 @@ class BingoController extends Controller
     public function inGame($player, $room = '', $coin = '')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        $player = PlayerLink::getByLink($player, ['room', 'commerce', 'link']);
+        $player = PlayerLink::getByLink($player, ['room', 'creator_user', 'link']);
 
         if (!$player) {
             abort(404); // Retorna un error 404 Not Found
         }
 
-        $creator = ['type' => 'RKE', 'id' => $player->commerce];
+        $creatorID = User::getCreatorIDByUserType($player->creator_user);
+
+        $creator = ['type' => 'RKE', 'id' => $creatorID, 'userId' => $player->creator_user];
 
         $viewData = self::getGameInfo($creator, ['playerLink' => $player->link, 'room' => $player->room]);
 

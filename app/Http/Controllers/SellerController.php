@@ -462,14 +462,14 @@ class SellerController extends Controller
     {
         switch ($request->game) {
             case 'BINGO':
-                $room = BingoRoom::getByEncrypted($request->room, ['id', 'commerce', 'room_type']);
+                $room = BingoRoom::getByEncrypted($request->room, ['id', 'room_type']);
 
                 $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
                     ->where('phone', $request->player_info)->where('game', 1)->where('room', $room->id)->first();
 
                 if (!$player)  return response()->json(['response' => false]);
 
-                $route = $this->getGameLinkByPlayer($room->commerce, $player->link, $room->room_type);
+                $route = $this->getGameLinkByPlayer(false, $player->link, $room->room_type);
                 $ctnsPlayer = BingoCtns::where(['player_link' => $player->id, 'room' => $room->id])->count();
 
                 return response()->json([
@@ -481,7 +481,6 @@ class SellerController extends Controller
                 break;
 
             default:
-                # code...
                 break;
         }
     }

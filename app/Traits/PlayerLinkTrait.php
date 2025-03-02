@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Models\Commerce;
 use App\Models\Games;
 use App\Models\PlayerLink;
+use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,7 +41,7 @@ trait PlayerLinkTrait
             $player = PlayerLink::create([
                 'game' => $arr['game'], // Bingo
                 'room' => $arr['room'], // ID Sala Bingo
-                'commerce' => $arr['commerce'],
+                'creator_user' => $arr['creator_user'],
                 'seller' => $arr['seller'],
                 'country' => $country,
                 'coin' => $arr['coin'],
@@ -99,7 +100,7 @@ trait PlayerLinkTrait
             $arrDataPlayer = [
                 'game' => Games::getValueByName('BINGO'),
                 'room' => $data['room'],
-                'commerce' => $data['commerce'],
+                'creator_user' => $data['creator']['userId'],
                 'seller' => $data['seller'],
                 'country' => $data['country'],
                 'coin' => $data['coin'],
@@ -145,9 +146,14 @@ trait PlayerLinkTrait
         }
     }
 
-    public function getGameLinkByPlayer($commerceID, $playerLink, $roomType)
+    public function getGameLinkByPlayer($commerceID = '', $playerLink, $roomType)
     {
         $playerLink = is_int($playerLink) ? PlayerLink::getValueById($playerLink, 'link') : $playerLink;
+
+        if (!$commerceID) {
+            $seller = PlayerLink::getValueByLink($playerLink, 'seller');
+            $commerceID = Seller::getValueById($seller, 'commerce');
+        }
 
         if ($roomType == 1) {
             $commerce = Commerce::getById($commerceID, ['code_rke', 'code_uuid']);
