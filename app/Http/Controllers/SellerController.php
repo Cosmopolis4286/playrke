@@ -340,13 +340,26 @@ class SellerController extends Controller
 
         $seller = $this->seller(['commerce', 'country', 'commn', 'status']);
 
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+
         (new HandleBingoRooms())->checkRoomClosure();
 
-        $rooms = BingoRoom::select('encrypted', 'room_type', 'unix_date')
-            ->where('status', 2)->where('game_mode', 2)->where(function ($query) use ($seller) {
-                $query->where('commerce', $seller->commerce)
-                    ->orWhere('room_type', 2);
-            })->orderBy('date')->orderBy('time')->get();
+        $rooms = BingoRoom::with([
+            'Config' => function ($query) {
+                $query->select('room', 'game_mode', 'unix_date');
+            }
+        ])->select('encrypted', 'room_type')
+            ->where('status', 2)
+            ->where(function ($query) use ($creatorUser) {
+                $query->where('creator_user', $creatorUser)
+                    ->orWhere('room_type', 'PV');
+            })
+            ->whereHas('Config', function ($query) {
+                $query->whereIn('game_mode', 2)
+                    ->whereNotNull('room');
+            })
+            ->orderByRaw("(SELECT unix_date FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
+            ->get();
 
         return view('modules/seller/games/bingo/cartons/generate')->with([
             'title' => 'Generar Cartón',
@@ -542,9 +555,10 @@ class SellerController extends Controller
                 $query->where('seller', $seller->id);
             }
         ])->whereHas('Room', function ($query) use ($seller) {
-            $query->where('commerce', $seller->commerce)
-                ->where('status', '>=', 2);
-        })->whereHas('ComSellerRoom');
+            $query->where('commerce', $seller->commerce)->where('status', '>=', 2);
+        })->whereHas('ComSellerRoom', function ($query) {
+            $query->whereNotNull('room');
+        });
 
         $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
@@ -615,8 +629,7 @@ class SellerController extends Controller
             'PlayerLink.Country',
             'PlayerGame'
         ])->whereHas('Room', function ($query) {
-            $query->whereColumn('id', 'bingo_prize_ctns.room')
-                ->where('status', 4);
+            $query->whereColumn('id', 'bingo_prize_ctns.room')->where('status', 4);
         })->whereHas('GameExchangeRate', function ($query) use ($coin) {
             $query->where('game', 1)->where('coin', $coin);
         });

@@ -19,7 +19,8 @@
                                 accept="image/png, image/jpeg">
                         </div>
                         <div class="mr-2">
-                            <img style="max-height: 68px" src="{{ asset("storage/game/bingo/$image") }}" alt="Game Image">
+                            <img style="max-height: 68px" src="{{ asset("storage/game/bingo/$imageBingoRules") }}"
+                                alt="Game Image">
                         </div>
                     </div>
                     <div class="form-group">
