@@ -89,6 +89,7 @@
         const coin = @json($coin);
         const player = @json($player);
         const userToken = @json($userToken ?? null);
+        const creatorUser = @json($creatorUser);
         const modalHTML = @json(view('includes.game.bingo.layout.container-purchase-ctns')->render());
 
         let dateTimeRooms = @json($dateTimeRooms);
@@ -169,8 +170,8 @@
             total = 0;
 
             $.ajax({
-                url: `{{ route('bingo.getInfoByEncrypt', ['id' => ':id', 'mode' => ':mode', 'coin' => ':coin']) }}`
-                    .replace(':id', roomID).replace(':mode', 'game-rooms').replace(':coin', coin),
+                url: `{{ route('bingo.getInfoByEncrypt', ['id' => ':1', 'creatorUser' => ':2', 'coin' => ':3']) }}`
+                    .replace(':1', roomID).replace(':creatorUser', 'game-rooms').replace(':3', coin),
                 method: 'GET',
                 dataType: 'json',
                 beforeSend: function() {

@@ -60,6 +60,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Seller::class, 'id', 'user');
     }
 
+    public static function getUserTypePrefix($user)
+    {
+        $userType = User::getValueById($user, 'user_type');
+        return UserType::getValueById($userType, 'prefix');
+    }
+
     public static function getCreatorIDByUserType($user, $userType = '')
     {
         $prefix = UserType::getValueById($userType, 'prefix');

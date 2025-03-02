@@ -205,6 +205,7 @@ class BingoController extends Controller
             'coin' => encrypt($coin),
             'exchangeRate' => $exchangeRate ?? 1,
             'creator' => $creator,
+            'creatorUser' => encrypt($creatorUser),
             'rooms' => $rooms,
             'imageBingoRules' => $this->getImageBingoRules($creatorUser),
             'bingoRules' => $this->getBingoRules($creatorUser),
@@ -1642,7 +1643,7 @@ class BingoController extends Controller
         ]);
     }
 
-    public function getInfoByEncrypt($id, $mode = '', $coin = '')
+    public function getInfoByEncrypt($id, $creatorUser, $coin = '')
     {
         $room = BingoRoom::getByEncrypted($id, ['id', 'jackpot_prize']);
 
@@ -1653,19 +1654,21 @@ class BingoController extends Controller
             'unix_date',
             'ctn_price',
             'coin',
+            'room_commn',
             'jackpot_type',
             'fixed_jackpot_value',
             'time_chip',
-            'room_commn',
-            'serials_commn',
             'pct_serials',
-            'num_serials'
+            'num_serials',
+            'serials_commn'
         )->where('room', $room->id)->firstOrFail();
 
-        if ($mode) {
-            $creator = BingoRoom::getById($room->id, ['customer', 'commerce']);
+        if (in_array($roomConfig->game_mode, [2, 3])) {
 
-            if ($creator->customer) {
+            $creatorUser = decrypt($creatorUser);
+            $creatorType = User::getUserTypePrefix($creatorUser);
+
+            if ($creatorType === 'customer') {
                 $isLogin = false;
                 $custCoin = CustomerExchangeRate::getById(decrypt($coin), ['coin', 'exchange_rate']);
                 $coin = $custCoin->coin;
