@@ -40,7 +40,7 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="val-serials">%Seriales</label>
         <input type="number" value="2" min="2" max="15" step="0.05" id="val-serials"
-            name="val_serials" class="form-control form-info" placeholder="Ingrese valor" required>
+            name="pct_serials" class="form-control form-info" placeholder="Ingrese valor" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="num-serials">#Max. Seriales</label>

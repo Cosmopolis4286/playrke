@@ -130,7 +130,7 @@
                 $('#date').val(data.room.date);
                 $('#time').val(data.room.time);
                 $('#ctn-price').val(data.room.ctn_price);
-                $('#val-serials').val(data.config.val_serials);
+                $('#val-serials').val(data.config.pct_serials);
                 $('#num-serials').val(data.config.num_serials);
                 $('#commerce-commission').val(data.config.room_commn);
                 $('#serials-commission').val(data.config.serials_commn);

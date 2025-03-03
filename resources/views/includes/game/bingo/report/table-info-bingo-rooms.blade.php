@@ -30,15 +30,11 @@
                             'coin' => encrypt($coin),
                         ]);
                     } else {
-                        if ($room->room_type == 2) {
-                            $roomRoute = route('bingocash.out-game-rke', ['room' => $roomID, 'coin' => encrypt($coin)]);
-                        } else {
-                            $roomRoute = route('bingocash.out-game-commerce', [
-                                'commerce' => $commerceUUID,
-                                'room' => $roomID,
-                                'coin' => encrypt($coin),
-                            ]);
-                        }
+                        $roomRoute = route('bingocash.out-game', [
+                            'creator' => encrypt($creator),
+                            'room' => $roomID,
+                            'coin' => encrypt($coin),
+                        ]);
                     }
 
                     $ctnPrice = $room->ctn_price * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);

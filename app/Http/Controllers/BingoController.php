@@ -52,7 +52,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Str;
 
 class BingoController extends Controller
 {
@@ -752,47 +751,34 @@ class BingoController extends Controller
         return ['route' => 'modules.game.bingo.in-game', 'data' => $viewData];
     }
 
-    public function inGame($player, $room = '', $coin = '')
+    public function inGame($player, $room = '')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        $player = PlayerLink::getByLink($player, ['room', 'creator_user', 'link']);
+        $player = PlayerLink::getByLink($player, ['room', 'creator_user', 'link', 'coin']);
 
-        if (!$player) {
-            abort(404); // Retorna un error 404 Not Found
+        $roomType = BingoRoom::getValueById($player->room, 'room_type');
+
+        if ($roomType === 'PB') {
+        } else {
+            $creatorUser = $player->creator_user;
+            $userCreator = User::getCreatorIDByUserType($creatorUser, '', true);
+
+            $userType = $userCreator['type'];
         }
 
-        $creatorID = User::getCreatorIDByUserType($player->creator_user);
-
-        $creator = ['type' => 'RKE', 'id' => $creatorID, 'userId' => $player->creator_user];
-
-        $viewData = self::getGameInfo($creator, ['playerLink' => $player->link, 'room' => $player->room]);
-
-        // Retorna a vista con la informacion 
-        return $this->handleViewData($viewData, $creator['type']);
-    }
-
-    public function inGameCommerce($commerce, $playerLink)
-    {
-        // Vista para el juego de un comercio especifico
-        $commerceID = PlayerLink::getValueByLink($playerLink, 'commerce') ?? abort(404);
-
-        // Obetener codigos Unicos del comercio
-        $commerce = Commerce::getById($commerceID, ['code_rke', 'code_uuid']);
-
-        // Verificar si posee un codigo RKE 
-        $codeRKE = $commerce->code_rke ? true : false;
-
-        if (!$codeRKE && !$commerce->code_uuid) {
-            return redirect('/');
-        }
+        if (!$player) abort(404); // Retorna un error 404 Not Found
 
         $creator = [
-            'type' => 'commerce',
-            'id' => $commerceID,
-            'userId' => Commerce::getValueById($commerceID, 'user')
+            'type' => $userType,
+            'id' => $userCreator['id'],
+            'userId' => $creatorUser
         ];
 
-        $viewData = self::getGameInfo($creator, ['playerLink' => $playerLink]);
+        $viewData = self::getGameInfo($creator, [
+            'playerLink' => $player->link,
+            'room' => $player->room,
+            'coin' => $player->coin
+        ]);
 
         // Retorna a vista con la informacion 
         return $this->handleViewData($viewData, $creator['type']);
@@ -800,8 +786,6 @@ class BingoController extends Controller
 
     public function inGameCustomer($customerID, $userToken, $room)
     {
-        // Vista para el juego de un cliente especifico
-
         // Validar Informacion de cliente-user y crear variabales de session
         $response = $this->validateCustomer($customerID, $userToken, 'in-game');
 
@@ -822,13 +806,18 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function outGame($room = '', $creator = '', $coin = '')
+    public function outGame($creator, $room = '', $coin = '')
     {
         // Vista del el juego solo para comprar [TODOS]
+        $creator = decrypt($creator);
 
-        $creator = ['type' => 'RKE', 'id' => $creator];
+        $creator = [
+            'type' => $creator['type'],
+            'id' => decrypt($creator['id']),
+            'userId' => $creator['userId']
+        ];
 
-        $viewData = self::getGameInfo($creator, ['room' => $room]);
+        $viewData = self::getGameInfo($creator, ['room' => $room, 'coin' => $coin]);
 
         // Retorna a vista con la informacion 
         return $this->handleViewData($viewData, $creator['type']);
@@ -1008,10 +997,7 @@ class BingoController extends Controller
 
                 $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => $view, 'coin' => encrypt($coin)]);
 
-                $moreViewData = [
-                    'commerceUUID' => Commerce::getValueById($creatorID, 'code_uuid'),
-                    'countries' => Country::getAllAvailableCountries()
-                ];
+                $moreViewData = ['countries' => Country::getAllAvailableCountries()];
 
                 break;
             case 'customer': // Cliente
@@ -1979,8 +1965,6 @@ class BingoController extends Controller
                 $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
 
                 $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($commerce->coin)]);
-
-                $moreViewData = ['commerceUUID' => $commerce->code_uuid];
 
                 if ($creatorID == 1) $roomType = Room::getRoomTypes();
 

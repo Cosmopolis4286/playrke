@@ -371,7 +371,7 @@
 
                     // Redirigir a la sala según el tipo de usuario
                     const route = creator.type == 'commerce' ?
-                        `{{ route('bingocash.in-game-rke', ['player' => ':player', 'room' => ':room']) }}`
+                        `{{ route('bingocash.in-game', ['player' => ':player', 'room' => ':room']) }}`
                         .replace(':player', player).replace(':room', room) :
 
                         `{{ route('bingocash.in-game-customer', ['customer' => ':customer', 'userToken' => ':userToken', 'room' => ':room']) }}`

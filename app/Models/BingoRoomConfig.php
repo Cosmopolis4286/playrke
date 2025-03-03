@@ -57,7 +57,7 @@ class BingoRoomConfig extends Model
     return self::where('room', $room)->value($value);
   }
 
-  static function getRoomConfig($room, $fields = ['*'])
+  static function getByRoom($room, $fields = ['*'])
   {
     return self::select($fields)->where('room', $room)->first();
   }

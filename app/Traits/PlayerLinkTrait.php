@@ -70,7 +70,7 @@ trait PlayerLinkTrait
     {
         $gameID = Games::getValueByName($game);
         do {
-            $code = Str::random(18);
+            $code = Str::random(20);
         } while (PlayerLink::where('game', $gameID)->where('link', $code)->exists());
         return $code;
     }
@@ -146,21 +146,9 @@ trait PlayerLinkTrait
         }
     }
 
-    public function getGameLinkByPlayer($commerceID = '', $playerLink, $roomType)
+    public function getGameLinkByPlayer($playerLink)
     {
         $playerLink = is_int($playerLink) ? PlayerLink::getValueById($playerLink, 'link') : $playerLink;
-
-        if (!$commerceID) {
-            $seller = PlayerLink::getValueByLink($playerLink, 'seller');
-            $commerceID = Seller::getValueById($seller, 'commerce');
-        }
-
-        if ($roomType == 1) {
-            $commerce = Commerce::getById($commerceID, ['code_rke', 'code_uuid']);
-            $codeCommn = $commerce->code_rke ?? $commerce->code_uuid;
-            return route('bingocash.in-game-commerce', ['commerce' => $codeCommn, 'player' => $playerLink]);
-        } else {
-            return route('bingocash.in-game-rke', ['player' => $playerLink]);
-        }
+        return route('bingocash.in-game-rke', ['player' => $playerLink]);
     }
 }

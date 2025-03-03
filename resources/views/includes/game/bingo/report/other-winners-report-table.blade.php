@@ -66,7 +66,7 @@
                                 @endif
                             @endif
                             <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                href="{{ route('bingocash.in-game-commerce', ['commerce' => $commerce, 'player' => $win->PlayerLink->link]) }}">
+                                href="{{ route('bingocash.in-game', ['player' => $win->PlayerLink->link]) }}">
                                 <i class="mr-1 fa-solid fa-eye"></i>
                             </a>
                         </div>

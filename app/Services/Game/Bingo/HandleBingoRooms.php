@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCreator, BingoCtns, BingoDraw, BingoPrizeCtns, BingoRoom, BingoRoomUser, User, UserType};
+use App\Models\{BingoCtns, BingoDraw, BingoPrizeCtns, BingoRoom, BingoRoomUser, User};
 use App\Traits\BingoTrait;
 
 class HandleBingoRooms
@@ -38,6 +38,8 @@ class HandleBingoRooms
 
     private function determineRoomStatus(int $roomID, bool $existsCtns, bool $existsPlayers): int
     {
+        date_default_timezone_set(config('app.timezone'));
+
         if ($existsCtns && $existsPlayers) {
             $winChip = BingoDraw::getWinningChip($roomID) ?? $this->handleDraw($roomID);
             return ($winChip->time <= time()) ? 4 : 3;
@@ -59,16 +61,14 @@ class HandleBingoRooms
             $this->handleJackpotWinners($room->id);
         }
 
-        $creatorUserType = User::getValueById($room->user, 'user_type');
-        $creatorUserType = UserType::getValueById($creatorUserType, 'prefix');
+        $creator = User::getCreatorIDByUserType($room->creator_user, '', true);
 
-        if ($creatorUserType === 'commerce') {
+        if ($creator['type'] === 'commerce') {
             // Actulizar estado de los cartones ganadores
             BingoPrizeCtns::where('room', $room->id)->update(['active' => 'Y']);
-        } else if ($creatorUserType === 'customer') {
+        } else if ($creator['type'] === 'customer') {
             // Verificar si existen pagos que procesar
-            $customerID = BingoCreator::getValueByRoom($room->id, 'creator_id');
-            (new PrizeCartonService())->handleCustomerPrizeCarton($customerID);
+            (new PrizeCartonService())->handleCustomerPrizeCarton($creator['id']);
         }
 
         $this->checkAndHideRoom($room);

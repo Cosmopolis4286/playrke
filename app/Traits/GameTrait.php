@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Models\BingoCreator;
 use App\Models\BingoRoom;
+use App\Models\BingoRoomConfig;
 use App\Models\CoinGameRoom;
 use App\Models\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
@@ -17,54 +18,54 @@ trait GameTrait
 {
     public function insertGameExchangeRate($room, $game)
     {
-        // Obtener el ID del juego
-        $gameID = Games::getValueByName($game);
-        $gameMode = false;
-
-        if ($game === 'BINGO') {
-            $gameMode = BingoRoom::getValueById($room, 'game_mode');
-            $gameCreator = BingoCreator::getByRoom($room, ['creator_type', 'creator_id']);
-
-            $creatortType = UserType::getValueById($gameCreator->creator_type, 'prefix');
-            $creatorID = $gameCreator->creator_id;
-        }
-
-        // Obtener las monedas registradas en la sala de juego
-        $coinsInGameRoom = CoinGameRoom::getCoinsByRoom($gameID, $room, $gameMode);
-
-        // Obtener ExchangeRates (Tasas de Cambio)
-        if ($creatortType === 'commerce') {
-            $exchangeRates = CommerceExchangeRate::getAllExchangeRates($creatorID);
-        } else if ($creatortType === 'customer') {
-            $exchangeRates = CustomerExchangeRate::getAllExchangeRates($creatorID);
-        }
-
-        $timestamp = Carbon::now();
-
-        $recordsToInsert = $coinsInGameRoom
-            ->filter(function ($coin) use ($gameID, $room) {
-                // Filtrar las monedas que no tienen una tasa de cambio existente
-                return !GameExchangeRate::existsGameExchangeRate($gameID, $room, $coin);
-            })
-            ->map(function ($coin) use ($exchangeRates, $gameID, $room, $timestamp) {
-                // Definir tasa de cambio dependiendo de la cantidad, calcular el promedio o tomar el único valor
-                $roomExchangeRate = $exchangeRates->where('coin', $coin)->count() > 1
-                    ? $exchangeRates->where('coin', $coin)->avg('exchange_rate')
-                    : ($exchangeRates->where('coin', $coin)->first()->exchange_rate ?? null);
-
-                return [
-                    'game' => $gameID,
-                    'room' => $room,
-                    'coin' => $coin,
-                    'exchange_rate' => $roomExchangeRate,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp
-                ];
-            })->values()->toArray();
-
-        if (empty($recordsToInsert)) return true;
-
         try {
+            // Obtener el ID del juego
+            $gameID = Games::getValueByName($game);
+            $gameMode = false;
+
+            if ($game === 'BINGO') {
+                $gameMode = BingoRoomConfig::getValueById($room, 'game_mode');
+                $gameCreator = BingoCreator::getByRoom($room, ['creator_type', 'creator_id']);
+
+                $creatortType = UserType::getValueById($gameCreator->creator_type, 'prefix');
+                $creatorID = $gameCreator->creator_id;
+            }
+
+            // Obtener las monedas registradas en la sala de juego
+            $coinsInGameRoom = CoinGameRoom::getCoinsByRoom($gameID, $room, $gameMode);
+
+            // Obtener ExchangeRates (Tasas de Cambio)
+            if ($creatortType === 'commerce') {
+                $exchangeRates = CommerceExchangeRate::getAllExchangeRates($creatorID);
+            } else if ($creatortType === 'customer') {
+                $exchangeRates = CustomerExchangeRate::getAllExchangeRates($creatorID);
+            }
+
+            $timestamp = Carbon::now();
+
+            $recordsToInsert = $coinsInGameRoom
+                ->filter(function ($coin) use ($gameID, $room) {
+                    // Filtrar las monedas que no tienen una tasa de cambio existente
+                    return !GameExchangeRate::existsGameExchangeRate($gameID, $room, $coin);
+                })
+                ->map(function ($coin) use ($exchangeRates, $gameID, $room, $timestamp) {
+                    // Definir tasa de cambio dependiendo de la cantidad, calcular el promedio o tomar el único valor
+                    $roomExchangeRate = $exchangeRates->where('coin', $coin)->count() > 1
+                        ? $exchangeRates->where('coin', $coin)->avg('exchange_rate')
+                        : ($exchangeRates->where('coin', $coin)->first()->exchange_rate ?? null);
+
+                    return [
+                        'game' => $gameID,
+                        'room' => $room,
+                        'coin' => $coin,
+                        'exchange_rate' => $roomExchangeRate,
+                        'created_at' => $timestamp,
+                        'updated_at' => $timestamp
+                    ];
+                })->values()->toArray();
+
+            if (empty($recordsToInsert)) return true;
+
             // Insertar los registros en la base de datos
             GameExchangeRate::insert($recordsToInsert);
             return true;
@@ -109,7 +110,7 @@ trait GameTrait
         if (in_array($creatorType, ['RKE', 'commerce'])) {
             $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
 
-            if ($room->room_type === 2) { // Sala pública
+            if ($room->room_type === 'PB') { // Sala pública
                 $creatorExchangeRate = CommerceExchangeRate::whereIn('commerce', function ($query) use ($roomID) {
                     $query->select('creator_id')->from('bingo_creator')
                         ->where('creator_type', 3)->where('room', $roomID);

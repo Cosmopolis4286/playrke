@@ -92,12 +92,12 @@ trait BingoTrait
         $draw = BingoDraw::where('room', $room)->exists();
 
         if (!$draw) {
+            // Obtener la información de la sala y la hora base
+            $roomInfo = BingoRoomConfig::getByRoom($room, ['date', 'time']);
+            $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
+
             // Generar codigo por cada numero 0-10
             $this->encryptDraw($room);
-
-            // Obtener la información de la sala y la hora base
-            $roomInfo = BingoRoom::getById($room, ['date', 'time']);
-            $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
 
             // Obtener chips existentes y símbolos
             $existingChipsSet = BingoDraw::where('room', $room)->pluck('chip')->flip();
@@ -237,13 +237,10 @@ trait BingoTrait
         DB::beginTransaction();
 
         try {
-            // Restablecer el estado de las fichas ganadoras
-            BingoDraw::where('win', 1)->where('room', $room)->update(['status' => null]);
-
             // Si no hay jugadores, asignar manualmente la ficha ganadora
             if (!BingoRoomUser::where('room', $room)->exists()) {
                 $winChip = BingoDraw::getFirstDrawChip($room, 'id')->id + 23;
-                BingoDraw::where('id', $winChip)->where('room', $room)->update(['win' => 1]);
+                BingoDraw::where('id', $winChip)->where('room', $room)->update(['status' => 3]);
 
                 DB::commit();
                 return BingoDraw::select('id', 'chip')->find($winChip);
@@ -364,30 +361,35 @@ trait BingoTrait
     {
         date_default_timezone_set(config('app.timezone'));
 
-        $room = BingoRoom::getByEncrypted($room, ['id', 'date', 'time', 'status', 'encrypted']);
+        $room = BingoRoom::getByEncrypted($room, ['id', 'status']);
+        $roomID = $room->id;
 
         // Obtener tiempo de salida de la ficha jackpot
-        $lastChipTime = BingoDraw::where('status', 3)->where('room', $room->id)->value('time');
+        $lastChipTime = BingoDraw::where('status', 3)->where('room', $roomID)->value('time');
 
         if ($room->status == 3 && ($lastChipTime && $lastChipTime <= time())) {
             $room->update(['status' => 4]);
         }
 
         //Obtener Conteo de Ganadores
-        $countWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 1);
+        $countWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
 
-        if (!$countWinnersJackpot) $this->handleJackpotWinners($room->id);
+        if (!$countWinnersJackpot) $this->handleJackpotWinners($roomID);
 
-        $jackpotWinners = $this->getWinnersJackpot($room->id, $roomUser, $coin);
+        $jackpotWinners = $this->getWinnersJackpot($roomID, $roomUser, $coin);
 
-        $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 2)) ?
-            $this->getWinnersSerials($room->id, $roomUser, $coin) : [];
+        $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2)) ?
+            $this->getWinnersSerials($roomID, $roomUser, $coin) : [];
 
-        $prizeSerialVal = BingoRoomConfig::getValueByRoom($room->id, 'val_serials');
+        $serialPrizePct = BingoRoomConfig::getValueByRoom($roomID, 'pct_serials');
 
-        $prizesValues = !empty($serialsWinners) ? [100 - $prizeSerialVal, $prizeSerialVal] : [100];
+        $prizesValues = !empty($serialsWinners) ? [100 - $serialPrizePct, $serialPrizePct] : [100];
 
-        return ['jackpotWinners' => $jackpotWinners, 'serialsWinners' => $serialsWinners, 'prizesValues' => $prizesValues];
+        return [
+            'jackpotWinners' => $jackpotWinners,
+            'serialsWinners' => $serialsWinners,
+            'prizesValues' => $prizesValues
+        ];
     }
 
     public function generateRandomNumbers($start, $end, $count)
@@ -824,10 +826,9 @@ trait BingoTrait
         $room = BingoRoom::getById($roomID, ['creator_user', 'jackpot']);
 
         $creatorUser = $room->creator_user;
-        $creatorType = User::getValueById($creatorUser, 'user_type');
-        $creatorID = User::getCreatorIDByUserType($creatorUser, $creatorType);
+        $userCreator = User::getCreatorIDByUserType($creatorUser, '', true);
 
-        $creator = ['type' => $creatorType, 'id' => $creatorID];
+        $creator = ['type' => $userCreator['type'], 'id' => $userCreator['id'], 'userId' => $creatorUser];
 
         $data = ['coin' => $coin, 'value' => $value ? $value : $room->jackpot, 'creator' => $creator];
 
@@ -994,7 +995,7 @@ trait BingoTrait
     public function handleJackpotWinners($roomID)
     {
         // Obtener la información de la sala
-        $room = BingoRoom::with('Config:room,val_serials')
+        $room = BingoRoom::with('Config:room,pct_serials')
             ->select('creator_user', 'jackpot', 'jackpot_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 
@@ -1005,7 +1006,7 @@ trait BingoTrait
         if ($prizeCtns && $winners) return false; // Ya existen cartones premiados (jackpot)
 
         // Obtener el último chip sorteado
-        $lastChip = BingoDraw::select('id', 'chip')->where('win', 3)->where('room', $roomID)->first();
+        $lastChip = BingoDraw::select('id', 'chip')->where('status', 3)->where('room', $roomID)->first();
 
         // Obtener todos los chips sorteados hasta el último
         $chipsDraw = BingoDraw::where('room', $roomID)
@@ -1098,9 +1099,9 @@ trait BingoTrait
             $jackpotPrize = $room->jackpot_prize;
 
             // Generar seriales ganadores si hay jugadores no ganadores
-            if ($generateSerials && $room->Config->val_serials && !$room->seller_commn && !BingoPrizeCtns::existsPrizeCtns($roomID, 'SERIAL')) {
+            if ($generateSerials && $room->Config->pct_serials && !$room->seller_commn && !BingoPrizeCtns::existsPrizeCtns($roomID, 'SERIAL')) {
 
-                $serialPrize = $room->jackpot * $room->Config->val_serials / 100;
+                $serialPrize = $room->jackpot * $room->Config->pct_serials / 100;
 
                 $serialWinners = $this->handleSerialWinners($roomID, $serialPrize, $roomUserIds);
 
@@ -1168,7 +1169,7 @@ trait BingoTrait
             if ($getWinners) return false;
 
             // Obtener ultima ficha en salir (ganadora) 
-            $lastChip = BingoDraw::where('room', $roomID)->where('win', 3)->value('id');
+            $lastChip = BingoDraw::where('room', $roomID)->where('status', 3)->value('id');
 
             $chipsDraw = array_flip(BingoDraw::where('room', $roomID)
                 ->where('id', '<', $lastChip)->pluck('chip')->toArray());
