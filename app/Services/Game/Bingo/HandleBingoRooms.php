@@ -59,6 +59,8 @@ class HandleBingoRooms
     {
         if (!BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 1)) {
             $this->handleJackpotWinners($room->id);
+        } else {
+            $this->allWinCtnPaid($room->id);
         }
 
         $creator = User::getCreatorIDByUserType($room->creator_user, '', true);

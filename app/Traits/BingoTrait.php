@@ -587,7 +587,8 @@ trait BingoTrait
                 'seller' => $arrCtn['seller'] ?? null,
                 'player_user' => $playerUser,
                 'player_link' => $arrCtn['playerLink'] ?? null,
-                'ctns' => $arrCtn['numOfCtns']
+                'ctns' => $arrCtn['numOfCtns'],
+                'automarker' => 1
             ];
 
             $roomUser = BingoRoomUser::firstOrCreate(
@@ -1091,10 +1092,7 @@ trait BingoTrait
 
         try {
             // Definir valores a actualizar de la sala 
-            $updateData = [
-                'close_room' => Carbon::now()->timestamp,
-                'paid_win' => 1
-            ];
+            $updateData = ['close_room' => Carbon::now()->timestamp];
 
             $jackpotPrize = $room->jackpot_prize;
 
@@ -1327,8 +1325,6 @@ trait BingoTrait
             'serialCtn' => $ctn->serial
         ];
     }
-
-    public function getBingoInfoByDateTrait($commerce, $date = 'today') {}
 
     public function allWinCtnPaid($room)
     {

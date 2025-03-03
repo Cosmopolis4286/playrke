@@ -456,8 +456,8 @@ class CommerceController extends Controller
             $roomData[] = [
                 'encrypted' => $room->encrypted,
                 'roomType' => $room->room_type_description,
-                'date' => $room->date,
-                'time' => $room->time,
+                'date' => $room->Config->date,
+                'time' => $room->Config->time,
                 'allSaleRoom' => $allSaleRoom,
                 'finalSaleRoom' => $finalSaleRoom,
                 'comSaleSellerRoom' => $comSaleSellerRoom,
@@ -637,6 +637,8 @@ class CommerceController extends Controller
         // Contar los ganadores pendientes de pago para el propio comercio
         $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($creatorUser);
 
+        $coin = $this->wallet()->Coin->id;
+
         // Obtener las monedas asociadas al comercio
         $coins = $this->getByIdsForCommerce($creatorUser);
 
@@ -654,6 +656,7 @@ class CommerceController extends Controller
                 'paymentsOtherCommerces',
                 'countWinnersOtherCommerces',
                 'countWinnersByCommerce',
+                'coin',
                 'coins'
             )
         );

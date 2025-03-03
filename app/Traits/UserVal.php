@@ -33,10 +33,9 @@ trait UserVal
         return User::select($fields)->find($userId);
     }
 
-    public function wallet($userID = '')
+    public function wallet($userID = null)
     {
-        if (!$userID) $userID = Auth::id();
-        return Wallet::with('Coin')->where("user", $userID)->first();
+        return Wallet::with('Coin')->where('user', $userID ?? Auth::id())->first();
     }
 
     public function commerce($fields = ['*'])

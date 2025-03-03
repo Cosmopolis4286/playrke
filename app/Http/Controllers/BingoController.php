@@ -558,8 +558,8 @@ class BingoController extends Controller
         $creatorUser = $creator['userId'];
 
         switch ($creator['type']) {
-            case 'customer':
 
+            case 'customer':
                 $creatorID = $creator['id'];
 
                 // Obtener informacion de Sala
@@ -817,7 +817,7 @@ class BingoController extends Controller
             'userId' => $creator['userId']
         ];
 
-        $viewData = self::getGameInfo($creator, ['room' => $room, 'coin' => $coin]);
+        $viewData = self::getGameInfo($creator, ['room' => $room, 'coin' => decrypt($coin)]);
 
         // Retorna a vista con la informacion 
         return $this->handleViewData($viewData, $creator['type']);

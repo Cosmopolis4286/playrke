@@ -24,7 +24,7 @@ trait GameTrait
             $gameMode = false;
 
             if ($game === 'BINGO') {
-                $gameMode = BingoRoomConfig::getValueById($room, 'game_mode');
+                $gameMode = BingoRoomConfig::getValueByRoom($room, 'game_mode');
                 $gameCreator = BingoCreator::getByRoom($room, ['creator_type', 'creator_id']);
 
                 $creatortType = UserType::getValueById($gameCreator->creator_type, 'prefix');

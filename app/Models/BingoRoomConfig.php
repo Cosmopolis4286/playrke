@@ -29,14 +29,6 @@ class BingoRoomConfig extends Model
     'types_plays'
   ];
 
-  protected $appends = ['room_type_description'];
-
-  public function getRoomTypeDescriptionAttribute()
-  {
-    $roomType = collect(Room::TYPES)->firstWhere('id', $this->room_type);
-    return $roomType['description'] ?? '';
-  }
-
   public function Room()
   {
     return $this->belongsTo(BingoRoom::class, 'room');

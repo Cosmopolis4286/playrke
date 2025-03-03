@@ -27,6 +27,13 @@ class BingoRoom extends Model
     'code_uuid',
   ];
 
+  protected $appends = ['room_type_description'];
+
+  public function getRoomTypeDescriptionAttribute()
+  {
+    return Room::TYPES[$this->room_type] ?? '';
+  }
+
   public function Status()
   {
     return $this->belongsTo(StatusGame::class, 'status');
