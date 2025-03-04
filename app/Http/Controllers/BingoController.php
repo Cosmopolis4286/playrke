@@ -37,6 +37,7 @@ use App\Models\Seller;
 use App\Models\User;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
+use App\Models\UUIDCodes;
 use App\Services\Customer\HandleTransactions;
 use App\Services\Game\Bingo\AutoGenerateBingoRooms;
 use App\Services\Game\Bingo\HandleBingoRooms;
@@ -806,15 +807,17 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function outGame($creator, $room = '', $coin = '')
+    public function outGame($uuidCode, $room = '', $coin = '')
     {
         // Vista del el juego solo para comprar [TODOS]
-        $creator = decrypt($creator);
+        $code = UUIDCodes::getByCode($uuidCode);
+
+        $creatorUser = $code->user;
 
         $creator = [
-            'type' => $creator['type'],
-            'id' => decrypt($creator['id']),
-            'userId' => $creator['userId']
+            'type' => $code->user_type,
+            'id' => User::getCreatorIDByUserType($creatorUser),
+            'userId' => $creatorUser
         ];
 
         $viewData = self::getGameInfo($creator, ['room' => $room, 'coin' => decrypt($coin)]);
@@ -997,7 +1000,10 @@ class BingoController extends Controller
 
                 $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => $view, 'coin' => encrypt($coin)]);
 
-                $moreViewData = ['countries' => Country::getAllAvailableCountries()];
+                $moreViewData = [
+                    'uuidCode' => Commerce::getValueById($creatorID, 'code_uuid'),
+                    'countries' => Country::getAllAvailableCountries()
+                ];
 
                 break;
             case 'customer': // Cliente

@@ -14,11 +14,10 @@ return new class extends Migration
         Schema::create('uuid_codes', function (Blueprint $table) {
             $table->id();
             $table->string('code_uuid', 36);
-            $table->unsignedBigInteger('user_type');
+            $table->foreignId('user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('user_type')->constrained('user_type')->onDelete('cascade')->nullable();
             $table->boolean('status')->default(1);
             $table->timestamps();
-
-            $table->foreign('user_type')->references('id')->on('user_type')->onUpdate('cascade');
         });
     }
 

@@ -31,7 +31,7 @@
                         ]);
                     } else {
                         $roomRoute = route('bingocash.out-game', [
-                            'creator' => encrypt($creator),
+                            'uuidCode' => $uuidCode,
                             'room' => $roomID,
                             'coin' => encrypt($coin),
                         ]);

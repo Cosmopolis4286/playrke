@@ -363,7 +363,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
     // Rutas Jugador/Comercio TODOS
     Route::get('player/{player}/{room?}', [BingoController::class, 'inGame'])->name('in-game');
-    Route::get('game-room/{creator}/{room?}/{coin?}', [BingoController::class, 'outGame'])->name('out-game');
+    Route::get('game-room/{uuidCode}/{room?}/{coin?}', [BingoController::class, 'outGame'])->name('out-game');
 
     // Rutas Jugador/Cliente
     Route::get('game/{customer}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('in-game-customer');

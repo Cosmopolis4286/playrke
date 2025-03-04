@@ -1382,13 +1382,13 @@ trait BingoTrait
         ]);
     }
 
-    function registerPrizeCartonPayment($prizeCtn, $operation, $room, $commerce, $seller, $playerLink, $sender, $prizeType, $lot, $ctn, $coin, $amount, $paymentImage = '')
+    function registerPrizeCartonPayment($prizeCtn, $operation, $room, $creatorUser, $seller, $playerLink, $sender, $prizeType, $lot, $ctn, $coin, $amount, $paymentImage = '')
     {
         return BingoPrizeCtnsPayment::create([
             'prize_ctn' => $prizeCtn,
             'operation' => $operation,
             'room' => $room,
-            'commerce' => $commerce,
+            'creator_user' => $creatorUser,
             'seller' => $seller,
             'player_link' => $playerLink,
             'sender' => $sender,
@@ -1404,7 +1404,7 @@ trait BingoTrait
     public function verifyExistenceOfSales($user, $dateFilter = '', $coin = '',  $room = '')
     {
         // Aplicar el filtro de moneda (coin) a la consulta
-        $query = BingoCtnsLot::where('creator_user', $user['id']);
+        $query = BingoCtnsLot::where('creator_user', $user['userId']);
 
         if ($coin) {
             try {

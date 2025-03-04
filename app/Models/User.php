@@ -66,7 +66,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return UserType::getValueById($userType, 'prefix');
     }
 
-    public static function getCreatorIDByUserType($user, $userType = '', $type = true)
+    public static function getCreatorIDByUserType($user, $userType = '', $type = false)
     {
         if (!$userType) {
             $userType = self::getUserTypePrefix($user);
@@ -103,12 +103,5 @@ class User extends Authenticatable implements MustVerifyEmail
         } while (User::where('referral_code', $code)->exists());
 
         return $code;
-    }
-
-    public function canAccessRoom($roomId)
-    {
-        // Aquí debes implementar la lógica para verificar si el usuario tiene permisos para acceder a la sala con el ID proporcionado
-        // Por ejemplo, puedes verificar si el usuario pertenece a la sala
-        return $this->rooms->contains('id', $roomId);
     }
 }

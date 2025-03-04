@@ -178,6 +178,7 @@ class CustomerController extends Controller
             // Registrar Code UUID
             UUIDCodes::create([
                 'code_uuid' => $codeUUID,
+                'user' => $newUser,
                 'user_type' => UserType::getValueByPrefix('customer', 'id')
             ]);
 

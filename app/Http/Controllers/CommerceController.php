@@ -224,7 +224,8 @@ class CommerceController extends Controller
             // Registrar Code UUID
             UUIDCodes::create([
                 'code_uuid' => $commerce->code_uuid,
-                'user_type' => UserType::getValueByPrefix('commerce', 'id')
+                'user' => $newUser,
+                'user_type' => UserType::getValueByPrefix('commerce', 'id'),
             ]);
 
             DB::commit();
@@ -770,7 +771,7 @@ class CommerceController extends Controller
         $commerce = $this->commerce(['id', 'user']);
         $creatorUser = $commerce->user;
 
-        $user = ['type' => 'commerce', 'id' => $commerce->id];
+        $user = ['type' => 'commerce', 'id' => $commerce->id, 'userId' => $creatorUser];
 
         $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
@@ -839,11 +840,11 @@ class CommerceController extends Controller
             return response()->json(['error' => $validator->errors()], 400);
         }
 
-        $ctn = BingoCtns::select('room', 'commerce', 'player_link', 'seller', 'coin', 'lot')->findOrFail($ctnId);
+        $ctnLot = BingoCtns::getValueById($ctnId, 'lot');
 
-        if (!$ctn) return redirect()->back();
+        if (!$ctnLot) return redirect()->back();
 
-        $prizeCtn = BingoPrizeCtns::getInfoByCtn($ctnId, ['id', 'commerce', 'prize_type', 'amount']);
+        $prizeCtn = BingoPrizeCtns::where('ctn', $ctnId)->first();
 
         $prizeCtnPayment = BingoPrizeCtnsPayment::where('prize_ctn', $prizeCtn->id)->where('operation', 1)->exists();
 
@@ -852,22 +853,23 @@ class CommerceController extends Controller
         DB::beginTransaction();
 
         try {
-            $operation = ($prizeCtn->commerce == $this->commerce()->id) ? 1 : 3;
+            $user = Auth::id();
+            $operation = ($prizeCtn->creator_user == $user) ? 1 : 3;
             $amount = ($operation == 1) ? $prizeCtn->amount : $request->amount;
 
             // Crear el registro en la base de datos primero
             $payment = $this->registerPrizeCartonPayment(
                 $prizeCtn->id,
                 $operation,
-                $ctn->room,
-                $ctn->commerce,
-                $ctn->seller,
-                $ctn->player_link,
-                Auth::id(),
+                $prizeCtn->room,
+                $prizeCtn->creator_user,
+                $prizeCtn->seller,
+                $prizeCtn->player_link,
+                $user,
                 $prizeCtn->prize_type, // Tipo de pago [2] Cartón premiado
-                $ctn->lot,
+                $ctnLot,
                 $ctnId,
-                $ctn->coin,
+                $prizeCtn->coin,
                 $amount
             );
 
