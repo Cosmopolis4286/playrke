@@ -403,7 +403,9 @@ class CommerceController extends Controller
 
         $commerce = $this->commerce(['id', 'user']);
 
-        $user = ['type' => 'commerce', 'id' => $commerce->id];
+        $creatorUser = $commerce->user;
+
+        $user = ['type' => 'commerce', 'id' => $commerce->id, 'userId' => $creatorUser];
 
         $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
@@ -421,9 +423,9 @@ class CommerceController extends Controller
         $coinName = "$dataCoin->short_name ($dataCoin->iso_code)";
 
         // Obtener los datos de los ganadores
-        $rooms = $this->getRoomsData($commerce->user, $coin, $dateFilter);
+        $rooms = $this->getRoomsData($creatorUser, $coin, $dateFilter);
 
-        $coins = $this->getCommerceCoins($commerce->user, $dateFilter, ['CtnsLot', 'Coin']);
+        $coins = $this->getCommerceCoins($creatorUser, $dateFilter, ['CtnsLot', 'Coin']);
 
         // Inicialización de los totales
         $totals = [
@@ -500,18 +502,21 @@ class CommerceController extends Controller
 
     public function reportSalesByRoom($roomID, $coin)
     {
-        $commerce = $this->commerce('id')->id;
+        $commerce = $this->commerce(['id', 'user']);
 
-        $room = BingoRoom::getByEncrypted($roomID, ['id', 'ctn_price', 'encrypted', 'commerce']);
+        $room = BingoRoom::getByEncrypted($roomID, ['id', 'encrypted', 'creator_user']);
 
-        if ($room->commerce != $commerce || !$room->commerce) {
+        if ($room->creator_user != $commerce->user || !$room->creator_user) {
             return redirect()->back();
         }
 
+        $roomID = $room->id;
+
         $coin = decrypt($coin);
 
-        // Verificar la existencia de la moneda
-        $user = ['type' => 'commerce', 'id' => $commerce];
+        $creatorUser = $commerce->user;
+        $user = ['type' => 'commerce', 'id' => $commerce->id, 'userId' => $creatorUser];
+
         $existSale = $this->verifyExistenceOfSales($user, '', $coin, $roomID);
 
         if (!$existSale) {
@@ -523,17 +528,17 @@ class CommerceController extends Controller
             ->with([
                 'Country:id,name',
                 'CtnsLot' => fn($query) => $query->where([
-                    ['room', $room->id],
+                    ['room', $roomID],
                     ['coin', $coin]
                 ])
             ])
-            ->where('commerce', $commerce)
+            ->where('commerce', $commerce->id)
             ->whereHas('CtnsLot', fn($query) => $query->where([
-                ['room', $room->id],
+                ['room', $roomID],
                 ['coin', $coin]
             ]))->get();
 
-        $coins = $this->getCommerceCoins($commerce, '', ['CtnsLot', 'Coin']);
+        $coins = $this->getCommerceCoins($creatorUser, '', ['CtnsLot', 'Coin']);
 
         $routeWithCoin = [
             'route' => 'commerce.reportSalesByRoom',
@@ -542,12 +547,14 @@ class CommerceController extends Controller
 
         $coin = Coin::getById($coin, ['id', 'symbol']);
 
+        $bingoConfig = BingoRoomConfig::getByRoom($roomID, ['ctn_price', 'room_commn']);
+
         return view('modules/commerce/games/bingo/report/by-room')->with([
             'title' => "Reporte de Sala",
             'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
-            'ctnPrice' => $room->ctn_price,
+            'ctnPrice' => $bingoConfig->ctn_price,
             'sellers' => $sellers,
-            'comCommerceRm' => BingoRoomConfig::getValueByRoom($room->id, 'room_commn') / 100,
+            'comCommerceRm' => $bingoConfig->room_commn,
             'room' => $room->encrypted,
             'routeWithCoin' => $routeWithCoin,
             'coin' => $coin->id,
@@ -764,11 +771,12 @@ class CommerceController extends Controller
         return response()->json(compact('commerce', 'paymentDetails', 'exchangeRate'));
     }
 
-    public function ctnsSold($coin, $dateFilter = "today")
+    public function ctnsSold($dateFilter = 'today', $coin = '')
     {
         $title = 'Cartones Vendidos';
 
         $commerce = $this->commerce(['id', 'user']);
+
         $creatorUser = $commerce->user;
 
         $user = ['type' => 'commerce', 'id' => $commerce->id, 'userId' => $creatorUser];

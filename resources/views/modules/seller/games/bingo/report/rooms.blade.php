@@ -34,8 +34,9 @@
                                                     {{ $data['room']->encrypted }}
                                                 </a>
                                             </td>
-                                            <td>{{ \Carbon\Carbon::parse($data['room']->date)->format('d/m/y') }}</td>
-                                            <td>{{ $data['room']->time }}h</td>
+                                            <td>{{ \Carbon\Carbon::parse($data['room']->Config->date)->format('d/m/y') }}
+                                            </td>
+                                            <td>{{ $data['room']->Config->time }}h</td>
                                             <td>{{ $coinName }} ({{ $coinSym }})</td>
                                             <td>{{ $data['calculatedCtns'] }}</td>
                                             <td>{{ $coinSym }} {{ $data['calculatedSale'] }}</td>

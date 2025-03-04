@@ -775,7 +775,9 @@ class SellerController extends Controller
 
         $seller = $this->seller(['id', 'commerce']);
 
-        $user = ['type' => 'seller', 'id' => $seller->id];
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+
+        $user = ['type' => 'seller', 'id' => $seller->id, 'userId' => $creatorUser];
 
         $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
@@ -789,7 +791,7 @@ class SellerController extends Controller
         $coin = $verifyCoin;
 
         $roomsQuery = BingoRoom::with([
-            'Config',
+            'Config:room,time,date,ctn_price',
             'CtnsLot' => function ($query) use ($seller, $coin) {
                 $query->where('seller', $seller->id)->where('coin', $coin)->with('Coin');
             }
@@ -799,8 +801,8 @@ class SellerController extends Controller
 
         $roomsQuery = $this->applyDateFilter($dateFilter, $roomsQuery, 'date');
 
-        $rooms = $roomsQuery->where('commerce', $seller->commerce)
-            ->get(['id', 'encrypted', 'time', 'date', 'jackpot', 'ctn_price']);
+        $rooms = $roomsQuery->where('creator_user', $creatorUser)
+            ->get(['id', 'encrypted', 'jackpot']);
 
         if (!empty($room));
 
@@ -857,7 +859,10 @@ class SellerController extends Controller
         $generateUniqueCodeed = $room->encrypted;
 
         $seller = $this->seller(['id', 'commerce']);
-        $user = ['type' => 'seller', 'id' => $seller->id];
+
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+
+        $user = ['type' => 'seller', 'id' => $seller->id, 'userId' => $creatorUser];
 
         $verifyCoin = $this->verifyExistenceOfSales($user, '', $coin, $room->id);
 
