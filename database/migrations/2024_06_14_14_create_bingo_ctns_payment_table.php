@@ -21,7 +21,6 @@ return new class extends Migration
             $table->unsignedBigInteger('seller')->nullable();
             $table->integer('user')->nullable();
             $table->unsignedBigInteger('player_link');
-            $table->string('payment_type', 1);
             $table->unsignedBigInteger('coin');
             $table->unsignedBigInteger('lot');
             $table->double('amount');

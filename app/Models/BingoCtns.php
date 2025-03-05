@@ -67,7 +67,7 @@ class BingoCtns extends Model
 
     public function Lot()
     {
-        return $this->belongsTo(BingoCtnsLot::class, 'lot');
+        return $this->belongsTo(BingoCtnsLot::class, 'lot', 'id');
     }
 
     static function getLastCtnCreated($room)

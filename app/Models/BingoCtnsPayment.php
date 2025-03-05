@@ -13,7 +13,6 @@ class BingoCtnsPayment extends Model
         'creator_user',
         'seller',
         'player_link',
-        'payment_type',
         'coin',
         'lot',
         'amount',

@@ -919,64 +919,57 @@ class SellerController extends Controller
         }
     }
 
-    private function notifyAllPendingCtns($seller, $newFileName)
+    private function notifyAllPendingCtns($seller, $paymentProof)
     {
-        $allPendingCtns = BingoCtns::with('Lot')
+        $allPendingCtns = BingoCtns::with('Lot:id,ctns,sale_amount')
             ->whereHas('Lot', function ($query) use ($seller) {
                 $query->where(['seller' => $seller, 'status' => 0]);
-            })->where('seller', $seller)->get(['id', 'room', 'commerce', 'player_link', 'coin', 'lot']);
+            })->where('seller', $seller)->get(['room', 'creator_user', 'player_link', 'coin', 'lot']);
 
         try {
+
             $paymentToInsert = [];
 
-            foreach ($allPendingCtns as $value) {
-                $ctnPrice = $value->Lot->sale_amount / $value->Lot->ctns;
+            foreach ($allPendingCtns as $ctn) {
+
+                $ctnPrice = $ctn->Lot->sale_amount / $ctn->Lot->ctns;
                 $timestamp = now();
 
                 $paymentToInsert[] = [
-                    'payment' => 1,
-                    'room' => $value->room,
-                    'commerce' => $value->commerce,
+                    'payment' => 'SC',
+                    'room' => $ctn->room,
+                    'creator_user' => $ctn->creator_user,
                     'seller' => $seller,
-                    'player_link' => $value->player_link,
-                    'payment_type' => 1,
-                    'lot' => $value->lot,
-                    'coin' => $value->coin,
+                    'player_link' => $ctn->player_link,
+                    'lot' => $ctn->lot,
+                    'coin' => $ctn->coin,
                     'amount' => $ctnPrice,
-                    'payment_proof' => $newFileName,
+                    'payment_proof' => $paymentProof,
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp
                 ];
             }
+
             BingoCtnsPayment::insert($paymentToInsert);
 
             BingoCtnsLot::where('seller', $seller)->where('status', 0)->update(['status' => 1]);
             return true;
-        } catch (\Throwable $th) {
+        } catch (\Exception $e) {
+            Log::error('Error al registrar y/o notificar la creacion y venta de todos los lotes de cartones: ' . $e->getMessage());
             return false;
         }
     }
 
-    private function notifySpecificCtn($lotCtn, $newFileName)
+    private function notifySpecificCtn($lotCtn, $paymentProof)
     {
         try {
-            $this->registerCartonPayment(
-                1, // Tipo Operations
-                $lotCtn->room,
-                $lotCtn->commerce,
-                $lotCtn->seller,
-                $lotCtn->player_link,
-                1, // Tipo de Pago
-                $lotCtn->id,
-                $lotCtn->coin,
-                $lotCtn->sale_amount,
-                $newFileName
-            );
+            $this->registerCartonPayment('SC', $lotCtn, $paymentProof);
 
             BingoCtnsLot::where('id', $lotCtn->id)->where('seller', $lotCtn->seller)
                 ->where('status', 0)->update(['status' => 1]);
             return true;
-        } catch (\Throwable $th) {
+        } catch (\Exception $e) {
+            Log::error("Error al registrar y/o notificar la creacion venta del lote de cartones LOTE $lotCtn->id ::: " . $e->getMessage());
             return false;
         }
     }

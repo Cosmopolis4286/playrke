@@ -1359,7 +1359,6 @@ trait BingoTrait
                 'ctn' => $payment[6],
                 'coin' => $payment[7],
                 'amount' => $payment[8],
-                'payment_type' => $payment[9], // PAGO CARTON JUGADOR 
                 'payment_proof' => $payment[10],
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp
@@ -1369,18 +1368,17 @@ trait BingoTrait
         return BingoCtnsPayment::insert($data);
     }
 
-    function registerCartonPayment($operation, $room, $commerce, $seller, $playerLink, $paymentType, $lot, $coin, $amount, $paymentImage = '')
+    function registerCartonPayment($payment, $lotCtn, $paymentImage)
     {
         return BingoCtnsPayment::create([
-            'payment' => $operation,
-            'room' => $room,
-            'commerce' => $commerce,
-            'seller' => $seller,
-            'player_link' => $playerLink,
-            'payment_type' => $paymentType,
-            'lot' => $lot,
-            'coin' => $coin,
-            'amount' => $amount,
+            'payment' => $payment,
+            'room' => $lotCtn->room,
+            'creator_user' => $lotCtn->creator_user,
+            'seller' => $lotCtn->seller,
+            'player_link' => $lotCtn->playerLink,
+            'lot' => $lotCtn->id,
+            'coin' => $lotCtn->coin,
+            'amount' => $lotCtn->amount,
             'payment_proof' => $paymentImage,
         ]);
     }
