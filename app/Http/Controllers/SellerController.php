@@ -203,8 +203,7 @@ class SellerController extends Controller
 
             DB::commit();
 
-            // Mensajes flash con tiempo de expiración personalizado
-            Session::flash('message', 'Vendedor ' . $request->name . ' registrado con éxito');
+            Session::flash('message', 'Vendedor registrado con éxito');
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();

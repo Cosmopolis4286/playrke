@@ -39,11 +39,13 @@
         <tfoot>
             <tr>
                 <td colspan="5" class="text-right"><b>Total:</b></td>
-                <td>{{ $totals['allCtns'] }}</td>
-                <td>{{ $coinSym }} {{ number_format($totals['allSales'], 2, '.') }}</td>
-                <td>{{ $coinSym }} {{ number_format($totals['comSaleSeller'], 2, '.') }}</td>
-                <td>{{ $coinSym }} {{ number_format($totals['comBanca'], 2, '.') }}</td>
-                <td>{{ $coinSym }} {{ number_format($totals['jackpot'], 2, '.') }}</td>
+                @if (count($roomData))
+                    <td>{{ $totals['allCtns'] }}</td>
+                    <td>{{ $coinSym }} {{ number_format($totals['allSales'], 2, '.') }}</td>
+                    <td>{{ $coinSym }} {{ number_format($totals['comSaleSeller'], 2, '.') }}</td>
+                    <td>{{ $coinSym }} {{ number_format($totals['comBanca'], 2, '.') }}</td>
+                    <td>{{ $coinSym }} {{ number_format($totals['jackpot'], 2, '.') }}</td>
+                @endif
             </tr>
         </tfoot>
     </table>

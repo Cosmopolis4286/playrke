@@ -79,13 +79,15 @@
                                         </tr>
                                     @endforeach
                                 </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="5" class="text-right"><b>Total:</b></td>
-                                        <td>{{ $coinSym }} {{ $winners->sum('amount') }}</td>
-                                        <td colspan="3"></td>
-                                    </tr>
-                                </tfoot>
+                                @if (count($winners))
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="5" class="text-right"><b>Total:</b></td>
+                                            <td>{{ $coinSym }} {{ $winners->sum('amount') }}</td>
+                                            <td colspan="3"></td>
+                                        </tr>
+                                    </tfoot>
+                                @endif
                             </table>
                         </div>
                     </div>

@@ -44,14 +44,16 @@
                                         </tr>
                                     @endforeach
                                 </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="4" class="text-right"><b>Total:</b></td>
-                                        <td>{{ collect($roomsData)->sum('calculatedCtns') }}</td>
-                                        <td>{{ $coinSym }} {{ $totalSale }}</td>
-                                        <td>{{ $coinSym }} {{ $totalComision }}</td>
-                                    </tr>
-                                </tfoot>
+                                @if (count($roomsData))
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="4" class="text-right"><b>Total:</b></td>
+                                            <td>{{ collect($roomsData)->sum('calculatedCtns') }}</td>
+                                            <td>{{ $coinSym }} {{ $totalSale }}</td>
+                                            <td>{{ $coinSym }} {{ $totalComision }}</td>
+                                        </tr>
+                                    </tfoot>
+                                @endif
                             </table>
                         </div>
                     </div>

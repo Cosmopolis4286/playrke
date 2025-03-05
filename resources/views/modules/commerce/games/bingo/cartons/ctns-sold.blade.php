@@ -73,14 +73,16 @@
                                         </tr>
                                     @endforeach
                                 </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="3" class="text-right"><b>Total:</b></td>
-                                        <td>{{ $ctnsSold->sum('ctns') }}</td>
-                                        <td>{{ $coinSym }} {{ $ctnsSold->sum('sale_amount') }}</td>
-                                        <td colspan="2"></td>
-                                    </tr>
-                                </tfoot>
+                                @if (count($ctnsSold))
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="3" class="text-right"><b>Total:</b></td>
+                                            <td>{{ $ctnsSold->sum('ctns') }}</td>
+                                            <td>{{ $coinSym }} {{ $ctnsSold->sum('sale_amount') }}</td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    </tfoot>
+                                @endif
                             </table>
                         </div>
                     </div>

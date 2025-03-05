@@ -227,7 +227,7 @@ class CommerceController extends Controller
             DB::commit();
 
             // Mensajes flash con tiempo de expiración personalizado
-            Session::flash('message', 'Comercio ' . $request->name . ' registrado con éxito');
+            Session::flash('message', 'Registro exitoso');
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();

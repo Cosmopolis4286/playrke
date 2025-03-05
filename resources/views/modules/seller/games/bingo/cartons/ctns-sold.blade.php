@@ -64,18 +64,16 @@
                                         </tr>
                                     @endforeach
                                 </tbody>
-                                <tfoot>
-                                    @if ($ctnsSold->isNotEmpty())
+                                @if (count($ctnsSold))
+                                    <tfoot>
                                         <tr>
-                                            <td colspan="4" class="text-right">
-                                                <b>Total:</b>
-                                            </td>
+                                            <td colspan="4" class="text-right"><b>Total:</b></td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
                                             <td>{{ $coinISOCode }} {{ $ctnsSold->sum('sale_amount') }}</td>
                                             <td colspan="2"></td>
                                         </tr>
-                                    @endif
-                                </tfoot>
+                                    </tfoot>
+                                @endif
                             </table>
                         </div>
                     </div>
