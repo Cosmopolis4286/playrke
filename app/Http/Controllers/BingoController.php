@@ -1412,7 +1412,7 @@ class BingoController extends Controller
         }
     }
 
-    public function getCtnPriceForCoin($creation, $creatorType, $creatorID, $room = 'RKE')
+    public function getCtnPriceForCoin($creation, $creatorType, $creatorID, $room = '')
     {
         // Desencriptar $creatorID
         $creatorID = decrypt($creatorID);
@@ -1424,22 +1424,23 @@ class BingoController extends Controller
             default => CustomerExchangeRate::getCoinsByCustomer($creatorID),
         };
 
-        if ($room !== 'RKE' && $creation === 'M') {
-            // Obtener ID de la sala
-            $roomID = BingoRoom::getValueByEncrypted($room, 'id');
+        $coinsCtnPrice = collect();
 
-            // Parámetros del creador
-            $creator = ['type' => $creatorType, 'id' => $creatorID];
+        if ($room) {
+            if ($creation === 'M') {
+                // Obtener ID de la sala
+                $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
-            // Obtener ID Bingo Creator-User
-            $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
-        }
+                // Parámetros del creador
+                $creator = ['type' => $creatorType, 'id' => $creatorID];
 
-        // Obtener precios y monedas asociadas
-        if ($creation === 'M') {
-            $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($roomID, $bingoCreatorUser ?? false);
-        } else {
-            $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($room ?? '');
+                // Obtener ID Bingo Creator-User
+                $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
+
+                $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($roomID, $bingoCreatorUser ?? false);
+            } else {
+                $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($room ?? '');
+            }
         }
 
         // Inicializamos un contador para las claves incrementales
@@ -1900,6 +1901,7 @@ class BingoController extends Controller
         $gameID = Games::getValueByName('BINGO');
 
         foreach (BingoRoomUser::where('room', $roomID)->cursor() as $player) {
+
             DB::beginTransaction(); // Iniciar transacción por cada iteración
 
             try {
@@ -2019,7 +2021,7 @@ class BingoController extends Controller
                 'status'
             ]);
 
-        $activeRooms = BingoRoom::where('user', $creator['userId'])->whereIn('status', [2, 3])->exists();
+        $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
 
         $routeExecuteGenerateBingoRoomsJob = route(
             'bingo.automatic-room.executeGenerateBingoRoomsJob',
