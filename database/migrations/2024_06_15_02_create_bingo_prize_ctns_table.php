@@ -27,7 +27,7 @@ return new class extends Migration
             $table->unsignedBigInteger('prize_type');
             $table->string('coin', 15);
             $table->double('amount');
-            $table->boolean('status')->default(0);
+            $table->enum('status', ['CC', 'CS', 'SP'])->nullable();
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');

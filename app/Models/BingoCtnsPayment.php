@@ -8,7 +8,7 @@ class BingoCtnsPayment extends Model
 {
     protected $table = "bingo_ctns_payment";
     protected $fillable = [
-        'operation',
+        'payment',
         'room',
         'creator_user',
         'seller',

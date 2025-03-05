@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('bingo_ctns_payment', function (Blueprint $table) {
             $table->id();
-            $table->string('operation', 1);
+            $table->enum('payment', ['PS', 'SC']);
             $table->unsignedBigInteger('room');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->unsignedBigInteger('seller')->nullable();

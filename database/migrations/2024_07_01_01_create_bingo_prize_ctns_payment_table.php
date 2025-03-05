@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('bingo_prize_ctns_payment', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('prize_ctn');
-            $table->string('operation', 1);
+            $table->enum('payment', ['CS', 'CC', 'SP']);
             $table->unsignedBigInteger('room');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->unsignedBigInteger('seller');

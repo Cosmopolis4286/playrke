@@ -25,8 +25,7 @@ class PrizeCartonService
 
         // Verificar si el cliente tiene premios no procesados
         $hasPrizes = BingoPrizeCtns::where('customer', $customerID)
-            ->where('active', 'N')
-            ->exists();
+            ->where('active', 'N')->exists();
 
         if (!$hasPrizes) {
             return ['status' => 'info', 'message' => 'No hay premios asociados a este cliente.'];

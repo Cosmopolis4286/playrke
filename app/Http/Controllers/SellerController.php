@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\BingoRoom;
-use App\Models\BingoRoomUser;
 use App\Models\BingoCtns;
 use App\Models\BingoCtnsLot;
 use App\Models\PlayerLink;
@@ -20,7 +19,6 @@ use App\Models\BingoCreator;
 use App\Models\BingoCtnPrice;
 use App\Models\BingoCtnsPayment;
 use App\Models\BingoPrizeCtns;
-use App\Models\BingoPrizeCtnsPayment;
 use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
@@ -34,7 +32,6 @@ use App\Models\Wallet;
 use App\Services\Game\Bingo\HandleBingoRooms;
 use App\Traits\Filters;
 use Carbon\Carbon;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -541,7 +538,9 @@ class SellerController extends Controller
     {   //Cartones Vendidos Salas Actuales Status 2 o 3
         $seller = $this->seller(['id', 'commerce']);
 
-        $user = ['type' => 'seller', 'id' => $seller->id];
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+
+        $user = ['type' => 'seller', 'id' => $seller->id, 'userId' => $creatorUser];
 
         $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
@@ -561,8 +560,8 @@ class SellerController extends Controller
             'ComSellerRoom' => function ($query) use ($seller) {
                 $query->where('seller', $seller->id);
             }
-        ])->whereHas('Room', function ($query) use ($seller) {
-            $query->where('commerce', $seller->commerce)->where('status', '>=', 2);
+        ])->whereHas('Room', function ($query) use ($creatorUser) {
+            $query->where('creator_user', $creatorUser)->where('status', '>=', 2);
         })->whereHas('ComSellerRoom', function ($query) {
             $query->whereNotNull('room');
         });
@@ -613,7 +612,9 @@ class SellerController extends Controller
 
         $seller = $this->seller(['id', 'commerce']);
 
-        $user = ['type' => 'seller', 'id' => $seller->id];
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+
+        $user = ['type' => 'seller', 'id' => $seller->id, 'userId' => $creatorUser];
 
         $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
 
@@ -678,88 +679,6 @@ class SellerController extends Controller
             'lastname' => $player->lastname,
             'phone' => $player->phone
         ));
-    }
-
-    public function notifyPaymentPrizeWinningCtn(Request $request)
-    {
-        $ctnId = decrypt($request->ctn);
-
-        $validator = Validator::make(['ctnId' => $ctnId], [
-            'ctnId' => 'required|numeric',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
-
-        $ctn = BingoCtns::select('room', 'commerce', 'player_link', 'seller', 'coin', 'lot')->findOrFail($ctnId);
-
-        if (!$ctn) return redirect()->back();
-
-        $prizeCtn = BingoPrizeCtns::getInfoByCtn($ctnId, ['id', 'commerce', 'prize_type', 'amount']);
-
-        $prizeCtnPayment = BingoPrizeCtnsPayment::where('prize_ctn', $prizeCtn->id)->where('operation', 2)->exists();
-
-        if ($prizeCtnPayment) return redirect()->back();
-
-        DB::beginTransaction();
-
-        try {
-            // Crear el registro en la base de datos primero
-            $payment = $this->registerPrizeCartonPayment(
-                $prizeCtn->id,
-                2,
-                $ctn->room,
-                $ctn->commerce,
-                $ctn->seller,
-                $ctn->player_link,
-                Auth::id(),
-                $prizeCtn->prize_type, // Tipo de pago [2] Cartón premiado
-                $ctn->lot,
-                $ctnId,
-                $ctn->coin,
-                $prizeCtn->amount
-            );
-
-            $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'bingo/payments/prize-ctns');
-
-            if (!$newFileName) {
-                DB::rollBack();
-                return response()->json(['success' => false, 'message' => 'Error al guardar el archivo de pago.'], 500);
-            }
-
-            // Actualiza el registro con el nombre del archivo
-            $payment->update(['payment_proof' => $newFileName]);
-
-            // Actualiza status (carton ganador pagado)
-            BingoPrizeCtns::where('ctn', $ctnId)->update(['status' => 2]);
-
-            // PAGO [CTN WIN] ENVIADO DE VENDEDOR A GANADOR
-            $success = BingoRoomUser::where('player_link', $ctn->player_link)->update(['winner' => 2]);
-
-            if ($success) {
-                $this->AllWinCtnPaid($ctn->room);
-                Session::flash('message', 'Pago notificado con éxito');
-                DB::commit();
-                return redirect()->back();
-            } else {
-                DB::rollBack();
-                return response()->json(['error' => 'Failed to update CTN payment status'], 500);
-            }
-
-            Session::flash('message', 'Pago notificado con éxito');
-        } catch (DecryptException $e) {
-            return response()->json(['error' => 'No se pudo descifrar el ID del cartón.'], 400);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            // Eliminar el archivo subido en caso de error
-            if (isset($newFileName)) {
-                Storage::delete('bingo/payments/prize-ctns/' . $newFileName);
-            }
-            Log::error('Error al subir y guardar la imagen: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Hubo un error al subir la imagen.'], 500);
-        }
     }
 
     public function getPlayerInfo($playerLink) // Obtención de la información jugador
@@ -1015,7 +934,7 @@ class SellerController extends Controller
                 $timestamp = now();
 
                 $paymentToInsert[] = [
-                    'operation' => 1,
+                    'payment' => 1,
                     'room' => $value->room,
                     'commerce' => $value->commerce,
                     'seller' => $seller,

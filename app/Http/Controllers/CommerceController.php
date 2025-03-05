@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Models\PagoMovil;
 use App\Models\BingoPrizeCtns;
-use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoom;
 use App\Models\BingoRoomConfig;
 use App\Models\Commerce;
@@ -31,13 +30,10 @@ use App\Traits\Filters;
 use App\Traits\RouteRKE;
 use App\Traits\UserVal;
 use Carbon\Carbon;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class CommerceController extends Controller
@@ -833,81 +829,6 @@ class CommerceController extends Controller
             DB::rollBack();
             Log::error('Error al confirmar el pago: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al confirmar el pago.']);
-        }
-    }
-
-    public function notifyPaymentPrizeWinningCtn(Request $request)
-    {
-        $ctnId = Crypt::decrypt($request->ctn);
-
-        $validator = Validator::make(['ctnId' => $ctnId], [
-            'ctnId' => 'required|numeric',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
-
-        $ctnLot = BingoCtns::getValueById($ctnId, 'lot');
-
-        if (!$ctnLot) return redirect()->back();
-
-        $prizeCtn = BingoPrizeCtns::where('ctn', $ctnId)->first();
-
-        $prizeCtnPayment = BingoPrizeCtnsPayment::where('prize_ctn', $prizeCtn->id)->where('operation', 1)->exists();
-
-        if ($prizeCtnPayment) return redirect()->back();
-
-        DB::beginTransaction();
-
-        try {
-            $user = Auth::id();
-            $operation = ($prizeCtn->creator_user == $user) ? 1 : 3;
-            $amount = ($operation == 1) ? $prizeCtn->amount : $request->amount;
-
-            // Crear el registro en la base de datos primero
-            $payment = $this->registerPrizeCartonPayment(
-                $prizeCtn->id,
-                $operation,
-                $prizeCtn->room,
-                $prizeCtn->creator_user,
-                $prizeCtn->seller,
-                $prizeCtn->player_link,
-                $user,
-                $prizeCtn->prize_type, // Tipo de pago [2] Cartón premiado
-                $ctnLot,
-                $ctnId,
-                $prizeCtn->coin,
-                $amount
-            );
-
-            $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'bingo/payments/prize-ctns');
-
-            if (!$newFileName) {
-                DB::rollBack();
-                return response()->json(['success' => false, 'message' => 'Error al guardar el archivo de pago.'], 500);
-            }
-
-            $payment->update(['payment_proof' => $newFileName]);
-
-            // PAGO [CTN WIN] ENVIADO DE COMERCIO GANADOR A VENDEDOR
-            BingoPrizeCtns::where('ctn', $ctnId)->update(['status' => 1]);
-
-            DB::commit();
-
-            return redirect()->back()->with('message', 'Pago notificado con éxito');
-        } catch (DecryptException $e) {
-            return response()->json(['error' => 'No se pudo descifrar el ID del cartón.'], 400);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            if (isset($newFileName)) {
-                Storage::delete('bingo/payments/prize-ctns/' . $newFileName);
-            }
-
-            Log::error('Error al crear el registro y guardar la imagen: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Hubo un error al subir la imagen.'], 500);
         }
     }
 }

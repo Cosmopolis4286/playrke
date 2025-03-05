@@ -116,7 +116,7 @@
         'name' => $name,
         'title' => 'Notificar Pago',
         'formId' => 'ctn-payment',
-        'formRoute' => route('seller.notifyPaymentPrizeWinningCtn'),
+        'formRoute' => route('bingo.notifyPaymentPrizeWinningCtn'),
     ])
 @endsection
 @section('scripts')

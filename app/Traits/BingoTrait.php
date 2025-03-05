@@ -839,6 +839,8 @@ trait BingoTrait
     private function registerPrizeCtn($roomID, $cartons, $prizeType, $USDValue)
     {
         $recordsToInsert = $playersToUpdate = [];
+        $roomType = BingoRoom::getValueById($roomID, 'room_type');
+        $ctnStatus = $roomType === 'PB' ? 'CC' : 'CS';
 
         foreach ($cartons as $ctn) {
 
@@ -869,6 +871,7 @@ trait BingoTrait
                     'prize_type' => $prizeType,
                     'coin' => $ctn->coin,
                     'amount' => $prizeWn,
+                    'status' => $ctnStatus,
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp
                 ];
@@ -1347,7 +1350,7 @@ trait BingoTrait
         $data = [];
         foreach ($arr as $payment) {
             $data[] = [
-                'operation' => $payment[0], // PAGO [CTN] ENVIADO DE VENDEDOR A LA COMERCIALIZADORA
+                'payment' => $payment[0], // PAGO [CTN] ENVIADO DE VENDEDOR A LA COMERCIALIZADORA
                 'room' => $payment[1],
                 'sender' => $payment[2],
                 'commerce' => $payment[3],
@@ -1369,7 +1372,7 @@ trait BingoTrait
     function registerCartonPayment($operation, $room, $commerce, $seller, $playerLink, $paymentType, $lot, $coin, $amount, $paymentImage = '')
     {
         return BingoCtnsPayment::create([
-            'operation' => $operation,
+            'payment' => $operation,
             'room' => $room,
             'commerce' => $commerce,
             'seller' => $seller,
@@ -1382,23 +1385,29 @@ trait BingoTrait
         ]);
     }
 
-    function registerPrizeCartonPayment($prizeCtn, $operation, $room, $creatorUser, $seller, $playerLink, $sender, $prizeType, $lot, $ctn, $coin, $amount, $paymentImage = '')
+    function registerPrizeCartonPayment($prizeCtn, $payment, $sender, $lot, $amount, $filePayment)
     {
-        return BingoPrizeCtnsPayment::create([
-            'prize_ctn' => $prizeCtn,
-            'operation' => $operation,
-            'room' => $room,
-            'creator_user' => $creatorUser,
-            'seller' => $seller,
-            'player_link' => $playerLink,
-            'sender' => $sender,
-            'prize_type' => $prizeType,
-            'lot' => $lot,
-            'ctn' => $ctn,
-            'coin' => $coin,
-            'amount' => $amount,
-            'payment_proof' => $paymentImage,
-        ]);
+        try {
+
+            return BingoPrizeCtnsPayment::create([
+                'prize_ctn' => $prizeCtn,
+                'payment' => $payment,
+                'room' => $prizeCtn->room,
+                'creator_user' => $prizeCtn->creatorUser,
+                'seller' => $prizeCtn->seller,
+                'player_link' => $prizeCtn->playerLink,
+                'sender' => $sender,
+                'prize_type' => $prizeCtn->prizeType,
+                'lot' => $lot,
+                'ctn' => $prizeCtn->ctn,
+                'coin' => $prizeCtn->coin,
+                'amount' => $amount,
+                'payment_proof' => $filePayment,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("'Error al guardar el registro del pago del carton ganador: " . $e->getMessage());
+            return false;
+        }
     }
 
     public function verifyExistenceOfSales($user, $dateFilter = '', $coin = '',  $room = '')
