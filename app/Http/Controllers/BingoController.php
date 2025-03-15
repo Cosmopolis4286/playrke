@@ -820,7 +820,7 @@ class BingoController extends Controller
         $creatorUser = $code->user;
 
         $creator = [
-            'type' => $code->user_type,
+            'type' => UserType::getValueById($code->user_type, 'prefix'),
             'id' => User::getCreatorIDByUserType($creatorUser),
             'userId' => $creatorUser
         ];
@@ -1602,9 +1602,11 @@ class BingoController extends Controller
 
     public function getInfo($id, $starTime = '')
     {
+        date_default_timezone_set(config('app.timezone'));
+
         if ($starTime) {
-            $room = BingoRoom::getByEncrypted($id, ['date', 'time']);
-            return response()->json($this->convertToUnixTimestamp($room->date, $room->time));
+            $time = time();
+            return response()->json($time);
         }
 
         $id = decrypt($id);

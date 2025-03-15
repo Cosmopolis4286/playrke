@@ -12,7 +12,7 @@ window.onfocus = function () {
 
     $.getJSON(url, { _token: tokenValue })
         .done((response) => {
-            gameStartTime = response;
+            timeServ = response;
         })
         .fail((jqXHR, textStatus, errorThrown) => {
             console.error(`Request failed with status: ${textStatus}, Error: ${errorThrown}`);
@@ -153,13 +153,29 @@ function adjustHeightBoxes() {
 }
 
 let waitingTime = false;
+let timeServ = Math.floor(Date.now() / 1000); // Asegura un valor numérico válido
 
 function countdownt(gameStartTime) {
-    // Establece la fecha y hora de destino
-    const targetDate = gameStartTime;
+    if (isNaN(timeServ)) {
+        console.error("Error: timeServ es NaN. Reiniciando...");
+        timeServ = Math.floor(Date.now() / 1000);
+    }
+    if (isNaN(gameStartTime)) {
+        console.error("Error: gameStartTime es NaN. No se puede continuar.");
+        return;
+    }
+
+    // Incrementa el tiempo del servidor
+    timeServ++;
 
     // Calcula la diferencia entre la fecha de destino y la fecha actual en segundos
-    const distance = Math.floor((targetDate - timeServ));
+    const distance = Math.floor(gameStartTime - timeServ);
+
+    // Verifica si distance es NaN antes de continuar
+    if (isNaN(distance)) {
+        console.error("Error: distance es NaN. Deteniendo cuenta regresiva.");
+        return;
+    }
 
     // Calcula los días, horas, minutos y segundos restantes
     const days = Math.floor(distance / (60 * 60 * 24));
@@ -180,45 +196,40 @@ function countdownt(gameStartTime) {
         $('#game-clock').html("<small>¡La cuenta regresiva ha terminado!</small>");
         if (waitingTime) {
             clearInterval(waitingTime);
-            setTimeout(function () {
-                location.reload();
-            }, 2500);
+            setTimeout(() => location.reload(), 2500);
         }
     } else {
-        if (days == 0) $('#cont-D').hide();
+        if (days === 0) $('#cont-D').hide();
         $('#cont-H').toggle(hours !== 0);
         $('#cont-M').toggle(minutes !== 0);
     }
 }
 
-$(document).ready(function () {
+$(function () {
 
     if (roomStatus != 2) return;
 
+    if (player && coinSale) {
+        getCommerceDetails(coinSale);
+    }
+
     adjustHeightBoxes();
     $('.container-carton').css('visibility', 'visible');
+    $('#modal-info-draw-title').text(convertAndDisplay(gameStartTime));
+    $("#modal-info-draw").modal('show');
 
     // Llama a la función cada vez que se redimensiona la ventana
-    $(window).resize(function () {
+    window.addEventListener("resize", () => {
         adjustHeightBoxes();
-        if (roomStatus > 2 && $('#cont-ctn-award-winning').data('status') == true) {
+        if (roomStatus > 2 && $('#cont-ctn-award-winning').data('status')) {
             adjustHeightBoxesCtnAward();
         }
     });
 
-    $('.container-carton').css('visibility', 'visible');
-    $('#modal-info-draw-title').text(convertAndDisplay(gameStartTime));
-    waitingTime = setInterval(() => {
-        countdownt(gameStartTime);
-        timeServ++;
-    }, 1000);
-    $("#modal-info-draw").modal('show');
-
-});
-
-$(document).ready(function () {
-    if (player && coinSale) {
-        getCommerceDetails(coinSale);
+    if (!isNaN(gameStartTime)) {
+        waitingTime = setInterval(() => countdownt(gameStartTime), 1000);
+    } else {
+        console.error("Error: gameStartTime es inválido.");
     }
 });
 
