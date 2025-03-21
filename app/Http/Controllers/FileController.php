@@ -27,12 +27,12 @@ class FileController extends Controller
 
     public function showImagePaymentCtns($filename)
     {
-        return $this->showImage("private/bingo/payments/all-ctns/{$filename}");
+        return $this->showImage("private/game/bingo/payments/all-ctns/{$filename}");
     }
 
     public function showImagePaymentPrizeCtns($filename)
     {
-        return $this->showImage("private/bingo/payments/prize-ctns/{$filename}");
+        return $this->showImage("private/game/bingo/payments/prize-ctns/{$filename}");
     }
 
     private function showImage($filePath)
@@ -71,7 +71,9 @@ class FileController extends Controller
 
             $fileName = time() . '.' . $image->getClientOriginalExtension();
 
-            $filePath = "$type/{$directory}/{$fileName}";
+            $directory = "$type/$directory";
+
+            $filePath = "$directory/{$fileName}";
 
             $image->storeAs($directory, $fileName, 'local');
 

@@ -887,7 +887,7 @@ class SellerController extends Controller
             }
 
             $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'bingo/payments/all-ctns', 'PV');
+            $newFileName = FileController::saveImage($filePayment, 'game/bingo/payments/all-ctns', 'PV');
 
             if (!$newFileName) {
                 DB::rollBack();
@@ -901,8 +901,9 @@ class SellerController extends Controller
             }
 
             if (!$notifyCtns) {
-                Storage::delete('private/bingo/payments/all-ctns/' . $newFileName);
+                Storage::delete('private/game/bingo/payments/all-ctns/' . $newFileName);
                 DB::rollBack();
+                
                 Session::flash('type', 'warning');
                 Session::flash('message', 'Error al notificar el pago');
             } else {

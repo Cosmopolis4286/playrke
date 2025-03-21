@@ -1378,7 +1378,7 @@ trait BingoTrait
             'player_link' => $lotCtn->player_link,
             'lot' => $lotCtn->id,
             'coin' => $lotCtn->coin,
-            'amount' => $lotCtn->amount,
+            'amount' => $lotCtn->sale_amount,
             'payment_proof' => $paymentImage,
         ]);
     }
