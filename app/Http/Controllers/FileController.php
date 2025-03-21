@@ -3,74 +3,83 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Facades\Image;
 use Illuminate\Http\UploadedFile;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class FileController extends Controller
 {
+    private static ?ImageManager $imageManager = null;
+
+    /**
+     * Obtiene una instancia de ImageManager con el driver configurado
+     */
+    private static function getImageManager(): ImageManager
+    {
+        if (!self::$imageManager) {
+            $driver = new GdDriver(); // Asegúrate de que GdDriver está bien importado
+            self::$imageManager = new ImageManager($driver);
+        }
+        return self::$imageManager;
+    }
+
     public function showImagePaymentCtns($filename)
     {
-        $filePath = "bingo/payments/all-ctns/{$filename}";
-        return $this->showImage($filePath, $filename);
+        return $this->showImage("private/bingo/payments/all-ctns/{$filename}");
     }
 
     public function showImagePaymentPrizeCtns($filename)
     {
-        $filePath = "bingo/payments/prize-ctns/{$filename}";
-        return $this->showImage($filePath, $filename);
+        return $this->showImage("private/bingo/payments/prize-ctns/{$filename}");
     }
 
-    private function showImage($filePath, $filename)
+    private function showImage($filePath)
     {
-        // Verificar si el usuario está autenticado
         abort_unless(Auth::check(), 403, 'Unauthorized action.');
+        abort_if(!Storage::disk('local')->exists($filePath), 404, 'File not found.');
 
-        // Ruta dentro de "storage/app/private"
-        $storagePath = "private/{$filePath}";
-
-        // Verificar si el archivo existe en "storage/app/private"
-        abort_if(!Storage::disk('local')->exists($storagePath), 404, 'File not found.');
-
-        // Obtener la ruta absoluta del archivo
-        $path = storage_path("app/{$storagePath}");
-
-        // Retornar el archivo con su tipo MIME correcto
-        return response()->file($path);
+        return response()->file(storage_path("app/{$filePath}"));
     }
 
-    public static function resizeImage($filePath, $fileName)
+    private static function resizeImage(string $filePath)
     {
         try {
-            $fullPath = $filePath . '/' . $fileName;
-
-            if (Storage::disk('private')->exists($fullPath) && strpos(Storage::mimeType($fullPath), 'image') !== false) {
-                Image::make(storage_path("app/private/{$fullPath}"))
-                    ->resize(720, null, function ($constraint) {
-                        $constraint->aspectRatio();
-                    })->save();
+            if (!Storage::disk('local')->exists($filePath) || strpos(Storage::mimeType($filePath), 'image') === false) {
+                return;
             }
+
+            $fullPath = storage_path("app/{$filePath}");
+            $image = self::getImageManager()->read($fullPath);
+
+            $image->scale(width: 720)->save($fullPath);
         } catch (\Exception $e) {
-            Log::error('Error al redimensionar la imagen: ' . $e->getMessage());
+            Log::error("Error al redimensionar la imagen: {$e->getMessage()}");
         }
     }
 
-    public static function saveImage(UploadedFile $image, $rout)
+    public static function saveImage(UploadedFile $image, string $directory, string $type = 'PB'): ?string
     {
         try {
-            if (!$image || !$image->isValid()) {
+            if (!$image->isValid()) {
                 Log::error('El archivo de imagen no es válido');
-                return false;
+                return null;
             }
 
-            $newFileName = time() . '.' . $image->getClientOriginalExtension();
-            $image->storeAs('private/' . $rout . '/', $newFileName);
-            self::resizeImage($rout, $newFileName);
+            $type = $type === 'PV' ? 'private' : 'public';
 
-            return $newFileName;
+            $fileName = time() . '.' . $image->getClientOriginalExtension();
+
+            $filePath = "$type/{$directory}/{$fileName}";
+
+            $image->storeAs($directory, $fileName, 'local');
+
+            self::resizeImage($filePath);
+
+            return $fileName;
         } catch (\Throwable $th) {
-            Log::error('Error al guardar la imagen: ' . $th->getMessage());
+            Log::error("Error al guardar la imagen: {$th->getMessage()}");
             return null;
         }
     }

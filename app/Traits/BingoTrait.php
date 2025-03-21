@@ -1375,7 +1375,7 @@ trait BingoTrait
             'room' => $lotCtn->room,
             'creator_user' => $lotCtn->creator_user,
             'seller' => $lotCtn->seller,
-            'player_link' => $lotCtn->playerLink,
+            'player_link' => $lotCtn->player_link,
             'lot' => $lotCtn->id,
             'coin' => $lotCtn->coin,
             'amount' => $lotCtn->amount,

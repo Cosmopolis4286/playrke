@@ -149,6 +149,6 @@ trait PlayerLinkTrait
     public function getGameLinkByPlayer($playerLink)
     {
         $playerLink = is_int($playerLink) ? PlayerLink::getValueById($playerLink, 'link') : $playerLink;
-        return route('bingocash.in-game-rke', ['player' => $playerLink]);
+        return route('bingocash.in-game', ['player' => $playerLink]);
     }
 }

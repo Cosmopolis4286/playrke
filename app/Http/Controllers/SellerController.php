@@ -490,11 +490,10 @@ class SellerController extends Controller
             $data = $this->getPaymentDetailsByUserId($user, decrypt($coin));
 
             // Verificar si se obtuvieron datos y retornar una respuesta JSON adecuada
-            if ($data) {
+            if (!isset($data['error'])) {
                 return response()->json($data);
             } else {
-                Session::flash('msg-error', 'Datos de pago no encontrados');
-                return response()->json(['error' => 'Datos de pago no encontrados.'], 404);
+                return response()->json(['error' => 'El comercio no ha cargado los datos bancarios']);
             }
         } catch (\Exception $e) {
             // Manejar cualquier excepción que ocurra y retornar un error del servidor
@@ -888,37 +887,37 @@ class SellerController extends Controller
             }
 
             $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'bingo/payments/all-ctns');
+            $newFileName = FileController::saveImage($filePayment, 'bingo/payments/all-ctns', 'PV');
 
             if (!$newFileName) {
                 DB::rollBack();
-                return response()->json(['success' => false, 'message' => 'Error al guardar el archivo de pago.'], 500);
+                return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al guardar el archivo del pago']);
             }
 
             if ($notifyAllCtns) {
-                $notifyCtns = $this->notifyAllPendingCtns($seller, $newFileName);
+                $notifyCtns = $this->notifyAllPendingLotCtns($seller, $newFileName);
             } else {
-                $notifyCtns = $this->notifySpecificCtn($lotCtn, $newFileName);
+                $notifyCtns = $this->notifySpecificLotCtn($lotCtn, $newFileName);
             }
 
-            if (!$notifyCtns) DB::rollBack();
-
-            DB::commit();
-
-            Session::flash('message', 'Pago notificado con éxito');
-            return redirect()->back();
+            if (!$notifyCtns) {
+                Storage::delete('private/bingo/payments/all-ctns/' . $newFileName);
+                DB::rollBack();
+                Session::flash('type', 'warning');
+                Session::flash('message', 'Error al notificar el pago');
+            } else {
+                DB::commit();
+                Session::flash('message', 'Pago notificado con éxito');
+            }
         } catch (\Exception $e) {
             DB::rollBack();
-
-            if (isset($newFileName)) {
-                Storage::delete('bingo/payments/all-ctns' . $newFileName);
-            }
-
-            return redirect()->back()->with('error', 'Hubo un error al notificar el pago: ' . $e->getMessage());
+            Log::error('Error al notificar el pago de la venta de cartones ctnsLotPayment(): ' . $e->getMessage());
         }
+
+        return redirect()->back();
     }
 
-    private function notifyAllPendingCtns($seller, $paymentProof)
+    private function notifyAllPendingLotCtns($seller, $paymentProof)
     {
         $allPendingCtns = BingoCtns::with('Lot:id,ctns,sale_amount')
             ->whereHas('Lot', function ($query) use ($seller) {
@@ -959,16 +958,15 @@ class SellerController extends Controller
         }
     }
 
-    private function notifySpecificCtn($lotCtn, $paymentProof)
+    private function notifySpecificLotCtn($lotCtn, $paymentProof)
     {
         try {
             $this->registerCartonPayment('SC', $lotCtn, $paymentProof);
 
-            BingoCtnsLot::where('id', $lotCtn->id)->where('seller', $lotCtn->seller)
-                ->where('status', 0)->update(['status' => 1]);
+            BingoCtnsLot::where('id', $lotCtn->id)->where('status', 0)->update(['status' => 1]);
             return true;
         } catch (\Exception $e) {
-            Log::error("Error al registrar y/o notificar la creacion venta del lote de cartones LOTE $lotCtn->id ::: " . $e->getMessage());
+            Log::error("Error al registrar y/o notificar la creacion venta del lote de cartones LOTE [$lotCtn->id] ::: " . $e->getMessage());
             return false;
         }
     }

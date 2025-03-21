@@ -105,18 +105,21 @@
                     '_token': "{{ csrf_token() }}"
                 })
                 .done(data => {
-                    if (!allNotifyCtns) {
-                        $("#sent-amount").text(`${data.coin} ${amountSent}`);
+                    if (data.error) {
+                        showToast(data.error, 'info');
                     } else {
-                        $("#notify-all").show();
-                        $("#sent-amount").text(`${coinName} ${allPendingCtnSale}`);
-                        $("#notify-all-ctns").val(1);
+                        if (!allNotifyCtns) {
+                            $("#sent-amount").text(`${data.coin} ${amountSent}`);
+                        } else {
+                            $("#notify-all").show();
+                            $("#sent-amount").text(`${coinName} ${allPendingCtnSale}`);
+                            $("#notify-all-ctns").val(1);
+                        }
+
+                        $("#commerce-name").text(commerceName);
+                        switchPaymentMethod(data.code, data);
+                        $(`#modal-${name}`).modal('show');
                     }
-                    $("#commerce-name").text(commerceName);
-
-                    switchPaymentMethod(data.code, data);
-
-                    $(`#modal-${name}`).modal('show');
                 })
                 .fail((jqXHR, textStatus, errorThrown) => {
                     console.error('Error:', textStatus, errorThrown);

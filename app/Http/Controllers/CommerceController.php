@@ -759,7 +759,9 @@ class CommerceController extends Controller
         // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda desencriptada
         $paymentDetails = $this->getPaymentDetailsByUserId($commerce->user, $coin);
 
-        if (!$paymentDetails) return response()->json([]);
+        if (!$paymentDetails) {
+            return response()->json(['Error' => 'El comercio no ha cargado los datos bancarios']);
+        }
 
         $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerceID, $coin);
         $commerce = $commerce->name;

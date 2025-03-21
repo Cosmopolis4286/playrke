@@ -176,26 +176,28 @@ trait UserVal
             }
 
             $coinInfo = Coin::getById($coin, ['country', 'symbol']);
+
             if (!$coinInfo) {
                 return response()->json(['error' => 'Moneda no válida.'], 404);
             }
 
             $isoCode = Country::getValue($coinInfo->country, 'iso_code_2');
+
             if (!$isoCode) {
                 return response()->json(['error' => 'Código ISO del país no encontrado.'], 404);
             }
 
             $user = $user->id;
+            $error = false;
 
             $paymentMethod = [];
-            switch ($coin) {
-                case 2:
+
+            switch ($isoCode) {
+                case 'VE':
                     // Bs (Venezuela) PagoMovil
                     $pagomovil = PagoMovil::with(['Bank', 'DocumentType'])->where('user', $user)->first();
 
-                    if (!$pagomovil) {
-                        return response()->json(['error' => 'El usuario no ha cargado los datos bancarios.'], 404);
-                    }
+                    if (!$pagomovil) $error = true;
 
                     $paymentMethod = [
                         '0' => ["({$pagomovil->Bank->code}) {$pagomovil->Bank->name}"],
@@ -203,28 +205,22 @@ trait UserVal
                         '2' => [$pagomovil->phone]
                     ];
                     break;
-                case 3:
+
+                case 'BR':
                     // R$ (Brasil) Pix
                     $pix = Pix::where('user', $user)->first();
 
-                    if (!$pix) {
-                        return response()->json(['error' => 'El usuario no ha cargado los datos bancarios.'], 404);
-                    }
+                    if (!$pix) $error = true;
 
                     $paymentMethod = ['0' => ["{$pix->chave_pix}: {$pix->pix_key_value}"]];
                     break;
-                case 4:
-                    // $ (Colombia) Pix
-                    $pix = Pix::where('user', $user)->first();
 
-                    if (!$pix) {
-                        return response()->json(['error' => 'El usuario no ha cargado los datos bancarios.'], 404);
-                    }
-
-                    $paymentMethod = ['0' => ["{$pix->chave_pix}: {$pix->pix_key_value}"]];
-                    break;
                 default:
-                    return response()->json(['error' => 'Tipo de moneda no soportado.'], 400);
+                    return ['error' => 'Tipo de moneda no soportado'];
+            }
+
+            if ($error) {
+                return ['error' => 'El usuario no ha cargado los datos bancarios'];
             }
 
             return [
@@ -233,6 +229,7 @@ trait UserVal
                 'coin' => $coinInfo->symbol
             ];
         } catch (\Exception $e) {
+            Log::error('Ha ocurrido un error al procesar la solicitud: ' . $e->getMessage());
             return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
         }
     }
