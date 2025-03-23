@@ -46,12 +46,16 @@
                         `Vendedor: ${res.seller[0]}<br> Celular: ${res.seller[1]}`);
                     $("#sent-amount").text(`${data.coin_sym} ${data.amount}`);
                     $("#ctn").val(data.ctn);
+                    $("#payment_type").val('CS');
 
                     if (res.data.lenght) {
                         switchPaymentMethod(data.code);
+                        $("#btn-payment-confirm").prop('disabled', false);
                     } else {
-                        $("#payment-subtitle").text(
-                            'El vendedor no ha cargado los datos bancarios para esta moneda.');
+                        $("#payment-subtitle")
+                            .text('El vendedor no ha cargado los datos bancarios para esta moneda.');
+
+                        $("#btn-payment-confirm").prop('disabled', true);
                     }
 
                     $(`#modal-${name}`).modal('show');

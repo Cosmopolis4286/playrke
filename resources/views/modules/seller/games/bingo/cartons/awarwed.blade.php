@@ -47,21 +47,21 @@
                                             <td>{{ $coinSym }} {{ $win->amount }}</td>
                                             <td>{{ $win->Prize->description }}</td>
                                             <td class="align-middle">
-                                                @if ($win->status == 0)
+                                                @if ($win->status == null)
                                                     <span class="badge bg-secondary">Pendiente</span>
-                                                @elseif($win->status == 1)
-                                                    <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[0]->payment_proof]) }}"
+                                                @elseif($win->status === 'CS')
+                                                    <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payments[0]->payment_proof]) }}"
                                                         title="Ver Comprobante" target="_blank">
                                                         <span class="badge bg-primary">Por Pagar</span></a>
                                                 @else
-                                                    <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payment[1]->payment_proof]) }}"
+                                                    <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payments[1]->payment_proof]) }}"
                                                         title="Ver Comprobante" target="_blank">
                                                         <span class="badge bg-success">Pagado</span></a>
                                                 @endif
                                             </td>
                                             <td>
                                                 <div class="btn-group" role="group" aria-label="Acciones">
-                                                    @if ($win->status == 1)
+                                                    @if ($win->status === 'CS')
                                                         <button class="btn btn-sm bg-danger notify-ctn-payment"
                                                             title="Notificar Pago" data-coin_sym="{{ $win->coinSym }}"
                                                             data-prize_amount="{{ $win->amount }}"
@@ -143,6 +143,7 @@
                 method: 'GET',
                 dataType: 'json',
                 success: function(data) {
+                    $("#payment_type").val('SP');
                     $('#payment-method-1').html('Informacion de contacto:<br>');
                     $('#payment-method-2').html(
                         `Nombre y Apellido: ${data.name} ${data.lastname}<br>`);

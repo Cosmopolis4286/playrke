@@ -8,7 +8,6 @@ class BingoPrizeCtns extends Model
 {
     protected $table = "bingo_prize_ctns";
     protected $fillable = [
-        'id',
         'active',
         'room',
         'creator_user',
@@ -16,6 +15,7 @@ class BingoPrizeCtns extends Model
         'room_user',
         'player_user',
         'player_link',
+        'lot',
         'ctn',
         'prize_type',
         'coin',
@@ -65,7 +65,7 @@ class BingoPrizeCtns extends Model
         return $this->belongsTo(BingoCtnsLot::class, 'lot');
     }
 
-    public function Payment()
+    public function Payments()
     {
         return $this->hasMany(BingoPrizeCtnsPayment::class, 'prize_ctn', 'id');
     }

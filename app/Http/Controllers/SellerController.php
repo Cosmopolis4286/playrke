@@ -552,7 +552,7 @@ class SellerController extends Controller
         $coin = Coin::getById($verifyCoin);
 
         $ctnsSoldQuery = BingoCtnsLot::with([
-            'Payment',
+            'Payments',
             'PlayerLink',
             'Room',
             'ComSellerRoom' => function ($query) use ($seller) {

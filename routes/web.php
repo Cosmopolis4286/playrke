@@ -150,8 +150,8 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
     Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
-    Route::get('bingo/players/other-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByOtherCommerces'])->name('getBingoWinnersByOtherCommerces');
     Route::get('bingo/players/my-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByCommerce'])->name('getBingoWinnersByCommerce');
+    Route::get('bingo/players/other-winners/{dateFilter?}', [CommerceController::class, 'getBingoWinnersByOtherCommerces'])->name('getBingoWinnersByOtherCommerces');
     Route::get('bingo/carton-sold/{dateFilter?}/{coin?}', [CommerceController::class, 'ctnsSold'])->name('ctnsSold');
     Route::put('bingo/carton-lot/payment', [CommerceController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
     Route::get('bingo/sales-report/{coin?}/{dateFilter?}', [CommerceController::class, 'reportSalesRooms'])->name('reportSalesRooms');

@@ -60,11 +60,11 @@
                                                         data-lot="{{ encrypt($ctn->id) }}"
                                                         data-coin_sym="{{ $coinSym }}"
                                                         data-sale_ctns="{{ $ctn->sale_amount }}"
-                                                        data-proof="{{ $ctn->Payment->payment_proof }}">
+                                                        data-proof="{{ $ctn->Payments->payment_proof }}">
                                                         Confirmar Pago
                                                     </button>
                                                 @elseif($ctn->status == 2)
-                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payment->payment_proof]) }}"
+                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payments->payment_proof]) }}"
                                                         title="Ver Comprobante" target="_blank">
                                                         <span class="badge bg-success">Confirmado</span>
                                                     </a>

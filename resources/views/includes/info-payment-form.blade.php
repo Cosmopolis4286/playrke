@@ -14,6 +14,7 @@
 </div>
 <div class="form-group mt-1">
     <label for="payment-proof">Cargar Comprobante:</label>
+    <input type="hidden" id="payment_type" name="payment_type">
     <input type="file" id="payment-proof" class="form-control-file" name="payment_proof"
         accept="image/png, image/jpeg" required>
     <input type="hidden" id="ctn" name="ctn">

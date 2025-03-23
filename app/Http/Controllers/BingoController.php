@@ -762,6 +762,8 @@ class BingoController extends Controller
         // Vista para el juego de la venta conjunta de todos los comercios
         $player = PlayerLink::getByLink($player, ['room', 'creator_user', 'link', 'coin']);
 
+        if (!$player) abort(404); // Retorna un error 404 Not Found
+
         $roomType = BingoRoom::getValueById($player->room, 'room_type');
 
         if ($roomType === 'PB') {
@@ -2450,7 +2452,7 @@ class BingoController extends Controller
         if (!$prizeCtn) return response()->json(['error' => 'Cartón no encontrado.'], 404);
 
         // Definir tipo de pago/operacion
-        $paymentType = $request->payment;
+        $paymentType = $request->payment_type;
 
         $existingPayment = BingoPrizeCtnsPayment::where('prize_ctn', $prizeCtn->id)
             ->where('payment', $paymentType)->exists();
@@ -2474,10 +2476,9 @@ class BingoController extends Controller
             );
 
             // Actualizar estado del cartón según la operación
-            $newStatus = $paymentType === '1' ? 1 : 2;
-            BingoPrizeCtns::where('ctn', $ctnId)->update(['status' => $newStatus]);
+            BingoPrizeCtns::where('ctn', $ctnId)->update(['status' => $paymentType]);
 
-            if ($paymentType == 2) {
+            if ($paymentType === 'SP') {
                 $success = BingoRoomUser::where('player_link', $prizeCtn->player_link)->update(['winner' => 2]);
                 if (!$success) {
                     DB::rollBack();

@@ -45,8 +45,11 @@
                         $('#allNotifyCtns').val(1);
                     }
                     $("#nameCommerce").text(nameCommerce);
+
                     $("#sectPaymentMethod1").text(data.paymentMethod.chave_pix.value + ': ' +
                         data.paymentMethod.val_chave_pix);
+
+                    $("#payment_type").val('CC');
                     $('#paymentModal').modal('show');
                 })
                 .fail((jqXHR, textStatus, errorThrown) => {});

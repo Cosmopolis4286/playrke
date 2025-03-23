@@ -632,6 +632,13 @@ class CommerceController extends Controller
         // Obtener los datos de los ganadores
         $winners = $this->getWinnersData($creatorUser, $dateFilter);
 
+        if (!count($winners) && $dateFilter !== 'all') {
+            return redirect()->route(
+                'commerce.getBingoWinnersByCommerce',
+                ['dateFilter' => 'all']
+            );
+        }
+
         // Pagos Pendientes de otros comercios
         $paymentsOtherCommerces = 0;
 
@@ -668,31 +675,42 @@ class CommerceController extends Controller
 
     public function getBingoWinnersByOtherCommerces($dateFilter = 'all')
     {
+        return redirect()->back();
+
         $title = 'Últimos Ganadores';
         $name = 'notify-payment-win-ctns-off';
 
-        $commerce = $this->commerce()->id;
+        $commerce = $this->commerce(['id', 'user']);
+        $commerceID = $commerce->id;
+        $creatorUser = $commerce->user;
 
         app(HandleBingoRooms::class)->checkRoomClosure();
 
         // Obtener los datos de los ganadores
-        $winners = $this->getWinnersData($commerce, $dateFilter, true);
+        $winners = $this->getWinnersData($creatorUser, $dateFilter, true);
+
+        if (!count($winners) && $dateFilter !== 'all') {
+            return redirect()->route(
+                'commerce.getBingoWinnersByOtherCommerces',
+                ['dateFilter' => 'all']
+            );
+        }
 
         // Contar los ganadores pendientes de pago para otros comercios
-        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($commerce);
+        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($commerceID);
 
         // Contar los ganadores pendientes de pago para el propio comercio
-        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($commerce);
+        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($commerceID);
 
         // Obtener las monedas asociadas al comercio
-        $coins = $this->getByIdsForCommerce($commerce);
+        $coins = $this->getByIdsForCommerce($commerceID);
 
         return view(
             'modules.commerce.games.bingo.cartons.awarwed.other-winners',
             compact(
                 'title',
                 'name',
-                'commerce',
+                'commerceID',
                 'dateFilter',
                 'winners',
                 'countWinnersOtherCommerces',
@@ -708,7 +726,7 @@ class CommerceController extends Controller
             'Room',
             'Coin',
             'PlayerLink.Country',
-            'Payment',
+            'Payments',
             'Seller' => function ($query) {
                 $query->select('id', 'name');
             },
@@ -792,7 +810,7 @@ class CommerceController extends Controller
 
         $coinSym = Coin::getValue($coin, 'symbol');
 
-        $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
+        $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payments', 'Seller'])
             ->whereHas('Room', function ($query) use ($creatorUser) {
                 $query->where('creator_user', $creatorUser)->whereIn('status', [2, 3, 4]);
             });
