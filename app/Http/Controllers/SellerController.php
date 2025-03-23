@@ -203,7 +203,7 @@ class SellerController extends Controller
 
             DB::commit();
 
-            Session::flash('message', 'Vendedor registrado con éxito');
+            Session::flash('message', 'Registro exitoso');
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -552,7 +552,7 @@ class SellerController extends Controller
         $coin = Coin::getById($verifyCoin);
 
         $ctnsSoldQuery = BingoCtnsLot::with([
-            'Payments',
+            'Payment',
             'PlayerLink',
             'Room',
             'ComSellerRoom' => function ($query) use ($seller) {

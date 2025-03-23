@@ -52,11 +52,11 @@
                                                         Notificar Pago
                                                     </button>
                                                 @elseif($ctn->status == 1)
-                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payments->payment_proof]) }}"
+                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payment->payment_proof]) }}"
                                                         title="Ver Comprobante" target="_blank"><span
                                                             class="badge bg-navy">Notificado</span></a>
                                                 @elseif($ctn->status == 2)
-                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payments->payment_proof]) }}"
+                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payment->payment_proof]) }}"
                                                         title="Ver Comprobante" target="_blank"><span
                                                             class="badge bg-success">Confirmado</span></a>
                                                 @endif

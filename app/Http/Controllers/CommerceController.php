@@ -810,7 +810,7 @@ class CommerceController extends Controller
 
         $coinSym = Coin::getValue($coin, 'symbol');
 
-        $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payments', 'Seller'])
+        $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
             ->whereHas('Room', function ($query) use ($creatorUser) {
                 $query->where('creator_user', $creatorUser)->whereIn('status', [2, 3, 4]);
             });

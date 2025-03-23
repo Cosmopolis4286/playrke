@@ -46,7 +46,7 @@
                                             <td>{{ $ctn->Seller->name }}</td>
                                             <td>{{ $ctn->Coin->long_name }} ({{ $coinSym }})</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coinSym }} {{ $ctn->sale_amount }}</td>
+                                            <td>{{ $coinSym }} {{ number_format($ctn->sale_amount, 2, '.') }}</td>
                                             <td>
                                                 {{ $ctn->created_at->format('d/m/y H:i:s') }}
                                                 <small>GMT-4</small>
@@ -60,11 +60,11 @@
                                                         data-lot="{{ encrypt($ctn->id) }}"
                                                         data-coin_sym="{{ $coinSym }}"
                                                         data-sale_ctns="{{ $ctn->sale_amount }}"
-                                                        data-proof="{{ $ctn->Payments->payment_proof }}">
+                                                        data-proof="{{ $ctn->Payment->payment_proof }}">
                                                         Confirmar Pago
                                                     </button>
                                                 @elseif($ctn->status == 2)
-                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payments->payment_proof]) }}"
+                                                    <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payment->payment_proof]) }}"
                                                         title="Ver Comprobante" target="_blank">
                                                         <span class="badge bg-success">Confirmado</span>
                                                     </a>
@@ -78,7 +78,10 @@
                                         <tr>
                                             <td colspan="3" class="text-right"><b>Total:</b></td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
-                                            <td>{{ $coinSym }} {{ $ctnsSold->sum('sale_amount') }}</td>
+                                            <td>
+                                                {{ $coinSym }}
+                                                {{ number_format($ctnsSold->sum('sale_amount'), 2, '.') }}
+                                            </td>
                                             <td colspan="2"></td>
                                         </tr>
                                     </tfoot>
