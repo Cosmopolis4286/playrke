@@ -14,13 +14,15 @@ class FileController extends Controller
     private static ?ImageManager $imageManager = null;
 
     /**
-     * Obtiene una instancia de ImageManager con el driver configurado
+     * Obtiene una instancia de ImageManager con el driver configurado.
      */
     private static function getImageManager(): ImageManager
     {
         if (!self::$imageManager) {
-            $driver = new GdDriver(); // Asegúrate de que GdDriver está bien importado
-            self::$imageManager = new ImageManager($driver);
+            if (!extension_loaded('gd')) {
+                throw new \Exception('La extensión GD de PHP no está instalada.');
+            }
+            self::$imageManager = new ImageManager(new GdDriver());
         }
         return self::$imageManager;
     }
@@ -46,16 +48,22 @@ class FileController extends Controller
     private static function resizeImage(string $filePath)
     {
         try {
-            if (!Storage::disk('local')->exists($filePath) || strpos(Storage::mimeType($filePath), 'image') === false) {
+            if (!Storage::disk('local')->exists($filePath)) {
+                Log::warning("Archivo no encontrado: {$filePath}");
+                return;
+            }
+
+            $mimeType = Storage::mimeType($filePath);
+            if (!$mimeType || !str_starts_with($mimeType, 'image/')) {
+                Log::warning("El archivo no es una imagen válida: {$filePath}");
                 return;
             }
 
             $fullPath = storage_path("app/{$filePath}");
             $image = self::getImageManager()->read($fullPath);
-
             $image->scale(width: 720)->save($fullPath);
-        } catch (\Exception $e) {
-            Log::error("Error al redimensionar la imagen: {$e->getMessage()}");
+        } catch (\Throwable $e) {
+            Log::error("Error al redimensionar la imagen '{$filePath}': {$e->getMessage()}");
         }
     }
 
@@ -63,20 +71,17 @@ class FileController extends Controller
     {
         try {
             if (!$image->isValid()) {
-                Log::error('El archivo de imagen no es válido');
+                Log::error('El archivo de imagen no es válido.');
                 return null;
             }
 
             $type = $type === 'PV' ? 'private' : 'public';
-
-            $fileName = time() . '.' . $image->getClientOriginalExtension();
-
+            $extension = $image->getClientOriginalExtension();
+            $fileName = time() . bin2hex(random_bytes(4)) . '.' . $extension;
             $directory = "$type/$directory";
-
             $filePath = "$directory/{$fileName}";
 
             $image->storeAs($directory, $fileName, 'local');
-
             self::resizeImage($filePath);
 
             return $fileName;

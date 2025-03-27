@@ -2463,17 +2463,14 @@ class BingoController extends Controller
 
         try {
             // Guardar Imagen de comprobante de pago
-            $filePayment = FileController::saveImage($request->file('payment_proof'), 'bingo/payments/prize-ctns', 'PV');
+            $filePayment = FileController::saveImage($request->file('payment_proof'), 'game/bingo/payments/prize-ctns', 'PV');
 
             // Registar informacion sobre pago de carton premiado
-            $this->registerPrizeCartonPayment(
-                $prizeCtn->id,
-                $paymentType,
-                Auth::id(),
-                $ctnLot,
-                $prizeCtn->amount,
-                $filePayment
-            );
+            $prizeCartonPayment = $this->registerPrizeCartonPayment($prizeCtn, $paymentType, Auth::id(), $filePayment);
+
+            if (!$prizeCartonPayment) {
+                DB::rollBack();
+            }
 
             // Actualizar estado del cartón según la operación
             BingoPrizeCtns::where('ctn', $ctnId)->update(['status' => $paymentType]);
@@ -2492,7 +2489,7 @@ class BingoController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             if (isset($filePayment)) {
-                Storage::delete('private/bingo/payments/prize-ctns/' . $filePayment);
+                Storage::delete('private/game/bingo/payments/prize-ctns/' . $filePayment);
             }
             Log::error('Error al procesar el pago: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Hubo un error al procesar el pago.'], 500);

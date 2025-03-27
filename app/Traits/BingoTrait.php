@@ -1383,23 +1383,23 @@ trait BingoTrait
         ]);
     }
 
-    function registerPrizeCartonPayment($prizeCtn, $payment, $sender, $lot, $amount, $filePayment)
+    function registerPrizeCartonPayment($prizeCtn, $payment, $sender, $filePayment)
     {
         try {
 
             return BingoPrizeCtnsPayment::create([
-                'prize_ctn' => $prizeCtn,
+                'prize_ctn' => $prizeCtn->id,
                 'payment' => $payment,
                 'room' => $prizeCtn->room,
-                'creator_user' => $prizeCtn->creatorUser,
+                'creator_user' => $prizeCtn->creator_user,
                 'seller' => $prizeCtn->seller,
-                'player_link' => $prizeCtn->playerLink,
+                'player_link' => $prizeCtn->player_link,
                 'sender' => $sender,
-                'prize_type' => $prizeCtn->prizeType,
-                'lot' => $lot,
+                'prize_type' => $prizeCtn->prize_type,
+                'lot' => $prizeCtn->lot,
                 'ctn' => $prizeCtn->ctn,
                 'coin' => $prizeCtn->coin,
-                'amount' => $amount,
+                'amount' => $prizeCtn->amount,
                 'payment_proof' => $filePayment,
             ]);
         } catch (\Exception $e) {

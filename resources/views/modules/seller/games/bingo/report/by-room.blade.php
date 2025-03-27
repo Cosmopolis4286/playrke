@@ -34,7 +34,7 @@
                                             <td>
                                                 <a class="btn btn-sm bg-primary show-ctns" target="_blank"
                                                     href="{{ route('bingocash.in-game', ['commerce' => $commerce, 'player' => $player->link]) }}">
-                                                    <i class="mr-1 fa-solid fa-eye"></i>CTNs
+                                                    <i class="fa-solid fa-eye"></i>CTNs
                                                 </a>
                                             </td>
                                         </tr>

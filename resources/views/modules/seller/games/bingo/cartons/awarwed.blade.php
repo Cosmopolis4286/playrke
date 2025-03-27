@@ -37,8 +37,8 @@
                                                 </a>
                                             </td>
                                             <td class="align-middle">
-                                                {{ \Carbon\Carbon::parse($win->Room->date)->format('d/m/y') }}<br>
-                                                {{ $win->Room->time }} <small>GMT-4</small>
+                                                {{ \Carbon\Carbon::parse($win->Room->Config->date)->format('d/m/y') }}<br>
+                                                {{ $win->Room->Config->time }} <small>GMT-4</small>
                                             </td>
                                             <td>{{ $win->PlayerLink->name }}
                                                 {{ $win->PlayerLink->lastname }}</td>
@@ -72,7 +72,7 @@
                                                     @endif
                                                     <a class="btn btn-sm bg-primary show-ctns" target="_blank"
                                                         href="{{ route('bingocash.in-game', ['player' => $win->PlayerLink->link]) }}">
-                                                        <i class="mr-1 fa-solid fa-eye"></i>CTNs
+                                                        <i class="fa-solid fa-eye"></i>CTNs
                                                     </a>
                                                 </div>
                                             </td>
