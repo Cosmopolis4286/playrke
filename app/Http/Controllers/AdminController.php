@@ -38,7 +38,7 @@ class AdminController extends Controller
             'commerces' => $commerces,
             'countries' => $countries,
             'coins' => $coins,
-            'games' => Games::all()
+            'games' => Games::where('status', 1)->get()
         ]);
     }
 

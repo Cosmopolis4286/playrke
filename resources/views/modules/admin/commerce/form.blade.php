@@ -53,7 +53,7 @@
         </select>
     </div>
     <div id="cont-other-coins" class="form-group col-sm-6">
-        <label for="games">Juegos Disponibles:</label>
+        <label for="games">Juegos Permitidos:</label>
         <select multiple id="games" name="games[]" placeholder="Seleccionar Juegos" data-allow-clear="1"
             class="select2 form-control">
         </select>

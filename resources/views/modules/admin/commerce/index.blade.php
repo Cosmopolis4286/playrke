@@ -118,6 +118,7 @@
         const coinText = $("#coin-text");
         const otherCoins = $("#other-coins");
         const games = $("#games");
+        const arrGames = @json($games);
         let update = false;
 
         if (@json(Session::has('msg-error'))) {
@@ -165,17 +166,12 @@
             $("#cont-other-coins").removeClass('hide-elem');
         }
 
-        function insertGames(selectedCoins = '') {
+        function insertGames(selectedGames = '') {
             games.empty();
-            $.each(coins, function(index, item) {
-                if (item.id != coin.val()) {
-                    const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
-                    games.append(
-                        `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
-                    );
-                }
+            $.each(arrGames, function(index, item) {
+                const isSelected = selectedGames.includes(item.id) ? 'selected' : '';
+                games.append(`<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
-            $("#cont-other-coins").removeClass('hide-elem');
         }
 
         function insertInfo(type, data = '') {
@@ -207,7 +203,7 @@
                 $('#username, #email').attr('readonly', true);
             }
 
-            //insertGames();
+            insertGames();
 
             $(`#modal-${name}`).modal('show');
         }
