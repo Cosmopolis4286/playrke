@@ -239,6 +239,98 @@ class PollaController extends Controller
         return ['route' => 'modules.game.polla.form.' . $view, 'data' => $viewData];
     }
 
+    public function getAutomaticRoomsInfo($creator)
+    {
+        //  Lista (CRUD) de configuracion de Salas Automaticas
+        // (new HandleBingoRooms())->checkRoomClosure();
+
+        $creatorType = $creator['type'];
+        $creatorID = decrypt($creator['id']);
+
+        switch ($creatorType) {
+            case 'admin': // Admin
+                break;
+            case 'commerce': // Comercio
+                $isLogin = true;
+
+                $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
+
+                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($commerce->coin)]);
+
+                if ($creatorID == 1) $roomType = Room::getRoomTypes();
+
+                break;
+            case 'customer': // Cliente
+
+                $isLogin = $returnBtn = false;
+
+                $customer = Customer::getById($creatorID, ['user', 'token']);
+                $token = $customer->token;
+
+                $GMRoute =  route(
+                    'bingo.game-rooms-customer',
+                    ['customer' => $token, 'user' => $token]
+                );
+
+                $moreViewData = ['customer' => true, 'userToken' => $token];
+
+                break;
+
+            default:
+                return false;
+                break;
+        }
+
+        $automaticRooms = BingoRoomAutomatic::where('creator_user', $creator['userId'])
+            ->whereNot('status', 3)
+            ->get([
+                'id',
+                'time',
+                'game_mode',
+                'room_type',
+                'jackpot_type',
+                'fixed_jackpot_value',
+                'ctn_price',
+                'time_chip',
+                'room_commn',
+                'serials_commn',
+                'pct_serials',
+                'num_serials',
+                'status'
+            ]);
+
+        $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
+
+        $routeExecuteGenerateBingoRoomsJob = route(
+            'bingo.automatic-room.executeGenerateBingoRoomsJob',
+            ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
+        );
+
+        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
+
+        $viewData = [
+            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Salas de Bingo',
+            'name' => 'bingo',
+            'returnBtn' => $returnBtn ?? true,
+            'creator' => $creator,
+            'rooms' => $automaticRooms,
+            'activeRooms' => $activeRooms,
+            'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
+            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
+            'GMRoute' => $GMRoute,
+            'roomType' => $roomType ?? [],
+            'jackpotType' => JackpotType::all(),
+            'gameModes' => GameModes::all()
+        ];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
+
+        return ['route' => 'modules.game.bingo.automatic-room.index', 'data' => $viewData];
+    }
+
     private function allAutomaticRooms($creatorType, $creatorID)
     {
         $creatorID = decrypt($creatorID);

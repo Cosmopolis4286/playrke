@@ -75,7 +75,7 @@
         <ul class="nav nav-treeview">
             <li class="nav-item">
                 <a href="{{ route('polla.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => 'commerce']) }}"
-                    title="Salas de Juego" class="nav-link {{ !Route::is('bingo.all-rooms') ?: 'active' }}">
+                    title="Salas de Juego" class="nav-link {{ !Route::is('polla.all-rooms') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Salas</p>
                 </a>
