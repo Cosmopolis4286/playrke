@@ -23,6 +23,7 @@ use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\PaymentMethodsCOLController;
+use App\Http\Controllers\PollaController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\YankenpoController;
 use App\Models\Settings;
@@ -375,6 +376,12 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('get/chips/{room}', [BingoController::class, 'getChips'])->name('getChips');
     Route::get('get/result/{room}/{value}/{column?}', [BingoController::class, 'getResult'])->name('getResult');
     Route::get('viewCtn/{ctnId}', [BingoController::class, 'viewCtn'])->name('viewCtn');
+});
+
+Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
+    Route::get('', [PollaController::class, 'index'])->name('game');
+    Route::get('generate-play', [PollaController::class, 'generatePlay'])->name('generate-play');
+    Route::post('generate-ticket', [PollaController::class, 'generateTicket'])->name('generate-ticket');
 });
 
 Route::group(['prefix' => 'predict', 'as' => 'predict.'], function () {
