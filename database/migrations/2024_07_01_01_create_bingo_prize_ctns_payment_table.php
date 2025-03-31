@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('prize_ctn');
             $table->enum('payment', ['CS', 'CC', 'SP']);
+            $table->string('description', 35)->nullable();
             $table->unsignedBigInteger('room');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->unsignedBigInteger('seller');

@@ -14,9 +14,6 @@
         </div>
     </div>
     <div id="cont-bingo-info-extras">
-        {{-- <div id="cont-image-publish">
-                <img id="image-publish" src='{{ asset('/img/bg/estelar.png') }}'>
-            </div> --}}
         <div id="cont-game-mode-opcs">
             <div id="text-game-mode">Cartón&nbspLleno</div>
             <div id="cont-game-ops" class="mt-1">

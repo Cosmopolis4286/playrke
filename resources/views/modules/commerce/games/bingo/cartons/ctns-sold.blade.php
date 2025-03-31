@@ -61,13 +61,15 @@
                                                         data-coin_sym="{{ $coinSym }}"
                                                         data-sale_ctns="{{ $ctn->sale_amount }}"
                                                         data-proof="{{ $ctn->Payment->payment_proof }}">
-                                                        Confirmar Pago
+                                                        Validar Pago
                                                     </button>
                                                 @elseif($ctn->status == 2)
                                                     <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payment->payment_proof]) }}"
                                                         title="Ver Comprobante" target="_blank">
                                                         <span class="badge bg-success">Confirmado</span>
                                                     </a>
+                                                @elseif($ctn->status == 3)
+                                                    <span class="badge bg-dark">Invalido</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -99,7 +101,7 @@
         <div class="modal-dialog modal-sm" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modal-paymentLabel">Confirmar Pago</h5>
+                    <h5 class="modal-title" id="modal-payment-label">Confirmar Pago</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -112,6 +114,16 @@
                     <a id="show-payment-proof" target="_blank">
                         <h6 class="mt-2 btn btn-sm bg-navy"><i class="mr-1 fa-solid fa-eye"></i>Comprobante</h6>
                     </a>
+                    <button type="button" id="btn-reject-payment" class="ml-1 btn btn-sm bg-danger" data-key="0">
+                        Rechazar Pago
+                    </button>
+                    <div id="container-reason" class="d-none">
+                        <label for="reason">Motivo:</label>
+                        <select id="reason" name="reason" class="form-control">
+                            <option value="NON_EXISTENT_TRANS">Operacion Inexistente</option>
+                            <option value="INCT_AMOUNT">Monto Incorrecto</option>
+                        </select>
+                    </div>
                     <form action="{{ route('commerce.ctnsLotPayment') }}" id="form-confirm-payment" method="POST">
                         @csrf @method('PUT')
                         <input type="hidden" id="lot" name="lot">
@@ -129,19 +141,39 @@
     <script>
         $(document).on("click", ".btn-confirm-payment", function() {
             const data = $(this).data();
-            $('#lot').val(data.lot);
-            $('#seller-name').html(`<b>Vendedor: </b>${data.seller}<br>`);
-            $('#sale-ctns').html(`<b>Venta: </b>${data.coin_sym} ${data.sale_ctns}`);
 
+            $("#modal-payment-label").text('Confirmar Pago');
+            $("#btn-reject-payment")
+                .text("Rechazar Pago")
+                .removeClass("bg-success").addClass("bg-danger")
+                .data("key", 0);
+            $("#reason").prop("required", false);
+            $("#btn-confirm").text("Confirmar");
+            $("#container-reason").addClass("d-none");
+
+            $("#lot").val(data.lot);
+            $("#seller-name").html(`<b>Vendedor: </b>${data.seller}<br>`);
+            $("#sale-ctns").html(`<b>Venta: </b>${data.coin_sym} ${data.sale_ctns}`);
             $('#show-payment-proof').attr('href',
                 `{{ route('image.show-image-payment-ctns', ['filename' => ':proof']) }}`
                 .replace(':proof', data.proof));
 
-            $('#modal-payment').modal('show');
+            $("#modal-payment").modal("show");
         });
 
-        $(document).on("click", "#btn-confirm", function() {
-            $('#form-confirm-payment').submit();
+        $(document).on("click", "#btn-confirm", () => $("#form-confirm-payment").submit());
+
+        $(document).on("click", "#btn-reject-payment", function() {
+            const isRejected = $(this).data("key") == 0;
+
+            $("#container-reason").toggleClass("d-none", !isRejected);
+            $("#modal-payment-label").text(isRejected ? "Confirmar Pago" : "Rechazar Pago")
+            $("#reason").prop("required", isRejected);
+            $(this).text(isRejected ? "Confirmar Pago" : "Rechazar Pago")
+                .toggleClass("bg-danger bg-success")
+                .data("key", isRejected ? 1 : 0);
+
+            $("#btn-confirm").text(isRejected ? "Rechazar" : "Confirmar");
         });
     </script>
 @endsection

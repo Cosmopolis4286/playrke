@@ -238,7 +238,9 @@ body {
 }
 
 #cont-jackpot-type {
-    font-size: 75%;
+    font-weight: bold;
+    font-size: 71.25%;
+    color: rgb(1, 0, 65);
 }
 
 #cont-jackpot-amount {
@@ -248,9 +250,13 @@ body {
     font-family: 'Alfa Slab One', cursive;
 }
 
+#jackpot-coin-sym {
+    color: rgb(216, 216, 216);
+}
+
 #jackpot-amount {
     font-weight: 500;
-    color: gold;
+    color: rgb(255, 255, 255);
 }
 
 #cont-bingo-info-extras {
@@ -268,15 +274,12 @@ body {
     align-items: center;
     width: auto;
     height: 100%;
+    background-color: #25b09b;
 }
 
 #image-publish {
-    position: absolute;
-    top: 30%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     width: auto;
-    max-height: 120%;
+    height: 60px;
 }
 
 #cont-game-mode-opcs {
