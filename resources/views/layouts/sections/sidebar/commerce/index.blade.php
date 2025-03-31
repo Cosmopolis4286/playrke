@@ -63,5 +63,45 @@
             </li>
         </ul>
     </li>
+
+    <li class="nav-item has-treeview">
+        <a href="#"
+            class="nav-link {{ !Route::is('polla.all-rooms', 'commerce.getBingoWinnersByCommerce', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms') ?: 'active' }} ">
+            <i class="nav-icon fa-solid fa-paw"></i>
+            <p>Polla
+                <i class="right fas fa-angle-left"></i>
+            </p>
+        </a>
+        <ul class="nav nav-treeview">
+            <li class="nav-item">
+                <a href="{{ route('polla.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => 'commerce']) }}"
+                    title="Salas de Juego" class="nav-link {{ !Route::is('bingo.all-rooms') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Salas</p>
+                </a>
+            </li>
+            {{-- <li class="nav-item">
+                <a href="{{ route('commerce.getBingoWinnersByCommerce') }}" title="Ganadores"
+                    class="nav-link {{ !Route::is('commerce.getBingoWinnersByCommerce') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Ganadores</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('commerce.ctnsSold') }}" title="Cartones Vendidos"
+                    class="nav-link {{ !Route::is('commerce.ctnsSold') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Cartones</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('commerce.reportSalesRooms') }}" title="Reporte de Ventas"
+                    class="nav-link {{ !Route::is('commerce.reportSalesRooms') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Reporte de Ventas</p>
+                </a>
+            </li> --}}
+        </ul>
+    </li>
 @endsection
 {{-- Comercializadora --}}

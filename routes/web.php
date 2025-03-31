@@ -382,6 +382,7 @@ Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
     Route::get('', [PollaController::class, 'index'])->name('game');
     Route::get('generate-play', [PollaController::class, 'generatePlay'])->name('generate-play');
     Route::post('generate-ticket', [PollaController::class, 'generateTicket'])->name('generate-ticket');
+    Route::get('{roomType}/{creatorType}/{creatorID?}/{coin?}', [PollaController::class, 'allRooms'])->name('all-rooms');
 });
 
 Route::group(['prefix' => 'predict', 'as' => 'predict.'], function () {

@@ -3,18 +3,13 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header')
+            @include('includes.card-header', [
+                'subTitle' => 'Privadas',
+                'btnCardHeader' => ['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear'],
+            ])
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
-                        <i class="fas fa-plus-square"></i> Crear
-                    </button>
-                    <a href="{{ $activeRooms > 0 ? $GMRoute : '#' }}"
-                        class="ml-1 btn btn-sm btn-primary {{ $activeRooms > 0 ? '' : 'disabled' }}">
-                        <i class="fas fa-hat-wizard"></i> Ver Salas
-                    </a>
-                </div>
+                @include('includes.game.bingo.report.btn-group', ['view' => 'PRIVATE'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @include('includes.game.bingo.report.table-info-bingo-rooms')
@@ -26,22 +21,38 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', [
-            'creator' => [$userID ?? null, $creatorType],
-        ])->render(),
+        'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
     ])
     @include('includes.form-other-options')
+    @if ($creator['type'] === 'customer')
+        @include('includes.modal-form', [
+            'modalTitle' => 'ID del Juego - API',
+            'name' => 'customer-games',
+            'size' => 'sm',
+            'PUT' => true,
+            'action' => route('games.handleCustomerGames', ['id' => $customerGameID->id ?? null]),
+            'btnConfirm' => 'btn-confirm-game-id',
+            'dataForm' => view('modules.customer.customer-games.form', [
+                'creatorID' => $creator['id'],
+                'customerGameID' => $customerGameID,
+            ])->render(),
+        ])
+    @endif
 @endsection
 @section('scripts')
     <script>
         const name = '{{ $name }}';
-        const creatorType = '{{ $creatorType }}';
+        const creation = 'M';
+        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
+        const creatorType = @json($creator['type'] ?? '');
+        const creatorID = @json($creator['id'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
-        const arrRoomType = @json($roomType);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
+        let inCourse = false;
+        let arrCoinsCtnPrice = false;
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -62,35 +73,30 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Nueva Sala', '{{ asset('') }}bingocash', otherCasesMap);
+            formCRUD($(this), name, 'Nueva Sala', `{{ asset('') }}${name}`, otherCasesMap);
         });
 
         function insertInfo(type, data = '') {
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
-            let roomType = false;
+
+            if (type == 1) {
+                arrCoinsCtnPrice = false;
+                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
+                $('#container-price-config').html('');
+            } else {
+                getCtnPriceCoin(data.room.encrypted, true);
+            }
 
             gameMode.prop({
                 disabled: isDisabled,
                 required: isRequired
             }).empty();
 
-            if (creatorType === 'commerce') {
-                roomType = $("#room-type");
-                roomType.prop({
-                    disabled: isDisabled,
-                    required: isRequired
-                }).empty();
-            }
-
             jackpotType.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
-
-                if (creatorType === 'commerce' && arrRoomType.length) {
-                    roomType.append(defaultOption);
-                }
 
                 if (arrGameModes.length > 1) {
                     gameMode.append(defaultOption);
@@ -99,12 +105,7 @@
                 jackpotType.append(defaultOption);
             }
 
-            if (creatorType === 'commerce' && arrRoomType.length) {
-                $.each(arrRoomType, function(index, item) {
-                    const isSelected = (type == 2 && item.id == data.room.room_type) ? 'selected' : '';
-                    roomType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
-                });
-            }
+            $('#room-type').val('PV');
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
@@ -112,7 +113,7 @@
             });
 
             $.each(arrGameModes, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == data.config.game_mode) ? 'selected' : '';
 
                 if ((creatorType === 'customer' && item.id == 1) || creatorType !== 'customer') {
                     gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
@@ -121,19 +122,23 @@
 
             if (type == 1) {
                 changeFixedJackpot(1);
-            } else if (type == 2 && data.config.jackpot_type > 1) {
-                changeFixedJackpot(2);
-                $('#fixed-jackpot-value').val(data.config.fixed_jackpot_value);
-            }
+            } else if (type == 2) {
 
-            if (type == 2) {
-                $('#date').val(data.room.date);
-                $('#time').val(data.room.time);
-                $('#ctn-price').val(data.room.ctn_price);
-                $('#val-serials').val(data.config.pct_serials);
-                $('#num-serials').val(data.config.num_serials);
-                $('#commerce-commission').val(data.config.room_commn);
-                $('#serials-commission').val(data.config.serials_commn);
+                const config = data.config;
+
+                $('#date').val(config.date);
+                $('#time').val(config.time);
+                $('#room-commn').val(config.room_commn);
+                $('#ctn-price').val(config.ctn_price);
+                $('#time-chip').val(config.time_chip);
+                $('#pct-serials').val(config.pct_serials);
+                $('#num-serials').val(config.num_serials);
+                $('#serials-commn').val(config.serials_commn);
+
+                if (config.jackpot_type > 1) {
+                    changeFixedJackpot(2);
+                    $('#fixed-jackpot-value').val(config.fixed_jackpot_value);
+                }
             }
 
             $(`#modal-${name}`).modal('show');
@@ -141,8 +146,8 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'date', 'time', 'game-mode', 'ctn-price',
-                'val-serials', 'commerce-commission', 'jackpot-type'
+                'date', 'time', 'room-type', 'jackpot-type', 'game-mode',
+                'ctn-price', 'time-chip', 'pct-serials', 'room-commn'
             ]);
         });
 
@@ -160,9 +165,9 @@
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Repetir esta sala cada 24h',
+                    'Auto-Generar esta sala',
                     'question',
-                    'Sí, repetir',
+                    'Sí, auto-generar',
                     '#form-other-options',
                     `{{ route('bingo.replay', ['id' => ':id']) }}`,
                     encryptedId
@@ -198,6 +203,33 @@
                     encryptedId
                 );
             },
+            8: function(encryptedId) {
+                showToastOptionBtns(
+                    'Deseas cambiar el status de esta sala',
+                    'question',
+                    'Sí, cambiar',
+                    '#form-other-options',
+                    `{{ route('bingo.change-status', ['id' => ':id']) }}`,
+                    encryptedId
+                );
+            }
         };
     </script>
+    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
+    @if ($creator['type'] === 'customer')
+        <script>
+            $(document).on("click", '#btn-game-id', function() {
+                $('#modal-customer-games').modal('show');
+            });
+
+            $(document).on("click", '#btn-confirm-game-id', function() {
+                if ($('#customer-game-id').val()) {
+                    $('#form-customer-games').submit();
+                } else {
+                    $('#customer-game-id').focus();
+                    showToast('ID del Juego Obligatorio', 'warning');
+                }
+            });
+        </script>
+    @endif
 @endsection
