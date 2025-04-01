@@ -6,7 +6,7 @@
                 min="{{ \Carbon\Carbon::now()->format('Y-m-d') }}" value="{{ \Carbon\Carbon::now()->format('Y-m-d') }}">
         </div>
     @endif
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-md-8">
         <label for="game-type">Tipo de Juego*</label>
         <select id="game-type" name="game_type" class="form-control form-info" required></select>
     </div>

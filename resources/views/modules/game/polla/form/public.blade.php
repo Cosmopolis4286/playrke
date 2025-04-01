@@ -43,7 +43,7 @@
         const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
-        const gameType = $("#gameType");
+        const gameType = $("#game-type");
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
@@ -93,6 +93,7 @@
             }).empty();
 
             jackpotType.empty();
+            gameType.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -102,15 +103,14 @@
                 }
 
                 jackpotType.append(defaultOption);
+                gameType.append(defaultOption);
             }
 
             $('#room-type').val('PB');
 
-            gameType.empty();
-
             $.each(arrGameType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
-                gameType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                gameType.append(`<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
 
             $.each(arrJackpotType, function(index, item) {
@@ -149,8 +149,8 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'date', 'time', 'room-type', 'jackpot-type', 'game-mode',
-                'ctn-price', 'time-chip', 'pct-serials', 'room-commn'
+                'date', 'game-type', 'room-type', 'jackpot-type',
+                'game-mode', 'ticket-price', 'room-commn'
             ]);
         });
 
