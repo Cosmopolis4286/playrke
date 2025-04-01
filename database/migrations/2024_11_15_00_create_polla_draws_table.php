@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('polla_draws', function (Blueprint $table) {
             $table->id();
             $table->date('date');
-            $table->string('game_schedule', 14);
             $table->integer('close_sale');
             $table->unsignedBigInteger('status')->default(2);
             $table->integer('players')->default(0);

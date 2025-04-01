@@ -17,7 +17,7 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', [
+        'dataForm' => view('modules.game.polla.form.body', [
             'creator' => $creator,
             'automaticRoom' => true,
         ])->render(),

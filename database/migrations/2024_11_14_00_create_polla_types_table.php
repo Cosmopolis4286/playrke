@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('polla_types', function (Blueprint $table) {
             $table->id();
+            $table->string('name', 30);
+            $table->string('hour_a', 8);
+            $table->string('hour_b', 8);
+            $table->boolean('status')->default(1);
             $table->timestamps();
         });
     }

@@ -6,10 +6,10 @@
             @include('includes.card-header', ['subTitle' => 'Publicas'])
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
-                @include('includes.game.bingo.report.btn-group', ['view' => 'PUBLIC'])
+                @include('includes.game.polla.report.btn-group', ['view' => 'PUBLIC'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.table-info-bingo-rooms')
+                        @include('includes.game.polla.report.table-info-polla-rooms')
                     </div>
                 </div>
             </div>
@@ -18,7 +18,7 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
+        'dataForm' => view('modules.game.polla.form.body', ['creator' => $creator])->render(),
     ])
     @include('includes.form-other-options')
     @if ($creator['type'] === 'customer')
@@ -43,9 +43,11 @@
         const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
+        const gameType = $("#gameType");
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
+        const arrGameType = @json($gameType);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
         let inCourse = false;
@@ -104,6 +106,13 @@
 
             $('#room-type').val('PB');
 
+            gameType.empty();
+
+            $.each(arrGameType, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
+                gameType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+            });
+
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
                 jackpotType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
@@ -151,7 +160,7 @@
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `{{ route('bingo.delete', ['id' => ':id']) }}`,
+                `{{ route('polla.delete', ['id' => ':id']) }}`,
                 encryptedId
             );
         }
@@ -163,7 +172,7 @@
                     'question',
                     'Sí, repetir',
                     '#form-other-options',
-                    `{{ route('bingo.replay', ['id' => ':id']) }}`,
+                    `{{ route('polla.replay', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -173,7 +182,7 @@
                     'info',
                     'Sí, publicarla',
                     '#form-other-options',
-                    `{{ route('bingo.publish', ['id' => ':id']) }}`,
+                    `{{ route('polla.publish', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -183,7 +192,7 @@
                     'warning',
                     'Sí, reembolsar',
                     '#form-other-options',
-                    `{{ route('bingo.refund', ['id' => ':id']) }}`,
+                    `{{ route('polla.refund', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -193,7 +202,7 @@
                     'question',
                     'Sí, copiar',
                     '#form-other-options',
-                    `{{ route('bingo.copy', ['id' => ':id']) }}`,
+                    `{{ route('polla.copy', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -203,13 +212,13 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('bingo.change-status', ['id' => ':id']) }}`,
+                    `{{ route('polla.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             }
         };
     </script>
-    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
+    @vite(['resources/js/games/polla/form.js', 'resources/js/games/polla/ctn-price-coins.js'])
     @if ($creator['type'] === 'customer')
         <script>
             $(document).on("click", '#btn-game-id', function() {

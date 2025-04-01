@@ -381,6 +381,14 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
     Route::get('', [PollaController::class, 'index'])->name('game');
     Route::get('generate-play', [PollaController::class, 'generatePlay'])->name('generate-play');
+    Route::post('create', [PollaController::class, 'create'])->name('create');
+    Route::put('update/{id}', [PollaController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [PollaController::class, 'delete'])->name('delete');
+    Route::put('status/{id}', [PollaController::class, 'changeStatus'])->name('change-status');
+    Route::put('replay/{id}', [PollaController::class, 'replay'])->name('replay');
+    Route::put('publish/{id}', [PollaController::class, 'publish'])->name('publish');
+    Route::put('refund/{id}', [PollaController::class, 'refund'])->name('refund');
+    Route::put('copy/{id}', [PollaController::class, 'copy'])->name('copy');
     Route::post('generate-ticket', [PollaController::class, 'generateTicket'])->name('generate-ticket');
     Route::get('{roomType}/{creatorType}/{creatorID?}/{coin?}', [PollaController::class, 'allRooms'])->name('all-rooms');
 });

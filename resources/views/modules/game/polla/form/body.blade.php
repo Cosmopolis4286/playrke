@@ -7,8 +7,8 @@
         </div>
     @endif
     <div class="form-group col-sm-6 col-md-4">
-        <label for="time">Hora*</label>
-        <input type="time" id="time" name="time" class="form-control form-info" required>
+        <label for="game-type">Tipo de Juego*</label>
+        <select id="game-type" name="game_type" class="form-control form-info" required></select>
     </div>
     @if ($creator['type'] !== 'customer')
         @if (isset($automaticRoom))
@@ -46,23 +46,23 @@
             step="0.05" min="5" max="50" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
-        <label for="ctn-price">Precio CTN*</label>
+        <label for="ticket-price">Precio Ticket*</label>
         <div class="input-group">
             <div class="input-group-prepend">
                 <span class="input-group-text">$</span>
             </div>
-            <input type="number" id="ctn-price" name="ctn_price" class="form-control form-info"
+            <input type="number" id="ticket-price" name="ticket_price" class="form-control form-info"
                 placeholder="Precio Cartón" min="0.35" max="50" value="1" step="0.05" required
                 title="Precio Base">
             <div class="input-group-append">
-                <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button" data-active="0"
+                <button id="btn-ticket-price-config" class="btn btn-outline-secondary" type="button" data-active="0"
                     data-toggle="popover" data-trigger="hover" data-content="Ajustar precio por monedas">
                     <i class="fa-solid fa-sliders"></i>
                 </button>
             </div>
         </div>
     </div>
-    <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
+    <div id="container-ticket-price-config" class="form-group col-12 hide-elem">
         <div class="container"
             style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
             <label for="container-price-config" class="form-label">Ajustar Precio del Cartón</label>
@@ -75,17 +75,7 @@
             </div>
         </div>
     </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="time-chip">Tiempo Ficha*</label>
-        <div class="input-group">
-            <input type="number" step="1" value="5" min="3" max="10" id="time-chip"
-                name="time_chip" class="form-control form-info" required>
-            <div class="input-group-append">
-                <span class="input-group-text">SEG</span>
-            </div>
-        </div>
-    </div>
-    <div class="form-group col-sm-6 col-md-4">
+    {{-- <div class="form-group col-sm-6 col-md-4">
         <label for="pct-serials">%Bote Seriales</label>
         <input type="number" value="5" min="2" max="35" step="0.05" id="pct-serials"
             name="pct_serials" class="form-control form-info" placeholder="Ingrese valor" required>
@@ -94,5 +84,5 @@
         <label for="num-serials">#Max. Seriales</label>
         <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
             name="num_serials" class="form-control form-info" placeholder="Ingrese la cantidad" required>
-    </div>
+    </div> --}}
 </div>

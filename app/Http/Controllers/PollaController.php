@@ -150,7 +150,7 @@ class PollaController extends Controller
                 $coins = Coin::getCoinsById($coins);
 
                 $routeWithCoin = [
-                    'route' => 'bingo.all-rooms',
+                    'route' => 'polla.all-rooms',
                     'parameters' => [
                         'roomType' => $roomType,
                         'creatorType' => 'commerce',
@@ -228,6 +228,7 @@ class PollaController extends Controller
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
+            'gameType' => PollaTypes::all(),
             'jackpotType' => JackpotType::all(),
             'gameModes' => GameModes::all()
         ];
@@ -472,6 +473,7 @@ class PollaController extends Controller
 
     public function create(Request $request)
     {
+        dd($request);
         DB::beginTransaction();
 
         try {
