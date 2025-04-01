@@ -218,7 +218,7 @@
             }
         };
     </script>
-    @vite(['resources/js/games/polla/form.js', 'resources/js/games/polla/ctn-price-coins.js'])
+    @vite(['resources/js/games/polla/form.js', 'resources/js/games/polla/ticket-price-coins.js'])
     @if ($creator['type'] === 'customer')
         <script>
             $(document).on("click", '#btn-game-id', function() {

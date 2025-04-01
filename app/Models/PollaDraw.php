@@ -9,12 +9,15 @@ class PollaDraw extends Model
   protected $table = "polla_draws";
   protected $fillable = [
     'date',
-    'game_schedule',
-    'close_sale',
+    'game_type',
     'status',
+    'room_type',
+    'creator_user',
+    'paid_win',
+    'publication_date',
     'players',
     'plays',
-    'paid_win',
+    'close_sale',
     'all_sale',
     'rke_commn',
     'creator_commn',

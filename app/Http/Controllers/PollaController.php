@@ -15,10 +15,14 @@ use App\Models\CustomerGames;
 use App\Models\GameModes;
 use App\Models\Games;
 use App\Models\JackpotType;
+use App\Models\PollaCreator;
 use App\Models\PollaDraw;
+use App\Models\PollaDrawConfig;
 use App\Models\PollaLotteryResults;
+use App\Models\PollaTicketPrice;
 use App\Models\PollaTickets;
 use App\Models\PollaTypes;
+use App\Models\UserType;
 use App\Services\Game\Polla\HandlePollaDraws;
 use App\Traits\CustomerTrait;
 use App\Traits\EncryptRKE;
@@ -473,28 +477,89 @@ class PollaController extends Controller
 
     public function create(Request $request)
     {
-        dd($request);
-        DB::beginTransaction();
+        $creator = json_decode($request->creator);
+        $creatorType = $creator->type;
+        $creatorID = decrypt($creator->id);
+        $allowedPrefixes = ['admin', 'commerce', 'customer'];
 
-        try {
-            PollaDraw::create([
-                'date',
-                'game_schedule',
-                'close_sale',
-                'status',
-                'players',
-                'plays',
-                'paid_win',
-                'all_sale',
-                'rke_commn',
-                'creator_commn',
-                'seller_commn',
-                'jackpot',
-                'code_uuid'
-            ]);
-        } catch (\Throwable $th) {
-            //throw $th;
+        if (in_array($creatorType, $allowedPrefixes)) {
+
+            date_default_timezone_set(config('app.timezone'));
+
+            $userID = Auth::id();
+            $fixedJackpotValue = $request->fixed_jackpot_value;
+
+            $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
+
+            $model = 'PollaDraw';
+
+            $createData = [
+                'date' => $request->date,
+                'game_type' => $request->game_type,
+                'status' => 1,
+                'room_type' => $request->room_type,
+                'creator_user' => $userID,
+                'jackpot' => $boat,
+                'code_uuid' => $this->getCodeUUID($model)
+            ];
+
+            DB::beginTransaction();
+
+            try {
+                $drawID = PollaDraw::create($createData)->id;
+
+                PollaDrawConfig::create([
+                    'draw' => $drawID,
+                    'creator_user' => $userID,
+                    'game_mode' => $request->game_mode,
+                    'ticket_price' => $request->ticket_price,
+                    'jackpot_type' => $request->jackpot_type,
+                    'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                    'active_prizes' => 1,
+                    'room_commn' => $request->room_commn,
+                ]);
+
+                PollaCreator::creator([
+                    'draw' => $drawID,
+                    'creator_user' => $userID,
+                    'creator_type' => UserType::getValueByPrefix($creatorType, 'id'),
+                    'creator_id' => $creatorID,
+                    'creator_commn' => $request->room_commn,
+                    'ticket_price' => $request->ticket_price,
+                ]);
+
+                $ticketPriceCoins = $request->ticket_price_coins;
+
+                if ($ticketPriceCoins) {
+
+                    $timestamp = now();
+
+                    $recordsToInsert = collect($ticketPriceCoins)
+                        ->filter(fn($ticketPrice) => $ticketPrice) // Filtrar solo los elementos con valor
+                        ->map(function ($ticketPrice, $coin) use ($drawID, $userID, $timestamp) {
+                            return [
+                                'draw' => $drawID,
+                                'creator_user' => $userID,
+                                'coin' => $coin,
+                                'ticket_price' => $ticketPrice,
+                                'created_at' => $timestamp,
+                                'updated_at' => $timestamp,
+                            ];
+                        })->values()->toArray();
+
+                    PollaTicketPrice::insert($recordsToInsert);
+                }
+
+                DB::commit();
+                return redirect()->back()->with('message', 'Sala creada con éxito')->with('type', 'success');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error al crear la sala de polla de animalitos: ' . $e->getMessage());
+                return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al crear la sala']);
+            }
         }
+
+        return redirect()->back()->with('msg-error', 'No tienes permiso para crear una sala');
     }
 
     public function update(Request $request, $id) {}

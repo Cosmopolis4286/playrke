@@ -14,11 +14,15 @@ return new class extends Migration
         Schema::create('polla_draws', function (Blueprint $table) {
             $table->id();
             $table->date('date');
-            $table->integer('close_sale');
+            $table->foreignId('game_type')->constrained('polla_types')->onDelete('cascade');
             $table->unsignedBigInteger('status')->default(2);
+            $table->enum('room_type', ['PV', 'PB'])->default('PV');
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->boolean('paid_win')->default(0);
+            $table->timestamp('publication_date')->nullable();
             $table->integer('players')->default(0);
             $table->integer('plays')->default(0);
-            $table->boolean('prizes_paid')->default(0);
+            $table->integer('close_sale');
             $table->double('all_sale')->default(0);
             $table->double('rke_commn')->default(0)->nullable();
             $table->double('creator_commn')->default(0)->nullable();

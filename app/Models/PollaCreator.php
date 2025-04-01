@@ -7,7 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class PollaCreator extends Model
 {
     protected $table = 'polla_creator';
-    protected $fillable = ['draw', 'creator_type', 'creator_id', 'creator_commn', 'status', 'created_at', 'updated_at'];
+    protected $fillable = [
+        'draw',
+        'creator_type',
+        'creator_id',
+        'creator_commn',
+        'ticket_price',
+        'status',
+        'created_at',
+        'updated_at'
+    ];
 
     public function Draw()
     {

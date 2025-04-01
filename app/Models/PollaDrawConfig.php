@@ -7,7 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class PollaDrawConfig extends Model
 {
   protected $table = "polla_draw_config";
-  protected $fillable = ['draw', 'game_mode', 'active_prizes'];
+  protected $fillable = [
+    'draw',
+    'creator_user',
+    'game_mode',
+    'ticket_price',
+    'jackpot_type',
+    'fixed_jackpot_value',
+    'active_prizes',
+    'room_commn'
+  ];
 
   public function Draw()
   {

@@ -27,7 +27,9 @@ export default defineConfig(({ mode }) => {
                     'resources/js/games/bingo/ctn-price-coins.js',
                     'resources/js/games/bingo/in-game.js',
                     'resources/js/games/bingo/includes/auto-marked.js',
-                    'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'
+                    'resources/js/games/bingo/includes/bingo-out-buy-ctns.js',
+                    'resources/js/games/polla/form.js',
+                    'resources/js/games/polla/ticket-price-coins.js',
                 ],
                 refresh: true,
             }),
@@ -47,7 +49,9 @@ export default defineConfig(({ mode }) => {
                     'resources/js/games/bingo/ctn-price-coins.js',
                     'resources/js/games/bingo/in-game.js',
                     'resources/js/games/bingo/includes/auto-marked.js',
-                    'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'
+                    'resources/js/games/bingo/includes/bingo-out-buy-ctns.js',
+                    'resources/js/games/polla/form.js',
+                    'resources/js/games/polla/ticket-price-coins.js',
                 ],
                 exclude: [/node_modules/],
                 apply: "build",
