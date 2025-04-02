@@ -29,27 +29,27 @@ class PollaTicketPrice extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getValueCtnPrice($draw, $coin, $creatorUser)
+    public static function getValueTicketPrice($draw, $coin, $creatorUser)
     {
         return self::where('draw', $draw)->where('coin', $coin)
             ->where('creator_user', $creatorUser)->value('ticket_price');
     }
 
-    public static function getOnlyCoinsCtnPrice($draw, $creatorUser)
+    public static function getOnlyCoinsTicketPrice($draw, $creatorUser)
     {
         if (!$creatorUser) return collect();
 
         return self::where('draw', $draw)->where('creator_user', $creatorUser)->groupBy('coin')
-            ->select('coin', BingoCtnPrice::raw('MAX(ticket_price) as ticket_price'))
+            ->select('coin', PollaTicketPrice::raw('MAX(ticket_price) as ticket_price'))
             ->pluck('ticket_price', 'coin');
     }
 
-    public static function getAllCtnPrice($draw, $creatorUser)
+    public static function getAllTicketPrice($draw, $creatorUser)
     {
         return self::with('Coin')->where('draw', $draw)->where('creator_user', $creatorUser)->get();
     }
 
-    public static function getCtnPrice($draw, $coin, $creatorUser, $fields = ['id', 'ticket_price', 'status'])
+    public static function getTicketPrice($draw, $coin, $creatorUser, $fields = ['id', 'ticket_price', 'status'])
     {
         return self::select($fields)->where('draw', $draw)->where('coin', $coin)
             ->where('creator_user', $creatorUser)->first();

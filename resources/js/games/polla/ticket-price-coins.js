@@ -1,6 +1,6 @@
-function handlePriceCtnForCoins(arrCtnPrice) {
+function handleTicketPriceForCoins(arrTicketPrice) {
     // Generar el contenido HTML usando map y join
-    const dataCoins = arrCtnPrice.map((elem) =>
+    const dataCoins = arrTicketPrice.map((elem) =>
         `<div class="col col-sm-6 col-md-4 mt-1">
         <div class="input-group">
             <div class="input-group-prepend">
@@ -10,9 +10,9 @@ function handlePriceCtnForCoins(arrCtnPrice) {
                 type="text" 
                 class="form-control" 
                 name="ctn_price_coins[${elem.coin}]" 
-                id="ctn-price-coin-${elem.coin}" 
+                id="ticket-price-coin-${elem.coin}" 
                 aria-label="Precio para ${elem.isoCode}" 
-                value="${elem.ctnPrice}">
+                value="${elem.ticketPrice}">
         </div>
     </div>`).join('');
 
@@ -20,27 +20,27 @@ function handlePriceCtnForCoins(arrCtnPrice) {
     $('#container-price-config').html(dataCoins);
 
     // Marcar que las monedas ya han sido procesadas
-    arrCoinsCtnPrice = true;
+    arrCoinsTicketPrice = true;
 }
 
-$(document).on("click", "#btn-ctn-price-config", function () {
-    const container = $("#container-ctn-price-config");
+$(document).on("click", "#btn-ticket-price-config", function () {
+    const container = $("#container-ticket-price-config");
     // Alternar la clase y el valor del atributo 'data-active'
     const isActive = container.toggleClass("hide-elem").data("active") === 1 ? 0 : 1;
     container.data("active", isActive);
 
-    if (isActive === 0 || arrCoinsCtnPrice) return;
+    if (isActive === 0 || arrCoinsTicketPrice) return;
 
-    getCtnPriceCoin();
+    getTicketPriceCoin();
 });
 
-function getCtnPriceCoin(room = '', action = '') {
+function getTicketPriceCoin(draw = '', action = '') {
 
     $('#container-price-config').html('');
 
     $.ajax({
-        url: routeGetCtnPriceForCoin.replace(':1', creation).replace(':2', creatorType)
-            .replace(':3', creatorID).replace(':4', room),
+        url: routeGetTicketPriceForCoin.replace(':1', creation).replace(':2', creatorType)
+            .replace(':3', creatorID).replace(':4', draw),
         method: 'GET',
         dataType: 'json',
         beforeSend: function () {
@@ -49,8 +49,8 @@ function getCtnPriceCoin(room = '', action = '') {
         },
         success: function (res) {
             if (!action || res.hasPrice) {
-                handlePriceCtnForCoins(res.ctnPrice);
-                $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
+                handleTicketPriceForCoins(res.ticketPrice);
+                $("#container-ticket-price-config").removeClass("hide-elem").data("active", 1);
             }
         },
         error: function (error) { },
@@ -61,4 +61,4 @@ function getCtnPriceCoin(room = '', action = '') {
     });
 }
 
-window.getCtnPriceCoin = getCtnPriceCoin;
+window.getTicketPriceCoin = getTicketPriceCoin;

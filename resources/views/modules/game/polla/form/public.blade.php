@@ -40,7 +40,7 @@
     <script>
         const name = '{{ $name }}';
         const creation = 'M';
-        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
+        const routeGetTicketPriceForCoin = @json($routeGetTicketPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const gameType = $("#game-type");
@@ -51,7 +51,7 @@
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
         let inCourse = false;
-        let arrCoinsCtnPrice = false;
+        let arrCoinsTicketPrice = false;
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -80,11 +80,11 @@
             const isRequired = !isDisabled;
 
             if (type == 1) {
-                arrCoinsCtnPrice = false;
+                arrCoinsTicketPrice = false;
                 $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
                 $('#container-price-config').html('');
             } else {
-                getCtnPriceCoin(data.room.encrypted, true);
+                getTicketPriceCoin(data.room.encrypted, true);
             }
 
             gameMode.prop({

@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\BingoRoom;
 use App\Models\Coin;
 use App\Models\Commerce;
+use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\Customer;
@@ -17,11 +17,14 @@ use App\Models\Games;
 use App\Models\JackpotType;
 use App\Models\PollaCreator;
 use App\Models\PollaDraw;
+use App\Models\PollaDrawAutomatic;
 use App\Models\PollaDrawConfig;
 use App\Models\PollaLotteryResults;
 use App\Models\PollaTicketPrice;
+use App\Models\PollaTicketPriceAutomatic;
 use App\Models\PollaTickets;
 use App\Models\PollaTypes;
+use App\Models\Room;
 use App\Models\UserType;
 use App\Services\Game\Polla\HandlePollaDraws;
 use App\Traits\CustomerTrait;
@@ -105,12 +108,85 @@ class PollaController extends Controller
         }
     }
 
-    private function getRouteCtnPriceForCoin()
+    private function getRouteTicketPriceForCoin()
     {
         return route(
-            'bingo.getCtnPriceForCoin',
-            ['creation' => ':1', 'creatorType' => ':2', 'creatorID' => ':3', 'room' => ':4']
+            'polla.getTicketPriceForCoin',
+            ['creation' => ':1', 'creatorType' => ':2', 'creatorID' => ':3', 'draw' => ':4']
         );
+    }
+
+    public function getTicketPriceForCoin($creation, $creatorType, $creatorID, $draw = '')
+    {
+        // Desencriptar $creatorID
+        $creatorID = decrypt($creatorID);
+
+        // Obtener las monedas relevantes según el tipo de creador
+        $coins = match ($creatorType) {
+            'admin' => Coin::where('id', '!=', 1)->distinct()->pluck('coin'),
+            'commerce' => CommerceCountriesCoins::getAvailableCoins($creatorID, 1),
+            default => CustomerExchangeRate::getCoinsByCustomer($creatorID),
+        };
+
+        $coinsTicketPrice = collect();
+
+        if ($draw) {
+            if ($creation === 'M') {
+                // Obtener ID del sorteo
+                $drawID = PollaDraw::getValueByEncrypted($draw, 'id');
+
+                // Parámetros del creador
+                $creator = ['type' => $creatorType, 'id' => $creatorID];
+
+                // Obtener ID Polla Creator-User
+                $pollaCreatorUser = PollaCreator::getValueByCreatorDraw($creator, $drawID, 'creator_user');
+
+                $coinsTicketPrice = PollaTicketPrice::getOnlyCoinsTicketPrice($drawID, $pollaCreatorUser ?? false);
+            } else {
+                $coinsTicketPrice = PollaTicketPriceAutomatic::getOnlyCoinsTicketPrice($draw ?? '');
+            }
+        }
+
+        // Inicializamos un contador para las claves incrementales
+        $counter = 0;
+
+        // Obtener información completa de las monedas en `coinsTicketPrice`
+        $presentCoinsData = $coinsTicketPrice->mapWithKeys(function ($ticketPrice, $coin) use (&$counter, $creatorType) {
+            return [
+                $counter++ => [
+                    'coin' => $coin,
+                    'isoCode' => $creatorType === 'customer'
+                        ? $coin
+                        : Coin::getValue($coin, 'iso_code'),
+                    'ticketPrice' => $ticketPrice,
+                ],
+            ];
+        });
+
+        // Identificar monedas faltantes
+        $missingCoins = collect($coins)->diff($coinsTicketPrice->keys());
+
+        // Procesar las monedas faltantes
+        $missingCoinsData = $missingCoins->mapWithKeys(function ($missingCoin) use (&$counter, $creatorType) {
+            return [
+                $counter++ => [
+                    'coin' => "$missingCoin",
+                    'isoCode' => $creatorType === 'customer'
+                        ? $missingCoin
+                        : Coin::getValue($missingCoin, 'iso_code'),
+                    'ticketPrice' => '', // Precio vacío
+                ],
+            ];
+        });
+
+        // Combinar los datos y estructurarlos en un arreglo con identificador clave
+        $arrCoinsTicketPrice = $presentCoinsData->merge($missingCoinsData);
+
+        // Retornar respuesta con los datos
+        return response()->json([
+            'hasPrice' => count($presentCoinsData) ? true : false,
+            'ticketPrice' => $arrCoinsTicketPrice
+        ]);
     }
 
     private function getInfoRooms($creatorUser, $roomType, $coin)
@@ -118,7 +194,7 @@ class PollaController extends Controller
         $gameID = Games::getValueByName('BINGO');
         $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
 
-        return BingoRoom::with([
+        return PollaDraw::with([
             'Config.JackpotType',
             'Config:room,game_mode,jackpot_type,date,time,unix_date',
             'Config.GameMode:id,description',
@@ -214,7 +290,7 @@ class PollaController extends Controller
 
         $rooms = $this->getInfoRooms($creator['userId'], $roomType, $coin);
 
-        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
+        $routeGetTicketPriceForCoin = $this->getRouteTicketPriceForCoin();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
@@ -222,7 +298,7 @@ class PollaController extends Controller
             'name' => 'polla',
             'returnBtn' => $returnBtn ?? true,
             'routeWithCoin' => $routeWithCoin,
-            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
+            'routeGetTicketPriceForCoin' => $routeGetTicketPriceForCoin,
             'routeRKE' => $this->getRouteRKE(),
             'creator' => $creator,
             'coins' => $coins,
@@ -247,7 +323,7 @@ class PollaController extends Controller
     public function getAutomaticRoomsInfo($creator)
     {
         //  Lista (CRUD) de configuracion de Salas Automaticas
-        // (new HandleBingoRooms())->checkRoomClosure();
+        // (new HandlePollaDraws())->checkRoomClosure();
 
         $creatorType = $creator['type'];
         $creatorID = decrypt($creator['id']);
@@ -286,7 +362,7 @@ class PollaController extends Controller
                 break;
         }
 
-        $automaticRooms = BingoRoomAutomatic::where('creator_user', $creator['userId'])
+        $automaticRooms = PollaDrawAutomatic::where('creator_user', $creator['userId'])
             ->whereNot('status', 3)
             ->get([
                 'id',
@@ -304,14 +380,14 @@ class PollaController extends Controller
                 'status'
             ]);
 
-        $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
+        $activeRooms = PollaDraw::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
 
-        $routeExecuteGenerateBingoRoomsJob = route(
-            'bingo.automatic-room.executeGenerateBingoRoomsJob',
+        $routeExecuteGeneratePollaDrawsJob = route(
+            'bingo.automatic-room.executeGeneratePollaDrawsJob',
             ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
         );
 
-        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
+        $routeGetTicketPriceForCoin = $this->getRouteTicketPriceForCoin();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
@@ -321,8 +397,8 @@ class PollaController extends Controller
             'creator' => $creator,
             'rooms' => $automaticRooms,
             'activeRooms' => $activeRooms,
-            'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
-            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
+            'routeGeneratePollaDrawsJob' => $routeExecuteGeneratePollaDrawsJob,
+            'routeGetTicketPriceForCoin' => $routeGetTicketPriceForCoin,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
             'jackpotType' => JackpotType::all(),
@@ -562,7 +638,107 @@ class PollaController extends Controller
         return redirect()->back()->with('msg-error', 'No tienes permiso para crear una sala');
     }
 
-    public function update(Request $request, $id) {}
+    public function update(Request $request, $id)
+    {
+        $drawID = decrypt($id);
+        $draw = PollaDraw::findOrFail($drawID);
+
+        date_default_timezone_set(config('app.timezone'));
+
+        $newDate = $request->date;
+        $newTime = $request->time;
+        $unixDate = strtotime("{$newDate} {$newTime}");
+
+        if ($unixDate < time()) {
+            return redirect()->back()->with('message', 'Fecha/Hora no permitidas')->with('type', 'warning');
+        }
+
+        $fixedJackpotValue = $request->fixed_jackpot_value;
+
+        $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
+        $coin = $request->coin ?? 1;
+
+        $updateDataDraw = ['room_type' => $request->room_type, 'jackpot' => $draw->jackpot + $boat];
+
+        $updateDataConfig = [
+            'date' => $newDate,
+            'time' => $newTime,
+            'unix_date' => $unixDate,
+            'coin' => $coin,
+            'ctn_price' => $request->ctn_price,
+            'room_commn' => $request->room_commn,
+            'jackpot_type' => $request->jackpot_type,
+            'fixed_jackpot_value' => $request->fixed_jackpot_value,
+            'time_chip' => $request->time_chip,
+            'pct_serials' => $request->pct_serials,
+            'num_serials' => $request->num_serials,
+            'serials_commn' => $request->serials_commn
+        ];
+
+        // Solo añadir 'game_mode' si el jackpot es 0
+        if ($draw->jackpot == 0) {
+            $updateDataConfig['game_mode'] = $request->game_mode;
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Actualizar el bingo con los datos construidos
+            $draw->update($updateDataDraw);
+
+            PollaDrawConfig::where('draw', $drawID)->update($updateDataConfig);
+
+            $bingoCreator = PollaCreator::where('draw', $drawID)->firstOrFail();
+
+            $bingoCreator->update([
+                'creator_commn' => $request->room_commn,
+                'ctn_price' => $request->ctn_price,
+            ]);
+
+            $creatorUser = $draw->creator_user;
+
+            $ticketPriceCoins = $request->ticket_price_coins;
+
+            if ($ticketPriceCoins) {
+
+                $timestamp = now();
+
+                collect($ticketPriceCoins)->each(function ($ticketPrice, $coin) use ($drawID, $creatorUser, $timestamp) {
+                    // Obtener el registro existente
+                    $pollaTicketPrice = PollaTicketPrice::getTicketPrice($drawID, $coin, $creatorUser);
+
+                    // Verificar si es necesario actualizar
+                    if ($pollaTicketPrice && $pollaTicketPrice->ctn_price != $ticketPrice) {
+                        // Construir datos para la actualización
+                        $updateData = [
+                            'ctn_price' => $ticketPrice,
+                            'status' => $ticketPrice ? 1 : 0,
+                            'updated_at' => $timestamp,
+                        ];
+                        // Actualizar el registro existente
+                        PollaTicketPrice::where('id', $pollaTicketPrice->id)->update($updateData);
+                    } else if (!$pollaTicketPrice && $ticketPrice) {
+                        // Crear nuevo registro
+                        PollaTicketPrice::create([
+                            'draw' => $drawID,
+                            'creator_user' => $creatorUser,
+                            'coin' => $coin,
+                            'ticket_price' => $ticketPrice,
+                            'status' => 1
+                        ]);
+                    }
+                });
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('message', 'La información fue actualizada')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al actualizar la información de la sala de polla de animalitos: ' . $e->getMessage());
+            return redirect()->back()->with(['type' => 'warning', 'message', 'Error al actualizar la información']);
+        }
+    }
 
     public function generatePlay()
     {

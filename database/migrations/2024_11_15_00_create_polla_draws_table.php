@@ -16,7 +16,7 @@ return new class extends Migration
             $table->date('date');
             $table->foreignId('game_type')->constrained('polla_types')->onDelete('cascade');
             $table->unsignedBigInteger('status')->default(2);
-            $table->enum('room_type', ['PV', 'PB'])->default('PV');
+            $table->enum('room_type', ['PV', 'PB']);
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->boolean('paid_win')->default(0);
             $table->timestamp('publication_date')->nullable();

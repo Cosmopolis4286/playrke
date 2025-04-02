@@ -65,7 +65,7 @@
     <div id="container-ticket-price-config" class="form-group col-12 hide-elem">
         <div class="container"
             style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
-            <label for="container-price-config" class="form-label">Ajustar Precio del Cartón</label>
+            <label for="container-price-config" class="form-label">Ajustar Precio del Ticket</label>
             <div id="container-spinner" class="mt-1">
                 <div class="spinner-border text-primary" role="status">
                     <span class="sr-only"></span>
