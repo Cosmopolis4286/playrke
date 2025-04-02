@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PollaDrawConfig extends Model
 {
-  protected $table = "polla_draw_config";
+  protected $table = "polla_draws_config";
   protected $fillable = [
     'draw',
     'creator_user',
@@ -26,6 +26,11 @@ class PollaDrawConfig extends Model
   public function GameMode()
   {
     return $this->belongsTo(GameModes::class, 'game_mode');
+  }
+
+  public function JackpotType()
+  {
+    return $this->belongsTo(JackpotType::class, 'jackpot_type');
   }
 
   static function getById($id, $fields = ['*'])

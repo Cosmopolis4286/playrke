@@ -196,7 +196,7 @@ class PollaController extends Controller
 
         return PollaDraw::with([
             'Config.JackpotType',
-            'Config:room,game_mode,jackpot_type,date,time,unix_date',
+            'Config:draw,game_mode,jackpot_type',
             'Config.GameMode:id,description',
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
@@ -205,7 +205,7 @@ class PollaController extends Controller
                 $query->where('coin', $coin)->where('game', $gameID);
             }
         ])->where('creator_user', $creatorUser)->where('room_type', $roomType)
-            ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
+            // ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM polla_draws_config WHERE polla_draws_config.draw = bingo_rooms.id LIMIT 1)")
             ->get();
     }
 
@@ -288,7 +288,7 @@ class PollaController extends Controller
                 break;
         }
 
-        $rooms = $this->getInfoRooms($creator['userId'], $roomType, $coin);
+        $draws = $this->getInfoRooms($creator['userId'], $roomType, $coin);
 
         $routeGetTicketPriceForCoin = $this->getRouteTicketPriceForCoin();
 
@@ -305,9 +305,9 @@ class PollaController extends Controller
             'coin' => $coin,
             'coinSym' => $coinSym,
             'exchangeRate' => $exchangeRate ?? 1,
-            'rooms' => $rooms,
+            'draws' => $draws,
             'GMRoute' => $GMRoute,
-            'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
+            'activeRooms' => $draws->whereIn('status', [2, 3])->count(),
             'gameType' => PollaTypes::all(),
             'jackpotType' => JackpotType::all(),
             'gameModes' => GameModes::all()

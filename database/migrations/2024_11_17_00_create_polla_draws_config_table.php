@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('polla_draw_config', function (Blueprint $table) {
+        Schema::create('polla_draws_config', function (Blueprint $table) {
             $table->id();
             $table->foreignId('draw')->constrained('polla_draws')->onDelete('cascade');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('polla_draw_config');
+        Schema::dropIfExists('polla_draws_config');
     }
 };

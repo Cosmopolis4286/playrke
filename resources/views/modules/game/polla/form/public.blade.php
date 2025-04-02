@@ -9,7 +9,7 @@
                 @include('includes.game.polla.report.btn-group', ['view' => 'PUBLIC'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.polla.report.table-info-polla-rooms')
+                        @include('includes.game.polla.report.table-info-polla-draws')
                     </div>
                 </div>
             </div>
