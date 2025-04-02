@@ -2,9 +2,9 @@
 
 namespace App\Traits;
 
-use App\Models\BingoCreator;
-use App\Models\BingoRoom;
-use App\Models\BingoRoomConfig;
+use App\Models\PollaCreator;
+use App\Models\PollaDraw;
+use App\Models\PollaDrawConfig;
 use App\Models\CoinGameRoom;
 use App\Models\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
@@ -14,7 +14,4 @@ use App\Models\UserType;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-trait PollaTrait
-{
-   
-}
+trait PollaTrait {}

@@ -576,6 +576,7 @@ class PollaController extends Controller
                 'room_type' => $request->room_type,
                 'creator_user' => $userID,
                 'jackpot' => $boat,
+                'close_sale' => 2,
                 'code_uuid' => $this->getCodeUUID($model)
             ];
 
@@ -738,6 +739,290 @@ class PollaController extends Controller
             Log::error('Error al actualizar la información de la sala de polla de animalitos: ' . $e->getMessage());
             return redirect()->back()->with(['type' => 'warning', 'message', 'Error al actualizar la información']);
         }
+    }
+
+    public function getInfo($id, $starTime = '')
+    {
+        date_default_timezone_set(config('app.timezone'));
+
+        if ($starTime) {
+            $time = time();
+            return response()->json($time);
+        }
+
+        $id = decrypt($id);
+
+        $room = BingoRoom::select('encrypted', 'jackpot', 'players')->where('id', $id)->firstOrFail();
+
+        $config = BingoRoomConfig::select(
+            'game_mode',
+            'date',
+            'time',
+            'ctn_price',
+            'room_commn',
+            'jackpot_type',
+            'fixed_jackpot_value',
+            'time_chip',
+            'pct_serials',
+            'num_serials',
+            'serials_commn'
+        )->where('room', $id)->firstOrFail();
+
+        $bingoCreator = true;
+
+        $creatorUserID = BingoRoom::getValueById($room, 'creator_user');
+        $userType = User::getValueById($creatorUserID, 'user_type');
+
+        $creatorType = UserType::getValueById($userType, 'prefix');
+
+        if ($creatorType === 'commerce') {
+            $creatorID = BingoCreator::getByRoom($id, 'creator_id');
+            $creator = ['type' => $userType, 'id' => $creatorID];
+            $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $id) ?? false;
+        }
+
+        return response()->json([
+            'room' => $room,
+            'config' => $config,
+            'creator' => $bingoCreator
+        ]);
+    }
+
+    public function copy($id)
+    {
+        $roomID = decrypt($id);
+
+        $existingRoom = BingoRoom::findOrFail($roomID);
+        $existingRoomConfig = BingoRoomConfig::where('room', $roomID)->firstOrFail();
+        $existingRoomCreator = BingoCreator::getByRoom($roomID);
+
+        date_default_timezone_set(config('app.timezone'));
+
+        $userID = $existingRoom->user;
+        $boat = $existingRoomConfig->jackpot_type > 1 ? $existingRoomConfig->fixed_jackpot_value : 0;
+        $coin = $existingRoomConfig->coin ?? 1; // ID Coin == 1 (USDT)
+
+        $model = 'BingoRoom';
+
+        $createData = [
+            'encrypted' => $this->generateUniqueCode($model),
+            'status' => 1,
+            'room_type' => $existingRoom->room_type,
+            'creator_user' => $userID,
+            'jackpot' => $boat,
+            'code_uuid' => $this->getCodeUUID($model)
+        ];
+
+        // Definir $creator
+        $creator = [
+            'type' => $existingRoomCreator->creator_type,
+            'id' => $existingRoomCreator->creator_id
+        ];
+
+        $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
+        $existingRoomCtnPrice = BingoCtnPrice::getAllCtnPrice($roomID, $bingoCreatorUser);
+
+        DB::beginTransaction();
+
+        try {
+            // Obtener la nueva sala
+            $newRoomID = BingoRoom::create($createData)->id;
+
+            $configData = BingoRoomConfig::create([
+                'room' => $newRoomID,
+                'creation' => 'A',
+                'creator_user' => $userID,
+                'game_mode' => $existingRoomConfig->game_mode,
+                'date' => $existingRoomConfig->date,
+                'time' => $existingRoomConfig->time,
+                'unix_date' => strtotime("{$existingRoomConfig->date} {$existingRoomConfig->time}"),
+                'coin' => $coin,
+                'ctn_price' => $existingRoomConfig->ctn_price,
+                'room_commn' => $existingRoomConfig->room_commn,
+                'jackpot_type' => $existingRoomConfig->jackpot_type,
+                'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
+                'time_chip' => $existingRoomConfig->time_chip,
+                'pct_serials' => $existingRoomConfig->pct_serials,
+                'num_serials' => $existingRoomConfig->num_serials,
+                'serials_commn' => $existingRoomConfig->serials_commn,
+                // 'val_types_plays' => '',
+                // 'types_plays' => ''
+            ]);
+
+            BingoRoomConfig::create($configData);
+
+            // Registar el creador de la sala
+            BingoCreator::create([
+                'room' => $newRoomID,
+                'creator_user' => $userID,
+                'creator_type' => $existingRoomCreator->creator_type,
+                'creator_id' => $existingRoomCreator->creator_id,
+                'creator_commn' => $existingRoomCreator->room_commn,
+                'ctn_price' => $existingRoomCreator->ctn_price
+            ]);
+
+            if ($existingRoomCtnPrice) {
+
+                $timestamp = now();
+
+                $recordsToInsert = collect($existingRoomCtnPrice)
+                    ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
+                    ->map(function ($ctnPrice, $coin) use ($newRoomID, $userID, $timestamp) {
+                        return [
+                            'room' => $newRoomID,
+                            'creator_user' => $userID,
+                            'coin' => $coin,
+                            'ctn_price' => $ctnPrice,
+                            'created_at' => $timestamp,
+                            'updated_at' => $timestamp,
+                        ];
+                    })->values()->toArray();
+
+                BingoCtnPrice::insert($recordsToInsert);
+            }
+
+            DB::commit();
+            return redirect()->back()->with('message', 'Sala copiada con exito')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al copiar la sala: ' . $e->getMessage());
+            return redirect()->back()->with('msg-error', 'Hubo un problema al copiar la sala: ' . $e->getMessage());
+        }
+
+        return redirect()->back()->with('msg-error', 'No tienes permiso para copiar una sala');
+    }
+
+    public function replay($id)
+    {
+        $room = BingoRoom::with('Config')->findOrFail("id", decrypt($id));
+        $response = $this->handleCreateAutomaticRoom($room, true);
+        return redirect()->back()->with(['type' => $response['type'], 'message' => $response['message']]);
+    }
+
+    public function publish($id)
+    {
+        // Desencripta el ID y busca el registro correspondiente.
+        $bingoRoom = BingoRoom::findOrFail(decrypt($id));
+
+        date_default_timezone_set(config('app.timezone'));
+
+        $unixDate = strtotime("{$bingoRoom->date} {$bingoRoom->time}");
+
+        if ($unixDate < time()) {
+            return redirect()->back()->with('message', 'Fecha/Hora no perimitidas')->with('type', 'warning');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Actualiza el estado y la fecha de publicación.
+            $bingoRoom->update(['status' => 2, 'publication_date' => Carbon::now()]);
+
+            DB::commit();
+
+            // Redirige al usuario con un mensaje de éxito.
+            return redirect()->back()->with('message', 'La sala fue publicada')->with('type', 'success');
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error('Error al publicar la sala: ' . $th->getMessage());
+            return redirect()->back()->with('message', 'Ocurrió un error')->with('type', 'warning');
+        }
+    }
+
+    public function delete($id)
+    {
+        // Desencriptar el ID
+        $id = decrypt($id);
+
+        if (BingoRoom::getValueById($id, 'jackpot_prize') > 0) {
+            return redirect()->back()->with('msg-error', 'No es posible eliminar esta sala');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            //Eliminar registro del Creador
+            BingoCreator::where('room', $id)->delete();
+            // Eliminar configuracion de la sala
+            BingoRoomConfig::where('room', $id)->delete();
+
+            // Actualizar el registro en bingo_rooms (o eliminar si decides hacerlo en lugar de solo actualizar el estado)
+            BingoRoom::where('id', $id)->delete();
+
+            DB::commit();
+            // Redirigir de vuelta con un mensaje
+            return redirect()->back()->with('message', 'La sala ha sido eliminada')->with('type', 'success');
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+            return redirect()->back()->with('msg-error', 'Ha ocurrido un error');
+        }
+    }
+
+    public function changeStatus($id)
+    {
+        $id = decrypt($id);
+        BingoRoom::where('id', $id)->update(['status' => 1]);
+        Session::flash('message', 'Sala actualizada');
+        return redirect()->back()->with('type', 'success');
+    }
+
+    public function refund($id) // Reembolsar compras de la sala
+    {
+        $roomID = decrypt($id);
+
+        if (!BingoRoomUser::where('room', $roomID)->exists()) {
+            return true;
+        }
+
+        $gameID = Games::getValueByName('BINGO');
+
+        foreach (BingoRoomUser::where('room', $roomID)->cursor() as $player) {
+
+            DB::beginTransaction(); // Iniciar transacción por cada iteración
+
+            try {
+                $user = $player->user;
+
+                $amountToReturn = BingoCtnsLot::where('room', $roomID)
+                    ->where('player_user', $user)->sum('sale_amount');
+
+                // Obtener la cartera del usuario
+                $wallet = Wallet::where('user', $user)->first();
+
+                if (!$wallet) {
+                    throw new \Exception("Cartera no encontrada para el usuario ID: $user");
+                }
+
+                if ($player->coin === 'USDT') {
+                    $wallet->usdt += $amountToReturn;
+                } else {
+                    $wallet->balance += $amountToReturn;
+                }
+
+                // Actualizar cartera
+                $wallet->save();
+
+                // Insertar historial de jugadas
+                PlayHistory::create([
+                    'game' => $gameID,
+                    'room' => $roomID,
+                    'user' => $user,
+                    'gain' => $amountToReturn,
+                    'action' => 'Retorno'
+                ]);
+
+                DB::commit(); // Confirmar transacción de la iteración
+            } catch (\Exception $e) {
+                DB::rollBack(); // Revertir solo la iteración actual en caso de error
+                Log::error("Error al reembolsar al usuario ID $user: " . $e->getMessage());
+            }
+        }
+
+        // Actualizar estado de la sala después de todas las iteraciones
+        BingoRoom::where('id', $roomID)->update(['status' => 5]);
+
+        return redirect()->back()->with('message', 'El bote fue reembolsado')->with('type', 'warning');
     }
 
     public function generatePlay()
