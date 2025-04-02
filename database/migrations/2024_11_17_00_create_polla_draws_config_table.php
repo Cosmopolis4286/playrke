@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('polla_draws_config', function (Blueprint $table) {
             $table->id();
             $table->foreignId('draw')->constrained('polla_draws')->onDelete('cascade');
+            $table->enum('creation', ['M', 'A'])->default('M');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->foreignId('game_mode')->constrained('game_modes')->onDelete('cascade');
             $table->double('ticket_price')->default(0);
@@ -21,7 +22,6 @@ return new class extends Migration
             $table->unsignedBigInteger('jackpot_type')->default(1);
             $table->double('fixed_jackpot_value')->nullable();
             $table->string('active_prizes', 30);
-            $table->double('room_commn')->default(0);
             $table->timestamps();
         });
     }

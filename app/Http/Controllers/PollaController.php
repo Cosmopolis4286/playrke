@@ -601,7 +601,7 @@ class PollaController extends Controller
                     'room_commn' => $request->room_commn,
                 ]);
 
-                PollaCreator::creator([
+                PollaCreator::create([
                     'draw' => $drawID,
                     'creator_user' => $userID,
                     'creator_type' => UserType::getValueByPrefix($creatorType, 'id'),
