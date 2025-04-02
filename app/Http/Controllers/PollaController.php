@@ -203,9 +203,7 @@ class PollaController extends Controller
             'Config.JackpotType',
             'Config:draw,game_mode,jackpot_type',
             'Config.GameMode:id,description',
-            'PlayersRoom' => function ($query) {
-                $query->where('winner', '>', 0);
-            },
+            // 'Players',
             'GameExchangeRate' => function ($query) use ($coin, $gameID) {
                 $query->where('coin', $coin)->where('game', $gameID);
             }
@@ -795,11 +793,11 @@ class PollaController extends Controller
 
     public function copy($id)
     {
-        $roomID = decrypt($id);
+        $drawID = decrypt($id);
 
-        $existingRoom = PollaDraw::findOrFail($roomID);
-        $existingRoomConfig = PollaDrawConfig::where('room', $roomID)->firstOrFail();
-        $existingRoomCreator = PollaCreator::getByRoom($roomID);
+        $existingRoom = PollaDraw::findOrFail($drawID);
+        $existingRoomConfig = PollaDrawConfig::where('room', $drawID)->firstOrFail();
+        $existingRoomCreator = PollaCreator::getByRoom($drawID);
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -824,8 +822,8 @@ class PollaController extends Controller
             'id' => $existingRoomCreator->creator_id
         ];
 
-        $bingoCreatorUser = PollaCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
-        $existingRoomCtnPrice = PollaTicketPrice::getAllCtnPrice($roomID, $bingoCreatorUser);
+        $bingoCreatorUser = PollaCreator::getValueByCreatorRoom($creator, $drawID, 'creator_user');
+        $existingRoomCtnPrice = PollaTicketPrice::getAllCtnPrice($drawID, $bingoCreatorUser);
 
         DB::beginTransaction();
 
@@ -1022,22 +1020,22 @@ class PollaController extends Controller
 
     public function refund($id) // Reembolsar compras de la sala
     {
-        $roomID = decrypt($id);
+        $drawID = decrypt($id);
 
-        if (!PollaDrawUser::where('room', $roomID)->exists()) {
+        if (!PollaDrawUser::where('room', $drawID)->exists()) {
             return true;
         }
 
         $gameID = Games::getValueByName('BINGO');
 
-        foreach (PollaDrawUser::where('room', $roomID)->cursor() as $player) {
+        foreach (PollaDrawUser::where('room', $drawID)->cursor() as $player) {
 
             DB::beginTransaction(); // Iniciar transacción por cada iteración
 
             try {
                 $user = $player->user;
 
-                $amountToReturn = BingoCtnsLot::where('room', $roomID)
+                $amountToReturn = BingoCtnsLot::where('room', $drawID)
                     ->where('player_user', $user)->sum('sale_amount');
 
                 // Obtener la cartera del usuario
@@ -1059,7 +1057,7 @@ class PollaController extends Controller
                 // Insertar historial de jugadas
                 PlayHistory::create([
                     'game' => $gameID,
-                    'room' => $roomID,
+                    'room' => $drawID,
                     'user' => $user,
                     'gain' => $amountToReturn,
                     'action' => 'Retorno'
@@ -1073,9 +1071,72 @@ class PollaController extends Controller
         }
 
         // Actualizar estado de la sala después de todas las iteraciones
-        PollaDraw::where('id', $roomID)->update(['status' => 5]);
+        PollaDraw::where('id', $drawID)->update(['status' => 5]);
 
         return redirect()->back()->with('message', 'El bote fue reembolsado')->with('type', 'warning');
+    }
+
+    public function reportSalesByDraw($drawID, $coin)
+    {
+        $commerce = $this->commerce(['id', 'user']);
+
+        $room = PollaDraw::getByEncrypted($drawID, ['id', 'encrypted', 'creator_user']);
+
+        if ($room->creator_user != $commerce->user || !$room->creator_user) {
+            return redirect()->back();
+        }
+
+        $drawID = $room->id;
+
+        $coin = decrypt($coin);
+
+        $creatorUser = $commerce->user;
+        $user = ['type' => 'commerce', 'id' => $commerce->id, 'userId' => $creatorUser];
+
+        $existSale = $this->verifyExistenceOfSales($user, '', $coin, $drawID);
+
+        if (!$existSale) {
+            // si no existe venta para esa fecha
+            return redirect()->route('commerce.reportSalesRooms', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        }
+
+        $sellers = Seller::select('id', 'name', 'country')
+            ->with([
+                'Country:id,name',
+                'CtnsLot' => fn($query) => $query->where([
+                    ['room', $drawID],
+                    ['coin', $coin]
+                ])
+            ])
+            ->where('commerce', $commerce->id)
+            ->whereHas('CtnsLot', fn($query) => $query->where([
+                ['room', $drawID],
+                ['coin', $coin]
+            ]))->get();
+
+        $coins = $this->getCommerceCoins($creatorUser, '', ['CtnsLot', 'Coin']);
+
+        $routeWithCoin = [
+            'route' => 'commerce.reportSalesByRoom',
+            'parameters' => ['room' => $drawID]
+        ];
+
+        $coin = Coin::getById($coin, ['id', 'symbol']);
+
+        $bingoConfig = PollaDrawConfig::getByRoom($drawID, ['ctn_price', 'room_commn']);
+
+        return view('modules/commerce/games/bingo/report/by-room')->with([
+            'title' => "Reporte de Sala",
+            'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
+            'ctnPrice' => $bingoConfig->ctn_price,
+            'sellers' => $sellers,
+            'comCommerceRm' => $bingoConfig->room_commn,
+            'room' => $room->encrypted,
+            'routeWithCoin' => $routeWithCoin,
+            'coin' => $coin->id,
+            'coinSym' => $coin->symbol,
+            'coins' => $coins
+        ]);
     }
 
     public function generatePlay()

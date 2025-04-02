@@ -36,6 +36,21 @@ class PollaDraw extends Model
     return $this->belongsTo(PollaDrawConfig::class, 'id', 'draw');
   }
 
+  public function Players()
+  {
+    return $this->hasMany(BingoRoomUser::class, 'draw', 'id');
+  }
+
+  public function ComSeller()
+  {
+    return $this->belongsTo(SellerRoomLimits::class, 'id', 'room');
+  }
+
+  public function GameExchangeRate()
+  {
+    return $this->hasMany(GameExchangeRate::class, 'room', 'id');
+  }
+
   public static function getById($id, $fields = ['*'])
   {
     return self::select($fields)->where('id', $id)->first();

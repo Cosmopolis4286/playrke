@@ -390,6 +390,8 @@ Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
     Route::put('refund/{id}', [PollaController::class, 'refund'])->name('refund');
     Route::put('copy/{id}', [PollaController::class, 'copy'])->name('copy');
     Route::post('generate-ticket', [PollaController::class, 'generateTicket'])->name('generate-ticket');
+
+    Route::get('sales-report/draw/{draw}/{coin}/{creatorID?}', [PollaController::class, 'reportSalesByDraw'])->name('reportSalesByDraw');
     Route::get('getTicketPriceForCoin/{creation}/{creatorType}/{creatorID}/{draw?}', [PollaController::class, 'getTicketPriceForCoin'])->name('getTicketPriceForCoin');
     Route::get('{roomType}/{creatorType}/{creatorID?}/{coin?}', [PollaController::class, 'allRooms'])->name('all-rooms');
 });

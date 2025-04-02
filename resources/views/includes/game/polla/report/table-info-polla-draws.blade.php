@@ -53,8 +53,8 @@
                         @endif
                         <br>
                         <a class="badge bg-navy" title="Ver Reporte"
-                            href="{{ route('commerce.reportSalesByRoom', [
-                                'draw' => $draw->encrypted,
+                            href="{{ route('polla.reportSalesByDraw', [
+                                'draw' => encrypt($draw->id),
                                 'coin' => encrypt(1),
                             ]) }}">
                             {{ $draw->encrypted }}
@@ -69,7 +69,7 @@
                         <i class="fa-solid fa-users mr-1" title="Jugadores"></i>
                         {{ $draw->players }}<br>
                         <i class="fa-solid fa-trophy mr-1" title="Ganadores"></i>
-                        {{ count($draw->PlayersRoom) ?? 0 }}
+                        {{-- {{ count($draw->PlayersRoom) ?? 0 }} --}}
                     </td>
                     <td class="align-middle">{{ $coinSym }}
                         {{ number_format($allSale, 2, '.') }}</td>
