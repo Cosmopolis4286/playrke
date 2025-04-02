@@ -10,10 +10,10 @@
                 <i class="fas fa-cogs"></i> Manual
             </a>
         @else
-            <a class="btn btn-sm btn-secondary"
+            {{-- <a class="btn btn-sm btn-secondary"
                 href="{{ route('polla.all-rooms', ['roomType' => 'automatic-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                 <i class="fa-solid fa-rotate"></i> Auto
-            </a>
+            </a> --}}
             @if ($creator['type'] !== 'customer')
                 @if ($view === 'PRIVATE')
                     @php
@@ -29,10 +29,12 @@
                     @endphp
                 @endif
 
-                <a class="btn btn-sm btn-secondary"
-                    href="{{ route('polla.all-rooms', ['roomType' => $roomType, 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
-                    <i class="{{ $icon }}"></i> {{ $title }}
-                </a>
+                @if ($view === 'PRIVATE')
+                    <a class="btn btn-sm btn-secondary"
+                        href="{{ route('polla.all-rooms', ['roomType' => $roomType, 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                        <i class="{{ $icon }}"></i> {{ $title }}
+                    </a>
+                @endif
             @else
                 <button id="btn-game-id" class="btn btn-sm btn-dark">
                     <i class="fa-solid fa-gamepad"></i> Game ID
@@ -41,12 +43,12 @@
         @endif
     </div>
     @if ($view !== 'AUTO')
-        <a href="{{ $activeRooms ? $GMRoute : '#' }}"
+        {{-- <a href="{{ $activeRooms ? $GMRoute : '#' }}"
             class="btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}">
             <i class="fas fa-eye"></i> Ver salas
-        </a>
+        </a> --}}
     @else
-        <button type="button" id="btn-execute-job" class="btn btn-sm btn-primary {{ $rooms ? '' : 'disabled' }}">
+        <button type="button" id="btn-execute-job" class="btn btn-sm btn-primary {{ $drawS ? '' : 'disabled' }}">
             <i class="fa-solid fa-bolt"></i> Ejecutar Job
         </button>
     @endif

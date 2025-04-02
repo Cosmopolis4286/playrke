@@ -15,6 +15,7 @@ use App\Models\CustomerGames;
 use App\Models\GameModes;
 use App\Models\Games;
 use App\Models\JackpotType;
+use App\Models\PlayHistory;
 use App\Models\PollaCreator;
 use App\Models\PollaDraw;
 use App\Models\PollaDrawAutomatic;
@@ -25,7 +26,9 @@ use App\Models\PollaTicketPriceAutomatic;
 use App\Models\PollaTickets;
 use App\Models\PollaTypes;
 use App\Models\Room;
+use App\Models\User;
 use App\Models\UserType;
+use App\Models\Wallet;
 use App\Services\Game\Polla\HandlePollaDraws;
 use App\Traits\CustomerTrait;
 use App\Traits\EncryptRKE;
@@ -34,9 +37,11 @@ use App\Traits\GameTrait;
 use App\Traits\PollaTrait;
 use App\Traits\RouteRKE;
 use App\Traits\UserVal;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 class PollaController extends Controller
 {
@@ -752,9 +757,9 @@ class PollaController extends Controller
 
         $id = decrypt($id);
 
-        $room = BingoRoom::select('encrypted', 'jackpot', 'players')->where('id', $id)->firstOrFail();
+        $room = PollaDraw::select('encrypted', 'jackpot', 'players')->where('id', $id)->firstOrFail();
 
-        $config = BingoRoomConfig::select(
+        $config = PollaDrawConfig::select(
             'game_mode',
             'date',
             'time',
@@ -770,15 +775,15 @@ class PollaController extends Controller
 
         $bingoCreator = true;
 
-        $creatorUserID = BingoRoom::getValueById($room, 'creator_user');
+        $creatorUserID = PollaDraw::getValueById($room, 'creator_user');
         $userType = User::getValueById($creatorUserID, 'user_type');
 
         $creatorType = UserType::getValueById($userType, 'prefix');
 
         if ($creatorType === 'commerce') {
-            $creatorID = BingoCreator::getByRoom($id, 'creator_id');
+            $creatorID = PollaCreator::getByRoom($id, 'creator_id');
             $creator = ['type' => $userType, 'id' => $creatorID];
-            $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $id) ?? false;
+            $bingoCreator = PollaCreator::getValueByCreatorRoom($creator, $id) ?? false;
         }
 
         return response()->json([
@@ -792,9 +797,9 @@ class PollaController extends Controller
     {
         $roomID = decrypt($id);
 
-        $existingRoom = BingoRoom::findOrFail($roomID);
-        $existingRoomConfig = BingoRoomConfig::where('room', $roomID)->firstOrFail();
-        $existingRoomCreator = BingoCreator::getByRoom($roomID);
+        $existingRoom = PollaDraw::findOrFail($roomID);
+        $existingRoomConfig = PollaDrawConfig::where('room', $roomID)->firstOrFail();
+        $existingRoomCreator = PollaCreator::getByRoom($roomID);
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -802,7 +807,7 @@ class PollaController extends Controller
         $boat = $existingRoomConfig->jackpot_type > 1 ? $existingRoomConfig->fixed_jackpot_value : 0;
         $coin = $existingRoomConfig->coin ?? 1; // ID Coin == 1 (USDT)
 
-        $model = 'BingoRoom';
+        $model = 'PollaDraw';
 
         $createData = [
             'encrypted' => $this->generateUniqueCode($model),
@@ -819,16 +824,16 @@ class PollaController extends Controller
             'id' => $existingRoomCreator->creator_id
         ];
 
-        $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
-        $existingRoomCtnPrice = BingoCtnPrice::getAllCtnPrice($roomID, $bingoCreatorUser);
+        $bingoCreatorUser = PollaCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
+        $existingRoomCtnPrice = PollaTicketPrice::getAllCtnPrice($roomID, $bingoCreatorUser);
 
         DB::beginTransaction();
 
         try {
             // Obtener la nueva sala
-            $newRoomID = BingoRoom::create($createData)->id;
+            $newRoomID = PollaDraw::create($createData)->id;
 
-            $configData = BingoRoomConfig::create([
+            $configData = PollaDrawConfig::create([
                 'room' => $newRoomID,
                 'creation' => 'A',
                 'creator_user' => $userID,
@@ -849,10 +854,10 @@ class PollaController extends Controller
                 // 'types_plays' => ''
             ]);
 
-            BingoRoomConfig::create($configData);
+            PollaDrawConfig::create($configData);
 
             // Registar el creador de la sala
-            BingoCreator::create([
+            PollaCreator::create([
                 'room' => $newRoomID,
                 'creator_user' => $userID,
                 'creator_type' => $existingRoomCreator->creator_type,
@@ -878,7 +883,7 @@ class PollaController extends Controller
                         ];
                     })->values()->toArray();
 
-                BingoCtnPrice::insert($recordsToInsert);
+                PollaTicketPrice::insert($recordsToInsert);
             }
 
             DB::commit();
@@ -892,17 +897,65 @@ class PollaController extends Controller
         return redirect()->back()->with('msg-error', 'No tienes permiso para copiar una sala');
     }
 
+    private function handleCreateAutomaticDraw($data, $replay = false)
+    {
+        DB::beginTransaction();
+
+        try {
+            $creator = json_decode($data->creator);
+
+            $automaticBingoID = PollaDrawAutomatic::create([
+                'time' => $data->time,
+                'game_mode' => $data->game_mode,
+                'room_type' => $data->room_type,
+                'jackpot_type' => $data->jackpot_type,
+                'fixed_jackpot_value' => $data->fixed_jackpot_value,
+                'time_chip' => $data->time_chip,
+                'ctn_price' => $data->ctn_price,
+                'room_commn' => $data->room_commn,
+                'serials_commn' => $data->serials_commission,
+                'pct_serials' => $data->pct_serials,
+                'num_serials' => $data->num_serials,
+                'creator_type' => UserType::getValueByPrefix($creator->type, 'id'),
+                'creator_id' => decrypt($creator->id),
+                'creator_user' => Auth::id()
+            ])->id;
+
+            if (!empty($data->ctn_price_coins)) {
+                $timestamp = now();
+
+                $recordsToInsert = array_map(fn($coin, $ctnPrice) =>
+                $ctnPrice ? [
+                    'automatic_bingo_id' => $automaticBingoID,
+                    'coin' => $coin,
+                    'ctn_price' => $ctnPrice,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ] : null, array_keys((array) $data->ctn_price_coins), (array) $data->ctn_price_coins);
+
+                PollaTicketPriceAutomatic::insert(array_filter($recordsToInsert));
+            }
+
+            DB::commit();
+            return ['type' => 'success', 'message' => 'Registro creado con éxito'];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear sala automática: ' . $e->getMessage());
+            return ['type' => 'warning', 'message' => 'Hubo un error al crear la sala'];
+        }
+    }
+
     public function replay($id)
     {
-        $room = BingoRoom::with('Config')->findOrFail("id", decrypt($id));
-        $response = $this->handleCreateAutomaticRoom($room, true);
+        $room = PollaDraw::with('Config')->findOrFail("id", decrypt($id));
+        $response = $this->handleCreateAutomaticDraw($room, true);
         return redirect()->back()->with(['type' => $response['type'], 'message' => $response['message']]);
     }
 
     public function publish($id)
     {
         // Desencripta el ID y busca el registro correspondiente.
-        $bingoRoom = BingoRoom::findOrFail(decrypt($id));
+        $bingoRoom = PollaDraw::findOrFail(decrypt($id));
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -934,7 +987,7 @@ class PollaController extends Controller
         // Desencriptar el ID
         $id = decrypt($id);
 
-        if (BingoRoom::getValueById($id, 'jackpot_prize') > 0) {
+        if (PollaDraw::getValueById($id, 'jackpot_prize') > 0) {
             return redirect()->back()->with('msg-error', 'No es posible eliminar esta sala');
         }
 
@@ -942,12 +995,12 @@ class PollaController extends Controller
 
         try {
             //Eliminar registro del Creador
-            BingoCreator::where('room', $id)->delete();
+            PollaCreator::where('room', $id)->delete();
             // Eliminar configuracion de la sala
-            BingoRoomConfig::where('room', $id)->delete();
+            PollaDrawConfig::where('room', $id)->delete();
 
             // Actualizar el registro en bingo_rooms (o eliminar si decides hacerlo en lugar de solo actualizar el estado)
-            BingoRoom::where('id', $id)->delete();
+            PollaDraw::where('id', $id)->delete();
 
             DB::commit();
             // Redirigir de vuelta con un mensaje
@@ -962,7 +1015,7 @@ class PollaController extends Controller
     public function changeStatus($id)
     {
         $id = decrypt($id);
-        BingoRoom::where('id', $id)->update(['status' => 1]);
+        PollaDraw::where('id', $id)->update(['status' => 1]);
         Session::flash('message', 'Sala actualizada');
         return redirect()->back()->with('type', 'success');
     }
@@ -971,13 +1024,13 @@ class PollaController extends Controller
     {
         $roomID = decrypt($id);
 
-        if (!BingoRoomUser::where('room', $roomID)->exists()) {
+        if (!PollaDrawUser::where('room', $roomID)->exists()) {
             return true;
         }
 
         $gameID = Games::getValueByName('BINGO');
 
-        foreach (BingoRoomUser::where('room', $roomID)->cursor() as $player) {
+        foreach (PollaDrawUser::where('room', $roomID)->cursor() as $player) {
 
             DB::beginTransaction(); // Iniciar transacción por cada iteración
 
@@ -1020,7 +1073,7 @@ class PollaController extends Controller
         }
 
         // Actualizar estado de la sala después de todas las iteraciones
-        BingoRoom::where('id', $roomID)->update(['status' => 5]);
+        PollaDraw::where('id', $roomID)->update(['status' => 5]);
 
         return redirect()->back()->with('message', 'El bote fue reembolsado')->with('type', 'warning');
     }
