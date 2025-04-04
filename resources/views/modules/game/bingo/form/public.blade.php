@@ -12,7 +12,7 @@
                         @if (!isset($otherRooms))
                             @include('includes.game.bingo.report.table-info-bingo-rooms')
                         @else
-                            @include('includes.game.bingo.report.table-info-bingo-rooms')
+                            @include('includes.game.bingo.report.table-info-other-public-bingo-rooms')
                         @endif
                     </div>
                 </div>
