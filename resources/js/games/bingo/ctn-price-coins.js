@@ -1,4 +1,4 @@
-function handlePriceCtnForCoins(arrCtnPrice) {
+function handleCtnPriceForCoins(arrCtnPrice) {
     // Generar el contenido HTML usando map y join
     const dataCoins = arrCtnPrice.map((elem) =>
         `<div class="col col-sm-6 col-md-4 mt-1">
@@ -49,7 +49,7 @@ function getCtnPriceCoin(room = '', action = '') {
         },
         success: function (res) {
             if (!action || res.hasPrice) {
-                handlePriceCtnForCoins(res.ctnPrice);
+                handleCtnPriceForCoins(res.ctnPrice);
                 $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
             }
         },

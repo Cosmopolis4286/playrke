@@ -5,9 +5,12 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                <button type="button" class="mb-2 btn btn-sm btn-success" data-toggle="modal" data-target="#modal-bingo-rules">
+                <button type="button" class="btn btn-sm btn-success mr-2" data-toggle="modal" data-target="#modal-bingo-rules">
                     <i class="fas fa-eye"></i> Ver Reglamento
                 </button>
+                <a href="#" class="btn btn-sm btn-primary">
+                    <i class="fa-solid fa-gamepad"></i> Ver Jugadas
+                </a>
                 <hr class="mt-2">
                 <form id="form-bingo-rules" action="{{ route('bingo.handleBingoRules', $rulesID) }}" method="POST"
                     enctype="multipart/form-data">

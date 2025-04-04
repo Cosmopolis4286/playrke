@@ -3,13 +3,17 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header', ['subTitle' => 'Publicas'])
+            @include('includes.card-header', ['subtitle' => $subtitle ?? 'Publicas'])
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
                 @include('includes.game.bingo.report.btn-group', ['view' => 'PUBLIC'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.table-info-bingo-rooms')
+                        @if (!isset($otherRooms))
+                            @include('includes.game.bingo.report.table-info-bingo-rooms')
+                        @else
+                            @include('includes.game.bingo.report.table-info-other-public-bingo-rooms')
+                        @endif
                     </div>
                 </div>
             </div>

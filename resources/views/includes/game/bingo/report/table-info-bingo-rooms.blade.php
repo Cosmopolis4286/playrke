@@ -118,12 +118,11 @@
                                         </button>
                                     @endif
                                 @endif
-                            @elseif (!$room->replay)
-                                <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="4"
-                                    data-id="{{ encrypt($room->id) }}" title="Repetir">
-                                    <i class="fa-solid fa-repeat"></i>
-                                </button>
                             @endif
+                            {{-- <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="4"
+                                data-id="{{ encrypt($room->id) }}" title="Repetir">
+                                <i class="fa-solid fa-repeat"></i>
+                            </button> --}}
                             <button class="btn-{{ $name }} btn btn-sm bg-navy" data-type="7"
                                 data-id="{{ encrypt($room->id) }}" title="Copiar">
                                 <i class="fa-solid fa-copy"></i>

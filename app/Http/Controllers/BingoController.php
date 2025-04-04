@@ -1088,7 +1088,7 @@ class BingoController extends Controller
 
     public function allRooms($roomType, $creatorType, $creatorID = '', $coin = '')
     {
-        $roomTypes = ['automatic-rooms', 'private-rooms', 'public-rooms'];
+        $roomTypes = ['automatic-rooms', 'private-rooms', 'public-rooms', 'other-public-rooms'];
 
         if (!in_array($roomType, $roomTypes)) {
             return redirect()->back();
@@ -1096,6 +1096,8 @@ class BingoController extends Controller
 
         if ($roomType === 'automatic-rooms') {
             return $this->allAutomaticRooms($creatorType, $creatorID);
+        } else if ($roomType === 'other-public-rooms') {
+            return $this->allOtherPublicRooms($creatorType, $creatorID);
         } else {
             switch ($creatorType) {
                 case 'admin':
@@ -2094,6 +2096,142 @@ class BingoController extends Controller
 
         // Obtener la información de configuracion de salas automaticas
         $viewData = $this->getAutomaticRoomsInfo($creator);
+
+        // Retornar la vista con la información
+        return $this->handleViewData($viewData, $creator['type']);
+    }
+
+    private function getOtherPublicRoomsInfo($creator)
+    {
+        //  Lista (CRUD) de configuracion de Salas Automaticas
+        (new HandleBingoRooms())->checkRoomClosure();
+
+        $creatorType = $creator['type'];
+        $creatorID = decrypt($creator['id']);
+
+        switch ($creatorType) {
+            case 'admin': // Admin
+                break;
+            case 'commerce': // Comercio
+                $isLogin = true;
+
+                $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
+
+                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($commerce->coin)]);
+
+                if ($creatorID == 1) $roomType = Room::getRoomTypes();
+
+                break;
+            case 'customer': // Cliente
+
+                $isLogin = $returnBtn = false;
+
+                $customer = Customer::getById($creatorID, ['user', 'token']);
+                $token = $customer->token;
+
+                $GMRoute =  route(
+                    'bingo.game-rooms-customer',
+                    ['customer' => $token, 'user' => $token]
+                );
+
+                $moreViewData = ['customer' => true, 'userToken' => $token];
+
+                break;
+
+            default:
+                return false;
+                break;
+        }
+
+        $automaticRooms = BingoRoomAutomatic::where('creator_user', $creator['userId'])
+            ->whereNot('status', 3)
+            ->get([
+                'id',
+                'time',
+                'game_mode',
+                'room_type',
+                'jackpot_type',
+                'fixed_jackpot_value',
+                'ctn_price',
+                'time_chip',
+                'room_commn',
+                'serials_commn',
+                'pct_serials',
+                'num_serials',
+                'status'
+            ]);
+
+        $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
+
+        $routeExecuteGenerateBingoRoomsJob = route(
+            'bingo.automatic-room.executeGenerateBingoRoomsJob',
+            ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
+        );
+
+        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
+
+        $viewData = [
+            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Salas de Bingo',
+            'subtitle' => 'Otras Salas Publicas',
+            'name' => 'bingo',
+            'returnBtn' => $returnBtn ?? true,
+            'creator' => $creator,
+            'rooms' => $automaticRooms,
+            'otherRooms' => true,
+            'activeRooms' => $activeRooms,
+            'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
+            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
+            'GMRoute' => $GMRoute,
+            'roomType' => $roomType ?? [],
+            'jackpotType' => JackpotType::all(),
+            'gameModes' => GameModes::all()
+        ];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
+
+        return ['route' => 'modules.game.bingo.form.public', 'data' => $viewData];
+    }
+
+    private function allOtherPublicRooms($creatorType, $creatorID)
+    {
+        $creatorID = decrypt($creatorID);
+
+        switch ($creatorType) {
+            case 'commerce':
+                $creator = Commerce::getById($creatorID, ['id', 'user']);
+                // Verificar si el comercio existe
+                if (!$creator) {
+                    return response()->json(['message' => 'El Comercio no existe'], 404);
+                }
+                break;
+
+            case 'customer':
+                $creator = Customer::getByToken($creatorID, ['id', 'user']);
+                // Verificar si el cliente existe
+                if (!$creator) {
+                    $creator = Customer::getByUserId(Auth::id(), ['id', 'user']);
+                    if (!$creator) {
+                        return response()->json(['message' => 'Token del cliente no existe'], 404);
+                    }
+                }
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        $creator = [
+            'type' => $creatorType,
+            'id' => encrypt($creator->id),
+            'userId' => $creator->user
+        ];
+
+        // Obtener la información de otras salas publicas
+        $viewData = $this->getOtherPublicRoomsInfo($creator);
 
         // Retornar la vista con la información
         return $this->handleViewData($viewData, $creator['type']);

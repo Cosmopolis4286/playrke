@@ -10,10 +10,17 @@
                 <i class="fas fa-cogs"></i> Manual
             </a>
         @else
-            <a class="btn btn-sm btn-secondary"
-                href="{{ route('bingo.all-rooms', ['roomType' => 'automatic-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
-                <i class="fa-solid fa-rotate"></i> Auto
-            </a>
+            @if ($view === 'PRIVATE')
+                <a class="btn btn-sm btn-secondary"
+                    href="{{ route('bingo.all-rooms', ['roomType' => 'automatic-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                    <i class="fa-solid fa-rotate"></i> Auto
+                </a>
+            @else
+                <a class="btn btn-sm btn-secondary"
+                    href="{{ route('bingo.all-rooms', ['roomType' => 'other-public-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                    <i class="fa-solid fa-gamepad"></i> Otras Salas
+                </a>
+            @endif
             @if ($creator['type'] !== 'customer')
                 @if ($view === 'PRIVATE')
                     @php
