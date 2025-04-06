@@ -200,16 +200,16 @@ class PollaController extends Controller
         $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
 
         return PollaDraw::with([
+            'GameType',
             'Config.JackpotType',
-            'Config:draw,game_mode,jackpot_type',
+            'Config:draw,game_mode,jackpot_type,ticket_price',
             'Config.GameMode:id,description',
-            // 'Players',
+            'Winners',
             'GameExchangeRate' => function ($query) use ($coin, $gameID) {
                 $query->where('coin', $coin)->where('game', $gameID);
             }
         ])->where('creator_user', $creatorUser)->where('room_type', $roomType)
-            // ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM polla_draws_config WHERE polla_draws_config.draw = bingo_rooms.id LIMIT 1)")
-            ->get();
+            ->orderByDesc('date')->orderByDesc('game_type')->get();
     }
 
     private function getGameRoomsInfo($creator, $coin, $roomType)

@@ -11,7 +11,6 @@ class PollaTickets extends Model
         'draw',
         'player_ticket',
         'coin',
-        'exchange_rate',
         'amount',
         'n1',
         'n2',

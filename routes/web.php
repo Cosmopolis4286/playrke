@@ -382,6 +382,7 @@ Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
     Route::get('', [PollaController::class, 'index'])->name('game');
     Route::get('generate-play', [PollaController::class, 'generatePlay'])->name('generate-play');
     Route::post('create', [PollaController::class, 'create'])->name('create');
+    Route::get('getInfo/{id}/{starTime?}', [PollaController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [PollaController::class, 'update'])->name('update');
     Route::put('delete/{id}', [PollaController::class, 'delete'])->name('delete');
     Route::put('status/{id}', [PollaController::class, 'changeStatus'])->name('change-status');

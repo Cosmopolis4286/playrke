@@ -26,6 +26,11 @@ class PollaDraw extends Model
     'code_uuid'
   ];
 
+  public function GameType()
+  {
+    return $this->belongsTo(PollaTypes::class, 'game_type');
+  }
+
   public function Status()
   {
     return $this->belongsTo(StatusGame::class, 'status');
@@ -38,7 +43,12 @@ class PollaDraw extends Model
 
   public function Players()
   {
-    return $this->hasMany(BingoRoomUser::class, 'draw', 'id');
+    return $this->hasMany(PollaPlayers::class, 'draw', 'id');
+  }
+
+  public function Winners()
+  {
+    return $this->hasMany(PollaWinners::class, 'draw', 'id');
   }
 
   public function ComSeller()

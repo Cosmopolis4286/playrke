@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('draw')->constrained('polla_draws')->onDelete('cascade');
             $table->foreignId('player_ticket')->constrained('polla_players')->onDelete('cascade');
             $table->foreignId('coin')->constrained('coins')->onDelete('cascade');
-            $table->double('exchange_rate');
             $table->double('amount');
             $table->string('n_1', 2);
             $table->string('n_2', 2);

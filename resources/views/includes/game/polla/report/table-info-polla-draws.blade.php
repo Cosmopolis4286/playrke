@@ -4,8 +4,10 @@
         <thead>
             <tr>
                 <th>Sala</th>
-                <th>Tipo</th>
+                <th>Fecha</th>
+                <th>Juego</th>
                 <th>Ticket</th>
+                <th>#TCK</th>
                 <th>#PJ</th>
                 <th>Venta</th>
                 <th>Jackpot</th>
@@ -36,7 +38,7 @@
                         ]);
                     }
 
-                    $ctnPrice = $draw->ctn_price * ($draw->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
+                    $ticketPrice = $draw->Config->ticket_price * ($draw->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
                     $allSale = $draw->all_sale * ($draw->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
                     $jackpot = $draw->jackpot * ($draw->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
 
@@ -45,31 +47,30 @@
                 @endphp
                 <tr>
                     <td class="align-middle">
-                        <small>Modo: {{ $draw->Config->GameMode->description }}</small>
-                        @if ($draw->status > 1)
-                            <a href="{{ $drawRoute }}" class="badge badge-dark" target="_blank">
-                                <i class="fa-regular fa-eye"></i>
-                            </a>
-                        @endif
-                        <br>
                         <a class="badge bg-navy" title="Ver Reporte"
                             href="{{ route('polla.reportSalesByDraw', [
                                 'draw' => encrypt($draw->id),
-                                'coin' => encrypt(1),
+                                'coin',
                             ]) }}">
-                            {{ $draw->encrypted }}
+                            # {{ $draw->id }}
                         </a>
+                        @if ($draw->status > 1)
+                            <a href="{{ $drawRoute }}" class="badge badge-dark" target="_blank">
+                                Ver Sala<i class="fa-regular fa-eye"></i>
+                            </a>
+                        @endif
                     </td>
                     <td class="align-middle">
-                        {{ \Carbon\Carbon::parse($draw->Config->date)->format('d/m/y') }}
+                        {{ \Carbon\Carbon::parse($draw->date)->format('d/m/y') }}
                     </td>
-                    <td class="align-middle">{{ $draw->Config->time }} H</td>
-                    <td class="align-middle">{{ $coinSym }} {{ $ctnPrice }}</td>
+                    <td class="align-middle">{{ $draw->GameType->name }}</td>
+                    <td class="align-middle">{{ $coinSym }} {{ $ticketPrice }}</td>
+                    <td class="align-middle">{{ $draw->plays }}</td>
                     <td class="align-middle">
                         <i class="fa-solid fa-users mr-1" title="Jugadores"></i>
                         {{ $draw->players }}<br>
                         <i class="fa-solid fa-trophy mr-1" title="Ganadores"></i>
-                        {{-- {{ count($draw->PlayersRoom) ?? 0 }} --}}
+                        {{ count($draw->Winners) ?? 0 }}
                     </td>
                     <td class="align-middle">{{ $coinSym }}
                         {{ number_format($allSale, 2, '.') }}</td>
@@ -134,7 +135,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4" class="text-right"><b>Total:</b></td>
+                <td colspan="5" class="text-right"><b>Total:</b></td>
                 <td>{{ $coinSym }} {{ number_format($totalAllSale, 2, '.') }}</td>
                 <td>{{ $coinSym }} {{ number_format($totalJackpot, 2, '.') }}</td>
                 <td colspan="4"></td>
