@@ -17,6 +17,7 @@ return new class extends Migration
             $table->enum('creation', ['M', 'A'])->default('M');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
             $table->foreignId('game_mode')->constrained('game_modes')->onDelete('cascade');
+            $table->integer('unix_date');
             $table->double('ticket_price')->default(0);
             $table->double('room_commn')->nullable();
             $table->unsignedBigInteger('jackpot_type')->default(1);

@@ -53,7 +53,7 @@ class PollaCreator extends Model
         return self::select($fields)->where($creator['type'], $creator['id'])->where('draw', $draw)->first();
     }
 
-    public static function getValueByCreatorDraw($creator, $draw, $value)
+    public static function getValueByCreatorDraw($creator, $draw, $value = 'id')
     {
         return self::where($creator['type'], $creator['id'])->where('draw', $draw)->value($value);
     }

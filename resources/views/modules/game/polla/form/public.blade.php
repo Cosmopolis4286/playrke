@@ -110,7 +110,9 @@
 
             $.each(arrGameType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
-                gameType.append(`<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+                gameType.append(
+                    `<option value="${item.id}" ${isSelected}>${item.name} ${item.hour_a} - ${item.hour_b}</option>`
+                    );
             });
 
             $.each(arrJackpotType, function(index, item) {
@@ -135,13 +137,9 @@
 
             if (type == 2) {
                 $('#date').val(data.room.date);
-                $('#time').val(data.room.time);
-                $('#ctn-price').val(data.room.ctn_price);
-                $('#time-chip').val(data.config.time_chip);
-                $('#val-serials').val(data.config.pct_serials);
-                $('#num-serials').val(data.config.num_serials);
+                $('#game-type').val(data.room.game_type);
+                $('#ticket-price').val(data.config.ticket_price);
                 $('#room-commission').val(data.config.room_commn);
-                $('#serials-commission').val(data.config.serials_commn);
             }
 
             $(`#modal-${name}`).modal('show');

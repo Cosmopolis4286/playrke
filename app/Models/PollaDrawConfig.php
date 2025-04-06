@@ -9,8 +9,10 @@ class PollaDrawConfig extends Model
   protected $table = "polla_draws_config";
   protected $fillable = [
     'draw',
+    'creation',
     'creator_user',
     'game_mode',
+    'unix_date',
     'ticket_price',
     'jackpot_type',
     'fixed_jackpot_value',

@@ -374,7 +374,7 @@ class PollaController extends Controller
                 'room_type',
                 'jackpot_type',
                 'fixed_jackpot_value',
-                'ctn_price',
+                'ticket_price',
                 'time_chip',
                 'room_commn',
                 'serials_commn',
@@ -585,13 +585,18 @@ class PollaController extends Controller
 
             DB::beginTransaction();
 
+            $hourClose = PollaTypes::getValueById($request->game_type, 'hour_b');
+            $hour = date('H:i', strtotime($hourClose));
+
             try {
                 $drawID = PollaDraw::create($createData)->id;
 
                 PollaDrawConfig::create([
                     'draw' => $drawID,
+                    'creation' => 'M',
                     'creator_user' => $userID,
                     'game_mode' => $request->game_mode,
+                    'unix_date' => strtotime("{$request->date} {$hour}"),
                     'ticket_price' => $request->ticket_price,
                     'jackpot_type' => $request->jackpot_type,
                     'fixed_jackpot_value' => $request->fixed_jackpot_value,
@@ -650,8 +655,12 @@ class PollaController extends Controller
         date_default_timezone_set(config('app.timezone'));
 
         $newDate = $request->date;
-        $newTime = $request->time;
-        $unixDate = strtotime("{$newDate} {$newTime}");
+
+        $hourClose = PollaTypes::getValueById($request->game_type, 'hour_b');
+
+        $hour = date('H:i', strtotime($hourClose));
+
+        $unixDate = strtotime("{$newDate} {$hour}");
 
         if ($unixDate < time()) {
             return redirect()->back()->with('message', 'Fecha/Hora no permitidas')->with('type', 'warning');
@@ -665,22 +674,16 @@ class PollaController extends Controller
         $updateDataDraw = ['room_type' => $request->room_type, 'jackpot' => $draw->jackpot + $boat];
 
         $updateDataConfig = [
-            'date' => $newDate,
-            'time' => $newTime,
             'unix_date' => $unixDate,
-            'coin' => $coin,
-            'ctn_price' => $request->ctn_price,
-            'room_commn' => $request->room_commn,
+            'ticket_price' => $request->ticket_price,
             'jackpot_type' => $request->jackpot_type,
             'fixed_jackpot_value' => $request->fixed_jackpot_value,
-            'time_chip' => $request->time_chip,
-            'pct_serials' => $request->pct_serials,
-            'num_serials' => $request->num_serials,
-            'serials_commn' => $request->serials_commn
+            // 'active_prizes',
+            'room_commn' => $request->room_commn
         ];
 
-        // Solo añadir 'game_mode' si el jackpot es 0
-        if ($draw->jackpot == 0) {
+        // Solo añadir 'game_mode' si el all_sale es 0
+        if ($draw->all_sale == 0) {
             $updateDataConfig['game_mode'] = $request->game_mode;
         }
 
@@ -692,11 +695,11 @@ class PollaController extends Controller
 
             PollaDrawConfig::where('draw', $drawID)->update($updateDataConfig);
 
-            $bingoCreator = PollaCreator::where('draw', $drawID)->firstOrFail();
+            $pollaCreator = PollaCreator::where('draw', $drawID)->firstOrFail();
 
-            $bingoCreator->update([
+            $pollaCreator->update([
                 'creator_commn' => $request->room_commn,
-                'ctn_price' => $request->ctn_price,
+                'ticket_price' => $request->ticket_price,
             ]);
 
             $creatorUser = $draw->creator_user;
@@ -712,10 +715,10 @@ class PollaController extends Controller
                     $pollaTicketPrice = PollaTicketPrice::getTicketPrice($drawID, $coin, $creatorUser);
 
                     // Verificar si es necesario actualizar
-                    if ($pollaTicketPrice && $pollaTicketPrice->ctn_price != $ticketPrice) {
+                    if ($pollaTicketPrice && $pollaTicketPrice->ticket_price != $ticketPrice) {
                         // Construir datos para la actualización
                         $updateData = [
-                            'ctn_price' => $ticketPrice,
+                            'ticket_price' => $ticketPrice,
                             'status' => $ticketPrice ? 1 : 0,
                             'updated_at' => $timestamp,
                         ];
@@ -740,7 +743,7 @@ class PollaController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al actualizar la información de la sala de polla de animalitos: ' . $e->getMessage());
-            return redirect()->back()->with(['type' => 'warning', 'message', 'Error al actualizar la información']);
+            return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al actualizar la información']);
         }
     }
 
@@ -755,23 +758,19 @@ class PollaController extends Controller
 
         $id = decrypt($id);
 
-        $room = PollaDraw::select('encrypted', 'jackpot', 'players')->where('id', $id)->firstOrFail();
+        $room = PollaDraw::select('date', 'game_type', 'players')->where('id', $id)->firstOrFail();
 
         $config = PollaDrawConfig::select(
+            'creator_user',
             'game_mode',
-            'date',
-            'time',
-            'ctn_price',
-            'room_commn',
+            'ticket_price',
             'jackpot_type',
             'fixed_jackpot_value',
-            'time_chip',
-            'pct_serials',
-            'num_serials',
-            'serials_commn'
-        )->where('room', $id)->firstOrFail();
+            'active_prizes',
+            'room_commn'
+        )->where('draw', $id)->firstOrFail();
 
-        $bingoCreator = true;
+        $pollaCreator = true;
 
         $creatorUserID = PollaDraw::getValueById($room, 'creator_user');
         $userType = User::getValueById($creatorUserID, 'user_type');
@@ -779,15 +778,15 @@ class PollaController extends Controller
         $creatorType = UserType::getValueById($userType, 'prefix');
 
         if ($creatorType === 'commerce') {
-            $creatorID = PollaCreator::getByRoom($id, 'creator_id');
+            $creatorID = PollaCreator::getByDraw($id, 'creator_id');
             $creator = ['type' => $userType, 'id' => $creatorID];
-            $bingoCreator = PollaCreator::getValueByCreatorRoom($creator, $id) ?? false;
+            $pollaCreator = PollaCreator::getValueByCreatorDraw($creator, $id) ?? false;
         }
 
         return response()->json([
             'room' => $room,
             'config' => $config,
-            'creator' => $bingoCreator
+            'creator' => $pollaCreator
         ]);
     }
 
@@ -803,16 +802,17 @@ class PollaController extends Controller
 
         $userID = $existingRoom->user;
         $boat = $existingRoomConfig->jackpot_type > 1 ? $existingRoomConfig->fixed_jackpot_value : 0;
-        $coin = $existingRoomConfig->coin ?? 1; // ID Coin == 1 (USDT)
 
         $model = 'PollaDraw';
 
         $createData = [
-            'encrypted' => $this->generateUniqueCode($model),
+            'date' => $existingRoomConfig->date,
+            'game_type' => $existingRoom->game_type,
             'status' => 1,
             'room_type' => $existingRoom->room_type,
             'creator_user' => $userID,
             'jackpot' => $boat,
+            'close_sale' => 2,
             'code_uuid' => $this->getCodeUUID($model)
         ];
 
@@ -822,60 +822,51 @@ class PollaController extends Controller
             'id' => $existingRoomCreator->creator_id
         ];
 
-        $bingoCreatorUser = PollaCreator::getValueByCreatorRoom($creator, $drawID, 'creator_user');
-        $existingRoomCtnPrice = PollaTicketPrice::getAllCtnPrice($drawID, $bingoCreatorUser);
+        $pollaCreatorUser = PollaCreator::getValueByCreatorDraw($creator, $drawID, 'creator_user');
+        $existingRoomTicketPrice = PollaTicketPrice::getAllTicketPrice($drawID, $pollaCreatorUser);
 
         DB::beginTransaction();
 
         try {
             // Obtener la nueva sala
-            $newRoomID = PollaDraw::create($createData)->id;
+            $newDrawID = PollaDraw::create($createData)->id;
 
             $configData = PollaDrawConfig::create([
-                'room' => $newRoomID,
-                'creation' => 'A',
-                'creator_user' => $userID,
-                'game_mode' => $existingRoomConfig->game_mode,
-                'date' => $existingRoomConfig->date,
-                'time' => $existingRoomConfig->time,
-                'unix_date' => strtotime("{$existingRoomConfig->date} {$existingRoomConfig->time}"),
-                'coin' => $coin,
-                'ctn_price' => $existingRoomConfig->ctn_price,
-                'room_commn' => $existingRoomConfig->room_commn,
-                'jackpot_type' => $existingRoomConfig->jackpot_type,
-                'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
-                'time_chip' => $existingRoomConfig->time_chip,
-                'pct_serials' => $existingRoomConfig->pct_serials,
-                'num_serials' => $existingRoomConfig->num_serials,
-                'serials_commn' => $existingRoomConfig->serials_commn,
-                // 'val_types_plays' => '',
-                // 'types_plays' => ''
+                'creator_user',
+                'creation' => 'M',
+                'game_mode',
+                'unix_date',
+                'ticket_price',
+                'jackpot_type',
+                'fixed_jackpot_value',
+                'active_prizes',
+                'room_commn'
             ]);
 
             PollaDrawConfig::create($configData);
 
             // Registar el creador de la sala
             PollaCreator::create([
-                'room' => $newRoomID,
+                'draw' => $newDrawID,
                 'creator_user' => $userID,
                 'creator_type' => $existingRoomCreator->creator_type,
                 'creator_id' => $existingRoomCreator->creator_id,
                 'creator_commn' => $existingRoomCreator->room_commn,
-                'ctn_price' => $existingRoomCreator->ctn_price
+                'ticket_price' => $existingRoomCreator->ticket_price
             ]);
 
-            if ($existingRoomCtnPrice) {
+            if ($existingRoomTicketPrice) {
 
                 $timestamp = now();
 
-                $recordsToInsert = collect($existingRoomCtnPrice)
-                    ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
-                    ->map(function ($ctnPrice, $coin) use ($newRoomID, $userID, $timestamp) {
+                $recordsToInsert = collect($existingRoomTicketPrice)
+                    ->filter(fn($ticketPrice) => $ticketPrice) // Filtrar solo los elementos con valor
+                    ->map(function ($ticketPrice, $coin) use ($newDrawID, $userID, $timestamp) {
                         return [
-                            'room' => $newRoomID,
+                            'draw' => $newDrawID,
                             'creator_user' => $userID,
                             'coin' => $coin,
-                            'ctn_price' => $ctnPrice,
+                            'ticket_price' => $ticketPrice,
                             'created_at' => $timestamp,
                             'updated_at' => $timestamp,
                         ];
@@ -909,7 +900,7 @@ class PollaController extends Controller
                 'jackpot_type' => $data->jackpot_type,
                 'fixed_jackpot_value' => $data->fixed_jackpot_value,
                 'time_chip' => $data->time_chip,
-                'ctn_price' => $data->ctn_price,
+                'ticket_price' => $data->ticket_price,
                 'room_commn' => $data->room_commn,
                 'serials_commn' => $data->serials_commission,
                 'pct_serials' => $data->pct_serials,
@@ -919,17 +910,17 @@ class PollaController extends Controller
                 'creator_user' => Auth::id()
             ])->id;
 
-            if (!empty($data->ctn_price_coins)) {
+            if (!empty($data->ticket_price_coins)) {
                 $timestamp = now();
 
-                $recordsToInsert = array_map(fn($coin, $ctnPrice) =>
-                $ctnPrice ? [
+                $recordsToInsert = array_map(fn($coin, $ticketPrice) =>
+                $ticketPrice ? [
                     'automatic_bingo_id' => $automaticBingoID,
                     'coin' => $coin,
-                    'ctn_price' => $ctnPrice,
+                    'ticket_price' => $ticketPrice,
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp,
-                ] : null, array_keys((array) $data->ctn_price_coins), (array) $data->ctn_price_coins);
+                ] : null, array_keys((array) $data->ticket_price_coins), (array) $data->ticket_price_coins);
 
                 PollaTicketPriceAutomatic::insert(array_filter($recordsToInsert));
             }
@@ -1125,12 +1116,12 @@ class PollaController extends Controller
 
         $coin = Coin::getById($coin, ['id', 'symbol']);
 
-        $bingoConfig = PollaDrawConfig::getByRoom($drawID, ['ctn_price', 'room_commn']);
+        $bingoConfig = PollaDrawConfig::getByRoom($drawID, ['ticket_price', 'room_commn']);
 
         return view('modules/commerce/games/bingo/report/by-room')->with([
             'title' => "Reporte de Sala",
             'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
-            'ctnPrice' => $bingoConfig->ctn_price,
+            'ticketPrice' => $bingoConfig->ticket_price,
             'sellers' => $sellers,
             'comCommerceRm' => $bingoConfig->room_commn,
             'room' => $room->encrypted,
