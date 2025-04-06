@@ -796,8 +796,8 @@ class PollaController extends Controller
         $drawID = decrypt($id);
 
         $existingRoom = PollaDraw::findOrFail($drawID);
-        $existingRoomConfig = PollaDrawConfig::where('room', $drawID)->firstOrFail();
-        $existingRoomCreator = PollaCreator::getByRoom($drawID);
+        $existingRoomConfig = PollaDrawConfig::where('draw', $drawID)->firstOrFail();
+        $existingRoomCreator = PollaCreator::getByDraw($drawID);
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -953,11 +953,13 @@ class PollaController extends Controller
     public function publish($id)
     {
         // Desencripta el ID y busca el registro correspondiente.
-        $bingoRoom = PollaDraw::findOrFail(decrypt($id));
+        $pollaDraw = PollaDraw::findOrFail(decrypt($id));
 
         date_default_timezone_set(config('app.timezone'));
 
-        $unixDate = strtotime("{$bingoRoom->date} {$bingoRoom->time}");
+        $hour = date('H:i', strtotime($pollaDraw->GameType->hour_b));
+
+        $unixDate = strtotime("{$pollaDraw->date} {$hour}");
 
         if ($unixDate < time()) {
             return redirect()->back()->with('message', 'Fecha/Hora no perimitidas')->with('type', 'warning');
@@ -967,7 +969,7 @@ class PollaController extends Controller
 
         try {
             // Actualiza el estado y la fecha de publicación.
-            $bingoRoom->update(['status' => 2, 'publication_date' => Carbon::now()]);
+            $pollaDraw->update(['status' => 2, 'publication_date' => Carbon::now()]);
 
             DB::commit();
 
@@ -985,7 +987,7 @@ class PollaController extends Controller
         // Desencriptar el ID
         $id = decrypt($id);
 
-        if (PollaDraw::getValueById($id, 'jackpot_prize') > 0) {
+        if (PollaDraw::getValueById($id, 'all_sale') > 0) {
             return redirect()->back()->with('msg-error', 'No es posible eliminar esta sala');
         }
 
@@ -993,9 +995,9 @@ class PollaController extends Controller
 
         try {
             //Eliminar registro del Creador
-            PollaCreator::where('room', $id)->delete();
+            PollaCreator::where('draw', $id)->delete();
             // Eliminar configuracion de la sala
-            PollaDrawConfig::where('room', $id)->delete();
+            PollaDrawConfig::where('draw', $id)->delete();
 
             // Actualizar el registro en bingo_rooms (o eliminar si decides hacerlo en lugar de solo actualizar el estado)
             PollaDraw::where('id', $id)->delete();
@@ -1003,9 +1005,9 @@ class PollaController extends Controller
             DB::commit();
             // Redirigir de vuelta con un mensaje
             return redirect()->back()->with('message', 'La sala ha sido eliminada')->with('type', 'success');
-        } catch (\Throwable $th) {
-            //throw $th;
+        } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al eliminar la polla de animalitos: ' . $e->getMessage());
             return redirect()->back()->with('msg-error', 'Ha ocurrido un error');
         }
     }
@@ -1014,7 +1016,7 @@ class PollaController extends Controller
     {
         $id = decrypt($id);
         PollaDraw::where('id', $id)->update(['status' => 1]);
-        Session::flash('message', 'Sala actualizada');
+        Session::flash('message', 'Status de la sala actualizado');
         return redirect()->back()->with('type', 'success');
     }
 
