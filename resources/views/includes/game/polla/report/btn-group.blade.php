@@ -10,10 +10,10 @@
                 <i class="fas fa-cogs"></i> Manual
             </a>
         @else
-            {{-- <a class="btn btn-sm btn-secondary"
+            <a class="btn btn-sm btn-secondary"
                 href="{{ route('polla.all-rooms', ['roomType' => 'automatic-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                 <i class="fa-solid fa-rotate"></i> Auto
-            </a> --}}
+            </a>
             @if ($creator['type'] !== 'customer')
                 @if ($view === 'PRIVATE')
                     @php

@@ -319,7 +319,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('configuration/plays/{userToken?}', [BingoController::class, 'handleBingoPlays'])->name('handleBingoPlays');
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
-    
+
     Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{creatorUser}/{coin}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::get('getDateTimeRooms/{creatorUser}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
@@ -383,6 +383,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
     Route::get('', [PollaController::class, 'index'])->name('game');
     Route::get('generate-play', [PollaController::class, 'generatePlay'])->name('generate-play');
+
     Route::post('create', [PollaController::class, 'create'])->name('create');
     Route::get('getInfo/{id}/{starTime?}', [PollaController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [PollaController::class, 'update'])->name('update');
@@ -392,6 +393,16 @@ Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
     Route::put('publish/{id}', [PollaController::class, 'publish'])->name('publish');
     Route::put('refund/{id}', [PollaController::class, 'refund'])->name('refund');
     Route::put('copy/{id}', [PollaController::class, 'copy'])->name('copy');
+
+    /// Rutas de Salas Automaticas
+    Route::get('automatic-room/getInfo/{id}', [PollaController::class, 'getInfoAutomaticRoom'])->name('automatic-room.getInfo');
+    Route::post('automatic-room/create', [PollaController::class, 'createAutomaticRoom'])->name('automatic-room.create');
+    Route::put('automatic-room/update/{id}', [PollaController::class, 'updateAutomaticRoom'])->name('automatic-room.update');
+    Route::put('automatic-room/change-status/{id}', [PollaController::class, 'changeStatusAutomaticRoom'])->name('automatic-room.change-status');
+    Route::put('automatic-room/delete/{id}', [PollaController::class, 'deleteAutomaticRoom'])->name('automatic-room.delete');
+    Route::put('automatic-room/copy/{id}', [PollaController::class, 'copyAutomaticRoom'])->name('automatic-room.copy');
+    Route::get('automatic-room/executeGeneratePollaDrawsJob/{creatorType}/{creatorID}', [PollaController::class, 'executeGeneratePollaDrawsJob'])->name('automatic-room.executeGeneratePollaDrawsJob');
+
     Route::post('generate-ticket', [PollaController::class, 'generateTicket'])->name('generate-ticket');
 
     Route::get('sales-report/draw/{draw}/{coin}/{creatorID?}', [PollaController::class, 'reportSalesByDraw'])->name('reportSalesByDraw');

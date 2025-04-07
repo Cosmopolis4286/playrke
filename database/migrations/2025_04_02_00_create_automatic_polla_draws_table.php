@@ -23,9 +23,6 @@ return new class extends Migration
             $table->double('fixed_jackpot_value')->nullable();
             $table->double('room_commn')->default(0);
             $table->double('ticket_price');
-            $table->double('pct_serials')->nullable();
-            $table->double('num_serials', 2)->nullable();
-            $table->double('serials_commn')->nullable();
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');

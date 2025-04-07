@@ -368,25 +368,21 @@ class PollaController extends Controller
         $automaticRooms = PollaDrawAutomatic::where('creator_user', $creator['userId'])
             ->whereNot('status', 3)
             ->get([
-                'id',
-                'time',
+                'date',
+                'game_type',
                 'game_mode',
                 'room_type',
                 'jackpot_type',
                 'fixed_jackpot_value',
                 'ticket_price',
-                'time_chip',
                 'room_commn',
-                'serials_commn',
-                'pct_serials',
-                'num_serials',
                 'status'
             ]);
 
         $activeRooms = PollaDraw::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
 
         $routeExecuteGeneratePollaDrawsJob = route(
-            'bingo.automatic-room.executeGeneratePollaDrawsJob',
+            'polla.automatic-room.executeGeneratePollaDrawsJob',
             ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
         );
 
@@ -394,7 +390,7 @@ class PollaController extends Controller
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
-            'title' => 'Salas de Bingo',
+            'title' => 'Salas de Juego',
             'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'creator' => $creator,
@@ -412,7 +408,7 @@ class PollaController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.automatic-room.index', 'data' => $viewData];
+        return ['route' => 'modules.game.polla.automatic-room.index', 'data' => $viewData];
     }
 
     private function allAutomaticRooms($creatorType, $creatorID)

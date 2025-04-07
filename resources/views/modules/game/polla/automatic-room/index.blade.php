@@ -5,10 +5,10 @@
         <div class="card">
             @include('includes.card-header', ['subTitle' => 'Automáticas'])
             <div class="card-body">
-                @include('includes.game.bingo.report.btn-group', ['view' => 'AUTO'])
+                @include('includes.game.polla.report.btn-group', ['view' => 'AUTO'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.table-info-automatic-bingo-rooms')
+                        @include('includes.game.polla.report.table-info-automatic-polla-draws')
                     </div>
                 </div>
             </div>
@@ -175,7 +175,7 @@
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `{{ route('bingo.automatic-room.delete', ['id' => ':id']) }}`,
+                `{{ route('polla.automatic-room.delete', ['id' => ':id']) }}`,
                 encryptedId
             );
         }
@@ -187,7 +187,7 @@
                     'info',
                     'Sí, actualizar',
                     '#form-other-options',
-                    `{{ route('bingo.automatic-room.change-status', ['id' => ':id']) }}`,
+                    `{{ route('polla.automatic-room.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -197,11 +197,11 @@
                     'question',
                     'Sí, copiar',
                     '#form-other-options',
-                    `{{ route('bingo.automatic-room.copy', ['id' => ':id']) }}`,
+                    `{{ route('polla.automatic-room.copy', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
         };
     </script>
-    @vite(['resources/js/games/bingo/ctn-price-coins.js'])
+    @vite(['resources/js/games/polla/ctn-price-coins.js'])
 @endsection
