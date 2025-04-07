@@ -88,13 +88,15 @@ class PollaController extends Controller
 
     public function allRooms($roomType, $creatorType, $creatorID = '', $coin = '')
     {
-        $roomTypes = ['automatic-rooms', 'private-rooms', 'public-rooms'];
+        $roomTypes = ['automatic-rooms', 'private-rooms', 'public-rooms', 'other-public-rooms'];
 
         if (!in_array($roomType, $roomTypes)) {
             return redirect()->back();
         }
 
         if ($roomType === 'automatic-rooms') {
+            return $this->allAutomaticRooms($creatorType, $creatorID);
+        } else if ($roomType === 'other-public-rooms') {
             return $this->allAutomaticRooms($creatorType, $creatorID);
         } else {
             switch ($creatorType) {
@@ -448,6 +450,142 @@ class PollaController extends Controller
 
         // Obtener la información de configuracion de salas automaticas
         $viewData = $this->getAutomaticRoomsInfo($creator);
+
+        // Retornar la vista con la información
+        return $this->handleViewData($viewData, $creator['type']);
+    }
+
+    private function getOtherPublicRoomsInfo($creator)
+    {
+        //  Lista (CRUD) de configuracion de Salas Automaticas
+        // (new HandleBingoRooms())->checkRoomClosure();
+
+        $creatorType = $creator['type'];
+        $creatorID = decrypt($creator['id']);
+
+        switch ($creatorType) {
+            case 'admin': // Admin
+                break;
+            case 'commerce': // Comercio
+                $isLogin = true;
+
+                $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
+
+                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($commerce->coin)]);
+
+                if ($creatorID == 1) $roomType = Room::getRoomTypes();
+
+                break;
+            case 'customer': // Cliente
+
+                $isLogin = $returnBtn = false;
+
+                $customer = Customer::getById($creatorID, ['user', 'token']);
+                $token = $customer->token;
+
+                $GMRoute =  route(
+                    'bingo.game-rooms-customer',
+                    ['customer' => $token, 'user' => $token]
+                );
+
+                $moreViewData = ['customer' => true, 'userToken' => $token];
+
+                break;
+
+            default:
+                return false;
+                break;
+        }
+
+        $automaticRooms = BingoRoomAutomatic::where('creator_user', $creator['userId'])
+            ->whereNot('status', 3)
+            ->get([
+                'id',
+                'time',
+                'game_mode',
+                'room_type',
+                'jackpot_type',
+                'fixed_jackpot_value',
+                'ctn_price',
+                'time_chip',
+                'room_commn',
+                'serials_commn',
+                'pct_serials',
+                'num_serials',
+                'status'
+            ]);
+
+        $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
+
+        $routeExecuteGenerateBingoRoomsJob = route(
+            'bingo.automatic-room.executeGenerateBingoRoomsJob',
+            ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
+        );
+
+        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
+
+        $viewData = [
+            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Salas de Bingo',
+            'subtitle' => 'Otras Salas Publicas',
+            'name' => 'bingo',
+            'returnBtn' => $returnBtn ?? true,
+            'creator' => $creator,
+            'rooms' => $automaticRooms,
+            'otherRooms' => true,
+            'activeRooms' => $activeRooms,
+            'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
+            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
+            'GMRoute' => $GMRoute,
+            'roomType' => $roomType ?? [],
+            'jackpotType' => JackpotType::all(),
+            'gameModes' => GameModes::all()
+        ];
+
+        if (isset($moreViewData)) {
+            $viewData = array_merge($viewData, $moreViewData);
+        }
+
+        return ['route' => 'modules.game.bingo.form.public', 'data' => $viewData];
+    }
+
+    private function allOtherPublicRooms($creatorType, $creatorID)
+    {
+        $creatorID = decrypt($creatorID);
+
+        switch ($creatorType) {
+            case 'commerce':
+                $creator = Commerce::getById($creatorID, ['id', 'user']);
+                // Verificar si el comercio existe
+                if (!$creator) {
+                    return response()->json(['message' => 'El Comercio no existe'], 404);
+                }
+                break;
+
+            case 'customer':
+                $creator = Customer::getByToken($creatorID, ['id', 'user']);
+                // Verificar si el cliente existe
+                if (!$creator) {
+                    $creator = Customer::getByUserId(Auth::id(), ['id', 'user']);
+                    if (!$creator) {
+                        return response()->json(['message' => 'Token del cliente no existe'], 404);
+                    }
+                }
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        $creator = [
+            'type' => $creatorType,
+            'id' => encrypt($creator->id),
+            'userId' => $creator->user
+        ];
+
+        // Obtener la información de otras salas publicas
+        $viewData = $this->getOtherPublicRoomsInfo($creator);
 
         // Retornar la vista con la información
         return $this->handleViewData($viewData, $creator['type']);
@@ -881,7 +1019,7 @@ class PollaController extends Controller
         return redirect()->back()->with('msg-error', 'No tienes permiso para copiar una sala');
     }
 
-    private function handleCreateAutomaticDraw($data, $replay = false)
+    private function handleCreateAutomaticRoom($data, $replay = false)
     {
         DB::beginTransaction();
 
@@ -929,10 +1067,136 @@ class PollaController extends Controller
         }
     }
 
+    public function createAutomaticRoom(Request $request)
+    {
+        $response = $this->handleCreateAutomaticRoom($request);
+        return redirect()->back()->with(['type' => $response['type'], 'message' => $response['message']]);
+    }
+
+    public function updateAutomaticRoom(Request $request, $id)
+    {
+        $id = decrypt($id);
+
+        DB::beginTransaction();
+
+        try {
+            BingoRoomAutomatic::where('id', $id)->update([
+                'time' => $request->time,
+                'game_mode' => $request->game_mode,
+                'room_type' => $request->room_type,
+                'jackpot_type' => $request->jackpot_type,
+                'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                'time_chip' => $request->time_chip,
+                'ctn_price' => $request->ctn_price,
+                'room_commn' => $request->room_commn,
+                'pct_serials' => $request->pct_serials,
+                'num_serials' => $request->num_serials
+            ]);
+
+            $ctnPriceCoins = $request->ctn_price_coins;
+
+            if ($ctnPriceCoins) {
+
+                $timestamp = now();
+
+                collect($ctnPriceCoins)->each(function ($ctnPrice, $coin) use ($id, $timestamp) {
+                    // Obtener el registro existente
+                    $bingoCtnPrice = BingoCtnPriceAutomatic::getCtnPrice($coin, $id);
+
+                    // Verificar si es necesario actualizar
+                    if ($bingoCtnPrice && $bingoCtnPrice->ctn_price != $ctnPrice) {
+                        // Construir datos para la actualización
+                        $updateData = [
+                            'ctn_price' => $ctnPrice,
+                            'status' => $ctnPrice ? 1 : 0,
+                            'updated_at' => $timestamp,
+                        ];
+                        // Actualizar el registro existente
+                        BingoCtnPriceAutomatic::where('id', $bingoCtnPrice->id)->update($updateData);
+                    } else if (!$bingoCtnPrice && $ctnPrice) {
+                        // Crear nuevo registro
+                        BingoCtnPriceAutomatic::create([
+                            'automatic_bingo_id' => $id,
+                            'coin' => $coin,
+                            'ctn_price' => $ctnPrice,
+                            'status' => 1
+                        ]);
+                    }
+                });
+            }
+
+            DB::commit();
+            return redirect()->back()->with('message', 'Registro actualizado con éxito')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear información de una sala automática: ' . $e->getMessage());
+            return redirect()->back()->with('msg-error', 'Hubo un error al actualizar la información');
+        }
+    }
+
+    public function getInfoAutomaticRoom($id)
+    {
+        $id = decrypt($id);
+
+        $room = BingoRoomAutomatic::select(
+            'id',
+            'time',
+            'game_mode',
+            'room_type',
+            'jackpot_type',
+            'fixed_jackpot_value',
+            'room_commn',
+            'ctn_price',
+            'time_chip',
+            'pct_serials',
+            'num_serials',
+            'serials_commn',
+            'status'
+        )->where('id', $id)->firstOrFail();
+
+        return response()->json(['room' => $room]);
+    }
+
+    public function changeStatusAutomaticRoom($id)
+    {
+        $id = decrypt($id);
+
+        DB::beginTransaction();
+
+        try {
+            $roomAutomaticStatus = (int)!BingoRoomAutomatic::getValue($id, 'status');
+
+            BingoRoomAutomatic::where('id', $id)->update(['status' => $roomAutomaticStatus]);
+
+            DB::commit();
+
+            return redirect()->back()->with('message', 'Status actualizado')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('msg-error', 'Ha ocurrido un error');
+        }
+    }
+
+    public function deleteAutomaticRoom($id)
+    {
+        $id = decrypt($id);
+
+        DB::beginTransaction();
+
+        try {
+            BingoRoomAutomatic::where('id', $id)->update(['status' => 3]);
+            DB::commit();
+            return redirect()->back()->with('message', 'La configuración ha sido eliminada')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('msg-error', 'Ha ocurrido un error');
+        }
+    }
+
     public function replay($id)
     {
         $room = PollaDraw::with('Config')->findOrFail("id", decrypt($id));
-        $response = $this->handleCreateAutomaticDraw($room, true);
+        $response = $this->handleCreateAutomaticRoom($room, true);
         return redirect()->back()->with(['type' => $response['type'], 'message' => $response['message']]);
     }
 

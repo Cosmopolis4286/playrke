@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header', ['subTitle' => 'Automáticas'])
+            @include('includes.card-header', ['subtitle' => 'Automáticas'])
             <div class="card-body">
                 @include('includes.game.polla.report.btn-group', ['view' => 'AUTO'])
                 <div class="tab-content" id="myTabContent">
@@ -28,8 +28,8 @@
     <script>
         const name = '{{ $name }}';
         const creation = 'A';
-        const routeGenerateBingoRoomsJob = @json($routeGenerateBingoRoomsJob);
-        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
+        const routeGeneratePollaDrawsJob = @json($routeGeneratePollaDrawsJob);
+        const routeGetTicketPriceForCoin = @json($routeGetTicketPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const roomType = $("#room-type");
@@ -60,7 +60,7 @@
             btnExecuteJob.prop('disabled', true);
 
             // Realizar la solicitud
-            $.getJSON(routeGenerateBingoRoomsJob, {
+            $.getJSON(routeGeneratePollaDrawsJob, {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
                 .done(res => {

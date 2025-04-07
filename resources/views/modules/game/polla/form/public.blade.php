@@ -9,7 +9,11 @@
                 @include('includes.game.polla.report.btn-group', ['view' => 'PUBLIC'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.polla.report.table-info-polla-draws')
+                        @if (!isset($otherRooms))
+                            @include('includes.game.polla.report.table-info-polla-rooms')
+                        @else
+                            @include('includes.game.polla.report.table-info-other-public-polla-rooms')
+                        @endif
                     </div>
                 </div>
             </div>
@@ -112,7 +116,7 @@
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
                 gameType.append(
                     `<option value="${item.id}" ${isSelected}>${item.name} ${item.hour_a} - ${item.hour_b}</option>`
-                    );
+                );
             });
 
             $.each(arrJackpotType, function(index, item) {

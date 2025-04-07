@@ -6,10 +6,14 @@
         </button>
         @if ($view === 'AUTO')
             <a class="btn btn-sm btn-secondary"
-                href="{{ route('polla.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                href="{{ route('polla.all-rooms', ['roomType' => 'public-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                 <i class="fas fa-cogs"></i> Manual
             </a>
         @else
+            <a class="btn btn-sm btn-primary"
+                href="{{ route('polla.all-rooms', ['roomType' => 'other-public-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                <i class="fa-solid fa-gamepad"></i> Otras Salas
+            </a>
             <a class="btn btn-sm btn-secondary"
                 href="{{ route('polla.all-rooms', ['roomType' => 'automatic-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                 <i class="fa-solid fa-rotate"></i> Auto
@@ -48,7 +52,7 @@
             <i class="fas fa-eye"></i> Ver salas
         </a> --}}
     @else
-        <button type="button" id="btn-execute-job" class="btn btn-sm btn-primary {{ $drawS ? '' : 'disabled' }}">
+        <button type="button" id="btn-execute-job" class="btn btn-sm btn-primary {{ $rooms ? '' : 'disabled' }}">
             <i class="fa-solid fa-bolt"></i> Ejecutar Job
         </button>
     @endif

@@ -5,12 +5,10 @@
             <tr>
                 <th>Tipo</th>
                 <th>Modo</th>
-                <th>Hora</th>
-                <th>CTN</th>
+                <th>Juego</th>
+                <th>Ticket</th>
                 <th>Bote</th>
                 <th>%Com</th>
-                <th>%Bote Serial</th>
-                <th>Máx Serial</th>
                 <th>Status</th>
                 <th>Acción</th>
             </tr>
@@ -22,12 +20,10 @@
                         {{ $room->room_type == 2 ? 'Publica' : 'Privada' }}
                     </td>
                     <td>{{ $room->GameMode->description }}</td>
-                    <td>{{ $room->time }} H</td>
-                    <td>{{ $room->ctn_price }}&nbsp<small>USDT</small></td>
+                    <td>{{ $room->GameType->name }} H</td>
+                    <td>{{ $room->ticket_price }}&nbsp<small>USDT</small></td>
                     <td>{{ $room->JackpotType->description }}</td>
                     <td>{{ $room->room_commn }}%</td>
-                    <td>{{ $room->pct_serials }}%</td>
-                    <td>{{ $room->num_serials }}</td>
                     <td class="align-middle">
                         @if ($room->status == 1)
                             <span class="badge bg-success">Activo</span>
