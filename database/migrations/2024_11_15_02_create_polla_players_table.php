@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('polla_players', function (Blueprint $table) {
             $table->id();
             $table->foreignId('draw')->constrained('polla_draws')->onDelete('cascade');
-            $table->enum('player_type', ['USER', 'LINK']);
+            $table->enum('player_type', ['USER', 'EXTERNAL']);
             $table->integer('player_id');
             $table->string('player_name', 10)->nullable();
             $table->string('player_lastname', 15)->nullable();

@@ -585,8 +585,7 @@ class PollaController extends Controller
 
             DB::beginTransaction();
 
-            $hourClose = PollaTypes::getValueById($request->game_type, 'hour_b');
-            $hour = date('H:i', strtotime($hourClose));
+            $hour = $this->getFormattedTime($request->game_type);
 
             try {
                 $drawID = PollaDraw::create($createData)->id;
@@ -656,9 +655,7 @@ class PollaController extends Controller
 
         $newDate = $request->date;
 
-        $hourClose = PollaTypes::getValueById($request->game_type, 'hour_b');
-
-        $hour = date('H:i', strtotime($hourClose));
+        $hour = $this->getFormattedTime($request->game_type);
 
         $unixDate = strtotime("{$newDate} {$hour}");
 
@@ -669,7 +666,6 @@ class PollaController extends Controller
         $fixedJackpotValue = $request->fixed_jackpot_value;
 
         $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
-        $coin = $request->coin ?? 1;
 
         $updateDataDraw = ['room_type' => $request->room_type, 'jackpot' => $draw->jackpot + $boat];
 
@@ -800,13 +796,13 @@ class PollaController extends Controller
 
         date_default_timezone_set(config('app.timezone'));
 
-        $userID = $existingRoom->user;
+        $userID = $existingRoom->creator_user;
         $boat = $existingRoomConfig->jackpot_type > 1 ? $existingRoomConfig->fixed_jackpot_value : 0;
 
         $model = 'PollaDraw';
 
         $createData = [
-            'date' => $existingRoomConfig->date,
+            'date' => $existingRoom->date,
             'game_type' => $existingRoom->game_type,
             'status' => 1,
             'room_type' => $existingRoom->room_type,
@@ -825,6 +821,8 @@ class PollaController extends Controller
         $pollaCreatorUser = PollaCreator::getValueByCreatorDraw($creator, $drawID, 'creator_user');
         $existingRoomTicketPrice = PollaTicketPrice::getAllTicketPrice($drawID, $pollaCreatorUser);
 
+        $hour = $this->getFormattedTime($existingRoom->game_type);
+
         DB::beginTransaction();
 
         try {
@@ -834,13 +832,14 @@ class PollaController extends Controller
             $configData = PollaDrawConfig::create([
                 'creator_user',
                 'creation' => 'M',
-                'game_mode',
-                'unix_date',
-                'ticket_price',
-                'jackpot_type',
-                'fixed_jackpot_value',
-                'active_prizes',
-                'room_commn'
+                'creator_user' => $userID,
+                'game_mode' => $existingRoomConfig->game_mode,
+                'unix_date' => strtotime("{$existingRoom->date} {$hour}"),
+                'ticket_price' => $existingRoomConfig->ticket_price,
+                'jackpot_type' => $existingRoomConfig->jackpot_type,
+                'fixed_jackpot_value' => $existingRoomConfig->fixed_jackpot_value,
+                // 'active_prizes',
+                'room_commn' => $existingRoomConfig->room_commn
             ]);
 
             PollaDrawConfig::create($configData);
@@ -948,7 +947,7 @@ class PollaController extends Controller
 
         date_default_timezone_set(config('app.timezone'));
 
-        $hour = date('H:i', strtotime($pollaDraw->GameType->hour_b));
+        $hour = $this->getFormattedTime($pollaDraw->game_type);
 
         $unixDate = strtotime("{$pollaDraw->date} {$hour}");
 
