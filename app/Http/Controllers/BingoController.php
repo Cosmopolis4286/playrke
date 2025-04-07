@@ -1651,6 +1651,46 @@ class BingoController extends Controller
         ]);
     }
 
+    public function handleBingoPlays($userToken = false)
+    {
+        if ($userToken) {
+            $userType = 'customer';
+            $userToken = true;
+            $user = Customer::getValueByToken($userToken, 'user');
+        } else {
+            $user = Auth::id();
+            $userTypeID = User::getValueById($user, 'user_type');
+            $userType = UserType::getValueById($userTypeID, 'prefix');
+        }
+
+        if (!in_array($userType, ['admin', 'commerce', 'customer'])) {
+            return redirect()->back();
+        }
+
+        $game = GameRules::getByGame('BINGO', $user, ['id', 'rules', 'encrypted']);
+        $rulesID = '';
+        $gameRules = '';
+
+        if ($game) {
+            $rulesID = encrypt($game->id);
+            $gameRules = $game->rules;
+        }
+
+        $viewData = [
+            'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Bingo Configuración',
+            'userToken' => $userToken,
+            'rulesID' => $rulesID,
+            'gameRules' => $gameRules,
+            'imageBingoRules' => $this->getImageBingoRules($user),
+            'bingoRules' => $this->getBingoRules($user),
+        ];
+
+        $viewData = ['route' => 'modules.game.bingo.configuration.handle-plays', 'data' => $viewData];
+
+        return $this->handleViewData($viewData, $userType);
+    }
+
     public function getInfoByEncrypt($id, $creatorUser, $coin)
     {
         $room = BingoRoom::getByEncrypted($id, ['id', 'jackpot_prize']);
@@ -1727,7 +1767,7 @@ class BingoController extends Controller
 
         date_default_timezone_set(config('app.timezone'));
 
-        $userID = $existingRoom->user;
+        $userID = $existingRoom->creator_user;
         $boat = $existingRoomConfig->jackpot_type > 1 ? $existingRoomConfig->fixed_jackpot_value : 0;
         $coin = $existingRoomConfig->coin ?? 1; // ID Coin == 1 (USDT)
 

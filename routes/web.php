@@ -317,7 +317,9 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 });
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
+    Route::get('configuration/plays/{userToken?}', [BingoController::class, 'handleBingoPlays'])->name('handleBingoPlays');
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
+    
     Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{creatorUser}/{coin}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::get('getDateTimeRooms/{creatorUser}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
