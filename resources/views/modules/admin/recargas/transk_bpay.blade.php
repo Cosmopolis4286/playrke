@@ -159,7 +159,7 @@
         <div class="modal fade" id="decline_dp" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-sm" role="document">
-                <div class="modal-content bg-rke1">
+                <div class="modal-content">
                     <form @if (count($transactions_bpay_apd) > 0) action="{{ route('recarga.decline_bpay') }}" @endif
                         method="GET" style="display: inline">@csrf
                         <div class="modal-header"><b>Rechazar Depósito (MOTIVO)</b>
@@ -187,7 +187,7 @@
         <div class="modal fade" id="mtv_decline" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-sm" role="document">
-                <div class="modal-content bg-rke1">
+                <div class="modal-content">
                     <div class="modal-header">PlayRKE © 2023
                         <span class="sub"></span>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">

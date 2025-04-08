@@ -131,7 +131,7 @@
         aria-hidden="true" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-sm" role="document">
             <form action="{{ route('bingo.myprofit') }}" method="POST">@csrf
-                <div class="modal-content bg-rke1">
+                <div class="modal-content">
                     <div class="modal-header">
                         <h5>Calcular Profit</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">

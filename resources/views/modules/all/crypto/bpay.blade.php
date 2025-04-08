@@ -58,7 +58,7 @@
         aria-hidden="true">
         <div class="modal-dialog  modal-sm" role="document"
             style="max-width:300px; margin-top:5.6% !important; margin:0 auto;">
-            <div class="modal-content bg-rke1">
+            <div class="modal-content">
                 <div class="modal-header">
                     <img class="mt-1 mr-1" src="{{ asset('imgSystem/bpay.png') }}" style="width:15px;">
                     <b>Binance Pay ID</b>

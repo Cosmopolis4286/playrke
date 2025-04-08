@@ -194,7 +194,7 @@
         <div class="modal fade" id="motivo" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-sm" role="document">
-                <div class="modal-content bg-rke1">
+                <div class="modal-content">
                     <div class="modal-header">PlayRKE © 2022
                         <span class="sub"></span>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -217,7 +217,7 @@
         <div class="modal fade" id="r-dp" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-sm" role="document">
-                <div class="modal-content bg-rke1">
+                <div class="modal-content">
                     <form @if (count($dpsCryptos) > 0) action="{{ route('recarga.NoCrypto', $recarga->id) }}" @endif
                         method="put" style="display: inline">
                         {{ method_field('PUT') }}

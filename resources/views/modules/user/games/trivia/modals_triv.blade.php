@@ -29,7 +29,7 @@
 
 <div class="mdl_triv" id="m_trinv">
     <form action="{{ route('Wallet.debit_triv_indv') }}" method="POST">@csrf
-        <div class="modal-content bg-rke1">
+        <div class="modal-content">
             <div class="modal-header">
                 <i class="mt-1 fa-solid fa-puzzle-piece" style="margin-right:2.5px;"></i>
                 <b>EL PODER DEL SABER</b>

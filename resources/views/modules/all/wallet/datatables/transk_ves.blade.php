@@ -88,7 +88,7 @@
     <div class="modal fade" id="dp_rchz" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
-            <div class="modal-content bg-rke1">
+            <div class="modal-content">
                 <div class="modal-header">PlayRKE © 2023
                     <span class="sub"></span>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -108,7 +108,7 @@
     <div class="modal fade" id="mdp_bs" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog" role="document">
-            <div class="modal-content bg-rke1" style="max-width:370px; margin:0 auto;">
+            <div class="modal-content" style="max-width:370px; margin:0 auto;">
                 <div class="modal-header">
                     <h5>Depositar Saldo PlayRKE</h5>
                     <span class="sub"></span>
@@ -149,7 +149,7 @@
     <div class="modal fade" id="mrt_bs" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog" role="document">
-            <div class="modal-content bg-rke1" style="max-width:370px; margin:0 auto;">
+            <div class="modal-content" style="max-width:370px; margin:0 auto;">
                 <div class="modal-header">
                     <h5>Retirar Saldo PlayRKE</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -195,7 +195,7 @@
     <div class="modal fade" id="dp_cold" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
-            <div class="modal-content bg-rke1">
+            <div class="modal-content">
                 <div class="modal-header"><b>Depósito Congelado [MOTIVO]</b>
                     <span class="sub"></span>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
