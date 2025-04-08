@@ -94,7 +94,7 @@
 <div class="modal fade" id="dpc_usdt" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
-        <div class="modal-content bg-rke1">
+        <div class="modal-content">
             <div class="modal-header"><b>Depósito Congelado [MOTIVO]</b>
                 <span class="sub"></span>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">

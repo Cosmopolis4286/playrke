@@ -139,7 +139,7 @@
 <div class="modal fade" id="amount_chl" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
     aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <div class="modal-content bg-rke1" style="max-width:310px; margin:0 auto;">
+        <div class="modal-content" style="max-width:310px; margin:0 auto;">
             <div class="modal-header">
                 <h5>Depositar Saldo en PlayRKE</h5>
                 <span class="sub"></span>
@@ -174,7 +174,7 @@
 <div class="modal fade" id="mdp_clp" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
     aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <div class="modal-content bg-rke1" style="max-width:370px; margin:0 auto;">
+        <div class="modal-content" style="max-width:370px; margin:0 auto;">
             <div class="modal-header">
                 <h5>Depositar Saldo PlayRKE</h5>
                 <span class="sub"></span>
@@ -215,7 +215,7 @@
 <div class="modal fade" id="mrt_clp" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
     aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <div class="modal-content bg-rke1" style="max-width:370px; margin:0 auto;">
+        <div class="modal-content" style="max-width:370px; margin:0 auto;">
             <div class="modal-header">
                 <h5>Retirar Saldo PlayRKE</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -253,7 +253,7 @@
 <div class="modal fade" id="mrhz_clp" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
-        <div class="modal-content bg-rke1">
+        <div class="modal-content">
             <div class="modal-header"><b> Orden de Compra rechazada</b>
                 <span class="sub"></span>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">

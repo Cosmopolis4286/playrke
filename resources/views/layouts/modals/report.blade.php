@@ -1,6 +1,6 @@
 <div class="modal fade" id="report" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:430px;" role="document">
-        <div class="modal-content bg-rke1">
+        <div class="modal-content">
             <div class="modal-header"><b>REPORTAR UN PROBLEMA</b>
                 <span class="sub"></span>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
