@@ -25,8 +25,10 @@
 @section('content')
     <div class="container-fluid">
         <div class="col-md-12 text-center">
-            <h4 class="title">JUGADAS <span id="title-type-game">{{ $titleTypeGame }}</span></h4>
-            <p class="subtitle">Última Actualización: <span id="">10/12/2024 7:18:03 p.m.</span> </p>
+            <h4 class="title" style="text-transform:uppercase">
+                JUGADAS <span id="title-type-game">{{ $titleGameType }}</span>
+            </h4>
+            <p class="subtitle">Última Actualización: <span id="">{{ $lastUpdate }}</span></p>
         </div>
         <div class="row">
             <div class="col-lg-8 col-md-12 col-ms-12 col-12">
@@ -135,12 +137,12 @@
                         </div>
                         <div class="col-md-3">
                             <label>Juego</label>
-                            @foreach ($typeGame as $item)
-                            @endforeach
                             <select name="juego" class="form-select normal">
-                                <option value="31">LA POLLA EXPRESS (3PM-7PM)</option>
-                                <option value="30">LA POLLA PLUSS (9AM-7PM)</option>
-                                <option value="32">LA POLLA EXPRESS (9AM-1PM)</option>
+                                @foreach ($gameTypes as $item)
+                                    <option value="{{ $item->id }}">
+                                        {{ $item->name }} ({{ $item->hour_a }}-{{ $item->hour_b }})
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">

@@ -56,10 +56,16 @@ class PollaController extends Controller
         $drawID = $draw->id;
         $date = $draw->date;
 
-        $typeGame = PollaTypes::all();
-        $titleTypeGame = PollaTypes::getValueById($draw->type_game, 'name');
+        $gameTypes = PollaTypes::all();
+
+        $gameType = PollaTypes::getById($draw->game_type);
+
+        $titleGameType = "La $gameType->name  ($gameType->hour_a-$gameType->hour_b)";
+
+        $lastUpdate = PollaTickets::where('draw', $drawID)->orderByDesc('id')->value('created_at');
 
         $lotteryResults = PollaLotteryResults::getLotteryResult($date);
+
         $tickets = PollaTickets::all();
         $firstAccumulated = 100;
         $secondAccumulated = 80;
@@ -71,17 +77,18 @@ class PollaController extends Controller
         $tickets = PollaTickets::getAllByDraw($drawID);
 
         $viewData = [
-            'title'=> 'Super Polla',
+            'title' => 'Super Polla',
             'footer' => true,
             'draw' => $draw,
-            'titleTypeGame' => $titleTypeGame,
+            'titleGameType' => $titleGameType,
+            'lastUpdate' => $lastUpdate,
             'lotteryResults' => $lotteryResults,
             'firstccumulated' => $firstAccumulated,
             'secondAccumulated' => $secondAccumulated,
             'weeklyAccumulated' => $weeklyAccumulated,
             'ticketValue' => $ticketValue,
             'coins' => $coins,
-            'typeGame' => $typeGame,
+            'gameTypes' => $gameTypes,
             'tickets' => $tickets
         ];
 
@@ -315,7 +322,7 @@ class PollaController extends Controller
             'draws' => $draws,
             'GMRoute' => $GMRoute,
             'activeRooms' => $draws->whereIn('status', [2, 3])->count(),
-            'gameType' => PollaTypes::all(),
+            'gameTypes' => PollaTypes::all(),
             'jackpotType' => JackpotType::all(),
             'gameModes' => GameModes::all()
         ];
