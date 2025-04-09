@@ -12,8 +12,8 @@
      <li class="nav-item has-treeview">
          <a href="#"
              class="nav-link {{ !Route::is('seller.cartonGenerate', 'seller.ctnsSold', 'seller.ctnsAwarded') ?: 'active' }} ">
-             <i class="nav-icon fa-solid fa-table-cells"></i>
-             <p>Cartones
+             <i class="nav-icon fa-solid fa-hat-wizard"></i>
+             <p>Bingo
                  <i class="right fas fa-angle-left"></i>
              </p>
          </a>
@@ -28,14 +28,14 @@
              <li class="nav-item">
                  <a href="{{ route('seller.ctnsSold') }}" class="nav-link {{ !Route::is('seller.ctnsSold') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
-                     <p>Vendidos</p>
+                     <p>Cartones</p>
                  </a>
              </li>
              <li class="nav-item">
                  <a href="{{ route('seller.ctnsAwarded') }}"
                      class="nav-link {{ !Route::is('seller.ctnsAwarded') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
-                     <p>Premiados</p>
+                     <p>Ganadores</p>
                  </a>
              </li>
          </ul>

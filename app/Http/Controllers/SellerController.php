@@ -465,7 +465,7 @@ class SellerController extends Controller
 
                 if (!$player)  return response()->json(['response' => false]);
 
-                $route = $this->getGameLinkByPlayer(false, $player->link, $room->room_type);
+                $route = $this->getGameLinkByPlayer($player->link);
                 $ctnsPlayer = BingoCtns::where(['player_link' => $player->id, 'room' => $room->id])->count();
 
                 return response()->json([
@@ -903,7 +903,7 @@ class SellerController extends Controller
             if (!$notifyCtns) {
                 Storage::delete('private/game/bingo/payments/all-ctns/' . $newFileName);
                 DB::rollBack();
-                
+
                 Session::flash('type', 'warning');
                 Session::flash('message', 'Error al notificar el pago');
             } else {
