@@ -96,11 +96,6 @@ class BingoCtns extends Model
         return self::where('room', $room)->where('player_link', $playerLink)->value('serial');
     }
 
-    static function getCtnSerialByRoomUser($roomUser)
-    {
-        return self::where('room_user', $roomUser)->value('serial');
-    }
-
     static function getCountCtnByRoom($room)
     {
         return self::where('room', $room)->count();

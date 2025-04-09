@@ -523,7 +523,7 @@ class BingoController extends Controller
                 ]);
             }
 
-            $responseCartonStore = $this->getGameLinkByPlayer($data['commerce'], $data['playerLink'], $room->room_type);
+            $responseCartonStore = $this->getGameLinkByPlayer($data['playerLink']);
             Session::flash('message', 'Proceso efectuado con éxito');
             Session::flash('playerLink', $responseCartonStore);
 
@@ -624,8 +624,9 @@ class BingoController extends Controller
                     $roomID = $playerLink->room;
 
                     // Obtener informacion de Sala
-                    $room = BingoRoom::where('creator_user', $creatorUser)
-                        ->where('id', $roomID)->whereIn('status', [2, 3, 4])->exists();
+                    $room = BingoRoom::where('id', $roomID)->whereIn('status', [2, 3, 4])->exists();
+
+                    if (!$room) return ['error' => 'Sala no disponible'];
 
                     $isLogin = false;
 
@@ -640,10 +641,9 @@ class BingoController extends Controller
                     $roomID = BingoRoom::getValueByEncrypted($data['room'], 'id');
 
                     // Obtener informacion de Sala
-                    $room = BingoRoom::where('creator_user', $creatorUser)
-                        ->where('id', $roomID)->whereIn('status', [2, 3, 4])->exists();
+                    $room = BingoRoom::where('id', $roomID)->whereIn('status', [2, 3, 4])->exists();
 
-                    if (!$roomID) return ['error' => 'Sala no disponible'];
+                    if (!$room) return ['error' => 'Sala no disponible'];
 
                     if (isset($data['player'])) {
                         $isLogin = true;
