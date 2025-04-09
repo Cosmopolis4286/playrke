@@ -1000,7 +1000,7 @@ trait BingoTrait
     {
         // Obtener la información de la sala
         $room = BingoRoom::with('Config:room,pct_serials')
-            ->select('creator_user', 'jackpot', 'jackpot_prize', 'serial_prize')
+            ->select('id', 'creator_user', 'jackpot', 'jackpot_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 
         // Verificar si ya hay ganadores del premio mayor

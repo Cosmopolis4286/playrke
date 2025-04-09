@@ -504,8 +504,6 @@ class BingoController extends Controller
                 return $response;
             }
 
-            dd($data);
-
             DB::commit(); // Confirmar transacción
 
             if ($creatorType && isset($creator)) {
