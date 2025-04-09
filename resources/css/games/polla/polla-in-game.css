@@ -1,0 +1,491 @@
+body {
+    font-family: Arial, Helvetica, sans-serif !important;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    background: linear-gradient(180deg, #0b4462 8%, #fff 7%) repeat-x;
+}
+
+footer {
+    color: black;
+    text-align: center;
+    padding: 1em 0;
+}
+
+main {
+    padding: 2em;
+}
+
+.custom-shape-divider-top .shape-fill {
+    fill: #0b4462;
+}
+
+.custom-shape-divider-top svg {
+    position: relative;
+    display: block;
+    width: calc(158% + 1.3px);
+    height: 164px;
+}
+
+.custom-shape-divider-top {
+    position: relative;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+}
+
+.banner {
+    width: 100%;
+    height: 120px;
+    margin-top: 60px;
+    margin-bottom: -10px;
+}
+
+.banner .images-content {
+    position: absolute;
+    top: -10px;
+    padding-left: 20px;
+    width: 210px;
+}
+
+.img-fluid {
+    max-width: 100%;
+    height: auto;
+}
+
+.dashboard-stat .details {
+    position: absolute;
+    right: 15px;
+    padding-right: 0;
+    color: #fff;
+}
+
+.dashboard-stat .details .number {
+    padding-top: 25px;
+    text-align: right;
+    font-size: 25px;
+    line-height: 36px;
+    letter-spacing: -1px;
+    margin-bottom: 0;
+    font-weight: 300;
+}
+
+.dashboard-stat .details .desc {
+    text-align: right;
+    font-variant: small-caps;
+    font-size: 14px;
+
+}
+
+body .container-fluid .title {
+    color: #04394e !important;
+    font-weight: 700;
+    font-size: 32px;
+    padding-bottom: 0 !important;
+}
+
+body .container-fluid .subtitle,
+body .container-sm .subtitle,
+body .container-md .subtitle,
+body .container-lg .subtitle,
+body .container-xl .subtitle,
+body .container-xxl .subtitle {
+    color: #f56217 !important;
+    font-weight: 700;
+    font-size: 12px;
+    padding-top: 2px !important;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+.green {
+    background-color: #255b14 !important;
+}
+
+.dashboard-stat {
+    position: relative;
+    display: block;
+    margin: 0 0 25px;
+    overflow: hidden;
+    border-radius: 4px;
+}
+
+.dashboard-stat .visual {
+    width: 80px;
+    height: 80px;
+    display: block;
+    float: left;
+    padding-top: 10px;
+    padding-left: 15px;
+    margin-bottom: 15px;
+    font-size: 35px;
+    font-size: 6rem;
+    line-height: 35px;
+    color: #ffffff30;
+}
+
+svg:not(:root).svg-inline--fa,
+svg:not(:host).svg-inline--fa {
+    overflow: visible;
+    box-sizing: content-box;
+}
+
+.svg-inline--fa {
+    display: var(--fa-display, inline-block);
+    height: 1em;
+    overflow: visible;
+    vertical-align: -0.125em;
+}
+
+.purple {
+    background-color: #8e44ad !important;
+}
+
+.blue {
+    background-color: #4469ad;
+}
+
+.orange {
+    background-color: #d47500 !important;
+}
+
+.filters {
+    background-color: #e7e7e7;
+    color: #4a4a4a;
+    font-weight: 700;
+    font-size: .8rem;
+    border-radius: 5px;
+}
+
+label {
+    display: inline-block;
+}
+
+.container,
+.container-fluid,
+.container-xxl,
+.container-xl,
+.container-lg,
+.container-md,
+.container-sm {
+    --bs-gutter-x: 1.5rem;
+    --bs-gutter-y: 0;
+    width: 100%;
+    padding-right: calc(var(--bs-gutter-x) * .5);
+    padding-left: calc(var(--bs-gutter-x) * .5);
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.mx-datepicker-popup {
+    position: absolute;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    box-shadow: 0 6px 12px #0000002d;
+    z-index: 2001;
+}
+
+.mx-datepicker-main {
+    font: 14px/1.5 Helvetica Neue, Helvetica, Arial, Microsoft Yahei, sans-serif;
+    color: #73879c;
+    background-color: #fff;
+    border: 1px solid #e8e8e8;
+}
+
+.datepicker.datepicker-dropdown.dropdown-menu.datepicker-orient-left.datepicker-orient-top {
+    position: absolute;
+    top: 482.578px !important;
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+    background-color: #ffffff !important;
+    opacity: 1;
+}
+
+.datepicker-dropdown {
+    background-color: #fff;
+    /* Fondo blanco */
+    border: 1px solid #ddd;
+    /* Borde gris claro */
+    border-radius: 4px;
+    /* Bordes redondeados */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+    /* Sombra */
+    padding: 10px;
+    /* Espaciado interno */
+}
+
+.datepicker table {
+    width: 100%;
+    /* Ancho completo */
+    margin: 0;
+    /* Sin margen */
+}
+
+.datepicker table tr td,
+.datepicker table tr th {
+    text-align: center;
+    /* Texto centrado */
+    width: 2.5rem;
+    /* Ancho de las celdas */
+    height: 2.5rem;
+    /* Altura de las celdas */
+    border-radius: 4px;
+    /* Bordes redondeados */
+    transition: background-color 0.2s;
+    /* Transición suave */
+}
+
+.datepicker table tr td.day:hover,
+.datepicker table tr td.day.focused {
+    background-color: #f0f0f0;
+    /* Fondo gris claro al pasar el mouse */
+}
+
+.datepicker table tr td.active,
+.datepicker table tr td.active:hover {
+    background-color: #007bff;
+    /* Fondo azul para la fecha seleccionada */
+    color: #fff;
+    /* Texto blanco */
+}
+
+.datepicker table tr td.today {
+    background-color: #ffc107;
+    /* Fondo amarillo para la fecha de hoy */
+    color: #fff;
+    /* Texto blanco */
+}
+
+.datepicker table tr td.disabled,
+.datepicker table tr td.disabled:hover {
+    background-color: #e9ecef;
+    /* Fondo gris claro para fechas deshabilitadas */
+    color: #6c757d;
+    /* Texto gris oscuro */
+    cursor: not-allowed;
+    /* Cursor no permitido */
+}
+
+.btn-outline-secondary.border-start-0.button-calendar {
+    border-color: transparent !important;
+    /* Quita el color del borde */
+}
+
+select:disabled {
+    background-color: #fff !important;
+    cursor: not-allowed;
+}
+
+.form-select {
+    --bs-form-select-bg-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    display: block;
+    width: 100%;
+    padding: .375rem 2.25rem .375rem .75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    appearance: none;
+    background-color: #fff;
+    background-image: var(--bs-form-select-bg-img), var(--bs-form-select-bg-icon, none);
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    background-size: 16px 12px;
+    border: #dee2e6 solid var(--bs-border-color);
+
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.form-select:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 .25rem #0d6efd40;
+}
+
+.filters .form-select:not(.normal) {
+    border: 0px;
+    background-color: #cccccc f;
+    border-radius: 15% 0% 0% 15%;
+}
+
+.filters .form-control:not(.normal) {
+    border-left: 0px;
+}
+
+select.form-select {
+    height: 38px !important;
+}
+
+input.form-control.identification {
+    border: none !important;
+}
+
+select:disabled {
+    background-color: #fff !important;
+    cursor: not-allowed;
+}
+
+select:disabled {
+    opacity: 1;
+}
+
+.filters .form-switch {
+    padding-left: 0 !important;
+}
+
+.form-check {
+    display: block;
+    min-height: 1.5rem;
+    padding-left: 1.5em;
+    margin-bottom: .125rem;
+}
+
+.filters .form-check-input {
+    height: 1.5rem;
+    width: 2.8rem;
+    margin: 0;
+}
+
+.form-switch .form-check-input {
+    --bs-form-switch-bg: url(data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280, 0, 0, 0.25%29'/%3e%3c/svg%3e);
+    width: 2em;
+    margin-left: -2.5em;
+    background-image: var(--bs-form-switch-bg);
+    background-position: left center;
+    border-radius: 2em;
+    transition: background-position .15s ease-in-out;
+}
+
+.form-switch .form-check-input {
+    width: 2.8rem;
+    height: 1.5rem;
+    margin-left: 0;
+    background-color: #ccc;
+    border-radius: 1.5rem;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.form-switch .form-check-input::before {
+    content: '';
+    display: block;
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: transform 0.3s;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: #255b14;
+}
+
+.form-switch .form-check-input:checked::before {
+    transform: translateX(1.3rem);
+}
+
+.form-switch .form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem #86b7fe;
+}
+
+.form-check-label {
+    cursor: pointer;
+    padding-left: 0.5rem;
+}
+
+.filters .form-check {
+    padding-left: 0 !important;
+}
+
+.d-grid {
+    display: grid !important;
+}
+
+section.pt-3.pb-3.pb-3.ps-3.filters {
+    padding: 1rem;
+}
+
+.table thead tr th {
+    background-color: #1c5560 !important;
+    color: #fbffcd !important;
+    text-align: center;
+}
+
+.table-sm>:not(caption)>*>* {
+    padding: .25rem;
+}
+
+.table>:not(caption)>*>* {
+    padding: .5rem;
+    color: var(--bs-table-color-state, var(--bs-table-color-type, var(--bs-table-color)));
+    background-color: var(--bs-table-bg);
+    border-bottom-width: var(--bs-border-width);
+    box-shadow: inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+}
+
+.table-striped>tbody>tr:nth-of-type(odd)>* {
+    --bs-table-color-type: var(--bs-table-striped-color);
+    --bs-table-bg-type: var(--bs-table-striped-bg);
+}
+
+.table thead tr th {
+    background-color: #1c5560 !important;
+    color: #fbffcd !important;
+    text-align: center;
+}
+
+.table-sm>:not(caption)>*>* {
+    padding: .25rem;
+}
+
+.table>:not(caption)>*>* {
+    padding: .5rem;
+    color: var(--bs-table-color-state, var(--bs-table-color-type, var(--bs-table-color)));
+    background-color: var(--bs-table-bg);
+    border-bottom-width: var(--bs-border-width);
+    box-shadow: inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+}
+
+.table tr {
+    border-color: inherit;
+    border-style: solid;
+    border-width: 0;
+}
+
+.table tbody .winner {
+    background-color: #4ade80 !important;
+    color: green !important;
+    font-weight: 700;
+}
+
+.table td {
+    text-align: center;
+    font-size: 12px;
+}
+
+.resultados .table td th {
+    font-size: 12px;
+}
+
+.table-responsive.resultados {
+    font-size: 12px;
+}
+
+footer {
+    background-color: #000;
+    padding: 34px;
+    text-align: center;
+    color: #fff;
+}

@@ -50,7 +50,7 @@ class PollaController extends Controller
     public function index()
     {
         // Obtener ultimo juego/polla/ en curso
-        $draw = PollaDraw::orderByDesc()->first();
+        $draw = PollaDraw::orderByDesc('id')->first();
 
         // Definir variables
         $drawID = $draw->id;
@@ -71,6 +71,8 @@ class PollaController extends Controller
         $tickets = PollaTickets::getAllByDraw($drawID);
 
         $viewData = [
+            'title'=> 'Super Polla',
+            'footer' => true,
             'draw' => $draw,
             'titleTypeGame' => $titleTypeGame,
             'lotteryResults' => $lotteryResults,
@@ -83,7 +85,7 @@ class PollaController extends Controller
             'tickets' => $tickets
         ];
 
-        return view('game')->with($viewData);
+        return view('modules.game.polla.in-game')->with($viewData);
     }
 
     public function allRooms($roomType, $creatorType, $creatorID = '', $coin = '')
