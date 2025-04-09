@@ -977,9 +977,12 @@ trait BingoTrait
 
         // Función para agregar la información de un jugador
         $addPlayerInfo = function ($player) use (&$infoPlayer, $gain) {
-            $infoPlayer['name'][] = BingoCtns::getCtnSerialByRoomUser($player->id);
+
+            $ctnId = optional($player->PrizeCtns[0])->ctn;
+
+            $infoPlayer['name'][] = BingoCtns::getValueById($ctnId, 'serial');
             $infoPlayer['gain'][] = $gain;
-            $infoPlayer['ctn'][] = encrypt(optional($player->PrizeCtns[0])->ctn);
+            $infoPlayer['ctn'][] = encrypt($ctnId);
             $infoPlayer['size']++;
         };
 
@@ -1272,8 +1275,11 @@ trait BingoTrait
     // Obtener Informacion de un carton especifico (encriptado)
     public function getCtnWin($ctn)
     {
+        // Desencriptar ID del carton
+        $ctnId = decrypt($ctn);
+
         // Obtener el cartón
-        $ctn = BingoCtns::find(decrypt($ctn));
+        $ctn = BingoCtns::find($ctnId);
 
         // Si no se encuentra el cartón, retornar false
         if (!$ctn) return false;
@@ -1306,16 +1312,18 @@ trait BingoTrait
             $ctn->o5
         ];
 
-        // Obtener el nombre del jugador si existe
-        $fullName = BingoCtns::getCtnSerialByRoomUser($ctn->room_user);
+        $creatorUser = $ctn->creator_user;
+        $creatorUserType = User::getUserTypePrefix($creatorUser);
 
-        if (!UserType::getValueById(User::getValueById($ctn->creator_user, 'user_type'), 'prefix') === 'customer') {
+        if ($creatorUserType !== 'customer') {
             if ($ctn->player_user) {
                 $fullName = User::getValueById($ctn->player_user, 'username');
             } else {
                 $playerLink = PlayerLink::getById($ctn->player_link, ['name', 'lastname']);
                 $fullName = "$playerLink->name $playerLink->lastname";
             }
+        } else {
+            $fullName = Customer::getValueByUserId($creatorUser, 'name');
         }
 
         // Retornar los datos del cartón
