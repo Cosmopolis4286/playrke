@@ -849,7 +849,7 @@ trait BingoTrait
 
             $playerColumnVal = $ctn->player_user ?? $ctn->player_link;
 
-            if (!BingoPrizeCtns::existsPrizeCtn($roomID, $prizeType, $playerColumn, $playerColumnVal)) {
+            if (!BingoPrizeCtns::existsPrizeCtn($ctn->id)) {
 
                 // Verificar y obtener el tipo de cambio
                 $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $ctn->coin) ?? 1;
@@ -905,7 +905,7 @@ trait BingoTrait
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear ganador o actualizar estado: ' . $e->getMessage());
+            Log::error('Error al registrar carton ganador: ' . $e->getMessage());
             return false;
         }
     }
@@ -1115,15 +1115,12 @@ trait BingoTrait
                 }
             }
 
-            // Consultar si hay cartones premiados registrados
-            if (!BingoPrizeCtns::existsPrizeCtns($roomID, 'JACKPOT')) {
-                // Calcular el valor de cada premio individual
-                $winnerJackpotPrize = $jackpotPrize / $winnersCount;
-                // Crear registros de ganadores y actualizar el estado de los jugadores
-                $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsJackpot, 1, $winnerJackpotPrize);
+            // Calcular el valor de cada premio individual
+            $winnerJackpotPrize = $jackpotPrize / $winnersCount;
+            // Crear registros de ganadores y actualizar el estado de los jugadores
+            $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsJackpot, 1, $winnerJackpotPrize);
 
-                if (!$registerPrizeCtn) DB::rollBack();
-            }
+            if (!$registerPrizeCtn) DB::rollBack();
 
             // Actualizar datos de la sala
             BingoRoom::where('id', $roomID)->update($updateData);
@@ -1249,7 +1246,7 @@ trait BingoTrait
             $this->registerPrizeCtn($roomID, $ctnsSerials, 2, $winnerJackpotPrize);
             return true;
         } catch (\Exception $e) {
-            Log::error('Error al crear ganador o actualizar estado: ' . $e->getMessage());
+            Log::error('Error en handleSerialWinners(): ' . $e->getMessage());
             return false;
         }
     }
