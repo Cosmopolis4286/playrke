@@ -125,6 +125,28 @@ class PollaController extends Controller
         }
     }
 
+    public function getTicketPrice($roomID)
+    {
+        $room = PollaDraw::with('Config:room,jackpot_type,ctn_price')
+            ->select('id', 'encrypted', 'jackpot')
+            ->where('encrypted', $roomID)->first();
+
+        if (!$room) {
+            return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
+        }
+
+        $countriesCoins = new SellerController()->getAvailableCountriesBySeller();
+
+        return response()->json([
+            'jackpotType' => $room->Config->jackpot_type,
+            'jackpot' => $room->jackpot,
+            'coin' => 'USDT',
+            'price' => $room->Config->ctn_price,
+            'countries' => $countriesCoins['countries'],
+            'USDT' => $countriesCoins['USDT']
+        ]);
+    }
+
     private function getRouteTicketPriceForCoin()
     {
         return route(
@@ -1430,7 +1452,8 @@ class PollaController extends Controller
     {
         $seller = $this->seller(['commerce', 'country', 'commn', 'status']);
 
-        $rooms = PollaDraw::where('status', 2)->get();
+        $rooms = PollaDraw::with(['GameType', 'Config:draw,unix_date'])
+            ->where('status', 2)->get();
 
         $viewData = [
             'title' => 'Generar Jugada',

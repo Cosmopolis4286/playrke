@@ -208,12 +208,14 @@
             const privateGroup = $('<optgroup label="Salas Privadas"></optgroup>');
             const publicGroup = $('<optgroup label="Salas Públicas"></optgroup>');
 
+            console.log('rooms', rooms);
             // Iterar sobre los elementos rooms
             $.each(rooms, function(index, item) {
-                // Convertir la fecha a un formato legible
-                const formattedDate = convertAndDisplay(item.config.unix_date);
+                // Definir gameType
+                const gameType = `${item.game_type.name} (${item.game_type.hour_a}-${item.game_type.hour_b})`;
+
                 // Crear la opción con la fecha y hora
-                const option = `<option value="${item.encrypted}">${formattedDate}</option>`;
+                const option = `<option value="${item.id}">${gameType}</option>`;
 
                 // Anexar al grupo correspondiente y marcar que el grupo tiene al menos una sala
                 if (item.room_type === 'PV') {
@@ -319,7 +321,7 @@
                 $(".ctn-player-info, #cont-tx-jackpot-room").addClass('hide-elem');
             } else {
                 $.getJSON({
-                    url: `{{ route('seller.getCtnPrice', ['roomID' => ':id']) }}`
+                    url: `{{ route('polla.getCtnPrice', ['roomID' => ':id']) }}`
                         .replace(':id', roomID),
                     headers: {
                         'X-CSRF-TOKEN': $("#5K3_70K").val()
