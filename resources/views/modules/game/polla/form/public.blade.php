@@ -51,7 +51,7 @@
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const arrCoins = @json($coins);
-        const arrGameType = @json($gameType);
+        const arrGameType = @json($gameTypes);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
         let inCourse = false;

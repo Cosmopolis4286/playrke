@@ -26,6 +26,7 @@ use App\Models\PollaTicketPriceAutomatic;
 use App\Models\PollaTickets;
 use App\Models\PollaTypes;
 use App\Models\Room;
+use App\Models\Seller;
 use App\Models\User;
 use App\Models\UserType;
 use App\Models\Wallet;
@@ -106,7 +107,7 @@ class PollaController extends Controller
         if ($roomType === 'automatic-rooms') {
             return $this->allAutomaticRooms($creatorType, $creatorID);
         } else if ($roomType === 'other-public-rooms') {
-            return $this->allAutomaticRooms($creatorType, $creatorID);
+            return $this->allOtherPublicRooms($creatorType, $creatorID, $coin);
         } else {
             switch ($creatorType) {
                 case 'admin':
@@ -207,13 +208,13 @@ class PollaController extends Controller
 
     private function getInfoRooms($creatorUser, $roomType, $coin)
     {
-        $gameID = Games::getValueByName('BINGO');
+        $gameID = Games::getValueByName('POLLA');
         $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
 
         return PollaDraw::with([
             'GameType',
             'Config.JackpotType',
-            'Config:draw,game_mode,jackpot_type,ticket_price',
+            'Config:draw,game_mode,unix_date,jackpot_type,ticket_price',
             'Config.GameMode:id,description',
             'Winners',
             'GameExchangeRate' => function ($query) use ($coin, $gameID) {
@@ -285,7 +286,7 @@ class PollaController extends Controller
                     ['customer' => $token, 'user' => $token, 'coin' => encrypt($coin)]
                 );
 
-                $gameID = Games::getValueByName('BINGO');
+                $gameID = Games::getValueByName('POLLA');
 
                 $customerGameID = CustomerGames::getByGameID($creatorID, $gameID) ?? null;
 
@@ -464,10 +465,10 @@ class PollaController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    private function getOtherPublicRoomsInfo($creator)
+    private function getOtherPublicRoomsInfo($creator, $coin = '')
     {
         //  Lista (CRUD) de configuracion de Salas Automaticas
-        // (new HandleBingoRooms())->checkRoomClosure();
+        // (new HandlePollaDraws())->checkRoomClosure();
 
         $creatorType = $creator['type'];
         $creatorID = decrypt($creator['id']);
@@ -483,6 +484,10 @@ class PollaController extends Controller
                 $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($commerce->coin)]);
 
                 if ($creatorID == 1) $roomType = Room::getRoomTypes();
+
+                $coins = CommerceExchangeRate::getCoinsByCommerce($creatorID);
+                $coins[] = 1; // ID Coin (USDT)
+                $coins = Coin::getCoinsById($coins);
 
                 break;
             case 'customer': // Cliente
@@ -506,45 +511,53 @@ class PollaController extends Controller
                 break;
         }
 
-        $automaticRooms = BingoRoomAutomatic::where('creator_user', $creator['userId'])
-            ->whereNot('status', 3)
-            ->get([
-                'id',
-                'time',
-                'game_mode',
-                'room_type',
-                'jackpot_type',
-                'fixed_jackpot_value',
-                'ctn_price',
-                'time_chip',
-                'room_commn',
-                'serials_commn',
-                'pct_serials',
-                'num_serials',
-                'status'
-            ]);
+        $routeWithCoin = [
+            'route' => 'polla.all-rooms',
+            'parameters' => [
+                'roomType' => 'other-public-rooms',
+                'creatorType' => $creatorType,
+                'creatorID' => $creator['id']
+            ]
+        ];
 
-        $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
+        $gameID = Games::getValueByName('POLLA');
+
+        $rooms = PollaDraw::with([
+            'GameType',
+            'Config.JackpotType',
+            'Config:draw,game_mode,unix_date,jackpot_type,ticket_price',
+            'Config.GameMode:id,description',
+            'Winners',
+            // 'GameExchangeRate' => function ($query) use ($coin, $gameID) {
+            //     $query->where('coin', $coin)->where('game', $gameID);
+            // }
+        ])->where('creator_user', $creator['userId'])->where('room_type', 'PB')
+            ->orderByDesc('date')->orderByDesc('game_type')->get();
+
+        $activeRooms = PollaDraw::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
 
         $routeExecuteGenerateBingoRoomsJob = route(
             'bingo.automatic-room.executeGenerateBingoRoomsJob',
             ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
         );
 
-        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
+        $routeGetTicketPriceForCoin = $this->getRouteTicketPriceForCoin();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
-            'title' => 'Salas de Bingo',
+            'title' => 'Salas de Juego',
             'subtitle' => 'Otras Salas Publicas',
             'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'creator' => $creator,
-            'rooms' => $automaticRooms,
+            'rooms' => $rooms,
+            'coins' => $coins,
+            'coin' => $coin,
             'otherRooms' => true,
             'activeRooms' => $activeRooms,
+            'routeWithCoin' => $routeWithCoin,
             'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
-            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
+            'routeGetCtnPriceForCoin' => $routeGetTicketPriceForCoin,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
             'jackpotType' => JackpotType::all(),
@@ -555,10 +568,10 @@ class PollaController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.form.public', 'data' => $viewData];
+        return ['route' => 'modules.game.polla.form.public', 'data' => $viewData];
     }
 
-    private function allOtherPublicRooms($creatorType, $creatorID)
+    private function allOtherPublicRooms($creatorType, $creatorID, $coin = '')
     {
         $creatorID = decrypt($creatorID);
 
@@ -593,8 +606,17 @@ class PollaController extends Controller
             'userId' => $creator->user
         ];
 
+        if (!$creatorID || !$coin) {
+            return redirect()->route('polla.all-rooms', [
+                'roomType' => 'other-public-rooms',
+                'creatorType' => $creatorType,
+                'creatorID' => $creator['id'],
+                'coin' => encrypt(1)
+            ]);
+        }
+
         // Obtener la información de otras salas publicas
-        $viewData = $this->getOtherPublicRoomsInfo($creator);
+        $viewData = $this->getOtherPublicRoomsInfo($creator, decrypt($coin));
 
         // Retornar la vista con la información
         return $this->handleViewData($viewData, $creator['type']);
@@ -810,7 +832,11 @@ class PollaController extends Controller
 
         $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
 
-        $updateDataDraw = ['room_type' => $request->room_type, 'jackpot' => $draw->jackpot + $boat];
+        $updateDataDraw = [
+            'date' => $request->date,
+            'game_type' => $request->game_type,
+            'jackpot' => $draw->jackpot + $boat
+        ];
 
         $updateDataConfig = [
             'unix_date' => $unixDate,
@@ -1287,7 +1313,7 @@ class PollaController extends Controller
             return true;
         }
 
-        $gameID = Games::getValueByName('BINGO');
+        $gameID = Games::getValueByName('POLLA');
 
         foreach (PollaDrawUser::where('room', $drawID)->cursor() as $player) {
 
@@ -1402,8 +1428,17 @@ class PollaController extends Controller
 
     public function generatePlay()
     {
-        $viewData = ['title' => 'Generar Jugada'];
-        return view('generate-play')->with($viewData);
+        $seller = $this->seller(['commerce', 'country', 'commn', 'status']);
+
+        $rooms = PollaDraw::where('status', 2)->get();
+
+        $viewData = [
+            'title' => 'Generar Jugada',
+            'seller' => $seller,
+            'rooms' => $rooms
+        ];
+
+        return view('modules/seller/games/polla/generate-play')->with($viewData);
     }
 
     public function generateTicket(Request $request) {}

@@ -135,7 +135,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="5" class="text-right"><b>Total:</b></td>
+                <td colspan="6" class="text-right"><b>Total:</b></td>
                 <td>{{ $coinSym }} {{ number_format($totalAllSale, 2, '.') }}</td>
                 <td>{{ $coinSym }} {{ number_format($totalJackpot, 2, '.') }}</td>
                 <td colspan="4"></td>
