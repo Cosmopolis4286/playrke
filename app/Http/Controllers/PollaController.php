@@ -13,6 +13,7 @@ use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerGames;
 use App\Models\GameModes;
+use App\Models\GameRules;
 use App\Models\Games;
 use App\Models\JackpotType;
 use App\Models\PlayHistory;
@@ -135,7 +136,7 @@ class PollaController extends Controller
             return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
         }
 
-        $countriesCoins = new SellerController()->getAvailableCountriesBySeller();
+        $countriesCoins = (new SellerController())->getAvailableCountriesBySeller();
 
         return response()->json([
             'jackpotType' => $room->Config->jackpot_type,
@@ -558,8 +559,8 @@ class PollaController extends Controller
 
         $activeRooms = PollaDraw::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
 
-        $routeExecuteGenerateBingoRoomsJob = route(
-            'bingo.automatic-room.executeGenerateBingoRoomsJob',
+        $routeExecuteGeneratePollaRoomsJob = route(
+            'bingo.automatic-room.executeGeneratePollaRoomsJob',
             ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
         );
 
@@ -578,7 +579,7 @@ class PollaController extends Controller
             'otherRooms' => true,
             'activeRooms' => $activeRooms,
             'routeWithCoin' => $routeWithCoin,
-            'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
+            'routeGeneratePollaRoomsJob' => $routeExecuteGeneratePollaRoomsJob,
             'routeGetCtnPriceForCoin' => $routeGetTicketPriceForCoin,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
@@ -1083,7 +1084,7 @@ class PollaController extends Controller
         try {
             $creator = json_decode($data->creator);
 
-            $automaticBingoID = PollaDrawAutomatic::create([
+            $automaticPollaID = PollaDrawAutomatic::create([
                 'time' => $data->time,
                 'game_mode' => $data->game_mode,
                 'room_type' => $data->room_type,
@@ -1105,7 +1106,7 @@ class PollaController extends Controller
 
                 $recordsToInsert = array_map(fn($coin, $ticketPrice) =>
                 $ticketPrice ? [
-                    'automatic_bingo_id' => $automaticBingoID,
+                    'automatic_bingo_id' => $automaticPollaID,
                     'coin' => $coin,
                     'ticket_price' => $ticketPrice,
                     'created_at' => $timestamp,
@@ -1137,7 +1138,7 @@ class PollaController extends Controller
         DB::beginTransaction();
 
         try {
-            BingoRoomAutomatic::where('id', $id)->update([
+            PollaRoomAutomatic::where('id', $id)->update([
                 'time' => $request->time,
                 'game_mode' => $request->game_mode,
                 'room_type' => $request->room_type,
@@ -1158,7 +1159,7 @@ class PollaController extends Controller
 
                 collect($ctnPriceCoins)->each(function ($ctnPrice, $coin) use ($id, $timestamp) {
                     // Obtener el registro existente
-                    $bingoCtnPrice = BingoCtnPriceAutomatic::getCtnPrice($coin, $id);
+                    $bingoCtnPrice = PollaCtnPriceAutomatic::getCtnPrice($coin, $id);
 
                     // Verificar si es necesario actualizar
                     if ($bingoCtnPrice && $bingoCtnPrice->ctn_price != $ctnPrice) {
@@ -1169,10 +1170,10 @@ class PollaController extends Controller
                             'updated_at' => $timestamp,
                         ];
                         // Actualizar el registro existente
-                        BingoCtnPriceAutomatic::where('id', $bingoCtnPrice->id)->update($updateData);
+                        PollaCtnPriceAutomatic::where('id', $bingoCtnPrice->id)->update($updateData);
                     } else if (!$bingoCtnPrice && $ctnPrice) {
                         // Crear nuevo registro
-                        BingoCtnPriceAutomatic::create([
+                        PollaCtnPriceAutomatic::create([
                             'automatic_bingo_id' => $id,
                             'coin' => $coin,
                             'ctn_price' => $ctnPrice,
@@ -1195,7 +1196,7 @@ class PollaController extends Controller
     {
         $id = decrypt($id);
 
-        $room = BingoRoomAutomatic::select(
+        $room = PollaRoomAutomatic::select(
             'id',
             'time',
             'game_mode',
@@ -1221,9 +1222,9 @@ class PollaController extends Controller
         DB::beginTransaction();
 
         try {
-            $roomAutomaticStatus = (int)!BingoRoomAutomatic::getValue($id, 'status');
+            $roomAutomaticStatus = (int)!PollaRoomAutomatic::getValue($id, 'status');
 
-            BingoRoomAutomatic::where('id', $id)->update(['status' => $roomAutomaticStatus]);
+            PollaRoomAutomatic::where('id', $id)->update(['status' => $roomAutomaticStatus]);
 
             DB::commit();
 
@@ -1241,7 +1242,7 @@ class PollaController extends Controller
         DB::beginTransaction();
 
         try {
-            BingoRoomAutomatic::where('id', $id)->update(['status' => 3]);
+            PollaRoomAutomatic::where('id', $id)->update(['status' => 3]);
             DB::commit();
             return redirect()->back()->with('message', 'La configuración ha sido eliminada')->with('type', 'success');
         } catch (\Exception $e) {
@@ -1344,7 +1345,7 @@ class PollaController extends Controller
             try {
                 $user = $player->user;
 
-                $amountToReturn = BingoCtnsLot::where('room', $drawID)
+                $amountToReturn = PollaCtnsLot::where('room', $drawID)
                     ->where('player_user', $user)->sum('sale_amount');
 
                 // Obtener la cartera del usuario
@@ -1446,6 +1447,140 @@ class PollaController extends Controller
             'coinSym' => $coin->symbol,
             'coins' => $coins
         ]);
+    }
+
+    private function getImagePollaRules($creatorUser)
+    {
+        $game = GameRules::getByGame('POLLA', $creatorUser, ['image', 'encrypted']);
+        $image = false;
+
+        if ($game) {
+            $image = "polla-rules/$game->encrypted/$game->image";
+        }
+
+        return $image;
+    }
+
+    public function getPollaRules($creatorUser)
+    {
+        $rules = GameRules::getValueByGame('POLLA', $creatorUser);
+
+        return $rules ?: view("includes.info.game.polla");
+    }
+
+    public function configuration($userToken = false)
+    {
+        if ($userToken) {
+            $userType = 'customer';
+            $userToken = true;
+            $user = Customer::getValueByToken($userToken, 'user');
+        } else {
+            $user = Auth::id();
+            $userTypeID = User::getValueById($user, 'user_type');
+            $userType = UserType::getValueById($userTypeID, 'prefix');
+        }
+
+        if (!in_array($userType, ['admin', 'commerce', 'customer'])) {
+            return redirect()->back();
+        }
+
+        $game = GameRules::getByGame('POLLa', $user, ['id', 'rules', 'encrypted']);
+        $rulesID = '';
+        $gameRules = '';
+
+        if ($game) {
+            $rulesID = encrypt($game->id);
+            $gameRules = $game->rules;
+        }
+
+        $viewData = [
+            'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Polla Configuración',
+            'userToken' => $userToken,
+            'rulesID' => $rulesID,
+            'gameRules' => $gameRules,
+            'imagePollaRules' => $this->getImagePollaRules($user),
+            'pollaRules' => $this->getPollaRules($user),
+        ];
+
+        $viewData = ['route' => 'modules.game.polla.configuration.index', 'data' => $viewData];
+
+        return $this->handleViewData($viewData, $userType);
+    }
+
+    public function handleBingoRules(Request $request, $id = '')
+    {
+        if (!$request->rules) {
+            return redirect()->back()->with([
+                'type' => 'info',
+                'message' => 'La información es obligatoria'
+            ]);
+        }
+
+        if ($id) {
+            $rulesID = decrypt($id);
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            $fileImage = $request->file('image');
+
+            if (!empty($rulesID)) {
+
+                $game = GameRules::findOrFail($rulesID);
+
+                $updateData = [];
+
+                if ($fileImage) {
+                    $folder = 'game/bingo/bingo-rules';
+                    $image = $fileImage ? $this->saveImage($fileImage, $folder, $game->encrypted) : null;
+
+                    $updateData['image'] = $image;
+                }
+
+                if ($game->rules !== $request->rules) {
+                    $updateData['rules'] = $request->rules;
+                }
+
+                if (!empty($updateData)) {
+                    $game->update($updateData);
+                }
+            } else {
+
+                $gameID = Games::getValueByName('BINGO');
+
+                $code = $this->generateUniqueCode('GameRules', 12);
+
+                if ($fileImage) {
+                    $folder = 'game/bingo/bingo-rules';
+                    $image = $fileImage ? $this->saveImage($fileImage, $folder, $code) : null;
+                }
+
+                GameRules::create([
+                    'user' => Auth::id(),
+                    'game' => $gameID,
+                    'image' => $image,
+                    'rules' => $request->rules,
+                    'encrypted' => $code,
+                    'status' => 1
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->back()->with([
+                'type' => 'success',
+                'message' => 'Proceso existoso'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear o actualizar el reglamento del Juego de Bingo: ' . $e->getMessage());
+            return redirect()->back()->with([
+                'type' => 'warning',
+                'message' => 'Error al crear o actualizar el reglamento'
+            ]);
+        }
     }
 
     public function generatePlay()

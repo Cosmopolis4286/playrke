@@ -65,7 +65,8 @@
     </li>
 
     <li class="nav-item has-treeview">
-        <a href="#" class="nav-link {{ !Route::is('polla.all-rooms', 'polla.reportSalesByDraw') ?: 'active' }} ">
+        <a href="#"
+            class="nav-link {{ !Route::is('polla.all-rooms', 'polla.configuration', 'polla.reportSalesByDraw') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-paw"></i>
             <p>Polla
                 <i class="right fas fa-angle-left"></i>

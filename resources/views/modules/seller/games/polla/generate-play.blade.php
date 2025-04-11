@@ -6,7 +6,7 @@
             @include('includes.card-header')
             @if ($seller->status == 1)
                 <div class="card-body">
-                    <form id="form-ctns" action="{{ route('seller.generateCarton') }}" method="POST">@csrf
+                    <form id="form-tickets" action="{{ route('seller.generateCarton') }}" method="POST">@csrf
                         <div class="row">
                             <div class="form-group col-9 col-sm-5">
                                 <label for="room">Próximos Juegos</label>
@@ -27,8 +27,8 @@
                                 </div>
                             </div>
                             <div class="form-group col-6 col-sm-3">
-                                <label for="num-ctns">#CTNs</label>
-                                <input id="num-ctns" class="form-control" type="number" name="num_ctns" min="1"
+                                <label for="num-tickets">#CTNs</label>
+                                <input id="num-tickets" class="form-control" type="number" name="num_tickets" min="1"
                                     max="30" required disabled>
                             </div>
                         </div>
@@ -58,7 +58,7 @@
                                 <small>Enviar al Comercio</small>
                             </div>
                         </div>
-                        <div class="ctn-player-info hide-elem">
+                        <div class="ticket-player-info hide-elem">
                             <hr>
                             <div class="row">
                                 <div class="col-12">
@@ -77,7 +77,7 @@
                                     </h6>
                                 </div>
                                 <div id="cont-info-player" class="col-12 col-md-9 hide-elem">
-                                    <label class="mb-n1">Cartones comprados: <b id="player-ctns"></b></label>
+                                    <label class="mb-n1">Tickets comprados: <b id="player-tickets"></b></label>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <label for="copy-player-link" class="mt-2" style="min-width: 120px;">Link de
                                             acceso:</label>
@@ -95,7 +95,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="ctn-player-info mt-1 hide-elem">
+                        <div class="ticket-player-info mt-1 hide-elem">
 
                             <div class="row">
                                 <div class="form-group col-12 col-sm-6">
@@ -160,18 +160,18 @@
     <script>
         const room = $("#room");
         const rooms = @json($rooms);
-        const numCtns = $("#num-ctns");
+        const numCtns = $("#num-tickets");
         const typeSale = $("#type-sale");
         const country = $("#country");
         const sellerCommn = @json($seller->commn);
-        const form = $("#form-ctns");
+        const form = $("#form-tickets");
         const btnGenerate = $("#btn-generate-ticket");
         const btnSearchPhone = $("#btn-search-phone");
         let roomID = '';
         let roomCtnPrice = false;
         let allowsUSDT = false;
         let coinSym = '';
-        let ctnPrice = 1;
+        let ticketPrice = 1;
         let jackpotRoom;
         let playerInfo = '';
         let playerInGame = false;
@@ -251,8 +251,8 @@
         }
 
         function calculateSale() {
-            let ctns = numCtns.val();
-            let total = formatNumber(ctnPrice * ctns);
+            let tickets = numCtns.val();
+            let total = formatNumber(ticketPrice * tickets);
             let totalsellerCommn = formatNumber(total * (sellerCommn / 100));
             let jackpotAmount = formatNumber((total - totalsellerCommn));
 
@@ -267,9 +267,9 @@
         function convertCurrency(data) {
             const exchangeRate = data.exchangeRate;
             coinSym = data.sym;
-            ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
+            ticketPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
             $("#ticket-price-symbol").text(coinSym);
-            $("#ticket-price-amount").text(ctnPrice);
+            $("#ticket-price-amount").text(ticketPrice);
             $("#tx-jackpot-room").text(formatNumber((jackpotRoom * exchangeRate), 3));
             calculateSale();
         }
@@ -297,9 +297,9 @@
             }
         }
 
-        function getCtnPriceCoin(country) {
+        function getTicketPriceCoin(country) {
             $.getJSON({
-                url: `{{ route('seller.getCtnPriceCoin', ['room' => ':room', 'country' => ':country']) }}`
+                url: `{{ route('seller.getTicketPriceCoin', ['room' => ':room', 'country' => ':country']) }}`
                     .replace(':room', roomID).replace(':country', country),
                 data: {
                     '_token': $("#5K3_70K").val()
@@ -318,10 +318,10 @@
 
             if (!roomID) {
                 $(".coin-symbol, .sale-info").empty();
-                $(".ctn-player-info, #cont-tx-jackpot-room").addClass('hide-elem');
+                $(".ticket-player-info, #cont-tx-jackpot-room").addClass('hide-elem');
             } else {
                 $.getJSON({
-                    url: `{{ route('polla.getCtnPrice', ['roomID' => ':id']) }}`
+                    url: `{{ route('polla.getTicketPrice', ['roomID' => ':id']) }}`
                         .replace(':id', roomID),
                     headers: {
                         'X-CSRF-TOKEN': $("#5K3_70K").val()
@@ -342,17 +342,17 @@
 
                         handleAllowsUSDT(USDT);
                         roomCtnPrice = formatNumber(price);
-                        ctnPrice = roomCtnPrice;
+                        ticketPrice = roomCtnPrice;
                         coinSym = coin;
                         $("#ticket-price-symbol").text(coinSym);
-                        $("#ticket-price-amount").text(ctnPrice);
-                        $("#num-ctns").prop('disabled', false).val(1);
+                        $("#ticket-price-amount").text(ticketPrice);
+                        $("#num-tickets").prop('disabled', false).val(1);
                         insertCountries(countries)
                         jackpotRoom = formatNumber(jackpot, 3);
                         $(".jackpot-type").text(jackpotType == 1 ? 'Bote' : 'Premio');
                         $("#tx-jackpot-room").text(jackpotRoom);
                         calculateSale();
-                        $(".ctn-player-info, #cont-tx-jackpot-room").removeClass('hide-elem');
+                        $(".ticket-player-info, #cont-tx-jackpot-room").removeClass('hide-elem');
                     }
                 });
             }
@@ -360,7 +360,7 @@
 
         function clearPlayerInfo() {
             $("#get-data-player").show();
-            $("#player-ctns").text('');
+            $("#player-tickets").text('');
             $('#player-link-rout').val('');
             $("#new-player, #cont-info-player").addClass('hide-elem');
         }
@@ -381,7 +381,7 @@
                 clearPlayerInfo();
             }
 
-            if (countryVal) getCtnPriceCoin(country);
+            if (countryVal) getTicketPriceCoin(country);
         });
 
         function insertCountries(arr) {
@@ -432,8 +432,8 @@
                         $('#last-name').val(infoPlayer.lastname);
                         $('#phone').val(infoPlayer.phone);
                         $("#get-data-player, #loader-btn-ticket").hide();
-                        $("#player-ctns").text(data.ctnsLink[0]);
-                        $('#player-link-rout').val(data.ctnsLink[2]);
+                        $("#player-tickets").text(data.ticketsLink[0]);
+                        $('#player-link-rout').val(data.ticketsLink[2]);
                         $("#new-player, #cont-info-player").removeClass('hide-elem');
                         playerInGame = true;
                         btnGenerate.prop('disabled', false);

@@ -3,7 +3,10 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header', ['subTitle' => 'Publicas'])
+            @include('includes.card-header', [
+                'subTitle' => 'Publicas',
+                'btnCardHeader' => ['route' => route('polla.configuration'), 'icon' => 'fa-solid fa-gear'],
+            ])
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
                 @include('includes.game.polla.report.btn-group', ['view' => 'PUBLIC'])
