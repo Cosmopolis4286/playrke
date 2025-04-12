@@ -973,6 +973,7 @@ class BingoController extends Controller
                 $query->where('coin', $coin)->where('game', $gameID);
             }
         ])->where('creator_user', $creatorUser)->where('room_type', $roomType)
+            ->orderBy('status')
             ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
             ->get();
     }

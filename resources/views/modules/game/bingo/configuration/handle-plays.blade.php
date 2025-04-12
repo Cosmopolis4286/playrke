@@ -1,6 +1,6 @@
 @extends($layout)
 @section('styles')
-    @vite('resources/css/games/bingo/bingo-in-game.css')
+    @vite('resources/css/games/bingo/bingo-handle-plays.css')
 @endsection
 @section('title', $title)
 @section('content')
@@ -24,9 +24,9 @@
                         <tbody>
                             @foreach ($bingoPlays as $item)
                                 <tr>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
+                                    <td>{{ $item->name }}</td>
+                                    <td>{{ $item->boxes }}</td>
+                                    <td>{{ $item->status == 0 ? 'Inactivo' : 'Activo' }}</td>
                                     <td></td>
                                 </tr>
                             @endforeach
