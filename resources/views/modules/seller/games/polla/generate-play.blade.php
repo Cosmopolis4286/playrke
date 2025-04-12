@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-md-9 col-lg-6 m-auto" style="max-width:535px">
         <div class="card">
-            @include('includes.card-header')
+            @include('includes.card-header', ['subtitle' => 'Polla de Animalitos'])
             @if ($seller->status == 1)
                 <div class="card-body">
                     <form id="form-tickets" action="{{ route('seller.generateCarton') }}" method="POST">@csrf
@@ -28,8 +28,8 @@
                             </div>
                             <div class="form-group col-6 col-sm-3">
                                 <label for="num-tickets">#CTNs</label>
-                                <input id="num-tickets" class="form-control" type="number" name="num_tickets" min="1"
-                                    max="30" required disabled>
+                                <input id="num-tickets" class="form-control" type="number" name="num_tickets"
+                                    min="1" max="30" required disabled>
                             </div>
                         </div>
                         <div class="row mt-1">
@@ -212,7 +212,8 @@
             // Iterar sobre los elementos rooms
             $.each(rooms, function(index, item) {
                 // Definir gameType
-                const gameType = `${item.game_type.name} (${item.game_type.hour_a}-${item.game_type.hour_b})`;
+                const gameType =
+                    `${item.game_type.name} (${item.game_type.hour_a}-${item.game_type.hour_b})`;
 
                 // Crear la opción con la fecha y hora
                 const option = `<option value="${item.id}">${gameType}</option>`;
@@ -297,9 +298,9 @@
             }
         }
 
-        function getTicketPriceCoin(country) {
+        function getTicketPriceByCountry(country) {
             $.getJSON({
-                url: `{{ route('seller.getTicketPriceCoin', ['room' => ':room', 'country' => ':country']) }}`
+                url: `{{ route('polla.getTicketPriceByCountry', ['room' => ':room', 'country' => ':country']) }}`
                     .replace(':room', roomID).replace(':country', country),
                 data: {
                     '_token': $("#5K3_70K").val()
@@ -381,7 +382,7 @@
                 clearPlayerInfo();
             }
 
-            if (countryVal) getTicketPriceCoin(country);
+            if (countryVal) getTicketPriceByCountry(country);
         });
 
         function insertCountries(arr) {
