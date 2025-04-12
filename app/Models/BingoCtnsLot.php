@@ -23,10 +23,16 @@ class BingoCtnsLot extends Model
         'status'
     ];
 
-    // Relación con la habitación
+    // Relación con la sala
     public function Room()
     {
         return $this->belongsTo(BingoRoom::class, 'room');
+    }
+
+    // Relación con la configuracion de la sala
+    public function RoomConfig()
+    {
+        return $this->belongsTo(BingoRoomConfig::class, 'room');
     }
 
     // Relación con la moneda
