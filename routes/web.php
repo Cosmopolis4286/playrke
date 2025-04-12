@@ -316,7 +316,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 });
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
-    Route::get('configuration/plays/{userToken?}', [BingoController::class, 'handleBingoPlays'])->name('handleBingoPlays');
+    Route::get('configuration/plays/{userToken?}', [BingoController::class, 'bingoPlays'])->name('bingoPlays');
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
     
     Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');
@@ -327,6 +327,8 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::post('carton/notify/payment/win-ctn', [BingoController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
 
     Route::put('handle-bingo-rules/{id?}', [BingoController::class, 'handleBingoRules'])->name('handleBingoRules');
+    Route::put('handle-bingo-plays/{id?}', [BingoController::class, 'handleBingoPlays'])->name('handleBingoPlays');
+
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
     Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');

@@ -1604,6 +1604,81 @@ class BingoController extends Controller
         }
     }
 
+    public function handleBingoPlays(Request $request, $id = '')
+    {
+        if (!$request->rules) {
+            return redirect()->back()->with([
+                'type' => 'info',
+                'message' => 'La información es obligatoria'
+            ]);
+        }
+
+        if ($id) {
+            $rulesID = decrypt($id);
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            $fileImage = $request->file('image');
+
+            if (!empty($rulesID)) {
+
+                $game = GameRules::findOrFail($rulesID);
+
+                $updateData = [];
+
+                if ($fileImage) {
+                    $folder = 'game/bingo/bingo-rules';
+                    $image = $fileImage ? $this->saveImage($fileImage, $folder, $game->encrypted) : null;
+
+                    $updateData['image'] = $image;
+                }
+
+                if ($game->rules !== $request->rules) {
+                    $updateData['rules'] = $request->rules;
+                }
+
+                if (!empty($updateData)) {
+                    $game->update($updateData);
+                }
+            } else {
+
+                $gameID = Games::getValueByName('BINGO');
+
+                $code = $this->generateUniqueCode('GameRules', 12);
+
+                if ($fileImage) {
+                    $folder = 'game/bingo/bingo-rules';
+                    $image = $fileImage ? $this->saveImage($fileImage, $folder, $code) : null;
+                }
+
+                GameRules::create([
+                    'user' => Auth::id(),
+                    'game' => $gameID,
+                    'image' => $image,
+                    'rules' => $request->rules,
+                    'encrypted' => $code,
+                    'status' => 1
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->back()->with([
+                'type' => 'success',
+                'message' => 'Proceso existoso'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear o actualizar el reglamento del Juego de Bingo: ' . $e->getMessage());
+            return redirect()->back()->with([
+                'type' => 'warning',
+                'message' => 'Error al crear o actualizar el reglamento'
+            ]);
+        }
+    }
+
     public function getInfo($id, $starTime = '')
     {
         date_default_timezone_set(config('app.timezone'));
@@ -1651,7 +1726,7 @@ class BingoController extends Controller
         ]);
     }
 
-    public function handleBingoPlays($userToken = false)
+    public function bingoPlays($userToken = false)
     {
         if ($userToken) {
             $userType = 'customer';
@@ -1667,23 +1742,13 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $game = GameRules::getByGame('BINGO', $user, ['id', 'rules', 'encrypted']);
-        $rulesID = '';
-        $gameRules = '';
-
-        if ($game) {
-            $rulesID = encrypt($game->id);
-            $gameRules = $game->rules;
-        }
+        $bingoPlays = [];
 
         $viewData = [
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Bingo Configuración',
             'userToken' => $userToken,
-            'rulesID' => $rulesID,
-            'gameRules' => $gameRules,
-            'imageBingoRules' => $this->getImageBingoRules($user),
-            'bingoRules' => $this->getBingoRules($user),
+            'bingoPlays' => $bingoPlays
         ];
 
         $viewData = ['route' => 'modules.game.bingo.configuration.handle-plays', 'data' => $viewData];

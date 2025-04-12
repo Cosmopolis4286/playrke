@@ -8,7 +8,7 @@
                 <button type="button" class="btn btn-sm btn-success mr-2" data-toggle="modal" data-target="#modal-bingo-rules">
                     <i class="fas fa-eye"></i> Ver Reglamento
                 </button>
-                <a href="{{ route('bingo.handleBingoPlays', $userToken) }}" class="btn btn-sm btn-primary">
+                <a href="{{ route('bingo.bingoPlays', $userToken) }}" class="btn btn-sm btn-primary">
                     <i class="fa-solid fa-gamepad"></i> Ver Jugadas
                 </a>
                 <hr class="mt-2">
