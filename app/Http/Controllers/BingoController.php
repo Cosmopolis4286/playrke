@@ -21,6 +21,7 @@ use App\Models\BingoDrawCode;
 use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomAutomatic;
+use App\Models\BingoTypesPlays;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
@@ -1606,13 +1607,6 @@ class BingoController extends Controller
 
     public function handleBingoPlays(Request $request, $id = '')
     {
-        if (!$request->rules) {
-            return redirect()->back()->with([
-                'type' => 'info',
-                'message' => 'La información es obligatoria'
-            ]);
-        }
-
         if ($id) {
             $rulesID = decrypt($id);
         }
@@ -1645,21 +1639,10 @@ class BingoController extends Controller
                 }
             } else {
 
-                $gameID = Games::getValueByName('BINGO');
-
-                $code = $this->generateUniqueCode('GameRules', 12);
-
-                if ($fileImage) {
-                    $folder = 'game/bingo/bingo-rules';
-                    $image = $fileImage ? $this->saveImage($fileImage, $folder, $code) : null;
-                }
-
-                GameRules::create([
+                BingoTypesPlays::create([
+                    'name' => $request->name,
                     'user' => Auth::id(),
-                    'game' => $gameID,
-                    'image' => $image,
-                    'rules' => $request->rules,
-                    'encrypted' => $code,
+                    'boxes' => $request->boxes,
                     'status' => 1
                 ]);
             }
@@ -1671,10 +1654,10 @@ class BingoController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear o actualizar el reglamento del Juego de Bingo: ' . $e->getMessage());
+            Log::error('Error al crear o actualizar el tipo de jugada de Bingo: ' . $e->getMessage());
             return redirect()->back()->with([
                 'type' => 'warning',
-                'message' => 'Error al crear o actualizar el reglamento'
+                'message' => 'Error al crear o actualizar el registro'
             ]);
         }
     }
@@ -2724,7 +2707,7 @@ class BingoController extends Controller
                     DB::rollBack();
                     return response()->json(['error' => 'Error al actualizar el estado del cartón.'], 500);
                 }
-                $this->AllWinCtnPaid($prizeCtn->room);
+                $this->allWinCtnPaid($prizeCtn->room);
             }
 
             DB::commit();

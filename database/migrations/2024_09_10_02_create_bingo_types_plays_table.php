@@ -13,10 +13,9 @@ return new class extends Migration
     {
         Schema::create('bingo_types_plays', function (Blueprint $table) {
             $table->id();
+            $table->string('name', 20);
             $table->foreignId('user')->constrained('users')->onDelete('cascade')->nullable();
-            $table->string('code', 10);
-            $table->string('description', 35);
-            $table->string('boxes', 25);
+            $table->string('boxes', 50);
             $table->boolean('status')->default(0);
             $table->timestamps();
         });
