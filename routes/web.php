@@ -382,7 +382,11 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
 Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
     Route::get('', [PollaController::class, 'index'])->name('game');
+    // Configuracion
     Route::get('configuration/{userToken?}', [PollaController::class, 'configuration'])->name('configuration');
+    Route::get('configuration-game-types/{userToken?}', [PollaController::class, 'configurationGameTypes'])->name('configurationGameTypes');
+    Route::put('game-types-status/{id}', [PollaController::class, 'configurationGameTypes'])->name('game-types.change-status');
+
     Route::get('generate-play', [PollaController::class, 'generatePlay'])->name('generate-play');
 
     Route::put('handle-polla-rules/{id?}', [PollaController::class, 'handlePollaRules'])->name('handlePollaRules');

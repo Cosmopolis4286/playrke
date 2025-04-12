@@ -54,11 +54,11 @@
                             ]) }}">
                             # {{ $draw->id }}
                         </a>
-                        @if ($draw->status > 1)
+                        {{-- @if ($draw->status > 1)
                             <a href="{{ $drawRoute }}" class="badge badge-dark" target="_blank">
-                                Ver Sala<i class="fa-regular fa-eye"></i>
+                                Ver Sala <i class="fa-regular fa-eye"></i>
                             </a>
-                        @endif
+                        @endif --}}
                     </td>
                     <td class="align-middle">
                         {{ \Carbon\Carbon::parse($draw->date)->format('d/m/y') }}

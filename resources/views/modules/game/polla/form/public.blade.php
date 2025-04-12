@@ -4,7 +4,7 @@
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
             @include('includes.card-header', [
-                'subTitle' => 'Publicas',
+                'subtitle' => 'Publicas',
                 'btnCardHeader' => ['route' => route('polla.configuration'), 'icon' => 'fa-solid fa-gear'],
             ])
             <div class="card-body">

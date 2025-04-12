@@ -1138,7 +1138,7 @@ class PollaController extends Controller
         DB::beginTransaction();
 
         try {
-            PollaRoomAutomatic::where('id', $id)->update([
+            PollaDrawAutomatic::where('id', $id)->update([
                 'time' => $request->time,
                 'game_mode' => $request->game_mode,
                 'room_type' => $request->room_type,
@@ -1159,7 +1159,7 @@ class PollaController extends Controller
 
                 collect($ctnPriceCoins)->each(function ($ctnPrice, $coin) use ($id, $timestamp) {
                     // Obtener el registro existente
-                    $bingoCtnPrice = PollaCtnPriceAutomatic::getCtnPrice($coin, $id);
+                    $bingoCtnPrice = PollaTicketPriceAutomatic::getCtnPrice($coin, $id);
 
                     // Verificar si es necesario actualizar
                     if ($bingoCtnPrice && $bingoCtnPrice->ctn_price != $ctnPrice) {
@@ -1170,10 +1170,10 @@ class PollaController extends Controller
                             'updated_at' => $timestamp,
                         ];
                         // Actualizar el registro existente
-                        PollaCtnPriceAutomatic::where('id', $bingoCtnPrice->id)->update($updateData);
+                        PollaTicketPriceAutomatic::where('id', $bingoCtnPrice->id)->update($updateData);
                     } else if (!$bingoCtnPrice && $ctnPrice) {
                         // Crear nuevo registro
-                        PollaCtnPriceAutomatic::create([
+                        PollaTicketPriceAutomatic::create([
                             'automatic_bingo_id' => $id,
                             'coin' => $coin,
                             'ctn_price' => $ctnPrice,
@@ -1196,7 +1196,7 @@ class PollaController extends Controller
     {
         $id = decrypt($id);
 
-        $room = PollaRoomAutomatic::select(
+        $room = PollaDrawAutomatic::select(
             'id',
             'time',
             'game_mode',
@@ -1222,9 +1222,9 @@ class PollaController extends Controller
         DB::beginTransaction();
 
         try {
-            $roomAutomaticStatus = (int)!PollaRoomAutomatic::getValue($id, 'status');
+            $roomAutomaticStatus = (int)!PollaDrawAutomatic::getValue($id, 'status');
 
-            PollaRoomAutomatic::where('id', $id)->update(['status' => $roomAutomaticStatus]);
+            PollaDrawAutomatic::where('id', $id)->update(['status' => $roomAutomaticStatus]);
 
             DB::commit();
 
@@ -1242,7 +1242,7 @@ class PollaController extends Controller
         DB::beginTransaction();
 
         try {
-            PollaRoomAutomatic::where('id', $id)->update(['status' => 3]);
+            PollaDrawAutomatic::where('id', $id)->update(['status' => 3]);
             DB::commit();
             return redirect()->back()->with('message', 'La configuración ha sido eliminada')->with('type', 'success');
         } catch (\Exception $e) {
@@ -1468,6 +1468,48 @@ class PollaController extends Controller
         return $rules ?: view("includes.info.game.polla");
     }
 
+    public function configurationGameTypes($userToken = false)
+    {
+        if ($userToken) {
+            $userType = 'customer';
+            $userToken = true;
+            $user = Customer::getValueByToken($userToken, 'user');
+        } else {
+            $user = Auth::id();
+            $userTypeID = User::getValueById($user, 'user_type');
+            $userType = UserType::getValueById($userTypeID, 'prefix');
+        }
+
+        if (!in_array($userType, ['admin', 'commerce', 'customer'])) {
+            return redirect()->back();
+        }
+
+        $game = GameRules::getByGame('POLLA', $user, ['id', 'rules', 'encrypted']);
+        $rulesID = '';
+        $gameRules = '';
+
+        if ($game) {
+            $rulesID = encrypt($game->id);
+            $gameRules = $game->rules;
+        }
+
+        $viewData = [
+            'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'title' => 'Polla Configuración',
+            'userToken' => $userToken,
+            'name' => 'polla.game-types',
+            'gameTypes' => PollaTypes::all(),
+            'rulesID' => $rulesID,
+            'gameRules' => $gameRules,
+            'imagePollaRules' => $this->getImagePollaRules($user),
+            'pollaRules' => $this->getPollaRules($user),
+        ];
+
+        $viewData = ['route' => 'modules.game.polla.configuration.game-types.index', 'data' => $viewData];
+
+        return $this->handleViewData($viewData, $userType);
+    }
+
     public function configuration($userToken = false)
     {
         if ($userToken) {
@@ -1484,7 +1526,7 @@ class PollaController extends Controller
             return redirect()->back();
         }
 
-        $game = GameRules::getByGame('POLLa', $user, ['id', 'rules', 'encrypted']);
+        $game = GameRules::getByGame('POLLA', $user, ['id', 'rules', 'encrypted']);
         $rulesID = '';
         $gameRules = '';
 
