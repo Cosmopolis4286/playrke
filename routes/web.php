@@ -22,6 +22,7 @@ use App\Http\Controllers\IframeController;
 use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
+use App\Http\Controllers\LotteryController;
 use App\Http\Controllers\PaymentMethodsCOLController;
 use App\Http\Controllers\PollaController;
 use App\Http\Controllers\PredictionController;
@@ -378,6 +379,10 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('get/chips/{room}', [BingoController::class, 'getChips'])->name('getChips');
     Route::get('get/result/{room}/{value}/{column?}', [BingoController::class, 'getResult'])->name('getResult');
     Route::get('viewCtn/{ctnId}', [BingoController::class, 'viewCtn'])->name('viewCtn');
+});
+
+Route::group(['prefix' => 'lottery', 'as' => 'lottery.'], function () {
+    Route::get('', [LotteryController::class, 'index'])->name('index');
 });
 
 Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {

@@ -9,7 +9,7 @@
                     <i class="fas fa-eye"></i> Ver Reglamento
                 </button>
                 <a href="{{ route('polla.configurationGameTypes') }}" class="mr-2 btn btn-sm btn-primary">Tipo de Juego</a>
-                <a href="#" class="btn btn-sm btn-primary">Loterias</a>
+                <a href="{{ route('lottery.index') }}" class="btn btn-sm btn-primary">Loterias</a>
                 <hr class="mt-2">
                 <form id="form-polla-rules" action="{{ route('polla.handlePollaRules', $rulesID) }}" method="POST"
                     enctype="multipart/form-data">
