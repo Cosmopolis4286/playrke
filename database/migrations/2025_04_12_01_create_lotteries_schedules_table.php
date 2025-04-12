@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('lotteries', function (Blueprint $table) {
+        Schema::create('lotteries_schedules', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 40);
-            $table->string('code', 7);
-            $table->string('numbers', 3)->nullable();
+            $table->foreignId('lottery_id')->constrained('lotteries')->onDelete('cascade');
+            $table->string('hour', 8);
             $table->boolean('status')->default(1);
             $table->timestamps();
         });
@@ -26,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('lotteries');
+        Schema::dropIfExists('lotteries_schedules');
     }
 };

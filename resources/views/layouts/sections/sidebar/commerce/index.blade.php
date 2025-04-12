@@ -65,6 +65,14 @@
     </li>
 
     <li class="nav-item has-treeview">
+        <a href="{{ route('lottery.index') }}" title="Tasa de Cambio"
+            class="nav-link  {{ !Route::is('lottery.index') ?: 'active' }}">
+            <i class="nav-icon fa-solid fa-award"></i>
+            <p>Loterias</p>
+        </a>
+    </li>
+
+    <li class="nav-item has-treeview">
         <a href="#"
             class="nav-link {{ !Route::is('polla.all-rooms', 'polla.configuration', 'polla.reportSalesByDraw') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-paw"></i>

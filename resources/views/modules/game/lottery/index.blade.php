@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12 @if (isset($userToken)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header', ['subtitle' => 'Tipos de Juego'])
+            @include('includes.card-header')
             <div class="card-body">
                 <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
                         class="fas fa-plus-square"></i> Añadir</button>
@@ -19,7 +19,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($gameTypes as $item)
+                            @foreach ($lotteries as $item)
                                 <tr>
                                     <td>{{ $item->name }} ({{ $item->hour_a }}-{{ $item->hour_b }})</td>
                                     <td>{{ $item->name }}</td>
@@ -44,11 +44,10 @@
                 </div>
             </div>
         </div>
-        @include('includes.game.polla.layout.modal-polla-rules')
         @include('includes.modal-form', [
             'name' => $name,
             'size' => 'md',
-            'dataForm' => view('modules.game.polla.configuration.form-game-types')->render(),
+            'dataForm' => view('modules.game.lottery.form')->render(),
         ])
         @include('includes.form-other-options')
     </div>
