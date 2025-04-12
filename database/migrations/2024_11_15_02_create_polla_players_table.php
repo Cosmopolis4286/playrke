@@ -18,6 +18,7 @@ return new class extends Migration
             $table->integer('player_id');
             $table->string('player_name', 10)->nullable();
             $table->string('player_lastname', 15)->nullable();
+            $table->foreignId('country')->constrained('countries')->onDelete('cascade');
             $table->string('identification_doc', 12)->nullable();
             $table->string('plays', 3);
             $table->timestamps();

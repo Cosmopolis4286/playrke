@@ -13,6 +13,7 @@ class PollaPlayers extends Model
         'player_id',
         'player_name',
         'player_lastname',
+        'country',
         'identification_doc',
         'plays'
     ];

@@ -22,6 +22,7 @@ use App\Models\PollaDraw;
 use App\Models\PollaDrawAutomatic;
 use App\Models\PollaDrawConfig;
 use App\Models\PollaLotteryResults;
+use App\Models\PollaPlayers;
 use App\Models\PollaTicketPrice;
 use App\Models\PollaTicketPriceAutomatic;
 use App\Models\PollaTickets;
@@ -1641,5 +1642,60 @@ class PollaController extends Controller
         return view('modules/seller/games/polla/generate-play')->with($viewData);
     }
 
-    public function generateTicket(Request $request) {}
+    public function generateTicket(Request $request)
+    {
+        // ID de la sala 
+        $drawID = $request->room;
+
+        DB::beginTransaction();
+
+        try {
+            //
+            $playerTicket = PollaPlayers::create([
+                'draw' => $drawID,
+                'player_type' => $playerType,
+                'player_id' => $playerID,
+                'player_name' => $request->player_name,
+                'player_lastname' => $request->player_lastname,
+                'country' => $request->country,
+                'identification_doc' => $request->identification_doc,
+                'plays' => 1
+            ])->id;
+
+            // Registrar ticket (jugada)
+            PollaTickets::create([
+                'draw' => $drawID,
+                'player_ticket' => $playerTicket,
+                'coin' => $request->coin,
+                'amount' => $request->ticket_price,
+                'n1' => $request->n1,
+                'n2' => $request->n2,
+                'n3' => $request->n3,
+                'n4' => $request->n4,
+                'n5' => $request->n5,
+                'n6' => $request->n6,
+                'n7' => $request->n7,
+                'status' => 1
+            ]);
+
+            // Actualizar valores de la sala
+            $updateData = [
+                'all_sale',
+                'rke_commn',
+                'creator_commn',
+                'seller_commn',
+                'jackpot',
+                'code_uuid'
+            ];
+
+            PollaDraw::where()->update($updateData);
+
+            DB::commit();
+            return redirect()->back()->with('message', 'Proceso exitoso')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al registrar ticket de polla de animalitos: ' . $e->getMessage());
+            return redirect()->back()->with('message', 'Error al crearr el ticket')->with('type', 'warning');
+        }
+    }
 }

@@ -7,13 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Lottery extends Model
 {
     protected $table = 'lotteries';
-    protected $fillable = [
-        'name',
-        'code',
-        'numbers',
-        'logo',
-        'status'
-    ];
+    protected $fillable = ['name', 'code', 'numbers', 'logo', 'status'];
 
     public static function getById($id, $fields = ['*'])
     {
