@@ -721,7 +721,8 @@ class CommerceController extends Controller
     private function getWinnersData($creatorUser, $dateFilter = "today", $others = false)
     {
         $winnersQuery = BingoPrizeCtns::with([
-            'Room',
+            'Room:id,encrypted',
+            'Room.Config:id,room,date,time',
             'Coin',
             'PlayerLink.Country',
             'Payments',
