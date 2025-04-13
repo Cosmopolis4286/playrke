@@ -27,7 +27,22 @@
                                     <td>{{ $item->name }}</td>
                                     <td>{{ $item->boxes }}</td>
                                     <td>{{ $item->status == 0 ? 'Inactivo' : 'Activo' }}</td>
-                                    <td></td>
+                                    <td class="align-middle">
+                                        <div class="btn-group" role="group">
+                                            <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="8"
+                                                data-id="{{ encrypt($item->id) }}" title="Ver Jugada">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </button>
+                                            <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
+                                                data-type="2" data-id="{{ encrypt($item->id) }}">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="8"
+                                                data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
+                                                <i class="fa-solid fa-rotate"></i>
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -43,34 +58,43 @@
         let bingoBoxes = [];
 
         $(document).on("click", ".ctn-plays", function() {
+            const box = $(this);
+            const value = box.text().trim();
 
+            box.toggleClass("number-box-circle");
+
+            bingoBoxes = box.hasClass("number-box-circle") ? [...bingoBoxes, value] :
+                bingoBoxes.filter(v => v !== value);
+        });
+
+        function cleanBoxes() {
+            $('.ctn-plays').removeClass('number-box-circle');
+            bingoBoxes = [];
+            $('#name-play').val('');
+        }
+
+        $(document).on("click", "#btn-clean", function() {
+            cleanBoxes();
         });
 
         $(document).on("click", "#btn-confirm", function() {
             if (bingoBoxes.length > 3) {
                 $.ajax({
-                    url: `{{ route('bingocash.generateCarton') }}`,
+                    url: `{{ route('bingo.handleBingoPlays') }}`,
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': $('#5K3_70K').val()
                     },
                     data: {
-                        room: roomID,
-                        coin,
-                        num_ctns: numCtns,
-                        creator_type: creator.type,
-                        creator_id: creator.id,
-                        player,
-                        is_login: true,
+                        bingo_boxes: bingoBoxes,
+                        name_play: $('#name-play').val()
                     },
                     dataType: 'json',
                     beforeSend: function() {
                         $('#loader-btn-purchase-ctns').show();
                     },
                     success: function(res) {
-                        $('#jackpot-amount').text(res.jackpot);
-                        $(`#jackpot-room_${roomID}`).text(res.jackpot);
-                        $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
+                        cleanBoxes();
                         showToast(res.message, res.type);
                     },
                     error: function(error) {

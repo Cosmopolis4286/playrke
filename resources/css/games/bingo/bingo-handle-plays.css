@@ -59,6 +59,33 @@ body {
     border: 1px solid var(--white);
 }
 
+.ctn-plays {
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.number-box-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 80%;
+    width: 80%;
+    z-index: 999;
+    padding-top: 1.75px;
+    color: var(--white);
+    border: 2px solid #cf1002d5;
+    background: linear-gradient(to bottom, #d60f26, rgb(177, 1, 60));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+}
+
 .img-logo-ctn {
     position: absolute;
     top: 50%;

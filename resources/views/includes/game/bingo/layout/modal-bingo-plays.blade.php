@@ -8,98 +8,105 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div class="card container-view-carton">
+                <div class="mb-2 card container-view-carton">
                     <div class="section-letter">
                         <div class="number-box-letter"><b>B</b></div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip0" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-b1" class="number-box-number ctn-plays">B1</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip1" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-b2" class="number-box-number ctn-plays">B2</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip2" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-b3" class="number-box-number ctn-plays">B3</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip3" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-b4" class="number-box-number ctn-plays">B4</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip4" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-b5" class="number-box-number ctn-plays">B5</span>
                         </div>
                     </div>
                     <div class="section-letter">
                         <div class="number-box-letter"><b>I</b></div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip5" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-i1" class="number-box-number ctn-plays">I1</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip6" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-i2" class="number-box-number ctn-plays">I2</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip7" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-i3" class="number-box-number ctn-plays">I3</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip8" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-i4" class="number-box-number ctn-plays">I4</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip9" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-i5" class="number-box-number ctn-plays">I5</span>
                         </div>
                     </div>
                     <div class="section-letter">
                         <div class="number-box-letter"><b>N</b></div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip10" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-n1" class="number-box-number ctn-plays">N1</span>
                         </div>
                         <div class="number-box-view-ctn" class="number-box-number">
-                            <span id="ctn-vchip11" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-n2" class="number-box-number ctn-plays">N2</span>
                         </div>
                         <div class="number-box-view-ctn">
                             <img class="img-fluid img-logo-ctn"
                                 src="{{ isset($custLogo) ? asset('storage/customers/' . $custLogo) : asset('img/rke.png') }}">
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip12" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-n3" class="number-box-number ctn-plays">N3</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip13" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-n4" class="number-box-number ctn-plays">N4</span>
                         </div>
                     </div>
                     <div class="section-letter">
                         <div class="box number-box-letter"><b>G</b></div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip14" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-g1" class="number-box-number ctn-plays">G1</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip15" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-g2" class="number-box-number ctn-plays">G2</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip16" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-g3" class="number-box-number ctn-plays">G3</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip17" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-g4" class="number-box-number ctn-plays">G4</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip18" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-g5" class="number-box-number ctn-plays">G5</span>
                         </div>
                     </div>
                     <div class="section-letter">
                         <div class="number-box-letter"><b>O</b></div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip19" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-o1" class="number-box-number ctn-plays">O1</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip20" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-o2" class="number-box-number ctn-plays">O2</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip21" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-o3" class="number-box-number ctn-plays">O3</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip22" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-o4" class="number-box-number ctn-plays">O4</span>
                         </div>
                         <div class="number-box-view-ctn">
-                            <span id="ctn-vchip23" class="number-box-number ctn-plays">0</span>
+                            <span id="ctn-o5" class="number-box-number ctn-plays">O5</span>
                         </div>
                     </div>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="name-play" class="form-control" placeholder="Nombre de la Jugada"
+                        required>
+                </div>
+                <div class="text-center mt-n2">
+                    <button type="button" id="btn-clean" class="btn btn-sm btn-secondary">LIMPIAR</button>
                 </div>
             </div>
             <div class="modal-footer">
