@@ -99,16 +99,5 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, ['gateway', 'acc-number', 'user-name', 'document-number']);
         });
-
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                `Este registro será eliminado definitivamente`,
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('payment-method-col.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
     </script>
 @endsection

@@ -108,16 +108,5 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, ['document-type', 'document-val', 'bank', 'phone']);
         });
-
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                `Este ${paymentType} será eliminado definitivamente`,
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('pagomovil.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
     </script>
 @endsection

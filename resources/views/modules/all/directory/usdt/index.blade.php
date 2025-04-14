@@ -87,16 +87,5 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, ['account-type', 'data-value']);
         });
-
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                `Este registro será eliminado definitivamente`,
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('binance.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
     </script>
 @endsection

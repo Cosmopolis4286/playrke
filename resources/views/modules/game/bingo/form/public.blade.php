@@ -149,17 +149,6 @@
             ]);
         });
 
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                'Esta sala será eliminada definitivamente',
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('bingo.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
-
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -177,7 +166,7 @@
                     'info',
                     'Sí, publicarla',
                     '#form-other-options',
-                    `{{ route('bingo.publish', ['id' => ':id']) }}`,
+                    `{{ route('${name}.publish', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -187,7 +176,7 @@
                     'warning',
                     'Sí, reembolsar',
                     '#form-other-options',
-                    `{{ route('bingo.refund', ['id' => ':id']) }}`,
+                    `{{ route('${name}.refund', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -197,7 +186,7 @@
                     'question',
                     'Sí, copiar',
                     '#form-other-options',
-                    `{{ route('bingo.copy', ['id' => ':id']) }}`,
+                    `{{ route('${name}.copy', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -207,7 +196,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('bingo.change-status', ['id' => ':id']) }}`,
+                    `{{ route('${name}.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             }

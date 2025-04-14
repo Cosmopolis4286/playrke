@@ -150,18 +150,7 @@
                 'ctn-price', 'time-chip', 'pct-serials', 'room-commn'
             ]);
         });
-
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                'Esta sala será eliminada definitivamente',
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('bingo.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
-
+        
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(

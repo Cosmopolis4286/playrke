@@ -223,17 +223,6 @@
             submitForm(name, ['name', 'phone', 'commission', 'country', 'coin', 'username', 'email']);
         });
 
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                'Este Vendedor será eliminado definitivamente',
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('seller.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
-
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(

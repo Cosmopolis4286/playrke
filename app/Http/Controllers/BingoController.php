@@ -1609,41 +1609,41 @@ class BingoController extends Controller
     public function handleBingoPlays(Request $request, $id = '')
     {
         if ($id) {
-            $rulesID = decrypt($id);
+            $playID = decrypt($id);
         }
+
+        // Definir variables
+        $namePlay = $request->name_play;
+        $bingoBoxes = $request->bingo_boxes;
+
 
         DB::beginTransaction();
 
         try {
 
-            $fileImage = $request->file('image');
+            if (!empty($playID)) {
 
-            if (!empty($rulesID)) {
-
-                $game = GameRules::findOrFail($rulesID);
+                $bingoPlays = BingoTypesPlays::findOrFail($playID);
 
                 $updateData = [];
 
-                if ($fileImage) {
-                    $folder = 'game/bingo/bingo-rules';
-                    $image = $fileImage ? $this->saveImage($fileImage, $folder, $game->encrypted) : null;
-
-                    $updateData['image'] = $image;
+                if ($bingoPlays->name != $namePlay) {
+                    $updateData['name'] = $namePlay;
                 }
 
-                if ($game->rules !== $request->rules) {
-                    $updateData['rules'] = $request->rules;
+                if ($bingoPlays->boxes != $bingoBoxes) {
+                    $updateData['boxes'] = $bingoBoxes;
                 }
 
                 if (!empty($updateData)) {
-                    $game->update($updateData);
+                    $bingoPlays->update($updateData);
                 }
             } else {
 
                 BingoTypesPlays::create([
-                    'name' => $request->name,
+                    'name' => $namePlay,
                     'user' => Auth::id(),
-                    'boxes' => $request->boxes,
+                    'boxes' => $bingoBoxes,
                     'status' => 1
                 ]);
             }

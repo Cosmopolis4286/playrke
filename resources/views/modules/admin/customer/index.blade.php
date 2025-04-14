@@ -181,17 +181,6 @@
             submitForm(name, ['name', 'email', 'username', 'country', 'phone', 'api-route', 'customer-key']);
         });
 
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                'Este Cliente será eliminado definitivamente',
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('admin-customer.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
-
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(

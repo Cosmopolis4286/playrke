@@ -128,11 +128,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Comercio', '{{ asset('') }}admin-commerce');
+            formCRUD(elem, name, 'Comercio', `{{ asset('') }}${name}`);
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Comercio', '{{ asset('') }}admin-commerce', otherCasesMap)
+            formCRUD($(this), name, 'Comercio', `{{ asset('') }}${name}`, otherCasesMap)
         });
 
         country.on("change", function() {
@@ -212,17 +212,6 @@
             submitForm(name, ['name', 'country', 'coin', 'phone', 'username', 'email']);
         });
 
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                'Este Comercio será eliminado definitivamente',
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('admin-commerce.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
-
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -230,7 +219,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('admin-commerce.change-status', ['id' => ':id']) }}`,
+                    `{{ route('${name}.change-status, ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -240,7 +229,7 @@
                     'info',
                     'Sí, generar',
                     '#form-other-options',
-                    `{{ route('admin-commerce.change-pasww', ['id' => ':id']) }}`,
+                    `{{ route('${name}.change-pasww', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
