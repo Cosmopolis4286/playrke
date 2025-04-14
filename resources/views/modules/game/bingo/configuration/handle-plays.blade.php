@@ -1,6 +1,6 @@
 @extends($layout)
 @section('styles')
-    @vite('resources/css/games/bingo/bingo-in-game.css')
+    @vite('resources/css/games/bingo/bingo-handle-plays.css')
 @endsection
 @section('title', $title)
 @section('content')
@@ -15,51 +15,37 @@
                     <table class="table table-striped table-bordered my-2 w-100">
                         <thead>
                             <tr>
-                                <th>Sala</th>
-                                <th>Tipo</th>
-                                <th>Fecha</th>
-                                <th>Hora</th>
-                                <th>Moneda</th>
-                                <th>Ctns</th>
-                                <th>Venta</th>
-                                <th>Vendedor</th>
-                                <th>Banca</th>
-                                <th>Bote</th>
+                                <th>Nombre</th>
+                                <th>Casillas</th>
+                                <th>Status</th>
+                                <th>Acción</th>
                             </tr>
                         </thead>
-                        {{-- <tbody>
-                            @foreach ($roomData as $room)
+                        <tbody>
+                            @foreach ($bingoPlays as $item)
                                 <tr>
+                                    <td>{{ $item->name }}</td>
+                                    <td>{{ $item->boxes }}</td>
+                                    <td>{{ $item->status == 0 ? 'Inactivo' : 'Activo' }}</td>
                                     <td class="align-middle">
-                                        <a class="badge bg-navy" title="Ver Reporte"
-                                            href="{{ route('commerce.reportSalesByRoom', ['room' => $room['encrypted'], 'coin' => encrypt($coin)]) }}">
-                                            {{ $room['encrypted'] }}
-                                        </a>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="5"
+                                                data-id="{{ encrypt($item->id) }}" title="Ver Jugada">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </button>
+                                            <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
+                                                data-type="2" data-id="{{ encrypt($item->id) }}">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="4"
+                                                data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
+                                                <i class="fa-solid fa-rotate"></i>
+                                            </button>
+                                        </div>
                                     </td>
-                                    <td>{{ $room['roomType'] }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($room['date'])->format('d/m/y') }}</td>
-                                    <td>{{ $room['time'] }}h</td>
-                                    <td>{{ $coinName }}</td>
-                                    <td>{{ $room['allCtns'] }}</td>
-                                    <td>{{ $coinSym }} {{ $room['allSaleRoom'] }}</td>
-                                    <td>{{ $coinSym }} {{ $room['comSaleSellerRoom'] }}</td>
-                                    <td>{{ $coinSym }} {{ $room['comBancaRoom'] }}</td>
-                                    <td>{{ $coinSym }} {{ $room['jackpotRoom'] }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="5" class="text-right"><b>Total:</b></td>
-                                @if (count($roomData))
-                                    <td>{{ $totals['allCtns'] }}</td>
-                                    <td>{{ $coinSym }} {{ number_format($totals['allSales'], 2, '.') }}</td>
-                                    <td>{{ $coinSym }} {{ number_format($totals['comSaleSeller'], 2, '.') }}</td>
-                                    <td>{{ $coinSym }} {{ number_format($totals['comBanca'], 2, '.') }}</td>
-                                    <td>{{ $coinSym }} {{ number_format($totals['jackpot'], 2, '.') }}</td>
-                                @endif
-                            </tr>
-                        </tfoot> --}}
                     </table>
                 </div>
             </div>
@@ -70,43 +56,103 @@
 @section('scripts')
     <script>
         let bingoBoxes = [];
+        let playId = false;
+
+        function insertInfo(type, data = '') {
+            update = false;
+            $('#username, #email').attr('readonly', false);
+
+            if (type == 1) country.append(`<option value="" disabled selected>Seleccionar País:</option>`);
+
+            $.each(arrCountries, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.commerce.country) ? 'selected' : '';
+                country.append(
+                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+            });
+
+            if (type == 2) {
+                const commerce = data.commerce;
+                const otherCoins = data.other_coins;
+                const user = data.user;
+
+                $('#name').val(commerce.name);
+                $('#phone').val(commerce.phone);
+                $('#code-rke').val(commerce.code_rke);
+                update = true;
+                country.trigger('change');
+                insertOtherCoins(otherCoins)
+
+                $("#username").val(user.username);
+                $("#email").val(user.email);
+                $('#username, #email').attr('readonly', true);
+            }
+
+            insertGames();
+
+            $(`#modal-${name}`).modal('show');
+        }
+
+        $(document).on("click", `.btn-${name}`, function() {
+            formCRUD($(this), name, 'Jugada de Bingo', `{{ asset('') }}${name}`, otherCasesMap)
+        });
+
+        const otherCasesMap = {
+            4: function(encryptedId) {
+                showToastOptionBtns(
+                    'Deseas cambiar el status de este Comercio',
+                    'question',
+                    'Sí, cambiar',
+                    '#form-other-options',
+                    route(`${name}.change-status`, {
+                        id: encryptedId
+                    })
+                );
+            },
+            5: function(encryptedId) {
+                insertInfo(); // Visualizar jugada, marcar casillas
+            },
+        };
 
         $(document).on("click", ".ctn-plays", function() {
+            const box = $(this);
+            const value = box.text().trim();
 
+            box.toggleClass("number-box-circle");
+
+            bingoBoxes = box.hasClass("number-box-circle") ? [...bingoBoxes, value] :
+                bingoBoxes.filter(v => v !== value);
+        });
+
+        function cleanBoxes() {
+            $('.ctn-plays').removeClass('number-box-circle');
+            bingoBoxes = [];
+            $('#name-play').val('');
+        }
+
+        $(document).on("click", "#btn-clean", function() {
+            cleanBoxes();
         });
 
         $(document).on("click", "#btn-confirm", function() {
             if (bingoBoxes.length > 3) {
                 $.ajax({
-                    url: `{{ route('bingocash.generateCarton') }}`,
+                    url: `{{ route('bingo.handleBingoPlays') }}`,
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': $('#5K3_70K').val()
                     },
                     data: {
-                        room: roomID,
-                        coin,
-                        num_ctns: numCtns,
-                        creator_type: creator.type,
-                        creator_id: creator.id,
-                        player,
-                        is_login: true,
+                        id: playId,
+                        bingo_boxes: bingoBoxes,
+                        name_play: $('#name-play').val()
                     },
                     dataType: 'json',
-                    beforeSend: function() {
-                        $('#loader-btn-purchase-ctns').show();
-                    },
                     success: function(res) {
-                        $('#jackpot-amount').text(res.jackpot);
-                        $(`#jackpot-room_${roomID}`).text(res.jackpot);
-                        $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
+                        cleanBoxes();
                         showToast(res.message, res.type);
                     },
                     error: function(error) {
                         console.error(error);
-                    },
-                    complete: function() {
-                        $('#loader-btn-purchase-ctns').hide();
                     }
                 });
             } else {

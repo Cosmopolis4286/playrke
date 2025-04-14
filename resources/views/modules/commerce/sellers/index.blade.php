@@ -223,17 +223,6 @@
             submitForm(name, ['name', 'phone', 'commission', 'country', 'coin', 'username', 'email']);
         });
 
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                'Este Vendedor será eliminado definitivamente',
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('seller.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
-
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -241,8 +230,9 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('seller.change-status', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-status`, {
+                        id: encryptedId
+                    })
                 );
             },
             5: function(encryptedId) {
@@ -251,8 +241,9 @@
                     'info',
                     'Sí, generar',
                     '#form-other-options',
-                    `{{ route('seller.change-pasww', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-passw`, {
+                        id: encryptedId
+                    })
                 );
             },
         };

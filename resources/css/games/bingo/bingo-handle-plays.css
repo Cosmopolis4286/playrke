@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Braah+One&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
+
+:root {
+    --white: #fff;
+    --gray-900: #111827;
+    --gray-950: #030712;
+}
+
+body {
+    font-family: 'Poppins', sans-serif !important;
+}
+
+* {
+    outline: none;
+    user-select: none;
+}
+
+.container-view-carton {
+    width: auto;
+    margin-bottom: -1%;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background-color: rgb(226, 235, 255);
+}
+
+.section-letter {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.number-box-letter {
+    color: var(--gray-950);
+    background-color: var(--white);
+    position: relative;
+    font-size: 145%;
+    width: 100%;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.number-box-view-ctn {
+    position: relative;
+    font-size: 112%;
+    display: flex;
+    width: 100%;
+    height: 50px;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid var(--white);
+}
+
+.ctn-plays {
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.number-box-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 80%;
+    width: 80%;
+    z-index: 999;
+    padding-top: 1.75px;
+    color: var(--white);
+    border: 2px solid #cf1002d5;
+    background: linear-gradient(to bottom, #d60f26, rgb(177, 1, 60));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+}
+
+.img-logo-ctn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 68%;
+    max-height: 68%;
+}

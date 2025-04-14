@@ -839,8 +839,6 @@ trait BingoTrait
     private function registerPrizeCtn($roomID, $cartons, $prizeType, $USDValue)
     {
         $recordsToInsert = $playersToUpdate = [];
-        $roomType = BingoRoom::getValueById($roomID, 'room_type');
-        $ctnStatus = $roomType === 'PB' ? 'CC' : 'CS';
 
         foreach ($cartons as $ctn) {
 
@@ -871,7 +869,7 @@ trait BingoTrait
                     'prize_type' => $prizeType,
                     'coin' => $ctn->coin,
                     'amount' => $prizeWn,
-                    'status' => $ctnStatus,
+                    'status' => null,
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp
                 ];

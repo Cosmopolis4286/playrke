@@ -155,17 +155,6 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, ['pix-key', 'pix-key-value']);
-        });
-
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                `Este ${paymentType} será eliminado definitivamente`,
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('pix.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
+        });        
     </script>
 @endsection

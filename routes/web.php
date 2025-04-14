@@ -141,7 +141,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', '
     Route::put('update/{id}', [CustomerController::class, 'update'])->name('update');
     Route::put('delete/{id}', [CustomerController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [CustomerController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [CustomerController::class, 'changePassword'])->name('change-pasww');
+    Route::put('change-passw/{id}', [CustomerController::class, 'changePassword'])->name('change-passw');
 });
 
 //Comercio/Comercializadora/Banca
@@ -167,7 +167,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-commerce', '
     Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
     Route::put('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [CommerceController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [CommerceController::class, 'changePassword'])->name('change-pasww');
+    Route::put('change-passw/{id}', [CommerceController::class, 'changePassword'])->name('change-passw');
 });
 
 // Seller Options 
@@ -177,7 +177,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'seller', 'as' =
     Route::put('update/{id}', [SellerController::class, 'update'])->name('update');
     Route::put('delete/{id}', [SellerController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [SellerController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [SellerController::class, 'changePassword'])->name('change-pasww');
+    Route::put('change-passw/{id}', [SellerController::class, 'changePassword'])->name('change-passw');
 });
 
 //Vendedor/Agencia/Taquilla
@@ -318,7 +318,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 });
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
-    Route::get('configuration/plays/{userToken?}', [BingoController::class, 'handleBingoPlays'])->name('handleBingoPlays');
+    Route::get('configuration/plays/{userToken?}', [BingoController::class, 'bingoPlays'])->name('bingoPlays');
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
 
     Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');
@@ -329,6 +329,8 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::post('carton/notify/payment/win-ctn', [BingoController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
 
     Route::put('handle-bingo-rules/{id?}', [BingoController::class, 'handleBingoRules'])->name('handleBingoRules');
+    Route::put('handle-bingo-plays/{id?}', [BingoController::class, 'handleBingoPlays'])->name('handleBingoPlays');
+
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
     Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');

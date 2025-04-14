@@ -34,7 +34,7 @@ class AdminController extends Controller
 
         return view('modules/admin/commerce/index')->with([
             'title' => 'Comercializadoras',
-            'name' => 'commerce',
+            'name' => 'admin-commerce',
             'commerces' => $commerces,
             'countries' => $countries,
             'coins' => $coins,
@@ -53,7 +53,7 @@ class AdminController extends Controller
 
         return view('modules/admin/customer/index')->with([
             'title' => 'Clientes',
-            'name' => 'customer',
+            'name' => 'admin-customer',
             'customers' => $customers,
             'countries' => $countries,
             'coins' => $coins

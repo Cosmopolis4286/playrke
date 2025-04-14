@@ -119,21 +119,27 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
     }
 
     switch (type) {
-        case 1:
+        case 1: // Insertar
             modalLabel.text(`Registrar ${title}`);
             formName.attr('action', `${route}/create`);
             insertInfo(type); // Llama a `insertInfo` sin datos adicionales
             break;
 
-        case 2:
+        case 2: // Editar
             modalLabel.text(`Editar ${title}`);
             formName.attr('action', `${route}/update/${encryptedId}`)
                 .append('<input type="hidden" name="_method" value="PUT">');
             getInfo(route, encryptedId); // Obtén la información con el ID encriptado
             break;
 
-        case 3:
-            deleteInfo(encryptedId); // Llama a `deleteInfo` con el ID encriptado
+        case 3: // Eliminar
+            showToastOptionBtns(
+                'El registro será eliminado definitivamente',
+                'info',
+                'Sí, eliminar',
+                '#form-other-options',
+                `${route}/delete/${encryptedId}`
+            );
             break;
 
         default:

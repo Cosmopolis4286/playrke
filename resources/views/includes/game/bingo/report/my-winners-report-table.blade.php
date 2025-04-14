@@ -25,7 +25,8 @@
                         </a>
                     </td>
                     <td class="align-middle">
-                        {{ \Carbon\Carbon::parse($win->Room->date)->format('d/m/y') }} {{ $win->Room->time }}
+                        {{ \Carbon\Carbon::parse($win->Room->Config->date)->format('d/m/y') }}
+                        {{ $win->Room->Config->time }}
                     </td>
                     <td>
                         @if ($win->Seller)

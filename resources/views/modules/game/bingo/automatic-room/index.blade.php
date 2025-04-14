@@ -169,17 +169,6 @@
             submitForm(name);
         });
 
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                'Esta sala será eliminada definitivamente',
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('bingo.automatic-room.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
-
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -187,8 +176,9 @@
                     'info',
                     'Sí, actualizar',
                     '#form-other-options',
-                    `{{ route('bingo.automatic-room.change-status', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.automatic-room.change-status`, {
+                        id: encryptedId
+                    })
                 );
             },
             7: function(encryptedId) {
@@ -197,8 +187,9 @@
                     'question',
                     'Sí, copiar',
                     '#form-other-options',
-                    `{{ route('bingo.automatic-room.copy', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.automatic-room.copy`, {
+                        id: encryptedId
+                    })
                 );
             },
         };

@@ -145,17 +145,6 @@
             submitForm(name, [coin.attr('id'), exchangeRate.attr('id')]);
         });
 
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                'Esta moneda será eliminada definitivamente',
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('exchange-rate.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
-
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -163,8 +152,9 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('exchange-rate.change-status', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-status`, {
+                        id: encryptedId
+                    })
                 );
             }
         };

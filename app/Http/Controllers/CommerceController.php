@@ -520,19 +520,17 @@ class CommerceController extends Controller
             return redirect()->route('commerce.reportSalesRooms', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
         }
 
+        $ctnsLotFilter = fn($query) => $query->where('room', $roomID)->where('coin', $coin);
+
         $sellers = Seller::select('id', 'name', 'country')
             ->with([
                 'Country:id,name',
-                'CtnsLot' => fn($query) => $query->where([
-                    ['room', $roomID],
-                    ['coin', $coin]
-                ])
+                'CtnsLot' => $ctnsLotFilter,
+                'CtnsLot.RoomConfig:id,room,room_commn'
             ])
             ->where('commerce', $commerce->id)
-            ->whereHas('CtnsLot', fn($query) => $query->where([
-                ['room', $roomID],
-                ['coin', $coin]
-            ]))->get();
+            ->whereHas('CtnsLot', $ctnsLotFilter)
+            ->get();
 
         $coins = $this->getCommerceCoins($creatorUser, '', ['CtnsLot', 'Coin']);
 
@@ -723,7 +721,8 @@ class CommerceController extends Controller
     private function getWinnersData($creatorUser, $dateFilter = "today", $others = false)
     {
         $winnersQuery = BingoPrizeCtns::with([
-            'Room',
+            'Room:id,encrypted',
+            'Room.Config:id,room,date,time',
             'Coin',
             'PlayerLink.Country',
             'Payments',

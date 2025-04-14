@@ -136,11 +136,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Cliente', '{{ asset('') }}admin-customer');
+            formCRUD(elem, name, 'Cliente', `{{ asset('') }}${name}`);
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Cliente', '{{ asset('') }}admin-customer', otherCasesMap)
+            formCRUD($(this), name, 'Cliente', `{{ asset('') }}${name}`, otherCasesMap)
         });
 
         function insertInfo(type, data = '') {
@@ -181,17 +181,6 @@
             submitForm(name, ['name', 'email', 'username', 'country', 'phone', 'api-route', 'customer-key']);
         });
 
-        function deleteInfo(encryptedId) {
-            showToastOptionBtns(
-                'Este Cliente será eliminado definitivamente',
-                'info',
-                'Sí, eliminar',
-                '#form-other-options',
-                `{{ route('admin-customer.delete', ['id' => ':id']) }}`,
-                encryptedId
-            );
-        }
-
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -199,8 +188,9 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('admin-customer.change-status', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-status`, {
+                        id: encryptedId
+                    })
                 );
             },
             5: function(encryptedId) {
@@ -209,8 +199,9 @@
                     'info',
                     'Sí, generar',
                     '#form-other-options',
-                    `{{ route('admin-customer.change-pasww', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-passw`, {
+                        id: encryptedId
+                    })
                 );
             },
         };

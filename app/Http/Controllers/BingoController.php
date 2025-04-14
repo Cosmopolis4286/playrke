@@ -21,6 +21,7 @@ use App\Models\BingoDrawCode;
 use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomAutomatic;
+use App\Models\BingoTypesPlays;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
@@ -972,6 +973,7 @@ class BingoController extends Controller
                 $query->where('coin', $coin)->where('game', $gameID);
             }
         ])->where('creator_user', $creatorUser)->where('room_type', $roomType)
+            ->orderBy('status')
             ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
             ->get();
     }
@@ -1604,6 +1606,63 @@ class BingoController extends Controller
         }
     }
 
+    public function handleBingoPlays(Request $request, $id = '')
+    {
+        if ($id) {
+            $playID = decrypt($id);
+        }
+
+        // Definir variables
+        $namePlay = $request->name_play;
+        $bingoBoxes = $request->bingo_boxes;
+
+
+        DB::beginTransaction();
+
+        try {
+
+            if (!empty($playID)) {
+
+                $bingoPlays = BingoTypesPlays::findOrFail($playID);
+
+                $updateData = [];
+
+                if ($bingoPlays->name != $namePlay) {
+                    $updateData['name'] = $namePlay;
+                }
+
+                if ($bingoPlays->boxes != $bingoBoxes) {
+                    $updateData['boxes'] = $bingoBoxes;
+                }
+
+                if (!empty($updateData)) {
+                    $bingoPlays->update($updateData);
+                }
+            } else {
+
+                BingoTypesPlays::create([
+                    'name' => $namePlay,
+                    'user' => Auth::id(),
+                    'boxes' => $bingoBoxes,
+                    'status' => 1
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->back()->with([
+                'type' => 'success',
+                'message' => 'Proceso existoso'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear o actualizar el tipo de jugada de Bingo: ' . $e->getMessage());
+            return redirect()->back()->with([
+                'type' => 'warning',
+                'message' => 'Error al crear o actualizar el registro'
+            ]);
+        }
+    }
+
     public function getInfo($id, $starTime = '')
     {
         date_default_timezone_set(config('app.timezone'));
@@ -1651,7 +1710,7 @@ class BingoController extends Controller
         ]);
     }
 
-    public function handleBingoPlays($userToken = false)
+    public function bingoPlays($userToken = false)
     {
         if ($userToken) {
             $userType = 'customer';
@@ -1667,23 +1726,13 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $game = GameRules::getByGame('BINGO', $user, ['id', 'rules', 'encrypted']);
-        $rulesID = '';
-        $gameRules = '';
-
-        if ($game) {
-            $rulesID = encrypt($game->id);
-            $gameRules = $game->rules;
-        }
+        $bingoPlays = [];
 
         $viewData = [
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Bingo Configuración',
             'userToken' => $userToken,
-            'rulesID' => $rulesID,
-            'gameRules' => $gameRules,
-            'imageBingoRules' => $this->getImageBingoRules($user),
-            'bingoRules' => $this->getBingoRules($user),
+            'bingoPlays' => $bingoPlays
         ];
 
         $viewData = ['route' => 'modules.game.bingo.configuration.handle-plays', 'data' => $viewData];
@@ -2508,6 +2557,10 @@ class BingoController extends Controller
 
         $draw = BingoDraw::where('room', $room)->count() === 75;
 
+        // Reiniciar por defecto registros de ganadores y usuarios ganadores
+        BingoRoomUser::where('room', $room)->where('winner', 1)->update(['winner' => 0]);
+        BingoPrizeCtns::where('room', $room)->delete();
+
         // Validar condiciones iniciales
         if (!$draw) {
             $this->handleDraw($room);
@@ -2587,8 +2640,8 @@ class BingoController extends Controller
             // Definir Obtener Ficha Ganadora
             $this->chipWin($room);
 
-            // Ajustar status de la sala
-            BingoRoom::where('id', $room)->update(['status' => 3]);
+            // Ajustar status de la sala y reiniciar cierre de sala
+            BingoRoom::where('id', $room)->update(['status' => 3, 'close_room' => null]);
 
             DB::commit();
 
@@ -2659,7 +2712,7 @@ class BingoController extends Controller
                     DB::rollBack();
                     return response()->json(['error' => 'Error al actualizar el estado del cartón.'], 500);
                 }
-                $this->AllWinCtnPaid($prizeCtn->room);
+                $this->allWinCtnPaid($prizeCtn->room);
             }
 
             DB::commit();

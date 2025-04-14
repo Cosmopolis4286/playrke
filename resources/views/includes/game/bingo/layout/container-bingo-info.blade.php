@@ -8,7 +8,7 @@
                 {{ $jackpotType == 1 ? 'Bote' : ($jackpotType == 2 ? 'Premio' : '') }}
             </small>
             <div id="cont-jackpot-amount">
-                <small id="jackpot-coin-sym" class="mr-2">{{ $coinSym }}</small>
+                <small id="jackpot-coin-sym" class="mr-1">{{ $coinSym }}</small>
                 <span id="jackpot-amount">{{ $jackpot ?? 0 }}</span>
             </div>
         </div>
