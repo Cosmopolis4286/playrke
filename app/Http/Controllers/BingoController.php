@@ -2557,6 +2557,10 @@ class BingoController extends Controller
 
         $draw = BingoDraw::where('room', $room)->count() === 75;
 
+        // Reiniciar por defecto registros de ganadores y usuarios ganadores
+        BingoRoomUser::where('room', $room)->where('winner', 1)->update(['winner' => 0]);
+        BingoPrizeCtns::where('room', $room)->delete();
+
         // Validar condiciones iniciales
         if (!$draw) {
             $this->handleDraw($room);
@@ -2636,8 +2640,8 @@ class BingoController extends Controller
             // Definir Obtener Ficha Ganadora
             $this->chipWin($room);
 
-            // Ajustar status de la sala
-            BingoRoom::where('id', $room)->update(['status' => 3]);
+            // Ajustar status de la sala y reiniciar cierre de sala
+            BingoRoom::where('id', $room)->update(['status' => 3, 'close_room' => null]);
 
             DB::commit();
 
