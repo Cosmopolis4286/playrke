@@ -25,7 +25,7 @@ function showToast(text, icon, type = '') {
     });
 }
 
-function showToastOptionBtns(text, icon, confirmButtonText, form, routeTemplate, encryptedId = false) {
+function showToastOptionBtns(text, icon, confirmButtonText, form, routeTemplate) {
     Swal.fire({
         title: '¿Confirmas está acción?',
         text: text,
@@ -38,11 +38,7 @@ function showToastOptionBtns(text, icon, confirmButtonText, form, routeTemplate,
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            if (encryptedId) {
-                $(form).attr('action', routeTemplate.replace(':id', encryptedId));
-            } else {
-                $(form).attr('action', routeTemplate);
-            }
+            $(form).attr('action', routeTemplate);
             $(form).trigger('submit');
         } else if (result.isDismissed) {
             Swal.fire('Los cambios no se guardaron', '', 'info');

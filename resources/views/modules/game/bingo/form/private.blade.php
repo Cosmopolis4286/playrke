@@ -158,8 +158,9 @@
                     'question',
                     'Sí, auto-generar',
                     '#form-other-options',
-                    `{{ route($name . '.replay', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-replay`, {
+                        id: encryptedId
+                    })
                 );
             },
             5: function(encryptedId) {
@@ -168,8 +169,9 @@
                     'info',
                     'Sí, publicarla',
                     '#form-other-options',
-                    `{{ route($name . '.publish', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.publish`, {
+                        id: encryptedId
+                    })
                 );
             },
             6: function(encryptedId) {
@@ -178,8 +180,9 @@
                     'warning',
                     'Sí, reembolsar',
                     '#form-other-options',
-                    `{{ route('${name}.refund', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.refund`, {
+                        id: encryptedId
+                    })
                 );
             },
             7: function(encryptedId) {
@@ -188,8 +191,9 @@
                     'question',
                     'Sí, copiar',
                     '#form-other-options',
-                    `{{ route('${name}.copy', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.copy`, {
+                        id: encryptedId
+                    })
                 );
             },
             8: function(encryptedId) {
@@ -198,8 +202,9 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('bingo.change-status', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-status`, {
+                        id: encryptedId
+                    })
                 );
             }
         };

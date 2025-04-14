@@ -139,7 +139,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', '
     Route::put('update/{id}', [CustomerController::class, 'update'])->name('update');
     Route::put('delete/{id}', [CustomerController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [CustomerController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [CustomerController::class, 'changePassword'])->name('change-pasww');
+    Route::put('change-passw/{id}', [CustomerController::class, 'changePassword'])->name('change-passw');
 });
 
 //Comercio/Comercializadora/Banca
@@ -165,7 +165,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-commerce', '
     Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
     Route::put('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [CommerceController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [CommerceController::class, 'changePassword'])->name('change-pasww');
+    Route::put('change-passw/{id}', [CommerceController::class, 'changePassword'])->name('change-passw');
 });
 
 // Seller Options 
@@ -175,7 +175,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'seller', 'as' =
     Route::put('update/{id}', [SellerController::class, 'update'])->name('update');
     Route::put('delete/{id}', [SellerController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [SellerController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [SellerController::class, 'changePassword'])->name('change-pasww');
+    Route::put('change-passw/{id}', [SellerController::class, 'changePassword'])->name('change-passw');
 });
 
 //Vendedor/Agencia/Taquilla

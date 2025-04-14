@@ -1,6 +1,6 @@
 import './bootstrap';
 
-// import './games/bingo/channels';
+import { route } from 'ziggy-js';
 
 import Alpine from 'alpinejs';
 

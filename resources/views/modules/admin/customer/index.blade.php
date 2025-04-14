@@ -188,8 +188,9 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route($name . '.change-status', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-status`, {
+                        id: encryptedId
+                    })
                 );
             },
             5: function(encryptedId) {
@@ -198,8 +199,9 @@
                     'info',
                     'Sí, generar',
                     '#form-other-options',
-                    `{{ route($name . '.change-pasww', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-passw`, {
+                        id: encryptedId
+                    })
                 );
             },
         };
