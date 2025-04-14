@@ -136,11 +136,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Cliente', '{{ asset('') }}admin-customer');
+            formCRUD(elem, name, 'Cliente', `{{ asset('') }}${name}`);
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Cliente', '{{ asset('') }}admin-customer', otherCasesMap)
+            formCRUD($(this), name, 'Cliente', `{{ asset('') }}${name}`, otherCasesMap)
         });
 
         function insertInfo(type, data = '') {
@@ -188,7 +188,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('admin-customer.change-status', ['id' => ':id']) }}`,
+                    `{{ route($name . '.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -198,7 +198,7 @@
                     'info',
                     'Sí, generar',
                     '#form-other-options',
-                    `{{ route('admin-customer.change-pasww', ['id' => ':id']) }}`,
+                    `{{ route($name . '.change-pasww', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },

@@ -219,7 +219,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('${name}.change-status, ['id' => ':id']) }}`,
+                    `{{ route($name . '.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -229,7 +229,7 @@
                     'info',
                     'Sí, generar',
                     '#form-other-options',
-                    `{{ route('${name}.change-pasww', ['id' => ':id']) }}`,
+                    `{{ route($name . '.change-pasww', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },

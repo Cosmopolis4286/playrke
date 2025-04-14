@@ -158,7 +158,7 @@
                     'question',
                     'Sí, auto-generar',
                     '#form-other-options',
-                    `{{ route('${name}.replay', ['id' => ':id']) }}`,
+                    `{{ route($name . '.replay', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -168,7 +168,7 @@
                     'info',
                     'Sí, publicarla',
                     '#form-other-options',
-                    `{{ route('${name}.publish', ['id' => ':id']) }}`,
+                    `{{ route($name . '.publish', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },

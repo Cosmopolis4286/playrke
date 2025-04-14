@@ -176,7 +176,7 @@
                     'info',
                     'Sí, actualizar',
                     '#form-other-options',
-                    `{{ route('${name}.automatic-room.change-status', ['id' => ':id']) }}`,
+                    `{{ route($name . '.automatic-room.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -186,7 +186,7 @@
                     'question',
                     'Sí, copiar',
                     '#form-other-options',
-                    `{{ route('${name}.automatic-room.copy', ['id' => ':id']) }}`,
+                    `{{ route($name . '.automatic-room.copy', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },

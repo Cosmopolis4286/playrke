@@ -103,7 +103,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('${name}.change-status', ['id' => ':id']) }}`,
+                    `{{ route($name . '.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },

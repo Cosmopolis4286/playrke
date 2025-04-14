@@ -152,7 +152,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('exchange-rate.change-status', ['id' => ':id']) }}`,
+                    `{{ route($name . '.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             }

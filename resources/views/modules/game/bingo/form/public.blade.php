@@ -156,7 +156,7 @@
                     'question',
                     'Sí, repetir',
                     '#form-other-options',
-                    `{{ route('bingo.replay', ['id' => ':id']) }}`,
+                    `{{ route($name . '.replay', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -166,7 +166,7 @@
                     'info',
                     'Sí, publicarla',
                     '#form-other-options',
-                    `{{ route('${name}.publish', ['id' => ':id']) }}`,
+                    `{{ route($name . '.publish', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
