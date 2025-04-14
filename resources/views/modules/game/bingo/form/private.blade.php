@@ -150,7 +150,7 @@
                 'ctn-price', 'time-chip', 'pct-serials', 'room-commn'
             ]);
         });
-        
+
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -158,7 +158,7 @@
                     'question',
                     'Sí, auto-generar',
                     '#form-other-options',
-                    `{{ route('bingo.replay', ['id' => ':id']) }}`,
+                    `{{ route('${name}.replay', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -168,7 +168,7 @@
                     'info',
                     'Sí, publicarla',
                     '#form-other-options',
-                    `{{ route('bingo.publish', ['id' => ':id']) }}`,
+                    `{{ route('${name}.publish', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -178,7 +178,7 @@
                     'warning',
                     'Sí, reembolsar',
                     '#form-other-options',
-                    `{{ route('bingo.refund', ['id' => ':id']) }}`,
+                    `{{ route('${name}.refund', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
@@ -188,7 +188,7 @@
                     'question',
                     'Sí, copiar',
                     '#form-other-options',
-                    `{{ route('bingo.copy', ['id' => ':id']) }}`,
+                    `{{ route('${name}.copy', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },

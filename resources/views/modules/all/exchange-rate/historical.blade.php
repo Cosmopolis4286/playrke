@@ -130,7 +130,7 @@
         });
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Tasa de cambio', '{{ asset('') }}exchange-rate', otherCasesMap)
+            formCRUD($(this), name, 'Tasa de cambio', `{{ asset('') }}${name}`, otherCasesMap)
         });
 
         $(document).on("click", "#btn-confirm", function() {
@@ -144,7 +144,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('exchange-rate.change-status', ['id' => ':id']) }}`,
+                    `{{ route('${name}.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             }

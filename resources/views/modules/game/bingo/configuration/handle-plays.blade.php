@@ -93,7 +93,7 @@
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Comercio', '{{ asset('') }}admin-commerce', otherCasesMap)
+            formCRUD($(this), name, 'Jugada de Bingo', `{{ asset('') }}${name}`, otherCasesMap)
         });
 
         const otherCasesMap = {
@@ -103,7 +103,7 @@
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    `{{ route('admin-commerce.change-status', ['id' => ':id']) }}`,
+                    `{{ route('${name}.change-status', ['id' => ':id']) }}`,
                     encryptedId
                 );
             },
