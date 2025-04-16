@@ -2730,4 +2730,318 @@ class BingoController extends Controller
             return response()->json(['success' => false, 'message' => 'Hubo un error al procesar el pago.'], 500);
         }
     }
+
+    // Seccion de Reporte de Salas
+    private function getRoomsData($user, $coin, $dateFilter = "today")
+    {
+        $userId = $user['id'];
+
+        switch ($user['type']) {
+
+            case 'commerce':
+
+                $query = BingoRoom::with([
+                    'Config:room,date,time,ctn_price,room_commn',
+                    'Status',
+                    'CtnsLot' => function ($subquery) use ($userId, $coin) {
+                        $subquery->where('creator_user', $userId)
+                            ->where('coin', $coin)->with('Coin');
+                    }
+                ])->whereHas('CtnsLot');
+
+                break;
+            case 'seller':
+
+                $query = BingoRoom::with([
+                    'Config:room,time,date,ctn_price',
+                    'CtnsLot' => function ($query) use ($userId, $coin) {
+                        $query->where('seller', $userId)->where('coin', $coin)->with('Coin');
+                    }
+                ])->whereHas('CtnsLot', function ($query) use ($userId, $coin) {
+                    $query->where('seller', $userId)->where('coin', $coin);
+                });
+
+                break;
+            default:
+                # code...
+                break;
+        }
+
+        $query = $this->applyDateFilter($dateFilter, $query, 'publication_date');
+
+        $rooms = $query->where('creator_user', $userId)
+            ->get(['id', 'encrypted', 'room_type', 'status', 'jackpot']);
+
+        return $rooms;
+    }
+
+    private function getUserCoins($creatorUser, $relation = [], $dateFilter = 'today', $where = null)
+    {
+        // Inicializamos la consulta con la relación principal
+        $query = CommerceCountriesCoins::with($relation[0])
+            ->whereHas($relation[0], function ($subquery) use ($seller, $relation, $dateFilter, $where) {
+                $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
+                    ->where('seller', $seller);
+
+                // Aplicar condiciones adicionales desde $where
+                if ($where && $where->isNotEmpty()) {
+                    foreach ($where as $item) {
+                        $subquery->where($item->column, $item->value);
+                    }
+                }
+
+                // Cargar una relación adicional si está definida
+                if (isset($relation[1])) {
+                    $subquery->with($relation[1]);
+                }
+
+                // Aplicar filtro de fecha
+                $this->applyDateFilter($dateFilter, $subquery);
+            });
+
+        // Obtener las monedas activas y ordenarlas por país
+        $coins = $query->where('status', 1)->orderBy('country')->pluck('coin');
+
+        // Devolver las monedas usando un método estático de la clase Coin
+        return Coin::getCoinsById($coins);
+    }
+
+    private function getCommerceCoins($creatorUser, $dateFilter = "today", $relation = [])
+    {
+        $query = CommerceCountriesCoins::with($relation[0])
+            ->whereHas($relation[0], function ($subquery) use ($creatorUser, $relation, $dateFilter) {
+                $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
+                    ->where('creator_user', $creatorUser);
+
+                if (count($relation) > 1) {
+                    $subquery->with($relation[1]);
+                }
+
+                $subquery = $this->applyDateFilter($dateFilter, $subquery);
+            });
+
+        $coins = $query->where('status', 1)->orderBy('country')->pluck('coin');
+
+        return Coin::getCoinsById($coins);
+    }
+
+    public function reportSalesRooms($coin = '', $dateFilter = "today")
+    {
+        $user = $this->user(['id', 'user_type']);
+        $userId = $user->id;
+
+        $userType = UserType::getValueById($user->user_type, 'prefix');
+
+        switch ($userType) {
+            case 'commerce':
+                $commerce = $this->commerce(['id', 'user']);
+                $userTypeId = $commerce->id;
+                break;
+            case 'seller':
+                $seller = $this->seller(['id', 'user']);
+                $userTypeId = $seller->id;
+                break;
+            default:
+                # code...
+                break;
+        }
+
+        $userData = ['type' => $userType, 'id' => $userTypeId, 'userId' => $userId];
+
+        $verifyCoin = $this->verifyExistenceOfSales($userData, $dateFilter, $coin);
+
+        if (isset($verifyCoin['return'])) {
+            return redirect()->route(
+                'bingo.reportSalesRooms',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
+        }
+
+        $coin = $verifyCoin;
+
+        $dataCoin = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
+        $coinSym = $dataCoin->symbol;
+        $coinName = "$dataCoin->short_name ($dataCoin->iso_code)";
+
+        $routeWithCoin = [
+            'route' => 'bingo.reportSalesRooms',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
+
+        // Obtener los datos de los ganadores
+        $rooms = $this->getRoomsData($userData, $coin, $dateFilter);
+
+        $userType = UserType::getValueById($user->user_type, 'prefix');
+
+        $title = 'Reporte de Ventas';
+
+        $coins = $this->getUserCoins($creatorUser, $dateFilter, ['CtnsLot', 'Coin']);
+
+        switch ($userType) {
+
+            case 'commerce':
+
+                $totals = [
+                    'allCtns' => 0,
+                    'allSales' => 0,
+                    'comSaleSeller' => 0,
+                    'finalSale' => 0,
+                    'jackpot' => 0,
+                    'comBanca' => 0,
+                ];
+
+                $roomData = [];
+
+                foreach ($rooms as $room) {
+                    $comRKE = 0;
+
+                    // Operaciones numéricas reales
+                    $allSaleRoom = $room->CtnsLot->sum('sale_amount');
+                    $finalSaleRoom = $room->CtnsLot->sum('final_sale_amount');
+                    $comSaleSellerRoom = $allSaleRoom - $finalSaleRoom;
+                    $comBancaRoom = $allSaleRoom * ($room->Config->room_commn / 100);
+                    $jackpotRoom = $allSaleRoom - $comSaleSellerRoom - $comRKE - $comBancaRoom;
+
+                    $ctns = $room->CtnsLot->sum('ctns');
+
+                    // Sumar a totales
+                    $totals['allCtns'] += $ctns;
+                    $totals['allSales'] += $allSaleRoom;
+                    $totals['comSaleSeller'] += $comSaleSellerRoom;
+                    $totals['finalSale'] += $finalSaleRoom;
+                    $totals['jackpot'] += $jackpotRoom;
+                    $totals['comBanca'] += $comBancaRoom;
+
+                    // Formatear para mostrar por sala
+                    $roomData[] = [
+                        'encrypted' => $room->encrypted,
+                        'roomType' => $room->room_type_description,
+                        'date' => $room->Config->date,
+                        'time' => $room->Config->time,
+                        'allSaleRoom' => number_format($allSaleRoom, 2, '.', ','),       // separador de miles
+                        'finalSaleRoom' => number_format($finalSaleRoom, 2, '.', ','),
+                        'comSaleSellerRoom' => number_format($comSaleSellerRoom, 2, '.', ','),
+                        'comBancaRoom' => number_format($comBancaRoom, 2, '.', ','),
+                        'jackpotRoom' => number_format($jackpotRoom, 2, '.', ','),
+                        'allCtns' => $ctns
+                    ];
+                }
+
+                // Formatear los totales
+                $totalsFormatted = [
+                    'allCtns' => $totals['allCtns'],
+                    'allSales' => number_format($totals['allSales'], 2, '.', ','),
+                    'comSaleSeller' => number_format($totals['comSaleSeller'], 2, '.', ','),
+                    'finalSale' => number_format($totals['finalSale'], 2, '.', ','),
+                    'jackpot' => number_format($totals['jackpot'], 2, '.', ','),
+                    'comBanca' => number_format($totals['comBanca'], 2, '.', ','),
+                ];
+
+                return view(
+                    'modules.commerce.games.bingo.report.rooms',
+                    compact('title', 'rooms', 'routeWithCoin', 'dateFilter', 'coin', 'coins', 'coinSym', 'coinName', 'roomData', 'totalsFormatted')
+                );
+                break;
+
+            case 'seller':
+
+                // Inicializar los totales
+                $totalSale = 0;
+                $totalComision = 0;
+                $totalBanca = 0;
+
+                // Almacenar cálculos en una colección
+                $roomsData = [];
+
+                // Realizar los cálculos
+                foreach ($rooms as $room) {
+                    $roomCtns = $room->CtnsLot->sum('ctns');
+                    $roomSale = $room->CtnsLot->sum('sale_amount');
+                    $roomSaleCom = $roomSale - $room->CtnsLot->sum('final_sale_amount');
+
+                    $totalSale += $roomSale;
+                    $totalComision += $roomSaleCom;
+
+                    // Guardar los cálculos en la colección
+                    $roomsData[] = [
+                        'room' => $room,
+                        'calculatedSale' => $roomSale,
+                        'calculatedCtns' => $roomCtns,
+                        'calculatedCom' => $roomSaleCom,
+                    ];
+                }
+
+                return view(
+                    'modules.seller.games.bingo.report.rooms',
+                    compact('title', 'rooms', 'roomsData', 'routeWithCoin', 'dateFilter', 'coins', 'coin', 'coinName', 'coinSym', 'totalSale', 'totalComision')
+                );
+
+                break;
+
+            default:
+                # code...
+                break;
+        }
+    }
+
+    public function reportSalesByRoom($roomID, $coin)
+    {
+        $commerce = $this->commerce(['id', 'user']);
+
+        $room = BingoRoom::getByEncrypted($roomID, ['id', 'encrypted', 'creator_user']);
+
+        if ($room->creator_user != $commerce->user || !$room->creator_user) {
+            return redirect()->back();
+        }
+
+        $roomID = $room->id;
+
+        $coin = decrypt($coin);
+
+        $creatorUser = $commerce->user;
+        $user = ['type' => 'commerce', 'id' => $commerce->id, 'userId' => $creatorUser];
+
+        $existSale = $this->verifyExistenceOfSales($user, '', $coin, $roomID);
+
+        if (!$existSale) {
+            // si no existe venta para esa fecha
+            return redirect()->route('bingo.reportSalesRooms', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
+        }
+
+        $ctnsLotFilter = fn($query) => $query->where('room', $roomID)->where('coin', $coin);
+
+        $sellers = Seller::select('id', 'name', 'country')
+            ->with([
+                'Country:id,name',
+                'CtnsLot' => $ctnsLotFilter,
+                'CtnsLot.RoomConfig:id,room,room_commn'
+            ])
+            ->where('commerce', $commerce->id)
+            ->whereHas('CtnsLot', $ctnsLotFilter)
+            ->get();
+
+        $coins = $this->getCommerceCoins($creatorUser, '', ['CtnsLot', 'Coin']);
+
+        $routeWithCoin = [
+            'route' => 'bingo.reportSalesByRoom',
+            'parameters' => ['room' => $roomID]
+        ];
+
+        $coin = Coin::getById($coin, ['id', 'symbol']);
+
+        $bingoConfig = BingoRoomConfig::getByRoom($roomID, ['ctn_price', 'room_commn']);
+
+        return view('modules/commerce/games/bingo/report/by-room')->with([
+            'title' => "Reporte de Sala",
+            'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
+            'ctnPrice' => $bingoConfig->ctn_price,
+            'sellers' => $sellers,
+            'comCommerceRm' => $bingoConfig->room_commn,
+            'room' => $room->encrypted,
+            'routeWithCoin' => $routeWithCoin,
+            'coin' => $coin->id,
+            'coinSym' => $coin->symbol,
+            'coins' => $coins
+        ]);
+    }
 }

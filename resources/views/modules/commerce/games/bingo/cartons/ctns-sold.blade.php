@@ -35,7 +35,7 @@
                                         <tr>
                                             <td class="align-middle">
                                                 <a class="badge bg-navy" title="Ver Reporte"
-                                                    href="{{ route('commerce.reportSalesByRoom', [
+                                                    href="{{ route('bingo.reportSalesByRoom', [
                                                         'room' => $ctn->Room->encrypted,
                                                         'coin' => encrypt($coin),
                                                         'dateFilter' => $dateFilter,

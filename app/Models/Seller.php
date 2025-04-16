@@ -83,8 +83,8 @@ class Seller extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getValueByUserId($user, $value)
+    public static function getValueByUserId($user, $value = 'id')
     {
-      return self::where('user', $user)->value($value);
+        return self::where('user', $user)->value($value);
     }
 }

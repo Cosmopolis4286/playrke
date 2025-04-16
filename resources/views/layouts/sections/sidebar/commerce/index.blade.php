@@ -26,7 +26,7 @@
 
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('bingo.all-rooms', 'commerce.getBingoWinnersByCommerce', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms', 'commerce.reportSalesByRoom', 'bingo.configuration', 'bingo.bingoPlays') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('bingo.all-rooms', 'commerce.getBingoWinnersByCommerce', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom', 'bingo.configuration', 'bingo.bingoPlays') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>
@@ -55,8 +55,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('commerce.reportSalesRooms') }}" title="Reporte de Ventas"
-                    class="nav-link {{ !Route::is('commerce.reportSalesRooms') ?: 'active' }}">
+                <a href="{{ route('bingo.reportSalesRooms') }}" title="Reporte de Ventas"
+                    class="nav-link {{ !Route::is('bingo.reportSalesRooms') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Reporte de Ventas</p>
                 </a>

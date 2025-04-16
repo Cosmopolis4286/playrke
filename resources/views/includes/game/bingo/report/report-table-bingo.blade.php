@@ -20,7 +20,7 @@
                 <tr>
                     <td class="align-middle">
                         <a class="badge bg-navy" title="Ver Reporte"
-                            href="{{ route('commerce.reportSalesByRoom', ['room' => $room['encrypted'], 'coin' => encrypt($coin)]) }}">
+                            href="{{ route('bingo.reportSalesByRoom', ['room' => $room['encrypted'], 'coin' => encrypt($coin)]) }}">
                             {{ $room['encrypted'] }}
                         </a>
                     </td>
@@ -40,11 +40,11 @@
             <tr>
                 <td colspan="5" class="text-right"><b>Total:</b></td>
                 @if (count($roomData))
-                    <td>{{ $totals['allCtns'] }}</td>
-                    <td>{{ $coinSym }} {{ number_format($totals['allSales'], 2, '.') }}</td>
-                    <td>{{ $coinSym }} {{ number_format($totals['comSaleSeller'], 2, '.') }}</td>
-                    <td>{{ $coinSym }} {{ number_format($totals['comBanca'], 2, '.') }}</td>
-                    <td>{{ $coinSym }} {{ number_format($totals['jackpot'], 2, '.') }}</td>
+                    <td>{{ $totalsFormatted['allCtns'] }}</td>
+                    <td>{{ $coinSym }} {{ $totalsFormatted['allSales'] }}</td>
+                    <td>{{ $coinSym }} {{ $totalsFormatted['comSaleSeller'] }}</td>
+                    <td>{{ $coinSym }} {{ $totalsFormatted['comBanca'] }}</td>
+                    <td>{{ $coinSym }} {{ $totalsFormatted['jackpot'] }}</td>
                 @endif
             </tr>
         </tfoot>
