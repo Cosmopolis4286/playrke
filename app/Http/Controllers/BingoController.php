@@ -16,6 +16,7 @@ use App\Models\BingoCreator;
 use App\Models\BingoCtnPrice;
 use App\Models\BingoCtnPriceAutomatic;
 use App\Models\BingoCtnsLot;
+use App\Models\BingoCtnsPayment;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawCode;
 use App\Models\BingoPrizeCtns;
@@ -2557,10 +2558,6 @@ class BingoController extends Controller
 
         $draw = BingoDraw::where('room', $room)->count() === 75;
 
-        // Reiniciar por defecto registros de ganadores y usuarios ganadores
-        BingoRoomUser::where('room', $room)->where('winner', 1)->update(['winner' => 0]);
-        BingoPrizeCtns::where('room', $room)->delete();
-
         // Validar condiciones iniciales
         if (!$draw) {
             $this->handleDraw($room);
@@ -2628,6 +2625,13 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
+
+            // Reiniciar por defecto registros de ganadores y usuarios ganadores
+            BingoRoomUser::where('room', $room)->where('winner', 1)->update(['winner' => 0]);
+            // Eliminar registros de cartones premiados (ganadores)
+            BingoPrizeCtnsPayment::where('room', $room)->delete();
+            BingoPrizeCtns::where('room', $room)->delete();
+
             foreach ($updates as $update) {
                 BingoDraw::where('id', $update['id'])->update([
                     'chip' => $update['chip'],
@@ -2655,7 +2659,7 @@ class BingoController extends Controller
 
             return response()->json([
                 'type' => 'error',
-                'message' => 'Hubo un error durante el proceso de regeneración'
+                'message' => 'Ha ocurrido un error'
             ]);
         }
     }

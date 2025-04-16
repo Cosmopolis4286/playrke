@@ -28,7 +28,8 @@ export default defineConfig(({ mode }) => {
                     'resources/js/games/bingo/ctn-price-coins.js',
                     'resources/js/games/bingo/in-game.js',
                     'resources/js/games/bingo/includes/auto-marked.js',
-                    'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'
+                    'resources/js/games/bingo/includes/bingo-out-buy-ctns.js',
+                    'resources/js/games/bingo/tests/regenerate-draw.js'
                 ],
                 refresh: true,
             }),
@@ -48,7 +49,8 @@ export default defineConfig(({ mode }) => {
                     'resources/js/games/bingo/ctn-price-coins.js',
                     'resources/js/games/bingo/in-game.js',
                     'resources/js/games/bingo/includes/auto-marked.js',
-                    'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'
+                    'resources/js/games/bingo/includes/bingo-out-buy-ctns.js',
+                    'resources/js/games/bingo/tests/regenerate-draw.js'
                 ],
                 exclude: [/node_modules/],
                 apply: "build",
