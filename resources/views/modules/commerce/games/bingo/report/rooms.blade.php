@@ -7,7 +7,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 @include('includes.coin-tabs')
-                @include('includes.date-filter-buttons', ['routeWithCoin' => 'bingo.reportSalesRooms'])
+                @include('includes.date-filter-buttons', ['routeWithCoin' => $routeWithCoin['route']])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @include('includes.game.bingo.report.report-table-bingo')

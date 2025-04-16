@@ -734,7 +734,7 @@ class SellerController extends Controller
         $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
 
         $routeWithCoin = [
-            'route' => 'seller.reportSalesByRoom',
+            'route' => 'bingo.reportSalesByRoom',
             'parameters' => ['room' => $room->encrypted]
         ];
 

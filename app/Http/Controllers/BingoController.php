@@ -1246,6 +1246,7 @@ class BingoController extends Controller
             DB::beginTransaction();
 
             try {
+
                 $roomID = BingoRoom::create($createData)->id;
 
                 BingoRoomConfig::create([
@@ -2734,17 +2735,17 @@ class BingoController extends Controller
     // Seccion de Reporte de Salas
     private function getRoomsData($user, $coin, $dateFilter = "today")
     {
-        $userId = $user['id'];
-
         switch ($user['type']) {
 
             case 'commerce':
 
+                $creatorUser = $user['userId'];
+
                 $query = BingoRoom::with([
                     'Config:room,date,time,ctn_price,room_commn',
                     'Status',
-                    'CtnsLot' => function ($subquery) use ($userId, $coin) {
-                        $subquery->where('creator_user', $userId)
+                    'CtnsLot' => function ($subquery) use ($creatorUser, $coin) {
+                        $subquery->where('creator_user', $creatorUser)
                             ->where('coin', $coin)->with('Coin');
                     }
                 ])->whereHas('CtnsLot');
@@ -2752,13 +2753,17 @@ class BingoController extends Controller
                 break;
             case 'seller':
 
+                $seller = $this->seller(['id', 'commerce']);
+                $sellerId = $seller->id;
+                $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+
                 $query = BingoRoom::with([
                     'Config:room,time,date,ctn_price',
-                    'CtnsLot' => function ($query) use ($userId, $coin) {
-                        $query->where('seller', $userId)->where('coin', $coin)->with('Coin');
+                    'CtnsLot' => function ($query) use ($sellerId, $coin) {
+                        $query->where('seller', $sellerId)->where('coin', $coin)->with('Coin');
                     }
-                ])->whereHas('CtnsLot', function ($query) use ($userId, $coin) {
-                    $query->where('seller', $userId)->where('coin', $coin);
+                ])->whereHas('CtnsLot', function ($query) use ($sellerId, $coin) {
+                    $query->where('seller', $sellerId)->where('coin', $coin);
                 });
 
                 break;
@@ -2769,41 +2774,58 @@ class BingoController extends Controller
 
         $query = $this->applyDateFilter($dateFilter, $query, 'publication_date');
 
-        $rooms = $query->where('creator_user', $userId)
+        $rooms = $query->where('creator_user', $creatorUser)
             ->get(['id', 'encrypted', 'room_type', 'status', 'jackpot']);
 
         return $rooms;
     }
 
-    private function getUserCoins($creatorUser, $relation = [], $dateFilter = 'today', $where = null)
+    private function getUserCoins($user, $relation = [], $dateFilter = 'today', $where = null)
     {
-        // Inicializamos la consulta con la relación principal
-        $query = CommerceCountriesCoins::with($relation[0])
-            ->whereHas($relation[0], function ($subquery) use ($seller, $relation, $dateFilter, $where) {
-                $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
-                    ->where('seller', $seller);
+        $userType = $user['type'];
 
-                // Aplicar condiciones adicionales desde $where
-                if ($where && $where->isNotEmpty()) {
-                    foreach ($where as $item) {
-                        $subquery->where($item->column, $item->value);
+        if ($userType !== 'seller') {
+            $userId = $user['userId'];
+            $userColumn = 'creator_user';
+        } else {
+            $userId = $user['id'];
+            $userColumn = 'seller';
+        }
+
+        $primaryRelation = $relation[0] ?? null;
+        $secondaryRelation = $relation[1] ?? null;
+
+        if (!$primaryRelation) {
+            return collect(); // Si no se proporciona una relación, se retorna vacío
+        }
+
+        // Construcción de la consulta principal
+        $query = CommerceCountriesCoins::with($primaryRelation)
+            ->whereHas($primaryRelation, function ($subquery) use ($userId, $userColumn, $dateFilter, $where, $secondaryRelation) {
+                $subquery->whereColumn('coin', 'commerces_countries_coins.coin');
+
+                $subquery->where($userColumn, $userId);
+
+                // Condiciones adicionales
+                if (!empty($where)) {
+                    foreach ($where as $condition) {
+                        $subquery->where($condition->column, $condition->value);
                     }
                 }
 
-                // Cargar una relación adicional si está definida
-                if (isset($relation[1])) {
-                    $subquery->with($relation[1]);
+                // Carga de relación adicional (opcional)
+                if ($secondaryRelation) {
+                    $subquery->with($secondaryRelation);
                 }
 
-                // Aplicar filtro de fecha
+                // Filtro de fecha
                 $this->applyDateFilter($dateFilter, $subquery);
             });
 
-        // Obtener las monedas activas y ordenarlas por país
-        $coins = $query->where('status', 1)->orderBy('country')->pluck('coin');
+        // Obtener monedas activas y ordenadas
+        $coinIDs = $query->where('status', 1)->orderBy('country')->pluck('coin');
 
-        // Devolver las monedas usando un método estático de la clase Coin
-        return Coin::getCoinsById($coins);
+        return Coin::getCoinsById($coinIDs);
     }
 
     private function getCommerceCoins($creatorUser, $dateFilter = "today", $relation = [])
@@ -2875,11 +2897,11 @@ class BingoController extends Controller
 
         $title = 'Reporte de Ventas';
 
-        $coins = $this->getUserCoins($creatorUser, $dateFilter, ['CtnsLot', 'Coin']);
-
         switch ($userType) {
 
             case 'commerce':
+
+                $coins = $this->getUserCoins($userData, ['CtnsLot', 'Coin'], $dateFilter);
 
                 $totals = [
                     'allCtns' => 0,
@@ -2944,6 +2966,8 @@ class BingoController extends Controller
                 break;
 
             case 'seller':
+
+                $coins = $this->getUserCoins($userData, ['CtnsLot'], $dateFilter);
 
                 // Inicializar los totales
                 $totalSale = 0;
