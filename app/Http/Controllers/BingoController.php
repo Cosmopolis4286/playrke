@@ -3137,6 +3137,8 @@ class BingoController extends Controller
             abort(404); // Retorna un error 404 Not Found
         }
 
+        if ($type === 'other-winners') return redirect()->back();
+
         $userData = $this->getUserData();
 
         $verifyCoin = $this->verifyExistenceOfSales($userData, $dateFilter, $coin);
@@ -3233,25 +3235,46 @@ class BingoController extends Controller
 
                 $winners = $winnersQuery->where('active', 'Y')->orderBy('prize_type')->get();
 
-                //$winnersJackpot = $winners->where('prize_type', 1)->count();
-                //$winnersSerials = $winners->where('prize_type', 2)->count();
+                if (!count($winners) && $dateFilter !== 'all') {
+                    return redirect()->route(
+                        'bingo.ctnsAwarded',
+                        ['type' => $type, 'dateFilter' => 'all']
+                    );
+                }
 
-                return view(
-                    'modules.commerce.games.bingo.cartons.awarwed.my-winners',
-                    compact(
-                        'title',
-                        'name',
-                        'dateFilter',
-                        'commerce',
-                        'winners',
-                        'routeWithCoin',
-                        'paymentsOtherCommerces',
-                        'countWinnersOtherCommerces',
-                        'countWinnersByCommerce',
-                        'coin',
-                        'coins'
-                    )
-                );
+                if ($type === 'winners') {
+
+                    return view(
+                        'modules.commerce.games.bingo.cartons.awarded.my-winners',
+                        compact(
+                            'title',
+                            'name',
+                            'dateFilter',
+                            'commerce',
+                            'winners',
+                            'routeWithCoin',
+                            'paymentsOtherCommerces',
+                            'countWinnersOtherCommerces',
+                            'countWinnersByCommerce',
+                            'coin',
+                            'coins'
+                        )
+                    );
+                } else {
+                    return view(
+                        'modules.commerce.games.bingo.cartons.awarded.other-winners',
+                        compact(
+                            'title',
+                            'name',
+                            'commerceID',
+                            'dateFilter',
+                            'winners',
+                            'countWinnersOtherCommerces',
+                            'countWinnersByCommerce',
+                            'coins'
+                        )
+                    );
+                }
 
                 break;
 
@@ -3288,7 +3311,7 @@ class BingoController extends Controller
                 $coinISOCode = $coinInfo->iso_code;
 
                 return view(
-                    'modules.seller.games.bingo.cartons.awarwed',
+                    'modules.seller.games.bingo.cartons.awarded',
                     compact('title', 'name', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
                 );
 
@@ -3298,52 +3321,5 @@ class BingoController extends Controller
                 # code...
                 break;
         }
-    }
-
-    public function getBingoWinnersByOtherCommerces($dateFilter = 'all')
-    {
-        return redirect()->back();
-
-        $title = 'Últimos Ganadores';
-        $name = 'notify-payment-win-ctns-off';
-
-        $commerce = $this->commerce(['id', 'user']);
-        $commerceID = $commerce->id;
-        $creatorUser = $commerce->user;
-
-        app(HandleBingoRooms::class)->checkRoomClosure();
-
-        // Obtener los datos de los ganadores
-        $winners = $this->getWinnersData($creatorUser, $dateFilter, true);
-
-        if (!count($winners) && $dateFilter !== 'all') {
-            return redirect()->route(
-                'bingo.getBingoWinnersByOtherCommerces',
-                ['dateFilter' => 'all']
-            );
-        }
-
-        // Contar los ganadores pendientes de pago para otros comercios
-        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($commerceID);
-
-        // Contar los ganadores pendientes de pago para el propio comercio
-        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($commerceID);
-
-        // Obtener las monedas asociadas al comercio
-        $coins = $this->getByIdsForCommerce($commerceID);
-
-        return view(
-            'modules.commerce.games.bingo.cartons.awarwed.other-winners',
-            compact(
-                'title',
-                'name',
-                'commerceID',
-                'dateFilter',
-                'winners',
-                'countWinnersOtherCommerces',
-                'countWinnersByCommerce',
-                'coins'
-            )
-        );
     }
 }
