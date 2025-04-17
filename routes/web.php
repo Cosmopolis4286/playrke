@@ -324,8 +324,8 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('sales-report-by-room/{room}/{coin}', [BingoController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
     Route::get('sales-report-by-room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 
+    Route::get('winners/{type}/{dateFilter}/{coin?}', [BingoController::class, 'ctnsAwarded'])->name('ctnsAwarded');
     Route::get('cartons-sold/{coin?}/{dateFilter?}', [BingoController::class, 'ctnsSold'])->name('ctnsSold');
-    Route::get('{type}/{dateFilter?}/{coin?}', [BingoController::class, 'ctnsAwarded'])->name('ctnsAwarded');
 
     // CRUD de BINGO
     Route::post('create', [BingoController::class, 'create'])->name('create');

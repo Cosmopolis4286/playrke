@@ -53,7 +53,7 @@
                                         title="Notificar Pago" data-payment_type="1" data-count_commerce=""
                                         data-coin_sym="{{ $win->Coin->name }}" data-prize_amount="{{ $win->amount }}"
                                         data-ctn='{{ encrypt($win->ctn) }}'>
-                                        Notificar
+                                        <i class="fa-solid fa-bell"></i>
                                     </button>
                                 @else
                                     <button type="button" class="btn btn-danger btn-sm notify-ctn-payment"

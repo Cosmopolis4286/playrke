@@ -3131,13 +3131,13 @@ class BingoController extends Controller
         }
     }
 
-    public function ctnsAwarded($type = 'winners', $dateFilter = "today", $coin='')
+    public function ctnsAwarded($type = 'private', $dateFilter = "today", $coin = '')
     {
-        if (!in_array($type, ['winners', 'other-winners'])) {
+        if (!in_array($type, ['private', 'public'])) {
             abort(404); // Retorna un error 404 Not Found
         }
-        
-        if ($type === 'other-winners') return redirect()->back();
+
+        if ($type === 'public') return redirect()->back();
 
         $userData = $this->getUserData();
 
@@ -3148,8 +3148,8 @@ class BingoController extends Controller
                 'bingo.ctnsAwarded',
                 [
                     'type' => $type,
-                    'coin' => encrypt($verifyCoin['coin']),
-                    'dateFilter' => 'all'
+                    'dateFilter' => 'all',
+                    'coin' => encrypt($verifyCoin['coin'])
                 ]
             );
         }
@@ -3158,8 +3158,8 @@ class BingoController extends Controller
             'route' => 'bingo.ctnsAwarded',
             'parameters' => [
                 'type' => $type,
-                'coin' => $coin,
-                'dateFilter' => $dateFilter
+                'dateFilter' => $dateFilter,
+                'coin' => $coin
             ]
         ];
 
@@ -3229,7 +3229,7 @@ class BingoController extends Controller
                     $query->where('status', '<', 5)->with('CtnsLot');
                 })->whereHas('Seller')->whereHas('GameExchangeRate');
 
-                if ($type === 'winners') {
+                if ($type === 'private') {
                     $winnersQuery->where('creator_user', $creatorUser);
                 } else {
                     $winnersQuery->whereNot('creator_user', $creatorUser);
@@ -3246,7 +3246,7 @@ class BingoController extends Controller
                     );
                 }
 
-                if ($type === 'winners') {
+                if ($type === 'private') {
 
                     return view(
                         'modules.commerce.games.bingo.cartons.awarded.my-winners',

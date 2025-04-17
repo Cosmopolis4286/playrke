@@ -67,7 +67,7 @@
                                 <button type="button" class="btn btn-danger btn-sm notify-ctn-payment"
                                     title="Notificar Pago" data-coin_sym="{{ $win->Coin->symbol }}"
                                     data-amount="{{ $win->amount }}" data-ctn='{{ encrypt($win->ctn) }}'>
-                                    Notificar
+                                    <i class="fa-solid fa-bell"></i>
                                 </button>
                             @endif
                             @if ($win->PlayerLink)
