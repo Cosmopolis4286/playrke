@@ -2801,7 +2801,7 @@ class BingoController extends Controller
 
         $routeWithCoin = [
             'route' => 'bingo.reportSalesRooms',
-            'parameters' => ['dateFilter' => $dateFilter]
+            'parameters' => ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => $dateFilter]
         ];
 
         // Obtener los datos de los ganadores
@@ -2930,7 +2930,7 @@ class BingoController extends Controller
 
         $routeWithCoin = [
             'route' => 'bingo.reportSalesByRoom',
-            'parameters' => ['room' => $roomID]
+            'parameters' => ['room' => $roomID, 'coin' => $coin]
         ];
 
         $coin = decrypt($coin);
@@ -2940,8 +2940,8 @@ class BingoController extends Controller
         if (!$existSale) {
             // Si no existe venta para esa fecha
             return redirect()->route(
-                'bingo.reportSalesRooms',
-                ['coin' => encrypt($coin), 'dateFilter' => 'all']
+                'bingo.reportSalesByRoom',
+                ['room' => $roomID, 'coin' => encrypt($coin)]
             );
         }
 
@@ -3047,7 +3047,7 @@ class BingoController extends Controller
 
         $routeWithCoin = [
             'route' => 'bingo.ctnsSold',
-            'parameters' => ['dateFilter' => $dateFilter]
+            'parameters' => ['coin' => $coin, 'dateFilter' => $dateFilter]
         ];
 
         switch ($userData['type']) {
@@ -3131,12 +3131,12 @@ class BingoController extends Controller
         }
     }
 
-    public function ctnsAwarded($type = 'winners', $coin = '', $dateFilter = "today")
+    public function ctnsAwarded($type = 'winners', $dateFilter = "today", $coin='')
     {
         if (!in_array($type, ['winners', 'other-winners'])) {
             abort(404); // Retorna un error 404 Not Found
         }
-
+        
         if ($type === 'other-winners') return redirect()->back();
 
         $userData = $this->getUserData();
@@ -3154,17 +3154,21 @@ class BingoController extends Controller
             );
         }
 
+        $routeWithCoin = [
+            'route' => 'bingo.ctnsAwarded',
+            'parameters' => [
+                'type' => $type,
+                'coin' => $coin,
+                'dateFilter' => $dateFilter
+            ]
+        ];
+
         $coin = $verifyCoin;
 
         app(HandleBingoRooms::class)->checkRoomClosure();
 
         $title = 'Ganadores';
         $name = 'notify-payment-win-ctns-off';
-
-        $routeWithCoin = [
-            'route' => 'bingo.ctnsAwarded',
-            'parameters' => ['dateFilter' => $dateFilter]
-        ];
 
         switch ($userData['type']) {
 
