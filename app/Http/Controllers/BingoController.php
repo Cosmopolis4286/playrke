@@ -3010,62 +3010,130 @@ class BingoController extends Controller
 
     public function reportSalesByRoom($roomID, $coin)
     {
-        $commerce = $this->commerce(['id', 'user']);
+        $user = $this->user(['id', 'user_type']);
+        $userId = $user->id;
+
+        $userType = UserType::getValueById($user->user_type, 'prefix');
+
+        switch ($userType) {
+            case 'commerce':
+                $commerce = $this->commerce(['id', 'user']);
+                $userTypeId = $commerce->id;
+                break;
+            case 'seller':
+                $seller = $this->seller(['id', 'user']);
+                $userTypeId = $seller->id;
+                break;
+            default:
+                # code...
+                break;
+        }
+
+        $userData = ['type' => $userType, 'id' => $userTypeId, 'userId' => $userId];
 
         $room = BingoRoom::getByEncrypted($roomID, ['id', 'encrypted', 'creator_user']);
-
-        if ($room->creator_user != $commerce->user || !$room->creator_user) {
-            return redirect()->back();
-        }
-
         $roomID = $room->id;
-
-        $coin = decrypt($coin);
-
-        $creatorUser = $commerce->user;
-        $user = ['type' => 'commerce', 'id' => $commerce->id, 'userId' => $creatorUser];
-
-        $existSale = $this->verifyExistenceOfSales($user, '', $coin, $roomID);
-
-        if (!$existSale) {
-            // si no existe venta para esa fecha
-            return redirect()->route('bingo.reportSalesRooms', ['coin' => encrypt($coin), 'dateFilter' => 'all']);
-        }
-
-        $ctnsLotFilter = fn($query) => $query->where('room', $roomID)->where('coin', $coin);
-
-        $sellers = Seller::select('id', 'name', 'country')
-            ->with([
-                'Country:id,name',
-                'CtnsLot' => $ctnsLotFilter,
-                'CtnsLot.RoomConfig:id,room,room_commn'
-            ])
-            ->where('commerce', $commerce->id)
-            ->whereHas('CtnsLot', $ctnsLotFilter)
-            ->get();
-
-        $coins = $this->getCommerceCoins($creatorUser, '', ['CtnsLot', 'Coin']);
+        $bingoConfig = BingoRoomConfig::getByRoom($roomID, ['ctn_price', 'room_commn']);
 
         $routeWithCoin = [
             'route' => 'bingo.reportSalesByRoom',
             'parameters' => ['room' => $roomID]
         ];
 
+        $coin = decrypt($coin);
+
+        $existSale = $this->verifyExistenceOfSales($userData, '', $coin, $roomID);
+
+        if (!$existSale) {
+            // Si no existe venta para esa fecha
+            return redirect()->route(
+                'bingo.reportSalesRooms',
+                ['coin' => encrypt($coin), 'dateFilter' => 'all']
+            );
+        }
+
+        $title = 'Reporte de Sala';
+        $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
+
         $coin = Coin::getById($coin, ['id', 'symbol']);
 
-        $bingoConfig = BingoRoomConfig::getByRoom($roomID, ['ctn_price', 'room_commn']);
+        switch ($userType) {
 
-        return view('modules/commerce/games/bingo/report/by-room')->with([
-            'title' => "Reporte de Sala",
-            'cardTitle' => "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>",
-            'ctnPrice' => $bingoConfig->ctn_price,
-            'sellers' => $sellers,
-            'comCommerceRm' => $bingoConfig->room_commn,
-            'room' => $room->encrypted,
-            'routeWithCoin' => $routeWithCoin,
-            'coin' => $coin->id,
-            'coinSym' => $coin->symbol,
-            'coins' => $coins
-        ]);
+            case 'commerce':
+
+                $ctnsLotFilter = fn($query) => $query->where('room', $roomID)->where('coin', $coin->id);
+
+                $sellers = Seller::select('id', 'name', 'country')
+                    ->with([
+                        'Country:id,name',
+                        'CtnsLot' => $ctnsLotFilter,
+                        'CtnsLot.RoomConfig:id,room,room_commn'
+                    ])
+                    ->where('commerce', $userTypeId)
+                    ->whereHas('CtnsLot', $ctnsLotFilter)
+                    ->get();
+
+                $coins = $this->getUserCoins($userData, ['CtnsLot', 'Coin']);
+
+                return view('modules/commerce/games/bingo/report/by-room')->with([
+                    'title' => $title,
+                    'cardTitle' => $cardTitle,
+                    'ctnPrice' => $bingoConfig->ctn_price,
+                    'sellers' => $sellers,
+                    'comCommerceRm' => $bingoConfig->room_commn,
+                    'room' => $room->encrypted,
+                    'routeWithCoin' => $routeWithCoin,
+                    'coin' => $coin->id,
+                    'coinSym' => $coin->symbol,
+                    'coins' => $coins
+                ]);
+                break;
+
+            case 'seller':
+
+                $playersRoom = PlayerLink::with(['Coin', 'CtnsLot'])
+                    ->where(['seller' => $seller->id, 'room' => $room->id, 'coin' => $coin])
+                    ->orderByDesc('id')->get(['id', 'link', 'coin', 'name', 'lastname', 'phone']);
+
+                if (!count($playersRoom)) return redirect()->back();
+
+                // Realizar los cálculos de CTNs 
+                $totalCtnsPurchased = $playersRoom->pluck('CtnsLot')->flatten()->sum('sale_amount');
+
+                $totalCtnsByRoom = $playersRoom->flatMap->CtnsLot->sum('ctns');
+
+                $where = collect([(object) ['column' => 'room', 'value' => $room->id]]);
+
+                $coins = $this->getSellerCoins($seller->id, '', ['CtnsLot'], $where);
+
+                $coinInfo = Coin::getById($coin, ['symbol', 'long_name']);
+
+                $coinName = $coinInfo->long_name;
+                $coinSym = $coinInfo->symbol;
+
+                $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
+
+                return view(
+                    'modules.seller.games.bingo.report.by-room',
+                    compact(
+                        'title',
+                        'cardTitle',
+                        'commerce',
+                        'generateUniqueCodeed',
+                        'playersRoom',
+                        'routeWithCoin',
+                        'coins',
+                        'coin',
+                        'coinSym',
+                        'coinName',
+                        'totalCtnsPurchased',
+                        'totalCtnsByRoom'
+                    )
+                );
+                break;
+            default:
+                # code...
+                break;
+        }
     }
 }
