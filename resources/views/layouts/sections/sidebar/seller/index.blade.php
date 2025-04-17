@@ -32,7 +32,7 @@
                  </a>
              </li>
              <li class="nav-item">
-                 <a href="{{ route('bingo.ctnsAwarded') }}"
+                 <a href="{{ route('bingo.ctnsAwarded', [type => 'winners']) }}"
                      class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Ganadores</p>

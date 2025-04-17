@@ -3030,7 +3030,7 @@ class BingoController extends Controller
         }
     }
 
-    public function ctnsSold($dateFilter = 'today', $coin = '')
+    public function ctnsSold($coin = '', $dateFilter = 'today')
     {
         $userData = $this->getUserData();
 
@@ -3131,24 +3131,24 @@ class BingoController extends Controller
         }
     }
 
-
-    public function ctnsAwarded($coin = '', $dateFilter = "today")
+    public function ctnsAwarded($type = 'winners', $coin = '', $dateFilter = "today")
     {
-        $title = 'Ganadores';
-        $name = 'notify-payment-win-ctns-off';
+        if (!in_array($type, ['winners', 'other-winners'])) {
+            abort(404); // Retorna un error 404 Not Found
+        }
 
-        $seller = $this->seller(['id', 'commerce']);
+        $userData = $this->getUserData();
 
-        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
-
-        $user = ['type' => 'seller', 'id' => $seller->id, 'userId' => $creatorUser];
-
-        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
+        $verifyCoin = $this->verifyExistenceOfSales($userData, $dateFilter, $coin);
 
         if (isset($verifyCoin['return'])) {
             return redirect()->route(
                 'bingo.ctnsAwarded',
-                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+                [
+                    'type' => $type,
+                    'coin' => encrypt($verifyCoin['coin']),
+                    'dateFilter' => 'all'
+                ]
             );
         }
 
@@ -3156,42 +3156,194 @@ class BingoController extends Controller
 
         app(HandleBingoRooms::class)->checkRoomClosure();
 
-        $winnersQuery = BingoPrizeCtns::with([
-            'Coin',
-            'Prize',
-            'GameExchangeRate',
-            'Room',
-            'PlayerLink.Country',
-            'PlayerGame'
-        ])->whereHas('Room', function ($query) {
-            $query->whereColumn('id', 'bingo_prize_ctns.room')->where('status', 4);
-        })->whereHas('GameExchangeRate', function ($query) use ($coin) {
-            $query->where('game', 1)->where('coin', $coin);
-        });
-
-        $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
-
-        $winners = $winnersQuery->where('seller', $seller->id)
-            ->where('active', 'Y')->where('coin', $coin)->get();
-
-        $commerce = Commerce::getById($seller->commerce, ['code_rke', 'code_uuid']);
-
-        $commerce = $commerce->code_rke ?? $commerce->code_uuid;
-
-        $coins = $this->getSellerCoins($seller->id, $dateFilter, ['PlayerLink', 'PrizeCtns']);
+        $title = 'Ganadores';
+        $name = 'notify-payment-win-ctns-off';
 
         $routeWithCoin = [
             'route' => 'bingo.ctnsAwarded',
             'parameters' => ['dateFilter' => $dateFilter]
         ];
 
-        $coinInfo = Coin::getById($coin, ['id', 'symbol', 'iso_code']);
-        $coinSym = $coinInfo->symbol;
-        $coinISOCode = $coinInfo->iso_code;
+        switch ($userData['type']) {
+
+            case 'commerce':
+
+                $creatorUser = $userData['userId'];
+
+                // Pagos Pendientes de otros comercios
+                $paymentsOtherCommerces = 0;
+
+                // Contar los ganadores pendientes de pago para otros comercios
+                $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($creatorUser);
+
+                // Contar los ganadores pendientes de pago para el propio comercio
+                $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($creatorUser);
+
+                $coin = $this->wallet()->Coin->id;
+
+                // Obtener las monedas asociadas al comercio
+                $where = collect([
+                    (object)[
+                        'relation' => 'PlayerLink',
+                        'constraints' => function ($query) use ($creatorUser) {
+                            $query->whereColumn('coin', 'commerces_countries_coins.coin')
+                                ->where('creator_user', $creatorUser);
+                        }
+                    ],
+                    (object)[
+                        'relation' => 'PlayerLink.PlayerGame',
+                        'constraints' => function ($query) {
+                            $query->where('winner', '>', 0);
+                        }
+                    ]
+                ]);
+
+                $coins = $this->getUserCoins($userData, ['Coin', 'PlayerLink.PlayerGame'], $dateFilter, $where);
+
+                $commerce = Commerce::getById($userData['id'], ['code_rke', 'code_uuid']);
+                $commerce = $commerce->code_rke ?? $commerce->code_uuid;
+
+                // Obtener los datos de los ganadores
+                $winnersQuery = BingoPrizeCtns::with([
+                    'Room:id,encrypted',
+                    'Room.Config:id,room,date,time',
+                    'Coin',
+                    'PlayerLink.Country',
+                    'Payments',
+                    'Seller' => function ($query) {
+                        $query->select('id', 'name');
+                    },
+                    'Prize' => function ($query) {
+                        $query->select('id', 'description');
+                    },
+                    'GameExchangeRate' => function ($query) {
+                        $query->where('game', 1);
+                    }
+                ])->whereHas('Room', function ($query) {
+                    $query->where('status', '<', 5)->with('CtnsLot');
+                })->whereHas('Seller')->whereHas('GameExchangeRate');
+
+                if ($type === 'winners') {
+                    $winnersQuery->where('creator_user', $creatorUser);
+                } else {
+                    $winnersQuery->whereNot('creator_user', $creatorUser);
+                }
+
+                $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
+
+                $winners = $winnersQuery->where('active', 'Y')->orderBy('prize_type')->get();
+
+                //$winnersJackpot = $winners->where('prize_type', 1)->count();
+                //$winnersSerials = $winners->where('prize_type', 2)->count();
+
+                return view(
+                    'modules.commerce.games.bingo.cartons.awarwed.my-winners',
+                    compact(
+                        'title',
+                        'name',
+                        'dateFilter',
+                        'commerce',
+                        'winners',
+                        'routeWithCoin',
+                        'paymentsOtherCommerces',
+                        'countWinnersOtherCommerces',
+                        'countWinnersByCommerce',
+                        'coin',
+                        'coins'
+                    )
+                );
+
+                break;
+
+            case 'seller':
+
+                $seller = Seller::getById($userData['id'], ['id', 'commerce']);
+
+                $winnersQuery = BingoPrizeCtns::with([
+                    'Coin',
+                    'Prize',
+                    'GameExchangeRate',
+                    'Room',
+                    'PlayerLink.Country',
+                    'PlayerGame'
+                ])->whereHas('Room', function ($query) {
+                    $query->whereColumn('id', 'bingo_prize_ctns.room')->where('status', 4);
+                })->whereHas('GameExchangeRate', function ($query) use ($coin) {
+                    $query->where('game', 1)->where('coin', $coin);
+                });
+
+                $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
+
+                $winners = $winnersQuery->where('seller', $seller->id)
+                    ->where('active', 'Y')->where('coin', $coin)->get();
+
+                $commerce = Commerce::getById($seller->commerce, ['code_rke', 'code_uuid']);
+
+                $commerce = $commerce->code_rke ?? $commerce->code_uuid;
+
+                $coins = $this->getUserCoins($userData, ['PlayerLink', 'PrizeCtns'], $dateFilter);
+
+                $coinInfo = Coin::getById($coin, ['id', 'symbol', 'iso_code']);
+                $coinSym = $coinInfo->symbol;
+                $coinISOCode = $coinInfo->iso_code;
+
+                return view(
+                    'modules.seller.games.bingo.cartons.awarwed',
+                    compact('title', 'name', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
+                );
+
+                break;
+
+            default:
+                # code...
+                break;
+        }
+    }
+
+    public function getBingoWinnersByOtherCommerces($dateFilter = 'all')
+    {
+        return redirect()->back();
+
+        $title = 'Últimos Ganadores';
+        $name = 'notify-payment-win-ctns-off';
+
+        $commerce = $this->commerce(['id', 'user']);
+        $commerceID = $commerce->id;
+        $creatorUser = $commerce->user;
+
+        app(HandleBingoRooms::class)->checkRoomClosure();
+
+        // Obtener los datos de los ganadores
+        $winners = $this->getWinnersData($creatorUser, $dateFilter, true);
+
+        if (!count($winners) && $dateFilter !== 'all') {
+            return redirect()->route(
+                'bingo.getBingoWinnersByOtherCommerces',
+                ['dateFilter' => 'all']
+            );
+        }
+
+        // Contar los ganadores pendientes de pago para otros comercios
+        $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($commerceID);
+
+        // Contar los ganadores pendientes de pago para el propio comercio
+        $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($commerceID);
+
+        // Obtener las monedas asociadas al comercio
+        $coins = $this->getByIdsForCommerce($commerceID);
 
         return view(
-            'modules.seller.games.bingo.cartons.awarwed',
-            compact('title', 'name', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
+            'modules.commerce.games.bingo.cartons.awarwed.other-winners',
+            compact(
+                'title',
+                'name',
+                'commerceID',
+                'dateFilter',
+                'winners',
+                'countWinnersOtherCommerces',
+                'countWinnersByCommerce',
+                'coins'
+            )
         );
     }
 }

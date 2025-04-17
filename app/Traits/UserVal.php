@@ -237,46 +237,42 @@ trait UserVal
     public function getUserCoins($user, $relation = [], $dateFilter = 'today', $where = null)
     {
         $userType = $user['type'];
-
-        if ($userType !== 'seller') {
-            $userId = $user['userId'];
-            $userColumn = 'creator_user';
-        } else {
-            $userId = $user['id'];
-            $userColumn = 'seller';
-        }
+        $userId = $userType !== 'seller' ? $user['userId'] : $user['id'];
+        $userColumn = $userType !== 'seller' ? 'creator_user' : 'seller';
 
         $primaryRelation = $relation[0] ?? null;
         $secondaryRelation = $relation[1] ?? null;
 
         if (!$primaryRelation) {
-            return collect(); // Si no se proporciona una relación, se retorna vacío
+            return collect(); // No hay relación principal
         }
 
         // Construcción de la consulta principal
         $query = CommerceCountriesCoins::with($primaryRelation)
-            ->whereHas($primaryRelation, function ($subquery) use ($userId, $userColumn, $dateFilter, $where, $secondaryRelation) {
-                $subquery->whereColumn('coin', 'commerces_countries_coins.coin');
+            ->whereHas($primaryRelation, function ($subquery) use ($userId, $userColumn, $dateFilter, $secondaryRelation) {
+                $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
+                    ->where($userColumn, $userId);
 
-                $subquery->where($userColumn, $userId);
-
-                // Condiciones adicionales
-                if (!empty($where)) {
-                    foreach ($where as $condition) {
-                        $subquery->where($condition->column, $condition->value);
-                    }
-                }
-
-                // Carga de relación adicional (opcional)
                 if ($secondaryRelation) {
                     $subquery->with($secondaryRelation);
                 }
 
-                // Filtro de fecha
                 $this->applyDateFilter($dateFilter, $subquery);
             });
 
-        // Obtener monedas activas y ordenadas
+        // Procesar condiciones adicionales (where simples o whereHas anidados)
+        if ($where && $where->isNotEmpty()) {
+            foreach ($where as $item) {
+                if (isset($item->relation) && is_callable($item->constraints)) {
+                    // Es una relación: usar whereHas
+                    $query->whereHas($item->relation, $item->constraints);
+                } elseif (isset($item->column, $item->value)) {
+                    // Es una condición directa
+                    $query->where($item->column, $item->value);
+                }
+            }
+        }
+
         $coinIDs = $query->where('status', 1)->orderBy('country')->pluck('coin');
 
         return Coin::getCoinsById($coinIDs);
