@@ -530,78 +530,7 @@ class SellerController extends Controller
 
         // Devolver las monedas usando un método estático de la clase Coin
         return Coin::getCoinsById($coins);
-    }
-
-    public function ctnsSold($coin = '', $dateFilter = "today")
-    {   //Cartones Vendidos Salas Actuales Status 2 o 3
-        $seller = $this->seller(['id', 'commerce']);
-
-        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
-
-        $user = ['type' => 'seller', 'id' => $seller->id, 'userId' => $creatorUser];
-
-        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
-
-        if (isset($verifyCoin['return'])) {
-            return redirect()->route(
-                'seller.ctnsSold',
-                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
-            );
-        }
-
-        $coin = Coin::getById($verifyCoin);
-
-        $ctnsSoldQuery = BingoCtnsLot::with([
-            'Payment',
-            'PlayerLink',
-            'Room',
-            'ComSellerRoom' => function ($query) use ($seller) {
-                $query->where('seller', $seller->id);
-            }
-        ])->whereHas('Room', function ($query) use ($creatorUser) {
-            $query->where('creator_user', $creatorUser)->where('status', '>=', 2);
-        })->whereHas('ComSellerRoom', function ($query) {
-            $query->whereNotNull('room');
-        });
-
-        $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
-
-        $ctnsSold = $ctnsSoldQuery->where('coin', $coin->id)
-            ->where('seller', $seller->id)->orderBy('status')->orderByDesc('id')->get();
-
-        $allPendingCtnSale = $pendingCtns = 0;
-
-        foreach ($ctnsSold as $value) {
-            if ($value->status == 0) {
-                $allPendingCtnSale += $value->sale_amount;
-                $pendingCtns++;
-            }
-        }
-
-        $coins = $this->getSellerCoins($seller->id, $dateFilter, ['CtnsLot']);
-
-        $routeWithCoin = [
-            'route' => 'seller.ctnsSold',
-            'parameters' => ['dateFilter' => $dateFilter]
-        ];
-
-        return view('modules/seller/games/bingo/cartons/ctns-sold')->with([
-            'title' => 'Cartones Vendidos',
-            'name' => 'notify-payment-ctns-off',
-            'seller' => encrypt($seller->id),
-            'allPendingCtnSale' => $allPendingCtnSale,
-            'pendingCtns' => $pendingCtns,
-            'ctnsSold' => $ctnsSold,
-            'routeWithCoin' => $routeWithCoin,
-            'coin' => $coin->id,
-            'coinName' => $coin->short_name,
-            'coinISOCode' => $coin->iso_code,
-            'coinSym' => $coin->symbol,
-            'dateFilter' => $dateFilter,
-            'commerceName' => Commerce::getById($seller->commerce)->name,
-            'coins' => $coins
-        ]);
-    }
+    }    
 
     public function ctnsAwarded($coin = '', $dateFilter = "today")
     {

@@ -281,4 +281,28 @@ trait UserVal
 
         return Coin::getCoinsById($coinIDs);
     }
+
+    public function getUserData()
+    {
+        $user = $this->user(['id', 'user_type']);
+        $userId = $user->id;
+
+        $userType = UserType::getValueById($user->user_type, 'prefix');
+
+        switch ($userType) {
+            case 'commerce':
+                $commerce = $this->commerce(['id', 'user']);
+                $userTypeId = $commerce->id;
+                break;
+            case 'seller':
+                $seller = $this->seller(['id', 'user']);
+                $userTypeId = $seller->id;
+                break;
+            default:
+                # code...
+                break;
+        }
+
+        return ['type' => $userType, 'id' => $userTypeId, 'userId' => $userId];
+    }
 }
