@@ -40,7 +40,7 @@
                 </form>
             </div>
         </div>
-        @include('includes.game.bingo.layout.modal-bingo-rules')
+        @include('includes.games.bingo.layout.modal-bingo-rules')
     </div>
 @endsection
 @section('scripts')

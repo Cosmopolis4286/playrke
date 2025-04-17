@@ -5,10 +5,10 @@
         <div class="card">
             @include('includes.card-header', ['subtitle' => 'Automáticas'])
             <div class="card-body">
-                @include('includes.game.bingo.report.btn-group', ['view' => 'AUTO'])
+                @include('includes.games.bingo.report.btn-group', ['view' => 'AUTO'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.table-info-automatic-bingo-rooms')
+                        @include('includes.games.bingo.report.table-info-automatic-bingo-rooms')
                     </div>
                 </div>
             </div>

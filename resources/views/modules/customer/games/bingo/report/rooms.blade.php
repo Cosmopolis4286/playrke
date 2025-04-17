@@ -12,7 +12,7 @@
                 ])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.report-table-bingo')
+                        @include('includes.games.bingo.report.report-table-bingo')
                     </div>
                 </div>
             </div>

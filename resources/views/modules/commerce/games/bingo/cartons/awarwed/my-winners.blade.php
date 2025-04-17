@@ -6,7 +6,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.game.bingo.report.winners-ctns-tabs', [
+                @include('includes.games.bingo.report.winners-ctns-tabs', [
                     'isCommerce' => true,
                     'countWinnersByCommerce' => $countWinnersByCommerce,
                     'countWinnersOtherCommerces' => $countWinnersOtherCommerces,
@@ -16,7 +16,7 @@
                 ])
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.my-winners-report-table')
+                        @include('includes.games.bingo.report.my-winners-report-table')
                     </div>
                 </div>
             </div>

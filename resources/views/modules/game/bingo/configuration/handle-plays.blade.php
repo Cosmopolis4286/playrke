@@ -50,7 +50,7 @@
                 </div>
             </div>
         </div>
-        @include('includes.game.bingo.layout.modal-bingo-plays')
+        @include('includes.games.bingo.layout.modal-bingo-plays')
     </div>
 @endsection
 @section('scripts')

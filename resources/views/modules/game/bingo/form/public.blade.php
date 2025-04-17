@@ -6,13 +6,13 @@
             @include('includes.card-header', ['subtitle' => $subtitle ?? 'Publicas'])
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
-                @include('includes.game.bingo.report.btn-group', ['view' => 'PUBLIC'])
+                @include('includes.games.bingo.report.btn-group', ['view' => 'PUBLIC'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @if (!isset($otherRooms))
-                            @include('includes.game.bingo.report.table-info-bingo-rooms')
+                            @include('includes.games.bingo.report.table-info-bingo-rooms')
                         @else
-                            @include('includes.game.bingo.report.table-info-other-public-bingo-rooms')
+                            @include('includes.games.bingo.report.table-info-other-public-bingo-rooms')
                         @endif
                     </div>
                 </div>
