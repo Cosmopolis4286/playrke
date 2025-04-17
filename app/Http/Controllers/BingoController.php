@@ -3130,4 +3130,68 @@ class BingoController extends Controller
                 break;
         }
     }
+
+
+    public function ctnsAwarded($coin = '', $dateFilter = "today")
+    {
+        $title = 'Ganadores';
+        $name = 'notify-payment-win-ctns-off';
+
+        $seller = $this->seller(['id', 'commerce']);
+
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+
+        $user = ['type' => 'seller', 'id' => $seller->id, 'userId' => $creatorUser];
+
+        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
+
+        if (isset($verifyCoin['return'])) {
+            return redirect()->route(
+                'bingo.ctnsAwarded',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
+        }
+
+        $coin = $verifyCoin;
+
+        app(HandleBingoRooms::class)->checkRoomClosure();
+
+        $winnersQuery = BingoPrizeCtns::with([
+            'Coin',
+            'Prize',
+            'GameExchangeRate',
+            'Room',
+            'PlayerLink.Country',
+            'PlayerGame'
+        ])->whereHas('Room', function ($query) {
+            $query->whereColumn('id', 'bingo_prize_ctns.room')->where('status', 4);
+        })->whereHas('GameExchangeRate', function ($query) use ($coin) {
+            $query->where('game', 1)->where('coin', $coin);
+        });
+
+        $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
+
+        $winners = $winnersQuery->where('seller', $seller->id)
+            ->where('active', 'Y')->where('coin', $coin)->get();
+
+        $commerce = Commerce::getById($seller->commerce, ['code_rke', 'code_uuid']);
+
+        $commerce = $commerce->code_rke ?? $commerce->code_uuid;
+
+        $coins = $this->getSellerCoins($seller->id, $dateFilter, ['PlayerLink', 'PrizeCtns']);
+
+        $routeWithCoin = [
+            'route' => 'bingo.ctnsAwarded',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
+
+        $coinInfo = Coin::getById($coin, ['id', 'symbol', 'iso_code']);
+        $coinSym = $coinInfo->symbol;
+        $coinISOCode = $coinInfo->iso_code;
+
+        return view(
+            'modules.seller.games.bingo.cartons.awarwed',
+            compact('title', 'name', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
+        );
+    }
 }

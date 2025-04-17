@@ -11,9 +11,7 @@
                     'countWinnersByCommerce' => $countWinnersByCommerce,
                     'countWinnersOtherCommerces' => $countWinnersOtherCommerces,
                 ])
-                @include('includes.date-filter-buttons', [
-                    'routeWithCoin' => 'commerce.getBingoWinnersByOtherCommerces',
-                ])
+                @include('includes.date-filter-buttons')
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
                         @include('includes.games.bingo.report.other-winners-report-table')

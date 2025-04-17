@@ -11,7 +11,7 @@
      </li>
      <li class="nav-item has-treeview">
          <a href="#"
-             class="nav-link {{ !Route::is('seller.cartonGenerate', 'bingo.ctnsSold', 'seller.ctnsAwarded', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom') ?: 'active' }} ">
+             class="nav-link {{ !Route::is('seller.cartonGenerate', 'bingo.ctnsSold', 'bingo.ctnsAwarded', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom') ?: 'active' }} ">
              <i class="nav-icon fa-solid fa-hat-wizard"></i>
              <p>Bingo
                  <i class="right fas fa-angle-left"></i>
@@ -32,8 +32,8 @@
                  </a>
              </li>
              <li class="nav-item">
-                 <a href="{{ route('seller.ctnsAwarded') }}"
-                     class="nav-link {{ !Route::is('seller.ctnsAwarded') ?: 'active' }}">
+                 <a href="{{ route('bingo.ctnsAwarded') }}"
+                     class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Ganadores</p>
                  </a>

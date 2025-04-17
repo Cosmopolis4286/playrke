@@ -6,7 +6,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 @include('includes.coin-tabs')
-                @include('includes.date-filter-buttons', ['routeWithCoin' => $routeWithCoin['route']])
+                @include('includes.date-filter-buttons')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-3">

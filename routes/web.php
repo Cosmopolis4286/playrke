@@ -184,7 +184,6 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::get('bingo/get/ctn-price-coin/{room}/{country}', [SellerController::class, 'getCtnPriceCoin'])->name('getCtnPriceCoin');
     Route::post('bingo/player/get/player', [SellerController::class, 'getPlayer'])->name('getPlayer');
     Route::get('bingo/player/cartons/{playerLink}{room}', [SellerController::class, 'showPlayerCartons'])->name('showPlayerCartons');
-    Route::get('bingo/carton/awarded/{coin?}/{dateFilter?}', [SellerController::class, 'ctnsAwarded'])->name('ctnsAwarded');
     Route::get('bingo/getWinnerInfoForCtn/{ctnId}', [SellerController::class, 'getWinnerInfoForCtn'])->name('getWinnerInfoForCtn');
     Route::get('bingo/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
     Route::post('bingo/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
@@ -327,7 +326,8 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('sales-report-by-room/{room}/{coin}', [BingoController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
     Route::get('sales-report-by-room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 
-    Route::get('carton-sold/{dateFilter?}/{coin?}', [BingoController::class, 'ctnsSold'])->name('ctnsSold');
+    Route::get('cartons-sold/{dateFilter?}/{coin?}', [BingoController::class, 'ctnsSold'])->name('ctnsSold');
+    Route::get('winners/{coin?}/{dateFilter?}', [BingoController::class, 'ctnsAwarded'])->name('ctnsAwarded');
 
     // CRUD de BINGO
     Route::post('create', [BingoController::class, 'create'])->name('create');
