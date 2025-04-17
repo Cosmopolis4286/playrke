@@ -2780,73 +2780,6 @@ class BingoController extends Controller
         return $rooms;
     }
 
-    private function getUserCoins($user, $relation = [], $dateFilter = 'today', $where = null)
-    {
-        $userType = $user['type'];
-
-        if ($userType !== 'seller') {
-            $userId = $user['userId'];
-            $userColumn = 'creator_user';
-        } else {
-            $userId = $user['id'];
-            $userColumn = 'seller';
-        }
-
-        $primaryRelation = $relation[0] ?? null;
-        $secondaryRelation = $relation[1] ?? null;
-
-        if (!$primaryRelation) {
-            return collect(); // Si no se proporciona una relación, se retorna vacío
-        }
-
-        // Construcción de la consulta principal
-        $query = CommerceCountriesCoins::with($primaryRelation)
-            ->whereHas($primaryRelation, function ($subquery) use ($userId, $userColumn, $dateFilter, $where, $secondaryRelation) {
-                $subquery->whereColumn('coin', 'commerces_countries_coins.coin');
-
-                $subquery->where($userColumn, $userId);
-
-                // Condiciones adicionales
-                if (!empty($where)) {
-                    foreach ($where as $condition) {
-                        $subquery->where($condition->column, $condition->value);
-                    }
-                }
-
-                // Carga de relación adicional (opcional)
-                if ($secondaryRelation) {
-                    $subquery->with($secondaryRelation);
-                }
-
-                // Filtro de fecha
-                $this->applyDateFilter($dateFilter, $subquery);
-            });
-
-        // Obtener monedas activas y ordenadas
-        $coinIDs = $query->where('status', 1)->orderBy('country')->pluck('coin');
-
-        return Coin::getCoinsById($coinIDs);
-    }
-
-    private function getCommerceCoins($creatorUser, $dateFilter = "today", $relation = [])
-    {
-        $query = CommerceCountriesCoins::with($relation[0])
-            ->whereHas($relation[0], function ($subquery) use ($creatorUser, $relation, $dateFilter) {
-                $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
-                    ->where('creator_user', $creatorUser);
-
-                if (count($relation) > 1) {
-                    $subquery->with($relation[1]);
-                }
-
-                $subquery = $this->applyDateFilter($dateFilter, $subquery);
-            });
-
-        $coins = $query->where('status', 1)->orderBy('country')->pluck('coin');
-
-        return Coin::getCoinsById($coins);
-    }
-
     public function reportSalesRooms($coin = '', $dateFilter = "today")
     {
         $user = $this->user(['id', 'user_type']);
@@ -3067,7 +3000,6 @@ class BingoController extends Controller
                     ->with([
                         'Country:id,name',
                         'CtnsLot' => $ctnsLotFilter,
-                        'CtnsLot.RoomConfig:id,room,room_commn'
                     ])
                     ->where('commerce', $userTypeId)
                     ->whereHas('CtnsLot', $ctnsLotFilter)
@@ -3078,9 +3010,8 @@ class BingoController extends Controller
                 return view('modules/commerce/games/bingo/report/by-room')->with([
                     'title' => $title,
                     'cardTitle' => $cardTitle,
-                    'ctnPrice' => $bingoConfig->ctn_price,
                     'sellers' => $sellers,
-                    'comCommerceRm' => $bingoConfig->room_commn,
+                    'comCommerceRoom' => $bingoConfig->room_commn / 100,
                     'room' => $room->encrypted,
                     'routeWithCoin' => $routeWithCoin,
                     'coin' => $coin->id,
@@ -3102,9 +3033,9 @@ class BingoController extends Controller
 
                 $totalCtnsByRoom = $playersRoom->flatMap->CtnsLot->sum('ctns');
 
-                $where = collect([(object) ['column' => 'room', 'value' => $room->id]]);
+                $where = collect([(object) ['column' => 'room', 'value' => $roomID]]);
 
-                $coins = $this->getSellerCoins($seller->id, '', ['CtnsLot'], $where);
+                $coins = $this->getUserCoins($userData, ['CtnsLot'], 'today', $where);
 
                 $coinInfo = Coin::getById($coin, ['symbol', 'long_name']);
 
@@ -3135,5 +3066,51 @@ class BingoController extends Controller
                 # code...
                 break;
         }
+    }
+
+    public function ctnsSold($dateFilter = 'today', $coin = '')
+    {
+        $title = 'Cartones Vendidos';
+
+        $commerce = $this->commerce(['id', 'user']);
+
+        $creatorUser = $commerce->user;
+
+        $user = ['type' => 'commerce', 'id' => $commerce->id, 'userId' => $creatorUser];
+
+        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
+
+        if (isset($verifyCoin['return'])) {
+            return redirect()->route(
+                'bingo.ctnsSold',
+                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+            );
+        }
+
+        $coin = $verifyCoin;
+
+        $coinSym = Coin::getValue($coin, 'symbol');
+
+        $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
+            ->whereHas('Room', function ($query) use ($creatorUser) {
+                $query->where('creator_user', $creatorUser)->whereIn('status', [2, 3, 4]);
+            });
+
+        $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
+
+        $ctnsSold = $ctnsSoldQuery->where('coin', $coin)->where('creator_user', $creatorUser)
+            ->whereHas('Seller')->orderBy('status')->orderByDesc('id')->get();
+
+        $coins = $this->getUserCoins($creatorUser, ['CtnsLot', 'Coin'], $dateFilter);
+
+        $routeWithCoin = [
+            'route' => 'commerce.ctnsSold',
+            'parameters' => ['dateFilter' => $dateFilter]
+        ];
+
+        return view(
+            'modules.commerce.games.bingo.cartons.ctns-sold',
+            compact('title', 'ctnsSold', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coins')
+        );
     }
 }

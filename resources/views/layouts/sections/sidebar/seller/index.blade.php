@@ -40,7 +40,7 @@
              </li>
              <li class="nav-item">
                  <a href="{{ route('bingo.reportSalesRooms') }}"
-                     class="nav-link {{ !Route::is('bingo.reportSalesRooms') ?: 'active' }}">
+                     class="nav-link {{ !Route::is('bingo.reportSalesRooms', 'bingo.reportSalesByRoom') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Reporte de Ventas</p>
                  </a>

@@ -602,53 +602,7 @@ class CommerceController extends Controller
 
         return response()->json(compact('commerce', 'paymentDetails', 'exchangeRate'));
     }
-
-    public function ctnsSold($dateFilter = 'today', $coin = '')
-    {
-        $title = 'Cartones Vendidos';
-
-        $commerce = $this->commerce(['id', 'user']);
-
-        $creatorUser = $commerce->user;
-
-        $user = ['type' => 'commerce', 'id' => $commerce->id, 'userId' => $creatorUser];
-
-        $verifyCoin = $this->verifyExistenceOfSales($user, $dateFilter, $coin);
-
-        if (isset($verifyCoin['return'])) {
-            return redirect()->route(
-                'commerce.ctnsSold',
-                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
-            );
-        }
-
-        $coin = $verifyCoin;
-
-        $coinSym = Coin::getValue($coin, 'symbol');
-
-        $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
-            ->whereHas('Room', function ($query) use ($creatorUser) {
-                $query->where('creator_user', $creatorUser)->whereIn('status', [2, 3, 4]);
-            });
-
-        $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
-
-        $ctnsSold = $ctnsSoldQuery->where('coin', $coin)->where('creator_user', $creatorUser)
-            ->whereHas('Seller')->orderBy('status')->orderByDesc('id')->get();
-
-        $coins = $this->getCommerceCoins($creatorUser, $dateFilter, ['CtnsLot', 'Coin']);
-
-        $routeWithCoin = [
-            'route' => 'commerce.ctnsSold',
-            'parameters' => ['dateFilter' => $dateFilter]
-        ];
-
-        return view(
-            'modules.commerce.games.bingo.cartons.ctns-sold',
-            compact('title', 'ctnsSold', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coins')
-        );
-    }
-
+    
     public function ctnsLotPayment(Request $request)
     {
         DB::beginTransaction();

@@ -233,4 +233,52 @@ trait UserVal
             return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
         }
     }
+
+    public function getUserCoins($user, $relation = [], $dateFilter = 'today', $where = null)
+    {
+        $userType = $user['type'];
+
+        if ($userType !== 'seller') {
+            $userId = $user['userId'];
+            $userColumn = 'creator_user';
+        } else {
+            $userId = $user['id'];
+            $userColumn = 'seller';
+        }
+
+        $primaryRelation = $relation[0] ?? null;
+        $secondaryRelation = $relation[1] ?? null;
+
+        if (!$primaryRelation) {
+            return collect(); // Si no se proporciona una relación, se retorna vacío
+        }
+
+        // Construcción de la consulta principal
+        $query = CommerceCountriesCoins::with($primaryRelation)
+            ->whereHas($primaryRelation, function ($subquery) use ($userId, $userColumn, $dateFilter, $where, $secondaryRelation) {
+                $subquery->whereColumn('coin', 'commerces_countries_coins.coin');
+
+                $subquery->where($userColumn, $userId);
+
+                // Condiciones adicionales
+                if (!empty($where)) {
+                    foreach ($where as $condition) {
+                        $subquery->where($condition->column, $condition->value);
+                    }
+                }
+
+                // Carga de relación adicional (opcional)
+                if ($secondaryRelation) {
+                    $subquery->with($secondaryRelation);
+                }
+
+                // Filtro de fecha
+                $this->applyDateFilter($dateFilter, $subquery);
+            });
+
+        // Obtener monedas activas y ordenadas
+        $coinIDs = $query->where('status', 1)->orderBy('country')->pluck('coin');
+
+        return Coin::getCoinsById($coinIDs);
+    }
 }
