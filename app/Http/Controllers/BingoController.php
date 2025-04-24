@@ -899,8 +899,9 @@ class BingoController extends Controller
 
         if ($chipVanID) {
             // Realizamos una única consulta para obtener todas las fichas en las condiciones especificadas
-            $allChips = BingoDraw::where('room', $room->id)->where('id', '<=', $chipVanID)
-                ->where('time', '<=', time())->orderByDesc('id')->pluck('chip')->toArray();
+            $allChips = array_map('intval', BingoDraw::where('room', $room->id)
+                ->where('id', '<=', $chipVanID)->where('time', '<=', time())
+                ->orderByDesc('id')->pluck('chip')->toArray());
 
             // Si el estado de la sala es mayor a 2, tomamos los primeros seis elementos de $allChips como $latestChips
             $latestChips = ($room->status > 2) ? array_slice($allChips, 0, 6) : [];
@@ -1614,8 +1615,26 @@ class BingoController extends Controller
         }
 
         // Definir variables
+        $user = Auth::id();
         $namePlay = $request->name_play;
         $bingoBoxes = $request->bingo_boxes;
+
+        // Verificar si el nombre de la jugada existe
+        $existsName = BingoTypesPlays::existsBingoPlay('name', $namePlay, $user);
+        if ($existsName) {
+            return redirect()->back()->with([
+                'type' => 'warning',
+                'message' => 'El nombre de jugada ya esta en uso'
+            ]);
+        }
+        // Verificar si el conjunto de casillas ya esta en uso
+        $existsBoxes = BingoTypesPlays::existsBingoPlay('boxes', $bingoBoxes, $user);
+        if ($existsBoxes) {
+            return redirect()->back()->with([
+                'type' => 'warning',
+                'message' => 'Conjunto de casillas ya estan en uso'
+            ]);
+        }
 
         DB::beginTransaction();
 
@@ -1639,10 +1658,9 @@ class BingoController extends Controller
                     $bingoPlays->update($updateData);
                 }
             } else {
-
                 BingoTypesPlays::create([
                     'name' => $namePlay,
-                    'user' => Auth::id(),
+                    'user' => $user,
                     'boxes' => $bingoBoxes,
                     'status' => 1
                 ]);

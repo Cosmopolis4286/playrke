@@ -115,14 +115,34 @@
             },
         };
 
+        const bingoOrder = ['B', 'I', 'N', 'G', 'O'];
+
         $(document).on("click", ".ctn-plays", function() {
             const box = $(this);
             const value = box.text().trim();
 
             box.toggleClass("number-box-circle");
 
-            bingoBoxes = box.hasClass("number-box-circle") ? [...bingoBoxes, value] :
-                bingoBoxes.filter(v => v !== value);
+            if (box.hasClass("number-box-circle")) {
+                bingoBoxes.push(value);
+            } else {
+                bingoBoxes = bingoBoxes.filter(v => v !== value);
+            }
+
+            // Ordenar bingoBoxes según letra (BINGO) y número
+            bingoBoxes.sort((a, b) => {
+                const [letterA, numberA] = [a.charAt(0), parseInt(a.slice(1))];
+                const [letterB, numberB] = [b.charAt(0), parseInt(b.slice(1))];
+
+                const indexA = bingoOrder.indexOf(letterA);
+                const indexB = bingoOrder.indexOf(letterB);
+
+                if (indexA === indexB) {
+                    return numberA - numberB;
+                }
+
+                return indexA - indexB;
+            });
         });
 
         function cleanBoxes() {

@@ -18,6 +18,9 @@ $(document).on("click", "#btn-regenerate-draw", function () {
         dataType: 'json',
         success: function (res) {
             showToast(res.message, res.type);
+            setTimeout(() => {
+                window.location.href = reload;
+            }, 2500)
         }
     });
 });

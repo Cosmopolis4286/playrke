@@ -16,11 +16,9 @@
         @if ($room->status > 2)
             @include('includes.games.bingo.layout.container-history-chips')
         @endif
-        @include('includes.games.bingo.layout.cartons')
-
         <div class="container mt-1">
             @if (!empty($cartons))
-                @include('includes.games.bingo.tests.btn-regenerate-draw')
+                @include('includes.games.bingo.layout.cartons')
             @endif
             <input type="hidden" id="random" value="{{ $random }}">
         </div>
@@ -37,7 +35,6 @@
 @section('scripts')
     <script src="{{ asset('js/crypto-js.min.js') }}"></script>
     @vite('resources/js/rke/time-functions.js')
-    @vite('resources/js/games/bingo/tests/regenerate-draw.js')
 
     <script>
         const preRoute = '{{ asset('') }}';
