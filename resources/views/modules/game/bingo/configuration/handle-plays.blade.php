@@ -55,6 +55,7 @@
 @endsection
 @section('scripts')
     <script>
+        let namePlay = $('#name-play');
         let bingoBoxes = [];
         let playId = false;
 
@@ -121,12 +122,14 @@
 
             bingoBoxes = box.hasClass("number-box-circle") ? [...bingoBoxes, value] :
                 bingoBoxes.filter(v => v !== value);
+
+            console.log(bingoBoxes);
         });
 
         function cleanBoxes() {
             $('.ctn-plays').removeClass('number-box-circle');
             bingoBoxes = [];
-            $('#name-play').val('');
+            namePlay.val('');
         }
 
         $(document).on("click", "#btn-clean", function() {
@@ -134,30 +137,38 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            if (bingoBoxes.length > 3) {
-                $.ajax({
-                    url: `{{ route('bingo.handleBingoPlays') }}`,
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': $('#5K3_70K').val()
-                    },
-                    data: {
-                        id: playId,
-                        bingo_boxes: bingoBoxes,
-                        name_play: $('#name-play').val()
-                    },
-                    dataType: 'json',
-                    success: function(res) {
-                        cleanBoxes();
-                        showToast(res.message, res.type);
-                    },
-                    error: function(error) {
-                        console.error(error);
-                    }
-                });
-            } else {
-                showToast('Es necesario un minimo de 4 casillas', 'info');
+
+            if (!namePlay.val()) {
+                showToast('Es obligatorio un nombre de jugada', 'info');
+                return;
             }
+
+            if (bingoBoxes.length < 3) {
+                showToast('Es necesario un minimo de 4 casillas', 'info');
+                return;
+            }
+
+            $.ajax({
+                url: `{{ route('bingo.handleBingoPlays') }}`,
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': $('#5K3_70K').val()
+                },
+                data: {
+                    _method: 'PUT',
+                    id: playId,
+                    bingo_boxes: bingoBoxes,
+                    name_play: namePlay.val()
+                },
+                dataType: 'json',
+                success: function(res) {
+                    cleanBoxes();
+                    showToast(res.message, res.type);
+                },
+                error: function(error) {
+                    console.error(error);
+                }
+            });
         });
     </script>
 @endsection

@@ -102,11 +102,16 @@
                     </div>
                 </div>
                 <div class="form-group">
+
+                </div>
+                <div class="input-group">
                     <input type="text" id="name-play" class="form-control" placeholder="Nombre de la Jugada"
                         required>
-                </div>
-                <div class="text-center mt-n2">
-                    <button type="button" id="btn-clean" class="btn btn-sm btn-secondary">LIMPIAR</button>
+                    <div class="input-group-append">
+                        <button id="btn-clean" class="btn btn-outline-secondary" type="button" title="Borrar Todo">
+                            <i class="fa-solid fa-eraser"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
