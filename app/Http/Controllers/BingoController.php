@@ -16,7 +16,6 @@ use App\Models\BingoCreator;
 use App\Models\BingoCtnPrice;
 use App\Models\BingoCtnPriceAutomatic;
 use App\Models\BingoCtnsLot;
-use App\Models\BingoCtnsPayment;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawCode;
 use App\Models\BingoPrizeCtns;
@@ -1618,7 +1617,6 @@ class BingoController extends Controller
         $namePlay = $request->name_play;
         $bingoBoxes = $request->bingo_boxes;
 
-
         DB::beginTransaction();
 
         try {
@@ -1728,11 +1726,12 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $bingoPlays = [];
+        $bingoPlays = BingoTypesPlays::where('user', $user)->get();
 
         $viewData = [
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Bingo Configuración',
+            'name' => 'bingo-plays',
             'userToken' => $userToken,
             'bingoPlays' => $bingoPlays
         ];

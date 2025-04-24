@@ -31,7 +31,7 @@
                                         <div class="btn-group" role="group">
                                             <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="5"
                                                 data-id="{{ encrypt($item->id) }}" title="Ver Jugada">
-                                                <i class="fas fa-eye"></i> Ver
+                                                <i class="fas fa-eye"></i>
                                             </button>
                                             <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
                                                 data-type="2" data-id="{{ encrypt($item->id) }}">
@@ -55,6 +55,7 @@
 @endsection
 @section('scripts')
     <script>
+        const form = $('#form-bingo-plays');
         let namePlay = $('#name-play');
         let bingoBoxes = [];
         let playId = false;
@@ -122,8 +123,6 @@
 
             bingoBoxes = box.hasClass("number-box-circle") ? [...bingoBoxes, value] :
                 bingoBoxes.filter(v => v !== value);
-
-            console.log(bingoBoxes);
         });
 
         function cleanBoxes() {
@@ -148,27 +147,9 @@
                 return;
             }
 
-            $.ajax({
-                url: `{{ route('bingo.handleBingoPlays') }}`,
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': $('#5K3_70K').val()
-                },
-                data: {
-                    _method: 'PUT',
-                    id: playId,
-                    bingo_boxes: bingoBoxes,
-                    name_play: namePlay.val()
-                },
-                dataType: 'json',
-                success: function(res) {
-                    cleanBoxes();
-                    showToast(res.message, res.type);
-                },
-                error: function(error) {
-                    console.error(error);
-                }
-            });
+            $('#bingo-boxes').val(bingoBoxes.join(','));
+
+            form.submit();
         });
     </script>
 @endsection

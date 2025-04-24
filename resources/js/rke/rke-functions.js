@@ -64,7 +64,7 @@ function submitForm(formName, requiredFields = []) {
 
     // Si todo es válido, enviar el formulario; si no, mostrar alerta
     if (isValid) {
-        $(`#form-${formName}`).submit();
+        $(`#form-${formName}`)[0].submit();
     } else {
         showToast('Todos los campos son requeridos', 'warning');
     }
