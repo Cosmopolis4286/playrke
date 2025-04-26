@@ -496,7 +496,7 @@ trait BingoTrait
                 // Verificar si el hash ya existe en la base de datos o dentro del mismo lote generado
                 if (!BingoCtns::existsCartonHashRoom($arrCtn['room'], $cartonHash) && !isset($generatedHashes[$cartonHash])) {
                     $numLastCtn++;
-                    $serialCtn = "$initials-$numLastCtn";
+                    $serialCtn = "$initials$numLastCtn";
 
                     // Preparar el cartón para la inserción
                     $recordsToInsert[] = $this->prepareCtnRecord($arrCtn, $lotID, $nwCtn, $serialCtn, $cartonHash);

@@ -19,7 +19,7 @@ $(document).on("click", "#btn-regenerate-draw", function () {
         success: function (res) {
             showToast(res.message, res.type);
             setTimeout(() => {
-                window.location.href = reload;
+                window.location.reload();
             }, 2500)
         }
     });

@@ -72,7 +72,7 @@ class BingoCtns extends Model
 
     static function getLastCtnCreated($room)
     {
-        return self::where('room', $room)->latest()->first();
+        return self::where('room', $room)->orderByDesc('id')->first();
     }
 
     static function getById($id,  $fields = ['*'])

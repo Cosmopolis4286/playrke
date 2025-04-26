@@ -199,7 +199,7 @@ body {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    height: 80px;
+    height: 77.5px;
     border-radius: 15px;
     background: linear-gradient(to bottom, #0b4cfde3, #003bb9);
 }
@@ -208,15 +208,17 @@ body {
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: auto;
+    justify-content: left;
+    width: 70%;
     height: 100%;
 }
 
 #cont-prize-chest {
     display: flex;
     align-items: center;
+    width: auto;
     height: 100%;
+    padding: 0.5%;
 }
 
 #image-prize-chest {
@@ -233,8 +235,8 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: left;
-    width: 100%;
-    height: 100%;
+    width: auto;
+    height: auto;
 }
 
 #cont-jackpot-type {
@@ -251,20 +253,21 @@ body {
 }
 
 #jackpot-coin-sym {
-    font-size: 3.35vmin;
-    color: rgb(245, 245, 245);
+    font-size: 3.45vmin;
+    color: rgb(231, 231, 231);
 }
 
 #jackpot-amount {
     font-weight: 500;
     color: rgb(255, 255, 255);
+    font-size: clamp(20px, 2.15vw, 2.5vw);
 }
 
 #cont-bingo-info-extras {
     position: relative;
     display: flex;
-    flex-direction: column;
-    width: auto;
+    justify-content: right;
+    width: 30%;
     height: 100%;
 }
 
@@ -288,20 +291,33 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    width: auto;
+
     height: 100%;
-    z-index: 999;
 }
 
 #text-game-mode {
+    width: auto;
+    height: auto;
     color: white;
-    font-size: 100%;
     font-weight: bold;
-    background: linear-gradient(to bottom, #e2122bf6, rgb(184, 0, 61));
     padding-left: 6px;
     padding-right: 6px;
     border-radius: 15px;
+    background: linear-gradient(to bottom, #e2122bf6, rgb(184, 0, 61));
+    display: flex;
+    align-items: center;
+    /* Centra verticalmente */
+    justify-content: center;
+    /* Centra horizontalmente */
+    text-align: center;
+    font-size: clamp(12px, 1.12vw, 1.35vw);
+    /* Tamaño de fuente flexible */
+    word-break: break-word;
+    /* Rompe palabras largas si es necesario */
+    overflow-wrap: break-word;
+    overflow: hidden;
 }
+
 
 /*Seccion Carrusel*/
 #container-history-chips {
@@ -345,7 +361,7 @@ body {
     visibility: hidden;
     position: relative;
     background: rgb(17, 0, 48);
-    border-radius: 16.5px;
+    border-radius: 15px;
     padding: 0 0.45%;
     display: flex;
     align-items: center;

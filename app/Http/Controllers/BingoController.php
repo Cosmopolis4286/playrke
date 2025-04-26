@@ -2663,7 +2663,13 @@ class BingoController extends Controller
             $this->chipWin($room);
 
             // Ajustar status de la sala y reiniciar cierre de sala
-            BingoRoom::where('id', $room)->update(['status' => 3, 'close_room' => null]);
+            BingoRoom::where('id', $room)->update([
+                'status' => 3,
+                'paid_win' => 0,
+                'jackpot_prize' => BingoRoom::getValueById($room, 'jackpot'),
+                'serial_prize' => 0,
+                'close_room' => null
+            ]);
 
             DB::commit();
 
