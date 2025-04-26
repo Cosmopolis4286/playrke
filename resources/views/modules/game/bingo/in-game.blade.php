@@ -11,30 +11,31 @@
 
 @section('content')
     <div class="col-md-11 col-lg-7 col-xl-8 m-auto">
-        @include('includes.game.bingo.layout.container-last-chips')
-        @include('includes.game.bingo.layout.container-bingo-info')
+        @include('includes.games.bingo.layout.container-last-chips')
+        @include('includes.games.bingo.layout.container-bingo-info')
         @if ($room->status > 2)
-            @include('includes.game.bingo.layout.container-history-chips')
+            @include('includes.games.bingo.layout.container-history-chips')
         @endif
         <div class="container mt-1">
             @if (!empty($cartons))
-                @include('includes.game.bingo.layout.cartons')
+                @include('includes.games.bingo.layout.cartons')
             @endif
             <input type="hidden" id="random" value="{{ $random }}">
         </div>
         @if ($room->status == 2)
-            @include('includes.game.bingo.layout.modal-info-draw')
+            @include('includes.games.bingo.layout.modal-info-draw')
         @elseif($room->status > 2)
-            @include('includes.game.bingo.layout.modal-info-winners')
-            @include('includes.game.bingo.layout.sounds')
+            @include('includes.games.bingo.layout.modal-info-winners')
+            @include('includes.games.bingo.layout.sounds')
         @endif
-        @include('includes.game.bingo.layout.modal-bingo-rules')
+        @include('includes.games.bingo.layout.modal-bingo-rules')
     </div>
 @endsection
 
 @section('scripts')
     <script src="{{ asset('js/crypto-js.min.js') }}"></script>
     @vite('resources/js/rke/time-functions.js')
+
     <script>
         const preRoute = '{{ asset('') }}';
         const logo = `{{ $custLogo ?? 'img/rke.png' }}`;

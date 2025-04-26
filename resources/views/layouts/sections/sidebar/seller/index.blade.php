@@ -11,7 +11,7 @@
      </li>
      <li class="nav-item has-treeview">
          <a href="#"
-             class="nav-link {{ !Route::is('seller.cartonGenerate', 'seller.ctnsSold', 'seller.ctnsAwarded') ?: 'active' }} ">
+             class="nav-link {{ !Route::is('seller.cartonGenerate', 'bingo.ctnsSold', 'bingo.ctnsAwarded', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom') ?: 'active' }} ">
              <i class="nav-icon fa-solid fa-hat-wizard"></i>
              <p>Bingo
                  <i class="right fas fa-angle-left"></i>
@@ -26,21 +26,21 @@
                  </a>
              </li>
              <li class="nav-item">
-                 <a href="{{ route('seller.ctnsSold') }}" class="nav-link {{ !Route::is('seller.ctnsSold') ?: 'active' }}">
+                 <a href="{{ route('bingo.ctnsSold') }}" class="nav-link {{ !Route::is('bingo.ctnsSold') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Cartones</p>
                  </a>
              </li>
              <li class="nav-item">
-                 <a href="{{ route('seller.ctnsAwarded') }}"
-                     class="nav-link {{ !Route::is('seller.ctnsAwarded') ?: 'active' }}">
+                 <a href="{{ route('bingo.ctnsAwarded', ['type' => 'private', 'dateFilter' => 'today']) }}"
+                     class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Ganadores</p>
                  </a>
              </li>
              <li class="nav-item">
-                 <a href="{{ route('seller.reportSalesRooms') }}"
-                     class="nav-link {{ !Route::is('seller.reportSalesRoom') ?: 'active' }}">
+                 <a href="{{ route('bingo.reportSalesRooms') }}"
+                     class="nav-link {{ !Route::is('bingo.reportSalesRooms', 'bingo.reportSalesByRoom') ?: 'active' }}">
                      <i class="fa-solid fa-caret-right nav-icon"></i>
                      <p>Reporte de Ventas</p>
                  </a>

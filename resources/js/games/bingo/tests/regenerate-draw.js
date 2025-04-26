@@ -7,7 +7,7 @@ $(document).on("click", "#btn-regenerate-draw", function () {
     }
 
     $.post({
-        url: `${preRoute}bingocash/test/regenerateDraw`,
+        url: route('bingo.test.regenerateDraw'),
         headers: {
             'X-CSRF-TOKEN': $("#5K3_70K").val()
         },
@@ -18,6 +18,9 @@ $(document).on("click", "#btn-regenerate-draw", function () {
         dataType: 'json',
         success: function (res) {
             showToast(res.message, res.type);
+            setTimeout(() => {
+                window.location.reload();
+            }, 2500)
         }
     });
 });

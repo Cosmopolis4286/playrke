@@ -496,7 +496,7 @@ trait BingoTrait
                 // Verificar si el hash ya existe en la base de datos o dentro del mismo lote generado
                 if (!BingoCtns::existsCartonHashRoom($arrCtn['room'], $cartonHash) && !isset($generatedHashes[$cartonHash])) {
                     $numLastCtn++;
-                    $serialCtn = "$initials-$numLastCtn";
+                    $serialCtn = "$initials$numLastCtn";
 
                     // Preparar el cartón para la inserción
                     $recordsToInsert[] = $this->prepareCtnRecord($arrCtn, $lotID, $nwCtn, $serialCtn, $cartonHash);
@@ -903,7 +903,7 @@ trait BingoTrait
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al registrar carton ganador: ' . $e->getMessage());
+            Log::error('Error al registrar carton ganador ===> $prizeType [' . $prizeType . '] : ' . $e->getMessage());
             return false;
         }
     }
@@ -936,7 +936,7 @@ trait BingoTrait
         $prizeType = $prizeType === 'JACKPOT' ? 1 : 2;
 
         // Obtener todos los ganadores por tipo de premio 
-        $winners = BingoRoomUser::with(['PrizeCtns:creator_user,room_user,prize_type,ctn'])
+        $winners = BingoRoomUser::with(['PrizeCtns:creator_user,room_user,prize_type,ctn,amount'])
             ->whereHas('PrizeCtns', function ($query) use ($prizeType) {
                 $query->where('prize_type', $prizeType);
             })->where('room', $roomID)->where('winner', '>', 0)->get();
@@ -949,6 +949,9 @@ trait BingoTrait
 
             // Obtener la moneda del jugador
             $coin = $this->getCoinByPlayer($userType, $roomUser);
+
+            // Verificar si el usuario del enlace es un ganador
+            $winPlayer = BingoRoomUser::where('room', $room)->where('winner', 1)->exists();
         }
 
         // Obtener Premio a repartir en seriales 
@@ -964,22 +967,16 @@ trait BingoTrait
 
     public function getArrayWinnersData($winPlayer, $winners, $jackpot)
     {
-        // Calcular la ganancia de acuerdo a la cantidad de ganadores
-        $countWinners = count($winners);
-        $decimals = $countWinners > 1 ? 3 : 2;
-
-        $gain = rtrim(number_format($jackpot / max(1, $countWinners), $decimals, '.', ','), '.0');
-
         // Inicializar el array para guardar información
         $infoPlayer = ['size' => 0, 'name' => [], 'gain' => [], 'ctn' => []];
 
         // Función para agregar la información de un jugador
-        $addPlayerInfo = function ($player) use (&$infoPlayer, $gain) {
+        $addPlayerInfo = function ($player) use (&$infoPlayer) {
 
             $ctnId = optional($player->PrizeCtns[0])->ctn;
 
             $infoPlayer['name'][] = BingoCtns::getValueById($ctnId, 'serial');
-            $infoPlayer['gain'][] = $gain;
+            $infoPlayer['gain'][] = BingoPrizeCtns::getValueById($ctnId, 'amount');
             $infoPlayer['ctn'][] = encrypt($ctnId);
             $infoPlayer['size']++;
         };
@@ -1094,7 +1091,10 @@ trait BingoTrait
 
         $generateSerials = $nonWinnersCount - count($prizeCtns);
 
+        DB::beginTransaction();
+
         try {
+
             // Definir valores a actualizar de la sala 
             $updateData = ['close_room' => Carbon::now()->timestamp];
 
@@ -1113,6 +1113,8 @@ trait BingoTrait
 
                     $updateData['jackpot_prize'] = $jackpotPrize;
                     $updateData['serial_prize'] = $serialPrize;
+                } else {
+                    DB::rollBack();
                 }
             }
 
@@ -1163,6 +1165,7 @@ trait BingoTrait
     public function handleSerialWinners($roomID, $serialPrize, $roomUserIds) // Obtener Seriales Ganadores
     {
         try {
+
             $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2);
 
             if ($getWinners) return false;
@@ -1240,11 +1243,12 @@ trait BingoTrait
             if ($countCtns === 0) return false;
 
             $ctnsSerials = BingoCtns::whereIn('id', $serialCtns)
-                ->where('room', $roomID)->get(['id', 'seller', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
+                ->where('room', $roomID)->get(['id', 'seller', 'creator_user', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
 
             $winnerJackpotPrize = $serialPrize / count($serialCtns);
 
             $this->registerPrizeCtn($roomID, $ctnsSerials, 2, $winnerJackpotPrize);
+
             return true;
         } catch (\Exception $e) {
             Log::error('Error en handleSerialWinners(): ' . $e->getMessage());

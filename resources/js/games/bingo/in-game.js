@@ -285,7 +285,6 @@ function getNewChip(newChip) {
         }
 
         // Actualizar arrays y Set de chips
-        newChip = Number(newChip);
         latestChips.unshift(newChip);
         allChips.unshift(newChip);
 
@@ -294,7 +293,7 @@ function getNewChip(newChip) {
         autoMarked();
 
         // Mostrar ganadores si es el último chip
-        if (newChip === chpLast) {
+        if (newChip == chpLast) {
             $('#text-check-bingo').show();
             endWin = 1;
             setTimeout(() => {

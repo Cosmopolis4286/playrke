@@ -33,6 +33,7 @@ export default defineConfig(({ mode }) => {
                     'resources/js/games/polla/form.js',
                     'resources/js/games/polla/ticket-price-coins.js',
                     'resources/js/games/polla/in-game.js',
+                    'resources/js/games/bingo/tests/regenerate-draw.js'
                 ],
                 refresh: true,
             }),
@@ -57,6 +58,7 @@ export default defineConfig(({ mode }) => {
                     'resources/js/games/polla/form.js',
                     'resources/js/games/polla/ticket-price-coins.js',
                     'resources/js/games/polla/in-game.js',
+                    'resources/js/games/bingo/tests/regenerate-draw.js'
                 ],
                 exclude: [/node_modules/],
                 apply: "build",

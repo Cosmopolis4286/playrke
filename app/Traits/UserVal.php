@@ -233,4 +233,72 @@ trait UserVal
             return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
         }
     }
+
+    public function getUserCoins($user, $relation = [], $dateFilter = 'today', $where = null)
+    {
+        $userType = $user['type'];
+        $userId = $userType !== 'seller' ? $user['userId'] : $user['id'];
+        $userColumn = $userType !== 'seller' ? 'creator_user' : 'seller';
+
+        $primaryRelation = $relation[0] ?? null;
+        $secondaryRelation = $relation[1] ?? null;
+
+        if (!$primaryRelation) {
+            return collect(); // No hay relación principal
+        }
+
+        // Construcción de la consulta principal
+        $query = CommerceCountriesCoins::with($primaryRelation)
+            ->whereHas($primaryRelation, function ($subquery) use ($userId, $userColumn, $dateFilter, $secondaryRelation) {
+                $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
+                    ->where($userColumn, $userId);
+
+                if ($secondaryRelation) {
+                    $subquery->with($secondaryRelation);
+                }
+
+                $this->applyDateFilter($dateFilter, $subquery);
+            });
+
+        // Procesar condiciones adicionales (where simples o whereHas anidados)
+        if ($where && $where->isNotEmpty()) {
+            foreach ($where as $item) {
+                if (isset($item->relation) && is_callable($item->constraints)) {
+                    // Es una relación: usar whereHas
+                    $query->whereHas($item->relation, $item->constraints);
+                } elseif (isset($item->column, $item->value)) {
+                    // Es una condición directa
+                    $query->where($item->column, $item->value);
+                }
+            }
+        }
+
+        $coinIDs = $query->where('status', 1)->orderBy('country')->pluck('coin');
+
+        return Coin::getCoinsById($coinIDs);
+    }
+
+    public function getUserData()
+    {
+        $user = $this->user(['id', 'user_type']);
+        $userId = $user->id;
+
+        $userType = UserType::getValueById($user->user_type, 'prefix');
+
+        switch ($userType) {
+            case 'commerce':
+                $commerce = $this->commerce(['id', 'user']);
+                $userTypeId = $commerce->id;
+                break;
+            case 'seller':
+                $seller = $this->seller(['id', 'user']);
+                $userTypeId = $seller->id;
+                break;
+            default:
+                # code...
+                break;
+        }
+
+        return ['type' => $userType, 'id' => $userTypeId, 'userId' => $userId];
+    }
 }

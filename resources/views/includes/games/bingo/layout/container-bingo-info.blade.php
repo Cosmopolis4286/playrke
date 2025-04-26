@@ -15,7 +15,7 @@
     </div>
     <div id="cont-bingo-info-extras">
         <div id="cont-game-mode-opcs">
-            <div id="text-game-mode">Cartón&nbspLleno</div>
+            <div id="text-game-mode">Cartón Lleno</div>
             <div id="cont-game-ops" class="mt-1">
                 <div class="btn-group" role="group" aria-label="Opciones">
                     <button type="button" disabled id="btn-view-winners" class="btn btn-sm btn-primary">

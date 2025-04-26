@@ -6,7 +6,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 @include('includes.coin-tabs')
-                @include('includes.date-filter-buttons', ['routeWithCoin' => 'seller.ctnsAwarded'])
+                @include('includes.date-filter-buttons')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-3">
@@ -29,7 +29,7 @@
                                         <tr>
                                             <td class="align-middle">
                                                 <a class="badge bg-navy" title="Ver Reporte"
-                                                    href="{{ route('seller.reportSalesByRoom', [
+                                                    href="{{ route('bingo.reportSalesByRoom', [
                                                         'room' => $win->Room->encrypted,
                                                         'coin' => encrypt($win->Coin->id),
                                                     ]) }}">
@@ -72,7 +72,7 @@
                                                     @endif
                                                     <a class="btn btn-sm bg-primary show-ctns" target="_blank"
                                                         href="{{ route('bingocash.in-game', ['player' => $win->PlayerLink->link]) }}">
-                                                        <i class="fa-solid fa-eye"></i>CTNs
+                                                        <i class="fa-solid fa-eye"></i>
                                                     </a>
                                                 </div>
                                             </td>

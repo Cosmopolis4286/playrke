@@ -6,7 +6,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 @include('includes.coin-tabs')
-                @include('includes.date-filter-buttons', ['routeWithCoin' => 'seller.ctnsSold'])
+                @include('includes.date-filter-buttons')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @if ($ctnsSold->count() > 1 && $pendingCtns > 1)
@@ -31,7 +31,7 @@
                                         <tr>
                                             <td class="align-middle">
                                                 <a class="badge bg-navy" title="Ver Reporte"
-                                                    href="{{ route('seller.reportSalesByRoom', ['room' => $ctn->Room->encrypted, 'coin' => encrypt($coin), 'dateFilter' => $dateFilter]) }}">
+                                                    href="{{ route('bingo.reportSalesByRoom', ['room' => $ctn->Room->encrypted, 'coin' => encrypt($coin), 'dateFilter' => $dateFilter]) }}">
                                                     {{ $ctn->Room->encrypted }}
                                                 </a>
                                             </td>

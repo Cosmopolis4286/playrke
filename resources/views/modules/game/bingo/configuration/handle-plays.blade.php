@@ -31,7 +31,7 @@
                                         <div class="btn-group" role="group">
                                             <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="5"
                                                 data-id="{{ encrypt($item->id) }}" title="Ver Jugada">
-                                                <i class="fas fa-eye"></i> Ver
+                                                <i class="fas fa-eye"></i>
                                             </button>
                                             <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
                                                 data-type="2" data-id="{{ encrypt($item->id) }}">
@@ -50,11 +50,13 @@
                 </div>
             </div>
         </div>
-        @include('includes.game.bingo.layout.modal-bingo-plays')
+        @include('includes.games.bingo.layout.modal-bingo-plays')
     </div>
 @endsection
 @section('scripts')
     <script>
+        const form = $('#form-bingo-plays');
+        let namePlay = $('#name-play');
         let bingoBoxes = [];
         let playId = false;
 
@@ -113,20 +115,40 @@
             },
         };
 
+        const bingoOrder = ['B', 'I', 'N', 'G', 'O'];
+
         $(document).on("click", ".ctn-plays", function() {
             const box = $(this);
             const value = box.text().trim();
 
             box.toggleClass("number-box-circle");
 
-            bingoBoxes = box.hasClass("number-box-circle") ? [...bingoBoxes, value] :
-                bingoBoxes.filter(v => v !== value);
+            if (box.hasClass("number-box-circle")) {
+                bingoBoxes.push(value);
+            } else {
+                bingoBoxes = bingoBoxes.filter(v => v !== value);
+            }
+
+            // Ordenar bingoBoxes según letra (BINGO) y número
+            bingoBoxes.sort((a, b) => {
+                const [letterA, numberA] = [a.charAt(0), parseInt(a.slice(1))];
+                const [letterB, numberB] = [b.charAt(0), parseInt(b.slice(1))];
+
+                const indexA = bingoOrder.indexOf(letterA);
+                const indexB = bingoOrder.indexOf(letterB);
+
+                if (indexA === indexB) {
+                    return numberA - numberB;
+                }
+
+                return indexA - indexB;
+            });
         });
 
         function cleanBoxes() {
             $('.ctn-plays').removeClass('number-box-circle');
             bingoBoxes = [];
-            $('#name-play').val('');
+            namePlay.val('');
         }
 
         $(document).on("click", "#btn-clean", function() {
@@ -134,30 +156,20 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            if (bingoBoxes.length > 3) {
-                $.ajax({
-                    url: `{{ route('bingo.handleBingoPlays') }}`,
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': $('#5K3_70K').val()
-                    },
-                    data: {
-                        id: playId,
-                        bingo_boxes: bingoBoxes,
-                        name_play: $('#name-play').val()
-                    },
-                    dataType: 'json',
-                    success: function(res) {
-                        cleanBoxes();
-                        showToast(res.message, res.type);
-                    },
-                    error: function(error) {
-                        console.error(error);
-                    }
-                });
-            } else {
-                showToast('Es necesario un minimo de 4 casillas', 'info');
+
+            if (!namePlay.val()) {
+                showToast('Es obligatorio un nombre de jugada', 'info');
+                return;
             }
+
+            if (bingoBoxes.length < 3) {
+                showToast('Es necesario un minimo de 4 casillas', 'info');
+                return;
+            }
+
+            $('#bingo-boxes').val(bingoBoxes.join(','));
+
+            form.submit();
         });
     </script>
 @endsection

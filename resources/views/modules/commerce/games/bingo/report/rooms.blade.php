@@ -7,10 +7,10 @@
             @include('includes.card-header')
             <div class="card-body">
                 @include('includes.coin-tabs')
-                @include('includes.date-filter-buttons', ['routeWithCoin' => 'commerce.reportSalesRooms'])
+                @include('includes.date-filter-buttons')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.game.bingo.report.report-table-bingo')
+                        @include('includes.games.bingo.report.report-table-bingo')
                     </div>
                 </div>
             </div>

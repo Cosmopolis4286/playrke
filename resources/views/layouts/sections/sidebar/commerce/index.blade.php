@@ -26,7 +26,7 @@
 
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('bingo.all-rooms', 'commerce.getBingoWinnersByCommerce', 'commerce.getBingoWinnersByOtherCommerces', 'commerce.ctnsSold', 'commerce.reportSalesRooms', 'commerce.reportSalesByRoom', 'bingo.configuration', 'bingo.bingoPlays') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('bingo.all-rooms', 'bingo.ctnsAwarded', 'bingo.ctnsSold', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom', 'bingo.configuration', 'bingo.bingoPlays') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>
@@ -41,22 +41,22 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('commerce.getBingoWinnersByCommerce') }}" title="Ganadores"
-                    class="nav-link {{ !Route::is('commerce.getBingoWinnersByCommerce') ?: 'active' }}">
+                <a href="{{ route('bingo.ctnsAwarded', ['type' => 'private', 'dateFilter' => 'today']) }}" title="Ganadores"
+                    class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Ganadores</p>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('commerce.ctnsSold') }}" title="Cartones Vendidos"
-                    class="nav-link {{ !Route::is('commerce.ctnsSold') ?: 'active' }}">
+                <a href="{{ route('bingo.ctnsSold') }}" title="Cartones Vendidos"
+                    class="nav-link {{ !Route::is('bingo.ctnsSold') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Cartones</p>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('commerce.reportSalesRooms') }}" title="Reporte de Ventas"
-                    class="nav-link {{ !Route::is('commerce.reportSalesRooms') ?: 'active' }}">
+                <a href="{{ route('bingo.reportSalesRooms') }}" title="Reporte de Ventas"
+                    class="nav-link {{ !Route::is('bingo.reportSalesRooms', 'bingo.reportSalesByRoom') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Reporte de Ventas</p>
                 </a>

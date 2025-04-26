@@ -18,4 +18,9 @@ class BingoTypesPlays extends Model
     {
         return self::where('id', $id)->value($value);
     }
+
+    public static function existsBingoPlay($column, $value, $user)
+    {
+        return self::where($column, $value)->when('user', $user)->exists();
+    }
 }
