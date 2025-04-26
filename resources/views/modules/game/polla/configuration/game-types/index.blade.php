@@ -145,8 +145,9 @@
                     'info',
                     'Sí, actualizar',
                     '#form-other-options',
-                    `{{ route('polla.game-types.change-status', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.game-types-change-status`, {
+                        id: encryptedId
+                    })
                 );
             }
         };

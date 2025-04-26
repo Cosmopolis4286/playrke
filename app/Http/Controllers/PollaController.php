@@ -1498,7 +1498,7 @@ class PollaController extends Controller
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Polla Configuración',
             'userToken' => $userToken,
-            'name' => 'polla.game-types',
+            'name' => 'polla',
             'gameTypes' => PollaTypes::all(),
             'rulesID' => $rulesID,
             'gameRules' => $gameRules,

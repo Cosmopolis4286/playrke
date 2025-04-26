@@ -13,7 +13,6 @@
                             <tr>
                                 <th>Nombre</th>
                                 <th>Horas</th>
-                                <th>Loterias</th>
                                 <th>Status</th>
                                 <th>Acción</th>
                             </tr>
@@ -22,7 +21,6 @@
                             @foreach ($lotteries as $item)
                                 <tr>
                                     <td>{{ $item->name }} ({{ $item->hour_a }}-{{ $item->hour_b }})</td>
-                                    <td>{{ $item->name }}</td>
                                     <td>{{ $item->name }}</td>
                                     <td>{{ $item->status == 0 ? 'Inactivo' : 'Activo' }}</td>
                                     <td class="align-middle">
@@ -144,8 +142,9 @@
                     'info',
                     'Sí, actualizar',
                     '#form-other-options',
-                    `{{ route('polla.game-types.change-status', ['id' => ':id']) }}`,
-                    encryptedId
+                    route(`${name}.change-status`, {
+                        id: encryptedId
+                    })
                 );
             }
         };

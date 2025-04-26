@@ -384,6 +384,13 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
 Route::group(['prefix' => 'lottery', 'as' => 'lottery.'], function () {
     Route::get('', [LotteryController::class, 'index'])->name('index');
+
+    // CRUD Loterias
+    Route::get('getInfo/{id}', [LotteryController::class, 'getInfo'])->name('getInfo');
+    Route::post('create', [LotteryController::class, 'create'])->name('create');
+    Route::put('update/{id}', [LotteryController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [LotteryController::class, 'delete'])->name('delete');
+    Route::put('status/{id}', [LotteryController::class, 'changeStatus'])->name('change-status');
 });
 
 Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
@@ -392,7 +399,7 @@ Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
     // Configuracion
     Route::get('configuration/{userToken?}', [PollaController::class, 'configuration'])->name('configuration');
     Route::get('configuration-game-types/{userToken?}', [PollaController::class, 'configurationGameTypes'])->name('configurationGameTypes');
-    Route::put('game-types-status/{id}', [PollaController::class, 'configurationGameTypes'])->name('game-types.change-status');
+    Route::put('game-types-status/{id}', [PollaController::class, 'configurationGameTypes'])->name('game-types-change-status');
 
     Route::get('get-ticket-price-by-country/{room}/{country}', [PollaController::class, 'getTicketPriceByCountry'])->name('getTicketPriceByCountry');
     Route::get('generate-play', [PollaController::class, 'generatePlay'])->name('generate-play');
