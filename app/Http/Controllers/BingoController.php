@@ -765,20 +765,13 @@ class BingoController extends Controller
 
         if (!$player) abort(404); // Retorna un error 404 Not Found
 
-        $roomType = BingoRoom::getValueById($player->room, 'room_type');
-
-        if ($roomType === 'PB') {
-        } else {
-            $creatorUser = $player->creator_user;
-            $userCreator = User::getCreatorIDByUserType($creatorUser, '', true);
-
-            $userType = $userCreator['type'];
-        }
+        $creatorUser = $player->creator_user;
+        $userCreator = User::getCreatorIDByUserType($creatorUser, '', true);
 
         if (!$player) abort(404); // Retorna un error 404 Not Found
 
         $creator = [
-            'type' => $userType,
+            'type' => $userCreator['type'],
             'id' => $userCreator['id'],
             'userId' => $creatorUser
         ];
