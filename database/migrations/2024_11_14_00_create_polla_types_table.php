@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name', 30);
             $table->string('hour_a', 8);
             $table->string('hour_b', 8);
+            $table->string('lotteries', 10);
             $table->boolean('status')->default(1);
             $table->timestamps();
         });

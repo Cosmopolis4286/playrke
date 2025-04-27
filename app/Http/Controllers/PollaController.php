@@ -1494,12 +1494,18 @@ class PollaController extends Controller
             $gameRules = $game->rules;
         }
 
+        $gameTypes =  PollaTypes::all();
+
+        foreach ($gameTypes as $key => $item) {
+            # code...
+        }
+
         $viewData = [
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Polla Configuración',
             'userToken' => $userToken,
             'name' => 'polla',
-            'gameTypes' => PollaTypes::all(),
+            'gameTypes' => $gameTypes,
             'rulesID' => $rulesID,
             'gameRules' => $gameRules,
             'imagePollaRules' => $this->getImagePollaRules($user),

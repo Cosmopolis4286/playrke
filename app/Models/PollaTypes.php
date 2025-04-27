@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PollaTypes extends Model
 {
   protected $table = "polla_types";
-  protected $fillable = ['name', 'hour_a', 'hour_b', 'status'];
+  protected $fillable = ['name', 'hour_a', 'hour_b', 'lotteries', 'status'];
 
   public static function getById($id, $fields = ['*'])
   {

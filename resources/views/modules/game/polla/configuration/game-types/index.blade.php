@@ -22,8 +22,8 @@
                             @foreach ($gameTypes as $item)
                                 <tr>
                                     <td>{{ $item->name }} ({{ $item->hour_a }}-{{ $item->hour_b }})</td>
-                                    <td>{{ $item->name }}</td>
-                                    <td>{{ $item->name }}</td>
+                                    <td>{{ $item->hours }}</td>
+                                    <td>{{ $item->lotteries }}</td>
                                     <td>{{ $item->status == 0 ? 'Inactivo' : 'Activo' }}</td>
                                     <td class="align-middle">
                                         <div class="btn-group" role="group">
