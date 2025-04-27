@@ -1608,10 +1608,46 @@ class BingoController extends Controller
         }
     }
 
-    public function handleBingoPlays(Request $request, $id = '')
+    public function handleBingoPlays(Request $request, $id = '', $action = '')
     {
         if ($id) {
             $playID = decrypt($id);
+        }
+
+        if ($action) {
+
+            DB::beginTransaction();
+
+            try {
+
+                if ($action === 'status') {
+                    $status = BingoTypesPlays::getValueById($playID, 'status');
+
+                    // Verificar el valor actual de 'status' y actualizarlo
+                    $newStatus = ($status == 0) ? 1 : 0; // Si es 1, cambia a 2, si es 2, cambia a 1
+
+                    BingoTypesPlays::where('id', $playID)->update(['status' => $newStatus]);
+
+                    DB::commit();
+
+                    return redirect()->back()->with([
+                        'type' => 'success',
+                        'message' => 'Registro actualizado'
+                    ]);
+                } else if ($action === 'delete') {
+                    BingoTypesPlays::where('id', $playID)->update(['status' => 2]);
+
+                    DB::commit();
+
+                    return redirect()->back()->with([
+                        'type' => 'success',
+                        'message' => 'Registro eliminado'
+                    ]);
+                }
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error al crear o actualizar el tipo de jugada de Bingo: ' . $e->getMessage());
+            }
         }
 
         // Definir variables
@@ -1744,7 +1780,7 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $bingoPlays = BingoTypesPlays::where('user', $user)->get();
+        $bingoPlays = BingoTypesPlays::where('user', $user)->where('status', '<>', 2)->get();
 
         $viewData = [
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',

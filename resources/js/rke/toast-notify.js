@@ -12,20 +12,18 @@ const Toast = Swal.mixin({
     }
 });
 
-function showToast(text, icon, type = '') {
-    Toast.fire({
-        icon: icon,
-        title: text
-    }).then((result) => {
-        if (result.isConfirmed && type == 2) {
-            setTimeout(() => {
-                showToast('¡Gracias por participar!', 'warning', 3);
-            }, 2800);
-        }
-    });
+function showToast(text, icon) {
+    Toast.fire({ icon: icon, title: text });
 }
 
 function showToastOptionBtns(text, icon, confirmButtonText, form, routeTemplate) {
+
+    // Verificar si el form existe en el DOM
+    if (!$(form).length) {
+        showToast('El formulario no está definido', 'warning');
+        return;
+    }
+
     Swal.fire({
         title: '¿Confirmas está acción?',
         text: text,

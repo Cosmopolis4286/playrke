@@ -305,6 +305,10 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
     Route::get('refresh', [TriviaController::class, 'refresh_pvp'])->name('refresh');
 });
 
+Route::group(['prefix' => 'bingo-plays', 'as' => 'bingo-plays.'], function () {
+    Route::put('handler/{id?}/{action?}', [BingoController::class, 'handleBingoPlays'])->name('handler');
+});
+
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('configuration/plays/{userToken?}', [BingoController::class, 'bingoPlays'])->name('bingoPlays');
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
@@ -317,7 +321,6 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::post('carton/notify/payment/win-ctn', [BingoController::class, 'notifyPaymentPrizeWinningCtn'])->name('notifyPaymentPrizeWinningCtn');
 
     Route::put('handle-bingo-rules/{id?}', [BingoController::class, 'handleBingoRules'])->name('handleBingoRules');
-    Route::put('handle-bingo-plays/{id?}', [BingoController::class, 'handleBingoPlays'])->name('handleBingoPlays');
 
     // Reporte de ventas de salas
     Route::get('sales-report/{coin?}/{dateFilter?}', [BingoController::class, 'reportSalesRooms'])->name('reportSalesRooms');

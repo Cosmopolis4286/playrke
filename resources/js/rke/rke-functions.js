@@ -11,6 +11,10 @@ function ajaxStop() {
     $('.btn:not([data-block])').prop('disabled', false);
 }
 
+$(document).on('click', '[data-dismiss="modal"]', function() {
+    $(this).blur();
+});
+
 // Manejador global para iniciar la animación del cargador en peticiones AJAX
 $(document).ajaxStart(ajaxStart);
 
