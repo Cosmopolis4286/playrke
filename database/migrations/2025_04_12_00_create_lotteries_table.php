@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('name', 30);
             $table->string('code', 7)->nullable();
-            $table->string('numbers', 15);
+            $table->string('numbers', 10);
+            $table->string('schedules', 50);
             $table->string('logo', 35)->nullable();
             $table->string('status', 1)->default(0);
             $table->timestamps();
