@@ -1608,10 +1608,46 @@ class BingoController extends Controller
         }
     }
 
-    public function handleBingoPlays(Request $request, $id = '')
+    public function handleBingoPlays(Request $request, $id = '', $action = '')
     {
         if ($id) {
             $playID = decrypt($id);
+        }
+
+        if ($action) {
+
+            DB::beginTransaction();
+
+            try {
+
+                if ($action === 'status') {
+                    $status = BingoTypesPlays::getValueById($playID, 'status');
+
+                    // Verificar el valor actual de 'status' y actualizarlo
+                    $newStatus = ($status == 0) ? 1 : 0; // Si es 1, cambia a 2, si es 2, cambia a 1
+
+                    BingoTypesPlays::where('id', $playID)->update(['status' => $newStatus]);
+
+                    DB::commit();
+
+                    return redirect()->back()->with([
+                        'type' => 'success',
+                        'message' => 'Registro actualizado'
+                    ]);
+                } else if ($action === 'delete') {
+                    BingoTypesPlays::where('id', $playID)->update(['status' => 2]);
+
+                    DB::commit();
+
+                    return redirect()->back()->with([
+                        'type' => 'success',
+                        'message' => 'Registro eliminado'
+                    ]);
+                }
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error al crear o actualizar el tipo de jugada de Bingo: ' . $e->getMessage());
+            }
         }
 
         // Definir variables
@@ -1728,6 +1764,53 @@ class BingoController extends Controller
         ]);
     }
 
+    public function getInfoBingoPlay($id, $starTime = '')
+    {
+        date_default_timezone_set(config('app.timezone'));
+
+        if ($starTime) {
+            $time = time();
+            return response()->json($time);
+        }
+
+        $id = decrypt($id);
+
+        $room = BingoRoom::select('encrypted', 'jackpot', 'players')->where('id', $id)->firstOrFail();
+
+        $config = BingoRoomConfig::select(
+            'game_mode',
+            'date',
+            'time',
+            'ctn_price',
+            'room_commn',
+            'jackpot_type',
+            'fixed_jackpot_value',
+            'time_chip',
+            'pct_serials',
+            'num_serials',
+            'serials_commn'
+        )->where('room', $id)->firstOrFail();
+
+        $bingoCreator = true;
+
+        $creatorUserID = BingoRoom::getValueById($room, 'creator_user');
+        $userType = User::getValueById($creatorUserID, 'user_type');
+
+        $creatorType = UserType::getValueById($userType, 'prefix');
+
+        if ($creatorType === 'commerce') {
+            $creatorID = BingoCreator::getByRoom($id, 'creator_id');
+            $creator = ['type' => $userType, 'id' => $creatorID];
+            $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $id) ?? false;
+        }
+
+        return response()->json([
+            'room' => $room,
+            'config' => $config,
+            'creator' => $bingoCreator
+        ]);
+    }
+
     public function bingoPlays($userToken = false)
     {
         if ($userToken) {
@@ -1744,7 +1827,7 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $bingoPlays = BingoTypesPlays::where('user', $user)->get();
+        $bingoPlays = BingoTypesPlays::where('user', $user)->where('status', '<>', 2)->get();
 
         $viewData = [
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',

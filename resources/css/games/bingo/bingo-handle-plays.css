@@ -19,6 +19,10 @@ body {
     user-select: none;
 }
 
+#container-carton {
+    max-width: 274px;
+}
+
 .container-view-carton {
     width: auto;
     margin-bottom: -1%;

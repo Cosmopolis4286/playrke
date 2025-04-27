@@ -51,11 +51,13 @@
             </div>
         </div>
         @include('includes.games.bingo.layout.modal-bingo-plays')
+        @include('includes.form-other-options')
     </div>
 @endsection
 @section('scripts')
     <script>
-        const form = $('#form-bingo-plays');
+        const name = @json($name);
+        const form = $(`#form-${name}`);
         let namePlay = $('#name-play');
         let bingoBoxes = [];
         let playId = false;
@@ -101,12 +103,13 @@
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Deseas cambiar el status de este Comercio',
+                    'Deseas cambiar el status de este registro',
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
-                    route(`${name}.change-status`, {
-                        id: encryptedId
+                    route(`${name}.handler`, {
+                        id: encryptedId,
+                        action: 'status'
                     })
                 );
             },
