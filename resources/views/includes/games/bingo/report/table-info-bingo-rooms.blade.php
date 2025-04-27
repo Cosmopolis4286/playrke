@@ -105,24 +105,13 @@
                                         data-id="{{ encrypt($room->id) }}" title="Publicar">
                                         <i class="fa-solid fa-circle-up"></i>
                                     </button>
-                                @elseif ($room->status == 2)
-                                    @if ($room->jackpot_prize > 0)
-                                        <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="6"
-                                            data-id="{{ encrypt($room->id) }}" title="Reembolsar">
-                                            <i class="fa-solid fa-money-bill-transfer"></i>
-                                        </button>
-                                    @else
-                                        <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="8"
-                                            data-id="{{ encrypt($room->id) }}" title="Cambiar Status">
-                                            <i class="fa-solid fa-rotate"></i>
-                                        </button>
-                                    @endif
+                                @elseif ($room->status == 2 && $room->jackpot == 0)
+                                    <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="8"
+                                        data-id="{{ encrypt($room->id) }}" title="Cambiar Status">
+                                        <i class="fa-solid fa-rotate"></i>
+                                    </button>
                                 @endif
                             @endif
-                            {{-- <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="4"
-                                data-id="{{ encrypt($room->id) }}" title="Repetir">
-                                <i class="fa-solid fa-repeat"></i>
-                            </button> --}}
                             <button class="btn-{{ $name }} btn btn-sm bg-navy" data-type="7"
                                 data-id="{{ encrypt($room->id) }}" title="Copiar">
                                 <i class="fa-solid fa-copy"></i>

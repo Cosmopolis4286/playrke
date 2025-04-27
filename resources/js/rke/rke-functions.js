@@ -90,7 +90,6 @@ function setVariable(name, value) {
 }
 
 function formCRUD(elem, name, title, route, otherCasesMap = '') {
-    const modalName = $(`#modal-${name}`);
     const modalLabel = $(`#modal-${name}-label`);
     const formName = $(`#form-${name}`);
 

@@ -95,4 +95,8 @@
         <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
             name="num_serials" class="form-control form-info" placeholder="Ingrese la cantidad" required>
     </div>
+    {{-- <div class="form-group col-sm-6 col-md-4">
+        <label for="bingo-plays">Cantos</label>
+        <select id="bingo-plays" name="bingo_plays" class="form-control"></select>
+    </div> --}}
 </div>

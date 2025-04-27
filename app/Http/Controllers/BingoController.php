@@ -1053,11 +1053,15 @@ class BingoController extends Controller
 
         $rooms = $this->getInfoRooms($creator['userId'], $roomType, $coin);
 
+        $bingoPlays = BingoTypesPlays::where('user', $creator['userId'])->where('status', 1)->get();
+
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo',
+            'subtitle' => $view === 'private' ? 'Privadas' : 'Publicas',
+            'view' => strtoupper($view),
             'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'routeWithCoin' => $routeWithCoin,
@@ -1068,6 +1072,8 @@ class BingoController extends Controller
             'coin' => $coin,
             'coinSym' => $coinSym,
             'exchangeRate' => $exchangeRate ?? 1,
+            'roomType' => $view === 'private' ? 'PV' : 'PB',
+            'bingoPlays' => $bingoPlays,
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
@@ -1079,7 +1085,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.form.' . $view, 'data' => $viewData];
+        return ['route' => 'modules.game.bingo.form.index', 'data' => $viewData];
     }
 
     public function allRooms($roomType, $creatorType, $creatorID = '', $coin = '')
@@ -2325,6 +2331,7 @@ class BingoController extends Controller
             'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'creator' => $creator,
+            'coins' => [],
             'rooms' => $automaticRooms,
             'otherRooms' => true,
             'activeRooms' => $activeRooms,
@@ -2340,7 +2347,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.form.public', 'data' => $viewData];
+        return ['route' => 'modules.game.bingo.form.other-public-rooms', 'data' => $viewData];
     }
 
     private function allOtherPublicRooms($creatorType, $creatorID)

@@ -3,17 +3,16 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header', ['subtitle' => $subtitle ?? 'Publicas'])
+            @include('includes.card-header', [
+                'subtitle' => $subtitle,
+                'btnCardHeader' => ['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear'],
+            ])
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
-                @include('includes.games.bingo.report.btn-group', ['view' => 'PUBLIC'])
+                @include('includes.games.bingo.report.btn-group', ['view' => $view])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @if (!isset($otherRooms))
-                            @include('includes.games.bingo.report.table-info-bingo-rooms')
-                        @else
-                            @include('includes.games.bingo.report.table-info-other-public-bingo-rooms')
-                        @endif
+                        @include('includes.games.bingo.report.table-info-bingo-rooms')
                     </div>
                 </div>
             </div>
@@ -25,7 +24,7 @@
         'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
     ])
     @include('includes.form-other-options')
-    @if ($creator['type'] === 'customer')
+    @if ($creator['type'] === 'customer' && $view === 'PRIVATE')
         @include('includes.modal-form', [
             'modalTitle' => 'ID del Juego - API',
             'name' => 'customer-games',
@@ -44,11 +43,14 @@
     <script>
         const name = '{{ $name }}';
         const creation = 'M';
+        const roomType = @json($roomType);
         const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const jackpotType = $("#jackpot-type");
         const gameMode = $("#game-mode");
+        const bingoPlays = $("#bingo-plays");
+        const arrBingoPlays = @json($bingoPlays);
         const arrCoins = @json($coins);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
@@ -106,7 +108,7 @@
                 jackpotType.append(defaultOption);
             }
 
-            $('#room-type').val('PB');
+            $('#room-type').val(roomType);
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
@@ -114,7 +116,7 @@
             });
 
             $.each(arrGameModes, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.room.game_mode) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == data.config.game_mode) ? 'selected' : '';
 
                 if ((creatorType === 'customer' && item.id == 1) || creatorType !== 'customer') {
                     gameMode.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
@@ -123,20 +125,23 @@
 
             if (type == 1) {
                 changeFixedJackpot(1);
-            } else if (type == 2 && data.config.jackpot_type > 1) {
-                changeFixedJackpot(2);
-                $('#fixed-jackpot-value').val(data.config.fixed_jackpot_value);
-            }
+            } else if (type == 2) {
 
-            if (type == 2) {
-                $('#date').val(data.room.date);
-                $('#time').val(data.room.time);
-                $('#ctn-price').val(data.room.ctn_price);
-                $('#time-chip').val(data.config.time_chip);
-                $('#val-serials').val(data.config.pct_serials);
-                $('#num-serials').val(data.config.num_serials);
-                $('#room-commission').val(data.config.room_commn);
-                $('#serials-commission').val(data.config.serials_commn);
+                const config = data.config;
+
+                $('#date').val(config.date);
+                $('#time').val(config.time);
+                $('#room-commn').val(config.room_commn);
+                $('#ctn-price').val(config.ctn_price);
+                $('#time-chip').val(config.time_chip);
+                $('#pct-serials').val(config.pct_serials);
+                $('#num-serials').val(config.num_serials);
+                $('#serials-commn').val(config.serials_commn);
+
+                if (config.jackpot_type > 1) {
+                    changeFixedJackpot(2);
+                    $('#fixed-jackpot-value').val(config.fixed_jackpot_value);
+                }
             }
 
             $(`#modal-${name}`).modal('show');
@@ -152,11 +157,11 @@
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Repetir esta sala cada 24h',
+                    'Auto-Generar esta sala',
                     'question',
-                    'Sí, repetir',
+                    'Sí, auto-generar',
                     '#form-other-options',
-                    route(`${name}.replay`, {
+                    route(`${name}.change-replay`, {
                         id: encryptedId
                     })
                 );
@@ -208,7 +213,7 @@
         };
     </script>
     @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
-    @if ($creator['type'] === 'customer')
+    @if ($creator['type'] === 'customer' && $view === 'PRIVATE')
         <script>
             $(document).on("click", '#btn-game-id', function() {
                 $('#modal-customer-games').modal('show');

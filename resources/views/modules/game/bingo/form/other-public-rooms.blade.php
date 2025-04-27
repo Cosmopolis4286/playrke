@@ -3,17 +3,13 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header', [
-                'subtitle' => 'Privadas',
-                'btnCardHeader' => ['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear'],
-            ])
+            @include('includes.card-header', ['subtitle' => $subtitle])
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
-                @include('includes.games.bingo.report.btn-group', ['view' => 'PRIVATE'])
+                @include('includes.games.bingo.report.btn-group', ['view' => 'PUBLIC'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        @include('includes.games.bingo.report.table-info-bingo-rooms')
-                    </div>
+                        @include('includes.games.bingo.report.table-info-other-public-bingo-rooms') </div>
                 </div>
             </div>
         </div>
@@ -24,25 +20,12 @@
         'dataForm' => view('modules.game.bingo.form.body', ['creator' => $creator])->render(),
     ])
     @include('includes.form-other-options')
-    @if ($creator['type'] === 'customer')
-        @include('includes.modal-form', [
-            'modalTitle' => 'ID del Juego - API',
-            'name' => 'customer-games',
-            'size' => 'sm',
-            'PUT' => true,
-            'action' => route('games.handleCustomerGames', ['id' => $customerGameID->id ?? null]),
-            'btnConfirm' => 'btn-confirm-game-id',
-            'dataForm' => view('modules.customer.customer-games.form', [
-                'creatorID' => $creator['id'],
-                'customerGameID' => $customerGameID,
-            ])->render(),
-        ])
-    @endif
 @endsection
 @section('scripts')
     <script>
         const name = '{{ $name }}';
         const creation = 'M';
+        const roomType = @json($roomType);
         const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
@@ -105,7 +88,7 @@
                 jackpotType.append(defaultOption);
             }
 
-            $('#room-type').val('PV');
+            $('#room-type').val(roomType);
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
@@ -210,20 +193,4 @@
         };
     </script>
     @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
-    @if ($creator['type'] === 'customer')
-        <script>
-            $(document).on("click", '#btn-game-id', function() {
-                $('#modal-customer-games').modal('show');
-            });
-
-            $(document).on("click", '#btn-confirm-game-id', function() {
-                if ($('#customer-game-id').val()) {
-                    $('#form-customer-games').submit();
-                } else {
-                    $('#customer-game-id').focus();
-                    showToast('ID del Juego Obligatorio', 'warning');
-                }
-            });
-        </script>
-    @endif
 @endsection
