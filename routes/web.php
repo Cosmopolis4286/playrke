@@ -306,6 +306,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'triv_pvp', 'as' => 'triv_pv
 });
 
 Route::group(['prefix' => 'bingo-plays', 'as' => 'bingo-plays.'], function () {
+    Route::get('getInfo/{id}', [BingoController::class, 'getInfoBingoPlay'])->name('getInfo');
     Route::put('handler/{id?}/{action?}', [BingoController::class, 'handleBingoPlays'])->name('handler');
 });
 
