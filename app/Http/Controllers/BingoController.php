@@ -1764,51 +1764,15 @@ class BingoController extends Controller
         ]);
     }
 
-    public function getInfoBingoPlay($id, $starTime = '')
+    public function getInfoBingoPlay($id)
     {
-        date_default_timezone_set(config('app.timezone'));
-
-        if ($starTime) {
-            $time = time();
-            return response()->json($time);
-        }
-
         $id = decrypt($id);
 
-        $room = BingoRoom::select('encrypted', 'jackpot', 'players')->where('id', $id)->firstOrFail();
+        $bingoPlay = BingoTypesPlays::where('id', $id)->first();
 
-        $config = BingoRoomConfig::select(
-            'game_mode',
-            'date',
-            'time',
-            'ctn_price',
-            'room_commn',
-            'jackpot_type',
-            'fixed_jackpot_value',
-            'time_chip',
-            'pct_serials',
-            'num_serials',
-            'serials_commn'
-        )->where('room', $id)->firstOrFail();
+        $boxes = explode(',', $bingoPlay->boxes);
 
-        $bingoCreator = true;
-
-        $creatorUserID = BingoRoom::getValueById($room, 'creator_user');
-        $userType = User::getValueById($creatorUserID, 'user_type');
-
-        $creatorType = UserType::getValueById($userType, 'prefix');
-
-        if ($creatorType === 'commerce') {
-            $creatorID = BingoCreator::getByRoom($id, 'creator_id');
-            $creator = ['type' => $userType, 'id' => $creatorID];
-            $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $id) ?? false;
-        }
-
-        return response()->json([
-            'room' => $room,
-            'config' => $config,
-            'creator' => $bingoCreator
-        ]);
+        return response()->json(['name' => $bingoPlay->name, 'boxes' => $boxes]);
     }
 
     public function bingoPlays($userToken = false)
@@ -2907,7 +2871,7 @@ class BingoController extends Controller
 
         $routeWithCoin = [
             'route' => 'bingo.reportSalesRooms',
-            'parameters' => ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => $dateFilter]
+            'parameters' => ['coin' => encrypt($coin), 'dateFilter' => $dateFilter]
         ];
 
         // Obtener los datos de los ganadores
@@ -3091,7 +3055,7 @@ class BingoController extends Controller
                 $seller = Seller::getById($userData['id'], ['id', 'commerce']);
 
                 $playersRoom = PlayerLink::with(['Coin', 'CtnsLot'])
-                    ->where(['seller' => $seller->id, 'room' => $room->id, 'coin' => $coin])
+                    ->where(['seller' => $seller->id, 'room' => $roomID, 'coin' => $coin->id])
                     ->orderByDesc('id')->get(['id', 'link', 'coin', 'name', 'lastname', 'phone']);
 
                 if (!count($playersRoom)) return redirect()->back();

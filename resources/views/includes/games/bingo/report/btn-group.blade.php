@@ -16,7 +16,7 @@
                     <i class="fa-solid fa-rotate"></i> Auto
                 </a>
             @else
-                <a class="btn btn-sm btn-secondary"
+                <a class="btn btn-sm btn-primary"
                     href="{{ route('bingo.all-rooms', ['roomType' => 'other-public-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                     <i class="fa-solid fa-gamepad"></i> Otras Salas
                 </a>

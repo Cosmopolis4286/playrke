@@ -17,6 +17,7 @@ use App\Models\BingoRoomUser;
 use App\Models\CoinGameRoom;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
+use App\Models\Country;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerUser;
@@ -477,8 +478,18 @@ trait BingoTrait
             // Iniciales del cartón
             $initials = $arrCtn['initials'];
 
+            $creatorType = $arrCtn['creator']['type'];
+
+            if ($creatorType === 'customer') {
+                $creatorID = $arrCtn['creator']['id'];
+                $country = CustomerUser::getValueByUserId($creatorID, $arrCtn['playerUser'], 'country');
+            } else {
+                $countryID = PlayerLink::getValueById($arrCtn['playerLink'], 'country');
+                $country = Country::getValue($countryID, 'iso_code_2');
+            }
+
             // Obtener el último número de cartón creado
-            $numLastCtn = BingoCtns::getLastCtnCreated($arrCtn['room'])?->id ?? 0;
+            $numLastCtn = BingoCtns::orderByDesc('id')->value('id') ?? 0;
 
             // Array para insertar registros en una sola operación
             $recordsToInsert = [];
@@ -496,7 +507,7 @@ trait BingoTrait
                 // Verificar si el hash ya existe en la base de datos o dentro del mismo lote generado
                 if (!BingoCtns::existsCartonHashRoom($arrCtn['room'], $cartonHash) && !isset($generatedHashes[$cartonHash])) {
                     $numLastCtn++;
-                    $serialCtn = "$initials$numLastCtn";
+                    $serialCtn = "$initials$numLastCtn$country";
 
                     // Preparar el cartón para la inserción
                     $recordsToInsert[] = $this->prepareCtnRecord($arrCtn, $lotID, $nwCtn, $serialCtn, $cartonHash);

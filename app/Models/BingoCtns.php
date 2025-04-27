@@ -70,9 +70,9 @@ class BingoCtns extends Model
         return $this->belongsTo(BingoCtnsLot::class, 'lot', 'id');
     }
 
-    static function getLastCtnCreated($room)
+    static function getLastCtnCreatedByRoom($room)
     {
-        return self::where('room', $room)->orderByDesc('id')->first();
+        return self::when('room', $room)->orderByDesc('id')->first();
     }
 
     static function getById($id,  $fields = ['*'])

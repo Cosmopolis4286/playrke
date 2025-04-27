@@ -29,10 +29,6 @@
                                     <td>{{ $item->status == 0 ? 'Inactivo' : 'Activo' }}</td>
                                     <td class="align-middle">
                                         <div class="btn-group" role="group">
-                                            <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="5"
-                                                data-id="{{ encrypt($item->id) }}" title="Ver Jugada">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
                                             <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
                                                 data-type="2" data-id="{{ encrypt($item->id) }}">
                                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -62,36 +58,21 @@
         let bingoBoxes = [];
         let playId = false;
 
-        function insertInfo(type, data = '') {
-            update = false;
-            $('#username, #email').attr('readonly', false);
-
-            if (type == 1) country.append(`<option value="" disabled selected>Seleccionar País:</option>`);
-
-            $.each(arrCountries, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.commerce.country) ? 'selected' : '';
-                country.append(
-                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+        function checkBoxes(boxes) {
+            $('.ctn-plays').removeClass("number-box-circle");
+            $('.ctn-plays').each(function() {
+                if (boxes.includes($(this).text().trim())) {
+                    $(this).addClass("number-box-circle");
+                }
             });
+        }
+
+        function insertInfo(type, data = '') {
 
             if (type == 2) {
-                const commerce = data.commerce;
-                const otherCoins = data.other_coins;
-                const user = data.user;
-
-                $('#name').val(commerce.name);
-                $('#phone').val(commerce.phone);
-                $('#code-rke').val(commerce.code_rke);
-                update = true;
-                country.trigger('change');
-                insertOtherCoins(otherCoins)
-
-                $("#username").val(user.username);
-                $("#email").val(user.email);
-                $('#username, #email').attr('readonly', true);
+                namePlay.val(data.name);
+                checkBoxes(data.boxes);
             }
-
-            insertGames();
 
             $(`#modal-${name}`).modal('show');
         }
@@ -112,10 +93,7 @@
                         action: 'status'
                     })
                 );
-            },
-            5: function(encryptedId) {
-                insertInfo(); // Visualizar jugada, marcar casillas
-            },
+            }
         };
 
         const bingoOrder = ['B', 'I', 'N', 'G', 'O'];
