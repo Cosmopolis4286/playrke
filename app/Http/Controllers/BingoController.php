@@ -3020,6 +3020,15 @@ class BingoController extends Controller
 
         $coin = Coin::getById($coin, ['id', 'symbol']);
 
+        $where = collect([
+            (object)[
+                'relation' => 'CtnsLot',
+                'constraints' => function ($query) use ($roomID) {
+                    $query->where('room', $roomID);
+                }
+            ]
+        ]);
+
         switch ($userData['type']) {
 
             case 'commerce':
@@ -3035,7 +3044,7 @@ class BingoController extends Controller
                     ->whereHas('CtnsLot', $ctnsLotFilter)
                     ->get();
 
-                $coins = $this->getUserCoins($userData, ['CtnsLot', 'Coin']);
+                $coins = $this->getUserCoins($userData, ['CtnsLot', 'Coin'], 'today', $where);
 
                 return view('modules/commerce/games/bingo/report/by-room')->with([
                     'title' => $title,
@@ -3064,8 +3073,6 @@ class BingoController extends Controller
                 $totalCtnsPurchased = $playersRoom->pluck('CtnsLot')->flatten()->sum('sale_amount');
 
                 $totalCtnsByRoom = $playersRoom->flatMap->CtnsLot->sum('ctns');
-
-                $where = collect([(object) ['column' => 'room', 'value' => $roomID]]);
 
                 $coins = $this->getUserCoins($userData, ['CtnsLot'], 'today', $where);
 
