@@ -26,4 +26,14 @@ $(document).on("input", "#num-serials", function () {
 // Validar %Comercio (Debe estar entre 5 y 50 con pasos de 0.05)
 $(document).on("input", "#room-commn", function () {
     validateInput(this, 5, 50);
-});    
+});
+
+// Validar #Max. Jugadas Random (Debe estar entre 1 y 5)
+$(document).on("input", "#max-plays-ramdom", function () {
+    validateInput(this, 1, 5);
+});
+
+// Validar %Bote Cantos (Debe estar entre 2 y 15 con pasos de 0.5)
+$(document).on("input", "#pct-bingo-plays", function () {
+    validateInput(this, 2, 15);
+});

@@ -1053,7 +1053,7 @@ class BingoController extends Controller
 
         $rooms = $this->getInfoRooms($creator['userId'], $roomType, $coin);
 
-        $bingoPlays = BingoTypesPlays::where('user', $creator['userId'])->where('status', 1)->get();
+        $bingoPlays = BingoTypesPlays::getAllByUser($creator['userId'], ['id', 'name'], 1);
 
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 

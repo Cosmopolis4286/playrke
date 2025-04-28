@@ -56,6 +56,7 @@
         const arrGameModes = @json($gameModes);
         let inCourse = false;
         let arrCoinsCtnPrice = false;
+        let selectedBingoPlays = [];
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -72,6 +73,35 @@
             changeFixedJackpot($(this).val());
         });
 
+        $(document).on('change', bingoPlays, function() {
+            if (this.val() == '') {
+                $('#container-pct-bingo-plays').addClass('hide-elem');
+            } else {
+                $('#container-pct-bingo-plays').removeClass('hide-elem');
+                if (this.val() === 'ramdom') {
+
+                }
+            }
+        });
+
+        function insertBingoPlays() {
+            bingoPlays.empty().append(`<option value="">No aplica</option>`);
+
+            // Verificar si "random" está seleccionado
+            const randomSelected = selectedBingoPlays.includes('random') ? 'selected' : '';
+
+            // Agregar opción Random
+            bingoPlays.append(`<option value="random" ${randomSelected}>Random</option>`);
+
+            // Recorrer las jugadas normales
+            $.each(arrBingoPlays, function(index, item) {
+                const isSelected = selectedBingoPlays.includes(item.id) ? 'selected' : '';
+                bingoPlays.append(
+                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`
+                );
+            });
+        }
+
         $(document).on("click", `.btn-${name}`, function() {
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
@@ -82,6 +112,8 @@
         function insertInfo(type, data = '') {
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
+
+            selectedBingoPlays = [];
 
             if (type == 1) {
                 arrCoinsCtnPrice = false;
@@ -123,6 +155,8 @@
                 }
             });
 
+            insertBingoPlays();
+
             if (type == 1) {
                 changeFixedJackpot(1);
             } else if (type == 2) {
@@ -141,6 +175,10 @@
                 if (config.jackpot_type > 1) {
                     changeFixedJackpot(2);
                     $('#fixed-jackpot-value').val(config.fixed_jackpot_value);
+                }
+
+                if (config.types_plays) {
+                    selectedBingoPlays = stringToArray(config.types_plays);
                 }
             }
 

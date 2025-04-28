@@ -185,6 +185,14 @@ function validateInput(input, min, max, isFloat = true) {
     }, 1500);
 }
 
+function stringToArray(str, separator = ';') {
+    if (typeof str !== 'string' || !str.length) {
+        return [];
+    }
+
+    return str.split(separator).map(item => item.trim()).filter(item => item !== '');
+}
+
 // Exponer las funciones al objeto window
 window.ajaxStart = ajaxStart;
 window.ajaxStop = ajaxStop;
@@ -195,3 +203,4 @@ window.submitForm = submitForm;
 window.formCRUD = formCRUD;
 window.getInfo = getInfo;
 window.validateInput = validateInput;
+window.stringToArray = stringToArray;
