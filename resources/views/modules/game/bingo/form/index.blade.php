@@ -80,21 +80,21 @@
             }
         }
 
-        $(document).on('change', '#jackpot-type', function() {
+        jackpotType.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
-        $(document).on('change', bingoPlays, function() {
-            const selected = $(this).val();
+        bingoPlays.on('change', function() {
+            const selected = $(this).val() || [];
             const container = $('#container-pct-bingo-plays');
 
-            if (!selected || selected.length === 0) {
+            if (selected.length === 0) {
                 container.addClass('hide-elem');
             } else {
                 container.removeClass('hide-elem');
 
                 if (selected.includes('random')) {
-                    console.log(20);
+                    console.log('Random seleccionado');
                 }
             }
         });

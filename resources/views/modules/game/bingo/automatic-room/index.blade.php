@@ -76,7 +76,7 @@
                 });
         });
 
-        $(document).on('change', '#jackpot-type', function() {
+        jackpotType.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 

@@ -87,6 +87,7 @@
     <script>
         const creator = @json($creator);
         const coin = @json($coin);
+        const inputNumCtns = $('#num-ctns');
         const player = @json($player);
         const userToken = @json($userToken ?? null);
         const creatorUser = @json($creatorUser);
@@ -114,7 +115,7 @@
             }
         }
 
-        $(document).on('input', '#num-ctns', function() {
+        inputNumCtns.on('input', function() {
             // Filtrar caracteres no numéricos
             $(this).val($(this).val().replace(/[^0-9]/g, ''));
 
@@ -124,6 +125,7 @@
             }
 
             let value = parseInt($(this).val(), 10);
+
             if (value < 1) {
                 $(this).val(1);
             } else if (value > 30) {
@@ -275,17 +277,16 @@
             handleNumCtns($(this).attr("id"));
         });
 
-        $(document).on("input paste", "#num-ctns", function() {
+        inputNumCtns.on("input paste", function() {
             handleNumCtns($(this).val());
         });
 
         function handleNumCtns(value = null) {
-            const input = $('#num-ctns');
-            const min = parseFloat(input.attr('min')) || 0;
-            const max = parseFloat(input.attr('max')) || 30;
-            const step = parseFloat(input.attr('step')) || 1;
+            const min = parseFloat(inputNumCtns.attr('min')) || 0;
+            const max = parseFloat(inputNumCtns.attr('max')) || 30;
+            const step = parseFloat(inputNumCtns.attr('step')) || 1;
 
-            let newValue = parseFloat(input.val()) || min;
+            let newValue = parseFloat(inputNumCtns.val()) || min;
 
             // Determinar el nuevo valor en función de la acción o entrada directa
             if (value === "quantity-up") {
@@ -302,7 +303,7 @@
             // Actualizar el input solo si el valor cambió
             if (newValue !== currentValCtns) {
                 currentValCtns = newValue;
-                input.val(newValue).trigger('change');
+                inputNumCtns.val(newValue).trigger('change');
                 $("#quantity-down").toggle(newValue > min);
                 $("#quantity-up").toggle(newValue < max);
                 numCtns = newValue;
@@ -312,10 +313,9 @@
 
         // Inicializa la visibilidad de los botones al mostrar el modal
         function initializeButtonVisibility() {
-            const input = $('#num-ctns');
-            const currentVal = +input.val();
-            const min = parseFloat(input.attr('min')) || 0;
-            const max = parseFloat(input.attr('max')) || 30;
+            const currentVal = +inputNumCtns.val();
+            const min = parseFloat(inputNumCtns.attr('min')) || 0;
+            const max = parseFloat(inputNumCtns.attr('max')) || 30;
 
             $("#quantity-down").toggle(currentVal > min);
             $("#quantity-up").toggle(currentVal < max);
