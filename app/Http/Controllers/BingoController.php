@@ -955,21 +955,32 @@ class BingoController extends Controller
     {
         $gameID = Games::getValueByName('BINGO');
         $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
-
         $operator = $otherCommerce ? '<>' : '=';
 
-        return BingoRoom::with([
+        $relations = [
             'Config.JackpotType',
             'Config:room,game_mode,jackpot_type,ctn_price,date,time,unix_date',
             'Config.GameMode:id,description',
-            'PlayersRoom' => function ($query) {
-                $query->where('winner', '>', 0);
-            },
-            'GameExchangeRate' => function ($query) use ($coin, $gameID) {
-                $query->where('coin', $coin)->where('game', $gameID);
-            }
-        ])->where('creator_user', $operator, $creatorUser)->where('room_type', $roomType)
-            ->orderBy('status')
+            'PlayersRoom' => fn($query) => $query->where('winner', '>', 0),
+            'GameExchangeRate' => fn($query) => $query->where('coin', $coin)->where('game', $gameID),
+        ];
+
+        if ($otherCommerce) {
+            $relations['Creator'] = fn($query) => $query->select('id', 'room')
+                ->where('creator_user', $creatorUser);
+        }
+
+        $query = BingoRoom::with($relations)
+            ->where('creator_user', $operator, $creatorUser)
+            ->where('room_type', $roomType);
+
+        if ($otherCommerce) {
+            $query->whereHas('Creator', function ($q) use ($creatorUser) {
+                $q->where('creator_user', $creatorUser);
+            });
+        }
+
+        return $query->orderBy('status')
             ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
             ->get();
     }
