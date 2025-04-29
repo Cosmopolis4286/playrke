@@ -33,7 +33,7 @@ $(document).on("input", "#max-plays-ramdom", function () {
     validateInput(this, 1, 5);
 });
 
-// Validar %Bote Cantos (Debe estar entre 2 y 15 con pasos de 0.5)
+// Validar %Bote Cantos (Debe estar entre 2 y 15 con pasos de 0.25)
 $(document).on("input", "#pct-bingo-plays", function () {
     validateInput(this, 2, 15);
 });

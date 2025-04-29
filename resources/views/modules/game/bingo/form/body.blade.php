@@ -42,8 +42,8 @@
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="room-commn">%Sala*</label>
-        <input type="number" id="room-commn" name="room_commn" class="form-control" value="10" step="0.05"
-            min="5" max="50" required>
+        <input type="number" id="room-commn" name="room_commn" class="form-control jackpot-pct" value="10"
+            step="0.05" min="5" max="50" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
@@ -87,7 +87,7 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="pct-serials">%Bote Seriales</label>
         <input type="number" value="5" min="2" max="35" step="0.05" id="pct-serials"
-            name="pct_serials" class="form-control" placeholder="Ingrese valor" required>
+            name="pct_serials" class="form-control jackpot-pct" placeholder="Ingrese valor" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="num-serials">#Max. Seriales</label>
@@ -106,7 +106,7 @@
     </div> --}}
     <div id="container-pct-bingo-plays" class="form-group col-sm-6 col-md-4 hide-elem">
         <label for="pct-bingo-plays">%Bote Cantos</label>
-        <input type="number" value="2" min="2" max="15" step="0.5" id="pct-bingo-plays"
-            name="pct_bingo_plays" class="form-control" placeholder="Ingrese valor" required>
+        <input type="number" value="" min="2" max="15" step="0.25" id="pct-bingo-plays"
+            name="pct_bingo_plays" class="form-control jackpot-pct" placeholder="Ingrese valor" required>
     </div>
 </div>

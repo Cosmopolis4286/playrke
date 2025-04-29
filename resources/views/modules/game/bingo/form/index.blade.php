@@ -69,6 +69,8 @@
             });
         });
 
+
+
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
 
@@ -79,6 +81,28 @@
                 $("#fixed-jackpot-value").empty();
             }
         }
+
+        $(document).on('input change', '.jackpot-pct', function() {
+
+            const pctRoom = $('#room-commn');
+            const pctSerials = $('#pct-serials');
+            const pctBingoPlays = $('#pct-bingo-plays');
+            let pctRoomVal = pctRoom.val();
+            let pctSerialsVal = pctSerials.val();
+            let pctBingoPlaysVal = pctBingoPlays.val();
+
+            let pctJackpotVal = pctRoomVal + pctSerialsVal + pctBingoPlaysVal;
+
+            switch (key) {
+                case value:
+
+                    break;
+
+                default:
+                    break;
+            }
+
+        });
 
         jackpotType.on('change', function() {
             changeFixedJackpot($(this).val());
@@ -108,11 +132,13 @@
 
             // Recorrer las jugadas normales
             $.each(arrBingoPlays, function(index, item) {
-                const isSelected = selectedBingoPlays.includes(item.id) ? 'selected' : '';
+                const isSelected = selectedBingoPlays.includes(String(item.id)) ? 'selected' : '';
                 bingoPlays.append(
                     `<option value="${item.id}" ${isSelected}>${item.name}</option>`
                 );
             });
+
+            bingoPlays.trigger('change');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
@@ -189,7 +215,7 @@
 
                 if (config.types_plays) {
                     selectedBingoPlays = stringToArray(config.types_plays);
-                    //$('#max-plays-ramdom').val(config.pct_serials);
+                    // $('#max-plays-ramdom').val(config.pct_serials);
                     $('#pct-bingo-plays').val(config.pct_types_plays);
                 }
             }

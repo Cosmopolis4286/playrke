@@ -19,7 +19,7 @@
                         'roomType' => 'automatic-rooms',
                     ],
                     'OTHER-PUBLIC' => [
-                        'class' => 'btn-primary',
+                        'class' => 'btn-secondary',
                         'icon' => 'fas fa-globe',
                         'text' => 'Publicas',
                         'roomType' => 'public-rooms',

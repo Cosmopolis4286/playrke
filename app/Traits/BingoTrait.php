@@ -1005,6 +1005,8 @@ trait BingoTrait
         return $infoPlayer;
     }
 
+    public function handleTypesOfPlays($roomID) {}
+
     public function handleJackpotWinners($roomID)
     {
         // Obtener la información de la sala
