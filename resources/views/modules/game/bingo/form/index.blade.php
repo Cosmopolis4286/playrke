@@ -55,8 +55,7 @@
         const arrCoins = @json($coins);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
-        let inCourse = false;
-        let arrCoinsCtnPrice = false;
+        let coinsCtnPrice = false;
         let selectedBingoPlays = [];
 
         $(function() {
@@ -130,7 +129,7 @@
             selectedBingoPlays = [];
 
             if (type == 1) {
-                arrCoinsCtnPrice = false;
+                coinsCtnPrice = false;
                 $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
                 $('#container-price-config').html('');
             } else {

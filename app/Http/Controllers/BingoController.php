@@ -2311,30 +2311,9 @@ class BingoController extends Controller
                 break;
         }
 
-        $automaticRooms = BingoRoomAutomatic::where('creator_user', $creator['userId'])
-            ->whereNot('status', 3)
-            ->get([
-                'id',
-                'time',
-                'game_mode',
-                'room_type',
-                'jackpot_type',
-                'fixed_jackpot_value',
-                'ctn_price',
-                'time_chip',
-                'room_commn',
-                'serials_commn',
-                'pct_serials',
-                'num_serials',
-                'status'
-            ]);
+        $rooms = [];
 
         $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
-
-        $routeExecuteGenerateBingoRoomsJob = route(
-            'bingo.automatic-room.executeGenerateBingoRoomsJob',
-            ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
-        );
 
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
@@ -2345,16 +2324,13 @@ class BingoController extends Controller
             'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'creator' => $creator,
+            'coin' => 2,
+            'coinSym' => 1,
             'coins' => [],
-            'rooms' => $automaticRooms,
-            'otherRooms' => true,
+            'rooms' => $rooms,
             'activeRooms' => $activeRooms,
-            'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
             'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
-            'GMRoute' => $GMRoute,
-            'roomType' => $roomType ?? [],
-            'jackpotType' => JackpotType::all(),
-            'gameModes' => GameModes::all()
+            // 'GMRoute' => $GMRoute
         ];
 
         if (isset($moreViewData)) {

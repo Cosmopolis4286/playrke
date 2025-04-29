@@ -39,8 +39,7 @@
         const existsRoomTypes = !$.isEmptyObject(roomTypes);
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
-        let inCourse = false;
-        let arrCoinsCtnPrice = false;
+        let coinsCtnPrice = false;
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -90,7 +89,7 @@
 
         function insertInfo(type, data = '') {
             if (type == 1) {
-                arrCoinsCtnPrice = false;
+                coinsCtnPrice = false;
                 $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
                 $('#container-price-config').html('');
             } else {
