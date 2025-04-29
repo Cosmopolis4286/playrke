@@ -33,7 +33,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->double('pct_serials')->nullable();
             $table->string('num_serials', 2)->nullable();
             $table->double('serials_commn')->nullable();
-            $table->double('val_types_plays')->nullable();
+            $table->double('pct_types_plays')->nullable();
             $table->string('types_plays')->nullable();
             $table->timestamps();
 

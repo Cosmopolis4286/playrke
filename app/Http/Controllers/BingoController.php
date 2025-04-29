@@ -1248,7 +1248,7 @@ class BingoController extends Controller
 
                 $roomID = BingoRoom::create($createData)->id;
 
-                BingoRoomConfig::create([
+                $dataConfig = [
                     'room' => $roomID,
                     'creation' => 'M',
                     'creator_user' => $userID,
@@ -1264,10 +1264,17 @@ class BingoController extends Controller
                     'time_chip' => $request->time_chip,
                     'pct_serials' => $request->pct_serials,
                     'num_serials' => $request->num_serials,
-                    'serials_commn' => $request->serials_commn,
-                    // 'val_types_plays' => '',
-                    // 'types_plays' => ''
-                ]);
+                    'serials_commn' => $request->serials_commn
+                ];
+
+                $typesOfPlays = $request->types_plays;
+
+                if ($typesOfPlays) {
+                    $dataConfig['pct_types_plays'] = $request->pct_types_plays;
+                    $dataConfig['types_plays'] = implode(';', $typesOfPlays);;
+                }
+
+                BingoRoomConfig::create($dataConfig);
 
                 $creatorType = UserType::getValueByPrefix($creatorType, 'id');
 
@@ -1349,10 +1356,15 @@ class BingoController extends Controller
             'time_chip' => $request->time_chip,
             'pct_serials' => $request->pct_serials,
             'num_serials' => $request->num_serials,
-            'serials_commn' => $request->serials_commn,
-            // 'val_types_plays' => '',
-            // 'types_plays' => ''
+            'serials_commn' => $request->serials_commn
         ];
+
+        $typesOfPlays = $request->types_plays;
+
+        if ($typesOfPlays) {
+            $updateDataConfig['pct_types_plays'] = $request->pct_types_plays;
+            $updateDataConfig['types_plays'] = implode(';', $typesOfPlays);;
+        }
 
         // Solo añadir 'game_mode' si el jackpot es 0
         if ($room->jackpot == 0) {
@@ -1740,7 +1752,9 @@ class BingoController extends Controller
             'time_chip',
             'pct_serials',
             'num_serials',
-            'serials_commn'
+            'serials_commn',
+            'pct_types_plays',
+            'types_plays'
         )->where('room', $id)->firstOrFail();
 
         $bingoCreator = true;
@@ -1911,7 +1925,7 @@ class BingoController extends Controller
             // Obtener la nueva sala
             $newRoomID = BingoRoom::create($createData)->id;
 
-            $configData = BingoRoomConfig::create([
+            $dataConfig = BingoRoomConfig::create([
                 'room' => $newRoomID,
                 'creation' => 'A',
                 'creator_user' => $userID,
@@ -1928,11 +1942,11 @@ class BingoController extends Controller
                 'pct_serials' => $existingRoomConfig->pct_serials,
                 'num_serials' => $existingRoomConfig->num_serials,
                 'serials_commn' => $existingRoomConfig->serials_commn,
-                // 'val_types_plays' => '',
+                // 'pct_types_plays' => '',
                 // 'types_plays' => ''
             ]);
 
-            BingoRoomConfig::create($configData);
+            BingoRoomConfig::create($dataConfig);
 
             // Registar el creador de la sala
             BingoCreator::create([

@@ -25,7 +25,7 @@ class BingoRoomConfig extends Model
     'pct_serials',
     'num_serials',
     'serials_commn',
-    'val_types_plays',
+    'pct_types_plays',
     'types_plays'
   ];
 

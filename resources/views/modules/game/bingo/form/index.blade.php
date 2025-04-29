@@ -40,6 +40,7 @@
     @endif
 @endsection
 @section('scripts')
+    <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
         const name = '{{ $name }}';
         const creation = 'M';
@@ -58,6 +59,17 @@
         let arrCoinsCtnPrice = false;
         let selectedBingoPlays = [];
 
+        $(function() {
+            $('.select2').each(function() {
+                $(this).select2({
+                    theme: 'bootstrap4',
+                    width: 'style',
+                    placeholder: $(this).attr('placeholder'),
+                    allowClear: Boolean($(this).data('allow-clear')),
+                });
+            });
+        });
+
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
 
@@ -74,24 +86,26 @@
         });
 
         $(document).on('change', bingoPlays, function() {
-            if (this.val() == '') {
-                $('#container-pct-bingo-plays').addClass('hide-elem');
-            } else {
-                $('#container-pct-bingo-plays').removeClass('hide-elem');
-                if (this.val() === 'ramdom') {
+            const selected = $(this).val();
+            const container = $('#container-pct-bingo-plays');
 
+            if (!selected || selected.length === 0) {
+                container.addClass('hide-elem');
+            } else {
+                container.removeClass('hide-elem');
+
+                if (selected.includes('random')) {
+                    console.log(20);
                 }
             }
         });
 
         function insertBingoPlays() {
-            bingoPlays.empty().append(`<option value="">No aplica</option>`);
+            // // Verificar si "random" está seleccionado
+            // const randomSelected = selectedBingoPlays.includes('random') ? 'selected' : '';
 
-            // Verificar si "random" está seleccionado
-            const randomSelected = selectedBingoPlays.includes('random') ? 'selected' : '';
-
-            // Agregar opción Random
-            bingoPlays.append(`<option value="random" ${randomSelected}>Random</option>`);
+            // // Agregar opción Random
+            // bingoPlays.append(`<option value="random" ${randomSelected}>Random</option>`);
 
             // Recorrer las jugadas normales
             $.each(arrBingoPlays, function(index, item) {
@@ -155,12 +169,9 @@
                 }
             });
 
-            insertBingoPlays();
-
             if (type == 1) {
                 changeFixedJackpot(1);
             } else if (type == 2) {
-
                 const config = data.config;
 
                 $('#date').val(config.date);
@@ -179,8 +190,12 @@
 
                 if (config.types_plays) {
                     selectedBingoPlays = stringToArray(config.types_plays);
+                    //$('#max-plays-ramdom').val(config.pct_serials);
+                    $('#pct-bingo-plays').val(config.pct_types_plays);
                 }
             }
+
+            insertBingoPlays();
 
             $(`#modal-${name}`).modal('show');
         }

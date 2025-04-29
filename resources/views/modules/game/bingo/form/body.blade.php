@@ -94,15 +94,16 @@
         <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
             name="num_serials" class="form-control" placeholder="Ingrese la cantidad" required>
     </div>
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-12 col-md-8">
         <label for="bingo-plays">Cantos</label>
-        <select id="bingo-plays" name="bingo_plays" class="form-control"></select>
+        <select id="bingo-plays" name="bingo_plays[]" class="form-control select2" multiple
+            placeholder="   Selecciona los cantos (opcional)" data-allow-clear="true"></select>
     </div>
-    <div id="container-max-plays-ramdom" class="form-group col-sm-6 col-md-4 hide-elem">
+    {{-- <div id="container-max-plays-ramdom" class="form-group col-sm-6 col-md-4 hide-elem">
         <label for="max-plays-ramdom">#Max. Random</label>
         <input type="number" step="1" value="1" min="1" max="5" id="max-plays-ramdom"
             name="max_plays_ramdom" class="form-control" placeholder="Ingrese la cantidad" required>
-    </div>
+    </div> --}}
     <div id="container-pct-bingo-plays" class="form-group col-sm-6 col-md-4 hide-elem">
         <label for="pct-bingo-plays">%Bote Cantos</label>
         <input type="number" value="2" min="2" max="15" step="0.5" id="pct-bingo-plays"
