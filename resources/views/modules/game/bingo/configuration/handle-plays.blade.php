@@ -51,21 +51,13 @@
     </div>
 @endsection
 @section('scripts')
+    @vite('resources/js/games/bingo/includes/handle-bingo-plays.js')
     <script>
         const name = @json($name);
         const form = $(`#form-${name}`);
         let namePlay = $('#name-play');
         let bingoBoxes = [];
         let playId = false;
-
-        function checkBoxes(boxes) {
-            $('.ctn-plays').removeClass("number-box-circle");
-            $('.ctn-plays').each(function() {
-                if (boxes.includes($(this).text().trim())) {
-                    $(this).addClass("number-box-circle");
-                }
-            });
-        }
 
         function insertInfo(type, data = '') {
 
@@ -125,12 +117,6 @@
                 return indexA - indexB;
             });
         });
-
-        function cleanBoxes() {
-            $('.ctn-plays').removeClass('number-box-circle');
-            bingoBoxes = [];
-            namePlay.val('');
-        }
 
         $(document).on("click", "#btn-clean", function() {
             cleanBoxes();
