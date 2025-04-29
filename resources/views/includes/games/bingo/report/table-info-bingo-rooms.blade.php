@@ -37,9 +37,11 @@
                         ]);
                     }
 
-                    $ctnPrice = $room->ctn_price * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
-                    $allSale = $room->all_sale * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
-                    $jackpot = $room->jackpot * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
+                    $rate = $room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate;
+
+                    $ctnPrice = ($room->Config->ctn_price ?? 0) * $rate;
+                    $allSale = ($room->all_sale ?? 0) * $rate;
+                    $jackpot = ($room->jackpot ?? 0) * $rate;
 
                     $totalAllSale += $allSale;
                     $totalJackpot += $jackpot;

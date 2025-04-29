@@ -34,7 +34,7 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Nueva Sala', `{{ asset('') }}${name}`);
+            formCRUD($(this), name, 'Nueva Sala', `{{ asset('') }}${name}`, otherCasesMap);
         });
 
         function insertInfo(type, data = '') {
@@ -56,6 +56,20 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, ['ctn-price']);
         });
+
+        const otherCasesMap = {
+            4: function(encryptedId) {
+                showToastOptionBtns(
+                    'Auto-Generar esta sala',
+                    'question',
+                    'Sí, auto-generar',
+                    '#form-other-options',
+                    route(`${name}.change-replay`, {
+                        id: encryptedId
+                    })
+                );
+            }
+        };
     </script>
     @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
 @endsection

@@ -951,14 +951,16 @@ class BingoController extends Controller
         );
     }
 
-    private function getInfoRooms($creatorUser, $roomType, $coin)
+    private function getInfoRooms($creatorUser, $roomType, $coin, $otherCommerce = false)
     {
         $gameID = Games::getValueByName('BINGO');
         $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
 
+        $operator = $otherCommerce ? '<>' : '=';
+
         return BingoRoom::with([
             'Config.JackpotType',
-            'Config:room,game_mode,jackpot_type,date,time,unix_date',
+            'Config:room,game_mode,jackpot_type,ctn_price,date,time,unix_date',
             'Config.GameMode:id,description',
             'PlayersRoom' => function ($query) {
                 $query->where('winner', '>', 0);
@@ -966,7 +968,7 @@ class BingoController extends Controller
             'GameExchangeRate' => function ($query) use ($coin, $gameID) {
                 $query->where('coin', $coin)->where('game', $gameID);
             }
-        ])->where('creator_user', $creatorUser)->where('room_type', $roomType)
+        ])->where('creator_user', $operator, $creatorUser)->where('room_type', $roomType)
             ->orderBy('status')
             ->orderByRaw("(SELECT CONCAT(date, ' ', time) FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
             ->get();
@@ -2281,8 +2283,12 @@ class BingoController extends Controller
                 break;
             case 'commerce': // Comercio
                 $isLogin = true;
-                $moreViewData = ['uuidCode' => 'OTHER-COMMERCE'];
 
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($userData['id'], $coin);
+
+                $moreViewData = [
+                    'uuidCode' => UUIDCodes::getValueByUser($userData['userId'], 'code_uuid')
+                ];
                 break;
             case 'customer':
                 return false;
@@ -2299,11 +2305,11 @@ class BingoController extends Controller
         $coins[] = 1;
         $coins = Coin::getCoinsById($coins);
 
-        $rooms = BingoRoom::where('room_type', 'PB')->where('creator_user', '<>', $userData['userId'])->get();
+        $rooms = $this->getInfoRooms($userData['userId'], 'public-rooms', $coin, true);
 
         $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
 
-        $creator = ['type' => $userData['type'], 'id' => $userData['id']];
+        $creator = ['type' => $userData['type'], 'id' => encrypt($userData['id'])];
 
         $routeWithCoin = [
             'route' => 'bingo.all-rooms',
@@ -2324,6 +2330,7 @@ class BingoController extends Controller
             'coin' => $coin->id,
             'coinSym' => $coin->symbol,
             'coins' => $coins,
+            'exchangeRate' => $exchangeRate ?? 1,
             'rooms' => $rooms,
             'routeWithCoin' => $routeWithCoin,
             'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin

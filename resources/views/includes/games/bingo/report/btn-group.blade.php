@@ -1,9 +1,15 @@
 {{-- resources/views/includes/btn-group.blade.php  --}}
 <div class="d-flex justify-content-between align-items-center">
     <div class="btn-group">
-        <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="1">
-            <i class="fas fa-plus"></i> Crear
-        </button>
+        @if ($view === 'OTHER-PUBLIC')
+            <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="4">
+                <i class="fa-solid fa-list-check"></i> Ver Salas
+            </button>
+        @else
+            <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="1">
+                <i class="fas fa-plus"></i> Crear
+            </button>
+        @endif
         @if ($view === 'AUTO')
             <a class="btn btn-sm btn-secondary"
                 href="{{ route('bingo.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
