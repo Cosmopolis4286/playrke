@@ -50,15 +50,19 @@
             submitForm(name, ['ctn-price']);
         });
 
+        $(document).on("click", ".btn-participate-bingo", function() {
+
+        });
+
         function insertInfoPublicRooms(data) {
             const $modal = $('#modal-other-bingo-rooms');
-            const $modalBody = $modal.find('.modal-body');
+            const $modalBodyContainer = $modal.find('.modal-body .container');
 
-            $modalBody.empty();
+            $modalBodyContainer.empty();
 
             if (!data.length) {
-                $modalBody.html(`
-            <div class="alert alert-info alert-dismissible text-center mb-n1" role="alert">
+                $modalBodyContainer.html(`
+            <div class="alert alert-info alert-dismissible text-center" role="alert">
                 ¡No hay salas disponibles!
             </div>`);
                 $modal.modal('show');
@@ -68,12 +72,27 @@
             let html = '<div class="row">';
 
             data.forEach(elem => {
+                const originalDate = elem.config.date;
+                const formattedDate = new Date(originalDate)
+                    .toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: '2-digit'
+                    });
+
                 html += `
-            <div class="input-group mb-3">
-                <div class="form-control">${elem.encrypted}</div>
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <label class="input-group-text">
+                        <small><i class="fa-solid fa-calendar-days mr-1 mb-1"></i></small>${formattedDate}
+                        <small><i class="fa-solid fa-clock ml-1 mr-1 mb-1"></i></small>${elem.config.time}
+                    </label>
+                </div>
+                <div class="form-control">Bote Actual: <b>${elem.jackpot} <small>USD</small></b></div>
                 <div class="input-group-append">
-                    <button class="btn btn-outline-secondary btn-participate-bingo" type="button" data-id="${elem.encrypted}">
-                        Participar
+                    <button class="btn btn-outline-secondary btn-participate-bingo"
+                     type="button" data-id="${elem.encrypted}" title="Participar">
+                        <i class="fa-solid fa-right-to-bracket"></i>
                     </button>
                 </div>
             </div>`;
@@ -81,7 +100,7 @@
 
             html += '</div>';
 
-            $modalBody.html(html);
+            $modalBodyContainer.html(html);
             $modal.modal('show');
         }
 

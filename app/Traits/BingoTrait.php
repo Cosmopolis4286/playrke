@@ -103,7 +103,7 @@ trait BingoTrait
 
             // Obtener chips existentes y símbolos
             $existingChipsSet = BingoDraw::select('chip')->where('room', $room)->pluck('chip')->flip();
-            $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
+            $symbols = BingoDrawCode::select('sym', 'num')->where('room', $room)->pluck('sym', 'num');
 
             // Variables de control
             $lastDrawTime = BingoDraw::where('room', $room)->max('time') ?? $dataTime;

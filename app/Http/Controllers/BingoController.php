@@ -703,10 +703,12 @@ class BingoController extends Controller
             ->where('time', '>', time())->get(['code', 'time']) : [];
 
         $chipsRest = ($room->status == 3) ?
-            BingoDraw::where('room', $roomID)->where('time', '>', time())
+            BingoDraw::select('chip')->where('room', $roomID)->where('time', '>', time())
             ->where('id', '<=', $vanDraw->id)->orderBy('chip')->pluck('chip')->sort()->toArray() : [];
 
-        $codeEncrypt = ($room->status == 3) ? BingoDrawCode::where('room', $roomID)->pluck('sym')->toArray() : [];
+        $codeEncrypt = ($room->status == 3) ?
+            BingoDrawCode::select('sym')->where('room', $roomID)
+            ->pluck('sym')->toArray() : [];
 
         $dataChips = $this->getChips($room->encrypted);
 
@@ -892,7 +894,7 @@ class BingoController extends Controller
 
         if ($chipVanID) {
             // Realizamos una única consulta para obtener todas las fichas en las condiciones especificadas
-            $allChips = array_map('intval', BingoDraw::where('room', $room->id)
+            $allChips = array_map('intval', BingoDraw::select('chip')->where('room', $room->id)
                 ->where('id', '<=', $chipVanID)->where('time', '<=', time())
                 ->orderByDesc('id')->pluck('chip')->toArray());
 
@@ -1799,12 +1801,10 @@ class BingoController extends Controller
             return false;
         }
 
-        return BingoRoom::with('Config:id,room,ctn_price')
+        return BingoRoom::with('Config:id,room,date,time,ctn_price')
             ->select(
                 'id',
                 'encrypted',
-                'players',
-                'ctns',
                 'room_commn',
                 'jackpot'
             )->where('creator_user', '<>', $userData['userId'])
@@ -2710,7 +2710,7 @@ class BingoController extends Controller
         date_default_timezone_set(config('app.timezone'));
 
         // Obtener datos iniciales
-        $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
+        $symbols = BingoDrawCode::select('sym', 'num')->where('room', $room)->pluck('sym', 'num');
         $draws = BingoDraw::where('room', $room)->get();
         $currentTimestamp = now()->addMinutes(1)->timestamp;
         $timeIncrement = 8;
