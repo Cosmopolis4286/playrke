@@ -1234,105 +1234,104 @@ class BingoController extends Controller
         $creatorID = decrypt($creator->id);
         $allowedPrefixes = ['admin', 'commerce', 'customer'];
 
-        if (in_array($creatorType, $allowedPrefixes)) {
-
-            date_default_timezone_set(config('app.timezone'));
-
-            $userID = Auth::id();
-            $fixedJackpotValue = $request->fixed_jackpot_value;
-
-            $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
-            $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
-
-            $model = 'BingoRoom';
-
-            $createData = [
-                'encrypted' => $this->generateUniqueCode($model),
-                'status' => 1,
-                'room_type' => $request->room_type,
-                'creator_user' => $userID,
-                'jackpot' => $boat,
-                'code_uuid' => $this->getCodeUUID($model)
-            ];
-
-            DB::beginTransaction();
-
-            try {
-
-                $roomID = BingoRoom::create($createData)->id;
-
-                $dataConfig = [
-                    'room' => $roomID,
-                    'creation' => 'M',
-                    'creator_user' => $userID,
-                    'game_mode' => $request->game_mode,
-                    'date' => $request->date,
-                    'time' => $request->time,
-                    'unix_date' => strtotime(`{$request->date} {$request->time}`),
-                    'coin' => $coin,
-                    'ctn_price' => $request->ctn_price,
-                    'room_commn' => $request->room_commn,
-                    'jackpot_type' => $request->jackpot_type,
-                    'fixed_jackpot_value' => $request->fixed_jackpot_value,
-                    'time_chip' => $request->time_chip,
-                    'pct_serials' => $request->pct_serials,
-                    'num_serials' => $request->num_serials,
-                    'serials_commn' => $request->serials_commn
-                ];
-
-                $typesOfPlays = $request->bingo_plays;
-
-                if ($typesOfPlays) {
-                    $dataConfig['pct_types_plays'] = $request->pct_bingo_plays;
-                    $dataConfig['types_plays'] = implode(';', $typesOfPlays);;
-                }
-
-                BingoRoomConfig::create($dataConfig);
-
-                $creatorType = UserType::getValueByPrefix($creatorType, 'id');
-
-                // Registar el creador de la sala
-                BingoCreator::create([
-                    'room' => $roomID,
-                    'creator_user' => $userID,
-                    'creator_type' => $creatorType,
-                    'creator_id' => $creatorID,
-                    'creator_commn' => $request->room_commn,
-                    'ctn_price' => $request->ctn_price,
-                ]);
-
-                $ctnPriceCoins = $request->ctn_price_coins;
-
-                if ($ctnPriceCoins) {
-
-                    $timestamp = now();
-
-                    $recordsToInsert = collect($ctnPriceCoins)
-                        ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
-                        ->map(function ($ctnPrice, $coin) use ($roomID, $userID, $timestamp) {
-                            return [
-                                'room' => $roomID,
-                                'creator_user' => $userID,
-                                'coin' => $coin,
-                                'ctn_price' => $ctnPrice,
-                                'created_at' => $timestamp,
-                                'updated_at' => $timestamp,
-                            ];
-                        })->values()->toArray();
-
-                    BingoCtnPrice::insert($recordsToInsert);
-                }
-
-                DB::commit();
-                return redirect()->back()->with('message', 'Sala creada con éxito')->with('type', 'success');
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error('Error al crear la sala: ' . $e->getMessage());
-                return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al crear la sala']);
-            }
+        if (!in_array($creatorType, $allowedPrefixes)) {
+            return redirect()->back()->with('msg-error', 'No tienes permiso para crear una sala');
         }
 
-        return redirect()->back()->with('msg-error', 'No tienes permiso para crear una sala');
+        date_default_timezone_set(config('app.timezone'));
+
+        $userID = Auth::id();
+        $fixedJackpotValue = $request->fixed_jackpot_value;
+
+        $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
+        $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
+
+        $model = 'BingoRoom';
+
+        $createData = [
+            'encrypted' => $this->generateUniqueCode($model),
+            'status' => 1,
+            'room_type' => $request->room_type,
+            'creator_user' => $userID,
+            'jackpot' => $boat,
+            'code_uuid' => $this->getCodeUUID($model)
+        ];
+
+        DB::beginTransaction();
+
+        try {
+
+            $roomID = BingoRoom::create($createData)->id;
+
+            $dataConfig = [
+                'room' => $roomID,
+                'creation' => 'M',
+                'creator_user' => $userID,
+                'game_mode' => $request->game_mode,
+                'date' => $request->date,
+                'time' => $request->time,
+                'unix_date' => strtotime(`{$request->date} {$request->time}`),
+                'coin' => $coin,
+                'ctn_price' => $request->ctn_price,
+                'room_commn' => $request->room_commn,
+                'jackpot_type' => $request->jackpot_type,
+                'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                'time_chip' => $request->time_chip,
+                'pct_serials' => $request->pct_serials,
+                'num_serials' => $request->num_serials,
+                'serials_commn' => $request->serials_commn
+            ];
+
+            $typesOfPlays = $request->bingo_plays;
+
+            if ($typesOfPlays) {
+                $dataConfig['pct_types_plays'] = $request->pct_bingo_plays;
+                $dataConfig['types_plays'] = implode(';', $typesOfPlays);;
+            }
+
+            BingoRoomConfig::create($dataConfig);
+
+            $creatorType = UserType::getValueByPrefix($creatorType, 'id');
+
+            // Registar el creador de la sala
+            BingoCreator::create([
+                'room' => $roomID,
+                'creator_user' => $userID,
+                'creator_type' => $creatorType,
+                'creator_id' => $creatorID,
+                'creator_commn' => $request->room_commn,
+                'ctn_price' => $request->ctn_price,
+            ]);
+
+            $ctnPriceCoins = $request->ctn_price_coins;
+
+            if ($ctnPriceCoins) {
+
+                $timestamp = now();
+
+                $recordsToInsert = collect($ctnPriceCoins)
+                    ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
+                    ->map(function ($ctnPrice, $coin) use ($roomID, $userID, $timestamp) {
+                        return [
+                            'room' => $roomID,
+                            'creator_user' => $userID,
+                            'coin' => $coin,
+                            'ctn_price' => $ctnPrice,
+                            'created_at' => $timestamp,
+                            'updated_at' => $timestamp,
+                        ];
+                    })->values()->toArray();
+
+                BingoCtnPrice::insert($recordsToInsert);
+            }
+
+            DB::commit();
+            return redirect()->back()->with('message', 'Sala creada con éxito')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear la sala: ' . $e->getMessage());
+            return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al crear la sala']);
+        }
     }
 
     public function update(Request $request, $id)
@@ -1788,6 +1787,62 @@ class BingoController extends Controller
             'config' => $config,
             'creator' => $bingoCreator
         ]);
+    }
+
+    public function getInfoPublicRoom()
+    {
+        $userData = $this->getUserData();
+
+        $allowedPrefixes = ['admin', 'commerce', 'customer'];
+
+        if (!in_array($userData['type'], $allowedPrefixes)) {
+            return false;
+        }
+
+        return BingoRoom::with('Config:id,room,ctn_price')
+            ->select(
+                'id',
+                'players',
+                'ctns',
+                'room_commn',
+                'jackpot'
+            )->where('creator_user', '<>', $userData['userId'])
+            ->where('room_type', 'PB')->get();
+    }
+
+    public function participateInPublicRoom(Request $request)
+    {
+        $userData = $this->getUserData();
+
+        $allowedPrefixes = ['admin', 'commerce', 'customer'];
+
+        if (!in_array($userData['type'], $allowedPrefixes)) {
+            return false;
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            $bingo = BingoRoom::with('Config:id,room,ctn_price,room_commn')
+                ->where('encrypted', $request->room)->first();
+
+            BingoCreator::create([
+                'room' => $bingo->id,
+                'creator_user' => $userData['userId'],
+                'creator_type' => $userData['type'],
+                'creator_id' => $userData['id'],
+                'creator_commn' => $bingo->Config->room_commn,
+                'ctn_price' => $bingo->Config->ctn_price
+            ]);
+
+            DB::commit();
+            return redirect()->back()->with('message', 'Proceso exitoso')->with('type', 'success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al participar en la sala como comercializadora: ' . $e->getMessage());
+            return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al crear la sala']);
+        }
     }
 
     public function getInfoBingoPlay($id)

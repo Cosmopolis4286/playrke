@@ -19,6 +19,7 @@
         'size' => 'md',
         'dataForm' => view('modules.game.bingo.form.body-other-public-rooms', ['creator' => $creator])->render(),
     ])
+    @include('includes.games.bingo.layout.modal-other-bingo-rooms')
     @include('includes.form-other-options')
 @endsection
 @section('scripts')
@@ -57,18 +58,21 @@
             submitForm(name, ['ctn-price']);
         });
 
+        function getInfoPublicRoom() {
+            $.getJSON({
+                url: `{{ route('bingo.getInfoPublicRoom') }}`,
+                headers: {
+                    'X-CSRF-TOKEN': $("#5K3_70K").val()
+                },
+                success: function(data) {
+                    console.log(data);
+                    $('#modal-other-bingo-rooms').modal('show');
+                }
+            });
+        }
+
         const otherCasesMap = {
-            4: function(encryptedId) {
-                showToastOptionBtns(
-                    'Auto-Generar esta sala',
-                    'question',
-                    'Sí, auto-generar',
-                    '#form-other-options',
-                    route(`${name}.change-replay`, {
-                        id: encryptedId
-                    })
-                );
-            }
+            4: getInfoPublicRoom
         };
     </script>
     @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
