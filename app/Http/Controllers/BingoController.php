@@ -1827,20 +1827,26 @@ class BingoController extends Controller
             $bingo = BingoRoom::with('Config:id,room,ctn_price,room_commn')
                 ->where('encrypted', $request->room)->first();
 
-            BingoCreator::create([
-                'room' => $bingo->id,
-                'creator_user' => $userData['userId'],
-                'creator_type' => $userData['type'],
-                'creator_id' => $userData['id'],
-                'creator_commn' => $bingo->Config->room_commn,
-                'ctn_price' => $bingo->Config->ctn_price
-            ]);
+            if ($request->cancel) {
+                BingoCreator::where('room', $bingo->id)
+                    ->where('creator_user', $userData['userId'])
+                    ->update(['status' => 0]);
+            } else {
+                BingoCreator::create([
+                    'room' => $bingo->id,
+                    'creator_user' => $userData['userId'],
+                    'creator_type' => $userData['type'],
+                    'creator_id' => $userData['id'],
+                    'creator_commn' => $bingo->Config->room_commn,
+                    'ctn_price' => $bingo->Config->ctn_price
+                ]);
+            }
 
             DB::commit();
             return redirect()->back()->with('message', 'Proceso exitoso')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al participar en la sala como comercializadora: ' . $e->getMessage());
+            Log::error('Error al participar/salir en la sala como comercializadora: ' . $e->getMessage());
             return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al crear la sala']);
         }
     }
@@ -1993,7 +1999,7 @@ class BingoController extends Controller
             // Obtener la nueva sala
             $newRoomID = BingoRoom::create($createData)->id;
 
-            $dataConfig = BingoRoomConfig::create([
+            BingoRoomConfig::create([
                 'room' => $newRoomID,
                 'creation' => 'A',
                 'creator_user' => $userID,
@@ -2014,16 +2020,14 @@ class BingoController extends Controller
                 // 'types_plays' => ''
             ]);
 
-            BingoRoomConfig::create($dataConfig);
-
             // Registar el creador de la sala
             BingoCreator::create([
                 'room' => $newRoomID,
                 'creator_user' => $userID,
                 'creator_type' => $existingRoomCreator->creator_type,
                 'creator_id' => $existingRoomCreator->creator_id,
-                'creator_commn' => $existingRoomCreator->room_commn,
-                'ctn_price' => $existingRoomCreator->ctn_price
+                'creator_commn' => $existingRoomConfig->room_commn,
+                'ctn_price' => $existingRoomConfig->ctn_price
             ]);
 
             if ($existingRoomCtnPrice) {

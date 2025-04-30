@@ -25,6 +25,7 @@
     @include('includes.form-other-options')
 @endsection
 @section('scripts')
+    <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
         const name = '{{ $name }}';
         const creation = 'A';
@@ -40,6 +41,17 @@
         const arrJackpotType = @json($jackpotType);
         const arrGameModes = @json($gameModes);
         let coinsCtnPrice = false;
+
+        $(function() {
+            $('.select2').each(function() {
+                $(this).select2({
+                    theme: 'bootstrap4',
+                    width: 'style',
+                    placeholder: $(this).attr('placeholder'),
+                    allowClear: Boolean($(this).data('allow-clear')),
+                });
+            });
+        });
 
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
@@ -165,7 +177,10 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name);
+            submitForm(name, [
+                'time', 'room-type', 'jackpot-type', 'game-mode',
+                'room-commn', 'ctn-price', 'time-chip', 'pct-serials', 'num-serials'
+            ]);
         });
 
         const otherCasesMap = {

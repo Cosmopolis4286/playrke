@@ -20,7 +20,7 @@ $(document).on("input", "#pct-serials", function () {
 
 // Validar #Max. Seriales (Debe estar entre 3 y 30)
 $(document).on("input", "#num-serials", function () {
-    validateInput(this, 3, 30);
+    validateInput(this, 3, 30, false);
 });
 
 // Validar %Comercio (Debe estar entre 5 y 50 con pasos de 0.05)
@@ -30,7 +30,7 @@ $(document).on("input", "#room-commn", function () {
 
 // Validar #Max. Jugadas Random (Debe estar entre 1 y 5)
 $(document).on("input", "#max-plays-ramdom", function () {
-    validateInput(this, 1, 5);
+    validateInput(this, 1, 5, false);
 });
 
 // Validar %Bote Cantos (Debe estar entre 2 y 15 con pasos de 0.25)

@@ -8,7 +8,7 @@
         <div class="card">
             @include('includes.card-header', ['subtitle' => 'Jugadas'])
             <div class="card-body">
-                <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#modal-bingo-plays">
+                <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="1">
                     <i class="fas fa-plus-square"></i> Crear
                 </button>
                 <div class="table-responsive mt-2">
@@ -60,6 +60,8 @@
         let playId = false;
 
         function insertInfo(type, data = '') {
+
+            cleanBoxes();
 
             if (type == 2) {
                 namePlay.val(data.name);

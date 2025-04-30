@@ -69,8 +69,6 @@
             });
         });
 
-
-
         function changeFixedJackpot(val) {
             const container = $("#cont-fixed-jackpot-value");
 
@@ -227,8 +225,8 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'date', 'time', 'room-type', 'jackpot-type', 'game-mode',
-                'ctn-price', 'time-chip', 'pct-serials', 'room-commn'
+                'date', 'room-type', 'jackpot-type', 'game-mode',
+                'room-commn', 'ctn-price', 'time-chip', 'pct-serials', 'num-serials'
             ]);
         });
 

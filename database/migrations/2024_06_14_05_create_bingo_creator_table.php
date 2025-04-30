@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('creator_id');
             $table->double('creator_commn')->default(0);
             $table->double('ctn_price');
+            $table->boolean('status')->default(1);
             $table->timestamps();
         });
     }
