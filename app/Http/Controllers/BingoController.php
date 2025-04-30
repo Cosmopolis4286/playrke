@@ -1238,8 +1238,6 @@ class BingoController extends Controller
             return redirect()->back()->with('msg-error', 'No tienes permiso para crear una sala');
         }
 
-        date_default_timezone_set(config('app.timezone'));
-
         $userID = Auth::id();
         $fixedJackpotValue = $request->fixed_jackpot_value;
 
@@ -1257,6 +1255,8 @@ class BingoController extends Controller
             'code_uuid' => $this->getCodeUUID($model)
         ];
 
+        date_default_timezone_set(config('app.timezone'));
+
         DB::beginTransaction();
 
         try {
@@ -1270,7 +1270,7 @@ class BingoController extends Controller
                 'game_mode' => $request->game_mode,
                 'date' => $request->date,
                 'time' => $request->time,
-                'unix_date' => strtotime(`{$request->date} {$request->time}`),
+                'unix_date' => strtotime("{$request->date} {$request->time}"),
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
                 'room_commn' => $request->room_commn,
@@ -1802,6 +1802,7 @@ class BingoController extends Controller
         return BingoRoom::with('Config:id,room,ctn_price')
             ->select(
                 'id',
+                'encrypted',
                 'players',
                 'ctns',
                 'room_commn',

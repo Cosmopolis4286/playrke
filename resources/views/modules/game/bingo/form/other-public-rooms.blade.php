@@ -39,17 +39,9 @@
         });
 
         function insertInfo(type, data = '') {
-            if (type == 1) {
-                coinsCtnPrice = false;
-                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
-                $('#container-price-config').html('');
-            } else {
-                getCtnPriceCoin(data.room.encrypted, true);
-            }
+            if (type == 2) return;
 
-            if (type == 2) {
-                $('#ctn-price').val(data.config.ctn_price);
-            }
+            $('#ctn-price').val(data.config.ctn_price);
 
             $(`#modal-${name}`).modal('show');
         }
@@ -58,6 +50,41 @@
             submitForm(name, ['ctn-price']);
         });
 
+        function insertInfoPublicRooms(data) {
+            const $modal = $('#modal-other-bingo-rooms');
+            const $modalBody = $modal.find('.modal-body');
+
+            $modalBody.empty();
+
+            if (!data.length) {
+                $modalBody.html(`
+            <div class="alert alert-info alert-dismissible text-center mb-n1" role="alert">
+                ¡No hay salas disponibles!
+            </div>`);
+                $modal.modal('show');
+                return;
+            }
+
+            let html = '<div class="row">';
+
+            data.forEach(elem => {
+                html += `
+            <div class="input-group mb-3">
+                <div class="form-control">${elem.encrypted}</div>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary btn-participate-bingo" type="button" data-id="${elem.encrypted}">
+                        Participar
+                    </button>
+                </div>
+            </div>`;
+            });
+
+            html += '</div>';
+
+            $modalBody.html(html);
+            $modal.modal('show');
+        }
+
         function getInfoPublicRoom() {
             $.getJSON({
                 url: `{{ route('bingo.getInfoPublicRoom') }}`,
@@ -65,8 +92,7 @@
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },
                 success: function(data) {
-                    console.log(data);
-                    $('#modal-other-bingo-rooms').modal('show');
+                    insertInfoPublicRooms(data);
                 }
             });
         }
