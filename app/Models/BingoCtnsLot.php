@@ -73,6 +73,6 @@ class BingoCtnsLot extends Model
 
     public static function getCoinByIds($room)
     {
-        return self::where('room', $room)->distinct('coin')->pluck('coin');
+        return self::select('coin')->where('room', $room)->distinct()->pluck('coin');
     }
 }

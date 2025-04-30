@@ -21,7 +21,7 @@ class CommerceExchangeRate extends Model
 
     public static function getById($id, $fields = ['*'])
     {
-        return self::with('Coin')->where('id', $id)->select($fields)->first();
+        return self::with('Coin')->select($fields)->where('id', $id)->first();
     }
 
     public static function getValueById($id, $value = 'exchange_rate')
@@ -48,7 +48,7 @@ class CommerceExchangeRate extends Model
 
     public static function getValuesByCoin($coin)
     {
-        return self::where('coin', $coin)->pluck('exchange_rate');
+        return self::select('exchange_rate')->where('coin', $coin)->pluck('exchange_rate');
     }
 
     public static function getAvailableExchangeRates($commerce)
@@ -58,10 +58,10 @@ class CommerceExchangeRate extends Model
 
     public static function getCoinsByCommerce($commerce, $status = '')
     {
-        $query = self::where('commerce', $commerce);
+        $query = self::select('coin')->where('commerce', $commerce);
 
         if ($status) $query->where('status', $status);
 
-        return $query->pluck('coin')->unique()->toArray();
+        return $query->distinct()->pluck('coin')->toArray();
     }
 }

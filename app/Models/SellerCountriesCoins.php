@@ -39,19 +39,20 @@ class SellerCountriesCoins extends Model
 
     public static function getCountCoin($seller)
     {
-        return self::where('seller', $seller)->distinct('coin')->count('coin');
+        return self::select('coin')->where('seller', $seller)
+            ->whereNotNull('coin')->distinct()->count();
     }
 
     public static function getAvailableCountries($seller)
     {
-        return self::where('seller', $seller)->where('status', 1)
-            ->distinct('country')->pluck('country')->toArray();
+        return self::select('country')->where('seller', $seller)->where('status', 1)
+            ->distinct()->pluck('country')->toArray();
     }
 
     public static function getAvailableCoins($seller)
     {
-        return self::where('seller', $seller)->where('status', 1)
-            ->distinct('coin')->pluck('coin')->toArray();
+        return self::select('coin')->where('seller', $seller)
+            ->where('status', 1)->distinct()->pluck('coin')->toArray();
     }
 
     public static function getCountryCoin($seller, $arr, $fields = ['*'])

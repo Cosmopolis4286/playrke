@@ -48,7 +48,7 @@ class CustomerExchangeRate extends Model
 
     public static function getValuesByCoin($coin)
     {
-        return self::where('coin', $coin)->pluck('exchange_rate');
+        return self::select('exchange_rate')->where('coin', $coin)->pluck('exchange_rate');
     }
 
     public static function getAvailableExchangeRates($customer)
@@ -58,7 +58,7 @@ class CustomerExchangeRate extends Model
 
     public static function getCoinsByCustomer($customer, $status = '')
     {
-        $query = self::where('customer', $customer);
+        $query = self::select('coin')->where('customer', $customer);
 
         if ($status) $query->where('status', $status);
 

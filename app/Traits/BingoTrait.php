@@ -42,7 +42,8 @@ trait BingoTrait
 
     private function encryptDraw($room)
     {
-        $existingSymbols = BingoDrawCode::where('room', $room)->pluck('sym')->toArray();
+        $existingSymbols = BingoDrawCode::select('sym')->where('room', $room)
+            ->distinct()->pluck('sym')->toArray();
 
         $symbolsCount = count($existingSymbols);
 
@@ -101,7 +102,7 @@ trait BingoTrait
             $this->encryptDraw($room);
 
             // Obtener chips existentes y símbolos
-            $existingChipsSet = BingoDraw::where('room', $room)->pluck('chip')->flip();
+            $existingChipsSet = BingoDraw::select('chip')->where('room', $room)->pluck('chip')->flip();
             $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
 
             // Variables de control
@@ -186,7 +187,8 @@ trait BingoTrait
                 'o5'
             ])->values()->shuffle()->all();
 
-            $draw = BingoDraw::where('room', $room)->whereNotIn('chip', $ctnFull)->inRandomOrder()->pluck('chip')->toArray();
+            $draw = BingoDraw::select('chip')->where('room', $room)->whereNotIn('chip', $ctnFull)
+                ->inRandomOrder()->pluck('chip')->toArray();
 
             $firstFour = array_slice($draw, 0, 4); // Obtener los primeros 4 elementos
             $draw = array_slice($draw, 4); // Eliminar los primeros 4 elementos del array original
@@ -197,7 +199,7 @@ trait BingoTrait
                 return intval($chip);
             }, $newDraw);
 
-            $OrigDraw = BingoDraw::where('room', $room)->pluck('id');
+            $OrigDraw = BingoDraw::select('id')->where('room', $room)->pluck('id');
 
             // Construir un arreglo asociativo de ID => Chip para actualizar
             $updateData = array_combine($OrigDraw->toArray(), $newDrawValues);
@@ -297,7 +299,8 @@ trait BingoTrait
             $arrCtns = [];
 
             // Obtener las fichas ordenadas de forma descendente
-            $drawDesc = BingoDraw::where('room', $room)->orderByDesc('id')->pluck('chip')->toArray();
+            $drawDesc = BingoDraw::select('chip')->where('room', $room)
+                ->orderByDesc('id')->pluck('chip')->toArray();
 
             // Buscar la última ficha de cada cartón
             foreach ($drawDesc as $chip) {
@@ -1028,10 +1031,8 @@ trait BingoTrait
         $lastChip = BingoDraw::select('id', 'chip')->where('status', 3)->where('room', $roomID)->first();
 
         // Obtener todos los chips sorteados hasta el último
-        $chipsDraw = BingoDraw::where('room', $roomID)
-            ->where('id', '<=', $lastChip->id)
-            ->pluck('chip')
-            ->toArray();
+        $chipsDraw = BingoDraw::select('chip')->where('room', $roomID)
+            ->where('id', '<=', $lastChip->id)->distinct()->pluck('chip')->toArray();
 
         // Declarar ultima ficha
         $lastChipNum = $lastChip->chip;
@@ -1190,7 +1191,7 @@ trait BingoTrait
             // Obtener ultima ficha en salir (ganadora) 
             $lastChip = BingoDraw::where('room', $roomID)->where('status', 3)->value('id');
 
-            $chipsDraw = array_flip(BingoDraw::where('room', $roomID)
+            $chipsDraw = array_flip(BingoDraw::select('chip')->where('room', $roomID)
                 ->where('id', '<', $lastChip)->pluck('chip')->toArray());
 
             $countCtns = 0;

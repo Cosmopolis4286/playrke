@@ -18,7 +18,7 @@
         <tbody>
             @foreach ($winners as $win)
                 @php
-                    $countCommerces = $win->Room->CtnsLot->pluck('commerce')->unique()->count();
+                    $countCommerces = $win->Room->CtnsLot->distinct()->pluck('commerce')->count();
                     $totalWinners =
                         $win->prize_type == 1 ? $winnersData['winnersJackpot'] : $winnersData['winnersSerials'];
                 @endphp

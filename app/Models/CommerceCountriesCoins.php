@@ -36,7 +36,7 @@ class CommerceCountriesCoins extends Model
 
     public static function getAvailableCoins($commerce, $exceptCoin = '')
     {
-        return self::where('commerce', $commerce)
+        return self::select('coin')->where('commerce', $commerce)
             ->where('status', 1)
             ->when($exceptCoin, function ($query, $exceptCoin) {
                 return $query->where('coin', '<>', $exceptCoin);
@@ -50,7 +50,7 @@ class CommerceCountriesCoins extends Model
 
     public static function getAvailableCountries($commerce)
     {
-        return self::where('commerce', $commerce)->where('status', 1)
-            ->distinct('country')->pluck('country')->toArray();
+        return self::select('country')->where('commerce', $commerce)
+            ->where('status', 1)->distinct()->pluck('country')->toArray();
     }
 }

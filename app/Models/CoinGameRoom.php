@@ -55,7 +55,7 @@ class CoinGameRoom extends Model
     public static function getCoinsByRoom($game, $room, $gameMode)
     {
         // Iniciar la consulta
-        $query = self::where('game', $game)->where('room', $room);
+        $query = self::select('coin')->where('game', $game)->where('room', $room);
 
         // Añadir condicionalmente el filtro de 'game_mode'
         if ($gameMode) {
@@ -63,6 +63,6 @@ class CoinGameRoom extends Model
         }
 
         // Retornar el true/false de los resultados
-        return $query->pluck('coin');
+        return $query->distinct()->pluck('coin');
     }
 }

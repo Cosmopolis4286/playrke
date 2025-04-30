@@ -273,7 +273,7 @@ trait UserVal
             }
         }
 
-        $coinIDs = $query->where('status', 1)->orderBy('country')->pluck('coin');
+        $coinIDs = $query->where('status', 1)->orderBy('country')->distinct()->pluck('coin');
 
         return Coin::getCoinsById($coinIDs);
     }

@@ -26,6 +26,7 @@ class ExchangeRateRelation extends Model
 
     public static function allowedCurrenciesByCommerce($user, $commerce)
     {
-        return self::where('user', $user)->where('commerce', $commerce)->pluck('coin')->toArray();
+        return self::select('coin')->where('user', $user)
+            ->where('commerce', $commerce)->distinct()->pluck('coin')->toArray();
     }
 }

@@ -371,18 +371,14 @@ class SellerController extends Controller
     {
         $seller = $this->seller(['id', 'commerce']);
 
-        $coinsSeller = SellerCountriesCoins::getAvailableCoins($seller->id);
+        $coinsSeller = array_map('strval', SellerCountriesCoins::getAvailableCoins($seller->id));
+        $commerceCoins = array_map('strval', CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1));
 
-        $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1);
+        $coinsAvailable = array_intersect($commerceCoins, $coinsSeller);
+        $coinsAvailable = array_values($coinsAvailable); // reindexar
 
-        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
-
-        $bingoCtnPriceCoins = BingoCtnPrice::getAllCoinsCtnPrice($roomID, $creatorUser);
-
-        $coinsAvailable = array_intersect($commerceCoins, $coinsSeller, $bingoCtnPriceCoins);
-
-        if (in_array('1', $coinsAvailable)) {
-            $coinsAvailable = array_diff($coinsAvailable, ['1']);
+        if (in_array('1', $coinsAvailable, true)) {
+            $coinsAvailable = array_values(array_diff($coinsAvailable, ['1']));
             $USDT = true;
         }
 
@@ -403,7 +399,7 @@ class SellerController extends Controller
             return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
         }
 
-        $countriesCoins = $this->getAvailableCountriesBySeller($roomID);
+        $countriesCoins = $this->getAvailableCountriesBySeller($room->id);
 
         return response()->json([
             'jackpotType' => $room->Config->jackpot_type,

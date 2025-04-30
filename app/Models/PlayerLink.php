@@ -95,7 +95,7 @@ class PlayerLink extends Model
 
   public static function getByLink($playerLink, $fields = ['*'])
   {
-    return self::where('link', $playerLink)->select($fields)->first();
+    return self::select($fields)->where('link', $playerLink)->first();
   }
 
   public static function getValueByLink($link, $value)
