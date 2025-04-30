@@ -367,7 +367,7 @@ class SellerController extends Controller
         ]);
     }
 
-    public function getAvailableCountriesBySeller()
+    public function getAvailableCountriesBySeller($roomID = '')
     {
         $seller = $this->seller(['id', 'commerce']);
 
@@ -375,7 +375,11 @@ class SellerController extends Controller
 
         $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1);
 
-        $coinsAvailable = array_intersect($commerceCoins, $coinsSeller);
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+
+        $bingoCtnPriceCoins = BingoCtnPrice::getAllCoinsCtnPrice($roomID, $creatorUser);
+
+        $coinsAvailable = array_intersect($commerceCoins, $coinsSeller, $bingoCtnPriceCoins);
 
         if (in_array('1', $coinsAvailable)) {
             $coinsAvailable = array_diff($coinsAvailable, ['1']);
@@ -399,7 +403,7 @@ class SellerController extends Controller
             return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
         }
 
-        $countriesCoins = $this->getAvailableCountriesBySeller();
+        $countriesCoins = $this->getAvailableCountriesBySeller($roomID);
 
         return response()->json([
             'jackpotType' => $room->Config->jackpot_type,

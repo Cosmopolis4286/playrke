@@ -863,7 +863,11 @@ trait BingoTrait
                 // Verificar y obtener el tipo de cambio
                 $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $ctn->coin) ?? 1;
 
-                $prizeWn = rtrim(rtrim(number_format($USDValue * $exchangeRate, 2, '.', ''), '0'), '.');
+                // Multiplicamos por el exchangeRate
+                $convertedAmount = $USDValue * $exchangeRate;
+
+                // Usamos floor() para truncar y luego formateamos a 2 decimales
+                $prizeWn = number_format(floor($convertedAmount * 100) / 100, 2, '.', '');
 
                 $timestamp = now();
 

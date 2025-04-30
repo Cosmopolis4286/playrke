@@ -35,6 +35,14 @@ class BingoCtnPrice extends Model
             ->where('creator_user', $creatorUser)->value('ctn_price');
     }
 
+    public static function getAllCoinsCtnPrice($room, $creatorUser, $status = 1)
+    {
+        if (!$creatorUser) return collect();
+
+        return self::where('room', $room)->where('creator_user', $creatorUser)
+            ->where('status', $status)->pluck('coin');
+    }
+
     public static function getOnlyCoinsCtnPrice($room, $creatorUser)
     {
         if (!$creatorUser) return collect();
