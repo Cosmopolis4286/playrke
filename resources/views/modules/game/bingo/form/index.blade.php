@@ -45,7 +45,6 @@
         const name = '{{ $name }}';
         const creation = 'M';
         const roomType = @json($roomType);
-        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const jackpotType = $("#jackpot-type");

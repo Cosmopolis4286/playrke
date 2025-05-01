@@ -39,8 +39,7 @@ function getCtnPriceCoin(room = '', action = '') {
     $('#container-price-config').html('');
 
     $.ajax({
-        url: routeGetCtnPriceForCoin.replace(':1', creation).replace(':2', creatorType)
-            .replace(':3', creatorID).replace(':4', room),
+        url: route('bingo.getCtnPriceForCoin', { creation, creatorType, creatorID, room }),
         method: 'GET',
         dataType: 'json',
         beforeSend: function () {

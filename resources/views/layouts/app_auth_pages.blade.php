@@ -63,10 +63,8 @@
         $(document).ready(function() {
             $(".info-user-rke").click(function() {
                 const info = $(this).data('val');
-                const pageUrl = `{{ route('info-rke', ['page' => ':id']) }}`.replace(':id', info);
-
                 $.ajax({
-                    url: pageUrl,
+                    url: route('info-rke', page: info),
                     method: 'GET',
                     headers: {
                         'X-CSRF-TOKEN': $("#5K3_70K").val()

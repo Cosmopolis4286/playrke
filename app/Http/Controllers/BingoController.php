@@ -945,14 +945,6 @@ class BingoController extends Controller
         }
     }
 
-    private function getRouteCtnPriceForCoin()
-    {
-        return route(
-            'bingo.getCtnPriceForCoin',
-            ['creation' => ':1', 'creatorType' => ':2', 'creatorID' => ':3', 'room' => ':4']
-        );
-    }
-
     private function getInfoRooms($creatorUser, $roomType, $coin, $otherCommerce = false)
     {
         $gameID = Games::getValueByName('BINGO');
@@ -1072,8 +1064,6 @@ class BingoController extends Controller
 
         $bingoPlays = BingoTypesPlays::getAllByUser($creator['userId'], ['id', 'name'], 1);
 
-        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
-
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo',
@@ -1082,7 +1072,6 @@ class BingoController extends Controller
             'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'routeWithCoin' => $routeWithCoin,
-            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
             'routeRKE' => $this->getRouteRKE(),
             'creator' => $creator,
             'coins' => $coins,
@@ -2290,8 +2279,6 @@ class BingoController extends Controller
             ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
         );
 
-        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
-
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo',
@@ -2301,7 +2288,6 @@ class BingoController extends Controller
             'rooms' => $automaticRooms,
             'activeRooms' => $activeRooms,
             'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
-            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
             'jackpotType' => JackpotType::all(),
@@ -2393,8 +2379,6 @@ class BingoController extends Controller
 
         $rooms = $this->getInfoRooms($userData['userId'], 'public-rooms', $coin, true);
 
-        $routeGetCtnPriceForCoin = $this->getRouteCtnPriceForCoin();
-
         $creator = ['type' => $userData['type'], 'id' => encrypt($userData['id'])];
 
         $routeWithCoin = [
@@ -2418,8 +2402,7 @@ class BingoController extends Controller
             'coins' => $coins,
             'exchangeRate' => $exchangeRate ?? 1,
             'rooms' => $rooms,
-            'routeWithCoin' => $routeWithCoin,
-            'routeGetCtnPriceForCoin' => $routeGetCtnPriceForCoin
+            'routeWithCoin' => $routeWithCoin
         ];
 
         if (isset($moreViewData)) {

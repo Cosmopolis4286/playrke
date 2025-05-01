@@ -25,7 +25,6 @@
 @section('scripts')
     <script>
         const name = @json($name);
-        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         let coinsCtnPrice = false;
@@ -38,8 +37,13 @@
         });
 
         function insertInfo(type, data = '') {
-            if (type == 2) return;
-
+            if (type == 1) {
+                coinsCtnPrice = false;
+                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
+                $('#container-price-config').html('');
+            } else {
+                getCtnPriceCoin(data.room.encrypted, true);
+            }
             $('#ctn-price').val(data.config.ctn_price);
 
             $(`#modal-${name}`).modal('show');

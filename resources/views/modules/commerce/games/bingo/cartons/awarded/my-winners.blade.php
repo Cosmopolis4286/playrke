@@ -35,8 +35,7 @@
         $(document).on("click", ".notify-ctn-payment", function() {
             const data = $(this).data();
             $.ajax({
-                url: `{{ route('commerce.getSellerInfoByCtn', ['ctnId' => ':ctnId']) }}`
-                    .replace(':ctnId', data.ctn),
+                url: route('commerce.getSellerInfoByCtn', ctnId: data.ctn),
                 method: 'GET',
                 dataType: 'json',
                 success: function(res) {
