@@ -96,6 +96,12 @@
                     {{-- Acciones --}}
                     <td class="align-middle">
                         <div class="btn-group" role="group">
+                            @if ($room->status == 2 && $view === 'PUBLIC')
+                                <button type="button" class="btn btn-sm btn-secondary" title="Comerciantes">
+                                    <i class="fa-solid fa-cash-register mr-1"></i>
+                                    {{ count($room->Creator) ?? 0 }}
+                                </button>
+                            @endif
                             @if ($room->status <= 2)
                                 <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
                                     data-type="2" data-id="{{ encrypt($room->id) }}">

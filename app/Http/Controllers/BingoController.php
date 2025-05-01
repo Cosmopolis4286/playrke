@@ -969,7 +969,9 @@ class BingoController extends Controller
 
         if ($otherCommerce) {
             $relations['Creator'] = fn($query) => $query->select('id', 'room')
-                ->where('creator_user', $creatorUser);
+                ->where('creator_user', $creatorUser)->where('status', 1);
+        } else {
+            $relations['Creator'] = fn($query) => $query->select('id', 'room');
         }
 
         $query = BingoRoom::with($relations)
@@ -978,7 +980,7 @@ class BingoController extends Controller
 
         if ($otherCommerce) {
             $query->whereHas('Creator', function ($q) use ($creatorUser) {
-                $q->where('creator_user', $creatorUser);
+                $q->where('creator_user', $creatorUser)->where('status', 1);
             });
         }
 
@@ -1812,7 +1814,7 @@ class BingoController extends Controller
             ->where('room_type', 'PB')->get();
     }
 
-    public function participateInPublicRoom(Request $request, $roomEncrypted = '')
+    public function participateInPublicRoom($roomID = '', $getOut = false)
     {
         $userData = $this->getUserData();
 
@@ -1826,22 +1828,34 @@ class BingoController extends Controller
 
         try {
 
-            $bingo = BingoRoom::with('Config:id,room,ctn_price,room_commn')
-                ->where('encrypted', $roomEncrypted)->first();
+            $creatorUser = $userData['userId'];
 
-            if ($request->cancel) {
-                BingoCreator::where('room', $bingo->id)
-                    ->where('creator_user', $userData['userId'])
+            if ($getOut) {
+                $roomID = decrypt($roomID);
+
+                BingoCreator::where('room', $roomID)
+                    ->where('creator_user', $creatorUser)
                     ->update(['status' => 0]);
             } else {
-                BingoCreator::create([
-                    'room' => $bingo->id,
-                    'creator_user' => $userData['userId'],
-                    'creator_type' => UserType::getValueByPrefix($userData['type']),
-                    'creator_id' => $userData['id'],
-                    'creator_commn' => $bingo->Config->room_commn,
-                    'ctn_price' => $bingo->Config->ctn_price
-                ]);
+                $bingo = BingoRoom::with('Config:id,room,ctn_price,room_commn')
+                    ->where('encrypted', $roomID)->first();
+
+                $bingoCreator = BingoCreator::select('id', 'status')
+                    ->where('room', $bingo->id)
+                    ->where('creator_user', $creatorUser)->first();
+
+                if ($bingoCreator) {
+                    $bingoCreator->update(['status' => 1]);
+                } else {
+                    BingoCreator::create([
+                        'room' => $bingo->id,
+                        'creator_user' => $creatorUser,
+                        'creator_type' => UserType::getValueByPrefix($userData['type']),
+                        'creator_id' => $userData['id'],
+                        'creator_commn' => $bingo->Config->room_commn,
+                        'ctn_price' => $bingo->Config->ctn_price
+                    ]);
+                }
             }
 
             DB::commit();

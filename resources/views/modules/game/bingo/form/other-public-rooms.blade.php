@@ -61,8 +61,8 @@
 
             if (!data.length) {
                 $modalBodyContainer.html(`
-            <div class="alert alert-info alert-dismissible text-center" role="alert">
-                ¡No hay salas disponibles!
+            <div class="alert alert-info mb-n1 text-center" role="alert">
+                <strong>¡No hay salas disponibles!</strong>
             </div>`);
                 $modal.modal('show');
                 return;
@@ -72,10 +72,11 @@
 
             data.forEach(elem => {
 
-                isUnited = `disabled`;
-                isUnitedIcon = `<i class="fa-solid fa-gamepad"></i>`;
+                const creator = elem.creator;
+                let isUnited = `disabled`;
+                let isUnitedIcon = `<i class="fa-solid fa-gamepad"></i>`;
 
-                if (!elem.creator || elem.creator.status == 0) {
+                if (!creator || creator[0].status == 0) {
                     isUnited = `data-type="5" title="Participar"`;
                     isUnitedIcon = `<i class="fa-solid fa-right-to-bracket"></i>`;
                 }
@@ -134,6 +135,18 @@
                     '#form-other-options',
                     route(`${name}.participateInPublicRoom`, {
                         id: encryptedId
+                    })
+                );
+            },
+            6: (encryptedId) => {
+                showToastOptionBtns(
+                    'Quieres salir de esta sala',
+                    'info',
+                    'Sí, salir',
+                    '#form-other-options',
+                    route(`${name}.participateInPublicRoom`, {
+                        id: encryptedId,
+                        getOut: true
                     })
                 );
             },
