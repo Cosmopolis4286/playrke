@@ -24,8 +24,7 @@
 @endsection
 @section('scripts')
     <script>
-        const name = '{{ $name }}';
-        const creation = 'M';
+        const name = @json($name);
         const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
@@ -72,6 +71,15 @@
             let html = '<div class="row">';
 
             data.forEach(elem => {
+
+                isUnited = `disabled`;
+                isUnitedIcon = `<i class="fa-solid fa-gamepad"></i>`;
+
+                if (!elem.creator || elem.creator.status == 0) {
+                    isUnited = `data-type="5" title="Participar"`;
+                    isUnitedIcon = `<i class="fa-solid fa-right-to-bracket"></i>`;
+                }
+
                 const originalDate = elem.config.date;
                 const formattedDate = new Date(originalDate)
                     .toLocaleDateString('es-ES', {
@@ -90,9 +98,9 @@
                 </div>
                 <div class="form-control">Bote Actual: <b>${elem.jackpot} <small>USD</small></b></div>
                 <div class="input-group-append">
-                    <button class="btn btn-outline-secondary btn-participate-bingo"
-                     type="button" data-id="${elem.encrypted}" title="Participar">
-                        <i class="fa-solid fa-right-to-bracket"></i>
+                    <button class="btn btn-outline-success btn-${name}"
+                     type="button" data-id="${elem.encrypted}" ${isUnited}>
+                        ${isUnitedIcon}
                     </button>
                 </div>
             </div>`;
@@ -117,7 +125,18 @@
         }
 
         const otherCasesMap = {
-            4: getInfoPublicRoom
+            4: getInfoPublicRoom,
+            5: (encryptedId) => {
+                showToastOptionBtns(
+                    'Quieres participar en esta sala',
+                    'info',
+                    'Sí, participar',
+                    '#form-other-options',
+                    route(`${name}.participateInPublicRoom`, {
+                        id: encryptedId
+                    })
+                );
+            },
         };
     </script>
     @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])

@@ -101,6 +101,13 @@
                                     data-type="2" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
+                                @if ($room)
+                                    <button title="Salir de la sala"
+                                        class="btn-{{ $name }} btn btn-sm btn-danger" data-type="6"
+                                        data-id="{{ encrypt($room->id) }}">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                @endif
                             @endif
                         </div>
                     </td>

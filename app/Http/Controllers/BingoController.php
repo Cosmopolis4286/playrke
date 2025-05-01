@@ -1801,17 +1801,18 @@ class BingoController extends Controller
             return false;
         }
 
-        return BingoRoom::with('Config:id,room,date,time,ctn_price')
-            ->select(
-                'id',
-                'encrypted',
-                'room_commn',
-                'jackpot'
-            )->where('creator_user', '<>', $userData['userId'])
+        return BingoRoom::with([
+            'Creator' => function ($query) use ($userData) {
+                $query->select('room', 'status')
+                    ->where('creator_user', $userData['userId']);
+            },
+            'Config:room,date,time,ctn_price'
+        ])->select('id', 'encrypted', 'room_commn', 'jackpot')
+            ->where('creator_user', '<>', $userData['userId'])
             ->where('room_type', 'PB')->get();
     }
 
-    public function participateInPublicRoom(Request $request)
+    public function participateInPublicRoom(Request $request, $roomEncrypted = '')
     {
         $userData = $this->getUserData();
 
@@ -1826,7 +1827,7 @@ class BingoController extends Controller
         try {
 
             $bingo = BingoRoom::with('Config:id,room,ctn_price,room_commn')
-                ->where('encrypted', $request->room)->first();
+                ->where('encrypted', $roomEncrypted)->first();
 
             if ($request->cancel) {
                 BingoCreator::where('room', $bingo->id)
@@ -1836,7 +1837,7 @@ class BingoController extends Controller
                 BingoCreator::create([
                     'room' => $bingo->id,
                     'creator_user' => $userData['userId'],
-                    'creator_type' => $userData['type'],
+                    'creator_type' => UserType::getValueByPrefix($userData['type']),
                     'creator_id' => $userData['id'],
                     'creator_commn' => $bingo->Config->room_commn,
                     'ctn_price' => $bingo->Config->ctn_price
@@ -1848,7 +1849,7 @@ class BingoController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al participar/salir en la sala como comercializadora: ' . $e->getMessage());
-            return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al crear la sala']);
+            return redirect()->back()->with(['type' => 'warning', 'message' => 'Ha ocurrido un error']);
         }
     }
 

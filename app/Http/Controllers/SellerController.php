@@ -341,14 +341,21 @@ class SellerController extends Controller
         (new HandleBingoRooms())->checkRoomClosure();
 
         $rooms = BingoRoom::with([
+            'Creator' => function ($query) use ($creatorUser) {
+                $query->select('room', 'creator_user', 'status')
+                    ->where('creator_user', $creatorUser)
+                    ->where('status', 1);
+            },
             'Config' => function ($query) {
                 $query->select('room', 'game_mode', 'unix_date');
             }
-        ])->select('id', 'encrypted', 'room_type')
-            ->where('status', 2)
+        ])->select('id', 'encrypted', 'room_type')->where('status', 2)
             ->where(function ($query) use ($creatorUser) {
                 $query->where('creator_user', $creatorUser)
-                    ->orWhere('room_type', 'PV');
+                    ->orWhere('room_type', 'PB');
+            })
+            ->whereHas('Creator', function ($query) use ($creatorUser) {
+                $query->where('creator_user', $creatorUser);
             })
             ->whereHas('Config', function ($query) {
                 $query->where('game_mode', 2)
