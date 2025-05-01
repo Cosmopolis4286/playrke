@@ -42,7 +42,7 @@
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        const name = '{{ $name }}';
+        const name = @json($name);
         const creation = 'M';
         const roomType = @json($roomType);
         const creatorType = @json($creator['type'] ?? '');
@@ -142,7 +142,7 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Nueva Sala', `{{ asset('') }}${name}`, otherCasesMap);
+            formCRUD($(this), name, 'Sala de Bingo', otherCasesMap);
         });
 
         function insertInfo(type, data = '') {

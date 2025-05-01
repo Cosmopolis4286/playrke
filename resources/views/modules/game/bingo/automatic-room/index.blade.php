@@ -27,10 +27,8 @@
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        const name = '{{ $name }}';
+        const name = @json($name);
         const creation = 'A';
-        const routeGenerateBingoRoomsJob = @json($routeGenerateBingoRoomsJob);
-        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const roomType = $("#room-type");
@@ -71,7 +69,10 @@
             btnExecuteJob.prop('disabled', true);
 
             // Realizar la solicitud
-            $.getJSON(routeGenerateBingoRoomsJob, {
+            $.getJSON(route('bingo.automatic-room.executeGenerateBingoRoomsJob', {
+                    creatorType,
+                    creatorID
+                }), {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
                 .done(res => {
@@ -96,7 +97,7 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Nueva Sala', `{{ asset('') }}${name}/automatic-room`, otherCasesMap);
+            formCRUD($(this), name, 'Nueva Sala', otherCasesMap);
         });
 
         function insertInfo(type, data = '') {
@@ -186,7 +187,7 @@
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Se actualizará el Status de esta configuración',
+                    'Actualizar el status de esta configuración',
                     'info',
                     'Sí, actualizar',
                     '#form-other-options',
@@ -208,5 +209,5 @@
             },
         };
     </script>
-    @vite(['resources/js/games/bingo/ctn-price-coins.js'])
+    @vite('resources/js/games/bingo/ctn-price-coins.js')
 @endsection

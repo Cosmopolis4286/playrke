@@ -149,11 +149,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Vendedor', `{{ asset('') }}${name}`);
+            formCRUD(elem, name, 'Vendedor');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Vendedor', `{{ asset('') }}${name}`, otherCasesMap)
+            formCRUD($(this), name, 'Vendedor', otherCasesMap)
         });
 
         country.on("change", function() {
@@ -237,7 +237,7 @@
             },
             5: function(encryptedId) {
                 showToastOptionBtns(
-                    'Generar Nueva Contraseña a este Vendedor',
+                    'Generar nueva contraseña a este Vendedor',
                     'info',
                     'Sí, generar',
                     '#form-other-options',

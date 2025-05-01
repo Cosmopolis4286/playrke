@@ -89,7 +89,7 @@ function setVariable(name, value) {
     }
 }
 
-function formCRUD(elem, name, title, route, otherCasesMap = '') {
+function formCRUD(elem, name, title, otherCasesMap = {}) {
     const modalLabel = $(`#modal-${name}-label`);
     const formName = $(`#form-${name}`);
 
@@ -124,15 +124,15 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
     switch (type) {
         case 1: // Insertar
             modalLabel.text(`Registrar ${title}`);
-            formName.attr('action', `${route}/create`);
+            formName.attr('action', route(`${name}.create`));
             insertInfo(type); // Llama a `insertInfo` sin datos adicionales
             break;
 
         case 2: // Editar
             modalLabel.text(`Editar ${title}`);
-            formName.attr('action', `${route}/update/${encryptedId}`)
+            formName.attr('action', route(`${name}.update`, encryptedId))
                 .append('<input type="hidden" name="_method" value="PUT">');
-            getInfo(route, encryptedId); // Obtén la información con el ID encriptado
+            getInfo(name, encryptedId); // Obtén la información con el ID encriptado
             break;
 
         case 3: // Eliminar
@@ -141,7 +141,7 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `${route}/delete/${encryptedId}`
+                route(`${name}.delete`, encryptedId)
             );
             break;
 
@@ -156,9 +156,9 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
     }
 }
 
-function getInfo(route, id) {
+function getInfo(name, id) {
     $.getJSON({
-        url: route(`${route}.getInfo`, id),
+        url: route(`${name}.getInfo`, id),
         data: {
             '_token': $("#5K3_70K").val()
         },

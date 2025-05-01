@@ -68,7 +68,7 @@
         const arrPaymentMethod = @json($arrPaymentMethod);
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Datos Bancarios', `{{ asset('') }}${name}`)
+            formCRUD($(this), name, 'Datos Bancarios')
         });
 
         $(document).ready(function() {

@@ -101,7 +101,7 @@
         let amountSent;
 
         function getPaymentCommerceDetails() {
-            $.getJSON(`{{ url('seller/getPaymentCommerceDetails') }}/${coin}`, {
+            $.getJSON(route('seller.getPaymentCommerceDetails', coin), {
                     '_token': "{{ csrf_token() }}"
                 })
                 .done(data => {

@@ -128,11 +128,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Comercio', `{{ asset('') }}${name}`);
+            formCRUD(elem, name, 'Comercio');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Comercio', `{{ asset('') }}${name}`, otherCasesMap)
+            formCRUD($(this), name, 'Comercio', otherCasesMap)
         });
 
         country.on("change", function() {
@@ -215,7 +215,7 @@
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Deseas cambiar el status de este Comercio',
+                    'Deseas cambiar el status de este comercio',
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
@@ -226,7 +226,7 @@
             },
             5: function(encryptedId) {
                 showToastOptionBtns(
-                    'Generar Nueva Contraseña a este Comercio',
+                    'Generar nueva contraseña a este comercio',
                     'info',
                     'Sí, generar',
                     '#form-other-options',

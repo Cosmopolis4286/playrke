@@ -136,11 +136,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Cliente', `{{ asset('') }}${name}`);
+            formCRUD(elem, name, 'Cliente');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Cliente', `{{ asset('') }}${name}`, otherCasesMap)
+            formCRUD($(this), name, 'Cliente', otherCasesMap)
         });
 
         function insertInfo(type, data = '') {
@@ -184,7 +184,7 @@
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Deseas cambiar el status de este Cliente',
+                    'Deseas cambiar el status de este cliente',
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
@@ -195,7 +195,7 @@
             },
             5: function(encryptedId) {
                 showToastOptionBtns(
-                    'Generar Nueva Contraseña a este Cliente',
+                    'Generar nueva contraseña a este cliente',
                     'info',
                     'Sí, generar',
                     '#form-other-options',

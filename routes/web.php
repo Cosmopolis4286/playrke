@@ -343,15 +343,6 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::put('refund/{id}', [BingoController::class, 'refund'])->name('refund');
     Route::put('copy/{id}', [BingoController::class, 'copy'])->name('copy');
 
-    /// Rutas de Salas Automaticas
-    Route::get('automatic-room/getInfo/{id}', [BingoController::class, 'getInfoAutomaticRoom'])->name('automatic-room.getInfo');
-    Route::post('automatic-room/create', [BingoController::class, 'createAutomaticRoom'])->name('automatic-room.create');
-    Route::put('automatic-room/update/{id}', [BingoController::class, 'updateAutomaticRoom'])->name('automatic-room.update');
-    Route::put('automatic-room/change-status/{id}', [BingoController::class, 'changeStatusAutomaticRoom'])->name('automatic-room.change-status');
-    Route::put('automatic-room/delete/{id}', [BingoController::class, 'deleteAutomaticRoom'])->name('automatic-room.delete');
-    Route::put('automatic-room/copy/{id}', [BingoController::class, 'copyAutomaticRoom'])->name('automatic-room.copy');
-    Route::get('automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorID}', [BingoController::class, 'executeGenerateBingoRoomsJob'])->name('automatic-room.executeGenerateBingoRoomsJob');
-
     Route::post('test/regenerate-draw', [BingoController::class, 'regenerateDraw'])->name('test.regenerateDraw');
 
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
@@ -365,6 +356,17 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoController::class, 'allRooms'])->name('all-rooms');
 
     Route::post('actWn', [BingoController::class, 'actWn'])->middleware(['auth', 'admin'])->name('actWn');
+});
+
+Route::group(['prefix' => 'bingo-automatic-room', 'as' => 'bingo-automatic-room.'], function () {
+    /// Rutas de Salas Automaticas
+    Route::get('automatic-room/getInfo/{id}', [BingoController::class, 'getInfoAutomaticRoom'])->name('getInfo');
+    Route::post('automatic-room/create', [BingoController::class, 'createAutomaticRoom'])->name('create');
+    Route::put('automatic-room/update/{id}', [BingoController::class, 'updateAutomaticRoom'])->name('update');
+    Route::put('automatic-room/change-status/{id}', [BingoController::class, 'changeStatusAutomaticRoom'])->name('change-status');
+    Route::put('automatic-room/delete/{id}', [BingoController::class, 'deleteAutomaticRoom'])->name('delete');
+    Route::put('automatic-room/copy/{id}', [BingoController::class, 'copyAutomaticRoom'])->name('copy');
+    Route::get('automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorID}', [BingoController::class, 'executeGenerateBingoRoomsJob'])->name('executeGenerateBingoRoomsJob');
 });
 
 // BingoCash -Jugador-

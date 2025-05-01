@@ -215,8 +215,7 @@ class BingoController extends Controller
             'rooms' => $rooms,
             'imageBingoRules' => $this->getImageBingoRules($creatorUser),
             'bingoRules' => $this->getBingoRules($creatorUser),
-            'dateTimeRooms' => $this->getDateTimeRooms(encrypt($creatorUser)),
-            'route' => route('bingo.get-datetime-rooms', ['creatorUser' => encrypt($creatorUser)])
+            'dateTimeRooms' => $this->getDateTimeRooms(encrypt($creatorUser))
         ];
 
         if ($coin == 1) $viewData['USDT'] = true;
@@ -2274,20 +2273,14 @@ class BingoController extends Controller
 
         $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
 
-        $routeExecuteGenerateBingoRoomsJob = route(
-            'bingo.automatic-room.executeGenerateBingoRoomsJob',
-            ['creatorType' => $creator['type'], 'creatorID' => $creator['id']]
-        );
-
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo',
-            'name' => 'bingo',
+            'name' => 'bingo-automatic-room',
             'returnBtn' => $returnBtn ?? true,
             'creator' => $creator,
             'rooms' => $automaticRooms,
             'activeRooms' => $activeRooms,
-            'routeGenerateBingoRoomsJob' => $routeExecuteGenerateBingoRoomsJob,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
             'jackpotType' => JackpotType::all(),

@@ -72,7 +72,7 @@
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Jugada de Bingo', `{{ asset('') }}${name}`, otherCasesMap)
+            formCRUD($(this), name, 'Jugada de Bingo', otherCasesMap)
         });
 
         const otherCasesMap = {
