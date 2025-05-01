@@ -138,8 +138,7 @@
             $('#amount-sent').val(prizeAmount);
 
             $.ajax({
-                url: `{{ route('seller.getWinnerInfoForCtn', ['ctnId' => ':ctnId']) }}`.replace(
-                    ':ctnId', ctnId),
+                url: route('seller.getWinnerInfoForCtn', ctnId),
                 method: 'GET',
                 dataType: 'json',
                 success: function(data) {

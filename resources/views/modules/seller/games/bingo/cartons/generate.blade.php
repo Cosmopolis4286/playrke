@@ -296,8 +296,10 @@
 
         function getCtnPriceCoin(country) {
             $.getJSON({
-                url: `{{ route('seller.getCtnPriceCoin', ['room' => ':room', 'country' => ':country']) }}`
-                    .replace(':room', roomID).replace(':country', country),
+                url: route('seller.getCtnPriceCoin', {
+                    room: roomID,
+                    country
+                }),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },
@@ -318,8 +320,7 @@
                 $(".ctn-player-info, #cont-tx-jackpot-room").addClass('hide-elem');
             } else {
                 $.getJSON({
-                    url: `{{ route('seller.getCtnPrice', ['roomID' => ':id']) }}`
-                        .replace(':id', roomID),
+                    url: route('seller.getCtnPrice', id: roomID),
                     headers: {
                         'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
@@ -402,7 +403,7 @@
 
         function getPlayer(playerInfo, action = false) {
             $.post({
-                url: "{{ route('seller.getPlayer') }}",
+                url: route('seller.getPlayer'),
                 headers: {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },

@@ -154,9 +154,7 @@
             $("#lot").val(data.lot);
             $("#seller-name").html(`<b>Vendedor: </b>${data.seller}<br>`);
             $("#sale-ctns").html(`<b>Venta: </b>${data.coin_sym} ${data.sale_ctns}`);
-            $('#show-payment-proof').attr('href',
-                `{{ route('image.show-image-payment-ctns', ['filename' => ':proof']) }}`
-                .replace(':proof', data.proof));
+            $('#show-payment-proof').attr('href', route('image.show-image-payment-ctns', filename: data.proof));
 
             $("#modal-payment").modal("show");
         });

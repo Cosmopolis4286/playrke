@@ -119,7 +119,7 @@
 
         function getInfoPublicRoom() {
             $.getJSON({
-                url: `{{ route('bingo.getInfoPublicRoom') }}`,
+                url: route('bingo.getInfoPublicRoom'),
                 headers: {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },

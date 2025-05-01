@@ -8,8 +8,7 @@ let available = true;
 const tokenValue = $("#5K3_70K").val();
 
 window.onfocus = function () {
-    const url = getInfoRoomURL.replace(':1', encrypted).replace(':2', true);
-
+    const url = route('bingo.getInfo', { id: encrypted, starTime: true });
     $.getJSON(url, { _token: tokenValue })
         .done((response) => {
             timeServ = response;
@@ -38,7 +37,7 @@ function setAmount() {
 
 function getCommerceDetails(coinSale) {
     if (!available) return;
-    const url = commerceDetailsURL.replace(':commerce', creatorID).replace(':coin', coinSale);
+    const url = route('commerce.getPaymentCommerceDetails', { commerce: creatorID, coin: coinSale });
     $.getJSON(url, { _token: tokenValue })
         .done((response) => {
             const { commerce, paymentDetails, exchangeRate } = response;
@@ -111,7 +110,7 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
     }
 
     $.ajax({
-        url: generateCartonURL,
+        url: route('bingocash.generateCarton'),
         headers: {
             'X-CSRF-TOKEN': $("#5K3_70K").val()
         },

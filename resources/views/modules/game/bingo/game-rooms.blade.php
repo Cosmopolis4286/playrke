@@ -172,8 +172,11 @@
             total = 0;
 
             $.ajax({
-                url: `{{ route('bingo.getInfoByEncrypt', ['id' => ':1', 'creatorUser' => ':2', 'coin' => ':3']) }}`
-                    .replace(':1', roomID).replace(':2', creatorUser).replace(':3', coin),
+                url: route('bingo.getInfoByEncrypt', {
+                    id: roomID,
+                    creatorUser,
+                    coin
+                }),
                 method: 'GET',
                 dataType: 'json',
                 beforeSend: function() {
@@ -230,7 +233,7 @@
             if ((isLogin && !validateUserBalance()) || !player) return;
 
             $.ajax({
-                url: `{{ route('bingocash.generateCarton') }}`,
+                url: route('bingocash.generateCarton'),
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': $('#5K3_70K').val()
@@ -371,11 +374,15 @@
 
                     // Redirigir a la sala según el tipo de usuario
                     const route = creator.type == 'commerce' ?
-                        `{{ route('bingocash.in-game', ['player' => ':player', 'room' => ':room']) }}`
-                        .replace(':player', player).replace(':room', room) :
-
-                        `{{ route('bingocash.in-game-customer', ['customer' => ':customer', 'userToken' => ':userToken', 'room' => ':room']) }}`
-                        .replace(':customer', creator.id).replace(':userToken', userToken).replace(':room', room);
+                        route('bingo.in-game', {
+                            player,
+                            room
+                        }) :
+                        route('bingocash.in-game-customer', {
+                            customer: creator.id,
+                            userToken,
+                            room
+                        });
 
                     window.location.href = route;
 

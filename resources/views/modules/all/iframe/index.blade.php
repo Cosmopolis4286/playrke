@@ -61,8 +61,7 @@
 
         function getUserId() {
             $.getJSON({
-                url: `{{ route('customer.getUserId', ['userToken' => ':userToken']) }}`
-                    .replace(':userToken', userToken.val()),
+                url: route('customer.getUserId', userToken: userToken.val()),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },
@@ -103,8 +102,7 @@
         function getBalance() {
 
             $.ajax({
-                url: `{{ route('customer.getUserBalance', ['userToken' => ':userToken']) }}`
-                    .replace(':userToken', userToken.val()),
+                url: route('customer.getUserBalance', userToken: userToken.val()),
                 type: 'GET',
                 dataType: 'json',
                 data: {
@@ -137,8 +135,10 @@
             const balance = 2500;
 
             $.getJSON({
-                url: `{{ route('customer.increaseBalance', ['userToken' => ':userToken', 'balance' => ':balance']) }}`
-                    .replace(':userToken', userToken.val()).replace(':balance', balance),
+                url: route('customer.increaseBalance', {
+                    userToken: userToken.val(),
+                    balance
+                }),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },
@@ -153,8 +153,7 @@
 
         function getRouteGameRoom() {
             $.getJSON({
-                url: `{{ route('iframe.get-route-game-rooms', ['userToken' => ':userToken']) }}`
-                    .replace(':userToken', userToken.val()),
+                url: route('customer.increaseBalance', userToken: userToken.val()),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },

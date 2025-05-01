@@ -11,7 +11,7 @@ function ajaxStop() {
     $('.btn:not([data-block])').prop('disabled', false);
 }
 
-$(document).on('click', '[data-dismiss="modal"]', function() {
+$(document).on('click', '[data-dismiss="modal"]', function () {
     $(this).blur();
 });
 
@@ -35,7 +35,7 @@ function copyInfo(text, elem = false) {
 
 function deleteSessionFlash(arr = []) {
     $.ajax({
-        url: "{{ route('clear.flash.messages') }}",
+        url: route('clear.flash.messages'),
         type: 'POST',
         headers: {
             'X-CSRF-TOKEN': $("#5K3_70K").val()
@@ -157,9 +157,8 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
 }
 
 function getInfo(route, id) {
-    const url = `${route}/getInfo/:id`.replace(':id', id);
     $.getJSON({
-        url: url,
+        url: route(`${route}.getInfo`, id),
         data: {
             '_token': $("#5K3_70K").val()
         },
