@@ -320,7 +320,7 @@
                 $(".ctn-player-info, #cont-tx-jackpot-room").addClass('hide-elem');
             } else {
                 $.getJSON({
-                    url: route('seller.getCtnPrice', id: roomID),
+                    url: route('seller.getCtnPrice', roomID),
                     headers: {
                         'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },

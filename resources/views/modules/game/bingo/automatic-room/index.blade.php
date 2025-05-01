@@ -69,7 +69,7 @@
             btnExecuteJob.prop('disabled', true);
 
             // Realizar la solicitud
-            $.getJSON(route('bingo.automatic-room.executeGenerateBingoRoomsJob', {
+            $.getJSON(route('bingo-automatic-room.executeGenerateBingoRoomsJob', {
                     creatorType,
                     creatorID
                 }), {

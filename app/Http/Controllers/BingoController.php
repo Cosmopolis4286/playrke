@@ -3121,8 +3121,11 @@ class BingoController extends Controller
 
                 $seller = Seller::getById($userData['id'], ['id', 'commerce']);
 
+                $coin = $coin->id;
+                $coinSym = Coin::getValue($coin, 'symbol');
+
                 $playersRoom = PlayerLink::with(['Coin', 'CtnsLot'])
-                    ->where(['seller' => $seller->id, 'room' => $roomID, 'coin' => $coin->id])
+                    ->where(['seller' => $seller->id, 'room' => $roomID, 'coin' => $coin])
                     ->orderByDesc('id')->get(['id', 'link', 'coin', 'name', 'lastname', 'phone']);
 
                 if (!count($playersRoom)) return redirect()->back();
@@ -3134,11 +3137,6 @@ class BingoController extends Controller
 
                 $coins = $this->getUserCoins($userData, ['CtnsLot'], 'today', $where);
 
-                $coinInfo = Coin::getById($coin, ['symbol', 'long_name']);
-
-                $coinName = $coinInfo->long_name;
-                $coinSym = $coinInfo->symbol;
-
                 $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
 
                 return view(
@@ -3147,13 +3145,11 @@ class BingoController extends Controller
                         'title',
                         'cardTitle',
                         'commerce',
-                        'generateUniqueCodeed',
                         'playersRoom',
                         'routeWithCoin',
                         'coins',
                         'coin',
                         'coinSym',
-                        'coinName',
                         'totalCtnsPurchased',
                         'totalCtnsByRoom'
                     )
