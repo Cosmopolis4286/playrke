@@ -135,8 +135,10 @@
 
         const name = '<?php echo $name; ?>';
         const arrCountries = JSON.parse('<?php echo $countriesCommerce; ?>');
+        const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const coins = JSON.parse('<?php echo $coinsCommerce; ?>');
         const country = $("#country");
+        const timeZone = $("#time-zone");
         const coin = $("#coin");
         const coinText = $("#coin-text");
         const otherCoins = $("#other-coins");
@@ -199,6 +201,12 @@
                     `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
 
+            $.each(arrTimeZones, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.user.time_zone) ? 'selected' : '';
+                timeZone.append(
+                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+            });
+
             if (type == 2) {
                 let seller = data.seller;
                 let otherCoins = data.other_coins;
@@ -237,7 +245,7 @@
             },
             5: function(encryptedId) {
                 showToastOptionBtns(
-                    'Generar nueva contraseña a este Vendedor',
+                    'Generar nueva contraseña a este vendedor',
                     'info',
                     'Sí, generar',
                     '#form-other-options',

@@ -220,7 +220,7 @@ class SellerController extends Controller
 
         $seller = Seller::getById($id, ['name', 'commerce', 'commn', 'country', 'phone']);
         $otherCoins = SellerCountriesCoins::getAvailableCoins($id);
-        $user = User::getById(Seller::getValueById($id, 'user'), ['username', 'email']);
+        $user = User::getById(Seller::getValueById($id, 'user'), ['username', 'email', 'seller']);
 
         $data = [
             'seller' => $seller,

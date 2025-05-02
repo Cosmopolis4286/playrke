@@ -127,7 +127,9 @@
 
         const name = '<?php echo $name; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
+        const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const country = $("#country");
+        const timeZone = $("#time-zone");
         let update = false;
 
         if (@json(Session::has('msg-error'))) {
@@ -155,6 +157,12 @@
             $.each(arrCountries, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.customer.country) ? 'selected' : '';
                 country.append(
+                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+            });
+
+            $.each(arrTimeZones, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.user.time_zone) ? 'selected' : '';
+                timeZone.append(
                     `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
 

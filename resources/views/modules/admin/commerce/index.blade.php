@@ -112,8 +112,10 @@
 
         const name = '<?php echo $name; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
+        const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const coins = JSON.parse('<?php echo $coins; ?>');
         const country = $("#country");
+        const timeZone = $("#time-zone");
         const coin = $("#coin");
         const coinText = $("#coin-text");
         const otherCoins = $("#other-coins");
@@ -183,6 +185,12 @@
             $.each(arrCountries, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.commerce.country) ? 'selected' : '';
                 country.append(
+                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+            });
+
+            $.each(arrTimeZones, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.user.time_zone) ? 'selected' : '';
+                timeZone.append(
                     `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
 

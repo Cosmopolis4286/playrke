@@ -206,7 +206,7 @@ class CustomerController extends Controller
         $customer = Customer::getById($id, ['name', 'country', 'phone', 'link_route']);
 
         // Obtener datos del usuario
-        $user = User::getById(Customer::getValueById($id, 'user'), ['username', 'email']);
+        $user = User::getById(Customer::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
 
         $keys = Customer::getById($id, ['customer_key', 'security_key']);
         // Desencriptar clave de seguridad 

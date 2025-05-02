@@ -2394,7 +2394,6 @@ class BingoController extends Controller
 
     private function getOtherPublicRoomsInfo($coin)
     {
-        //  Lista (CRUD) de configuracion de Salas Automaticas
         (new HandleBingoRooms())->checkRoomClosure();
 
         $userData = $this->getUserData();

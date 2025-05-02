@@ -18,6 +18,7 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PhoneNumbers;
 use App\Models\SellerCountriesCoins;
+use App\Models\TimeZone;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
@@ -240,7 +241,7 @@ class CommerceController extends Controller
         $id = decrypt($id);
         $commerce = Commerce::getById($id, ['name', 'country', 'coin', 'phone', 'code_rke']);
         $otherCoins = CommerceCountriesCoins::getAvailableCoins($id);
-        $user = User::getById(Commerce::getValueById($id, 'user'), ['username', 'email']);
+        $user = User::getById(Commerce::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
 
         $data = [
             'commerce' => $commerce,
@@ -385,9 +386,11 @@ class CommerceController extends Controller
         $coins = $this->getAvailableCoins(Auth::id());
         $coinsCommerce = Coin::getCoinsById($coins, ['id', 'symbol', 'short_name', 'long_name', 'country']);
 
+        $timeZones = TimeZone::select('id', 'name', 'country')->where('status', 1)->get();
+
         return view(
             'modules.commerce.sellers.index',
-            compact('title', 'name', 'sellers', 'countriesCommerce', 'coinsCommerce')
+            compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce')
         );
     }
 
