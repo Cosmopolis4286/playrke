@@ -25,6 +25,7 @@
 @section('scripts')
     <script>
         const name = @json($name);
+        const creation = 'M';
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         let coinsCtnPrice = false;
@@ -37,13 +38,10 @@
         });
 
         function insertInfo(type, data = '') {
-            if (type == 1) {
-                coinsCtnPrice = false;
-                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
-                $('#container-price-config').html('');
-            } else {
-                getCtnPriceCoin(data.room.encrypted, true);
-            }
+            if (type !== 2) return;
+
+            getCtnPriceCoin(data.room.encrypted, true);
+
             $('#ctn-price').val(data.config.ctn_price);
 
             $(`#modal-${name}`).modal('show');
@@ -51,10 +49,6 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, ['ctn-price']);
-        });
-
-        $(document).on("click", ".btn-participate-bingo", function() {
-
         });
 
         function insertInfoPublicRooms(data) {
@@ -77,10 +71,12 @@
             data.forEach(elem => {
 
                 const creator = elem.creator;
+                let isUnitedClass = '';
                 let isUnited = `disabled`;
                 let isUnitedIcon = `<i class="fa-solid fa-gamepad"></i>`;
 
                 if (!creator || creator[0].status == 0) {
+                    isUnitedClass = `btn-${name}`;
                     isUnited = `data-type="5" title="Participar"`;
                     isUnitedIcon = `<i class="fa-solid fa-right-to-bracket"></i>`;
                 }
@@ -103,7 +99,7 @@
                 </div>
                 <div class="form-control">Bote Actual: <b>${elem.jackpot} <small>USD</small></b></div>
                 <div class="input-group-append">
-                    <button class="btn btn-outline-success btn-${name}"
+                    <button class="btn btn-outline-success"
                      type="button" data-id="${elem.encrypted}" ${isUnited}>
                         ${isUnitedIcon}
                     </button>

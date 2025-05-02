@@ -959,7 +959,10 @@ class BingoController extends Controller
         ];
 
         if ($otherCommerce) {
-            $relations['Creator'] = fn($query) => $query->select('id', 'room')
+            $relations['Creator'] = fn($q) => $q->select('id', 'room')
+                ->where('creator_user', $creatorUser)->where('status', 1);
+
+            $relations['CtnsLot'] = fn($q) => $q->select('id', 'room', 'exchange_rate', 'sale_amount')
                 ->where('creator_user', $creatorUser)->where('status', 1);
         } else {
             $relations['Creator'] = fn($query) => $query->select('id', 'room');
@@ -1298,23 +1301,7 @@ class BingoController extends Controller
             $ctnPriceCoins = $request->ctn_price_coins;
 
             if ($ctnPriceCoins) {
-
-                $timestamp = now();
-
-                $recordsToInsert = collect($ctnPriceCoins)
-                    ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
-                    ->map(function ($ctnPrice, $coin) use ($roomID, $userID, $timestamp) {
-                        return [
-                            'room' => $roomID,
-                            'creator_user' => $userID,
-                            'coin' => $coin,
-                            'ctn_price' => $ctnPrice,
-                            'created_at' => $timestamp,
-                            'updated_at' => $timestamp,
-                        ];
-                    })->values()->toArray();
-
-                BingoCtnPrice::insert($recordsToInsert);
+                $this->handleCtnPriceCoins('CREATE', $ctnPriceCoins, $roomID, $userID);
             }
 
             DB::commit();
@@ -1326,10 +1313,59 @@ class BingoController extends Controller
         }
     }
 
+    private function handleCtnPriceCoins($action, $ctnPriceCoins, $roomID, $creatorUser)
+    {
+        $timestamp = now();
+
+        foreach ($ctnPriceCoins as $coin => $ctnPrice) {
+            if (!$ctnPrice) {
+                continue; // Ignora valores vacíos o falsy
+            }
+
+            $data = [
+                'room' => $roomID,
+                'creator_user' => $creatorUser,
+                'coin' => $coin,
+                'ctn_price' => $ctnPrice,
+                'status' => 1,
+                'updated_at' => $timestamp,
+            ];
+
+            if ($action === 'CREATE') {
+                $data['created_at'] = $timestamp;
+                $batch[] = $data;
+            } else {
+                $existing = BingoCtnPrice::getCtnPrice($roomID, $coin, $creatorUser);
+
+                if ($existing) {
+                    if ($existing->ctn_price != $ctnPrice) {
+                        $existing->update($data);
+                    }
+                } else {
+                    $data['created_at'] = $timestamp;
+                    BingoCtnPrice::create($data);
+                }
+            }
+        }
+
+        if ($action === 'CREATE' && !empty($batch ?? [])) {
+            BingoCtnPrice::insert($batch);
+        }
+
+        return true;
+    }
+
+
     public function update(Request $request, $id)
     {
         $roomID = decrypt($id);
         $room = BingoRoom::findOrFail($roomID);
+
+        $ctnPriceCoins = $request->ctn_price_coins;
+
+        if ($room->creator_user <> ) {
+            $this->handleCtnPriceCoins('UPDATE', $ctnPriceCoins, $roomID,);
+        }
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -1392,37 +1428,8 @@ class BingoController extends Controller
 
             $creatorUser = $room->creator_user;
 
-            $ctnPriceCoins = $request->ctn_price_coins;
-
             if ($ctnPriceCoins) {
-
-                $timestamp = now();
-
-                collect($ctnPriceCoins)->each(function ($ctnPrice, $coin) use ($roomID, $creatorUser, $timestamp) {
-                    // Obtener el registro existente
-                    $bingoCtnPrice = BingoCtnPrice::getCtnPrice($roomID, $coin, $creatorUser);
-
-                    // Verificar si es necesario actualizar
-                    if ($bingoCtnPrice && $bingoCtnPrice->ctn_price != $ctnPrice) {
-                        // Construir datos para la actualización
-                        $updateData = [
-                            'ctn_price' => $ctnPrice,
-                            'status' => $ctnPrice ? 1 : 0,
-                            'updated_at' => $timestamp,
-                        ];
-                        // Actualizar el registro existente
-                        BingoCtnPrice::where('id', $bingoCtnPrice->id)->update($updateData);
-                    } else if (!$bingoCtnPrice && $ctnPrice) {
-                        // Crear nuevo registro
-                        BingoCtnPrice::create([
-                            'room' => $roomID,
-                            'creator_user' => $creatorUser,
-                            'coin' => $coin,
-                            'ctn_price' => $ctnPrice,
-                            'status' => 1
-                        ]);
-                    }
-                });
+                $this->handleCtnPriceCoins('UPDATE', $ctnPriceCoins, $roomID, $creatorUser);
             }
 
             DB::commit();
