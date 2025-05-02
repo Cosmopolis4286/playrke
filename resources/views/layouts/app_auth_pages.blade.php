@@ -64,7 +64,7 @@
             $(".info-user-rke").click(function() {
                 const info = $(this).data('val');
                 $.ajax({
-                    url: route('info-rke', page: info),
+                    url: `{{ route('info-rke', ['page' => ':1']) }}`.replace(':1', info),
                     method: 'GET',
                     headers: {
                         'X-CSRF-TOKEN': $("#5K3_70K").val()

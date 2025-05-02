@@ -76,7 +76,7 @@
                 let isUnited = `disabled`;
                 let isUnitedIcon = `<i class="fa-solid fa-gamepad"></i>`;
 
-                if (!creator || creator[0].status == 0) {
+                if (!creator.length || (creator.length && creator[0].status == 0)) {
                     isUnitedClass = `btn-${name}`;
                     isUnited = `data-type="5" title="Participar"`;
                     isUnitedIcon = `<i class="fa-solid fa-right-to-bracket"></i>`;
@@ -100,7 +100,7 @@
                 </div>
                 <div class="form-control">Bote Actual: <b>${elem.jackpot} <small>USD</small></b></div>
                 <div class="input-group-append">
-                    <button class="btn btn-outline-success"
+                    <button class="btn btn-outline-success ${isUnitedClass}"
                      type="button" data-id="${elem.encrypted}" ${isUnited}>
                         ${isUnitedIcon}
                     </button>

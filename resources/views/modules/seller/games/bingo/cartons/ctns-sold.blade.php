@@ -39,7 +39,7 @@
                                             <td>{{ $ctn->PlayerLink->Country->name }}</td>
                                             <td>{{ $coinISOCode }} ({{ $coinSym }})</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coinISOCode }} {{ $ctn->sale_amount }}</td>
+                                            <td>{{ $coinSym }} {{ $ctn->sale_amount }}</td>
                                             <td>{{ $ctn->created_at->format('d/m/y H:i:s') }}<small
                                                     class="ml-1">GMT-4</small></td>
                                             <td>

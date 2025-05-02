@@ -68,7 +68,7 @@ class ExchangeRateController extends Controller
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Tasas de Cambio',
-            'name' => 'coin',
+            'name' => 'exchange-rate',
             'returnBtn' => $returnBtn ?? true,
             'creator' => ['type' => $creatorType, 'id' => encrypt($creatorID)],
             'coins' => $coins ?? [],

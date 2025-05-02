@@ -1851,7 +1851,7 @@ class BingoController extends Controller
             'Config:room,date,time,ctn_price'
         ])->select('id', 'encrypted', 'room_commn', 'jackpot')
             ->where('creator_user', '<>', $userData['userId'])
-            ->where('room_type', 'PB')->get();
+            ->where('room_type', 'PB')->where('status', 2)->get();
     }
 
     public function participateInPublicRoom($roomID = '', $getOut = false)
@@ -2936,9 +2936,8 @@ class BingoController extends Controller
                 break;
             case 'seller':
 
-                $seller = $this->seller(['id', 'commerce']);
+                $seller = $this->seller(['id']);
                 $sellerId = $seller->id;
-                $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
                 $query = BingoRoom::with([
                     'Config:room,time,date,ctn_price',
@@ -2957,8 +2956,7 @@ class BingoController extends Controller
 
         $query = $this->applyDateFilter($dateFilter, $query, 'publication_date');
 
-        $rooms = $query->where('creator_user', $creatorUser)
-            ->get(['id', 'encrypted', 'room_type', 'status', 'jackpot']);
+        $rooms = $query->get(['id', 'encrypted', 'room_type', 'status', 'jackpot']);
 
         return $rooms;
     }

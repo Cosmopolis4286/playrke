@@ -207,8 +207,8 @@ class SellerController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error general: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
+            Log::error('Error al crear vendedor: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Error al procesar la solicitud']);
         }
 
         return redirect()->back();
