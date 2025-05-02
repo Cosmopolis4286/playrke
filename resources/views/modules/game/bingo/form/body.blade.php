@@ -86,7 +86,7 @@
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="pct-serials">%Bote Seriales</label>
-        <input type="number" value="5" min="2" max="35" step="0.05" id="pct-serials"
+        <input type="number" value="5" min="2" max="35" step="0.25" id="pct-serials"
             name="pct_serials" class="form-control jackpot-pct" placeholder="Ingrese valor" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
@@ -106,7 +106,7 @@
     </div> --}}
     <div id="container-pct-bingo-plays" class="form-group col-sm-6 col-md-4 hide-elem">
         <label for="pct-bingo-plays">%Bote Cantos</label>
-        <input type="number" value="" min="2" max="15" step="0.25" id="pct-bingo-plays"
+        <input type="number" value="" min="2" max="35" step="0.25" id="pct-bingo-plays"
             name="pct_bingo_plays" class="form-control jackpot-pct" placeholder="Ingrese valor" required>
     </div>
 </div>

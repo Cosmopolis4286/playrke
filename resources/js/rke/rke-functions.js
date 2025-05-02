@@ -95,7 +95,6 @@ function formCRUD(elem, name, title, otherCasesMap = {}) {
 
     formName[0].reset();
     formName.find('select').empty();
-    formName.find('input[name="_method"]').remove();
 
     let type = false;
     let encryptedId = '';
@@ -124,6 +123,7 @@ function formCRUD(elem, name, title, otherCasesMap = {}) {
     switch (type) {
         case 1: // Insertar
             modalLabel.text(`Registrar ${title}`);
+            formName.find('input[name="_method"]').remove();
             formName.attr('action', route(`${name}.create`));
             insertInfo(type); // Llama a `insertInfo` sin datos adicionales
             break;
@@ -171,16 +171,21 @@ function getInfo(name, id) {
     });
 }
 
-function validateInput(input, min, max, isFloat = true) {
+function validateInput(input, isFloat = true, callback = null) {
     setTimeout(() => {
-        let value = isFloat ? parseFloat($(input).val()) : $(input).val();
+        const $input = $(input);
+        let value = isFloat ? parseFloat($input.val()) : $input.val();
+        const min = parseFloat($input.attr('min')) || 0;
+        const max = parseFloat($input.attr('max')) || 100;
 
-        if (value < min || value > max) {
+        if (isNaN(value) || value < min || value > max) {
             showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
-            value = min; // Restablecer al valor mínimo permitido
+            value = min;
         }
 
-        $(input).val(isFloat ? parseFloat(value).toFixed(2) : value);
+        $input.val(isFloat ? value.toFixed(2) : value);
+
+        if (typeof callback === 'function') callback();
     }, 1500);
 }
 

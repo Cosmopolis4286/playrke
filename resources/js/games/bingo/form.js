@@ -1,39 +1,39 @@
-// Validar Bote Valor Fijo (Debe estar entre 30 y 10000 con pasos de 0.05)
-$(document).on("input", "#fixed-jackpot-value", function () {
-    validateInput(this, 30, 10000);
+function getNumericValue($el) {
+    return parseFloat($el.val()) || 0;
+}
+
+function setSafeValue($el, value) {
+    const max = parseFloat($el.attr('max')) || 100;
+    $el.val(Math.min(value, max, 100).toFixed(2));
+}
+
+function handlePercentageAdjust(changedId) {
+    const $elements = {
+        'room-commn': $('#room-commn'),
+        'pct-serials': $('#pct-serials'),
+        'pct-bingo-plays': $('#pct-bingo-plays'),
+    };
+
+    const values = {
+        'room-commn': getNumericValue($elements['room-commn']),
+        'pct-serials': getNumericValue($elements['pct-serials']),
+        'pct-bingo-plays': getNumericValue($elements['pct-bingo-plays']),
+    };
+
+    const total = values['room-commn'] + values['pct-serials'] + values['pct-bingo-plays'];
+
+    if (total > 100) {
+        const over = total - 100;
+        const $changed = $elements[changedId];
+        const newValue = getNumericValue($changed) - over;
+        setSafeValue($changed, newValue);
+    }
+}
+
+$(document).on("input", "#fixed-jackpot-value, #ctn-price, #time-chip, #num-serials, #max-plays-ramdom", function () {
+    validateInput(this, $(this).attr('id') !== 'num-serials');
 });
 
-// Validar Precio Base Carton USD (Debe estar entre 0.35 y 50 con pasos de 0.05)
-$(document).on("input", "#ctn-price", function () {
-    validateInput(this, 0.35, 50);
-});
-
-// Validar Tiempo de salida de fichas (Debe estar entre 3 y 10 con pasos de 1)
-$(document).on("input", "#time-chip", function () {
-    validateInput(this, 3, 10, false);
-});
-
-// Validar %Bote Seriales (Debe estar entre 2 y 35 con pasos de 0.05)
-$(document).on("input", "#pct-serials", function () {
-    validateInput(this, 2, 35);
-});
-
-// Validar #Max. Seriales (Debe estar entre 3 y 30)
-$(document).on("input", "#num-serials", function () {
-    validateInput(this, 3, 30, false);
-});
-
-// Validar %Comercio (Debe estar entre 5 y 50 con pasos de 0.05)
-$(document).on("input", "#room-commn", function () {
-    validateInput(this, 5, 50);
-});
-
-// Validar #Max. Jugadas Random (Debe estar entre 1 y 5)
-$(document).on("input", "#max-plays-ramdom", function () {
-    validateInput(this, 1, 5, false);
-});
-
-// Validar %Bote Cantos (Debe estar entre 2 y 15 con pasos de 0.25)
-$(document).on("input", "#pct-bingo-plays", function () {
-    validateInput(this, 2, 15);
+$(document).on("input", ".jackpot-pct", function () {
+    validateInput(this, true, () => handlePercentageAdjust($(this).attr('id')));
 });

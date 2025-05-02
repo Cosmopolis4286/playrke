@@ -79,28 +79,6 @@
             }
         }
 
-        $(document).on('input change', '.jackpot-pct', function() {
-
-            const pctRoom = $('#room-commn');
-            const pctSerials = $('#pct-serials');
-            const pctBingoPlays = $('#pct-bingo-plays');
-            let pctRoomVal = pctRoom.val();
-            let pctSerialsVal = pctSerials.val();
-            let pctBingoPlaysVal = pctBingoPlays.val();
-
-            let pctJackpotVal = pctRoomVal + pctSerialsVal + pctBingoPlaysVal;
-
-            switch (key) {
-                case value:
-
-                    break;
-
-                default:
-                    break;
-            }
-
-        });
-
         jackpotType.on('change', function() {
             changeFixedJackpot($(this).val());
         });

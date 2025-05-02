@@ -8,7 +8,7 @@
         <div class="card">
             @include('includes.card-header', ['subtitle' => 'Jugadas'])
             <div class="card-body">
-                <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="1">
+                <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="4">
                     <i class="fas fa-plus-square"></i> Crear
                 </button>
                 <div class="table-responsive mt-2">
@@ -60,14 +60,10 @@
         let playId = false;
 
         function insertInfo(type, data = '') {
-
+            if (type != 2) return;
             cleanBoxes();
-
-            if (type == 2) {
-                namePlay.val(data.name);
-                checkBoxes(data.boxes);
-            }
-
+            namePlay.val(data.name);
+            checkBoxes(data.boxes);
             $(`#modal-${name}`).modal('show');
         }
 
@@ -76,7 +72,11 @@
         });
 
         const otherCasesMap = {
-            4: function(encryptedId) {
+            4: function() {
+                cleanBoxes();
+                $(`#modal-${name}`).modal('show');
+            },
+            5: function(encryptedId) {
                 showToastOptionBtns(
                     'Deseas cambiar el status de este registro',
                     'question',

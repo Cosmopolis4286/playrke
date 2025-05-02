@@ -8,7 +8,8 @@
                 </button>
             </div>
             <form id="form-{{ $name }}" action="{{ route('bingo-plays.handler') }}" method="POST">
-                @csrf @method('PUT')
+                @csrf
+                @method('PUT')
                 <div class="modal-body d-flex justify-content-center">
                     <div id="container-carton">
                         <div class="mb-2 card container-view-carton">
