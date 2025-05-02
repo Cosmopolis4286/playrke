@@ -21,7 +21,6 @@ use App\Models\BingoCtnsPayment;
 use App\Models\BingoPrizeCtns;
 use App\Models\Coin;
 use App\Models\Commerce;
-use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PhoneNumbers;
@@ -165,6 +164,7 @@ class SellerController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
+                'time_zone' => $request->time_zone,
                 'email_verified_at' => Carbon::now(),
                 'referral_code' => User::getUniqueReferralCode(),
             ])->id;
@@ -349,7 +349,7 @@ class SellerController extends Controller
             'Config' => function ($query) {
                 $query->select('room', 'game_mode', 'unix_date');
             }
-        ])->select('id', 'encrypted', 'room_type')->where('status', 2)
+        ])->select('id', 'encrypted', 'room_type', 'jackpot')->where('status', 2)
             ->where(function ($query) use ($creatorUser) {
                 $query->where('creator_user', $creatorUser)
                     ->orWhere('room_type', 'PB');

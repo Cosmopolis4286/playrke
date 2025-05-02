@@ -14,8 +14,8 @@ class TimeZone extends Model
         return $this->belongsTo(Country::class, 'country');
     }
 
-    public static function getById($id)
+    public static function getValueById($id, $value = 'name')
     {
-        return self::where('id', $id)->where('status', true)->value('name');
+        return self::where('id', $id)->value($value);
     }
 }

@@ -37,6 +37,7 @@ use App\Models\GameRules;
 use App\Models\Games;
 use App\Models\Room;
 use App\Models\Seller;
+use App\Models\TimeZone;
 use App\Models\User;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
@@ -1066,6 +1067,9 @@ class BingoController extends Controller
 
         $bingoPlays = BingoTypesPlays::getAllByUser($creator['userId'], ['id', 'name'], 1);
 
+        $timeZoneID = User::getValueById($creator['userId'], 'time_zone');
+        $timeZone = TimeZone::getValueById($timeZoneID);
+
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo',
@@ -1082,6 +1086,7 @@ class BingoController extends Controller
             'exchangeRate' => $exchangeRate ?? 1,
             'roomType' => $view === 'private' ? 'PV' : 'PB',
             'bingoPlays' => $bingoPlays,
+            'timeZone' => $timeZone,
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
@@ -2320,12 +2325,16 @@ class BingoController extends Controller
 
         $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
 
+        $timeZoneID = User::getValueById($creator['userId'], 'time_zone');
+        $timeZone = TimeZone::getValueById($timeZoneID);
+
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Salas de Bingo',
             'name' => 'bingo-automatic-room',
             'returnBtn' => $returnBtn ?? true,
             'creator' => $creator,
+            'timeZone' => $timeZone,
             'rooms' => $automaticRooms,
             'activeRooms' => $activeRooms,
             'GMRoute' => $GMRoute,

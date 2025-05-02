@@ -1,14 +1,18 @@
 <div class="row">
+    @php
+        $now = \Carbon\Carbon::now($timeZone);
+    @endphp
     @if (!isset($automaticRoom))
         <div class="form-group col-sm-6 col-md-4">
             <label for="date">Fecha*</label>
             <input type="date" id="date" name="date" class="form-control" required
-                min="{{ \Carbon\Carbon::now()->format('Y-m-d') }}" value="{{ \Carbon\Carbon::now()->format('Y-m-d') }}">
+                min="{{ $now->format('Y-m-d') }}" value="{{ $now->format('Y-m-d') }}">
         </div>
     @endif
     <div class="form-group col-sm-6 col-md-4">
         <label for="time">Hora*</label>
-        <input type="time" id="time" name="time" class="form-control" required>
+        <input type="time" id="time" name="time" class="form-control" required
+            value="{{ $now->format('H:i') }}">
     </div>
     @if ($creator['type'] !== 'customer')
         @if (isset($automaticRoom))

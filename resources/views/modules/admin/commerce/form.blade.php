@@ -32,6 +32,10 @@
         <select id="country" name="country" class="form-control" required></select>
     </div>
     <div class="form-group col-sm-6">
+        <label for="time-zone">Zona Horaria*</label>
+        <select id="time-zone" name="time_zone" class="form-control" required></select>
+    </div>
+    <div class="form-group col-sm-6">
         <label for="phone">Teléfono*</label>
         <input type="text" id="phone" name="phone" class="form-control @error('phone') is-invalid @enderror"
             required value="{{ old('username') }}" placeholder="Ingresa el número" required value="{{ old('phone') }}">

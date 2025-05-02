@@ -19,6 +19,7 @@
         'size' => 'md',
         'dataForm' => view('modules.game.bingo.form.body', [
             'creator' => $creator,
+            'timeZone' => $timeZone,
             'automaticRoom' => true,
         ])->render(),
     ])

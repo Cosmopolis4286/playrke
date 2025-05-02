@@ -209,7 +209,7 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'country', 'coin', 'phone', 'username', 'email']);
+            submitForm(name, ['name', 'country', 'time_zone', 'coin', 'phone', 'username', 'email']);
         });
 
         const otherCasesMap = {

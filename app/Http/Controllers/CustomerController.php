@@ -141,6 +141,7 @@ class CustomerController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
+                'time_zone' => $request->time_zone,
                 'email_verified_at' => Carbon::now(),
                 'referral_code' => User::getUniqueReferralCode(),
             ])->id;

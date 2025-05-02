@@ -178,7 +178,9 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'email', 'username', 'country', 'phone', 'api-route', 'customer-key']);
+            submitForm(name, ['name', 'email', 'username', 'country', 'time_zone', 'phone', 'api-route',
+                'customer-key'
+            ]);
         });
 
         const otherCasesMap = {

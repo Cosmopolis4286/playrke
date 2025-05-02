@@ -17,7 +17,7 @@ class CreateTimezonesTable extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->foreignId('country')->nullable()->constrained('countries')->cascadeOnUpdate();
-            $table->boolean('status')->default(false);
+            $table->boolean('status')->default(1);
             $table->timestamps();
         });
     }

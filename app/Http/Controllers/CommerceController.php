@@ -12,9 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Models\PagoMovil;
-use App\Models\BingoPrizeCtns;
-use App\Models\BingoRoom;
-use App\Models\BingoRoomConfig;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
@@ -24,7 +21,6 @@ use App\Models\SellerCountriesCoins;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-use App\Services\Game\Bingo\HandleBingoRooms;
 use App\Traits\BingoTrait;
 use App\Traits\Filters;
 use App\Traits\RouteRKE;
@@ -162,6 +158,7 @@ class CommerceController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
+                'time_zone' => $request->time_zone,
                 'email_verified_at' => Carbon::now(),
                 'referral_code' => User::getUniqueReferralCode(),
             ])->id;
