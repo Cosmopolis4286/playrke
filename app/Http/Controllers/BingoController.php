@@ -1351,20 +1351,50 @@ class BingoController extends Controller
         if ($action === 'CREATE' && !empty($batch ?? [])) {
             BingoCtnPrice::insert($batch);
         }
-
-        return true;
     }
-
 
     public function update(Request $request, $id)
     {
         $roomID = decrypt($id);
         $room = BingoRoom::findOrFail($roomID);
 
+        $creatorUser = $this->getUserData()['userId'];
+
         $ctnPriceCoins = $request->ctn_price_coins;
 
-        if ($room->creator_user <> ) {
-            $this->handleCtnPriceCoins('UPDATE', $ctnPriceCoins, $roomID,);
+        if (($ctnPriceCoins || $request) && $room->creator_user <> $creatorUser) {
+            DB::beginTransaction();
+            try {
+                if ($ctnPriceCoins) {
+                    $this->handleCtnPriceCoins('UPDATE', $ctnPriceCoins, $roomID, $creatorUser);
+                }
+
+                $bingoCreator = BingoCreator::select('id', 'creator_commn', 'ctn_price')
+                    ->where('room', $roomID)->where('creator_user', $creatorUser)->first();
+
+                if ($bingoCreator) {
+                    $updates = [];
+
+                    if ($bingoCreator->creator_commn != $request->room_commn) {
+                        $updates['creator_commn'] = $request->room_commn;
+                    }
+
+                    if ($bingoCreator->ctn_price != $request->ctn_price) {
+                        $updates['ctn_price'] = $request->ctn_price;
+                    }
+
+                    if ($updates) {
+                        $bingoCreator->update($updates);
+                    }
+                }
+
+                DB::commit();
+                return redirect()->back()->with('message', 'Proceso exitoso')->with('type', 'success');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error al actualizar el precio del carton respecto a las monedas: ' . $e->getMessage());
+                return redirect()->back()->with(['type' => 'warning', 'message', 'Hubo un problema al actualizar la información']);
+            }
         }
 
         date_default_timezone_set(config('app.timezone'));
@@ -1437,8 +1467,8 @@ class BingoController extends Controller
             return redirect()->back()->with('message', 'La información fue actualizada')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Hubo un problema al actualizar la información de la sala: ' . $e->getMessage());
-            return redirect()->back()->with(['type' => 'warning', 'message', 'Hubo un problema al actualizar la información']);
+            Log::error('Error a al actualizar la información de la sala: ' . $e->getMessage());
+            return redirect()->back()->with(['type' => 'warning', 'message', 'Error al actualizar la información']);
         }
     }
 
@@ -1748,9 +1778,14 @@ class BingoController extends Controller
             return response()->json($time);
         }
 
-        $id = decrypt($id);
+        $roomID = decrypt($id);
 
-        $room = BingoRoom::select('encrypted', 'jackpot', 'players')->where('id', $id)->firstOrFail();
+        $room = BingoRoom::select(
+            'encrypted',
+            'room_type',
+            'jackpot',
+            'players'
+        )->where('id', $roomID)->firstOrFail();
 
         $config = BingoRoomConfig::select(
             'game_mode',
@@ -1766,19 +1801,24 @@ class BingoController extends Controller
             'serials_commn',
             'pct_types_plays',
             'types_plays'
-        )->where('room', $id)->firstOrFail();
+        )->where('room', $roomID)->firstOrFail();
 
         $bingoCreator = true;
 
-        $creatorUserID = BingoRoom::getValueById($room, 'creator_user');
+        $creatorUserID = BingoRoom::getValueById($roomID, 'creator_user');
         $userType = User::getValueById($creatorUserID, 'user_type');
 
         $creatorType = UserType::getValueById($userType, 'prefix');
 
         if ($creatorType === 'commerce') {
-            $creatorID = BingoCreator::getByRoom($id, 'creator_id');
-            $creator = ['type' => $userType, 'id' => $creatorID];
-            $bingoCreator = BingoCreator::getValueByCreatorRoom($creator, $id) ?? false;
+            $bingoCreator = BingoCreator::existsByRoomCreatorUser($roomID, $creatorUserID);
+
+            if ($room->room_type === 'PB') {
+                $userData = $this->getUserData()['userId'];
+                if ($creatorUserID != $userData) {
+                    $bingoCreator = BingoCreator::getByRoomCreatorUser($roomID, $userData, ['creator_commn', 'ctn_price']);
+                }
+            }
         }
 
         return response()->json([

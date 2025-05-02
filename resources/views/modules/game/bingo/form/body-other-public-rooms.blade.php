@@ -16,6 +16,11 @@
             </div>
         </div>
     </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="room-commn">%Sala*</label>
+        <input type="number" id="room-commn" name="room_commn" class="form-control jackpot-pct" value="10"
+            step="0.05" min="5" max="50" required>
+    </div>
     <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
         <div class="container"
             style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">

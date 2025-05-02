@@ -73,4 +73,9 @@ class BingoCreator extends Model
             ->where('creator_id', $creator['id'])
             ->where('room', $room)->value($value);
     }
+
+    public static function existsByRoomCreatorUser($room, $creatorUser)
+    {
+        return self::where('room', $room)->where('creator_user', $creatorUser)->exists();
+    }
 }

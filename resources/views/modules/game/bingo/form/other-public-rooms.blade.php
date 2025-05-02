@@ -42,13 +42,14 @@
 
             getCtnPriceCoin(data.room.encrypted, true);
 
-            $('#ctn-price').val(data.config.ctn_price);
+            $('#ctn-price').val(data.creator?.ctn_price ?? data.config?.ctn_price);
+            $('#room-commn').val(data.creator?.creator_commn ?? data.config?.room_commn);
 
             $(`#modal-${name}`).modal('show');
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['ctn-price']);
+            submitForm(name, ['ctn-price', 'room-commn']);
         });
 
         function insertInfoPublicRooms(data) {
