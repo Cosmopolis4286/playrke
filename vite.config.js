@@ -45,9 +45,12 @@ export default defineConfig(({ mode }) => {
                 include: jsFiles,
                 exclude: [/node_modules/],
                 apply: 'build',
-                debugger: isProduction,
                 options: {
+                    identifierNamesGenerator: 'mangled', // Evita que se rompan los nombres como 'route'
+                    reservedStrings: ['route', 'Ziggy'], // Protege las referencias globales también
+                    compact: true,
                     debugProtection: isProduction,
+                    selfDefending: isProduction,
                 },
             }),
         ],

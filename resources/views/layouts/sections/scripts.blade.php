@@ -52,11 +52,8 @@
     });
 
     $(document).on("input", ".input-phone", function() {
-        // Eliminar caracteres no numéricos
-        const phoneNumber = $(this).val().replace(/\D/g, '');
-        // Limitar a un máximo de 10 dígitos
+        let phoneNumber = $(this).val().replace(/\D/g, '');
         phoneNumber = phoneNumber.substring(0, 11);
-        // Actualizar el valor del campo de teléfono
         $(this).val(phoneNumber);
     });
 </script>
