@@ -28,9 +28,9 @@
         <select id="time-zone" name="time_zone" class="form-control" required></select>
     </div>
     <div class="form-group col-sm-6">
-        <label for="phone">Teléfono*</label>
+        <label for="phone">Teléfono</label>
         <input type="text" id="phone" name="phone" class="form-control @error('phone') is-invalid @enderror"
-            required value="{{ old('username') }}" placeholder="Ingresa el número" required value="{{ old('phone') }}">
+            required value="{{ old('username') }}" placeholder="Ingresa el número" value="{{ old('phone') }}">
         @error('phone')
             <span class="invalid-feedback">
                 <small>{{ $message }}</small>

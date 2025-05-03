@@ -180,7 +180,10 @@
             update = false;
             $('#username, #email').attr('readonly', false);
 
-            if (type == 1) country.append(`<option value="" disabled selected>Seleccionar País:</option>`);
+            if (type == 1) {
+                country.append(`<option value="" disabled selected>Seleccionar País:</option>`);
+                timeZone.append(`<option value="" disabled selected>Seleccionar Zona:</option>`);
+            }
 
             $.each(arrCountries, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.commerce.country) ? 'selected' : '';
@@ -217,7 +220,7 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'country', 'time_zone', 'coin', 'phone', 'username', 'email']);
+            submitForm(name, ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
         });
 
         const otherCasesMap = {

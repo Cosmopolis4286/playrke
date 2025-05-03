@@ -193,7 +193,10 @@
             update = false;
             $('#username, #email').attr('readonly', false);
 
-            if (type == 1) country.append(`<option value="" disabled selected>Seleccionar:</option>`);
+            if (type == 1) {
+                country.append(`<option value="" disabled selected>Seleccionar:</option>`);
+                timeZone.append(`<option value="" disabled selected>Seleccionar Zona:</option>`);
+            }
 
             $.each(arrCountries, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.seller.country) ? 'selected' : '';
@@ -228,7 +231,7 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'phone', 'commission', 'country', 'time_zone', 'coin', 'username', 'email']);
+            submitForm(name, ['name', 'phone', 'commission', 'country', 'time-zone', 'coin', 'username', 'email']);
         });
 
         const otherCasesMap = {

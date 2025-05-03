@@ -41,8 +41,9 @@ class CustomerController extends Controller
             'username' => ['required', 'string', 'max:20', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
+            'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
             'name' => ['required', 'string'],
-            'phone' => ['required', 'string', 'max:20', 'unique:customers,phone'],
+            'phone' => ['string', 'max:20', 'unique:customers,phone'],
             'api_route' => ['required', 'string', 'max:255'],
             'customer_key' => ['required', 'string', 'max:255'],
         ];
@@ -132,6 +133,8 @@ class CustomerController extends Controller
             if ($validator->fails()) {
                 return redirect()->back()->withErrors($validator)->withInput();
             }
+
+            dd($request);
 
             $newPassw = $this->valEncrypt();
 
@@ -245,6 +248,13 @@ class CustomerController extends Controller
                     return redirect()->back()->withErrors($validator)->withInput();
                 }
 
+                $userID = $customer->user;
+                $userTimeZone = User::getValueById($userID, 'time_zone');
+
+                if ($userTimeZone <> $request->time_zone) {
+                    User::where('id', $userID)->update(['time_zone' => $request->time_zone]);
+                }
+
                 $fileLogo = $request->file('logo');
                 $logo = $fileLogo ? $this->saveLogo($fileLogo, $customer->token) : null;
 
@@ -260,6 +270,7 @@ class CustomerController extends Controller
                 $data = [
                     'name' => $request->name,
                     'country' => $request->country,
+                    'time_zone' => $request->time_zone,
                     'phone' => $phoneNumber,
                     'logo' => $logo,
                     'link_route' => $request->api_route

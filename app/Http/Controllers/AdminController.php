@@ -10,6 +10,7 @@ use App\Models\Commerce;
 use App\Models\Country;
 use App\Models\Customer;
 use App\Models\Games;
+use App\Models\TimeZone;
 use App\Models\User;
 use App\Traits\EncryptRKE;
 use App\Traits\UserVal;
@@ -31,12 +32,14 @@ class AdminController extends Controller
 
         $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
+        $timeZones = TimeZone::where('status', 1)->get();
 
         return view('modules/admin/commerce/index')->with([
             'title' => 'Comercializadoras',
             'name' => 'admin-commerce',
             'commerces' => $commerces,
             'countries' => $countries,
+            'timeZones' => $timeZones,
             'coins' => $coins,
             'games' => Games::where('status', 1)->get()
         ]);
@@ -50,12 +53,14 @@ class AdminController extends Controller
 
         $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
+        $timeZones = TimeZone::where('status', 1)->get();
 
         return view('modules/admin/customer/index')->with([
             'title' => 'Clientes',
             'name' => 'admin-customer',
             'customers' => $customers,
             'countries' => $countries,
+            'timeZones' => $timeZones,
             'coins' => $coins
         ]);
     }

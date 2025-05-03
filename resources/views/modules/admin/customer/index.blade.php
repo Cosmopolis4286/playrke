@@ -152,6 +152,7 @@
             if (type == 1) {
                 $('#customer-key').val(generateUUID());
                 country.append(`<option value="" disabled selected>Seleccionar País:</option>`);
+                timeZone.append(`<option value="" disabled selected>Seleccionar Zona:</option>`);
             }
 
             $.each(arrCountries, function(index, item) {
@@ -186,9 +187,7 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'email', 'username', 'country', 'time_zone', 'phone', 'api-route',
-                'customer-key'
-            ]);
+            submitForm(name, ['name', 'email', 'username', 'country', 'time-zone', 'api-route', 'customer-key']);
         });
 
         const otherCasesMap = {

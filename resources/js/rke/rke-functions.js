@@ -50,6 +50,7 @@ function deleteSessionFlash(arr = []) {
 
 function submitForm(formName, requiredFields = []) {
     let isValid = true;
+    let invalidFields = [];
 
     // Si no hay campos requeridos especificados, seleccionarlos automáticamente
     if (!requiredFields.length) {
@@ -62,9 +63,11 @@ function submitForm(formName, requiredFields = []) {
     // Validar que todos los campos requeridos tengan un valor
     requiredFields.forEach(fieldId => {
         if (!$(`#${fieldId}`).val()) {
-            isValid = false;
+            invalidFields.push(fieldId);
         }
     });
+
+    if (invalidFields.length) isValid = false;
 
     // Si todo es válido, enviar el formulario; si no, mostrar alerta
     if (isValid) {

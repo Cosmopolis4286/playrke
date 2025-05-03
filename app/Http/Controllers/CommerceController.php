@@ -49,6 +49,7 @@ class CommerceController extends Controller
             'username' => ['required', 'string', 'max:20', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
+            'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
             'coin' => ['required', 'numeric', 'exists:coins,id'],
             'name' => ['required', 'string'],
             'phone' => ['required', 'string', 'max:20', 'unique:commerces,phone'],
@@ -275,10 +276,18 @@ class CommerceController extends Controller
         try {
 
             if ($commerce) {
+
                 $validator = $this->validateRequest($request, 2, $id);
 
                 if ($validator->fails()) {
                     return redirect()->back()->withErrors($validator)->withInput();
+                }
+
+                $userID = $commerce->user;
+                $userTimeZone = User::getValueById($userID, 'time_zone');
+
+                if ($userTimeZone <> $request->time_zone) {
+                    User::where('id', $userID)->update(['time_zone' => $request->time_zone]);
                 }
 
                 // Verificar si la moneda principal ha cambiado
