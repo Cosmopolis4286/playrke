@@ -43,7 +43,7 @@ class CustomerController extends Controller
             'country' => ['required', 'numeric', 'exists:countries,id'],
             'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
             'name' => ['required', 'string'],
-            'phone' => ['string', 'max:20', 'unique:customers,phone'],
+            'phone' => ['nullable', 'string', 'max:20', 'unique:customers,phone'],
             'api_route' => ['required', 'string', 'max:255'],
             'customer_key' => ['required', 'string', 'max:255'],
         ];
@@ -52,7 +52,7 @@ class CustomerController extends Controller
         if ($type == 2) {
             $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $customer->user];
             $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $customer->user];
-            $rules['phone'] = ['required', 'string', 'max:20', 'unique:customers,phone,' . $customer->id];
+            $rules['phone'] = ['nullable', 'string', 'max:20', 'unique:customers,phone,' . $customer->id];
         }
 
         // Definir mensajes de error personalizados.
@@ -134,8 +134,6 @@ class CustomerController extends Controller
                 return redirect()->back()->withErrors($validator)->withInput();
             }
 
-            dd($request);
-
             $newPassw = $this->valEncrypt();
 
             $newUser = User::create([
@@ -153,11 +151,14 @@ class CustomerController extends Controller
             Wallet::create(['coin' => $request->coin ?? 1, 'user' => $newUser]);
 
             $phoneNumber = $request->phone;
-            PhoneNumbers::create([
-                'user' => $newUser,
-                'country' => $request->country,
-                'phone_number' => $phoneNumber
-            ]);
+
+            if ($phoneNumber) {
+                PhoneNumbers::create([
+                    'user' => $newUser,
+                    'country' => $request->country,
+                    'phone_number' => $phoneNumber
+                ]);
+            }
 
             $keys = $this->getEncryptionKeyForClient($request->customer_key);
 
