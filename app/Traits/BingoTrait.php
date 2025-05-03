@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Events\Games\BingoOFF_ProccessDraw;
+use App\Models\BingoCreatorSales;
 use App\Models\SellerRoomLimits;
 use App\Models\BingoCtns;
 use App\Models\BingoRoom;
@@ -452,23 +453,36 @@ trait BingoTrait
         $currentTime = now();
 
         try {
-            return BingoCtnsLot::insertGetId([
-                'creator_user' => $arrCtn['creator']['userId'],
+
+            $creatorUser = $arrCtn['creator']['userId'];
+            $roomID = $arrCtn['room'];
+            $coin = $arrCtn['coin'];
+
+            $BingoCtnsLotID = BingoCtnsLot::insertGetId([
+                'creator_user' => $creatorUser,
                 'seller' => $seller,
                 'room_user' => $arrCtn['roomUser'],
                 'player_user' => $arrCtn['playerUser'] ?? null,
                 'player_link' => $arrCtn['playerLink'] ?? null,
-                'room' => $arrCtn['room'],
+                'room' => $roomID,
                 'ctn_price' => $arrCtn['ctnPrice'],
                 'exchange_rate' => $exchangeRate,
                 'ctns' => $arrCtn['numOfCtns'],
-                'coin' => $arrCtn['coin'],
+                'coin' => $coin,
                 'sale_amount' => $saleAmount,
                 'final_sale_amount' => $finalSaleAmount,
                 'status' => 0,
                 'created_at' => $currentTime,
                 'updated_at' => $currentTime,
             ]);
+
+            // Actulizar monto de venta total por monedas
+            $totalSaleUSD = number_format($finalSaleAmount / $exchangeRate, 3, '.', '');
+
+            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, $coin, $finalSaleAmount);
+            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, 'USD', $totalSaleUSD);
+
+            return $BingoCtnsLotID;
         } catch (\Exception $e) {
             Log::error('Error al crear lote de cartones: ' . $e->getMessage());
         }

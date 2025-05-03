@@ -35,9 +35,20 @@ class BingoCreatorSales extends Model
             ->where('creator_user', $creatorUser)->first();
     }
 
-    public static function existsByRoomCreatorUser($room, $coin, $creatorUser)
+    public static function existsByRoomCreatorUser($room, $creatorUser, $coin = '')
     {
-        return self::where('room', $room)->where('coin', $coin)
-            ->where('creator_user', $creatorUser)->exists();
+        $query = self::where('room', $room)->where('creator_user', $creatorUser);
+        if ($coin)  $query->where('coin', $coin);
+        return $query->exists();
+    }
+
+    public static function updateOrCreateSale($roomID, $creatorUser, $coin, $amount)
+    {
+        $sale = self::firstOrCreate(
+            ['room' => $roomID, 'creator_user' => $creatorUser, 'coin' => $coin],
+            ['total_sale' => 0]
+        );
+
+        $sale->increment('total_sale', $amount);
     }
 }
