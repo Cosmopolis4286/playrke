@@ -283,7 +283,11 @@ class BingoController extends Controller
             if (!$coin) {
                 return redirect()->route(
                     'bingo.game-rooms-customer',
-                    ['customer' => $customer, 'user' => $userToken, 'coin' => encrypt($coin)]
+                    [
+                        'customer' => $customer,
+                        'user' => $userToken,
+                        'coin' => encrypt($coin)
+                    ]
                 );
             } else {
                 $player = $customerUser->id;
@@ -302,6 +306,7 @@ class BingoController extends Controller
 
         // Obtiene la información de vista del cliente
         $viewData = self::getGamesRoomsView($creator, [
+            'roomType' => 'private',
             'userToken' => $userToken,
             'player' => $player,
             'coin' => $coin
@@ -2279,7 +2284,7 @@ class BingoController extends Controller
 
                 $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
 
-                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'public', 'coin' => encrypt($commerce->coin)]);
+                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'private', 'coin' => encrypt($commerce->coin)]);
 
                 if ($creatorID == 1) $roomType = Room::getRoomTypes();
 

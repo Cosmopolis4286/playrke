@@ -14,16 +14,13 @@
         <input type="time" id="time" name="time" class="form-control" required
             value="{{ $now->format('H:i') }}">
     </div>
-    @if ($creator['type'] !== 'customer')
-        @if (isset($automaticRoom))
-            <div class="form-group col-sm-6 col-md-4">
-                <label for="room-type">Tipo de Sala*</label>
-                <select id="room-type" name="room_type" class="form-control"
-                    aria-label="Seleccionar tipo de sala"></select>
-            </div>
-        @else
-            <input type="hidden" id="room-type" name="room_type" class="form-control" required>
-        @endif
+    @if (isset($automaticRoom) && $creator['type'] !== 'customer')
+        <div class="form-group col-sm-6 col-md-4">
+            <label for="room-type">Tipo de Sala*</label>
+            <select id="room-type" name="room_type" class="form-control" aria-label="Seleccionar tipo de sala"></select>
+        </div>
+    @else
+        <input type="hidden" id="room-type" name="room_type" class="form-control" required>
     @endif
     <div class="form-group col-sm-6 col-md-4">
         <label for="game-mode">Modo de Juego*</label>

@@ -133,8 +133,6 @@
             }
         });
 
-        const routeGetDatetimeRooms = @json($route);
-
         function getDateTimeRooms() {
             $.getJSON(route('bingo.get-datetime-rooms', creatorUser), {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()

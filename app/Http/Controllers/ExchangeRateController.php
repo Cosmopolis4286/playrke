@@ -7,6 +7,7 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\ExchangeRate;
+use App\Services\Customer\HandleExchangeRates;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -385,5 +386,17 @@ class ExchangeRateController extends Controller
         ];
 
         return view('modules.all.exchange-rate.historical')->with($viewData);
+    }
+
+    public function getExchangeRates()
+    {
+        $creatorUser = Auth::id();
+
+        $res = app(HandleExchangeRates::class)->updateExchangeRates($creatorUser);
+        if (isset($res['Error'])) {
+            return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error']);
+        } else {
+            return response()->json(['type' => 'success', 'message' => 'Proceso exitoso']);
+        }
     }
 }

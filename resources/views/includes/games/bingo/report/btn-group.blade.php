@@ -78,7 +78,8 @@
         </button>
     @elseif($view === 'PRIVATE')
         <a href="{{ $activeRooms ? $GMRoute : '#' }}"
-            class="btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}">
+            class="btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}"
+            target="{{ $activeRooms ? '_blank' : '_self' }}">
             <i class="fas fa-eye"></i> Ver salas
         </a>
     @endif

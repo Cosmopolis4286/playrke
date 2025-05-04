@@ -11,6 +11,8 @@
                     <button type="button" disabled id="btn-historical" class="btn btn-sm btn-primary" data-block="1"
                         data-url-template="{{ route('exchange-rate.historical', ['coin' => ':coin', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                         <i class="fa-solid fa-money-bill-trend-up"></i> Histórico</button>
+                    <button type="button" id="btn-update-exchange-rates" class="btn btn-sm btn-secondary">
+                        <i class="fa-solid fa-rotate"></i> Actualizar</button>
                 @endif
                 <div class="table-responsive mt-2">
                     <table class="table table-striped table-bordered my-2 w-100">
@@ -116,9 +118,17 @@
         })
 
         function setTextExchangeRate() {
-            if (coin.val() && exchangeRate.val() > 0) {
-                $("#text-exchange-rate").text(`${exchangeRate.val()} ${coin.find("option:selected").text()}`);
+            const selectedCoin = coin.find("option:selected");
+            const coinSymbol = selectedCoin.length ? selectedCoin.text() : coinName;
+            const rateValue = parseFloat(exchangeRate.val());
+
+            if (coin.val() && rateValue > 0) {
+                $("#text-exchange-rate").text(`${rateValue} ${coinSymbol}`);
                 $("#alert-exchange-rate").removeClass('hide-elem');
+            } else {
+                // Opcional: ocultar el mensaje si no hay datos válidos
+                $("#alert-exchange-rate").addClass('hide-elem');
+                $("#text-exchange-rate").text('');
             }
         }
 
@@ -226,6 +236,7 @@
                 $("#coin").trigger('change');
                 $("#alert-exchange-rate").removeClass('hide-elem');
             } else {
+                $("#alert-exchange-rate").addClass('hide-elem');
                 $('#creator').prop('disabled', false);
             }
 
@@ -246,6 +257,26 @@
             const finalUrl = urlTemplate.replace(':coin', selectedCoin)
             // Redirige a la URL final
             window.location.href = finalUrl;
+        });
+
+        $(document).on("click", "#btn-update-exchange-rates", function() {
+            $.getJSON({
+                url: route('exchange-rate.getExchangeRates'),
+                data: {
+                    '_token': $("#5K3_70K").val()
+                },
+                success: function(res) {
+                    showToast(res.message, res.type);
+                    if (res.type === 'success') {
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    // Manejar errores aquí si es necesario
+                }
+            });
         });
     </script>
 @endsection
