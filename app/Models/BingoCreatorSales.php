@@ -46,11 +46,12 @@ class BingoCreatorSales extends Model
     {
         $sale = self::firstOrCreate(
             ['room' => $roomID, 'creator_user' => $creatorUser, 'coin' => $coin],
-            ['sale_amount' => 0, 'final_sale_amount' => 0]
+            ['sale_amount' => $amount, 'final_sale_amount' => $finalAmount]
         );
 
-        $sale->sale_amount += $amount;
-        $sale->final_sale_amount += $finalAmount;
-        $sale->save();
+        if (!$sale->wasRecentlyCreated && $amount) {
+            $sale->increment('sale_amount', $amount);
+            $sale->increment('final_sale_amount', $finalAmount);
+        }
     }
 }
