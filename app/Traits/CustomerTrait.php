@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\CustomerUser;
 use App\Services\Customer\CustomerSessionService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 trait CustomerTrait
 {
@@ -25,9 +26,9 @@ trait CustomerTrait
             ]);
 
             DB::commit();
-        } catch (\Throwable $th) {
-            //throw $th;
+        } catch (\Exception $e) {
             DB::rollBack();
+            Log::error("Error al registar usuario del Cliente ['customerID' => $customer]: " . $e->getMessage());
             return false;
         }
     }

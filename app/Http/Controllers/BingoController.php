@@ -2931,7 +2931,9 @@ class BingoController extends Controller
                         $subquery->where('creator_user', $creatorUser)
                             ->where('coin', $coin)->with('Coin');
                     }
-                ])->whereHas('CtnsLot');
+                ])->whereHas('CtnsLot', function ($query) use ($creatorUser, $coin) {
+                    $query->where('creator_user', $creatorUser)->where('coin', $coin);
+                });
 
                 break;
             case 'seller':
@@ -2994,7 +2996,7 @@ class BingoController extends Controller
 
             case 'commerce':
 
-                $coins = $this->getUserCoins($userData, ['CtnsLot', 'Coin'], $dateFilter);
+                $coins = $this->getUserCoins($userData, ['CtnsLot'], $dateFilter);
 
                 $totals = [
                     'allCtns' => 0,
@@ -3114,22 +3116,22 @@ class BingoController extends Controller
             'parameters' => ['room' => $roomID, 'coin' => $coin]
         ];
 
-        $coin = decrypt($coin);
+        $coinID = decrypt($coin);
 
-        $existSale = $this->verifyExistenceOfSales($userData, '', $coin, $roomID);
+        $existSale = $this->verifyExistenceOfSales($userData, '', $coinID, $roomID);
 
         if (!$existSale) {
             // Si no existe venta para esa fecha
             return redirect()->route(
                 'bingo.reportSalesByRoom',
-                ['room' => $roomID, 'coin' => encrypt($coin)]
+                ['room' => $roomID, 'coin' => $coin]
             );
         }
 
         $title = 'Reporte de Sala';
         $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
 
-        $coin = Coin::getById($coin, ['id', 'symbol']);
+        $coin = Coin::getById($coinID, ['id', 'symbol']);
 
         $where = collect([
             (object)[
@@ -3155,7 +3157,7 @@ class BingoController extends Controller
                     ->whereHas('CtnsLot', $ctnsLotFilter)
                     ->get();
 
-                $coins = $this->getUserCoins($userData, ['CtnsLot', 'Coin'], 'today', $where);
+                $coins = $this->getUserCoins($userData, ['CtnsLot'], 'all', $where);
 
                 return view('modules/commerce/games/bingo/report/by-room')->with([
                     'title' => $title,
@@ -3188,7 +3190,7 @@ class BingoController extends Controller
 
                 $totalCtnsByRoom = $playersRoom->flatMap->CtnsLot->sum('ctns');
 
-                $coins = $this->getUserCoins($userData, ['CtnsLot'], 'today', $where);
+                $coins = $this->getUserCoins($userData, ['CtnsLot'], 'all', $where);
 
                 $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
 

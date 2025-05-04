@@ -196,7 +196,7 @@ trait SeamlessWallet
 
         // Validar que se obtuvieron datos del cliente
         if (!$customer) {
-            Log::error("Cliente no encontrado: ID {$customerID}");
+            Log::error("Cliente no encontrado: [ID => {$customerID}]");
             return ['Error' => 'Cliente no encontrado'];
         }
 
@@ -296,7 +296,7 @@ trait SeamlessWallet
             });
         } catch (\Exception $e) {
             // Registrar el error y devolverlo como respuesta
-            Log::error("Error en handleTransactionByBET: " . $e->getMessage());
+            Log::error("Error en handleTransactionByBET ['customerID' => $customer]: " . $e->getMessage());
             return ['Error' => $e->getMessage()];
         }
     }
@@ -331,7 +331,7 @@ trait SeamlessWallet
             Log::warning('Datos inválidos para registrar la transacción: ' . $e->getMessage());
             return false;
         } catch (\Exception $e) {
-            Log::error('Error al registrar la transacción: ' . $e->getMessage());
+            Log::error("Error al registrar la transacción ['customerID' => $customer]: " . $e->getMessage());
             return false;
         }
     }

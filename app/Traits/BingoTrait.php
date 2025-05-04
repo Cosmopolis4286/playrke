@@ -476,11 +476,8 @@ trait BingoTrait
                 'updated_at' => $currentTime,
             ]);
 
-            // Actulizar monto de venta total por monedas
-            $totalSaleUSD = number_format($finalSaleAmount / $exchangeRate, 3, '.', '');
-
-            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, $coin, $finalSaleAmount);
-            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, 'USD', $totalSaleUSD);
+            // Actualizar monto de venta total por monedas
+            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, $coin, $saleAmount, $finalSaleAmount);
 
             return $BingoCtnsLotID;
         } catch (\Exception $e) {

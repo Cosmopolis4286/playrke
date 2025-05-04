@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class BingoCreatorSales extends Model
 {
-    protected $table = 'bingo_creator';
-    protected $fillable = ['room', 'creator_user', 'coin', 'total_sale', 'created_at', 'updated_at'];
+    protected $table = 'bingo_creator_sales';
+    protected $fillable = ['room', 'creator_user', 'coin', 'sale_amount', 'final_sale_amount', 'created_at', 'updated_at'];
 
     public function Room()
     {
@@ -42,13 +42,15 @@ class BingoCreatorSales extends Model
         return $query->exists();
     }
 
-    public static function updateOrCreateSale($roomID, $creatorUser, $coin, $amount)
+    public static function updateOrCreateSale($roomID, $creatorUser, $coin, $amount, $finalAmount)
     {
         $sale = self::firstOrCreate(
             ['room' => $roomID, 'creator_user' => $creatorUser, 'coin' => $coin],
-            ['total_sale' => 0]
+            ['sale_amount' => 0, 'final_sale_amount' => 0]
         );
 
-        $sale->increment('total_sale', $amount);
+        $sale->sale_amount += $amount;
+        $sale->final_sale_amount += $finalAmount;
+        $sale->save();
     }
 }

@@ -248,26 +248,44 @@ trait UserVal
         }
 
         // Construcción de la consulta principal
-        $query = CommerceCountriesCoins::with($primaryRelation)
-            ->whereHas($primaryRelation, function ($subquery) use ($userId, $userColumn, $dateFilter, $secondaryRelation) {
+        $query = CommerceCountriesCoins::select('id', 'coin')
+            ->with($primaryRelation)
+            ->whereHas($primaryRelation, function ($subquery) use (
+                $userId,
+                $userColumn,
+                $dateFilter,
+                $primaryRelation,
+                $secondaryRelation,
+                $where
+            ) {
+                // Condiciones base
                 $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
                     ->where($userColumn, $userId);
 
+                // Filtro por fecha
+                $this->applyDateFilter($dateFilter, $subquery);
+
+                // Si hay relación secundaria, incluirla
                 if ($secondaryRelation) {
                     $subquery->with($secondaryRelation);
                 }
 
-                $this->applyDateFilter($dateFilter, $subquery);
+                // Fusionar condiciones si son para la misma relación primaria
+                if ($where && $where->isNotEmpty()) {
+                    foreach ($where as $item) {
+                        if (isset($item->relation, $item->constraints) && $item->relation === $primaryRelation) {
+                            call_user_func($item->constraints, $subquery);
+                        }
+                    }
+                }
             });
 
-        // Procesar condiciones adicionales (where simples o whereHas anidados)
+        // Agregar condiciones adicionales (solo las que NO son para la relación primaria)
         if ($where && $where->isNotEmpty()) {
             foreach ($where as $item) {
-                if (isset($item->relation) && is_callable($item->constraints)) {
-                    // Es una relación: usar whereHas
+                if (isset($item->relation, $item->constraints) && $item->relation !== $primaryRelation) {
                     $query->whereHas($item->relation, $item->constraints);
                 } elseif (isset($item->column, $item->value)) {
-                    // Es una condición directa
                     $query->where($item->column, $item->value);
                 }
             }
