@@ -40,6 +40,7 @@ class CustomerController extends Controller
         $rules = [
             'username' => ['required', 'string', 'max:20', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
+            'customer_id' => ['required', 'string', 'max:30', 'unique:customers,customer_id'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
             'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
             'name' => ['required', 'string'],
@@ -52,6 +53,7 @@ class CustomerController extends Controller
         if ($type == 2) {
             $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $customer->user];
             $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $customer->user];
+            $rules['customer_id'] = ['required', 'string', 'max:30', 'unique:customers,customer_id,' . $customer->id];
             $rules['phone'] = ['nullable', 'string', 'max:20', 'unique:customers,phone,' . $customer->id];
         }
 
@@ -59,6 +61,7 @@ class CustomerController extends Controller
         $messages = [
             'username.unique' => 'Nombre de usuario no disponible.',
             'email.unique' => 'Este correo ya está registrado.',
+            'customer_id.unique' => 'Cliente ID ya está registrado.',
             'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
         ];
 
@@ -171,6 +174,7 @@ class CustomerController extends Controller
                 'name' => $request->name,
                 'country' => $request->country,
                 'phone' => $phoneNumber,
+                'customer_id' => $request->customer_id,
                 'user' => $newUser,
                 'logo' => $logo,
                 'link_route' => $request->api_route,
@@ -207,7 +211,7 @@ class CustomerController extends Controller
         $id = decrypt($id);
 
         // Obtener datos del cliente
-        $customer = Customer::getById($id, ['name', 'country', 'phone', 'link_route']);
+        $customer = Customer::getById($id, ['name', 'customer_id', 'country', 'phone', 'link_route']);
 
         // Obtener datos del usuario
         $user = User::getById(Customer::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
@@ -272,6 +276,7 @@ class CustomerController extends Controller
                     'name' => $request->name,
                     'country' => $request->country,
                     'time_zone' => $request->time_zone,
+                    'customer_id' => $request->customer_id,
                     'phone' => $phoneNumber,
                     'logo' => $logo,
                     'link_route' => $request->api_route

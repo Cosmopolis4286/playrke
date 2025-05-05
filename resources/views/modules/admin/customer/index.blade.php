@@ -174,6 +174,7 @@
                 $('#name').val(customer.name);
                 $("#email").val(user.email);
                 $("#username").val(user.username);
+                $("#customer-id").val(customer.customer_id);
                 $('#phone').val(customer.phone);
 
                 $('#api-route').val(customer.link_route);
@@ -187,7 +188,9 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'email', 'username', 'country', 'time-zone', 'api-route', 'customer-key']);
+            submitForm(name, ['name', 'email', 'username', 'customer-id',
+                'country', 'time-zone', 'api-route', 'customer-key'
+            ]);
         });
 
         const otherCasesMap = {

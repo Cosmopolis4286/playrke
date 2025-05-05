@@ -33,16 +33,6 @@ class CustomerSessionService
             );
         }
 
-        // // Crear la variable de sesión 'CustomerUser'
-        // session()->put('CUSTU', encrypt([$customerResponse->Data->ID, $userToken]));
-        // session()->put(
-        //     'CCCUSTU',
-        //     encrypt([
-        //         $customerResponse->Data->Country,
-        //         $customerResponse->Data->DefaultCurrencyCode
-        //     ])
-        // );
-
         return true;
     }
 }

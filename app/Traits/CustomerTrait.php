@@ -33,23 +33,17 @@ trait CustomerTrait
         }
     }
 
-    public function validateCustomer($customerID, $userToken, $view = 'game-rooms')
+    public function validateCustomer($customerID, $userToken)
     {
-        // Obtener el ID del cliente
-        if ($view === 'game-rooms') {
-            $customerToken = Customer::getValueByToken($customerID, 'id');
-            $customerID = $customerToken;
-        } else {
-            $customerID = decrypt($customerID);
-            $customerToken = Customer::getValueById($customerID, 'token');
-        }
+        // Obtener el ID del cliente definido
+        $customerID = Customer::getValueByCustomerID($customerID, 'id');
 
         // Verificar si el cliente existe
-        if (!$customerToken) {
-            return ['Error' => 'Token del cliente no existe'];
+        if (!$customerID) {
+            return ['Error' => 'ID del cliente no existe'];
         }
 
-        if ($customerToken != $userToken) {
+        if ($customerID != $userToken) {
             // Consultar información de usuario y crear variables de sesión
             $customerSessionService = new CustomerSessionService();
             $response = $customerSessionService->handleCustomerUserSession($customerID, $userToken);

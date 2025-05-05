@@ -12,6 +12,7 @@ class Customer extends Model
     'description',
     'country',
     'user',
+    'customer_id',
     'phone',
     'commn',
     'all_in',
@@ -63,6 +64,11 @@ class Customer extends Model
   public static function getValueByToken($token, $value)
   {
     return self::where('token', $token)->value($value);
+  }
+
+  public static function getValueByCustomerID($customerID, $value)
+  {
+    return self::where('customer_id', $customerID)->value($value);
   }
 
   public static function existsCustomerById($id)

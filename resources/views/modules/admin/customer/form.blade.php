@@ -20,6 +20,10 @@
         @enderror
     </div>
     <div class="form-group col-sm-6">
+        <label for="customer-id">Cliente ID*</label>
+        <input type="text" id="customer-id" name="customer_id" class="form-control" required value="">
+    </div>
+    <div class="form-group col-sm-6">
         <label for="country">País*</label>
         <select id="country" name="country" class="form-control" required></select>
     </div>

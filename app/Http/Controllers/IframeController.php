@@ -59,8 +59,8 @@ class IframeController extends Controller
             return redirect()->back();
         }
 
-        $customerToken = Customer::getValueByUserId($user->id, 'token');
+        $customerID = Customer::getValueByUserId($user->id, 'customer_id');
 
-        return ['route' => route('bingo.game-rooms-customer', ['customer' => $customerToken, 'user' => $userToken])];
+        return ['route' => route('bingo.game-rooms-customer', ['customer' => $customerID, 'user' => $userToken])];
     }
 }

@@ -265,35 +265,23 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    public function gamesRoomsCustomer($customerToken, $userToken, $coin = '')
+    public function gamesRoomsCustomer($customerID, $userToken, $coin = '')
     {
-        // Si el token del cliente es diferente del token del usuario, se valida el cliente
-        if ($customerToken !== $userToken) {
-            $customer = $this->validateCustomer($customerToken, $userToken);
+        // Si el token de usuario es diferente de 'available-rooms' 
+        if ($userToken !== 'available-rooms') {
+            $customer = $this->validateCustomer($customerID, $userToken);
 
             // Verifica si hubo error en la validación del cliente
             if (isset($customer['Error'])) {
                 return response()->json(['message' => $customer['Error']], 404);
             }
 
-            $customerUser = CustomerUser::getByToken($customer, $userToken, ['id', 'coin']);
+            $customerUser = CustomerUser::getByCustomerID($customerID, $userToken, ['id', 'coin']);
             $coin = CustomerExchangeRate::getCustomerCoinValue($customer, $customerUser->coin, 'id');
 
-            // Redirecciona si el valor de moneda no está disponible tras desencriptar
-            if (!$coin) {
-                return redirect()->route(
-                    'bingo.game-rooms-customer',
-                    [
-                        'customer' => $customer,
-                        'user' => $userToken,
-                        'coin' => encrypt($coin)
-                    ]
-                );
-            } else {
-                $player = $customerUser->id;
-            }
+            $player = $customerUser->id;
         } else {
-            $customer = Customer::getValueByToken($customerToken, 'id');
+            $customer = Customer::getValueByCustomerID($customerID, 'id');
             $coin = decrypt($coin);
             $player = false;
         }
@@ -585,11 +573,11 @@ class BingoController extends Controller
                 $roomID = $room->id;
                 $isLogin = false;
 
-                $customer = Customer::getById($creatorID, ['name', 'logo', 'token']);
-                $customerID = $customer->token;
-                $userToken = $customerID;
+                $customer = Customer::getById($creatorID, ['name', 'customer_id', 'logo', 'token']);
+                $customerID = $customer->customer_id;
+                $userToken = $customer->token;
 
-                $moreViewData = ['custLogo' => "$customer->token/$customer->logo"];
+                $moreViewData = ['custLogo' => "$userToken/$customer->logo"];
 
                 if (isset($data['userToken'])) {
                     $user = CustomerUser::getByToken($creatorID, $data['userToken'], ['id', 'coin']);
@@ -611,7 +599,7 @@ class BingoController extends Controller
 
                 $closingRoute = route(
                     'bingo.game-rooms-customer',
-                    ['customer' => $customerID, 'user' => $userToken, 'coin' => encrypt($coinID)]
+                    ['customer' => $customerID, 'user' => $userToken]
                 );
                 break;
             case 'RKE';
@@ -1036,7 +1024,7 @@ class BingoController extends Controller
                 $exchangeRate = $customerCoin->exchange_rate;
                 $coins = CustomerExchangeRate::getCoinsIDsByCustomer($creatorID);
 
-                $token = Customer::getValueById($creatorID, 'token');
+                $customer = Customer::getById($creatorID, ['customer_id', 'token']);
 
                 $routeWithCoin = [
                     'route' => 'bingo.all-rooms',
@@ -1048,7 +1036,11 @@ class BingoController extends Controller
                 ];
                 $GMRoute =  route(
                     'bingo.game-rooms-customer',
-                    ['customer' => $token, 'user' => $token, 'coin' => encrypt($coin)]
+                    [
+                        'customer' => $customer->customer_id,
+                        'user' => 'available-rooms',
+                        'coin' => encrypt($coin)
+                    ]
                 );
 
                 $gameID = Games::getValueByName('BINGO');
@@ -1057,7 +1049,7 @@ class BingoController extends Controller
 
                 $moreViewData = [
                     'customer' => true,
-                    'userToken' => $token,
+                    'userToken' => $customer->token,
                     'customerGameID' => $customerGameID
                 ];
 
@@ -2293,12 +2285,12 @@ class BingoController extends Controller
 
                 $isLogin = $returnBtn = false;
 
-                $customer = Customer::getById($creatorID, ['user', 'token']);
+                $customer = Customer::getById($creatorID, ['user', 'customer_id', 'token']);
                 $token = $customer->token;
 
                 $GMRoute =  route(
                     'bingo.game-rooms-customer',
-                    ['customer' => $token, 'user' => $token]
+                    ['customer' => $customer->customer_id, 'user' => 'available-rooms']
                 );
 
                 $moreViewData = ['customer' => true, 'userToken' => $token];
