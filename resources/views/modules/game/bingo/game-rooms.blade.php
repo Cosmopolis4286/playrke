@@ -158,7 +158,6 @@
         function generateModalPurchase(roomID) {
             $('#container-purchase-ctns').remove(); // Elimina el contenedor previo
             $(`#container-card-game-room_${roomID}`).prepend(modalHTML); // Inserta el nuevo modal
-            initializeButtonVisibility();
         }
 
         $(document).on("click", ".card-game-room", function() {
@@ -310,16 +309,6 @@
                 numCtns = newValue;
                 handleTotalAmount();
             }
-        }
-
-        // Inicializa la visibilidad de los botones al mostrar el modal
-        function initializeButtonVisibility() {
-            const currentVal = +inputNumCtns.val();
-            const min = parseFloat(inputNumCtns.attr('min')) || 0;
-            const max = parseFloat(inputNumCtns.attr('max')) || 30;
-
-            $("#quantity-down").toggle(currentVal > min);
-            $("#quantity-up").toggle(currentVal < max);
         }
 
         const _second = 1000;

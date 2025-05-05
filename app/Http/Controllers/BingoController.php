@@ -1966,50 +1966,45 @@ class BingoController extends Controller
             'serials_commn'
         )->where('room', $room->id)->firstOrFail();
 
-        if (in_array($roomConfig->game_mode, [2, 3])) {
+        $coin = decrypt($coin);
+        $exchangeRate = 1;
 
-            $coin = decrypt($coin);
-            $exchangeRate = 1;
+        $creatorUser = decrypt($creatorUser);
+        $creatorType = User::getUserTypePrefix($creatorUser);
 
-            $creatorUser = decrypt($creatorUser);
-            $creatorType = User::getUserTypePrefix($creatorUser);
+        if ($creatorType === 'customer') {
+            $isLogin = false;
+            $custCoin = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
+            $coin = $custCoin->coin;
+            $exchangeRate = $custCoin->exchange_rate;
+        } else {
+            $isLogin = ($coin == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
 
-            if ($creatorType === 'customer') {
-                $isLogin = false;
-                $custCoin = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
-                $coin = $custCoin->coin;
-                $exchangeRate = $custCoin->exchange_rate;
-            } else {
-                $isLogin = ($coin == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
-
-                if ($coin != 1) {
-                    $commerce = Commerce::getValueByUserId($creatorUser, 'commerce');
-                    $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin);
-                }
-
-                $coin = Coin::getValue($coin, 'symbol');
+            if ($coin != 1) {
+                $commerce = Commerce::getValueByUserId($creatorUser, 'commerce');
+                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin);
             }
 
-            $ctnPrice = $roomConfig->ctn_price * $exchangeRate;
-
-            $bingoCtnPrice = BingoCtnPrice::getValueCtnPrice($room->id, $coin, $creatorUser);
-
-            if ($bingoCtnPrice) {
-                $ctnPrice = $bingoCtnPrice;
-            }
-
-            $room = [
-                'dateTime' => $roomConfig->unix_date,
-                'coin' => $coin,
-                'jackpotAmount' => number_format(($room->jackpot_prize * $exchangeRate), 2, '.'),
-                'jackpotType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
-                'ctnPrice' => number_format(($ctnPrice), 2, '.')
-            ];
-
-            return response()->json(['room' => $room, 'isLogin' => $isLogin]);
+            $coin = Coin::getValue($coin, 'symbol');
         }
 
-        return response()->json(['room' => $room, 'config' => $roomConfig]);
+        $ctnPrice = $roomConfig->ctn_price * $exchangeRate;
+
+        $bingoCtnPrice = BingoCtnPrice::getValueCtnPrice($room->id, $coin, $creatorUser);
+
+        if ($bingoCtnPrice) {
+            $ctnPrice = $bingoCtnPrice;
+        }
+
+        $room = [
+            'dateTime' => $roomConfig->unix_date,
+            'coin' => $coin,
+            'jackpotAmount' => number_format(($room->jackpot_prize * $exchangeRate), 2, '.'),
+            'jackpotType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
+            'ctnPrice' => number_format(($ctnPrice), 2, '.')
+        ];
+
+        return response()->json(['room' => $room, 'isLogin' => $isLogin]);
     }
 
     public function copy($id)

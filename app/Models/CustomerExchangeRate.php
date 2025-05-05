@@ -16,7 +16,7 @@ class CustomerExchangeRate extends Model
 
     public static function getById($id, $fields = ['*'])
     {
-        return self::select($fields)->where('id', $id)->first();
+        return self::select($fields)->where('id', $id)->where('status', 1)->orderByDesc('id')->first();
     }
 
     public static function getValueById($id, $value = 'exchange_rate')
