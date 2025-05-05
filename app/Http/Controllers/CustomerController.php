@@ -199,7 +199,6 @@ class CustomerController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error general: ' . $e->getMessage());
-            dd($e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
 
