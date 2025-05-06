@@ -34,10 +34,9 @@ class CustomerUser extends Model
         return self::select($fields)->Where('customer', $customer)->where('token', $token)->first();
     }
 
-    public static function getByCustomerID($customerID, $token, $fields = ['*'])
+    public static function getByCustomer($customer, $token, $fields = ['*'])
     {
-        return self::select($fields)->Where('customer_id', $customerID)
-            ->where('token', $token)->first();
+        return self::select($fields)->Where('customer', $customer)->where('token', $token)->first();
     }
 
     public static function getValueByToken($customer, $token, $value)

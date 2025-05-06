@@ -31,6 +31,15 @@ class CustomerSessionService
                 $customerResponse['Data']['Country'],
                 $customerResponse['Data']['DefaultCurrencyCode']
             );
+        } else {
+            CustomerUser::where('user_id', $userID)->update([
+                'customer' => $customerID,
+                'user_id' => $userID,
+                'token' => $userToken,
+                'country' => $country,
+                'coin' => $coin,
+                'last_activity' => now()
+            ]);
         }
 
         return true;

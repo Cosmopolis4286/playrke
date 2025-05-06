@@ -87,7 +87,6 @@
     <script>
         const creator = @json($creator);
         const coin = @json($coin);
-        const inputNumCtns = $('#num-ctns');
         const player = @json($player);
         const userToken = @json($userToken ?? null);
         const creatorUser = @json($creatorUser);
@@ -115,7 +114,7 @@
             }
         }
 
-        inputNumCtns.on('input', function() {
+        $(document).on('input', '#num-ctns', function() {
             // Filtrar caracteres no numéricos
             $(this).val($(this).val().replace(/[^0-9]/g, ''));
 
@@ -217,17 +216,9 @@
             $('#container-purchase-ctns').hide();
         });
 
-        function validateUserBalance(total = 0) {
-            if (isLogin < total) {
-                showToast('Saldo Insuficiente', 'warning');
-                return false;
-            }
-            return true;
-        }
-
         $(document).on("click", "#btn-purchase-ctns", function() {
             // Procesar compra de cartones
-            if ((isLogin && !validateUserBalance()) || !player) return;
+            if (isLogin || !player) return;
 
             $.ajax({
                 url: route('bingocash.generateCarton'),
@@ -265,9 +256,6 @@
 
         function handleTotalAmount() {
             total = (numCtns * ctnPrice).toFixed(2);
-
-            if (isLogin && !validateUserBalance(total)) return;
-
             $('#total-amount').text(total);
         }
 
@@ -277,11 +265,12 @@
             handleNumCtns($(this).attr("id"));
         });
 
-        inputNumCtns.on("input paste", function() {
+        $(document).on("input paste", "num-ctns", function() {
             handleNumCtns($(this).val());
         });
 
         function handleNumCtns(value = null) {
+            const inputNumCtns = $('#num-ctns');
             const min = parseFloat(inputNumCtns.attr('min')) || 0;
             const max = parseFloat(inputNumCtns.attr('max')) || 30;
             const step = parseFloat(inputNumCtns.attr('step')) || 1;
@@ -297,8 +286,6 @@
                 // Si se recibe un valor directo (desde input o paste)
                 newValue = Math.min(Math.max(parseFloat(value) || min, min), max);
             }
-
-            if (isLogin && !validateUserBalance()) return;
 
             // Actualizar el input solo si el valor cambió
             if (newValue !== currentValCtns) {

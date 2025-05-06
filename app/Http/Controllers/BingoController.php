@@ -276,7 +276,7 @@ class BingoController extends Controller
                 return response()->json(['message' => $customer['Error']], 404);
             }
 
-            $customerUser = CustomerUser::getByCustomerID($customerID, $userToken, ['id', 'coin']);
+            $customerUser = CustomerUser::getByCustomer($customer, $userToken, ['id', 'coin']);
             $coin = CustomerExchangeRate::getCustomerCoinValue($customer, $customerUser->coin, 'id');
 
             $player = $customerUser->id;
@@ -1948,7 +1948,7 @@ class BingoController extends Controller
 
     public function getInfoByEncrypt($id, $creatorUser, $coin)
     {
-        $room = BingoRoom::getByEncrypted($id, ['id', 'jackpot_prize']);
+        $room = BingoRoom::getByEncrypted($id, ['id', 'jackpot']);
 
         if (!$room) return response()->json(['Error' => 'Sala no encontrada']);
 
