@@ -8,14 +8,11 @@ use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\Customer;
-use App\Models\CustomerExchangeRate;
 use App\Models\PagoMovil;
 use App\Models\Pix;
-use App\Models\ProviderRKE;
 use App\Models\Seller;
 use App\Models\SellerCountriesCoins;
 use App\Models\User;
-use App\Models\UserProvider;
 use App\Models\UserType;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +38,11 @@ trait UserVal
     public function commerce($fields = ['*'])
     {
         return Commerce::select($fields)->where('user', Auth::id())->first();
+    }
+
+    public function customer($fields = ['*'])
+    {
+        return Customer::select($fields)->where('user', Auth::id())->first();
     }
 
     public function seller($fields = ['*'])
@@ -307,6 +309,10 @@ trait UserVal
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user']);
                 $userTypeId = $commerce->id;
+                break;
+            case 'customer':
+                $customer = $this->customer(['id', 'user']);
+                $userTypeId = $customer->id;
                 break;
             case 'seller':
                 $seller = $this->seller(['id', 'user']);

@@ -57,7 +57,7 @@
                                 <div class="card-game-room__jackpot-amount">
                                     <h3>
                                         <span id="jackpot-room_{{ $room->encrypted }}">
-                                            {{ number_format($room->jackpot_prize * $exchangeRate, 2) }}
+                                            {{ number_format($room->jackpot * $exchangeRate, 2) }}
                                         </span>
                                         <small id="coin-symbol-room_{{ $room->encrypted }}">
                                             {{ $coinSym }}

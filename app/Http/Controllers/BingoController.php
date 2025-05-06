@@ -176,7 +176,7 @@ class BingoController extends Controller
                 'id',
                 'status',
                 'players',
-                'jackpot_prize',
+                'jackpot',
                 'ctns',
                 'encrypted'
             ])
@@ -1272,7 +1272,7 @@ class BingoController extends Controller
                 'ctn_price' => $request->ctn_price,
                 'room_commn' => $request->room_commn,
                 'jackpot_type' => $request->jackpot_type,
-                'fixed_jackpot_value' => $request->fixed_jackpot_value,
+                'fixed_jackpot_value' => $fixedJackpotValue,
                 'time_chip' => $request->time_chip,
                 'pct_serials' => $request->pct_serials,
                 'num_serials' => $request->num_serials,
@@ -1424,7 +1424,7 @@ class BingoController extends Controller
             'ctn_price' => $request->ctn_price,
             'room_commn' => $request->room_commn,
             'jackpot_type' => $request->jackpot_type,
-            'fixed_jackpot_value' => $request->fixed_jackpot_value,
+            'fixed_jackpot_value' => $fixedJackpotValue,
             'time_chip' => $request->time_chip,
             'pct_serials' => $request->pct_serials,
             'num_serials' => $request->num_serials,
@@ -1999,7 +1999,7 @@ class BingoController extends Controller
         $room = [
             'dateTime' => $roomConfig->unix_date,
             'coin' => $coin,
-            'jackpotAmount' => number_format(($room->jackpot_prize * $exchangeRate), 2, '.'),
+            'jackpotAmount' => number_format(($room->jackpot * $exchangeRate), 2, '.'),
             'jackpotType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
             'ctnPrice' => number_format(($ctnPrice), 2, '.')
         ];
