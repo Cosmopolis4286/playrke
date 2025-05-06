@@ -22,14 +22,16 @@ class CustomerSessionService
         }
 
         $userID = $customerResponse['Data']['ID'];
+        $country = $customerResponse['Data']['Country'];
+        $coin = $customerResponse['Data']['DefaultCurrencyCode'];
 
         if (!CustomerUser::existsUserByCustomer($customerID, $userID)) {
             $this->registerUserByCustomer(
                 $customerID,
                 $userID,
                 $userToken,
-                $customerResponse['Data']['Country'],
-                $customerResponse['Data']['DefaultCurrencyCode']
+                $country,
+                $coin
             );
         } else {
             CustomerUser::where('user_id', $userID)->update([
