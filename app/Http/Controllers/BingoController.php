@@ -470,7 +470,8 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
-            if ($data['commerce'] || $data['seller']) {
+
+            if (isset($data['commerce']) || isset($data['seller'])) {
                 // Usuario Fuera de Sesion
                 if (!isset($data['isLogin'])) {
                     $data = $this->handlePlayerLink($data);

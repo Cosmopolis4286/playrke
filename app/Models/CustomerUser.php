@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CustomerUser extends Model
 {
     protected $table = "customers_users";
-    protected $fillable = ['customer', 'user_id', 'token', 'country', 'coin', 'last_activity'];
+    protected $fillable = ['customer', 'user_id', 'brand', 'token', 'country', 'coin', 'last_activity'];
 
     public static function getById($id, $fields = ['*'])
     {
@@ -21,27 +21,27 @@ class CustomerUser extends Model
 
     public static function getByUserId($customer, $userId, $fields = ['*'])
     {
-        return self::select($fields)->Where('customer', $customer)->where('user_id', $userId)->first();
+        return self::select($fields)->where('customer', $customer)->where('user_id', $userId)->first();
     }
 
     public static function getValueByUserId($customer, $userId, $value)
     {
-        return self::Where('customer', $customer)->where('user_id', $userId)->value($value);
+        return self::where('customer', $customer)->where('user_id', $userId)->value($value);
     }
 
     public static function getByToken($customer, $token, $fields = ['*'])
     {
-        return self::select($fields)->Where('customer', $customer)->where('token', $token)->first();
+        return self::select($fields)->where('customer', $customer)->where('token', $token)->first();
     }
 
     public static function getByCustomer($customer, $token, $fields = ['*'])
     {
-        return self::select($fields)->Where('customer', $customer)->where('token', $token)->first();
+        return self::select($fields)->where('customer', $customer)->where('token', $token)->first();
     }
 
     public static function getValueByToken($customer, $token, $value)
     {
-        return self::Where('customer', $customer)->where('token', $token)->value($value);
+        return self::where('customer', $customer)->where('token', $token)->value($value);
     }
 
     public static function existsUserByCustomer($customer, $userID)

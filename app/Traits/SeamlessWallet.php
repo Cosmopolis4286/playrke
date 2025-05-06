@@ -209,13 +209,13 @@ trait SeamlessWallet
         }
 
         // Obtener informacion del jugador
-        $player = CustomerUser::getById($transaction->user_id, ['user_id', 'token', 'coin']);
+        $player = CustomerUser::getById($transaction->user_id, ['user_id', 'brand', 'token', 'coin']);
 
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
             "Ticks" => "0000000",
             "Game" => $gameID,
-            "Brand" => $customer->brand,
+            "Brand" => $player->brand,
             "Token" => $player->token ?? '',
             "UserID" => $player->user_id ?? '',
             "CurrencyCode" => $player->coin,
@@ -229,10 +229,12 @@ trait SeamlessWallet
         // Llamada al método globalGuzzle
         $response = $this->globalGuzzle($customerID, $dataJson, 'TransferMoney');
 
+        dd('Hola', $response);
+
         // Manejo de la respuesta
-        if (isset($response['Error']) && $response['Error']) {
+        if (!$response || (isset($response['Error']) && $response['Error'])) {
             Log::error("Error en la transferencia de dinero: " . ($response['Error'] ?? 'Error desconocido'));
-            return ['Error' => $response['Error']];
+            return ['Error' => ':' . $response['Error'] ?? ''];
         }
 
         return $response;
@@ -260,7 +262,7 @@ trait SeamlessWallet
     {
         try {
             // Manejo de transacciones en un closure
-            return DB::transaction(function () use ($game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount) {
+            DB::transaction(function () use ($game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount) {
                 // Registrar la transacción
                 $transaction = $this->registerTransaction(
                     $game,
@@ -291,8 +293,6 @@ trait SeamlessWallet
                     'processing_data' => now(),
                     'updated_at' => now(),
                 ]);
-
-                return true; // Transacción exitosa
             });
         } catch (\Exception $e) {
             // Registrar el error y devolverlo como respuesta

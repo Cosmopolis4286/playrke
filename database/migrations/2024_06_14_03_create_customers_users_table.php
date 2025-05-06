@@ -17,6 +17,7 @@ class CreateCustomersUsersTable extends Migration
             $table->id();
             $table->unsignedBigInteger('customer');
             $table->string('user_id');
+            $table->string('brand')->nullable();
             $table->string('token', 255);
             $table->string('country', 3)->nullable();
             $table->string('coin', 15);

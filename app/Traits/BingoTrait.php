@@ -818,7 +818,7 @@ trait BingoTrait
 
                 if (isset($transactionBet['Error'])) {
                     DB::rollBack();
-                    return ['Error' => 'Error al procesar la transferencia: ' . $transactionBet['Error']];
+                    return ['Error' => 'Ha ocurrido un error'];
                 }
             }
 

@@ -22,7 +22,7 @@ class CustomerSessionService
         }
 
         $userID = $customerResponse['Data']['ID'];
-        $country = $customerResponse['Data']['Country'];
+        $country = $customerResponse['Data']['Country'] ?? null;
         $coin = $customerResponse['Data']['DefaultCurrencyCode'];
 
         if (!CustomerUser::existsUserByCustomer($customerID, $userID)) {
