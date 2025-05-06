@@ -229,8 +229,6 @@ trait SeamlessWallet
         // Llamada al método globalGuzzle
         $response = $this->globalGuzzle($customerID, $dataJson, 'TransferMoney');
 
-        dd('Hola', $response);
-
         // Manejo de la respuesta
         if (!$response || (isset($response['Error']) && $response['Error'])) {
             Log::error("Error en la transferencia de dinero: " . ($response['Error'] ?? 'Error desconocido'));
@@ -293,6 +291,8 @@ trait SeamlessWallet
                     'processing_data' => now(),
                     'updated_at' => now(),
                 ]);
+
+                return $transaction;
             });
         } catch (\Exception $e) {
             // Registrar el error y devolverlo como respuesta

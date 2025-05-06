@@ -14,17 +14,17 @@ class PrizeCartonService
 {
     use SeamlessWallet;
 
-    public function handleCustomerPrizeCarton($customerID)
+    public function handleCustomerPrizeCarton($creatorUser)
     {
         // Buscar información del cliente
-        $customer = Customer::find($customerID);
+        $customerID = Customer::where('user', $creatorUser)->value('id');
 
-        if (!$customer) {
+        if (!$customerID) {
             throw new Exception("Cliente no encontrado.");
         }
 
         // Verificar si el cliente tiene premios no procesados
-        $hasPrizes = BingoPrizeCtns::where('customer', $customerID)
+        $hasPrizes = BingoPrizeCtns::where('creator_user', $creatorUser)
             ->where('active', 'N')->exists();
 
         if (!$hasPrizes) {
@@ -32,7 +32,7 @@ class PrizeCartonService
         }
 
         // Procesar premios en fragmentos
-        BingoPrizeCtns::where('customer', $customerID)
+        BingoPrizeCtns::where('creator_user', $creatorUser)
             ->where('active', 'N')
             ->chunk(100, function ($prizeCtns) use ($customerID) {
                 $this->processPrizeCtns($prizeCtns, $customerID);
@@ -45,20 +45,6 @@ class PrizeCartonService
     }
 
     /**
-     * Obtener cliente con validación
-     */
-    private function getCustomer($customerID)
-    {
-        $customer = Customer::find($customerID);
-
-        if (!$customer) {
-            throw new Exception("Cliente no encontrado.");
-        }
-
-        return $customer;
-    }
-
-    /**
      * Procesar premios no procesados
      */
     private function processPrizeCtns($prizeCtns, $customerID)
@@ -66,6 +52,7 @@ class PrizeCartonService
         DB::beginTransaction();
 
         try {
+
             foreach ($prizeCtns as $ctn) {
                 // Obtener roomUUID
                 $roomUUID = $this->getRoomUUID($ctn->room);

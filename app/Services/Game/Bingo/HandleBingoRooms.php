@@ -63,14 +63,15 @@ class HandleBingoRooms
             $this->allWinCtnPaid($room->id);
         }
 
-        $creator = User::getCreatorIDByUserType($room->creator_user, '', true);
+        $creatorUser = $room->creator_user;
+        $creator = User::getCreatorIDByUserType($creatorUser, '', true);
 
         if ($creator['type'] === 'commerce') {
             // Actulizar estado de los cartones ganadores
             BingoPrizeCtns::where('room', $room->id)->update(['active' => 'Y']);
         } else if ($creator['type'] === 'customer') {
             // Verificar si existen pagos que procesar
-            (new PrizeCartonService())->handleCustomerPrizeCarton($creator['id']);
+            (new PrizeCartonService())->handleCustomerPrizeCarton($creatorUser);
         }
 
         $this->checkAndHideRoom($room);
