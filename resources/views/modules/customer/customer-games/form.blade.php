@@ -10,6 +10,12 @@
             aria-required="true">
     </div>
 
+    <div class="form-group col-12">
+        <label for="customer-game-product" class="form-label">Producto <span class="text-danger">*</span></label>
+        <input type="text" id="customer-game-product" name="customer_game_product" class="form-control"
+            value="{{ old('customer_game_product', $customerGameID->product ?? '') }}" required aria-required="true">
+    </div>
+
     <!-- Selector de Status -->
     <div class="form-group col-12">
         <label for="status" class="form-label">Status</label>

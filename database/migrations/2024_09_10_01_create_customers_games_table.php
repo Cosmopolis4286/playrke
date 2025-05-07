@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('customer');
             $table->unsignedBigInteger('game');
             $table->string('customer_game_id');
+            $table->string('product');
             $table->string('description', 40)->nullable();
             $table->boolean('status')->default(0);
             $table->timestamps();

@@ -26,6 +26,7 @@ class GameController extends Controller
                 // Actualizar el registro existente
                 $customerGame->update([
                     'customer_game_id' => $request->customer_game_id,
+                    'product' => $request->customer_game_product,
                     'status' => $request->status
                 ]);
             } else {
@@ -34,15 +35,16 @@ class GameController extends Controller
                     'customer' => decrypt($request->customer),
                     'game' => $gameID,
                     'customer_game_id' => $request->customer_game_id,
+                    'product' => $request->customer_game_product
                 ]);
             }
 
             DB::commit();
-            return redirect()->back()->with('message', 'Proceso efectuado con éxito')->with('type', 'success');
+            return redirect()->back()->with('message', 'Proceso exitoso')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error al crear o actualizar registro en CustomerGames: " . $e->getMessage());
-            return redirect()->back()->with('message', 'Hubo un problema al procesar el registro: ' . $e->getMessage())->with('type', 'warning');
+            return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
         }
     }
 }

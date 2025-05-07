@@ -276,11 +276,10 @@
             });
 
             $(document).on("click", '#btn-confirm-game-id', function() {
-                if ($('#customer-game-id').val()) {
+                if ($('#customer-game-id').val() && $('#customer-game-product').val()) {
                     $('#form-customer-games').submit();
                 } else {
-                    $('#customer-game-id').focus();
-                    showToast('ID del Juego Obligatorio', 'warning');
+                    showToast('Todos los campos son obligatorios', 'warning');
                 }
             });
         </script>

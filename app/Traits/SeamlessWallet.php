@@ -200,10 +200,10 @@ trait SeamlessWallet
             return ['Error' => 'Cliente no encontrado'];
         }
 
-        // Obtener Identificador del Juego con respecto al cliente
-        $gameID = CustomerGames::getCustomerGameID($customerID, $transaction->game);
+        // Obtener Info del Juego con respecto al cliente
+        $game = CustomerGames::getByGameID($customerID, $transaction->game, ['customer_game_id', 'product']);
 
-        if (!$gameID) {
+        if (!$game) {
             Log::error("No existe el ID de Juego del cliente [{$customerID}] para el juego [games.id={$transaction->game}]");
             return ['Error' => "No existe el ID de Juego del cliente [{$customerID}]"];
         }
@@ -214,7 +214,8 @@ trait SeamlessWallet
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
             "Ticks" => "0000000",
-            "Game" => $gameID,
+            "Game" => $game->customer_game_id,
+            "Product" => $game->product,
             "Brand" => $player->brand,
             "Token" => $player->token ?? '',
             "UserID" => $player->user_id ?? '',
