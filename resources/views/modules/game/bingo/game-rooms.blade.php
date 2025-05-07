@@ -241,10 +241,12 @@
                     $('#loader-btn-purchase-ctns').show();
                 },
                 success: function(res) {
-                    $('#jackpot-amount').text(res.jackpot);
-                    $(`#jackpot-room_${roomID}`).text(res.jackpot);
-                    $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
                     showToast(res.message, res.type);
+                    if (res.type === 'success') {
+                        $('#jackpot-amount').text(res.jackpot);
+                        $(`#jackpot-room_${roomID}`).text(res.jackpot);
+                        $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
+                    }
                 },
                 error: function(error) {
                     console.error(error);
