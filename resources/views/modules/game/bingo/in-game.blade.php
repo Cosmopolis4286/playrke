@@ -58,7 +58,7 @@
         let allChips = @json($allChips);
         let infoGame = @json($infoGame);
     </script>
-    @if ($room->status == 2)
+    @if ($room->status == 2 && $creatorType !== 'customer')
         <script>
             const creatorType = '{{ $creatorType }}';
             const creatorID = @json($creatorID);

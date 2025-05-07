@@ -33,7 +33,7 @@
                         $roomRoute = route('bingocash.out-game', [
                             'uuidCode' => $uuidCode,
                             'room' => $roomID,
-                            'coin' => encrypt($coin),
+                            'coin' => encrypt($coinSym),
                         ]);
                     }
 

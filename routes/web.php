@@ -322,10 +322,6 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('player/{player}/{room?}', [BingoController::class, 'inGame'])->name('in-game');
     Route::get('game-room/{uuidCode}/{room?}/{coin?}', [BingoController::class, 'outGame'])->name('out-game');
 
-    // Rutas Jugador/Cliente
-    Route::get('game/{customer}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('in-game-customer');
-    Route::get('game/{customer}/room/{room}/{coin}', [BingoController::class, 'outGameCustomer'])->name('out-game-customer');
-
     // Procesar Compra de Cartones
     Route::post('carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
     Route::get('getDraw/{room}', [BingoController::class, 'getDraw'])->name('getDraw');
@@ -333,3 +329,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('get/result/{room}/{value}/{column?}', [BingoController::class, 'getResult'])->name('getResult');
     Route::get('viewCtn/{ctnId}', [BingoController::class, 'viewCtn'])->name('viewCtn');
 });
+
+// Rutas Jugador/Cliente
+Route::get('{customer}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('bingocash.in-game-customer');
+Route::get('game/{customer}/room/{room}/{coin}', [BingoController::class, 'outGameCustomer'])->name('bingocash.out-game-customer');

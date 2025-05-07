@@ -46,6 +46,11 @@ class Customer extends Model
     return self::select($fields)->where('user', $user)->first();
   }
 
+  public static function getByCustomerID($customerID, $fields = ['*'])
+  {
+    return self::select($fields)->where('customer_id', $customerID)->first();
+  }
+
   public static function getValueById($id, $value)
   {
     return self::where('id', $id)->value($value);

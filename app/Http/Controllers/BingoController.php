@@ -574,12 +574,14 @@ class BingoController extends Controller
         switch ($creator['type']) {
 
             case 'customer':
+
                 $creatorID = $creator['id'];
 
                 // Obtener informacion de Sala
-                $room = BingoRoom::where('creator_user', $creatorUser)
+                $room = BingoRoom::select('id', 'status')
+                    ->where('creator_user', $creatorUser)
                     ->where('encrypted', $data['room'])
-                    ->whereIn('status', [2, 3, 4])->exists();
+                    ->whereIn('status', [2, 3, 4])->first();
 
                 // Si la sala no existe 
                 if (!$room) return ['error' => 'Sala no disponible'];
@@ -797,17 +799,19 @@ class BingoController extends Controller
 
     public function inGameCustomer($customerID, $userToken, $room)
     {
-        // Validar Informacion de cliente-user y crear variabales de session
-        $response = $this->validateCustomer($customerID, $userToken, 'in-game');
+        // Validar Informacion de cliente-user
+        $response = $this->validateCustomer($customerID, $userToken);
 
         if (isset($response['Error'])) {
-            return response()->json(['message' => $response['Error']], 404);
+            abort(404);
         }
+
+        $customer = Customer::getByCustomerID($customerID, ['id', 'user']);
 
         $creator = [
             'type' => 'customer',
-            'id' => $response,
-            'userId' => Customer::getValueById($response, 'user')
+            'id' => $customer->id,
+            'userId' => $customer->user
         ];
 
         // Obtener informacion de la vista del cliente
@@ -1033,9 +1037,9 @@ class BingoController extends Controller
                 $creatorID = decrypt($creator['id']);
                 $isLogin = $returnBtn = false;
 
-                $customerCoin = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
-                $coinSym = $customerCoin->coin;
-                $exchangeRate = $customerCoin->exchange_rate;
+                $customerExchangeRate = CustomerExchangeRate::getById($coin);
+                $exchangeRate = $customerExchangeRate->exchange_rate;
+                $coinSym = $customerExchangeRate->coin;
                 $coins = CustomerExchangeRate::getCoinsIDsByCustomer($creatorID);
 
                 $customer = Customer::getById($creatorID, ['customer_id', 'token']);

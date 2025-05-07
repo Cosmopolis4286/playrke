@@ -19,9 +19,7 @@ class IframeController extends Controller
             return redirect()->back();
         }
 
-        $customer = Customer::getByUserId($user->id, ['id', 'token']);
-
-        $customerToken = $customer->token;
+        $customer = Customer::getByUserId($user->id, ['id', 'customer_id']);
 
         $iframes = [
             [
@@ -31,8 +29,7 @@ class IframeController extends Controller
                     [
                         'roomType' => 'private-rooms',
                         'creatorType' => 'customer',
-                        'creatorID' => encrypt($customer->id),
-                        'coin' => ''
+                        'creatorID' => encrypt($customer->id)
                     ]
                 )
             ],
@@ -40,7 +37,7 @@ class IframeController extends Controller
                 'title' => 'Salas de Juego Vista',
                 'route' => route(
                     'bingo.game-rooms-customer',
-                    ['customer' => $customerToken, 'user' => '1']
+                    ['customer' => $customer->customer_id, 'user' => 'available-rooms']
                 ),
             ],
         ];
