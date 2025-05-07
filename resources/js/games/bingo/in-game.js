@@ -372,9 +372,13 @@ function showWinners(arrInfo, chipWin) {
 let getViewCtn = false;
 
 $(document).on("click", ".cont-win-img", function () {
+
     if (getViewCtn) return;
+
+    const ctnID = $(this).data('id');
+
     $.get({
-        url: `${preRoute}bingocash/viewCtn/${$(this).data('id')}`,
+        url: route('bingo.viewCtn', ctnID),
         dataType: 'json',
         data: {
             '_token': $("#5K3_70K").val()

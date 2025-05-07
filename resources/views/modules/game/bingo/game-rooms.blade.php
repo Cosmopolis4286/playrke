@@ -133,7 +133,10 @@
         });
 
         function getDateTimeRooms() {
-            $.getJSON(route('bingo.get-datetime-rooms', creatorUser), {
+            $.getJSON(route('bingo.get-datetime-rooms', {
+                    creatorUser,
+                    player
+                }), {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
                 .done(res => {
@@ -149,7 +152,8 @@
             data.forEach((value, index) => {
                 arrRooms[index] = {
                     id: value.encrypted,
-                    dateTime: value.config.unix_date
+                    dateTime: value.config.unix_date,
+                    player: !!value.players_room
                 };
             });
         }
@@ -219,7 +223,7 @@
 
         $(document).on("click", "#btn-purchase-ctns", function() {
             // Procesar compra de cartones
-            if (isLogin || !player) return;
+            if (isLogin || player === 'GAMES') return;
 
             $.ajax({
                 url: route('bingocash.generateCarton'),
@@ -334,6 +338,7 @@
 
         // Procesar tiempo restante para cada sala
         function handleWaitingTime(arrRooms) {
+
             if (!arrRooms.length) return;
 
             arrRooms.forEach((elem, key) => {
@@ -343,25 +348,29 @@
 
                 // Si el tiempo ha terminado
                 if (difference <= 0) {
+
                     const status = $(`#card-game-room_${room}`).data('status');
+
                     if (status == 2) {
                         $(`#card-game-room_${room}`).data('status', 3);
                         updateRoomStatus(room, 'No disponible', '<span class="start-time__text">En Juego</span>');
                     }
 
-                    // Redirigir a la sala según el tipo de usuario
-                    const route = creator.type == 'commerce' ?
-                        route('bingo.in-game', {
-                            player,
-                            room
-                        }) :
-                        route('bingocash.in-game-customer', {
-                            customer: creator.id,
-                            userToken,
-                            room
-                        });
+                    if (elem.player) {
+                        // Redirigir a la sala según el tipo de usuario
+                        const targetUrl = creator.type == 'commerce' ?
+                            route('bingo.in-game', {
+                                player,
+                                room
+                            }) :
+                            route('bingocash.in-game-customer', {
+                                customer: '{{ $customerID }}',
+                                userToken,
+                                room
+                            });
 
-                    window.location.href = route;
+                        window.location.href = targetUrl;
+                    }
 
                     if (waitingTime) clearInterval(waitingTime); // Limpiar el intervalo previo si existe
                     return;

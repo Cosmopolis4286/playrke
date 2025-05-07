@@ -78,12 +78,23 @@ class BingoController extends Controller
         // broadcast(new BingoOFF_GetRoomInfo(now()->format('H:i:s'), $room->encrypted));
     }
 
-    public function getDateTimeRooms($creatorUser)
+    public function getDateTimeRooms($creatorUser, $player = 'GAMES')
     {
-        $rooms = BingoRoom::with('Config:room,unix_date')->select('id', 'encrypted', 'status')
-            ->where('creator_user', decrypt($creatorUser))->whereIn('status', [2, 3])->get();
+        $player = $player === 'GAMES' ? null : decrypt($player);
 
-        return ['rooms' => $rooms, 'timestamp' => Carbon::now()->timestamp * 1000];
+        $rooms = BingoRoom::with([
+            'PlayersRoom' => fn($q) => $player ?
+                $q->where('id', $player)->select('id', 'room') :
+                $q->select('id', 'room'),
+            'Config:room,unix_date'
+        ])->select('id', 'encrypted', 'status')
+            ->where('creator_user', decrypt($creatorUser))
+            ->whereIn('status', [2, 3])->get();
+
+        return [
+            'rooms' => $rooms,
+            'timestamp' => now()->timestamp * 1000,
+        ];
     }
 
     private function getRoomGame($query, $dateFilter)
@@ -124,14 +135,8 @@ class BingoController extends Controller
                 $coinSym = Coin::getValue($coin, 'symbol');
                 $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
 
-                $player = Auth::id();
-
                 $playerColumn = 'player_link';
-                $roomUser = $player;
 
-                $player = Commerce::getValueByUserId($player, 'id') ? false : encrypt($player);
-
-                $moreViewData = ['player' => $player];
                 break;
             case 'customer': // Cliente
 
@@ -143,12 +148,15 @@ class BingoController extends Controller
                 $coinSym = $custCoin->coin;
                 $exchangeRate = $custCoin->exchange_rate;
 
-                $player = $data['player'] ? encrypt($data['player']) : false;
+                $player = $data['player'] ? encrypt($data['player']) : 'GAMES';
 
                 $playerColumn = 'player_user';
                 $roomUser = $data['player'];
 
-                $moreViewData = ['player' => $player, 'userToken' => $data['userToken']];
+                $moreViewData = [
+                    'customerID' => Customer::getValueById($creatorID, 'customer_id'),
+                    'userToken' => $data['userToken']
+                ];
                 break;
 
             default:
@@ -213,10 +221,11 @@ class BingoController extends Controller
             'exchangeRate' => $exchangeRate ?? 1,
             'creator' => $creator,
             'creatorUser' => encrypt($creatorUser),
+            'player' => $player,
             'rooms' => $rooms,
             'imageBingoRules' => $this->getImageBingoRules($creatorUser),
             'bingoRules' => $this->getBingoRules($creatorUser),
-            'dateTimeRooms' => $this->getDateTimeRooms(encrypt($creatorUser))
+            'dateTimeRooms' => $this->getDateTimeRooms(encrypt($creatorUser), $player)
         ];
 
         if ($coin == 1) $viewData['USDT'] = true;

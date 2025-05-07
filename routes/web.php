@@ -262,7 +262,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');
     Route::get('getInfoByEncrypt/{id}/{creatorUser}/{coin}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::get('getInfoPublicRoom', [BingoController::class, 'getInfoPublicRoom'])->name('getInfoPublicRoom');
-    Route::get('getDateTimeRooms/{creatorUser}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
+    Route::get('getDateTimeRooms/{creatorUser}/{player}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
     Route::get('getCtnPriceForCoin/{creation}/{creatorType}/{creatorID}/{room?}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
 
     Route::put('participate/public-room/{id?}/{getOut?}', [BingoController::class, 'participateInPublicRoom'])->name('participateInPublicRoom');
@@ -299,6 +299,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::post('actWn', [BingoController::class, 'actWn'])->middleware(['auth', 'admin'])->name('actWn');
 });
 
+Route::get('bingo/viewCtn/{ctnId}', [BingoController::class, 'viewCtn'])->name('bingo.viewCtn');
 // Salas de Juego BINGO 
 Route::get('bingo/{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoController::class, 'allRooms'])->name('bingo.all-rooms');
 // URL de Compra CUSTOMERS
@@ -327,7 +328,6 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
     Route::get('getDraw/{room}', [BingoController::class, 'getDraw'])->name('getDraw');
     Route::get('get/chips/{room}', [BingoController::class, 'getChips'])->name('getChips');
     Route::get('get/result/{room}/{value}/{column?}', [BingoController::class, 'getResult'])->name('getResult');
-    Route::get('viewCtn/{ctnId}', [BingoController::class, 'viewCtn'])->name('viewCtn');
 });
 
 // Rutas Jugador/Cliente
