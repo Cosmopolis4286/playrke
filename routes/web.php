@@ -255,6 +255,9 @@ Route::group(['prefix' => 'bingo-plays', 'as' => 'bingo-plays.'], function () {
     Route::put('handler/{id?}/{action?}', [BingoController::class, 'handleBingoPlays'])->name('handler');
 });
 
+// Salas de Juego BINGO - URL de Compra CUSTOMERS
+Route::get('{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('bingo.game-rooms-customer');
+
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('configuration/plays/{userToken?}', [BingoController::class, 'bingoPlays'])->name('bingoPlays');
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
@@ -292,8 +295,6 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
 
     // Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
     //     ->middleware(['auth', 'admin'])->name('game-rooms-admin');
-
-    Route::get('game-rooms/{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('game-rooms-customer');
 
     // Route::get('{roomType}/game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
     //     ->middleware(['auth', 'commerce'])->name('game-rooms-commerce');
