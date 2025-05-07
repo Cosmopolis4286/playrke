@@ -31,7 +31,8 @@ function handlePercentageAdjust(changedId) {
 }
 
 $(document).on("input", "#fixed-jackpot-value, #ctn-price, #time-chip, #num-serials, #max-plays-ramdom", function () {
-    validateInput(this, $(this).attr('id') !== 'num-serials');
+    const id = $(this).attr('id');
+    validateInput(this, !['num-serials', 'time-chip', 'max-plays-ramdom'].includes(id));
 });
 
 $(document).on("input", ".jackpot-pct", function () {

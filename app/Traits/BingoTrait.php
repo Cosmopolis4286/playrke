@@ -764,8 +764,8 @@ trait BingoTrait
                 return ['Error' => 'Error al generar cartones'];
             }
 
-            // Si no es modo offline y el creador es un comercio, actualizar la billetera del jugador
-            if ($gameMode != 2 && $creator['type']) {
+            // Si no es modo offline y el creador es <> a un customer 
+            if ($gameMode != 2 && $creator['type'] !== 'customer') {
                 // Determinar la columna de saldo en función de la moneda
                 $columnBalance = $coin == 1 ? 'usdt' : 'balance';
 
@@ -1043,13 +1043,13 @@ trait BingoTrait
         // Buscar los cartones que contienen el chip
         $ctnsPlayer = BingoCtns::where('room', $roomID)
             ->whereRaw(
-                "b1 = ? OR b2 = ? OR b3 = ? OR b4 = ? OR b5 = ? 
+                "(b1 = ? OR b2 = ? OR b3 = ? OR b4 = ? OR b5 = ? 
                 OR i1 = ? OR i2 = ? OR i3 = ? OR i4 = ? OR i5 = ?
                 OR n1 = ? OR n2 = ? OR n3 = ? OR n4 = ? 
                 OR g1 = ? OR g2 = ? OR g3 = ? OR g4 = ? OR g5 = ? 
-                OR o1 = ? OR o2 = ? OR o3 = ? OR o4 = ? OR o5 = ?",
+                OR o1 = ? OR o2 = ? OR o3 = ? OR o4 = ? OR o5 = ?)",
                 array_fill(0, 24, $lastChipNum) // Repite el valor 24 veces
-            )->select(['id', 'room_user', 'player_user', 'player_link'])->cursor();
+            )->select('id', 'room_user', 'player_user', 'player_link')->cursor();
 
         // Filtrar cartones ganadores
         $prizeCtns = [];
@@ -1112,7 +1112,6 @@ trait BingoTrait
         DB::beginTransaction();
 
         try {
-
             // Definir valores a actualizar de la sala 
             $updateData = ['close_room' => Carbon::now()->timestamp];
 

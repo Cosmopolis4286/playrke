@@ -36,7 +36,7 @@ function endGame(useTimeout = true) {
 
     const redirect = () => (window.location.href = closingRoute);
 
-    useTimeout ? setTimeout(redirect, 8000) : redirect();
+    useTimeout ? setTimeout(redirect, 10000) : redirect();
 }
 
 // Salir de la sala
