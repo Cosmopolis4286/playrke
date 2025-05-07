@@ -178,11 +178,6 @@ function adjustWidthBoxesHist() {
     $('.container-image-history').css({ width: sizeChip, height: sizeChip, margin: `0 ${newMargin}px` });
 }
 
-function adjustHeightBoxes() {
-    let widthNumberBox = $('.number-box').first().width();
-    $('.number-box').height(widthNumberBox);
-}
-
 $(document).on("click", ".cont-arrow-history-chips", function () {
     renderChipsView($(this).data('move'));
 });
@@ -413,14 +408,16 @@ $(document).on("click", "#btn-view-winners", function () {
 });
 
 $(function () {
+
     try {
+
         if (player) {
             adjustHeightBoxes();
             $('.container-carton').css('visibility', 'visible');
         }
 
-        $(window).resize(function () {
-            // Ajusta la altura de los contenedores al redimensionar la ventana         
+        window.addEventListener('resize', () => {
+
             if (player) adjustHeightBoxes();
 
             if (roomStatus > 2) {

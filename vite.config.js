@@ -17,6 +17,7 @@ const jsFiles = [
     'resources/js/games/bingo/form.js',
     'resources/js/games/bingo/ctn-price-coins.js',
     'resources/js/games/bingo/in-game.js',
+    'resources/js/games/bingo/includes/adjust-height-boxes.js',
     'resources/js/games/bingo/includes/auto-marked.js',
     'resources/js/games/bingo/includes/bingo-out-buy-ctns.js',
     'resources/js/games/bingo/includes/handle-bingo-plays.js',

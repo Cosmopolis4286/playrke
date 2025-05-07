@@ -58,6 +58,7 @@
         let allChips = @json($allChips);
         let infoGame = @json($infoGame);
     </script>
+    @vite('resources/js/games/bingo/includes/adjust-height-boxes.js')
     @if ($room->status == 2 && $creatorType !== 'customer')
         <script>
             const creatorType = '{{ $creatorType }}';
