@@ -86,7 +86,7 @@
     @vite('resources/js/rke/format-date-time-unix.js')
     <script>
         const creator = @json($creator);
-        const coin = @json($coin);
+        const coin = @json($coin ?? null);
         const player = @json($player);
         const userToken = @json($userToken ?? null);
         const creatorUser = @json($creatorUser);

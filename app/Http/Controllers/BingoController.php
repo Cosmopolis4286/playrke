@@ -273,7 +273,7 @@ class BingoController extends Controller
 
             // Verifica si hubo error en la validación del cliente
             if (isset($customer['Error'])) {
-                return response()->json(['message' => $customer['Error']], 404);
+                abort(404);
             }
 
             $customerUser = CustomerUser::getByCustomer($customer, $userToken, ['id', 'coin']);
@@ -304,16 +304,27 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    private function handleCartonByCreator($creator, $roomCtnPrice, $creatorCtnPrice, $data, $request)
+    private function handleCartonByCreator($creator, $roomCtnPrice, $data, $request)
     {
         $numOfCtns = $data['numOfCtns'];
         $exchangeRate = 1;
         $saleAmount = 0;
 
+        $creatorType = $creator['type'];
+
         $player = $request->player ?? null ? decrypt($request->player) : null;
 
-        if ($creator['type'] === 'customer') {
+        if ($creatorType === 'commerce') {
+            $coin = decrypt($request->coin);
+        } else if ($creatorType === 'customer') {
             $user = CustomerUser::getById($player, ['token', 'coin']);
+            $coin = $user->coin;
+        }
+
+        $creatorCtnPrice = BingoCtnPrice::getValueCtnPrice($data['room'], $coin, $creator['userId']);
+
+        if ($creatorType === 'customer') {
+
             $customerResponse = $this->getUserBalanceFromCustomer($creator['id'], $user->token);
 
             if (isset($customerResponse['Error'])) {
@@ -321,7 +332,7 @@ class BingoController extends Controller
                 return ['Error' => 'Ha ocurrido un error en la solicitud'];
             }
 
-            $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creator['id'], $user->coin);
+            $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($creator['id'], $coin);
             $saleAmount = ($creatorCtnPrice ?? $roomCtnPrice * $exchangeRate) * $numOfCtns;
 
             if ($customerResponse['Data'][0]['Amount'] < $saleAmount) {
@@ -329,11 +340,13 @@ class BingoController extends Controller
             }
 
             $data += [
+                'coin' => $coin,
                 'customer' => $creator['id'],
                 'playerUser' => $player ?? null,
                 'exchangeRate' => $exchangeRate,
             ];
         } else {
+            $data['coin'] = $coin;
             $data['commerce'] = $creator['id'];
 
             if ($data['isLogin']) {
@@ -365,7 +378,7 @@ class BingoController extends Controller
             }
         }
 
-        return  $data;
+        return  ['data' => $data, 'creatorCtnPrice' => $creatorCtnPrice];
     }
 
     private function handleCartonBySeller($data, $request)
@@ -443,17 +456,15 @@ class BingoController extends Controller
             // Adicionar datos al conjunto
             $data['creator'] = $creator;
             $data['isLogin'] = $request->is_login ?? false;
-            $data['coin'] = decrypt($request->coin);
 
-            $creatorCtnPrice = BingoCtnPrice::getValueCtnPrice($room->id, $data['coin'], $creator['userId']);
-
-            $response = $this->handleCartonByCreator($creator, $roomCtnPrice, $creatorCtnPrice, $data, $request);
+            $response = $this->handleCartonByCreator($creator, $roomCtnPrice, $data, $request);
 
             if (isset($response['Error'])) {
                 return response()->json(['type' => 'warning', 'message' => $response['Error']]);
             }
 
-            $data = $response;
+            $data = $response['data'];
+            $creatorCtnPrice = $response['creatorCtnPrice'];
         } else {
             $data = $this->handleCartonBySeller($data, $request);
             $creatorCtnPrice = BingoCtnPrice::getValueCtnPrice($room->id, $data['coin'], $data['creator']['userId']);
@@ -499,8 +510,6 @@ class BingoController extends Controller
                 return $response;
             }
 
-            DB::commit(); // Confirmar transacción
-
             if ($creatorType && isset($creator)) {
                 if ($creator['type'] === 'customer') {
                     // Validar transacciones del cliente
@@ -510,6 +519,8 @@ class BingoController extends Controller
                 $jackpot = number_format($this->convertPrizeValue($data['room'], $data['coin']), 2, '.');
                 $ctns = BingoRoomUser::getValue($cartonStore, 'ctns');
 
+                DB::commit(); // Confirmar transacción
+
                 return response()->json([
                     'jackpot' => $jackpot,
                     'ctns' => $ctns,
@@ -517,6 +528,8 @@ class BingoController extends Controller
                     'message' => 'Proceso efectuado con éxito'
                 ]);
             }
+
+            DB::commit(); // Confirmar transacción
 
             $responseCartonStore = $this->getGameLinkByPlayer($data['playerLink']);
             Session::flash('message', 'Proceso efectuado con éxito');

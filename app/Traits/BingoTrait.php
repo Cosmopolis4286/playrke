@@ -720,8 +720,6 @@ trait BingoTrait
 
         if (!$room) return ['Error' => 'Sala no disponible'];
 
-        DB::beginTransaction();
-
         try {
             // Inicialización de variables
             $creator = $arrCtn['creator'];
@@ -738,7 +736,6 @@ trait BingoTrait
             $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);
 
             if (!$roomUser) {
-                DB::rollBack();
                 return ['Error' => 'Registrar o actualizar el usuario en la sala'];
             }
 
@@ -752,9 +749,7 @@ trait BingoTrait
 
             // Evaluar tasa de cambio
             if ($creator['type'] === 'customer') {
-                $customerExchangeRate = CustomerExchangeRate::getById($coin, ['coin', 'exchange_rate']);
-                $coin = $customerExchangeRate->coin;
-                $exchangeRate = $customerExchangeRate->exchangeRate ?? 1;
+                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($arrCtn['customer'], $coin) ?? 1;
             } else {
                 $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator['id'], $coin) ?? 1;
             }
@@ -766,7 +761,6 @@ trait BingoTrait
             $generateAndStoreCtns = $this->generateAndStoreCtns($arrCtn, $lotID);
 
             if (!$generateAndStoreCtns) {
-                DB::rollBack();
                 return ['Error' => 'Error al generar cartones'];
             }
 
@@ -780,7 +774,6 @@ trait BingoTrait
 
                 // Verificar si se actualizó algún registro
                 if ($walletUpdated === 0) {
-                    DB::rollBack();
                     return ['Error' => 'Error al descontar saldo del usuario'];
                 }
             }
@@ -790,7 +783,6 @@ trait BingoTrait
 
             // Verificar si se actualizó los valores de la sala
             if (!$updateRoomMetrics) {
-                DB::rollBack();
                 return ['Error' => 'Error al actualizar los valores de la sala'];
             }
 
@@ -817,7 +809,6 @@ trait BingoTrait
                 );
 
                 if (isset($transactionBet['Error'])) {
-                    DB::rollBack();
                     return ['Error' => 'Ha ocurrido un error'];
                 }
             }
@@ -827,10 +818,8 @@ trait BingoTrait
                 $this->handleDraw($roomID, $roomUser);
             }
 
-            DB::commit();
             return $roomUser;
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Error al crear los cartones cartonStore(): ' . $e->getMessage());
             return ['Error' => 'Error al crear los cartones'];
         }
