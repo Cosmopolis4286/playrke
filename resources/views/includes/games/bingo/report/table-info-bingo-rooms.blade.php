@@ -109,7 +109,7 @@
                                 </button>
                                 @if ($room->status == 1)
                                     <button class="btn-{{ $name }} btn btn-sm btn-success"
-                                        @if (now()->timestamp + 900 < $room->Config->unix_date) data-type="5" @else data-block="1" disabled @endif
+                                        @if ($room->Config->unix_date) data-type="5" @else data-block="1" disabled @endif
                                         data-id="{{ encrypt($room->id) }}" title="Publicar">
                                         <i class="fa-solid fa-circle-up"></i>
                                     </button>

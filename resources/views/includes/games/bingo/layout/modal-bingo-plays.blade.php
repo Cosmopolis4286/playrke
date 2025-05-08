@@ -58,7 +58,7 @@
                                 </div>
                                 <div class="number-box-view-ctn">
                                     <img class="img-fluid img-logo-ctn"
-                                        src="{{ isset($custLogo) ? asset('storage/customers/' . $custLogo) : asset('img/rke.png') }}">
+                                        src="{{ isset($customerLogo) ? asset('storage/customers/' . $customerLogo) : asset('img/rke.png') }}">
                                 </div>
                                 <div class="number-box-view-ctn">
                                     <span id="ctn-n3" class="number-box-number ctn-plays">N3</span>

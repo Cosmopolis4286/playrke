@@ -41,7 +41,7 @@
 
     <script>
         const preRoute = '{{ asset('') }}';
-        const logo = `{{ $custLogo ?? 'img/rke.png' }}`;
+        const logo = `{{ $customerLogo ?? 'img/rke.png' }}`;
         const encrypted = '{{ $room->encrypted }}';
         const roomStatus = '{{ $room->status }}';
         const coinSym = '{{ $coinSym }}';

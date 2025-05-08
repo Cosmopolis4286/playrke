@@ -34,9 +34,9 @@ document.body.addEventListener('click', function () {
 function endGame(useTimeout = true) {
     if (!closingRoute) return;
 
-    const redirect = () => (window.location.href = closingRoute);
+    // const redirect = () => (window.location.href = closingRoute);
 
-    useTimeout ? setTimeout(redirect, 10000) : redirect();
+    // useTimeout ? setTimeout(redirect, 10000) : redirect();
 }
 
 // Salir de la sala
@@ -290,10 +290,10 @@ function getNewChip(newChip) {
         // Mostrar ganadores si es el último chip
         if (newChip == chpLast) {
             $('#text-check-bingo').show();
-            endWin = 1;
             setTimeout(() => {
                 showWinners(decryptJson(infoGame, r4nd0m), chpLast);
-            }, 3000);
+            }, 2600);
+            endWin = 1;
         }
     }
 }
@@ -306,12 +306,12 @@ function getWinners(arrInfo, arrSize) {
 
         content +=
             `<div class="col-4 my-1 cont-win-info">
-                    <button class="cont-win-img" type="button" data-id="${arrInfo.ctn[i]}" title="Ver Cartón">
-                        <i class="eye-icon fa-solid fa-eye"></i>
-                        <img class="user-img" src="${preRoute}${img}">
-                    </button>
-                    <div class="winner-info-text fw-bold badge badge-success">${arrInfo.name[i]}</div>
-                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy">${coinSym} ${arrInfo.gain[i]}</div>
+                <div class="cont-win-img" data-id="${arrInfo.ctn[i]}" title="Ver Cartón">
+                    <i class="eye-icon fa-solid fa-eye"></i>
+                    <img class="user-img" src="${preRoute}${img}">                  
+                    <div class="winner-info-text fw-bold badge badge-success w-100">${arrInfo.name[i]}</div>
+                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy w-100">${coinSym} ${arrInfo.gain[i]}</div>
+                </div>
             </div>`;
     }
     return content;

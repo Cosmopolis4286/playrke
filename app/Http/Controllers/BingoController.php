@@ -602,7 +602,7 @@ class BingoController extends Controller
                 $customerID = $customer->customer_id;
                 $userToken = $customer->token;
 
-                $moreViewData = ['custLogo' => "$userToken/$customer->logo"];
+                $moreViewData = ['customerLogo' => "storage/customers/$userToken/$customer->logo"];
 
                 if (isset($data['userToken'])) {
                     $user = CustomerUser::getByToken($creatorID, $data['userToken'], ['id', 'coin']);
@@ -615,6 +615,8 @@ class BingoController extends Controller
                     $coinID = $data['coin'];
                     $coinSym = CustomerExchangeRate::getValueById($coinID, 'coin');
                 }
+
+                $customer = Customer::getById($creatorID, ['name', 'customer_id', 'logo', 'token']);
 
                 $moreViewData['player'] = isset($roomUser) ? encrypt($roomUser) : false;
 
@@ -761,7 +763,7 @@ class BingoController extends Controller
             'random' => $randomKey,
             'latestChips' => $dataChips['latestChips'],
             'allChips' => $dataChips['allChips'],
-            'vanDraw' => $vanDraw ? $vanDraw->chip : '',
+            'vanDraw' => $vanDraw ? (int) $vanDraw->chip : '',
             'infoGame' => $infoGame,
             'timeServ' => $dataChips['timeServ'],
             'imageBingoRules' => $this->getImageBingoRules($creatorUser),
@@ -2152,9 +2154,9 @@ class BingoController extends Controller
 
         $unixDate = strtotime("{$bingoRoom->date} {$bingoRoom->time}");
 
-        if ($unixDate < time()) {
-            return redirect()->back()->with('message', 'Fecha/Hora no perimitidas')->with('type', 'warning');
-        }
+        // if ($unixDate < time()) {
+        //     return redirect()->back()->with('message', 'Fecha/Hora no perimitidas')->with('type', 'warning');
+        // }
 
         DB::beginTransaction();
 
