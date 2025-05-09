@@ -2154,9 +2154,9 @@ class BingoController extends Controller
 
         $unixDate = strtotime("{$bingoRoom->date} {$bingoRoom->time}");
 
-        if ($unixDate <= time()) {
-            return redirect()->back()->with('message', 'Fecha/Hora no perimitidas')->with('type', 'warning');
-        }
+        // if ($unixDate <= time()) {
+        //     return redirect()->back()->with('message', 'Fecha/Hora no perimitidas')->with('type', 'warning');
+        // }
 
         DB::beginTransaction();
 
