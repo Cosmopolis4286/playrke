@@ -98,7 +98,7 @@
                         <small><i class="fa-solid fa-clock ml-1 mr-1 mb-1"></i></small>${elem.config.time}
                     </label>
                 </div>
-                <div class="form-control">Bote Actual: <b>${elem.jackpot} <small>USD</small></b></div>
+                <div class="form-control">Bote Actual: <b>${elem.prize_pool} <small>USD</small></b></div>
                 <div class="input-group-append">
                     <button class="btn btn-outline-success ${isUnitedClass}"
                      type="button" data-id="${elem.encrypted}" ${isUnited}>

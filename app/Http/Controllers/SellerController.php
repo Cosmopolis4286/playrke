@@ -357,7 +357,7 @@ class SellerController extends Controller
             'Config' => function ($query) {
                 $query->select('room', 'game_mode', 'unix_date');
             }
-        ])->select('id', 'encrypted', 'room_type', 'jackpot')->where('status', 2)
+        ])->select('id', 'encrypted', 'room_type', 'prize_pool')->where('status', 2)
             ->where(function ($query) use ($creatorUser) {
                 $query->where('creator_user', $creatorUser)
                     ->orWhere('room_type', 'PB');
@@ -407,7 +407,7 @@ class SellerController extends Controller
     public function getCtnPrice($roomID)
     {
         $room = BingoRoom::with('Config:room,jackpot_type,ctn_price')
-            ->select('id', 'encrypted', 'jackpot')
+            ->select('id', 'encrypted', 'prize_pool')
             ->where('encrypted', $roomID)->first();
 
         if (!$room) {
@@ -417,8 +417,8 @@ class SellerController extends Controller
         $countriesCoins = $this->getAvailableCountriesBySeller($room->id);
 
         return response()->json([
-            'jackpotType' => $room->Config->jackpot_type,
-            'jackpot' => $room->jackpot,
+            'prize_poolType' => $room->Config->jackpot_type,
+            'prize_pool' => $room->prize_pool,
             'coin' => 'USDT',
             'price' => $room->Config->ctn_price,
             'countries' => $countriesCoins['countries'],

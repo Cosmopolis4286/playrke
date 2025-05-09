@@ -81,7 +81,7 @@ class AutoGenerateBingoRooms
     {
         $model = 'BingoRooms';
 
-        $fixedJackpotValue = $room->fixed_jackpot_value;
+        $fixedJackpotValue = $room->amount_added_jackpot;
         $boat = $room->jackpot_type > 1 ? $fixedJackpotValue : 0;
 
         return [
@@ -89,7 +89,7 @@ class AutoGenerateBingoRooms
             'status' => 2,
             'room_type' => $room->room_type,
             'creator_user' => $room->creator_user,
-            'jackpot' => $boat,
+            'prize_pool' => $boat,
             'code_uuid' => $this->getCodeUUID($model)
         ];
     }
@@ -113,11 +113,11 @@ class AutoGenerateBingoRooms
                 'ctn_price' => $dataRoom->ctn_price,
                 'room_commn' => $dataRoom->room_commn,
                 'jackpot_type' => $dataRoom->jackpot_type,
-                'fixed_jackpot_value' => $dataRoom->fixed_jackpot_value,
+                'amount_added_jackpot' => $dataRoom->amount_added_jackpot,
                 'time_chip' => $dataRoom->time_chip,
                 'pct_serials' => $dataRoom->pct_serials,
                 'num_serials' => $dataRoom->num_serials,
-                'serials_commn' => $dataRoom->serials_commn,
+                'pct_jackpot' => $dataRoom->pct_jackpot,
             ]
         );
 

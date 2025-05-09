@@ -136,8 +136,8 @@
                     <span class="ml-1">Última Ficha:</span>
                     <img class="ml-1 mb-1" id="last-win-chip">
                 </div>
-                <b>Premio Mayor: <small>(<span id="jackpot-value"></span>% del Bote)</small></b>
-                <div class="row mb-1" id="jackpot-winners"></div>
+                <b>Premio Mayor: <small>(<span id="prize_pool-value"></span>% del Bote)</small></b>
+                <div class="row mb-1" id="prize_pool-winners"></div>
                 <div id="cont-serials" class="hide-elem">
                     <b>Seriales: <small>(<span id="serial-value"></span>% del Bote)</small></b>
                     <div class="row" id="serials-winners"></div>

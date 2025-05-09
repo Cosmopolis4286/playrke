@@ -369,7 +369,7 @@ trait BingoTrait
         $room = BingoRoom::getByEncrypted($room, ['id', 'status']);
         $roomID = $room->id;
 
-        // Obtener tiempo de salida de la ficha jackpot
+        // Obtener tiempo de salida de la ficha prize_pool
         $lastChipTime = BingoDraw::where('status', 3)->where('room', $roomID)->value('time');
 
         if ($room->status == 3 && ($lastChipTime && $lastChipTime <= time())) {
@@ -381,7 +381,7 @@ trait BingoTrait
 
         if (!$countWinnersJackpot) $this->handleJackpotWinners($roomID);
 
-        $jackpotWinners = $this->getWinnersJackpot($roomID, $roomUser, $coin);
+        $prize_poolWinners = $this->getWinnersJackpot($roomID, $roomUser, $coin);
 
         $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2)) ?
             $this->getWinnersSerials($roomID, $roomUser, $coin) : [];
@@ -391,7 +391,7 @@ trait BingoTrait
         $prizesValues = !empty($serialsWinners) ? [100 - $serialPrizePct, $serialPrizePct] : [100];
 
         return [
-            'jackpotWinners' => $jackpotWinners,
+            'prize_poolWinners' => $prize_poolWinners,
             'serialsWinners' => $serialsWinners,
             'prizesValues' => $prizesValues
         ];
@@ -418,8 +418,8 @@ trait BingoTrait
             'all_sale',
             'room_commn',
             'seller_commn',
-            'jackpot',
-            'jackpot_prize',
+            'prize_pool',
+            'full_house_prize',
             'ctns'
         )->where('status', 2)->where('id', $roomID)->first();
     }
@@ -650,7 +650,7 @@ trait BingoTrait
             // Variable para definir monto a anexar al bote
             $amountAddJackpot = number_format($saleAmount, 3, '.');
 
-            if ($arrCtn['jackpotType'] == 2) {
+            if ($arrCtn['prize_poolType'] == 2) {
                 // Si el bote es tipo "Premio"
                 $amountAddJackpot = 0;
             }
@@ -674,8 +674,8 @@ trait BingoTrait
             // Preparar los datos para actualizar la sala
             $updateData = [
                 'all_sale' => $room->all_sale + $saleAmount,
-                'jackpot' => $room->jackpot + $amountAddJackpot,
-                'jackpot_prize' => $room->jackpot_prize + $amountAddJackpot,
+                'prize_pool' => $room->prize_pool + $amountAddJackpot,
+                'full_house_prize' => $room->full_house_prize + $amountAddJackpot,
                 'ctns' => $room->ctns + $arrCtn['numOfCtns'],
                 'room_commn' => $room->room_commn + $creatorCommn
             ];
@@ -838,14 +838,14 @@ trait BingoTrait
 
     public function convertPrizeValue($roomID, $coin, $value = '')
     {
-        $room = BingoRoom::getById($roomID, ['creator_user', 'jackpot']);
+        $room = BingoRoom::getById($roomID, ['creator_user', 'prize_pool']);
 
         $creatorUser = $room->creator_user;
         $userCreator = User::getCreatorIDByUserType($creatorUser, '', true);
 
         $creator = ['type' => $userCreator['type'], 'id' => $userCreator['id'], 'userId' => $creatorUser];
 
-        $data = ['coin' => $coin, 'value' => $value ? $value : $room->jackpot, 'creator' => $creator];
+        $data = ['coin' => $coin, 'value' => $value ? $value : $room->prize_pool, 'creator' => $creator];
 
         return $this->convertValueByGame('BINGO', $roomID, $data);
     }
@@ -983,7 +983,7 @@ trait BingoTrait
         ];
     }
 
-    public function getArrayWinnersData($winPlayer, $winners, $jackpot)
+    public function getArrayWinnersData($winPlayer, $winners, $prize_pool)
     {
         // Inicializar el array para guardar información
         $infoPlayer = ['size' => 0, 'name' => [], 'gain' => [], 'ctn' => []];
@@ -1018,14 +1018,14 @@ trait BingoTrait
     {
         // Obtener la información de la sala
         $room = BingoRoom::with('Config:room,pct_serials')
-            ->select('id', 'creator_user', 'jackpot', 'jackpot_prize', 'serial_prize')
+            ->select('id', 'creator_user', 'prize_pool', 'full_house_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 
         // Verificar si ya hay ganadores del premio mayor
         $prizeCtns = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
         $winners = BingoRoomUser::getWinnersCountByRoom($roomID);
 
-        if ($prizeCtns && $winners) return false; // Ya existen cartones premiados (jackpot)
+        if ($prizeCtns && $winners) return false; // Ya existen cartones premiados (prize_pool)
 
         // Obtener el último chip sorteado
         $lastChip = BingoDraw::select('id', 'chip')->where('status', 3)->where('room', $roomID)->first();
@@ -1115,20 +1115,20 @@ trait BingoTrait
             // Definir valores a actualizar de la sala 
             $updateData = ['close_room' => Carbon::now()->timestamp];
 
-            $jackpotPrize = $room->jackpot_prize;
+            $prize_poolPrize = $room->full_house_prize;
 
             // Generar seriales ganadores si hay jugadores no ganadores
             if ($generateSerials && $room->Config->pct_serials && !$room->seller_commn && !BingoPrizeCtns::existsPrizeCtns($roomID, 'SERIAL')) {
 
-                $serialPrize = $room->jackpot * $room->Config->pct_serials / 100;
+                $serialPrize = $room->prize_pool * $room->Config->pct_serials / 100;
 
                 $serialWinners = $this->handleSerialWinners($roomID, $serialPrize, $roomUserIds);
 
                 if ($serialWinners) {
                     // Calcular premios si hay premio serial
-                    $jackpotPrize -= $serialPrize;
+                    $prize_poolPrize -= $serialPrize;
 
-                    $updateData['jackpot_prize'] = $jackpotPrize;
+                    $updateData['full_house_prize'] = $prize_poolPrize;
                     $updateData['serial_prize'] = $serialPrize;
                 } else {
                     DB::rollBack();
@@ -1136,7 +1136,7 @@ trait BingoTrait
             }
 
             // Calcular el valor de cada premio individual
-            $winnerJackpotPrize = $jackpotPrize / $winnersCount;
+            $winnerJackpotPrize = $prize_poolPrize / $winnersCount;
             // Crear registros de ganadores y actualizar el estado de los jugadores
             $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsJackpot, 1, $winnerJackpotPrize);
 
@@ -1171,12 +1171,12 @@ trait BingoTrait
         if (!count($data['winners'])) $this->handleJackpotWinners($roomID);
 
         $coin = $coin ? $coin : $data['coin'];
-        $jackpotPrize = BingoRoom::getValueById($roomID, 'jackpot_prize');
+        $prize_poolPrize = BingoRoom::getValueById($roomID, 'full_house_prize');
 
         // Calcular el bote de la sala con respecto a la moneda del jugador
-        $jackpot = $this->formatAmount($this->convertPrizeValue($roomID, $coin, $jackpotPrize), 'float');
+        $prize_pool = $this->formatAmount($this->convertPrizeValue($roomID, $coin, $prize_poolPrize), 'float');
 
-        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $jackpot);
+        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $prize_pool);
     }
 
     public function handleSerialWinners($roomID, $serialPrize, $roomUserIds) // Obtener Seriales Ganadores

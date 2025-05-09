@@ -75,7 +75,7 @@
     justify-content: right;
 }
 
-.purchase-ctns__jackpot {
+.purchase-ctns__prize_pool {
     position: relative;
     width: 68%;
     min-height: 100%;
@@ -85,7 +85,7 @@
     background: linear-gradient(to bottom, #084aff, #0e43b4);
 }
 
-.purchase-ctns__jackpot-img {
+.purchase-ctns__prize_pool-img {
     width: 25%;
     padding: 3px;
     height: auto;
@@ -138,7 +138,7 @@
     margin-right: 1.5%;
 }
 
-#jackpot-amount {
+#prize_pool-amount {
     color: rgb(255, 230, 0);
 }
 
@@ -388,7 +388,7 @@ input[type=number] {
     background-color: rgb(212, 234, 255) !important;
 }
 
-.container-card-game-room__jackpot {
+.container-card-game-room__prize_pool {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -399,14 +399,14 @@ input[type=number] {
     background-color: rgb(216, 236, 255) !important;
 }
 
-.card-game-room__jackpot-text {
+.card-game-room__prize_pool-text {
     margin-top: -2.15%;
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 0.75%;
 }
 
-.card-game-room__jackpot-amount {
+.card-game-room__prize_pool-amount {
     text-align: center;
     width: 100%;
     font-weight: 700;

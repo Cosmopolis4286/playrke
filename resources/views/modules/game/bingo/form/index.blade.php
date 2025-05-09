@@ -50,12 +50,12 @@
         const roomType = @json($roomType);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
-        const jackpotType = $("#jackpot-type");
+        const prize_poolType = $("#prize_pool-type");
         const gameMode = $("#game-mode");
         const bingoPlays = $("#bingo-plays");
         const arrBingoPlays = @json($bingoPlays);
         const arrCoins = @json($coins);
-        const arrJackpotType = @json($jackpotType);
+        const arrJackpotType = @json($prize_poolType);
         const arrGameModes = @json($gameModes);
         let coinsCtnPrice = false;
         let selectedBingoPlays = [];
@@ -72,17 +72,17 @@
         });
 
         function changeFixedJackpot(val) {
-            const container = $("#cont-fixed-jackpot-value");
+            const container = $("#cont-fixed-prize_pool-value");
 
             if (val > 1) {
                 container.removeClass('hide-elem');
             } else {
                 container.addClass('hide-elem');
-                $("#fixed-jackpot-value").empty();
+                $("#fixed-prize_pool-value").empty();
             }
         }
 
-        jackpotType.on('change', function() {
+        prize_poolType.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
@@ -145,7 +145,7 @@
                 required: isRequired
             }).empty();
 
-            jackpotType.empty();
+            prize_poolType.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -154,14 +154,14 @@
                     gameMode.append(defaultOption);
                 }
 
-                jackpotType.append(defaultOption);
+                prize_poolType.append(defaultOption);
             }
 
             $('#room-type').val(roomType);
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.jackpot_type) ? 'selected' : '';
-                jackpotType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                prize_poolType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             $.each(arrGameModes, function(index, item) {
@@ -184,11 +184,11 @@
                 $('#time-chip').val(config.time_chip);
                 $('#pct-serials').val(config.pct_serials);
                 $('#num-serials').val(config.num_serials);
-                $('#serials-commn').val(config.serials_commn);
+                $('#serials-commn').val(config.pct_jackpot);
 
                 if (config.jackpot_type > 1) {
                     changeFixedJackpot(2);
-                    $('#fixed-jackpot-value').val(config.fixed_jackpot_value);
+                    $('#fixed-prize_pool-value').val(config.amount_added_jackpot);
                 }
 
                 if (config.types_plays) {
@@ -205,7 +205,7 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'date', 'room-type', 'jackpot-type', 'game-mode',
+                'date', 'room-type', 'prize_pool-type', 'game-mode',
                 'room-commn', 'ctn-price', 'time-chip', 'pct-serials', 'num-serials'
             ]);
         });
@@ -235,7 +235,7 @@
             },
             6: function(encryptedId) {
                 showToastOptionBtns(
-                    'El jackpot de esta sala será reembolsado',
+                    'El prize_pool de esta sala será reembolsado',
                     'warning',
                     'Sí, reembolsar',
                     '#form-other-options',

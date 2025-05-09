@@ -24,8 +24,8 @@ return new class extends Migration
             $table->double('all_sale')->default(0);
             $table->double('room_commn')->default(0);
             $table->double('seller_commn')->default(0);
-            $table->double('jackpot')->default(0);
-            $table->double('jackpot_prize')->default(0);
+            $table->double('prize_pool')->default(0);
+            $table->double('full_house_prize')->default(0);
             $table->double('serial_prize')->default(0);
             $table->integer('close_room')->nullable();
             $table->string('code_uuid', 36)->nullable()->unique();

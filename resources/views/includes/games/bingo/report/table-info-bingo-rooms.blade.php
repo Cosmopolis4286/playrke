@@ -41,10 +41,10 @@
 
                     $ctnPrice = ($room->Config->ctn_price ?? 0) * $rate;
                     $allSale = ($room->all_sale ?? 0) * $rate;
-                    $jackpot = ($room->jackpot ?? 0) * $rate;
+                    $prize_pool = ($room->prize_pool ?? 0) * $rate;
 
                     $totalAllSale += $allSale;
-                    $totalJackpot += $jackpot;
+                    $totalJackpot += $prize_pool;
                 @endphp
                 <tr>
                     <td class="align-middle">
@@ -78,7 +78,7 @@
                         {{ number_format($allSale, 2, '.') }}</td>
                     <td>
                         <small>{{ $room->Config->JackpotType->description }}</small>
-                        <br>{{ $coinSym }} {{ number_format($jackpot, 2, '.') }}
+                        <br>{{ $coinSym }} {{ number_format($prize_pool, 2, '.') }}
                     </td>
                     {{-- Estado --}}
                     <td class="align-middle">
@@ -113,7 +113,7 @@
                                         data-id="{{ encrypt($room->id) }}" title="Publicar">
                                         <i class="fa-solid fa-circle-up"></i>
                                     </button>
-                                @elseif ($room->status == 2 && $room->jackpot == 0)
+                                @elseif ($room->status == 2 && $room->prize_pool == 0)
                                     <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="8"
                                         data-id="{{ encrypt($room->id) }}" title="Cambiar Status">
                                         <i class="fa-solid fa-rotate"></i>

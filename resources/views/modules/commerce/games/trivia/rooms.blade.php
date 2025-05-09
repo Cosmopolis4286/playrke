@@ -69,7 +69,7 @@
                                                     <td>{{ $rm->price }}</td>
                                                     {{-- <td>{{ $rm->val_songs }}</td> --}}
                                                     <td>{{ $rm->players }}</td>
-                                                    <td>{{ $rm->jackpot }} [{{ $rm->com }}%]</td>
+                                                    <td>{{ $rm->prize_pool }} [{{ $rm->com }}%]</td>
                                                     <td>
                                                         @if ($rm->type_boat == 1)
                                                             Aumet
@@ -98,7 +98,7 @@
                                                                     data-price="{{ $rm->price }}"
                                                                     data-val_songs="{{ $rm->val_songs }}"
                                                                     data-type_boat="{{ $rm->type_boat }}"
-                                                                    data-boat="{{ $rm->jackpot }}"
+                                                                    data-boat="{{ $rm->prize_pool }}"
                                                                     data-com="{{ $rm->com }}">
                                                                     <i class="fas fa-edit"></i>
                                                                 </a>

@@ -319,7 +319,7 @@ function getWinners(arrInfo, arrSize) {
 
 function showJackpotWinners(arr, size) {
     const content = getWinners(arr, size);
-    $('#jackpot-winners').html(content);
+    $('#prize_pool-winners').html(content);
 }
 
 function showSeriaslWinners(arr, size) {
@@ -332,7 +332,7 @@ function showWinners(arrInfo, chipWin) {
     if (loaderChip) $('#cont-loader').hide();
     if (roomStatus == 3) $('#text-check-bingo').hide();
 
-    const arrSizeJackpot = arrInfo.jackpotWinners.size;
+    const arrSizeJackpot = arrInfo.prize_poolWinners.size;
     const arrSizeSerials = arrInfo.serialsWinners.size ?? 0;
 
     const countWinners = arrSizeJackpot + arrSizeSerials;
@@ -348,8 +348,8 @@ function showWinners(arrInfo, chipWin) {
             "alt": chipWin
         });
 
-        showJackpotWinners(arrInfo.jackpotWinners, arrSizeJackpot);
-        $('#jackpot-value').text(arrInfo.prizesValues[0]);
+        showJackpotWinners(arrInfo.prize_poolWinners, arrSizeJackpot);
+        $('#prize_pool-value').text(arrInfo.prizesValues[0]);
 
         if (arrSizeSerials > 0) {
             showSeriaslWinners(arrInfo.serialsWinners, arrSizeSerials);

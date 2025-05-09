@@ -30,11 +30,11 @@ function handlePercentageAdjust(changedId) {
     }
 }
 
-$(document).on("input", "#fixed-jackpot-value, #ctn-price, #time-chip, #num-serials, #max-plays-ramdom", function () {
+$(document).on("input", "#fixed-prize_pool-value, #ctn-price, #time-chip, #num-serials, #max-plays-ramdom", function () {
     const id = $(this).attr('id');
     validateInput(this, !['num-serials', 'time-chip', 'max-plays-ramdom'].includes(id));
 });
 
-$(document).on("input", ".jackpot-pct", function () {
+$(document).on("input", ".prize_pool-pct", function () {
     validateInput(this, true, () => handlePercentageAdjust($(this).attr('id')));
 });

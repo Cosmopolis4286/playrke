@@ -112,16 +112,16 @@
                                             </div>
                                         </div>
                                         <div class="b_info_card">
-                                            <div class="bot_card" title="jackpot Acumulado">
+                                            <div class="bot_card" title="prize_pool Acumulado">
                                                 <input type="checkbox" id="evento-click">
                                                 <label for="evento-click"></label>
                                                 <i class="icon-min fa-solid fa-coins"></i>
-                                                <span class="b_bs">Bs {{ number_format($trivia->jackpot, 2) }}</span>
+                                                <span class="b_bs">Bs {{ number_format($trivia->prize_pool, 2) }}</span>
                                                 <span class="b_usd">
                                                     @if (count($CommerceExchangeRate) > 0)
-                                                        $ {{ number_format($trivia->jackpot / $CommerceExchangeRate[0]->CommerceExchangeRate_RKE, 2) }}
+                                                        $ {{ number_format($trivia->prize_pool / $CommerceExchangeRate[0]->CommerceExchangeRate_RKE, 2) }}
                                                     @else
-                                                        $ {{ number_format($trivia->jackpot, 2) }}
+                                                        $ {{ number_format($trivia->prize_pool, 2) }}
                                                     @endif
                                                 </span>
                                             </div>

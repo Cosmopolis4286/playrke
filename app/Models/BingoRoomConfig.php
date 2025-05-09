@@ -20,11 +20,11 @@ class BingoRoomConfig extends Model
     'ctn_price',
     'room_commn',
     'jackpot_type',
-    'fixed_jackpot_value',
+    'amount_added_jackpot',
     'time_chip',
     'pct_serials',
     'num_serials',
-    'serials_commn',
+    'pct_jackpot',
     'pct_types_plays',
     'types_plays'
   ];

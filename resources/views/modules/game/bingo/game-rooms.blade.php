@@ -50,14 +50,14 @@
                         @endif --}}
                             <img class="card-game-room__room-image" src="{{ asset('img/bg/estelar_fd.png') }}"
                                 alt="IMG">
-                            <div class="container-card-game-room__jackpot">
-                                <span class="card-game-room__jackpot-text">
+                            <div class="container-card-game-room__prize_pool">
+                                <span class="card-game-room__prize_pool-text">
                                     {{ $room->Config->jackpot_type == 1 ? 'Bote:' : 'Premio:' }}
                                 </span>
-                                <div class="card-game-room__jackpot-amount">
+                                <div class="card-game-room__prize_pool-amount">
                                     <h3>
-                                        <span id="jackpot-room_{{ $room->encrypted }}">
-                                            {{ number_format($room->jackpot * $exchangeRate, 2) }}
+                                        <span id="prize_pool-room_{{ $room->encrypted }}">
+                                            {{ number_format($room->prize_pool * $exchangeRate, 2) }}
                                         </span>
                                         <small id="coin-symbol-room_{{ $room->encrypted }}">
                                             {{ $coinSym }}
@@ -192,13 +192,13 @@
 
                     generateModalPurchase(roomID);
 
-                    $('#purchase-ctns__coin-text').text(room.jackpotType);
+                    $('#purchase-ctns__coin-text').text(room.prize_poolType);
                     $('.purchase-ctns__coin-label').text(room.coin);
-                    $('#jackpot-amount').text(room.jackpotAmount);
+                    $('#prize_pool-amount').text(room.prize_poolAmount);
                     formatDateTime(room.dateTime);
                     handleTotalAmount();
 
-                    $(`#jackpot-room_${roomID}`).text(room.jackpotAmount);
+                    $(`#prize_pool-room_${roomID}`).text(room.prize_poolAmount);
 
                     if ($(`#ctn-price_${roomID}`).text() != ctnPrice) {
                         $(`#ctn-price_${roomID}`).text(ctnPrice);
@@ -247,8 +247,8 @@
                 success: function(res) {
                     showToast(res.message, res.type);
                     if (res.type === 'success') {
-                        $('#jackpot-amount').text(res.jackpot);
-                        $(`#jackpot-room_${roomID}`).text(res.jackpot);
+                        $('#prize_pool-amount').text(res.prize_pool);
+                        $(`#prize_pool-room_${roomID}`).text(res.prize_pool);
                         $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
                     }
                 },

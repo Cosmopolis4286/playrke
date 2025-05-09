@@ -132,8 +132,8 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
 
             showToast(data.message, data.type);
 
-            if (data.jackpot) {
-                $("#jackpot-amount").text(data.jackpot);
+            if (data.prize_pool) {
+                $("#prize_pool-amount").text(data.prize_pool);
                 setTimeout(function () {
                     location.reload();
                 }, 3000);
