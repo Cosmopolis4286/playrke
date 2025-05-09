@@ -33,7 +33,7 @@
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const roomType = $("#room-type");
-        const prize_poolType = $("#prize_pool-type");
+        const prize_poolType = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const roomTypes = @json($roomType);
         const existsRoomTypes = !$.isEmptyObject(roomTypes);
@@ -53,13 +53,13 @@
         });
 
         function changeFixedJackpot(val) {
-            const container = $("#cont-fixed-prize_pool-value");
+            const container = $("#cont-amount-added-jackpot");
 
             if (val > 1) {
                 container.removeClass('hide-elem');
             } else {
                 container.addClass('hide-elem');
-                $("#fixed-prize_pool-value").empty();
+                $("#amount-added-jackpot").empty();
             }
         }
 
@@ -171,7 +171,7 @@
 
                 if (room.jackpot_type > 1) {
                     changeFixedJackpot(2);
-                    $('#fixed-prize_pool-value').val(room.amount_added_jackpot);
+                    $('#amount-added-jackpot').val(room.amount_added_jackpot);
                 }
             }
 
@@ -180,7 +180,7 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'time', 'room-type', 'prize_pool-type', 'game-mode',
+                'time', 'room-type', 'jackpot-type', 'game-mode',
                 'room-commn', 'ctn-price', 'time-chip', 'pct-serials', 'num-serials'
             ]);
         });
