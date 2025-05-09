@@ -1094,7 +1094,7 @@ class BingoController extends Controller
         $bingoPlays = BingoTypesPlays::getAllByUser($creator['userId'], ['id', 'name'], 1);
 
         $timeZoneID = User::getValueById($creator['userId'], 'time_zone');
-        $timeZone = TimeZone::getValueById($timeZoneID);
+        $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
@@ -2347,7 +2347,7 @@ class BingoController extends Controller
         $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
 
         $timeZoneID = User::getValueById($creator['userId'], 'time_zone');
-        $timeZone = TimeZone::getValueById($timeZoneID);
+        $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',

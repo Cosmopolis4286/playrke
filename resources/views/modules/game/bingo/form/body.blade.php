@@ -1,7 +1,11 @@
 <div class="row">
     @php
-        $now = \Carbon\Carbon::now($timeZone);
+        $now = \Carbon\Carbon::now($timeZone->name);
     @endphp
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="time-zone">Zona Horaria</label>
+        <input type="text" class="form-control" value="{{ $timeZone->utc }}" disabled>
+    </div>
     @if (!isset($automaticRoom))
         <div class="form-group col-sm-6 col-md-4">
             <label for="date">Fecha*</label>
