@@ -5,7 +5,7 @@
         </div>
         <div id="cont-prize_pool-info-amount" class="p-1">
             <small id="cont-jackpot-type">
-                {{ $prize_poolType == 1 ? 'Bote' : ($prize_poolType == 2 ? 'Premio' : '') }}
+                {{ $jackpot_type == 1 ? 'Bote' : ($jackpot_type == 2 ? 'Premio' : '') }}
             </small>
             <div id="cont-prize_pool-amount">
                 <small id="prize_pool-coin-sym" class="mr-1">{{ $coinSym }}</small>

@@ -417,7 +417,7 @@ class SellerController extends Controller
         $countriesCoins = $this->getAvailableCountriesBySeller($room->id);
 
         return response()->json([
-            'prize_poolType' => $room->Config->jackpot_type,
+            'jackpot_type' => $room->Config->jackpot_type,
             'prize_pool' => $room->prize_pool,
             'coin' => 'USDT',
             'price' => $room->Config->ctn_price,

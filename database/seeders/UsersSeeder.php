@@ -23,7 +23,7 @@ class UsersSeeder extends Seeder
             'phone' => null,
             'email' => 'admin@playrke.com',
             'email_verified_at' => now(),
-            'password' => Hash::make('12345678-RKE'), // Contraseña encriptada
+            'password' => Hash::make('EHC-4286-RKE'), // Contraseña encriptada
             'remember_token' => null,
             'referral_code' => 'ABC123XYZ456',
             'referred_by' => null,

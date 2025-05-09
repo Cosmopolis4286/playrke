@@ -9,7 +9,7 @@
                 <th>CTN</th>
                 <th>#PJ</th>
                 <th>Venta</th>
-                <th>Jackpot</th>
+                <th>Bote</th>
                 <th>Status</th>
                 <th>Acción</th>
             </tr>

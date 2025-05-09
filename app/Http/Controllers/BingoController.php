@@ -429,7 +429,7 @@ class BingoController extends Controller
         $data = [
             'room' => $room->id,
             'typeSale' => $request->type_sale,
-            'prize_poolType' => $room->Config->jackpot_type,
+            'jackpot_type' => $room->Config->jackpot_type,
             'numOfCtns' => $request->num_ctns ?? 1
         ];
 
@@ -752,7 +752,7 @@ class BingoController extends Controller
             'creatorType' => $creator['type'],
             'creatorID' => encrypt($creatorID),
             'room' => $room,
-            'prize_poolType' => $room->Config->jackpot_type,
+            'jackpot_type' => $room->Config->jackpot_type,
             'coinSym' => $coinSym,
             'prize_pool' => $this->convertPrizeValue($roomID, $coinID),
             'startTime' => $this->convertToUnixTimestamp($room->Config->date, $room->Config->time),
@@ -1116,7 +1116,7 @@ class BingoController extends Controller
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
-            'prize_poolType' => JackpotType::all(),
+            'jackpot_type' => JackpotType::all(),
             'gameModes' => GameModes::all()
         ];
 
@@ -2029,7 +2029,7 @@ class BingoController extends Controller
             'dateTime' => $roomConfig->unix_date,
             'coin' => $coin,
             'prize_poolAmount' => number_format(($room->prize_pool * $exchangeRate), 2, '.'),
-            'prize_poolType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
+            'jackpot_type' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
             'ctnPrice' => number_format(($ctnPrice), 2, '.')
         ];
 
@@ -2360,7 +2360,7 @@ class BingoController extends Controller
             'activeRooms' => $activeRooms,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
-            'prize_poolType' => JackpotType::all(),
+            'jackpot_type' => JackpotType::all(),
             'gameModes' => GameModes::all()
         ];
 

@@ -650,7 +650,7 @@ trait BingoTrait
             // Variable para definir monto a anexar al bote
             $amountAddJackpot = number_format($saleAmount, 3, '.');
 
-            if ($arrCtn['prize_poolType'] == 2) {
+            if ($arrCtn['jackpot_type'] == 2) {
                 // Si el bote es tipo "Premio"
                 $amountAddJackpot = 0;
             }

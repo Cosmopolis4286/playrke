@@ -331,7 +331,7 @@
                         }
                         const {
                             prize_pool,
-                            prize_poolType,
+                            jackpot_type,
                             price,
                             coin,
                             countries,
@@ -347,7 +347,7 @@
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
                         prize_poolRoom = formatNumber(prize_pool, 3);
-                        $(".jackpot-type").text(prize_poolType == 1 ? 'Bote' : 'Premio');
+                        $(".jackpot-type").text(jackpot_type == 1 ? 'Bote' : 'Premio');
                         $("#tx-prize_pool-room").text(prize_poolRoom);
                         calculateSale();
                         $(".ctn-player-info, #cont-tx-prize_pool-room").removeClass('hide-elem');

@@ -33,11 +33,11 @@
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const roomType = $("#room-type");
-        const prize_poolType = $("#jackpot-type");
+        const jackpot_type = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const roomTypes = @json($roomType);
         const existsRoomTypes = !$.isEmptyObject(roomTypes);
-        const arrJackpotType = @json($prize_poolType);
+        const arrJackpotType = @json($jackpot_type);
         const arrGameModes = @json($gameModes);
         let coinsCtnPrice = false;
 
@@ -90,7 +90,7 @@
                 });
         });
 
-        prize_poolType.on('change', function() {
+        jackpot_type.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
@@ -116,7 +116,7 @@
                 roomType.empty();
             }
 
-            prize_poolType.empty();
+            jackpot_type.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -131,7 +131,7 @@
                     gameMode.append(`<option value="1" selected>Online</option>`);
                 }
 
-                prize_poolType.append(defaultOption);
+                jackpot_type.append(defaultOption);
             }
 
             if (creatorType !== 'customer' && existsRoomTypes) {
@@ -143,7 +143,7 @@
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.room.jackpot_type) ? 'selected' : '';
-                prize_poolType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                jackpot_type.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             if (creatorType !== 'customer' && arrGameModes.length) {

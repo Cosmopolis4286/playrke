@@ -192,7 +192,7 @@
 
                     generateModalPurchase(roomID);
 
-                    $('#purchase-ctns__coin-text').text(room.prize_poolType);
+                    $('#purchase-ctns__coin-text').text(room.jackpot_type);
                     $('.purchase-ctns__coin-label').text(room.coin);
                     $('#prize_pool-amount').text(room.prize_poolAmount);
                     formatDateTime(room.dateTime);

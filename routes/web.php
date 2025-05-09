@@ -290,11 +290,11 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
 
     Route::post('test/regenerate-draw', [BingoController::class, 'regenerateDraw'])->name('test.regenerateDraw');
 
-    // Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
-    //     ->middleware(['auth', 'admin'])->name('game-rooms-admin');
+    Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
+        ->middleware(['auth', 'admin'])->name('game-rooms-admin');
 
-    // Route::get('{roomType}/game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
-    //     ->middleware(['auth', 'commerce'])->name('game-rooms-commerce');
+    Route::get('{roomType}/game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
+        ->middleware(['auth', 'commerce'])->name('game-rooms-commerce');
 
     Route::post('actWn', [BingoController::class, 'actWn'])->middleware(['auth', 'admin'])->name('actWn');
 });
