@@ -66,7 +66,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return UserType::getValueById($userType, 'prefix');
     }
 
-    public static function getCreatorIDByUserType($user, $userType = '', $type = false)
+    public static function getCreatorUser($user, $userType = false, $type = false)
     {
         if (!$userType) {
             $userType = self::getUserTypePrefix($user);
@@ -78,7 +78,7 @@ class User extends Authenticatable implements MustVerifyEmail
         $creatorID = app("App\\Models\\$model")::where('user', $user)->value('id');
         $cratorType = $userType;
 
-        return $type ? ['type' => $cratorType, 'id' => $creatorID] : $creatorID;
+        return $type ? ['type' => $cratorType, 'id' => $creatorID, 'userId' => $user] : $creatorID;
     }
 
     public static function getById($userId, $fields = ['*'])

@@ -788,7 +788,7 @@ class BingoController extends Controller
         if (!$player) abort(404); // Retorna un error 404 Not Found
 
         $creatorUser = $player->creator_user;
-        $userCreator = User::getCreatorIDByUserType($creatorUser, '', true);
+        $userCreator = User::getCreatorUser($creatorUser, false, true);
 
         if (!$player) abort(404); // Retorna un error 404 Not Found
 
@@ -841,7 +841,7 @@ class BingoController extends Controller
 
         $creator = [
             'type' => UserType::getValueById($code->user_type, 'prefix'),
-            'id' => User::getCreatorIDByUserType($creatorUser),
+            'id' => User::getCreatorUser($creatorUser),
             'userId' => $creatorUser
         ];
 

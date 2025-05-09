@@ -841,7 +841,7 @@ trait BingoTrait
         $room = BingoRoom::getById($roomID, ['creator_user', 'prize_pool']);
 
         $creatorUser = $room->creator_user;
-        $userCreator = User::getCreatorIDByUserType($creatorUser, '', true);
+        $userCreator = User::getCreatorUser($creatorUser, false, true);
 
         $creator = ['type' => $userCreator['type'], 'id' => $userCreator['id'], 'userId' => $creatorUser];
 

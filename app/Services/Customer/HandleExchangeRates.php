@@ -49,35 +49,47 @@ class HandleExchangeRates
         }
     }
 
-    public function updateExchangeRates($creatorUser = '')
+    public function updateExchangeRates($creator = '')
     {
         DB::beginTransaction();
 
         try {
+
             $data = $this->getExchangeRates();
 
-            if ($creatorUser) {
-                $customers = [
-                    Customer::getValueByUserId($creatorUser, 'id')
-                ];
-            } else {
-                $customers = Customer::pluck('id');
-            }
+            switch ($creator['type']) {
 
-            foreach ($customers as $customerID) {
+                case 'commerce':
+                    # code...
+                    break;
+                case 'customer':
 
-                foreach ($data as $coin => $newExchangeRate) {
+                    if ($creator) {
+                        $customers = [$creator['id']];
+                    } else {
+                        $customers = Customer::pluck('id');
+                    }
 
-                    if ($coin === 'Promedio') continue;
+                    foreach ($customers as $customerID) {
 
-                    $currentRate = CustomerExchangeRate::getCustomerCoinValue($customerID, $coin);
+                        foreach ($data as $coin => $newExchangeRate) {
 
-                    $pct = $currentRate != 0
-                        ? round((($newExchangeRate * 100) / $currentRate) - 100, 2)
-                        : 0;
+                            if ($coin === 'Promedio') continue;
 
-                    CustomerExchangeRate::updateOrCreateExchangeRate($customerID, $coin, $newExchangeRate, $pct, $customerID);
-                }
+                            $currentRate = CustomerExchangeRate::getCustomerCoinValue($customerID, $coin);
+
+                            $pct = $currentRate != 0
+                                ? round((($newExchangeRate * 100) / $currentRate) - 100, 2)
+                                : 0;
+
+                            CustomerExchangeRate::updateOrCreateExchangeRate($customerID, $coin, $newExchangeRate, $pct, $customerID);
+                        }
+                    }
+                    break;
+
+                default:
+                    # code...
+                    break;
             }
 
             DB::commit();
@@ -85,7 +97,7 @@ class HandleExchangeRates
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error al procesar la actualización de las tasas de cambio: " . $e->getMessage());
-            return ['Error' => 'Ocurrió un error al procesar la actualización de las tasas de cambio'];
+            return ['Error' => 'Error al procesar la actualización de las tasas de cambio'];
         }
     }
 }

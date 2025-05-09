@@ -64,7 +64,7 @@ class HandleBingoRooms
         }
 
         $creatorUser = $room->creator_user;
-        $creator = User::getCreatorIDByUserType($creatorUser, '', true);
+        $creator = User::getCreatorUser($creatorUser, false, true);
 
         if ($creator['type'] === 'commerce') {
             // Actulizar estado de los cartones ganadores
