@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('coin', 15);
             $table->double('sale_amount');
             $table->double('final_sale_amount');
+            $table->double('prize_pool');
             $table->timestamps();
         });
     }

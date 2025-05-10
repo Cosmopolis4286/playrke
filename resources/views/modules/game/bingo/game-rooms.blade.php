@@ -226,7 +226,7 @@
             if (isLogin || player === 'GAMES') return;
 
             $.ajax({
-                url: route('bingocash.generateCarton'),
+                url: route('bingo.generateCarton'),
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': $('#5K3_70K').val()
@@ -363,7 +363,7 @@
                                 player,
                                 room
                             }) :
-                            route('bingocash.in-game-customer', {
+                            route('bingo.in-game-customer', {
                                 customer: '{{ $customerID }}',
                                 userToken,
                                 room

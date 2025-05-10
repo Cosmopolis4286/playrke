@@ -24,13 +24,13 @@
                     $roomID = $room->encrypted;
 
                     if ($creator['type'] === 'customer') {
-                        $roomRoute = route('bingocash.out-game-customer', [
+                        $roomRoute = route('bingo.out-game-customer', [
                             'customer' => $creator['id'],
                             'room' => $roomID,
                             'coin' => encrypt($coin),
                         ]);
                     } else {
-                        $roomRoute = route('bingocash.out-game', [
+                        $roomRoute = route('bingo.out-game', [
                             'uuidCode' => $uuidCode,
                             'room' => $roomID,
                             'coin' => encrypt($coin),

@@ -435,7 +435,7 @@ trait BingoTrait
 
         $commnSeller = ($saleAmount * $commnSeller) / 100;
 
-        return $commnSeller ? number_format($commnSeller, 2, '.') : 0;
+        return $commnSeller ? round($commnSeller, 2) : 0;
     }
 
     // Función para crear el lote de cartones
@@ -447,7 +447,7 @@ trait BingoTrait
 
         if ($seller) {
             $sellerCommn = Seller::getValueById($seller, 'commn') / 100;
-            $finalSaleAmount = number_format($saleAmount * (1 - $sellerCommn), 2, '.');
+            $finalSaleAmount = round($saleAmount * (1 - $sellerCommn), 2);
         }
 
         $currentTime = now();
@@ -730,7 +730,7 @@ trait BingoTrait
             $gameMode = $room->Config->game_mode;
 
             // Formatear Monto de Venta
-            $saleAmount = number_format($numOfCtns * $arrCtn['ctnPrice'], 2, '.');
+            $saleAmount = round($numOfCtns * $arrCtn['ctnPrice'], 2);
 
             // Registrar o actualizar el usuario en la sala
             $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);

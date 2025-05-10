@@ -110,7 +110,7 @@ $(document).on("click", "#btn-buy-ctns-confirm", function () {
     }
 
     $.ajax({
-        url: route('bingocash.generateCarton'),
+        url: route('bingo.generateCarton'),
         headers: {
             'X-CSRF-TOKEN': $("#5K3_70K").val()
         },
