@@ -27,13 +27,13 @@
                         $roomRoute = route('bingocash.out-game-customer', [
                             'customer' => $creator['id'],
                             'room' => $roomID,
-                            'coin' => encrypt($coin),
+                            'coin' => encrypt($coinSym),
                         ]);
                     } else {
                         $roomRoute = route('bingocash.out-game', [
                             'uuidCode' => $uuidCode,
                             'room' => $roomID,
-                            'coin' => encrypt($coinSym),
+                            'coin' => encrypt($coin),
                         ]);
                     }
 

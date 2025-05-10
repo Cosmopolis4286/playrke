@@ -49,7 +49,7 @@ class ExchangeRateController extends Controller
 
                 $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($creatorID);
 
-                $this->checkBankDirectoriesExistence('commerce', $commerceCoins);
+                $this->checkBankDirectoriesExistence($commerceCoins);
 
                 $array = array_filter($this->getAvailableCoins($commerce->user), fn($value) => $value !== 1);
 

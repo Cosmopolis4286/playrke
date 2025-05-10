@@ -2,6 +2,9 @@
 
 namespace App\Services\Customer;
 
+use App\Models\Coin;
+use App\Models\Commerce;
+use App\Models\CommerceExchangeRate;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use Illuminate\Support\Facades\DB;
@@ -60,14 +63,40 @@ class HandleExchangeRates
             switch ($creator['type']) {
 
                 case 'commerce':
-                    # code...
+
+                    if ($creator) {
+                        $commerces = [$creator['id']];
+                    } else {
+                        $commerces = Commerce::where('status', 1)->pluck('id');
+                    }
+
+                    foreach ($commerces as $commerceID) {
+
+                        foreach ($data as $coin => $newExchangeRate) {
+
+                            if ($coin === 'Promedio') continue;
+
+                            $coin = Coin::getValueByISOCode($coin, 'id');
+
+                            if (!$coin) continue;
+
+                            $currentRate = CommerceExchangeRate::getCommerceCoinValue($commerceID, $coin);
+
+                            $pct = $currentRate != 0
+                                ? round((($newExchangeRate * 100) / $currentRate) - 100, 2)
+                                : 0;
+
+                            CommerceExchangeRate::updateOrCreateExchangeRate($commerceID, $coin, $newExchangeRate, $pct);
+                        }
+                    }
+
                     break;
                 case 'customer':
 
                     if ($creator) {
                         $customers = [$creator['id']];
                     } else {
-                        $customers = Customer::pluck('id');
+                        $customers = Customer::where('status', 1)->pluck('id');
                     }
 
                     foreach ($customers as $customerID) {
@@ -82,7 +111,7 @@ class HandleExchangeRates
                                 ? round((($newExchangeRate * 100) / $currentRate) - 100, 2)
                                 : 0;
 
-                            CustomerExchangeRate::updateOrCreateExchangeRate($customerID, $coin, $newExchangeRate, $pct, $customerID);
+                            CustomerExchangeRate::updateOrCreateExchangeRate($customerID, $coin, $newExchangeRate, $pct);
                         }
                     }
                     break;

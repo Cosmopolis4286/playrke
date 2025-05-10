@@ -64,4 +64,29 @@ class CommerceExchangeRate extends Model
 
         return $query->distinct()->pluck('coin')->toArray();
     }
+
+    public static function updateOrCreateExchangeRate($commerce, $coin, $amount, $pct = '')
+    {
+        $lastRate = self::where(['commerce' => $commerce, 'coin' => $coin])
+            ->orderByDesc('id')->first();
+
+        // Solo crear nuevo si no existe o si el valor cambió
+        if (!$lastRate || $lastRate->exchange_rate != $amount) {
+
+            // Desactivar la tasa anterior si existe
+            if ($lastRate) {
+                $lastRate->status = 2;
+                $lastRate->save();
+            }
+
+            // Crear nueva tasa activa
+            self::create([
+                'commerce' => $commerce,
+                'coin' => $coin,
+                'exchange_rate' => $amount,
+                'pct' => $pct,
+                'status' => 1
+            ]);
+        }
+    }
 }

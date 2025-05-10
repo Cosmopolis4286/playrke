@@ -299,11 +299,12 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::post('actWn', [BingoController::class, 'actWn'])->middleware(['auth', 'admin'])->name('actWn');
 });
 
-Route::get('bingo/viewCtn/{ctnId}', [BingoController::class, 'viewCtn'])->name('bingo.viewCtn');
+Route::get('bingo/view-ctn/{ctnId}', [BingoController::class, 'viewCtn'])->name('bingo.viewCtn');
 // Salas de Juego BINGO 
 Route::get('bingo/{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoController::class, 'allRooms'])->name('bingo.all-rooms');
 // URL de Compra CUSTOMERS
-Route::get('{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('bingo.game-rooms-customer');
+//Route::get('{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('bingo.game-rooms-customer');
+Route::get('bingocash/player/{player}/{room?}', [BingoController::class, 'inGame'])->name('in-game');
 
 Route::group(['prefix' => 'bingo-automatic-room', 'as' => 'bingo-automatic-room.'], function () {
     /// Rutas de Salas Automaticas
@@ -320,7 +321,6 @@ Route::group(['prefix' => 'bingo-automatic-room', 'as' => 'bingo-automatic-room.
 Route::group(['prefix' => 'bingocash', 'as' => 'bingocash.'], function () {
 
     // Rutas Jugador/Comercio TODOS
-    Route::get('player/{player}/{room?}', [BingoController::class, 'inGame'])->name('in-game');
     Route::get('game-room/{uuidCode}/{room?}/{coin?}', [BingoController::class, 'outGame'])->name('out-game');
 
     // Procesar Compra de Cartones

@@ -145,9 +145,11 @@ window.onfocus = function () {
 };
 
 async function getGameData() {
+    
     if (endWin !== 0) return;
+
     try {
-        const data = await $.getJSON(`${preRoute}bingocash/get/chips/${encrypted}`, {
+        const data = await $.getJSON(route('bingocash.getChips', encrypted), {
             '_token': $("#5K3_70K").val()
         });
 

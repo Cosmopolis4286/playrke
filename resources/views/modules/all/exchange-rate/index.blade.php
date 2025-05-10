@@ -49,7 +49,7 @@
                                         {{ $item->exchange_rate }}
                                     </td>
                                     <td>
-                                        {{ $item->pct > 0 ? $item->pct . '%' : '-' }}
+                                        {{ $item->pct != 0 ? $item->pct . '%' : '-' }}
                                     </td>
                                     <td>
                                         @if ($item->status == 0)
