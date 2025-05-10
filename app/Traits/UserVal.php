@@ -117,50 +117,54 @@ trait UserVal
     public function checkBankDirectoriesExistence($coins)
     {
         $user = User::getCreatorUser(Auth::id(), false, true);
-        $coins = Coin::getCoinsById($coins, ['id', 'iso_code']);
-        $coinsWithoutDirectories = [];
+        $coinModels = Coin::getCoinsById($coins, ['id', 'iso_code']);
 
-        foreach ($coins as $coin) {
-            $exists = match ($coin->iso_code) {
-                'VES' => PagoMovil::where('user', $user['userId'])->exists(),
-                'BRL' => Pix::where('user', $user['userId'])->exists(),
-                'COP' => false,
-                default => throw new \InvalidArgumentException("Tipo de moneda no soportado."),
+        $coinsWithoutDirectories = collect($coinModels)->filter(function ($coin) use ($user) {
+            return match ($coin->iso_code) {
+                'VES' => !PagoMovil::where('user', $user['userId'])->exists(),
+                'BRL' => !Pix::where('user', $user['userId'])->exists(),
+                'COP' => true,
+                default => throw new \InvalidArgumentException("Tipo de moneda no soportado: {$coin->iso_code}"),
             };
+        })->pluck('id')->all();
 
-            if (!$exists) {
-                $coinsWithoutDirectories[] = $coin->id;
+        if (!in_array($user['type'], ['commerce', 'admin'])) return;
+
+        try {
+            DB::beginTransaction();
+            $commerceID = Commerce::getValueByUserId($user['userId'], 'id');
+
+            // Restaurar monedas que ahora sí tienen directorio
+            $restorables = CommerceExchangeRate::where('commerce', $commerceID)
+                ->where('status', 4)
+                ->whereNotIn('coin', $coinsWithoutDirectories)
+                ->orderByDesc('id')
+                ->get()
+                ->unique('coin');
+
+            foreach ($restorables as $record) {
+                $record->update(['status' => 1]);
             }
-        }
 
-        if (in_array($user['type'], ['commerce', 'admin'])) {
-            try {
-                DB::beginTransaction();
+            // Marcar status 4 en monedas sin directorio
+            foreach ($coinsWithoutDirectories as $coinId) {
+                $record = CommerceExchangeRate::where('commerce', $commerceID)
+                    ->where('coin', $coinId)
+                    ->where('status', '!=', 4)
+                    ->orderByDesc('id')
+                    ->first();
 
-                $commerceID = Commerce::getValueByUserId($user['userId'], 'id');
-                $query = CommerceExchangeRate::where('commerce', $commerceID);
-
-                if ($coinsWithoutDirectories) {
-                    // Primero: Restaurar monedas que tenían status 4 
-                    // pero que ahora tienen directorios válidos
-                    $query->where('status', 4)
-                        ->whereNotIn('coin', $coinsWithoutDirectories)
-                        ->update(['status' => 1]);
-
-                    // Segundo: Marcar monedas sin directorio como status 4
-                    $query->whereIn('coin', $coinsWithoutDirectories)
-                        ->where('status', 1)
-                        ->update(['status' => 4]);
+                if ($record) {
+                    $record->update(['status' => 4]);
                 }
-
-                DB::commit();
-            } catch (\Throwable $th) {
-                DB::rollBack();
-                Log::error("Error al cambiar el estado de las monedas sin directorios: {$th->getMessage()}");
             }
+
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error("Error al actualizar monedas sin directorios: {$th->getMessage()}");
         }
     }
-
 
     public function getPaymentDetailsByUserId($user, $coin)
     {

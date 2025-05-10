@@ -382,7 +382,7 @@ class SellerController extends Controller
         ]);
     }
 
-    public function getAvailableCountriesBySeller($roomID = '')
+    public function getAvailableCountriesBySeller()
     {
         $seller = $this->seller(['id', 'commerce']);
 
