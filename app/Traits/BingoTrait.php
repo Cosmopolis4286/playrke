@@ -391,7 +391,7 @@ trait BingoTrait
         $prizesValues = !empty($serialsWinners) ? [100 - $serialPrizePct, $serialPrizePct] : [100];
 
         return [
-            'prize_poolWinners' => $prizePoolWinners,
+            'prizePoolWinners' => $prizePoolWinners,
             'serialsWinners' => $serialsWinners,
             'prizesValues' => $prizesValues
         ];
@@ -674,7 +674,7 @@ trait BingoTrait
             // Preparar los datos para actualizar la sala
             $updateData = [
                 'all_sale' => $room->all_sale + $saleAmount,
-                'prizePool' => $room->prize_pool + $amountAddJackpot,
+                'prize_pool' => $room->prize_pool + $amountAddJackpot,
                 'full_house_prize' => $room->full_house_prize + $amountAddJackpot,
                 'ctns' => $room->ctns + $arrCtn['numOfCtns'],
                 'room_commn' => $room->room_commn + $creatorCommn
@@ -685,8 +685,7 @@ trait BingoTrait
             }
 
             // Actualiza la sala con los datos preparados
-            $room->update($updateData);
-            return true;
+            return $room->update($updateData);
         } catch (\Exception $e) {
             Log::error('Error al actualizar los datos de la sala: ' . $e->getMessage());
             return false;
@@ -1027,7 +1026,7 @@ trait BingoTrait
         $prizeCtns = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
         $winners = BingoRoomUser::getWinnersCountByRoom($roomID);
 
-        if ($prizeCtns && $winners) return false; // Ya existen cartones premiados (prize_pool)
+        if ($prizeCtns && $winners) return false; // Ya existen cartones premiados (full_house_prize)
 
         // Obtener el último chip sorteado
         $lastChip = BingoDraw::select('id', 'chip')->where('status', 3)->where('room', $roomID)->first();

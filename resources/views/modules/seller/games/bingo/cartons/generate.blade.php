@@ -251,13 +251,13 @@
             let ctns = numCtns.val();
             let total = formatNumber(ctnPrice * ctns);
             let totalsellerCommn = formatNumber(total * (sellerCommn / 100));
-            let prize_poolAmount = formatNumber((total - totalsellerCommn));
+            let prizePoolAmount = formatNumber((total - totalsellerCommn));
 
             if (roomID) {
                 $(".coin-symbol").text(coinSym);
                 $("#tx-total-amount").html(total);
                 $("#tx-seller-commn").html(totalsellerCommn);
-                $("#tx-commerce-amount").html(prize_poolAmount);
+                $("#tx-commerce-amount").html(prizePoolAmount);
             }
         }
 

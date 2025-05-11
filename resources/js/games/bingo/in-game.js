@@ -334,7 +334,7 @@ function showWinners(arrInfo, chipWin) {
     if (loaderChip) $('#cont-loader').hide();
     if (roomStatus == 3) $('#text-check-bingo').hide();
 
-    const arrSizeJackpot = arrInfo.prize_poolWinners.size;
+    const arrSizeJackpot = arrInfo.prizePoolWinners.size;
     const arrSizeSerials = arrInfo.serialsWinners.size ?? 0;
 
     const countWinners = arrSizeJackpot + arrSizeSerials;
@@ -350,7 +350,7 @@ function showWinners(arrInfo, chipWin) {
             "alt": chipWin
         });
 
-        showJackpotWinners(arrInfo.prize_poolWinners, arrSizeJackpot);
+        showJackpotWinners(arrInfo.prizePoolWinners, arrSizeJackpot);
         $('#prize_pool-value').text(arrInfo.prizesValues[0]);
 
         if (arrSizeSerials > 0) {

@@ -2059,7 +2059,7 @@ class BingoController extends Controller
         $room = [
             'dateTime' => $roomConfig->unix_date,
             'coin' => $coin,
-            'prize_poolAmount' => number_format(($room->prize_pool * $exchangeRate), 2, '.'),
+            'prizePoolAmount' => number_format(($room->prize_pool * $exchangeRate), 2, '.'),
             'jackpot_type' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
             'ctnPrice' => number_format(($ctnPrice), 2, '.')
         ];

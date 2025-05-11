@@ -194,11 +194,11 @@
 
                     $('#purchase-ctns__coin-text').text(room.jackpot_type);
                     $('.purchase-ctns__coin-label').text(room.coin);
-                    $('#prize_pool-amount').text(room.prize_poolAmount);
+                    $('#prize_pool-amount').text(room.prizePoolAmount);
                     formatDateTime(room.dateTime);
                     handleTotalAmount();
 
-                    $(`#prize_pool-room_${roomID}`).text(room.prize_poolAmount);
+                    $(`#prize_pool-room_${roomID}`).text(room.prizePoolAmount);
 
                     if ($(`#ctn-price_${roomID}`).text() != ctnPrice) {
                         $(`#ctn-price_${roomID}`).text(ctnPrice);
