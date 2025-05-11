@@ -418,7 +418,7 @@ class SellerController extends Controller
 
         return response()->json([
             'jackpot_type' => $room->Config->jackpot_type,
-            'prize_pool' => $room->prize_pool,
+            'prizePool' => $room->prize_pool,
             'coin' => 'USDT',
             'price' => $room->Config->ctn_price,
             'countries' => $countriesCoins['countries'],

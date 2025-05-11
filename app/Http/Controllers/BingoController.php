@@ -531,7 +531,7 @@ class BingoController extends Controller
                 DB::commit(); // Confirmar transacción
 
                 return response()->json([
-                    'prize_pool' => $prizePool,
+                    'prizePool' => $prizePool,
                     'ctns' => $ctns,
                     'type' => 'success',
                     'message' => 'Proceso efectuado con éxito'
@@ -1279,7 +1279,7 @@ class BingoController extends Controller
             'status' => 1,
             'room_type' => $request->room_type,
             'creator_user' => $userID,
-            'prize_pool' => $boat,
+            'prizePool' => $boat,
             'code_uuid' => $this->getCodeUUID($model)
         ];
 
@@ -1445,7 +1445,7 @@ class BingoController extends Controller
         $boat = $request->jackpot_type > 1 ? $fixedJackpotValue : 0;
         $coin = $request->coin ?? 1;
 
-        $updateDataRoom = ['room_type' => $request->room_type, 'prize_pool' => $room->prize_pool + $boat];
+        $updateDataRoom = ['room_type' => $request->room_type, 'prizePool' => $room->prize_pool + $boat];
 
         $updateDataConfig = [
             'date' => $newDate,
@@ -2059,7 +2059,7 @@ class BingoController extends Controller
             'status' => 1,
             'room_type' => $existingRoom->room_type,
             'creator_user' => $userID,
-            'prize_pool' => $boat,
+            'prizePool' => $boat,
             'code_uuid' => $this->getCodeUUID($model)
         ];
 
@@ -3026,7 +3026,7 @@ class BingoController extends Controller
                     'allSales' => 0,
                     'comSaleSeller' => 0,
                     'finalSale' => 0,
-                    'prize_pool' => 0,
+                    'prizePool' => 0,
                     'comBanca' => 0,
                 ];
 
@@ -3073,7 +3073,7 @@ class BingoController extends Controller
                     'allSales' => number_format($totals['allSales'], 2, '.', ','),
                     'comSaleSeller' => number_format($totals['comSaleSeller'], 2, '.', ','),
                     'finalSale' => number_format($totals['finalSale'], 2, '.', ','),
-                    'prize_pool' => number_format($totals['prize_pool'], 2, '.', ','),
+                    'prizePool' => number_format($totals['prize_pool'], 2, '.', ','),
                     'comBanca' => number_format($totals['comBanca'], 2, '.', ','),
                 ];
 

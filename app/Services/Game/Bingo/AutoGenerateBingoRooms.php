@@ -89,7 +89,7 @@ class AutoGenerateBingoRooms
             'status' => 2,
             'room_type' => $room->room_type,
             'creator_user' => $room->creator_user,
-            'prize_pool' => $boat,
+            'prizePool' => $boat,
             'code_uuid' => $this->getCodeUUID($model)
         ];
     }

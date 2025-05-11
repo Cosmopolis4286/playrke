@@ -674,7 +674,7 @@ trait BingoTrait
             // Preparar los datos para actualizar la sala
             $updateData = [
                 'all_sale' => $room->all_sale + $saleAmount,
-                'prize_pool' => $room->prize_pool + $amountAddJackpot,
+                'prizePool' => $room->prize_pool + $amountAddJackpot,
                 'full_house_prize' => $room->full_house_prize + $amountAddJackpot,
                 'ctns' => $room->ctns + $arrCtn['numOfCtns'],
                 'room_commn' => $room->room_commn + $creatorCommn
