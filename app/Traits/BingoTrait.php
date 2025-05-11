@@ -379,7 +379,7 @@ trait BingoTrait
         //Obtener Conteo de Ganadores
         $countWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
 
-        if (!$countWinnersJackpot) $this->handleJackpotWinners($roomID);
+        if (!$countWinnersJackpot) $this->handleWinners($roomID);
 
         $prize_poolWinners = $this->getWinnersFullHouse($roomID, $roomUser, $coin);
 
@@ -1014,7 +1014,7 @@ trait BingoTrait
 
     public function handleTypesOfPlays($roomID) {}
 
-    public function handleJackpotWinners($roomID)
+    public function handleWinners($roomID)
     {
         // Obtener la información de la sala
         $room = BingoRoom::with('Config:room,pct_serials')
@@ -1148,7 +1148,7 @@ trait BingoTrait
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error en handleJackpotWinners: ' . $e->getMessage());
+            Log::error('Error en handleWinners: ' . $e->getMessage());
             // Devolver un mensaje de error
             return response()->json(['error' => 'Hubo un error al procesar la solicitud.'], 500);
         }
@@ -1168,16 +1168,16 @@ trait BingoTrait
         if (isset($data['Error'])) return $data['Error'];
 
         // Si no hay ganadores en la sala
-        if (!count($data['winners'])) $this->handleJackpotWinners($roomID);
+        if (!count($data['winners'])) $this->handleWinners($roomID);
 
         $coin = $coin ? $coin : $data['coin'];
 
         $fullHousePrize = BingoRoom::getValueById($roomID, 'full_house_prize');
 
         // Calcular el bote de la sala con respecto a la moneda del jugador
-        $prize_pool = $this->convertPrizeValue($roomID, $coin, $fullHousePrize);
+        $fullHousePrize = $this->convertPrizeValue($roomID, $coin, $fullHousePrize);
 
-        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $prize_pool);
+        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $fullHousePrize);
     }
 
     public function handleSerialWinners($roomID, $serialPrize, $roomUserIds) // Obtener Seriales Ganadores

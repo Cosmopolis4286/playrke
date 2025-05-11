@@ -746,7 +746,7 @@ class BingoController extends Controller
                 $randomKey
             ) : [];
 
-        $fullHousePrize = BingoRoom::getValueById($roomID, 'full_house_prize');
+        $prizePool = BingoRoom::getValueById($roomID, 'prize_pool');
 
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
@@ -756,7 +756,7 @@ class BingoController extends Controller
             'room' => $room,
             'jackpot_type' => $room->Config->jackpot_type,
             'coinSym' => $coinSym,
-            'prize_pool' => $this->convertPrizeValue($roomID, $coinID, $fullHousePrize),
+            'prize_pool' => $this->convertPrizeValue($roomID, $coinID, $prizePool),
             'startTime' => $this->convertToUnixTimestamp($room->Config->date, $room->Config->time),
             'chipsRest' => $chipsRest,
             'cartons' => $ctns ?? [],

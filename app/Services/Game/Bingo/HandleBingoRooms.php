@@ -58,7 +58,7 @@ class HandleBingoRooms
     private function processFinishedRoom($room): void
     {
         if (!BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 1)) {
-            $this->handleJackpotWinners($room->id);
+            $this->handleWinners($room->id);
         } else {
             $this->allWinCtnPaid($room->id);
         }
