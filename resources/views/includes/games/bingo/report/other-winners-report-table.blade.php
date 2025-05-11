@@ -4,6 +4,7 @@
         <thead>
             <tr>
                 <th>Sala</th>
+                <th>Tipo</th>
                 <th>Comercio</th>
                 <th>Jugador</th>
                 <th>País</th>
@@ -17,25 +18,23 @@
         </thead>
         <tbody>
             @foreach ($winners as $win)
-                @php
-                    $countCommerces = $win->Room->CtnsLot->distinct()->pluck('commerce')->count();
-                    $totalWinners =
-                        $win->prize_type == 1 ? $winnersData['winnersJackpot'] : $winnersData['winnersSerials'];
-                @endphp
                 <tr>
                     <td class="align-middle">
                         <a class="badge bg-navy" title="Ver Reporte"
-                            href="{{ route('bingo.reportSalesByRoom', ['room' => $win->Room->encrypted, 'coin' => encrypt($wallet->Coin->id)]) }}">
+                            href="{{ route('bingo.reportSalesByRoom', ['room' => $win->Room->encrypted, 'coin' => encrypt($coin)]) }}">
                             {{ $win->Room->encrypted }}
                         </a>
                     </td>
-                    <td>{{ $win->Commerce->name }}</td>
+                    <td>{{ $win->Room->room_type_description }}</td>
+                    <td>
+                        {{-- {{ $win->Commerce->name }} --}}
+                    </td>
                     <td>{{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}</td>
                     <td>{{ $win->PlayerLink->Country->name }}</td>
                     <td>{{ $win->Coin->long_name }}</td>
                     <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount }}</td>
                     <td>{{ $win->Prize->description }}</td>
-                    <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount / $totalWinners }}</td>
+                    <td>--</td>
                     <td>
                         @if ($win->PlayerGame->winner == 1)
                             <span class="badge bg-dark">Pendiente</span>
@@ -48,7 +47,7 @@
                     <td>
                         <div class="btn-group" role="group" aria-label="Acciones">
                             @if ($win->PlayerGame->winner == 1)
-                                @if ($win->commerce == $commerceID)
+                                {{-- @if ($win->commerce == $commerceID)
                                     <button type="button" class="btn btn-danger btn-sm notify-ctn-payment"
                                         title="Notificar Pago" data-payment_type="1" data-count_commerce=""
                                         data-coin_sym="{{ $win->Coin->name }}" data-prize_amount="{{ $win->amount }}"
@@ -59,11 +58,10 @@
                                     <button type="button" class="btn btn-danger btn-sm notify-ctn-payment"
                                         title="Notificar Pago" data-payment_type="2"
                                         data-commerce='{{ encrypt($win->Commerce->id) }}'
-                                        data-id_coin='{{ encrypt($win->Coin->id) }}'
-                                        data-amount-sent='{{ $win->amount / $winnersData['totalWinners'] }}'>
+                                        data-id_coin='{{ encrypt($win->Coin->id) }}' data-amount-sent=''>
                                         Pago Comercio
                                     </button>
-                                @endif
+                                @endif --}}
                             @endif
                             <a class="btn btn-sm bg-primary show-ctns" target="_blank"
                                 href="{{ route('bingo.in-game', ['player' => $win->PlayerLink->link]) }}">

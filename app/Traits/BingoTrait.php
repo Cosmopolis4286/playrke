@@ -381,7 +381,7 @@ trait BingoTrait
 
         if (!$countWinnersJackpot) $this->handleJackpotWinners($roomID);
 
-        $prize_poolWinners = $this->getWinnersJackpot($roomID, $roomUser, $coin);
+        $prize_poolWinners = $this->getWinnersFullHouse($roomID, $roomUser, $coin);
 
         $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2)) ?
             $this->getWinnersSerials($roomID, $roomUser, $coin) : [];
@@ -836,7 +836,7 @@ trait BingoTrait
         }
     }
 
-    public function convertPrizeValue($roomID, $coin, $value = '')
+    public function convertPrizeValue($roomID, $coin, $value, $float = false)
     {
         $room = BingoRoom::getById($roomID, ['creator_user', 'prize_pool']);
 
@@ -845,7 +845,7 @@ trait BingoTrait
 
         $creator = ['type' => $userCreator['type'], 'id' => $userCreator['id'], 'userId' => $creatorUser];
 
-        $data = ['coin' => $coin, 'value' => $value ? $value : $room->prize_pool, 'creator' => $creator];
+        $data = ['coin' => $coin, 'value' => $value, 'creator' => $creator];
 
         return $this->convertValueByGame('BINGO', $roomID, $data);
     }
@@ -1115,7 +1115,7 @@ trait BingoTrait
             // Definir valores a actualizar de la sala 
             $updateData = ['close_room' => Carbon::now()->timestamp];
 
-            $prize_poolPrize = $room->full_house_prize;
+            $fullHousePrize = $room->full_house_prize;
 
             // Generar seriales ganadores si hay jugadores no ganadores
             if ($generateSerials && $room->Config->pct_serials && !$room->seller_commn && !BingoPrizeCtns::existsPrizeCtns($roomID, 'SERIAL')) {
@@ -1126,9 +1126,9 @@ trait BingoTrait
 
                 if ($serialWinners) {
                     // Calcular premios si hay premio serial
-                    $prize_poolPrize -= $serialPrize;
+                    $fullHousePrize -= $serialPrize;
 
-                    $updateData['full_house_prize'] = $prize_poolPrize;
+                    $updateData['full_house_prize'] = $fullHousePrize;
                     $updateData['serial_prize'] = $serialPrize;
                 } else {
                     DB::rollBack();
@@ -1136,7 +1136,7 @@ trait BingoTrait
             }
 
             // Calcular el valor de cada premio individual
-            $winnerJackpotPrize = $prize_poolPrize / $winnersCount;
+            $winnerJackpotPrize = $fullHousePrize / $winnersCount;
             // Crear registros de ganadores y actualizar el estado de los jugadores
             $registerPrizeCtn = $this->registerPrizeCtn($roomID, $ctnsJackpot, 1, $winnerJackpotPrize);
 
@@ -1160,7 +1160,7 @@ trait BingoTrait
         }
     }
 
-    public function getWinnersJackpot($roomID, $roomUser, $coin)
+    public function getWinnersFullHouse($roomID, $roomUser, $coin)
     {
         $data = $this->getWinnersData($roomID, 'JACKPOT', $roomUser);
 
@@ -1171,10 +1171,11 @@ trait BingoTrait
         if (!count($data['winners'])) $this->handleJackpotWinners($roomID);
 
         $coin = $coin ? $coin : $data['coin'];
-        $prize_poolPrize = BingoRoom::getValueById($roomID, 'full_house_prize');
+
+        $fullHousePrize = BingoRoom::getValueById($roomID, 'full_house_prize');
 
         // Calcular el bote de la sala con respecto a la moneda del jugador
-        $prize_pool = $this->formatAmount($this->convertPrizeValue($roomID, $coin, $prize_poolPrize), 'float');
+        $prize_pool = $this->convertPrizeValue($roomID, $coin, $fullHousePrize);
 
         return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $prize_pool);
     }
@@ -1282,11 +1283,8 @@ trait BingoTrait
 
         $coin = $coin ? $coin : $data['coin'];
 
-        // Obtener tasa de cambio de la sala
-        $gameExchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin);
-
         // Calcular el bote de seriales de la sala con respecto a la moneda del jugador
-        $serialAmount = $this->formatAmount($data['serialPrize'] * $gameExchangeRate, 'float');
+        $serialAmount = $this->convertPrizeValue($roomID, $coin, (float) $data['serialPrize']);
 
         return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $serialAmount);
     }

@@ -746,6 +746,8 @@ class BingoController extends Controller
                 $randomKey
             ) : [];
 
+        $fullHousePrize = BingoRoom::getValueById($roomID, 'full_house_prize');
+
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'BingoCash',
@@ -754,7 +756,7 @@ class BingoController extends Controller
             'room' => $room,
             'jackpot_type' => $room->Config->jackpot_type,
             'coinSym' => $coinSym,
-            'prize_pool' => $this->convertPrizeValue($roomID, $coinID),
+            'prize_pool' => $this->convertPrizeValue($roomID, $coinID, $fullHousePrize),
             'startTime' => $this->convertToUnixTimestamp($room->Config->date, $room->Config->time),
             'chipsRest' => $chipsRest,
             'cartons' => $ctns ?? [],
@@ -3344,8 +3346,6 @@ class BingoController extends Controller
             abort(404); // Retorna un error 404 Not Found
         }
 
-        if ($type === 'public') return redirect()->back();
-
         $userData = $this->getUserData();
 
         $verifyCoin = $this->verifyExistenceOfSales($userData, $dateFilter, $coin);
@@ -3418,7 +3418,7 @@ class BingoController extends Controller
 
                 // Obtener los datos de los ganadores
                 $winnersQuery = BingoPrizeCtns::with([
-                    'Room:id,encrypted',
+                    'Room:id,encrypted,room_type',
                     'Room.Config:id,room,date,time',
                     'Coin',
                     'PlayerLink.Country',
@@ -3477,11 +3477,13 @@ class BingoController extends Controller
                         compact(
                             'title',
                             'name',
-                            'commerceID',
+                            'commerce',
                             'dateFilter',
                             'winners',
+                            'routeWithCoin',
                             'countWinnersOtherCommerces',
                             'countWinnersByCommerce',
+                            'coin',
                             'coins'
                         )
                     );
