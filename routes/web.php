@@ -24,8 +24,6 @@ use App\Http\Controllers\InformationController;
 use App\Http\Controllers\LotteryController;
 use App\Http\Controllers\PaymentMethodsCOLController;
 use App\Http\Controllers\PollaController;
-use App\Http\Controllers\PredictionController;
-use App\Http\Controllers\YankenpoController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -386,17 +384,6 @@ Route::group(['prefix' => 'polla', 'as' => 'polla.'], function () {
     Route::get('{roomType}/{creatorType}/{creatorID?}/{coin?}', [PollaController::class, 'allRooms'])->name('all-rooms');
 });
 
-Route::group(['prefix' => 'predict', 'as' => 'predict.'], function () {
-    Route::get('/predict', [PredictionController::class, 'generatePrediction']);
-});
-
-Route::group(['middleware' => ['auth'], 'prefix' => 'yankenpo', 'as' => 'yankenpo.'], function () {
-    Route::get('', [YankenpoController::class, 'rooms'])->name('rooms');
-    Route::post('debit', [YankenpoController::class, 'debit_publish_room'])->name('debit_publish_room');
-    Route::get('room/{id}', [YankenpoController::class, 'game'])->name('game');
-    Route::post('select', [YankenpoController::class, 'select_ppt'])->name('select_ppt');
-    Route::get('check_ppt/{id}', [YankenpoController::class, 'check_ppt'])->name('check_ppt');
-});
 // Rutas Jugador/Cliente
 Route::get('{customer}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('bingo.in-game-customer');
 Route::get('game/{customer}/room/{room}/{coin}', [BingoController::class, 'outGameCustomer'])->name('bingo.out-game-customer');

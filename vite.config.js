@@ -21,7 +21,10 @@ const jsFiles = [
     'resources/js/games/bingo/includes/auto-marked.js',
     'resources/js/games/bingo/includes/bingo-out-buy-ctns.js',
     'resources/js/games/bingo/includes/handle-bingo-plays.js',
-    'resources/js/games/bingo/tests/regenerate-draw.js'
+    'resources/js/games/bingo/tests/regenerate-draw.js',
+    'resources/js/games/polla/form.js',
+    'resources/js/games/polla/ticket-price-coins.js',
+    'resources/js/games/polla/in-game.js',
 ];
 
 // Lista de CSS (solo para laravel plugin)
@@ -31,6 +34,7 @@ const cssFiles = [
     'resources/css/games/bingo/bingo-game-rooms.css',
     'resources/css/games/bingo/bingo-in-game.css',
     'resources/css/games/bingo/bingo-handle-plays.css',
+    'resources/css/games/polla/polla-in-game.css',
 ];
 
 export default defineConfig(({ mode }) => {
