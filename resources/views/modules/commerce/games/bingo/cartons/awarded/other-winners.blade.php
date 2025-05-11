@@ -71,7 +71,7 @@
                 $('#amount-sent').val(prizeAmount);
 
                 if (countCommerces == 1) {
-                    getInfoByCtnId(ctnId);
+                    getByIdId(ctnId);
                 } else {
                     getMoneyToReceiveByCommerce(ctnId); // obtener dinero a recibir de otras Comercializadora 
                 }

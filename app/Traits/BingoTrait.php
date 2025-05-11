@@ -885,6 +885,7 @@ trait BingoTrait
                     'ctn' => $ctn->id,
                     'lot' => $ctn->lot,
                     'prize_type' => $prizeType,
+                    'usd_amount' => $USDValue,
                     'coin' => $ctn->coin,
                     'amount' => $prizeWn,
                     'status' => null,
@@ -983,18 +984,28 @@ trait BingoTrait
         ];
     }
 
-    public function getArrayWinnersData($winPlayer, $winners, $prizePool)
+    public function getArrayWinnersData($exchangeRate, $winPlayer, $winners)
     {
         // Inicializar el array para guardar información
         $infoPlayer = ['size' => 0, 'name' => [], 'gain' => [], 'ctn' => []];
 
         // Función para agregar la información de un jugador
-        $addPlayerInfo = function ($player) use (&$infoPlayer) {
+        $addPlayerInfo = function ($player) use (&$infoPlayer, $exchangeRate, $winPlayer) {
 
             $ctnId = optional($player->PrizeCtns[0])->ctn;
 
+            $prizeCtn = BingoPrizeCtns::getById($ctnId, ['usd_amount', 'amount']);
+
+            if (!$winPlayer) {
+                // Usamos floor() para truncar y luego formateamos a 2 decimales
+                $convertedAmount = $prizeCtn->usd_amount * $exchangeRate;
+                $otherValue = number_format(floor($convertedAmount * 100) / 100, 2, '.', '');
+            }
+
+            $amount = isset($otherValue) ? $otherValue : $prizeCtn->amount;
+
             $infoPlayer['name'][] = BingoCtns::getValueById($ctnId, 'serial');
-            $infoPlayer['gain'][] = BingoPrizeCtns::getValueById($ctnId, 'amount');
+            $infoPlayer['gain'][] = $amount;
             $infoPlayer['ctn'][] = encrypt($ctnId);
             $infoPlayer['size']++;
         };
@@ -1170,14 +1181,14 @@ trait BingoTrait
         // Si no hay ganadores en la sala
         if (!count($data['winners'])) $this->handleWinners($roomID);
 
+        $exchangeRate = 1;
         $coin = $coin ? $coin : $data['coin'];
 
-        $fullHousePrize = BingoRoom::getValueById($roomID, 'full_house_prize');
+        if (!$data['winPlayer']) {
+            $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin) ?? 1;
+        }
 
-        // Calcular el bote de la sala con respecto a la moneda del jugador
-        $fullHousePrize = $this->convertPrizeValue($roomID, $coin, $fullHousePrize);
-
-        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $fullHousePrize);
+        return $this->getArrayWinnersData($exchangeRate, $data['winPlayer'], $data['winners']);
     }
 
     public function handleSerialWinners($roomID, $serialPrize, $roomUserIds) // Obtener Seriales Ganadores
@@ -1281,12 +1292,14 @@ trait BingoTrait
         // Si existe algun error
         if (isset($data['Error'])) return $data['Error'];
 
+        $exchangeRate = 1;
         $coin = $coin ? $coin : $data['coin'];
 
-        // Calcular el bote de seriales de la sala con respecto a la moneda del jugador
-        $serialAmount = $this->convertPrizeValue($roomID, $coin, (float) $data['serialPrize']);
+        if (!$data['winPlayer']) {
+            $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin) ?? 1;
+        }
 
-        return $this->getArrayWinnersData($data['winPlayer'], $data['winners'], $serialAmount);
+        return $this->getArrayWinnersData($exchangeRate, $data['winPlayer'], $data['winners']);
     }
 
     // Obtener Informacion de un carton especifico (encriptado)
