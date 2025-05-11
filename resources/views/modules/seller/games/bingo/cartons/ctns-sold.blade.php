@@ -10,7 +10,9 @@
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @if ($ctnsSold->count() > 1 && $pendingCtns > 1)
-                            <button id="btn-notify-all-ctns" class="btn btn-sm btn-secondary mt-2">Notificar Todo</button>
+                            <button type="button" id="btn-notify-all-ctns" class="btn btn-sm btn-secondary mt-2">
+                                Notificar Todo
+                            </button>
                         @endif
                         <div class="table-responsive mt-3">
                             <table class="table table-striped table-bordered my-2 w-100">

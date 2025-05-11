@@ -1935,6 +1935,35 @@ class BingoController extends Controller
         }
     }
 
+    public function getInfoPublicRoomPendingPayments()
+    {
+        $userData = $this->getUserData();
+
+        $allowedPrefixes = ['admin', 'commerce', 'customer'];
+
+        if (!in_array($userData['type'], $allowedPrefixes)) {
+            return false;
+        }
+
+        $creatorUser = $userData['userId'];
+
+        return BingoRoom::with([
+            'Creator' => function ($query) use ($creatorUser) {
+                $query->select('room', 'status')
+                    ->where('creator_user', $creatorUser);
+            },
+            'CtnsLot' => function ($subquery) use ($creatorUser) {
+                $subquery->where('creator_user', $creatorUser);
+            },
+            'Config:room,date,time,ctn_price'
+        ])->select('id', 'encrypted', 'room_commn', 'prize_pool')
+            ->whereHas('CtnsLot', function ($query) use ($creatorUser) {
+                $query->where('creator_user', $creatorUser)->where('coin');
+            })
+            ->where('creator_user', '<>', $userData['userId'])
+            ->where('room_type', 'PB')->where('status', 2)->get();
+    }
+
     public function getInfoBingoPlay($id)
     {
         $id = decrypt($id);
@@ -3423,8 +3452,9 @@ class BingoController extends Controller
                     'Coin',
                     'PlayerLink.Country',
                     'Payments',
+                    'Seller.Commerce:id,name',
                     'Seller' => function ($query) {
-                        $query->select('id', 'name');
+                        $query->select('id', 'name', 'commerce');
                     },
                     'Prize' => function ($query) {
                         $query->select('id', 'description');
@@ -3454,7 +3484,6 @@ class BingoController extends Controller
                 }
 
                 if ($type === 'private') {
-
                     return view(
                         'modules.commerce.games.bingo.cartons.awarded.my-winners',
                         compact(

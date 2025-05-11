@@ -24,9 +24,7 @@
                         </a>
                     </td>
                     <td>{{ $win->Room->room_type_description }}</td>
-                    <td>
-                        {{-- {{ $win->Commerce->name }} --}}
-                    </td>
+                    <td>{{ $win->Seller->Commerce->name }}</td>
                     <td>{{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}</td>
                     <td>{{ $win->PlayerLink->Country->name }}</td>
                     <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount }}</td>
@@ -42,23 +40,6 @@
                     </td>
                     <td>
                         <div class="btn-group" role="group" aria-label="Acciones">
-                            @if ($win->PlayerGame->winner == 1)
-                                {{-- @if ($win->commerce == $commerceID)
-                                    <button type="button" class="btn btn-danger btn-sm notify-ctn-payment"
-                                        title="Notificar Pago" data-payment_type="1" data-count_commerce=""
-                                        data-coin_sym="{{ $win->Coin->name }}" data-prize_amount="{{ $win->amount }}"
-                                        data-ctn='{{ encrypt($win->ctn) }}'>
-                                        <i class="fa-solid fa-bell"></i>
-                                    </button>
-                                @else
-                                    <button type="button" class="btn btn-danger btn-sm notify-ctn-payment"
-                                        title="Notificar Pago" data-payment_type="2"
-                                        data-commerce='{{ encrypt($win->Commerce->id) }}'
-                                        data-id_coin='{{ encrypt($win->Coin->id) }}' data-amount-sent=''>
-                                        Pago Comercio
-                                    </button>
-                                @endif --}}
-                            @endif
                             <a class="btn btn-sm bg-primary show-ctns" target="_blank"
                                 href="{{ route('bingo.in-game', ['player' => $win->PlayerLink->link]) }}">
                                 <i class="fa-solid fa-eye"></i>
