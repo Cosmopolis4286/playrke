@@ -21,7 +21,6 @@ use App\Models\BingoCtnsPayment;
 use App\Models\BingoPrizeCtns;
 use App\Models\Coin;
 use App\Models\Commerce;
-use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PhoneNumbers;
@@ -51,6 +50,7 @@ class SellerController extends Controller
             'username' => ['required', 'string', 'max:20', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
+            'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
             'coin' => ['required', 'numeric', 'exists:coins,id'],
             'name' => ['required', 'string'],
             'phone' => ['required', 'string', 'max:20', 'unique:sellers,phone'],
@@ -165,6 +165,7 @@ class SellerController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
+                'time_zone' => $request->time_zone,
                 'email_verified_at' => Carbon::now(),
                 'referral_code' => User::getUniqueReferralCode(),
             ])->id;
@@ -207,8 +208,8 @@ class SellerController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error general: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
+            Log::error('Error al crear vendedor: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Error al procesar la solicitud']);
         }
 
         return redirect()->back();
@@ -220,7 +221,7 @@ class SellerController extends Controller
 
         $seller = Seller::getById($id, ['name', 'commerce', 'commn', 'country', 'phone']);
         $otherCoins = SellerCountriesCoins::getAvailableCoins($id);
-        $user = User::getById(Seller::getValueById($id, 'user'), ['username', 'email']);
+        $user = User::getById(Seller::getValueById($id, 'user'), ['username', 'email', 'seller']);
 
         $data = [
             'seller' => $seller,
@@ -248,6 +249,13 @@ class SellerController extends Controller
 
                 if ($validator->fails()) {
                     return redirect()->back()->withErrors($validator)->withInput();
+                }
+
+                $userID = $seller->user;
+                $userTimeZone = User::getValueById($userID, 'time_zone');
+
+                if ($userTimeZone <> $request->time_zone) {
+                    User::where('id', $userID)->update(['time_zone' => $request->time_zone]);
                 }
 
                 // Verificar si la moneda principal ha cambiado
@@ -341,14 +349,21 @@ class SellerController extends Controller
         (new HandleBingoRooms())->checkRoomClosure();
 
         $rooms = BingoRoom::with([
+            'Creator' => function ($query) use ($creatorUser) {
+                $query->select('room', 'creator_user', 'status')
+                    ->where('creator_user', $creatorUser)
+                    ->where('status', 1);
+            },
             'Config' => function ($query) {
                 $query->select('room', 'game_mode', 'unix_date');
             }
-        ])->select('id', 'encrypted', 'room_type')
-            ->where('status', 2)
+        ])->select('id', 'encrypted', 'room_type', 'prize_pool')->where('status', 2)
             ->where(function ($query) use ($creatorUser) {
                 $query->where('creator_user', $creatorUser)
-                    ->orWhere('room_type', 'PV');
+                    ->orWhere('room_type', 'PB');
+            })
+            ->whereHas('Creator', function ($query) use ($creatorUser) {
+                $query->where('creator_user', $creatorUser);
             })
             ->whereHas('Config', function ($query) {
                 $query->where('game_mode', 2)
@@ -371,14 +386,14 @@ class SellerController extends Controller
     {
         $seller = $this->seller(['id', 'commerce']);
 
-        $coinsSeller = SellerCountriesCoins::getAvailableCoins($seller->id);
-
-        $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1);
+        $coinsSeller = array_map('strval', SellerCountriesCoins::getAvailableCoins($seller->id));
+        $commerceCoins = array_map('strval', CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1));
 
         $coinsAvailable = array_intersect($commerceCoins, $coinsSeller);
+        $coinsAvailable = array_values($coinsAvailable); // reindexar
 
-        if (in_array('1', $coinsAvailable)) {
-            $coinsAvailable = array_diff($coinsAvailable, ['1']);
+        if (in_array('1', $coinsAvailable, true)) {
+            $coinsAvailable = array_values(array_diff($coinsAvailable, ['1']));
             $USDT = true;
         }
 
@@ -392,18 +407,18 @@ class SellerController extends Controller
     public function getCtnPrice($roomID)
     {
         $room = BingoRoom::with('Config:room,jackpot_type,ctn_price')
-            ->select('id', 'encrypted', 'jackpot')
+            ->select('id', 'encrypted', 'prize_pool')
             ->where('encrypted', $roomID)->first();
 
         if (!$room) {
             return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
         }
 
-        $countriesCoins = $this->getAvailableCountriesBySeller();
+        $countriesCoins = $this->getAvailableCountriesBySeller($room->id);
 
         return response()->json([
-            'jackpotType' => $room->Config->jackpot_type,
-            'jackpot' => $room->jackpot,
+            'jackpot_type' => $room->Config->jackpot_type,
+            'prizePool' => $room->prize_pool,
             'coin' => 'USDT',
             'price' => $room->Config->ctn_price,
             'countries' => $countriesCoins['countries'],

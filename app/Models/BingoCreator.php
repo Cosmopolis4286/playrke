@@ -7,7 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class BingoCreator extends Model
 {
     protected $table = 'bingo_creator';
-    protected $fillable = ['room', 'creator_user', 'creator_type', 'creator_id', 'creator_commn', 'ctn_price', 'created_at', 'updated_at'];
+    protected $fillable = [
+        'room',
+        'creator_user',
+        'creator_type',
+        'creator_id',
+        'creator_commn',
+        'ctn_price',
+        'status',
+        'created_at',
+        'updated_at'
+    ];
 
     public function Room()
     {
@@ -55,10 +65,17 @@ class BingoCreator extends Model
         // Convertir $creatorType si es un string
         if (is_string($creator['type'])) {
             $creatorType = UserType::getValueByPrefix($creator['type'], 'id');
+        } else {
+            $creatorType = $creator['type'];
         }
 
         return self::where('creator_type', $creatorType)
             ->where('creator_id', $creator['id'])
             ->where('room', $room)->value($value);
+    }
+
+    public static function existsByRoomCreatorUser($room, $creatorUser)
+    {
+        return self::where('room', $room)->where('creator_user', $creatorUser)->exists();
     }
 }

@@ -19,37 +19,47 @@
         'size' => 'md',
         'dataForm' => view('modules.game.bingo.form.body', [
             'creator' => $creator,
+            'timeZone' => $timeZone,
             'automaticRoom' => true,
         ])->render(),
     ])
     @include('includes.form-other-options')
 @endsection
 @section('scripts')
+    <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        const name = '{{ $name }}';
+        const name = @json($name);
         const creation = 'A';
-        const routeGenerateBingoRoomsJob = @json($routeGenerateBingoRoomsJob);
-        const routeGetCtnPriceForCoin = @json($routeGetCtnPriceForCoin);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const roomType = $("#room-type");
-        const jackpotType = $("#jackpot-type");
+        const jackpot_type = $("#jackpot-type");
         const gameMode = $("#game-mode");
         const roomTypes = @json($roomType);
         const existsRoomTypes = !$.isEmptyObject(roomTypes);
-        const arrJackpotType = @json($jackpotType);
+        const arrJackpotType = @json($jackpot_type);
         const arrGameModes = @json($gameModes);
-        let inCourse = false;
-        let arrCoinsCtnPrice = false;
+        let coinsCtnPrice = false;
+
+        $(function() {
+            $('.select2').each(function() {
+                $(this).select2({
+                    theme: 'bootstrap4',
+                    width: 'style',
+                    placeholder: $(this).attr('placeholder'),
+                    allowClear: Boolean($(this).data('allow-clear')),
+                });
+            });
+        });
 
         function changeFixedJackpot(val) {
-            const container = $("#cont-fixed-jackpot-value");
+            const container = $("#cont-amount-added-jackpot");
 
             if (val > 1) {
                 container.removeClass('hide-elem');
             } else {
                 container.addClass('hide-elem');
-                $("#fixed-jackpot-value").empty();
+                $("#amount-added-jackpot").empty();
             }
         }
 
@@ -60,7 +70,10 @@
             btnExecuteJob.prop('disabled', true);
 
             // Realizar la solicitud
-            $.getJSON(routeGenerateBingoRoomsJob, {
+            $.getJSON(route('bingo-automatic-room.executeGenerateBingoRoomsJob', {
+                    creatorType,
+                    creatorID
+                }), {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
                 .done(res => {
@@ -77,7 +90,7 @@
                 });
         });
 
-        $(document).on('change', '#jackpot-type', function() {
+        jackpot_type.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
@@ -85,12 +98,12 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Nueva Sala', `{{ asset('') }}${name}/automatic-room`, otherCasesMap);
+            formCRUD($(this), name, 'Nueva Sala', otherCasesMap);
         });
 
         function insertInfo(type, data = '') {
             if (type == 1) {
-                arrCoinsCtnPrice = false;
+                coinsCtnPrice = false;
                 $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
                 $('#container-price-config').html('');
             } else {
@@ -103,7 +116,7 @@
                 roomType.empty();
             }
 
-            jackpotType.empty();
+            jackpot_type.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -118,7 +131,7 @@
                     gameMode.append(`<option value="1" selected>Online</option>`);
                 }
 
-                jackpotType.append(defaultOption);
+                jackpot_type.append(defaultOption);
             }
 
             if (creatorType !== 'customer' && existsRoomTypes) {
@@ -130,7 +143,7 @@
 
             $.each(arrJackpotType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.room.jackpot_type) ? 'selected' : '';
-                jackpotType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                jackpot_type.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             if (creatorType !== 'customer' && arrGameModes.length) {
@@ -154,11 +167,11 @@
                 $('#time-chip').val(room.time_chip);
                 $('#pct-serials').val(room.pct_serials);
                 $('#num-serials').val(room.num_serials);
-                $('#serials-commn').val(room.serials_commn);
+                $('#serials-commn').val(room.pct_jackpot);
 
                 if (room.jackpot_type > 1) {
                     changeFixedJackpot(2);
-                    $('#fixed-jackpot-value').val(room.fixed_jackpot_value);
+                    $('#amount-added-jackpot').val(room.amount_added_jackpot);
                 }
             }
 
@@ -166,13 +179,16 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name);
+            submitForm(name, [
+                'time', 'room-type', 'jackpot-type', 'game-mode',
+                'room-commn', 'ctn-price', 'time-chip', 'pct-serials', 'num-serials'
+            ]);
         });
 
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Se actualizará el Status de esta configuración',
+                    'Actualizar el status de esta configuración',
                     'info',
                     'Sí, actualizar',
                     '#form-other-options',
@@ -194,5 +210,5 @@
             },
         };
     </script>
-    @vite(['resources/js/games/bingo/ctn-price-coins.js'])
+    @vite('resources/js/games/bingo/ctn-price-coins.js')
 @endsection

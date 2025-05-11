@@ -32,7 +32,7 @@
                     <td>{{ $coinSym }} {{ $room['allSaleRoom'] }}</td>
                     <td>{{ $coinSym }} {{ $room['comSaleSellerRoom'] }}</td>
                     <td>{{ $coinSym }} {{ $room['comBancaRoom'] }}</td>
-                    <td>{{ $coinSym }} {{ $room['jackpotRoom'] }}</td>
+                    <td>{{ $coinSym }} {{ $room['prize_poolRoom'] }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -44,7 +44,7 @@
                     <td>{{ $coinSym }} {{ $totalsFormatted['allSales'] }}</td>
                     <td>{{ $coinSym }} {{ $totalsFormatted['comSaleSeller'] }}</td>
                     <td>{{ $coinSym }} {{ $totalsFormatted['comBanca'] }}</td>
-                    <td>{{ $coinSym }} {{ $totalsFormatted['jackpot'] }}</td>
+                    <td>{{ $coinSym }} {{ $totalsFormatted['prize_pool'] }}</td>
                 @endif
             </tr>
         </tfoot>

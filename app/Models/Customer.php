@@ -12,6 +12,7 @@ class Customer extends Model
     'description',
     'country',
     'user',
+    'customer_id',
     'phone',
     'commn',
     'all_in',
@@ -45,6 +46,11 @@ class Customer extends Model
     return self::select($fields)->where('user', $user)->first();
   }
 
+  public static function getByCustomerID($customerID, $fields = ['*'])
+  {
+    return self::select($fields)->where('customer_id', $customerID)->first();
+  }
+
   public static function getValueById($id, $value)
   {
     return self::where('id', $id)->value($value);
@@ -63,6 +69,11 @@ class Customer extends Model
   public static function getValueByToken($token, $value)
   {
     return self::where('token', $token)->value($value);
+  }
+
+  public static function getValueByCustomerID($customerID, $value)
+  {
+    return self::where('customer_id', $customerID)->value($value);
   }
 
   public static function existsCustomerById($id)

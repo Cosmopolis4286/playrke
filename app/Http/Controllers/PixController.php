@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Banks_BRA;
 use Illuminate\Http\Request;
 use App\Models\Pix;
-use App\Models\PixKeys;
 use App\Traits\UserVal;
 use Exception;
 use Illuminate\Support\Facades\Auth;

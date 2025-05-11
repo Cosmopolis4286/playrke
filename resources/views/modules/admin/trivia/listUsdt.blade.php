@@ -106,11 +106,11 @@
                                             </div>
                                         </div>
                                         <div class="b_info_card">
-                                            <div class="bot_card" title="jackpot Acumulado">
+                                            <div class="bot_card" title="prize_pool Acumulado">
                                                 <input type="checkbox" id="evento-click">
                                                 <label for="evento-click"></label>
                                                 <i class="icon-min fa-solid fa-coins mr-rke1"></i>
-                                                <span class="b_usdt">{{ number_format($trivia->jackpot_r, 2) }}
+                                                <span class="b_usdt">{{ number_format($trivia->prize_pool_r, 2) }}
                                                     <img class="mb-1" src="{{ asset('imgSystem/tether.svg') }}"
                                                         style="width:13.5px;"></span>
                                             </div>

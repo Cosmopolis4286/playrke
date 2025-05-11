@@ -25,6 +25,7 @@ return new class extends Migration
             $table->unsignedBigInteger('lot');
             $table->unsignedBigInteger('ctn');
             $table->unsignedBigInteger('prize_type');
+            $table->double('usd_amount');
             $table->string('coin', 15);
             $table->double('amount');
             $table->enum('status', ['CC', 'CS', 'SP'])->nullable();

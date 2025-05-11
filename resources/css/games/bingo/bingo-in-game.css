@@ -146,7 +146,7 @@ body {
     line-height: 20px;
 }
 
-#jackpot-winners {
+#prize_pool-winners {
     max-height: 150.5px;
     overflow-y: auto;
 }
@@ -165,19 +165,19 @@ body {
 
 .cont-win-img {
     position: relative;
-    margin: 0 auto;
-    margin-bottom: 3.5px;
-    background-color: transparent;
-    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
 }
 
 .eye-icon {
     position: absolute;
     z-index: 999 !important;
-    font-size: 15px;
-    color: rgb(143, 143, 143);
-    top: 12.15%;
-    left: 2.5%;
+    font-size: 14px;
+    color: rgb(138, 137, 137);
+    top: 33%;
+    left: 9.5%;
     transform: translate(-50%, -50%);
 }
 
@@ -204,7 +204,7 @@ body {
     background: linear-gradient(to bottom, #0b4cfde3, #003bb9);
 }
 
-#cont-jackpot-info {
+#cont-prize_pool-info {
     position: relative;
     display: flex;
     align-items: center;
@@ -226,7 +226,7 @@ body {
     max-height: 100%;
 }
 
-#cont-jackpot-info-amount {
+#cont-prize_pool-info-amount {
     color: antiquewhite;
     font-size: 200%;
     line-height: 28px;
@@ -245,19 +245,19 @@ body {
     color: rgb(255, 238, 0);
 }
 
-#cont-jackpot-amount {
+#cont-prize_pool-amount {
     display: flex;
     justify-content: center;
     align-items: center;
     font-family: 'Alfa Slab One', cursive;
 }
 
-#jackpot-coin-sym {
+#prize_pool-coin-sym {
     font-size: 3.45vmin;
     color: rgb(231, 231, 231);
 }
 
-#jackpot-amount {
+#prize_pool-amount {
     font-weight: 500;
     color: rgb(255, 255, 255);
     font-size: clamp(20px, 2.15vw, 2.5vw);

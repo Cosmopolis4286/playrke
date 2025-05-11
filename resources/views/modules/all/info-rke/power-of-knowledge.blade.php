@@ -24,9 +24,9 @@
                 su ingreso al juego, pérdida de conexión, mal funcionamiento de su equipo, conexión a Internet lenta,
                 etc.
             </p>
-            <p><b>3.</b> El jackpot acumulado será igual a la suma del pago de inscripción de todos los jugadores, y
+            <p><b>3.</b> El prize_pool acumulado será igual a la suma del pago de inscripción de todos los jugadores, y
                 este a su vez, se expresa en la moneda correspondiente.</p>
-            <p><b>4.</b> El jackpot acumulado se reparte equitativamente entre todos los ganadores.</p>
+            <p><b>4.</b> El prize_pool acumulado se reparte equitativamente entre todos los ganadores.</p>
             <p><b>5.</b> El ganador o los ganadores, serán aquellos que respondan todas las questions
                 correctamente, y en el menor tiempo posible; logrando así ingresar al porcentaje ganador.
             <p><b>6.</b> Cada question tiene un límite de 25 segundos para ser respondida. En caso de que no se

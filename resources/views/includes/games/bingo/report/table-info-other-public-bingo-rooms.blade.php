@@ -9,7 +9,7 @@
                 <th>CTN</th>
                 <th>#PJ</th>
                 <th>Venta</th>
-                <th>Jackpot</th>
+                <th>Bote</th>
                 <th>Status</th>
                 <th>Acción</th>
             </tr>
@@ -24,25 +24,27 @@
                     $roomID = $room->encrypted;
 
                     if ($creator['type'] === 'customer') {
-                        $roomRoute = route('bingocash.out-game-customer', [
+                        $roomRoute = route('bingo.out-game-customer', [
                             'customer' => $creator['id'],
                             'room' => $roomID,
                             'coin' => encrypt($coin),
                         ]);
                     } else {
-                        $roomRoute = route('bingocash.out-game', [
+                        $roomRoute = route('bingo.out-game', [
                             'uuidCode' => $uuidCode,
                             'room' => $roomID,
                             'coin' => encrypt($coin),
                         ]);
                     }
 
-                    $ctnPrice = $room->ctn_price * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
-                    $allSale = $room->all_sale * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
-                    $jackpot = $room->jackpot * ($room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate);
+                    $rate = $room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate;
+
+                    $ctnPrice = ($room->Config->ctn_price ?? 0) * $rate;
+                    $allSale = ($room->all_sale ?? 0) * $rate;
+                    $prizePool = ($room->prize_pool ?? 0) * $rate;
 
                     $totalAllSale += $allSale;
-                    $totalJackpot += $jackpot;
+                    $totalJackpot += $prizePool;
                 @endphp
                 <tr>
                     <td class="align-middle">
@@ -76,7 +78,7 @@
                         {{ number_format($allSale, 2, '.') }}</td>
                     <td>
                         <small>{{ $room->Config->JackpotType->description }}</small>
-                        <br>{{ $coinSym }} {{ number_format($jackpot, 2, '.') }}
+                        <br>{{ $coinSym }} {{ number_format($prizePool, 2, '.') }}
                     </td>
                     {{-- Estado --}}
                     <td class="align-middle">
@@ -94,39 +96,19 @@
                     {{-- Acciones --}}
                     <td class="align-middle">
                         <div class="btn-group" role="group">
-                            @if ($room->status <= 2)
+                            @if ($room->status == 2)
                                 <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
                                     data-type="2" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                @if ($room->status == 1)
-                                    <button class="btn-{{ $name }} btn btn-sm btn-success"
-                                        @if (now()->timestamp + 900 < $room->Config->unix_date) data-type="5" @else data-block="1" disabled @endif
-                                        data-id="{{ encrypt($room->id) }}" title="Publicar">
-                                        <i class="fa-solid fa-circle-up"></i>
+                                @if (!count($room->CtnsLot))
+                                    <button title="Salir de la sala"
+                                        class="btn-{{ $name }} btn btn-sm btn-danger" data-type="6"
+                                        data-id="{{ encrypt($room->id) }}">
+                                        <i class="fa-solid fa-right-from-bracket"></i>
                                     </button>
-                                @elseif ($room->status == 2)
-                                    @if ($room->jackpot_prize > 0)
-                                        <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="6"
-                                            data-id="{{ encrypt($room->id) }}" title="Reembolsar">
-                                            <i class="fa-solid fa-money-bill-transfer"></i>
-                                        </button>
-                                    @else
-                                        <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="8"
-                                            data-id="{{ encrypt($room->id) }}" title="Cambiar Status">
-                                            <i class="fa-solid fa-rotate"></i>
-                                        </button>
-                                    @endif
                                 @endif
                             @endif
-                            {{-- <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="4"
-                                data-id="{{ encrypt($room->id) }}" title="Repetir">
-                                <i class="fa-solid fa-repeat"></i>
-                            </button> --}}
-                            <button class="btn-{{ $name }} btn btn-sm bg-navy" data-type="7"
-                                data-id="{{ encrypt($room->id) }}" title="Copiar">
-                                <i class="fa-solid fa-copy"></i>
-                            </button>
                         </div>
                     </td>
                 </tr>

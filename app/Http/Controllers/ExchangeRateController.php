@@ -7,6 +7,8 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\ExchangeRate;
+use App\Models\User;
+use App\Services\Customer\HandleExchangeRates;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,7 +49,7 @@ class ExchangeRateController extends Controller
 
                 $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($creatorID);
 
-                $this->checkBankDirectoriesExistence('commerce', $commerceCoins);
+                $this->checkBankDirectoriesExistence($commerceCoins);
 
                 $array = array_filter($this->getAvailableCoins($commerce->user), fn($value) => $value !== 1);
 
@@ -68,7 +70,7 @@ class ExchangeRateController extends Controller
         $viewData = [
             'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Tasas de Cambio',
-            'name' => 'coin',
+            'name' => 'exchange-rate',
             'returnBtn' => $returnBtn ?? true,
             'creator' => ['type' => $creatorType, 'id' => encrypt($creatorID)],
             'coins' => $coins ?? [],
@@ -385,5 +387,18 @@ class ExchangeRateController extends Controller
         ];
 
         return view('modules.all.exchange-rate.historical')->with($viewData);
+    }
+
+    public function getExchangeRates()
+    {
+        $creatorUser = User::getCreatorUser(Auth::id(), false, true);
+
+        $res = app(HandleExchangeRates::class)->updateExchangeRates($creatorUser);
+
+        if (isset($res['Error'])) {
+            return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error']);
+        } else {
+            return response()->json(['type' => 'success', 'message' => 'Proceso exitoso']);
+        }
     }
 }

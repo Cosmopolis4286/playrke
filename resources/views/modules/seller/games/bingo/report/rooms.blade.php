@@ -14,6 +14,7 @@
                                 <thead>
                                     <tr>
                                         <th>Sala</th>
+                                        <th>Tipo</th>
                                         <th>Fecha</th>
                                         <th>Hora</th>
                                         <th>Moneda</th>
@@ -34,10 +35,11 @@
                                                     {{ $data['room']->encrypted }}
                                                 </a>
                                             </td>
+                                            <td>{{ $data['room']->room_type_description }}</td>
                                             <td>{{ \Carbon\Carbon::parse($data['room']->Config->date)->format('d/m/y') }}
                                             </td>
                                             <td>{{ $data['room']->Config->time }}h</td>
-                                            <td>{{ $coinName }} ({{ $coinSym }})</td>
+                                            <td>{{ $coinName }}</td>
                                             <td>{{ $data['calculatedCtns'] }}</td>
                                             <td>{{ $coinSym }} {{ $data['calculatedSale'] }}</td>
                                             <td>{{ $coinSym }} {{ $data['calculatedCom'] }}</td>
@@ -47,7 +49,7 @@
                                 @if (count($roomsData))
                                     <tfoot>
                                         <tr>
-                                            <td colspan="4" class="text-right"><b>Total:</b></td>
+                                            <td colspan="5" class="text-right"><b>Total:</b></td>
                                             <td>{{ collect($roomsData)->sum('calculatedCtns') }}</td>
                                             <td>{{ $coinSym }} {{ $totalSale }}</td>
                                             <td>{{ $coinSym }} {{ $totalComision }}</td>

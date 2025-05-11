@@ -50,14 +50,14 @@
                         @endif --}}
                             <img class="card-game-room__room-image" src="{{ asset('img/bg/estelar_fd.png') }}"
                                 alt="IMG">
-                            <div class="container-card-game-room__jackpot">
-                                <span class="card-game-room__jackpot-text">
+                            <div class="container-card-game-room__prize_pool">
+                                <span class="card-game-room__prize_pool-text">
                                     {{ $room->Config->jackpot_type == 1 ? 'Bote:' : 'Premio:' }}
                                 </span>
-                                <div class="card-game-room__jackpot-amount">
+                                <div class="card-game-room__prize_pool-amount">
                                     <h3>
-                                        <span id="jackpot-room_{{ $room->encrypted }}">
-                                            {{ number_format($room->jackpot_prize * $exchangeRate, 2) }}
+                                        <span id="prize_pool-room_{{ $room->encrypted }}">
+                                            {{ number_format($room->prize_pool * $exchangeRate, 2) }}
                                         </span>
                                         <small id="coin-symbol-room_{{ $room->encrypted }}">
                                             {{ $coinSym }}
@@ -86,7 +86,7 @@
     @vite('resources/js/rke/format-date-time-unix.js')
     <script>
         const creator = @json($creator);
-        const coin = @json($coin);
+        const coin = @json($coin ?? null);
         const player = @json($player);
         const userToken = @json($userToken ?? null);
         const creatorUser = @json($creatorUser);
@@ -124,6 +124,7 @@
             }
 
             let value = parseInt($(this).val(), 10);
+
             if (value < 1) {
                 $(this).val(1);
             } else if (value > 30) {
@@ -131,10 +132,11 @@
             }
         });
 
-        const routeGetDatetimeRooms = @json($route);
-
         function getDateTimeRooms() {
-            $.getJSON(routeGetDatetimeRooms, {
+            $.getJSON(route('bingo.get-datetime-rooms', {
+                    creatorUser,
+                    player
+                }), {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
                 .done(res => {
@@ -150,7 +152,8 @@
             data.forEach((value, index) => {
                 arrRooms[index] = {
                     id: value.encrypted,
-                    dateTime: value.config.unix_date
+                    dateTime: value.config.unix_date,
+                    player: !!value.players_room
                 };
             });
         }
@@ -158,7 +161,7 @@
         function generateModalPurchase(roomID) {
             $('#container-purchase-ctns').remove(); // Elimina el contenedor previo
             $(`#container-card-game-room_${roomID}`).prepend(modalHTML); // Inserta el nuevo modal
-            initializeButtonVisibility();
+            $("#quantity-down").hide();
         }
 
         $(document).on("click", ".card-game-room", function() {
@@ -170,8 +173,11 @@
             total = 0;
 
             $.ajax({
-                url: `{{ route('bingo.getInfoByEncrypt', ['id' => ':1', 'creatorUser' => ':2', 'coin' => ':3']) }}`
-                    .replace(':1', roomID).replace(':2', creatorUser).replace(':3', coin),
+                url: route('bingo.getInfoByEncrypt', {
+                    id: roomID,
+                    creatorUser,
+                    coin
+                }),
                 method: 'GET',
                 dataType: 'json',
                 beforeSend: function() {
@@ -186,13 +192,13 @@
 
                     generateModalPurchase(roomID);
 
-                    $('#purchase-ctns__coin-text').text(room.jackpotType);
+                    $('#purchase-ctns__coin-text').text(room.jackpot_type);
                     $('.purchase-ctns__coin-label').text(room.coin);
-                    $('#jackpot-amount').text(room.jackpotAmount);
+                    $('#prize_pool-amount').text(room.prizePoolAmount);
                     formatDateTime(room.dateTime);
                     handleTotalAmount();
 
-                    $(`#jackpot-room_${roomID}`).text(room.jackpotAmount);
+                    $(`#prize_pool-room_${roomID}`).text(room.prizePoolAmount);
 
                     if ($(`#ctn-price_${roomID}`).text() != ctnPrice) {
                         $(`#ctn-price_${roomID}`).text(ctnPrice);
@@ -215,20 +221,12 @@
             $('#container-purchase-ctns').hide();
         });
 
-        function validateUserBalance(total = 0) {
-            if (isLogin < total) {
-                showToast('Saldo Insuficiente', 'warning');
-                return false;
-            }
-            return true;
-        }
-
         $(document).on("click", "#btn-purchase-ctns", function() {
             // Procesar compra de cartones
-            if ((isLogin && !validateUserBalance()) || !player) return;
+            if (isLogin || player === 'GAMES') return;
 
             $.ajax({
-                url: `{{ route('bingocash.generateCarton') }}`,
+                url: route('bingo.generateCarton'),
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': $('#5K3_70K').val()
@@ -247,10 +245,12 @@
                     $('#loader-btn-purchase-ctns').show();
                 },
                 success: function(res) {
-                    $('#jackpot-amount').text(res.jackpot);
-                    $(`#jackpot-room_${roomID}`).text(res.jackpot);
-                    $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
                     showToast(res.message, res.type);
+                    if (res.type === 'success') {
+                        $('#prize_pool-amount').text(res.prize_pool);
+                        $(`#prize_pool-room_${roomID}`).text(res.prize_pool);
+                        $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
+                    }
                 },
                 error: function(error) {
                     console.error(error);
@@ -263,9 +263,6 @@
 
         function handleTotalAmount() {
             total = (numCtns * ctnPrice).toFixed(2);
-
-            if (isLogin && !validateUserBalance(total)) return;
-
             $('#total-amount').text(total);
         }
 
@@ -275,17 +272,17 @@
             handleNumCtns($(this).attr("id"));
         });
 
-        $(document).on("input paste", "#num-ctns", function() {
+        $(document).on("input paste", "num-ctns", function() {
             handleNumCtns($(this).val());
         });
 
         function handleNumCtns(value = null) {
-            const input = $('#num-ctns');
-            const min = parseFloat(input.attr('min')) || 0;
-            const max = parseFloat(input.attr('max')) || 30;
-            const step = parseFloat(input.attr('step')) || 1;
+            const inputNumCtns = $('#num-ctns');
+            const min = parseFloat(inputNumCtns.attr('min')) || 0;
+            const max = parseFloat(inputNumCtns.attr('max')) || 30;
+            const step = parseFloat(inputNumCtns.attr('step')) || 1;
 
-            let newValue = parseFloat(input.val()) || min;
+            let newValue = parseFloat(inputNumCtns.val()) || min;
 
             // Determinar el nuevo valor en función de la acción o entrada directa
             if (value === "quantity-up") {
@@ -297,28 +294,15 @@
                 newValue = Math.min(Math.max(parseFloat(value) || min, min), max);
             }
 
-            if (isLogin && !validateUserBalance()) return;
-
             // Actualizar el input solo si el valor cambió
             if (newValue !== currentValCtns) {
                 currentValCtns = newValue;
-                input.val(newValue).trigger('change');
+                inputNumCtns.val(newValue).trigger('change');
                 $("#quantity-down").toggle(newValue > min);
                 $("#quantity-up").toggle(newValue < max);
                 numCtns = newValue;
                 handleTotalAmount();
             }
-        }
-
-        // Inicializa la visibilidad de los botones al mostrar el modal
-        function initializeButtonVisibility() {
-            const input = $('#num-ctns');
-            const currentVal = +input.val();
-            const min = parseFloat(input.attr('min')) || 0;
-            const max = parseFloat(input.attr('max')) || 30;
-
-            $("#quantity-down").toggle(currentVal > min);
-            $("#quantity-up").toggle(currentVal < max);
         }
 
         const _second = 1000;
@@ -354,6 +338,7 @@
 
         // Procesar tiempo restante para cada sala
         function handleWaitingTime(arrRooms) {
+
             if (!arrRooms.length) return;
 
             arrRooms.forEach((elem, key) => {
@@ -363,21 +348,29 @@
 
                 // Si el tiempo ha terminado
                 if (difference <= 0) {
+
                     const status = $(`#card-game-room_${room}`).data('status');
+
                     if (status == 2) {
                         $(`#card-game-room_${room}`).data('status', 3);
                         updateRoomStatus(room, 'No disponible', '<span class="start-time__text">En Juego</span>');
                     }
 
-                    // Redirigir a la sala según el tipo de usuario
-                    const route = creator.type == 'commerce' ?
-                        `{{ route('bingocash.in-game', ['player' => ':player', 'room' => ':room']) }}`
-                        .replace(':player', player).replace(':room', room) :
+                    if (elem.player) {
+                        // Redirigir a la sala según el tipo de usuario
+                        const targetUrl = creator.type == 'commerce' ?
+                            route('bingo.in-game', {
+                                player,
+                                room
+                            }) :
+                            route('bingo.in-game-customer', {
+                                customer: '{{ $customerID }}',
+                                userToken,
+                                room
+                            });
 
-                        `{{ route('bingocash.in-game-customer', ['customer' => ':customer', 'userToken' => ':userToken', 'room' => ':room']) }}`
-                        .replace(':customer', creator.id).replace(':userToken', userToken).replace(':room', room);
-
-                    window.location.href = route;
+                        window.location.href = targetUrl;
+                    }
 
                     if (waitingTime) clearInterval(waitingTime); // Limpiar el intervalo previo si existe
                     return;

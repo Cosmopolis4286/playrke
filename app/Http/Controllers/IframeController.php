@@ -19,20 +19,25 @@ class IframeController extends Controller
             return redirect()->back();
         }
 
-        $customer = Customer::getByUserId($user->id, ['id', 'token']);
-
-        $customerToken = $customer->token;
+        $customer = Customer::getByUserId($user->id, ['id', 'customer_id']);
 
         $iframes = [
             [
                 'title' => 'Salas de Juego CRUD',
-                'route' => route('bingo.all-rooms', ['creatorType' => 'customer', 'userID' => $customerToken])
+                'route' => route(
+                    'bingo.all-rooms',
+                    [
+                        'roomType' => 'private-rooms',
+                        'creatorType' => 'customer',
+                        'creatorID' => encrypt($customer->id)
+                    ]
+                )
             ],
             [
                 'title' => 'Salas de Juego Vista',
                 'route' => route(
                     'bingo.game-rooms-customer',
-                    ['customer' => $customerToken, 'user' => '1']
+                    ['customer' => $customer->customer_id, 'user' => 'available-rooms']
                 ),
             ],
         ];
@@ -51,8 +56,8 @@ class IframeController extends Controller
             return redirect()->back();
         }
 
-        $customerToken = Customer::getValueByUserId($user->id, 'token');
+        $customerID = Customer::getValueByUserId($user->id, 'customer_id');
 
-        return ['route' => route('bingo.game-rooms-customer', ['customer' => $customerToken, 'user' => $userToken])];
+        return ['route' => route('bingo.game-rooms-customer', ['customer' => $customerID, 'user' => $userToken])];
     }
 }

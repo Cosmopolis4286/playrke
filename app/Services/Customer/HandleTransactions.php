@@ -2,7 +2,6 @@
 
 namespace App\Services\Customer;
 
-use App\Models\CustomerUser;
 use App\Models\Transactions;
 use App\Traits\SeamlessWallet;
 use Carbon\Carbon;
@@ -34,18 +33,10 @@ class HandleTransactions
             }
 
             foreach ($transactions as $transaction) {
-                try {
-                    // Obtener información del jugador
-                    $player = CustomerUser::getById($transaction->user_id, ['user_id', 'token']);
 
+                try {
                     // Declarar ID de la transacción
                     $transactionID = $transaction->id;
-
-                    // Verificar si el jugador existe
-                    if (!$player) {
-                        Log::error("Jugador no encontrado para la transacción: '{$transactionID}'");
-                        continue;
-                    }
 
                     // Procesar la transferencia de dinero
                     $transferResponse = $this->transferMoney($transaction);
@@ -70,7 +61,7 @@ class HandleTransactions
                 }
             }
 
-            DB::commit();  // Confirmar la transacción si todo es exitoso
+            DB::commit();  
 
         } catch (\Exception $e) {
             // Si ocurre un error en el proceso global, hacer rollback

@@ -135,8 +135,10 @@
 
         const name = '<?php echo $name; ?>';
         const arrCountries = JSON.parse('<?php echo $countriesCommerce; ?>');
+        const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const coins = JSON.parse('<?php echo $coinsCommerce; ?>');
         const country = $("#country");
+        const timeZone = $("#time-zone");
         const coin = $("#coin");
         const coinText = $("#coin-text");
         const otherCoins = $("#other-coins");
@@ -149,11 +151,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Vendedor', `{{ asset('') }}${name}`);
+            formCRUD(elem, name, 'Vendedor');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Vendedor', `{{ asset('') }}${name}`, otherCasesMap)
+            formCRUD($(this), name, 'Vendedor', otherCasesMap)
         });
 
         country.on("change", function() {
@@ -191,11 +193,20 @@
             update = false;
             $('#username, #email').attr('readonly', false);
 
-            if (type == 1) country.append(`<option value="" disabled selected>Seleccionar:</option>`);
+            if (type == 1) {
+                country.append(`<option value="" disabled selected>Seleccionar:</option>`);
+                timeZone.append(`<option value="" disabled selected>Seleccionar Zona:</option>`);
+            }
 
             $.each(arrCountries, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.seller.country) ? 'selected' : '';
                 country.append(
+                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+            });
+
+            $.each(arrTimeZones, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.user.time_zone) ? 'selected' : '';
+                timeZone.append(
                     `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
 
@@ -220,7 +231,7 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'phone', 'commission', 'country', 'coin', 'username', 'email']);
+            submitForm(name, ['name', 'phone', 'commission', 'country', 'time-zone', 'coin', 'username', 'email']);
         });
 
         const otherCasesMap = {
@@ -237,7 +248,7 @@
             },
             5: function(encryptedId) {
                 showToastOptionBtns(
-                    'Generar Nueva Contraseña a este Vendedor',
+                    'Generar nueva contraseña a este vendedor',
                     'info',
                     'Sí, generar',
                     '#form-other-options',

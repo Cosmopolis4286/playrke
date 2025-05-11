@@ -21,7 +21,7 @@
                                             <th>Juego</th>
                                             <th>Fecha</th>
                                             <th>Hora</th>
-                                            <th>jackpot</th>
+                                            <th>prize_pool</th>
                                             <th>Jugadores</th>
                                             <th>Mi Profit</th>
                                         </tr>

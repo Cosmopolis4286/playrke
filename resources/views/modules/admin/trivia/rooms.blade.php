@@ -49,7 +49,7 @@
                                                 <th>Coin</th>
                                                 <th>Valor</th>
                                                 <th>PJ</th>
-                                                <th>jackpot</th>
+                                                <th>prize_pool</th>
                                                 <th>Tipo</th>
                                                 <th>Com</th>
                                                 <th>Profit</th>
@@ -76,7 +76,7 @@
                                                     <td>{{ $triv->name }}</td>
                                                     <td>{{ $triv->precio }}</td>
                                                     <td>{{ $triv->players }}/{{ $triv->min_pj }}</td>
-                                                    <td>{{ $triv->jackpot }}</td>
+                                                    <td>{{ $triv->prize_pool }}</td>
                                                     <td>
                                                         @if ($triv->type_boat == 1)
                                                             Aumet

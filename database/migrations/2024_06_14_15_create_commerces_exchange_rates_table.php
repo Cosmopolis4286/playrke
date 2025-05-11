@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('commerces_exchange_rates', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('commerce');
+            $table->foreignId('commerce')->constrained('commerces')->onDelete('cascade');
             $table->unsignedBigInteger('coin');
             $table->double('exchange_rate')->default(1);
             $table->boolean('status')->default(0);
@@ -24,7 +24,6 @@ return new class extends Migration
 
             // Foreign keys
             $table->foreign('coin')->references('id')->on('coins');
-            $table->foreign('commerce')->references('id')->on('commerces');
         });
     }
 

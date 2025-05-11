@@ -31,16 +31,24 @@ class BingoCtnPrice extends Model
 
     public static function getValueCtnPrice($room, $coin, $creatorUser)
     {
-        return self::where('room', $room)->where('coin', $coin)
+        return self::select('ctn_price')->where('room', $room)->where('coin', $coin)
             ->where('creator_user', $creatorUser)->value('ctn_price');
+    }
+
+    public static function getAllCoinsCtnPrice($room, $creatorUser, $status = 1)
+    {
+        if (!$creatorUser) return collect();
+
+        return self::select('coin')->where('room', $room)->where('creator_user', $creatorUser)
+            ->where('status', $status)->distinct()->pluck('coin');
     }
 
     public static function getOnlyCoinsCtnPrice($room, $creatorUser)
     {
         if (!$creatorUser) return collect();
 
-        return self::where('room', $room)->where('creator_user', $creatorUser)->groupBy('coin')
-            ->select('coin', BingoCtnPrice::raw('MAX(ctn_price) as ctn_price'))
+        return self::select('coin', BingoCtnPrice::raw('MAX(ctn_price) as ctn_price'))
+            ->where('room', $room)->where('creator_user', $creatorUser)->groupBy('coin')
             ->pluck('ctn_price', 'coin');
     }
 

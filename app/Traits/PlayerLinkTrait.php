@@ -15,9 +15,8 @@ trait PlayerLinkTrait
 {
     public function createPlayerLinkInfo($arr)
     {
-        DB::beginTransaction(); // Iniciar una transacción
-
         try {
+
             $country = $arr['country'];
             $name = $arr['name'];
             $lastname = $arr['lastname'];
@@ -57,10 +56,8 @@ trait PlayerLinkTrait
                 throw new \Exception('Error al crear el jugador');
             }
 
-            DB::commit(); // Confirmar transacción
             return $player->id;
         } catch (\Exception $e) {
-            DB::rollBack(); // Revertir transacción
             Log::error('Error en createPlayerLinkInfo(): ' . $e->getMessage());
             return false; // Retornar false si algo falla
         }
@@ -149,6 +146,6 @@ trait PlayerLinkTrait
     public function getGameLinkByPlayer($playerLink)
     {
         $playerLink = is_int($playerLink) ? PlayerLink::getValueById($playerLink, 'link') : $playerLink;
-        return route('bingocash.in-game', ['player' => $playerLink]);
+        return route('bingo.in-game', ['player' => $playerLink]);
     }
 }

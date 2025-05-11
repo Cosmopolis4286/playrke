@@ -10,7 +10,9 @@
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         @if ($ctnsSold->count() > 1 && $pendingCtns > 1)
-                            <button id="btn-notify-all-ctns" class="btn btn-sm btn-secondary mt-2">Notificar Todo</button>
+                            <button type="button" id="btn-notify-all-ctns" class="btn btn-sm btn-secondary mt-2">
+                                Notificar Todo
+                            </button>
                         @endif
                         <div class="table-responsive mt-3">
                             <table class="table table-striped table-bordered my-2 w-100">
@@ -39,7 +41,7 @@
                                             <td>{{ $ctn->PlayerLink->Country->name }}</td>
                                             <td>{{ $coinISOCode }} ({{ $coinSym }})</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coinISOCode }} {{ $ctn->sale_amount }}</td>
+                                            <td>{{ $coinSym }} {{ $ctn->sale_amount }}</td>
                                             <td>{{ $ctn->created_at->format('d/m/y H:i:s') }}<small
                                                     class="ml-1">GMT-4</small></td>
                                             <td>
@@ -69,7 +71,7 @@
                                         <tr>
                                             <td colspan="4" class="text-right"><b>Total:</b></td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
-                                            <td>{{ $coinISOCode }} {{ $ctnsSold->sum('sale_amount') }}</td>
+                                            <td>{{ $coinSym }} {{ $ctnsSold->sum('sale_amount') }}</td>
                                             <td colspan="2"></td>
                                         </tr>
                                     </tfoot>
@@ -101,7 +103,7 @@
         let amountSent;
 
         function getPaymentCommerceDetails() {
-            $.getJSON(`{{ url('seller/getPaymentCommerceDetails') }}/${coin}`, {
+            $.getJSON(route('seller.getPaymentCommerceDetails', coin), {
                     '_token': "{{ csrf_token() }}"
                 })
                 .done(data => {

@@ -641,7 +641,7 @@ class WalletController extends Controller
                     DB::table('triv_pvp_bets')
                         ->insertGetId([
                             'user' => $user, 'coin' => $wallet->id,
-                            'value' => $request->aps_triv, 'jackpot' => $request->aps_triv
+                            'value' => $request->aps_triv, 'prizePool' => $request->aps_triv
                         ]);
                 }
             } else {
@@ -710,7 +710,7 @@ class WalletController extends Controller
             }
             DB::table("triv_multi_user")->insert(['user' => $user, 'room' => $id]);
             DB::table('triv_multi')->where('id', $id)->update([
-                'players' => $trivia->players + 1, 'jackpot' => $trivia->jackpot + $rest
+                'players' => $trivia->players + 1, 'prizePool' => $trivia->prize_pool + $rest
             ]);
             $hist_gm = DB::table('hist_games')->where('game', 2)
                 ->where('id_game', $id)->where('user', $user)->first();

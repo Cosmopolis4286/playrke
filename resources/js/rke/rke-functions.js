@@ -11,7 +11,7 @@ function ajaxStop() {
     $('.btn:not([data-block])').prop('disabled', false);
 }
 
-$(document).on('click', '[data-dismiss="modal"]', function() {
+$(document).on('click', '[data-dismiss="modal"]', function () {
     $(this).blur();
 });
 
@@ -35,7 +35,7 @@ function copyInfo(text, elem = false) {
 
 function deleteSessionFlash(arr = []) {
     $.ajax({
-        url: "{{ route('clear.flash.messages') }}",
+        url: route('clear.flash.messages'),
         type: 'POST',
         headers: {
             'X-CSRF-TOKEN': $("#5K3_70K").val()
@@ -50,6 +50,7 @@ function deleteSessionFlash(arr = []) {
 
 function submitForm(formName, requiredFields = []) {
     let isValid = true;
+    let invalidFields = [];
 
     // Si no hay campos requeridos especificados, seleccionarlos automáticamente
     if (!requiredFields.length) {
@@ -62,12 +63,16 @@ function submitForm(formName, requiredFields = []) {
     // Validar que todos los campos requeridos tengan un valor
     requiredFields.forEach(fieldId => {
         if (!$(`#${fieldId}`).val()) {
-            isValid = false;
+            invalidFields.push(fieldId);
         }
     });
 
+    if (invalidFields.length) isValid = false;
+
     // Si todo es válido, enviar el formulario; si no, mostrar alerta
     if (isValid) {
+        $('#loader, #loader-sm').show();
+        $('.btn').prop('disabled', true);
         $(`#form-${formName}`)[0].submit();
     } else {
         showToast('Todos los campos son requeridos', 'warning');
@@ -89,14 +94,12 @@ function setVariable(name, value) {
     }
 }
 
-function formCRUD(elem, name, title, route, otherCasesMap = '') {
-    const modalName = $(`#modal-${name}`);
+function formCRUD(elem, name, title, otherCasesMap = {}) {
     const modalLabel = $(`#modal-${name}-label`);
     const formName = $(`#form-${name}`);
 
     formName[0].reset();
     formName.find('select').empty();
-    formName.find('input[name="_method"]').remove();
 
     let type = false;
     let encryptedId = '';
@@ -125,15 +128,16 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
     switch (type) {
         case 1: // Insertar
             modalLabel.text(`Registrar ${title}`);
-            formName.attr('action', `${route}/create`);
+            formName.find('input[name="_method"]').remove();
+            formName.attr('action', route(`${name}.create`));
             insertInfo(type); // Llama a `insertInfo` sin datos adicionales
             break;
 
         case 2: // Editar
             modalLabel.text(`Editar ${title}`);
-            formName.attr('action', `${route}/update/${encryptedId}`)
+            formName.attr('action', route(`${name}.update`, encryptedId))
                 .append('<input type="hidden" name="_method" value="PUT">');
-            getInfo(route, encryptedId); // Obtén la información con el ID encriptado
+            getInfo(name, encryptedId); // Obtén la información con el ID encriptado
             break;
 
         case 3: // Eliminar
@@ -142,7 +146,7 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
                 'info',
                 'Sí, eliminar',
                 '#form-other-options',
-                `${route}/delete/${encryptedId}`
+                route(`${name}.delete`, encryptedId)
             );
             break;
 
@@ -157,10 +161,9 @@ function formCRUD(elem, name, title, route, otherCasesMap = '') {
     }
 }
 
-function getInfo(route, id) {
-    const url = `${route}/getInfo/:id`.replace(':id', id);
+function getInfo(name, id) {
     $.getJSON({
-        url: url,
+        url: route(`${name}.getInfo`, id),
         data: {
             '_token': $("#5K3_70K").val()
         },
@@ -173,17 +176,30 @@ function getInfo(route, id) {
     });
 }
 
-function validateInput(input, min, max, isFloat = true) {
+function validateInput(input, isFloat = true, callback = null) {
     setTimeout(() => {
-        let value = isFloat ? parseFloat($(input).val()) : $(input).val();
+        const $input = $(input);
+        let value = isFloat ? parseFloat($input.val()) : $input.val();
+        const min = parseFloat($input.attr('min')) || 0;
+        const max = parseFloat($input.attr('max')) || 100;
 
-        if (value < min || value > max) {
+        if (isNaN(value) || value < min || value > max) {
             showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
-            value = min; // Restablecer al valor mínimo permitido
+            value = min;
         }
 
-        $(input).val(isFloat ? parseFloat(value).toFixed(2) : value);
+        $input.val(isFloat ? value.toFixed(2) : value);
+
+        if (typeof callback === 'function') callback();
     }, 1500);
+}
+
+function stringToArray(str, separator = ';') {
+    if (typeof str !== 'string' || !str.length) {
+        return [];
+    }
+
+    return str.split(separator).map(item => item.trim()).filter(item => item !== '');
 }
 
 // Exponer las funciones al objeto window
@@ -196,3 +212,4 @@ window.submitForm = submitForm;
 window.formCRUD = formCRUD;
 window.getInfo = getInfo;
 window.validateInput = validateInput;
+window.stringToArray = stringToArray;

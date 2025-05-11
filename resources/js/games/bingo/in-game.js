@@ -34,9 +34,9 @@ document.body.addEventListener('click', function () {
 function endGame(useTimeout = true) {
     if (!closingRoute) return;
 
-    const redirect = () => (window.location.href = closingRoute);
+    // const redirect = () => (window.location.href = closingRoute);
 
-    useTimeout ? setTimeout(redirect, 8000) : redirect();
+    // useTimeout ? setTimeout(redirect, 10000) : redirect();
 }
 
 // Salir de la sala
@@ -145,9 +145,11 @@ window.onfocus = function () {
 };
 
 async function getGameData() {
+    
     if (endWin !== 0) return;
+
     try {
-        const data = await $.getJSON(`${preRoute}bingocash/get/chips/${encrypted}`, {
+        const data = await $.getJSON(route('bingo.getChips', encrypted), {
             '_token': $("#5K3_70K").val()
         });
 
@@ -176,11 +178,6 @@ const widthContainerImage = sizeChip + (newMargin * 2);
 
 function adjustWidthBoxesHist() {
     $('.container-image-history').css({ width: sizeChip, height: sizeChip, margin: `0 ${newMargin}px` });
-}
-
-function adjustHeightBoxes() {
-    let widthNumberBox = $('.number-box').first().width();
-    $('.number-box').height(widthNumberBox);
 }
 
 $(document).on("click", ".cont-arrow-history-chips", function () {
@@ -295,10 +292,10 @@ function getNewChip(newChip) {
         // Mostrar ganadores si es el último chip
         if (newChip == chpLast) {
             $('#text-check-bingo').show();
-            endWin = 1;
             setTimeout(() => {
                 showWinners(decryptJson(infoGame, r4nd0m), chpLast);
-            }, 3000);
+            }, 2600);
+            endWin = 1;
         }
     }
 }
@@ -311,12 +308,12 @@ function getWinners(arrInfo, arrSize) {
 
         content +=
             `<div class="col-4 my-1 cont-win-info">
-                    <button class="cont-win-img" type="button" data-id="${arrInfo.ctn[i]}" title="Ver Cartón">
-                        <i class="eye-icon fa-solid fa-eye"></i>
-                        <img class="user-img" src="${preRoute}${img}">
-                    </button>
-                    <div class="winner-info-text fw-bold badge badge-success">${arrInfo.name[i]}</div>
-                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy">${coinSym} ${arrInfo.gain[i]}</div>
+                <div class="cont-win-img" data-id="${arrInfo.ctn[i]}" title="Ver Cartón">
+                    <i class="eye-icon fa-solid fa-eye"></i>
+                    <img class="user-img" src="${preRoute}${img}">                  
+                    <div class="winner-info-text fw-bold badge badge-success w-100">${arrInfo.name[i]}</div>
+                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy w-100">${coinSym} ${arrInfo.gain[i]}</div>
+                </div>
             </div>`;
     }
     return content;
@@ -324,7 +321,7 @@ function getWinners(arrInfo, arrSize) {
 
 function showJackpotWinners(arr, size) {
     const content = getWinners(arr, size);
-    $('#jackpot-winners').html(content);
+    $('#prize_pool-winners').html(content);
 }
 
 function showSeriaslWinners(arr, size) {
@@ -337,7 +334,7 @@ function showWinners(arrInfo, chipWin) {
     if (loaderChip) $('#cont-loader').hide();
     if (roomStatus == 3) $('#text-check-bingo').hide();
 
-    const arrSizeJackpot = arrInfo.jackpotWinners.size;
+    const arrSizeJackpot = arrInfo.prizePoolWinners.size;
     const arrSizeSerials = arrInfo.serialsWinners.size ?? 0;
 
     const countWinners = arrSizeJackpot + arrSizeSerials;
@@ -353,8 +350,8 @@ function showWinners(arrInfo, chipWin) {
             "alt": chipWin
         });
 
-        showJackpotWinners(arrInfo.jackpotWinners, arrSizeJackpot);
-        $('#jackpot-value').text(arrInfo.prizesValues[0]);
+        showJackpotWinners(arrInfo.prizePoolWinners, arrSizeJackpot);
+        $('#prize_pool-value').text(arrInfo.prizesValues[0]);
 
         if (arrSizeSerials > 0) {
             showSeriaslWinners(arrInfo.serialsWinners, arrSizeSerials);
@@ -377,9 +374,13 @@ function showWinners(arrInfo, chipWin) {
 let getViewCtn = false;
 
 $(document).on("click", ".cont-win-img", function () {
+
     if (getViewCtn) return;
+
+    const ctnID = $(this).data('id');
+
     $.get({
-        url: `${preRoute}bingocash/viewCtn/${$(this).data('id')}`,
+        url: route('bingo.viewCtn', ctnID),
         dataType: 'json',
         data: {
             '_token': $("#5K3_70K").val()
@@ -413,14 +414,16 @@ $(document).on("click", "#btn-view-winners", function () {
 });
 
 $(function () {
+
     try {
+
         if (player) {
             adjustHeightBoxes();
             $('.container-carton').css('visibility', 'visible');
         }
 
-        $(window).resize(function () {
-            // Ajusta la altura de los contenedores al redimensionar la ventana         
+        window.addEventListener('resize', () => {
+
             if (player) adjustHeightBoxes();
 
             if (roomStatus > 2) {

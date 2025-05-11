@@ -40,9 +40,11 @@ class CustomerController extends Controller
         $rules = [
             'username' => ['required', 'string', 'max:20', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
+            'customer_id' => ['required', 'string', 'max:30', 'unique:customers,customer_id'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
+            'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
             'name' => ['required', 'string'],
-            'phone' => ['required', 'string', 'max:20', 'unique:customers,phone'],
+            'phone' => ['nullable', 'string', 'max:20', 'unique:customers,phone'],
             'api_route' => ['required', 'string', 'max:255'],
             'customer_key' => ['required', 'string', 'max:255'],
         ];
@@ -51,13 +53,15 @@ class CustomerController extends Controller
         if ($type == 2) {
             $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $customer->user];
             $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $customer->user];
-            $rules['phone'] = ['required', 'string', 'max:20', 'unique:customers,phone,' . $customer->id];
+            $rules['customer_id'] = ['required', 'string', 'max:30', 'unique:customers,customer_id,' . $customer->id];
+            $rules['phone'] = ['nullable', 'string', 'max:20', 'unique:customers,phone,' . $customer->id];
         }
 
         // Definir mensajes de error personalizados.
         $messages = [
             'username.unique' => 'Nombre de usuario no disponible.',
             'email.unique' => 'Este correo ya está registrado.',
+            'customer_id.unique' => 'Cliente ID ya está registrado.',
             'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
         ];
 
@@ -141,6 +145,7 @@ class CustomerController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
+                'time_zone' => $request->time_zone,
                 'email_verified_at' => Carbon::now(),
                 'referral_code' => User::getUniqueReferralCode(),
             ])->id;
@@ -149,11 +154,14 @@ class CustomerController extends Controller
             Wallet::create(['coin' => $request->coin ?? 1, 'user' => $newUser]);
 
             $phoneNumber = $request->phone;
-            PhoneNumbers::create([
-                'user' => $newUser,
-                'country' => $request->country,
-                'phone_number' => $phoneNumber
-            ]);
+
+            if ($phoneNumber) {
+                PhoneNumbers::create([
+                    'user' => $newUser,
+                    'country' => $request->country,
+                    'phone_number' => $phoneNumber
+                ]);
+            }
 
             $keys = $this->getEncryptionKeyForClient($request->customer_key);
 
@@ -166,6 +174,7 @@ class CustomerController extends Controller
                 'name' => $request->name,
                 'country' => $request->country,
                 'phone' => $phoneNumber,
+                'customer_id' => $request->customer_id,
                 'user' => $newUser,
                 'logo' => $logo,
                 'link_route' => $request->api_route,
@@ -190,7 +199,6 @@ class CustomerController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error general: ' . $e->getMessage());
-            dd($e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
 
@@ -202,10 +210,10 @@ class CustomerController extends Controller
         $id = decrypt($id);
 
         // Obtener datos del cliente
-        $customer = Customer::getById($id, ['name', 'country', 'phone', 'link_route']);
+        $customer = Customer::getById($id, ['name', 'customer_id', 'country', 'phone', 'link_route']);
 
         // Obtener datos del usuario
-        $user = User::getById(Customer::getValueById($id, 'user'), ['username', 'email']);
+        $user = User::getById(Customer::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
 
         $keys = Customer::getById($id, ['customer_key', 'security_key']);
         // Desencriptar clave de seguridad 
@@ -244,6 +252,13 @@ class CustomerController extends Controller
                     return redirect()->back()->withErrors($validator)->withInput();
                 }
 
+                $userID = $customer->user;
+                $userTimeZone = User::getValueById($userID, 'time_zone');
+
+                if ($userTimeZone <> $request->time_zone) {
+                    User::where('id', $userID)->update(['time_zone' => $request->time_zone]);
+                }
+
                 $fileLogo = $request->file('logo');
                 $logo = $fileLogo ? $this->saveLogo($fileLogo, $customer->token) : null;
 
@@ -259,6 +274,8 @@ class CustomerController extends Controller
                 $data = [
                     'name' => $request->name,
                     'country' => $request->country,
+                    'time_zone' => $request->time_zone,
+                    'customer_id' => $request->customer_id,
                     'phone' => $phoneNumber,
                     'logo' => $logo,
                     'link_route' => $request->api_route

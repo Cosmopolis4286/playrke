@@ -15,9 +15,10 @@ class CreateTimezonesTable extends Migration
     {
         Schema::create('time_zones', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('name', 50)->unique();
+            $table->string('utc', 8);
             $table->foreignId('country')->nullable()->constrained('countries')->cascadeOnUpdate();
-            $table->boolean('status')->default(false);
+            $table->boolean('status')->default(1);
             $table->timestamps();
         });
     }

@@ -130,7 +130,7 @@
         });
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Tasa de cambio', `{{ asset('') }}${name}`, otherCasesMap)
+            formCRUD($(this), name, 'Tasa de cambio', otherCasesMap)
         });
 
         $(document).on("click", "#btn-confirm", function() {
@@ -170,9 +170,8 @@
             });
         } else {
             function getLastValueByCoin(coin) {
-                const url = `{{ asset('') }}exchange-rate/getLastValueByCoin/:coin`.replace(':coin', coin);
                 $.getJSON({
-                    url: url,
+                    url: route('exchange-rate.getLastValueByCoin', coin),
                     data: {
                         '_token': $("#5K3_70K").val()
                     },

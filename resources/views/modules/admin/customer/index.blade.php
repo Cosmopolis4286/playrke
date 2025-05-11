@@ -127,7 +127,9 @@
 
         const name = '<?php echo $name; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
+        const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const country = $("#country");
+        const timeZone = $("#time-zone");
         let update = false;
 
         if (@json(Session::has('msg-error'))) {
@@ -136,11 +138,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Cliente', `{{ asset('') }}${name}`);
+            formCRUD(elem, name, 'Cliente');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Cliente', `{{ asset('') }}${name}`, otherCasesMap)
+            formCRUD($(this), name, 'Cliente', otherCasesMap)
         });
 
         function insertInfo(type, data = '') {
@@ -150,11 +152,18 @@
             if (type == 1) {
                 $('#customer-key').val(generateUUID());
                 country.append(`<option value="" disabled selected>Seleccionar País:</option>`);
+                timeZone.append(`<option value="" disabled selected>Seleccionar Zona:</option>`);
             }
 
             $.each(arrCountries, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.customer.country) ? 'selected' : '';
                 country.append(
+                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+            });
+
+            $.each(arrTimeZones, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.user.time_zone) ? 'selected' : '';
+                timeZone.append(
                     `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
 
@@ -165,6 +174,7 @@
                 $('#name').val(customer.name);
                 $("#email").val(user.email);
                 $("#username").val(user.username);
+                $("#customer-id").val(customer.customer_id);
                 $('#phone').val(customer.phone);
 
                 $('#api-route').val(customer.link_route);
@@ -178,13 +188,15 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'email', 'username', 'country', 'phone', 'api-route', 'customer-key']);
+            submitForm(name, ['name', 'email', 'username', 'customer-id',
+                'country', 'time-zone', 'api-route', 'customer-key'
+            ]);
         });
 
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Deseas cambiar el status de este Cliente',
+                    'Deseas cambiar el status de este cliente',
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
@@ -195,7 +207,7 @@
             },
             5: function(encryptedId) {
                 showToastOptionBtns(
-                    'Generar Nueva Contraseña a este Cliente',
+                    'Generar nueva contraseña a este cliente',
                     'info',
                     'Sí, generar',
                     '#form-other-options',

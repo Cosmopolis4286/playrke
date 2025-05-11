@@ -16,7 +16,7 @@ class CustomerExchangeRate extends Model
 
     public static function getById($id, $fields = ['*'])
     {
-        return self::select($fields)->where('id', $id)->first();
+        return self::select($fields)->where('id', $id)->where('status', 1)->orderByDesc('id')->first();
     }
 
     public static function getValueById($id, $value = 'exchange_rate')
@@ -32,7 +32,8 @@ class CustomerExchangeRate extends Model
 
     public static function getByCustomerCoin($customer, $coin, $fields = ['*'])
     {
-        return self::select($fields)->where('customer', $customer)->where('coin', $coin)->first();
+        return self::select($fields)->where('customer', $customer)
+            ->where('coin', $coin)->orderByDesc('id')->first();
     }
 
     public static function getCustomerCoinValue($customer, $coin, $value = 'exchange_rate')
@@ -48,7 +49,7 @@ class CustomerExchangeRate extends Model
 
     public static function getValuesByCoin($coin)
     {
-        return self::where('coin', $coin)->pluck('exchange_rate');
+        return self::select('exchange_rate')->where('coin', $coin)->pluck('exchange_rate');
     }
 
     public static function getAvailableExchangeRates($customer)
@@ -58,7 +59,7 @@ class CustomerExchangeRate extends Model
 
     public static function getCoinsByCustomer($customer, $status = '')
     {
-        $query = self::where('customer', $customer);
+        $query = self::select('coin')->where('customer', $customer);
 
         if ($status) $query->where('status', $status);
 
@@ -73,5 +74,30 @@ class CustomerExchangeRate extends Model
     public static function existsCoinByCustomer($customer, $coin)
     {
         return self::where(['customer' => $customer, 'coin' => $coin])->exists();
+    }
+
+    public static function updateOrCreateExchangeRate($customer, $coin, $amount, $pct = '')
+    {
+        $lastRate = self::where(['customer' => $customer, 'coin' => $coin])
+            ->orderByDesc('id')->first();
+
+        // Solo crear nuevo si no existe o si el valor cambió
+        if (!$lastRate || $lastRate->exchange_rate != $amount) {
+
+            // Desactivar la tasa anterior si existe
+            if ($lastRate) {
+                $lastRate->status = 2;
+                $lastRate->save();
+            }
+
+            // Crear nueva tasa activa
+            self::create([
+                'customer' => $customer,
+                'coin' => $coin,
+                'exchange_rate' => $amount,
+                'pct' => $pct,
+                'status' => 1
+            ]);
+        }
     }
 }

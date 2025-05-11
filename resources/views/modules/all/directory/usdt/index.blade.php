@@ -64,7 +64,7 @@
         const accountTypes = @json($accountTypes);
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Datos Binance', `{{ asset('') }}${name}`)
+            formCRUD($(this), name, 'Datos Binance')
         });
 
         function insertInfo(type, data = '') {

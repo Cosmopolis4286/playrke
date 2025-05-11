@@ -20,8 +20,8 @@ class BingoRoom extends Model
     'all_sale',
     'room_commn',
     'seller_commn',
-    'jackpot',
-    'jackpot_prize',
+    'prize_pool',
+    'full_house_prize',
     'serial_prize',
     'close_room',
     'code_uuid',
@@ -59,6 +59,11 @@ class BingoRoom extends Model
     return $this->hasMany(BingoCtnsLot::class, 'room', 'id');
   }
 
+  public function CreatorSales()
+  {
+    return $this->hasMany(BingoCreatorSales::class, 'room', 'id');
+  }
+
   public function PlayersRoom()
   {
     return $this->hasMany(BingoRoomUser::class, 'room', 'id');
@@ -76,7 +81,7 @@ class BingoRoom extends Model
 
   public static function getById($room, $fields = ['*'])
   {
-    return self::where('id', $room)->select($fields)->first();
+    return self::select($fields)->where('id', $room)->first();
   }
 
   public static function getByEncrypted($encryptedID, $fields = ['*'])

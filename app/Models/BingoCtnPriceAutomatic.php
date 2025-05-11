@@ -38,8 +38,8 @@ class BingoCtnPriceAutomatic extends Model
     {
         if (!$automaticBingoID) return collect();
 
-        return self::where('automatic_bingo_id', $automaticBingoID)->groupBy('coin')
-            ->select('coin', BingoCtnPrice::raw('MAX(ctn_price) as ctn_price'))
+        return self::select('coin', BingoCtnPrice::raw('MAX(ctn_price) as ctn_price'))
+            ->where('automatic_bingo_id', $automaticBingoID)->groupBy('coin')
             ->pluck('ctn_price', 'coin');
     }
 

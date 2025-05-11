@@ -27,13 +27,13 @@ class CreateBingoRoomConfigTable extends Migration
             $table->double('ctn_price');
             $table->double('room_commn')->nullable();
             $table->unsignedBigInteger('jackpot_type')->default(1);
-            $table->double('fixed_jackpot_value')->nullable();
+            $table->double('amount_added_jackpot')->nullable();
             $table->string('time_chip', 2)->nullable();
             $table->boolean('replay')->default(0);
             $table->double('pct_serials')->nullable();
             $table->string('num_serials', 2)->nullable();
-            $table->double('serials_commn')->nullable();
-            $table->double('val_types_plays')->nullable();
+            $table->double('pct_jackpot')->nullable();
+            $table->double('pct_types_plays')->nullable();
             $table->string('types_plays')->nullable();
             $table->timestamps();
 

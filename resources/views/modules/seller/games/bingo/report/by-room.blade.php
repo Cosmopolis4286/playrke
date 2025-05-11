@@ -16,7 +16,6 @@
                                         <th>Nombre</th>
                                         <th>Apellido</th>
                                         <th>Celular</th>
-                                        <th>Moneda</th>
                                         <th>#CTNs</th>
                                         <th>Total</th>
                                         <th>Acción</th>
@@ -28,13 +27,12 @@
                                             <td>{{ $player->name }}</td>
                                             <td>{{ $player->lastname }}</td>
                                             <td>{{ $player->phone }}</td>
-                                            <td>{{ $coinName }} ({{ $coinSym }})</td>
                                             <td>{{ $player->CtnsLot->sum('ctns') }}</td>
                                             <td>{{ $player->Coin->symbol }} {{ $player->CtnsLot->sum('sale_amount') }}</td>
                                             <td>
                                                 <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                                    href="{{ route('bingocash.in-game', ['commerce' => $commerce, 'player' => $player->link]) }}">
-                                                    <i class="fa-solid fa-eye"></i>CTNs
+                                                    href="{{ route('bingo.in-game', ['player' => $player->link]) }}">
+                                                    <i class="fa-solid fa-eye"></i> CTNs
                                                 </a>
                                             </td>
                                         </tr>
@@ -42,7 +40,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colspan="4" class="text-right"><b>Total:</b></td>
+                                        <td colspan="3" class="text-right"><b>Total:</b></td>
                                         <td>{{ $totalCtnsByRoom }}</td>
                                         <td colspan="2">{{ $coinSym }} {{ $totalCtnsPurchased }}</td>
                                     </tr>

@@ -72,7 +72,7 @@
         let banks = [];
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Pix', `{{ asset('') }}${name}`)
+            formCRUD($(this), name, 'Pix')
         });
 
         $(document).ready(function() {
@@ -121,7 +121,7 @@
                 insertBanks(type, data);
             } else {
                 $.getJSON({
-                    url: "{{ route('pix.getBanks') }}",
+                    url: route('pix.getBanks'),
                     data: {
                         '_token': $("#5K3_70K").val()
                     },
@@ -155,6 +155,6 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, ['pix-key', 'pix-key-value']);
-        });        
+        });
     </script>
 @endsection

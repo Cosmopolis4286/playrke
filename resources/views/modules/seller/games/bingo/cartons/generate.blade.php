@@ -11,10 +11,10 @@
                             <div class="form-group col-9 col-sm-5">
                                 <label for="room">Próximos Bingo</label>
                                 <select disabled id="room" class="form-control" name="room" required></select>
-                                <div id="cont-tx-jackpot-room" class="mt-1 hide-elem">
+                                <div id="cont-tx-prize_pool-room" class="mt-1 hide-elem">
                                     <b><small><span class="jackpot-type"></span> Actual:</small></b>
                                     <span class="coin-symbol"></span>
-                                    <span id="tx-jackpot-room"></span>
+                                    <span id="tx-prize_pool-room"></span>
                                 </div>
                             </div>
                             <div class="form-group col-6 col-sm-4">
@@ -171,7 +171,7 @@
         let allowsUSDT = false;
         let coinSym = '';
         let ctnPrice = 1;
-        let jackpotRoom;
+        let prize_poolRoom;
         let playerInfo = '';
         let playerInGame = false;
 
@@ -251,13 +251,13 @@
             let ctns = numCtns.val();
             let total = formatNumber(ctnPrice * ctns);
             let totalsellerCommn = formatNumber(total * (sellerCommn / 100));
-            let jackpotAmount = formatNumber((total - totalsellerCommn));
+            let prizePoolAmount = formatNumber((total - totalsellerCommn));
 
             if (roomID) {
                 $(".coin-symbol").text(coinSym);
                 $("#tx-total-amount").html(total);
                 $("#tx-seller-commn").html(totalsellerCommn);
-                $("#tx-commerce-amount").html(jackpotAmount);
+                $("#tx-commerce-amount").html(prizePoolAmount);
             }
         }
 
@@ -267,7 +267,7 @@
             ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
             $("#ctn-price-symbol").text(coinSym);
             $("#ctn-price-amount").text(ctnPrice);
-            $("#tx-jackpot-room").text(formatNumber((jackpotRoom * exchangeRate), 3));
+            $("#tx-prize_pool-room").text(formatNumber((prize_poolRoom * exchangeRate), 3));
             calculateSale();
         }
 
@@ -296,8 +296,10 @@
 
         function getCtnPriceCoin(country) {
             $.getJSON({
-                url: `{{ route('seller.getCtnPriceCoin', ['room' => ':room', 'country' => ':country']) }}`
-                    .replace(':room', roomID).replace(':country', country),
+                url: route('seller.getCtnPriceCoin', {
+                    room: roomID,
+                    country
+                }),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },
@@ -315,11 +317,10 @@
 
             if (!roomID) {
                 $(".coin-symbol, .sale-info").empty();
-                $(".ctn-player-info, #cont-tx-jackpot-room").addClass('hide-elem');
+                $(".ctn-player-info, #cont-tx-prize_pool-room").addClass('hide-elem');
             } else {
                 $.getJSON({
-                    url: `{{ route('seller.getCtnPrice', ['roomID' => ':id']) }}`
-                        .replace(':id', roomID),
+                    url: route('seller.getCtnPrice', roomID),
                     headers: {
                         'X-CSRF-TOKEN': $("#5K3_70K").val()
                     },
@@ -329,8 +330,8 @@
                             return;
                         }
                         const {
-                            jackpot,
-                            jackpotType,
+                            prize_pool,
+                            jackpot_type,
                             price,
                             coin,
                             countries,
@@ -345,11 +346,11 @@
                         $("#ctn-price-amount").text(ctnPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
-                        jackpotRoom = formatNumber(jackpot, 3);
-                        $(".jackpot-type").text(jackpotType == 1 ? 'Bote' : 'Premio');
-                        $("#tx-jackpot-room").text(jackpotRoom);
+                        prize_poolRoom = formatNumber(prize_pool, 3);
+                        $(".jackpot-type").text(jackpot_type == 1 ? 'Bote' : 'Premio');
+                        $("#tx-prize_pool-room").text(prize_poolRoom);
                         calculateSale();
-                        $(".ctn-player-info, #cont-tx-jackpot-room").removeClass('hide-elem');
+                        $(".ctn-player-info, #cont-tx-prize_pool-room").removeClass('hide-elem');
                     }
                 });
             }
@@ -402,7 +403,7 @@
 
         function getPlayer(playerInfo, action = false) {
             $.post({
-                url: "{{ route('seller.getPlayer') }}",
+                url: route('seller.getPlayer'),
                 headers: {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 },

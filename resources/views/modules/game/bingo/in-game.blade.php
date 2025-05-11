@@ -27,6 +27,9 @@
         @elseif($room->status > 2)
             @include('includes.games.bingo.layout.modal-info-winners')
             @include('includes.games.bingo.layout.sounds')
+            @if ($room->Config->types_plays)
+                @include('includes.games.bingo.layout.modal-bingo-plays')
+            @endif
         @endif
         @include('includes.games.bingo.layout.modal-bingo-rules')
     </div>
@@ -38,7 +41,7 @@
 
     <script>
         const preRoute = '{{ asset('') }}';
-        const logo = `{{ $custLogo ?? 'img/rke.png' }}`;
+        const logo = `{{ $customerLogo ?? 'img/rke.png' }}`;
         const encrypted = '{{ $room->encrypted }}';
         const roomStatus = '{{ $room->status }}';
         const coinSym = '{{ $coinSym }}';
@@ -55,16 +58,13 @@
         let allChips = @json($allChips);
         let infoGame = @json($infoGame);
     </script>
-    @if ($room->status == 2)
+    @vite('resources/js/games/bingo/includes/adjust-height-boxes.js')
+    @if ($room->status == 2 && $creatorType !== 'customer')
         <script>
             const creatorType = '{{ $creatorType }}';
             const creatorID = @json($creatorID);
             const coinID = @json($coinID);
             const ctnPrice = @json($ctnPrice);
-            const getInfoRoomURL = `{{ route('bingo.getInfo', ['id' => ':1', 'starTime' => ':2']) }}`;
-            const commerceDetailsURL =
-                `{{ route('commerce.getPaymentCommerceDetails', ['commerce' => ':commerce', 'coin' => ':coin']) }}`;
-            const generateCartonURL = `{{ route('bingocash.generateCarton') }}`;
             let gameStartTime = @json($startTime);
             let amount = ctnPrice;
         </script>
@@ -87,5 +87,8 @@
             soundWin.muted = true;
         </script>
         @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
+        @if ($room->Config->types_plays)
+            @vite('resources/js/games/bingo/includes/handle-bingo-plays.js')
+        @endif
     @endif
 @endsection

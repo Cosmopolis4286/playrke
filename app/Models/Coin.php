@@ -87,12 +87,12 @@ class Coin extends Model
 
     public static function getCoinsInArray()
     {
-        return self::pluck('coin')->unique()->toArray();
-    }   
+        return self::distinct()->pluck('coin')->toArray();
+    }
 
     public static function getCoinsByCountry($countries)
     {
-        return self::whereIn('country', $countries)->pluck('id')->toArray();
+        return self::select('id')->whereIn('country', $countries)->distinct()->pluck('id')->toArray();
     }
 
     public static function getCountriesByCoinInArray($coins)

@@ -20,13 +20,13 @@ return new class extends Migration
             $table->foreignId('game_mode')->constrained('game_modes')->onDelete('cascade');
             $table->enum('room_type', ['PV', 'PB'])->default('PV');
             $table->foreignId('jackpot_type')->constrained('jackpot_types')->onDelete('cascade')->default(1);
-            $table->double('fixed_jackpot_value')->nullable();
+            $table->double('amount_added_jackpot')->nullable();
             $table->double('room_commn')->default(0);
             $table->double('ctn_price');
             $table->string('time_chip', 2)->nullable();
             $table->double('pct_serials')->nullable();
             $table->double('num_serials', 2)->nullable();
-            $table->double('serials_commn')->nullable();
+            $table->double('pct_jackpot')->nullable();
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');

@@ -8,14 +8,11 @@ use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\Customer;
-use App\Models\CustomerExchangeRate;
 use App\Models\PagoMovil;
 use App\Models\Pix;
-use App\Models\ProviderRKE;
 use App\Models\Seller;
 use App\Models\SellerCountriesCoins;
 use App\Models\User;
-use App\Models\UserProvider;
 use App\Models\UserType;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +38,11 @@ trait UserVal
     public function commerce($fields = ['*'])
     {
         return Commerce::select($fields)->where('user', Auth::id())->first();
+    }
+
+    public function customer($fields = ['*'])
+    {
+        return Customer::select($fields)->where('user', Auth::id())->first();
     }
 
     public function seller($fields = ['*'])
@@ -112,53 +114,55 @@ trait UserVal
         return $coins;
     }
 
-    public function checkBankDirectoriesExistence($userType, $coins)
+    public function checkBankDirectoriesExistence($coins)
     {
-        $coinsWithoutDirectories = [];
-        $user = Auth::id();
+        $user = User::getCreatorUser(Auth::id(), false, true);
+        $coinModels = Coin::getCoinsById($coins, ['id', 'iso_code']);
 
-        foreach ($coins as $coin) {
-            switch ($coin) {
-                case 2:
-                    // Bs (Venezuela) PagoMovil
-                    $pagomovil = PagoMovil::where('user', $user)->exists();
-                    if (!$pagomovil) $coinsWithoutDirectories[] = $coin;
-                    break;
-                case 3:
-                    // R$ (Brasil) Pix
-                    $pix = Pix::where('user', $user)->exists();
-                    if (!$pix) $coinsWithoutDirectories[] = $coin;
-                    break;
-                case 4:
-                    // $ (Colombia) Pix
-                    //$coinsWithoutDirectories[] = $coin;
-                    break;
-                default:
-                    return response()->json(['error' => 'Tipo de moneda no soportado.'], 400);
-            }
-        }
+        $coinsWithoutDirectories = collect($coinModels)->filter(function ($coin) use ($user) {
+            return match ($coin->iso_code) {
+                'VES' => !PagoMovil::where('user', $user['userId'])->exists(),
+                'BRL' => !Pix::where('user', $user['userId'])->exists(),
+                'COP' => true,
+                default => throw new \InvalidArgumentException("Tipo de moneda no soportado: {$coin->iso_code}"),
+            };
+        })->pluck('id')->all();
 
-        if (in_array($userType, ['commerce', 'admin'])) {
+        if (!in_array($user['type'], ['commerce', 'admin'])) return;
 
+        try {
             DB::beginTransaction();
+            $commerceID = Commerce::getValueByUserId($user['userId'], 'id');
 
-            try {
-                $commerceID = Commerce::getValueByUserId($user, 'id');
-                $query = CommerceExchangeRate::where('commerce', $commerceID);
+            // Restaurar monedas que ahora sí tienen directorio
+            $restorables = CommerceExchangeRate::where('commerce', $commerceID)
+                ->where('status', 4)
+                ->whereNotIn('coin', $coinsWithoutDirectories)
+                ->orderByDesc('id')
+                ->get()
+                ->unique('coin');
 
-                if (count($coinsWithoutDirectories)) {
-                    // status => 4 Sin directorio registrado
-                    $query->whereIn('coin', $coinsWithoutDirectories)
-                        ->where('status', 1)->update(['status' => 4]);
-                } else {
-                    $query->where('status', 4)->update(['status' => 1]);
-                }
-
-                DB::commit();
-            } catch (\Throwable $th) {
-                DB::rollBack();
-                Log::error("Error al cambiar el estado de las monedas sin directorios: {$th->getMessage()}");
+            foreach ($restorables as $record) {
+                $record->update(['status' => 1]);
             }
+
+            // Marcar status 4 en monedas sin directorio
+            foreach ($coinsWithoutDirectories as $coinId) {
+                $record = CommerceExchangeRate::where('commerce', $commerceID)
+                    ->where('coin', $coinId)
+                    ->where('status', '!=', 4)
+                    ->orderByDesc('id')
+                    ->first();
+
+                if ($record) {
+                    $record->update(['status' => 4]);
+                }
+            }
+
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error("Error al actualizar monedas sin directorios: {$th->getMessage()}");
         }
     }
 
@@ -248,32 +252,50 @@ trait UserVal
         }
 
         // Construcción de la consulta principal
-        $query = CommerceCountriesCoins::with($primaryRelation)
-            ->whereHas($primaryRelation, function ($subquery) use ($userId, $userColumn, $dateFilter, $secondaryRelation) {
+        $query = CommerceCountriesCoins::select('id', 'coin')
+            ->with($primaryRelation)
+            ->whereHas($primaryRelation, function ($subquery) use (
+                $userId,
+                $userColumn,
+                $dateFilter,
+                $primaryRelation,
+                $secondaryRelation,
+                $where
+            ) {
+                // Condiciones base
                 $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
                     ->where($userColumn, $userId);
 
+                // Filtro por fecha
+                $this->applyDateFilter($dateFilter, $subquery);
+
+                // Si hay relación secundaria, incluirla
                 if ($secondaryRelation) {
                     $subquery->with($secondaryRelation);
                 }
 
-                $this->applyDateFilter($dateFilter, $subquery);
+                // Fusionar condiciones si son para la misma relación primaria
+                if ($where && $where->isNotEmpty()) {
+                    foreach ($where as $item) {
+                        if (isset($item->relation, $item->constraints) && $item->relation === $primaryRelation) {
+                            call_user_func($item->constraints, $subquery);
+                        }
+                    }
+                }
             });
 
-        // Procesar condiciones adicionales (where simples o whereHas anidados)
+        // Agregar condiciones adicionales (solo las que NO son para la relación primaria)
         if ($where && $where->isNotEmpty()) {
             foreach ($where as $item) {
-                if (isset($item->relation) && is_callable($item->constraints)) {
-                    // Es una relación: usar whereHas
+                if (isset($item->relation, $item->constraints) && $item->relation !== $primaryRelation) {
                     $query->whereHas($item->relation, $item->constraints);
                 } elseif (isset($item->column, $item->value)) {
-                    // Es una condición directa
                     $query->where($item->column, $item->value);
                 }
             }
         }
 
-        $coinIDs = $query->where('status', 1)->orderBy('country')->pluck('coin');
+        $coinIDs = $query->where('status', 1)->orderBy('country')->distinct()->pluck('coin');
 
         return Coin::getCoinsById($coinIDs);
     }
@@ -289,6 +311,10 @@ trait UserVal
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user']);
                 $userTypeId = $commerce->id;
+                break;
+            case 'customer':
+                $customer = $this->customer(['id', 'user']);
+                $userTypeId = $customer->id;
                 break;
             case 'seller':
                 $seller = $this->seller(['id', 'user']);

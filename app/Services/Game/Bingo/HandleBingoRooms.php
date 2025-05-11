@@ -58,19 +58,20 @@ class HandleBingoRooms
     private function processFinishedRoom($room): void
     {
         if (!BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 1)) {
-            $this->handleJackpotWinners($room->id);
+            $this->handleWinners($room->id);
         } else {
             $this->allWinCtnPaid($room->id);
         }
 
-        $creator = User::getCreatorIDByUserType($room->creator_user, '', true);
+        $creatorUser = $room->creator_user;
+        $creator = User::getCreatorUser($creatorUser, false, true);
 
         if ($creator['type'] === 'commerce') {
             // Actulizar estado de los cartones ganadores
             BingoPrizeCtns::where('room', $room->id)->update(['active' => 'Y']);
         } else if ($creator['type'] === 'customer') {
             // Verificar si existen pagos que procesar
-            (new PrizeCartonService())->handleCustomerPrizeCarton($creator['id']);
+            (new PrizeCartonService())->handleCustomerPrizeCarton($creatorUser);
         }
 
         $this->checkAndHideRoom($room);

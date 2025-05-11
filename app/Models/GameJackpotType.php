@@ -26,7 +26,7 @@ class GameJackpotType extends Model
 
     public static function getAvailableByGameMode($game, $game_mode = '')
     {
-        return self::where('game', $game)->where('game_mode', $game_mode)
-            ->where('status', 1)->pluck('jackpot_type')->toArray();
+        return self::select('jackpot_type')->where('game', $game)->where('game_mode', $game_mode)
+            ->where('status', 1)->distinct()->pluck('jackpot_type')->toArray();
     }
 }

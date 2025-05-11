@@ -196,26 +196,27 @@ trait SeamlessWallet
 
         // Validar que se obtuvieron datos del cliente
         if (!$customer) {
-            Log::error("Cliente no encontrado: ID {$customerID}");
+            Log::error("Cliente no encontrado: [ID => {$customerID}]");
             return ['Error' => 'Cliente no encontrado'];
         }
 
-        // Obtener Identificador del Juego con respecto al cliente
-        $gameID = CustomerGames::getCustomerGameID($customerID, $transaction->game);
+        // Obtener Info del Juego con respecto al cliente
+        $game = CustomerGames::getByGameID($customerID, $transaction->game, ['customer_game_id', 'product']);
 
-        if (!$gameID) {
+        if (!$game) {
             Log::error("No existe el ID de Juego del cliente [{$customerID}] para el juego [games.id={$transaction->game}]");
             return ['Error' => "No existe el ID de Juego del cliente [{$customerID}]"];
         }
 
         // Obtener informacion del jugador
-        $player = CustomerUser::getById($transaction->user_id, ['user_id', 'token', 'coin']);
+        $player = CustomerUser::getById($transaction->user_id, ['user_id', 'brand', 'token', 'coin']);
 
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
             "Ticks" => "0000000",
-            "Game" => $gameID,
-            "Brand" => $customer->brand,
+            "Game" => $game->customer_game_id,
+            "Product" => $game->product,
+            "Brand" => $player->brand,
             "Token" => $player->token ?? '',
             "UserID" => $player->user_id ?? '',
             "CurrencyCode" => $player->coin,
@@ -230,9 +231,9 @@ trait SeamlessWallet
         $response = $this->globalGuzzle($customerID, $dataJson, 'TransferMoney');
 
         // Manejo de la respuesta
-        if (isset($response['Error']) && $response['Error']) {
+        if (!$response || (isset($response['Error']) && $response['Error'])) {
             Log::error("Error en la transferencia de dinero: " . ($response['Error'] ?? 'Error desconocido'));
-            return ['Error' => $response['Error']];
+            return ['Error' => ':' . $response['Error'] ?? ''];
         }
 
         return $response;
@@ -260,7 +261,7 @@ trait SeamlessWallet
     {
         try {
             // Manejo de transacciones en un closure
-            return DB::transaction(function () use ($game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount) {
+            DB::transaction(function () use ($game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount) {
                 // Registrar la transacción
                 $transaction = $this->registerTransaction(
                     $game,
@@ -292,11 +293,11 @@ trait SeamlessWallet
                     'updated_at' => now(),
                 ]);
 
-                return true; // Transacción exitosa
+                return $transaction;
             });
         } catch (\Exception $e) {
             // Registrar el error y devolverlo como respuesta
-            Log::error("Error en handleTransactionByBET: " . $e->getMessage());
+            Log::error("Error en handleTransactionByBET ['customerID' => $customer]: " . $e->getMessage());
             return ['Error' => $e->getMessage()];
         }
     }
@@ -331,7 +332,7 @@ trait SeamlessWallet
             Log::warning('Datos inválidos para registrar la transacción: ' . $e->getMessage());
             return false;
         } catch (\Exception $e) {
-            Log::error('Error al registrar la transacción: ' . $e->getMessage());
+            Log::error("Error al registrar la transacción ['customerID' => $customer]: " . $e->getMessage());
             return false;
         }
     }

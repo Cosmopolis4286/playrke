@@ -1,13 +1,13 @@
 <div id="container-purchase-ctns">
     <div class="purchase-ctns__header">
-        <div class="purchase-ctns__jackpot">
-            <div class="purchase-ctns__jackpot-img">
+        <div class="purchase-ctns__prize_pool">
+            <div class="purchase-ctns__prize_pool-img">
                 <img class="purchase-ctns__img" src="{{ asset('img/cofre.png') }}" alt="">
             </div>
             <div class="purchase-ctns__coin">
                 <div id="purchase-ctns__coin-text"></div>
                 <div id="purchase-ctns__coin-number">
-                    <span id="jackpot-amount"></span>
+                    <span id="prize_pool-amount"></span>
                     <small id="purchase-ctns__coin-label" class="ml-1 mt-1 purchase-ctns__coin-label"></small>
                 </div>
             </div>

@@ -97,7 +97,7 @@ class DirectoryController extends Controller
 
             $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce);
 
-            $this->checkBankDirectoriesExistence('commerce', $commerceCoins);
+            $this->checkBankDirectoriesExistence($commerceCoins);
         }
 
         // Determinar la ruta de la vista

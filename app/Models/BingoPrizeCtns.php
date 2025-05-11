@@ -18,6 +18,7 @@ class BingoPrizeCtns extends Model
         'lot',
         'ctn',
         'prize_type',
+        'usd_amount',
         'coin',
         'amount',
         'status',
@@ -75,7 +76,7 @@ class BingoPrizeCtns extends Model
         return $this->belongsTo(GamePrizes::class, 'prize_type');
     }
 
-    public static function getInfoByCtn($ctnId, $fields = ['*'])
+    public static function getById($ctnId, $fields = ['*'])
     {
         return self::select($fields)->where('ctn', $ctnId)->first();
     }

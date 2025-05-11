@@ -20,7 +20,7 @@ function handleCtnPriceForCoins(arrCtnPrice) {
     $('#container-price-config').html(dataCoins);
 
     // Marcar que las monedas ya han sido procesadas
-    arrCoinsCtnPrice = true;
+    coinsCtnPrice = true;
 }
 
 $(document).on("click", "#btn-ctn-price-config", function () {
@@ -29,7 +29,7 @@ $(document).on("click", "#btn-ctn-price-config", function () {
     const isActive = container.toggleClass("hide-elem").data("active") === 1 ? 0 : 1;
     container.data("active", isActive);
 
-    if (isActive === 0 || arrCoinsCtnPrice) return;
+    if (isActive === 0 || coinsCtnPrice) return;
 
     getCtnPriceCoin();
 });
@@ -39,12 +39,10 @@ function getCtnPriceCoin(room = '', action = '') {
     $('#container-price-config').html('');
 
     $.ajax({
-        url: routeGetCtnPriceForCoin.replace(':1', creation).replace(':2', creatorType)
-            .replace(':3', creatorID).replace(':4', room),
+        url: route('bingo.getCtnPriceForCoin', { creation, creatorType, creatorID, room }),
         method: 'GET',
         dataType: 'json',
         beforeSend: function () {
-            inCourse = true;
             $('#container-spinner').show();
         },
         success: function (res) {
@@ -56,7 +54,6 @@ function getCtnPriceCoin(room = '', action = '') {
         error: function (error) { },
         complete: function () {
             $('#container-spinner').hide();
-            inCourse = false;
         }
     });
 }

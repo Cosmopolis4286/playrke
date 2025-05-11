@@ -84,9 +84,9 @@
                                                 value="{{ $data->players }} / {{ $data->min_pj }} PJ" disabled>
                                         </div>
                                         <div class="col-6 col-sm-4 col-md-4 col-lg-3">
-                                            <label class="lb_in">jackpot</label>
+                                            <label class="lb_in">prize_pool</label>
                                             <div>
-                                                <span class="form-control_d">{{ $data->jackpot }}
+                                                <span class="form-control_d">{{ $data->prize_pool }}
                                                     {{ $data->name }}</span>
                                             </div>
                                         </div>

@@ -24,3 +24,9 @@ Schedule::command('generate:bingo-rooms')
     ->everyThreeHours()
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/schedule.log'));
+
+Schedule::command('handle:exchange-rates')
+    ->timezone('America/Caracas')
+    ->hourly()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/schedule.log'));

@@ -4,6 +4,7 @@
         <thead>
             <tr>
                 <th>Sala</th>
+                <th>Tipo</th>
                 <th>Horario</th>
                 <th>Vendedor</th>
                 <th>Jugador</th>
@@ -24,6 +25,7 @@
                             {{ $win->Room->encrypted }}
                         </a>
                     </td>
+                    <td>{{ $win->Room->room_type_description }}</td>
                     <td class="align-middle">
                         {{ \Carbon\Carbon::parse($win->Room->Config->date)->format('d/m/y') }}
                         {{ $win->Room->Config->time }}
@@ -72,7 +74,7 @@
                             @endif
                             @if ($win->PlayerLink)
                                 <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                    href="{{ route('bingocash.in-game', ['player' => $win->PlayerLink->link]) }}">
+                                    href="{{ route('bingo.in-game', ['player' => $win->PlayerLink->link]) }}">
                                     <i class="fa-solid fa-eye"></i>
                                 </a>
                             @endif

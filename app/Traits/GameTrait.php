@@ -133,13 +133,14 @@ trait GameTrait
 
     public function formatAmount($amount, $type)
     {
-        // Formatear monto/valor de acuerdo al tipo
+        // Truncar a 2 decimales sin redondear
+        $truncated = floor($amount * 100) / 100;
+
         if ($type === 'string') {
-            // Formatear como cadena y eliminar ceros y comas finales
-            return number_format($amount, 2, '.', ',') ?: '0.0';
-        } else {
-            // Devolver como número de punto flotante
-            return (float) $amount;
+            // Formatear como string con separador de miles y 2 decimales
+            return number_format($truncated, 2, '.', ',');
         }
+
+        return $truncated;
     }
 }

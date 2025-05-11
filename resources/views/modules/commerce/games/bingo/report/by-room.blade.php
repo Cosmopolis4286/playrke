@@ -34,15 +34,15 @@
                                             $finalSaleAmountSeller = $seller->CtnsLot->sum('final_sale_amount');
                                             $comSaleSeller = $saleAmountSeller - $finalSaleAmountSeller;
 
-                                            $jackpot = $saleAmountSeller - $comSaleSeller;
+                                            $prizePool = $saleAmountSeller - $comSaleSeller;
                                             $comBanca = round($saleAmountSeller * $comCommerceRoom, 2);
-                                            $jackpot -= $comBanca;
+                                            $prizePool -= $comBanca;
 
                                             // Acumular totales
                                             $totalCtnsBuy += $allCtnsSeller;
                                             $totalAllSale += $saleAmountSeller;
                                             $totalComSaleSeller += $comSaleSeller;
-                                            $totalJackpot += $jackpot;
+                                            $totalJackpot += $prizePool;
                                             $totalComBanca += $comBanca;
                                         @endphp
                                         <tr>
@@ -56,7 +56,7 @@
                                             <td>{{ $coinSym }} {{ number_format($saleAmountSeller, 2) }}</td>
                                             <td>{{ $coinSym }} {{ number_format($comSaleSeller, 2) }}</td>
                                             <td>{{ $coinSym }} {{ number_format($comBanca, 2) }}</td>
-                                            <td>{{ $coinSym }} {{ number_format($jackpot, 2) }}</td>
+                                            <td>{{ $coinSym }} {{ number_format($prizePool, 2) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
