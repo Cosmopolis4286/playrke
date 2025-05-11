@@ -525,13 +525,13 @@ class BingoController extends Controller
                     app(HandleTransactions::class)->validateTransactions($creator['id']);
                 }
 
-                $prize_pool = number_format($this->convertPrizeValue($data['room'], $data['coin']), 2, '.');
+                $prizePool = number_format($this->convertPrizeValue($data['room'], $data['coin']), 2, '.');
                 $ctns = BingoRoomUser::getValue($cartonStore, 'ctns');
 
                 DB::commit(); // Confirmar transacción
 
                 return response()->json([
-                    'prize_pool' => $prize_pool,
+                    'prize_pool' => $prizePool,
                     'ctns' => $ctns,
                     'type' => 'success',
                     'message' => 'Proceso efectuado con éxito'
@@ -756,7 +756,7 @@ class BingoController extends Controller
             'room' => $room,
             'jackpot_type' => $room->Config->jackpot_type,
             'coinSym' => $coinSym,
-            'prize_pool' => $this->convertPrizeValue($roomID, $coinID, $prizePool),
+            'prizePool' => $this->convertPrizeValue($roomID, $coinID, $prizePool),
             'startTime' => $this->convertToUnixTimestamp($room->Config->date, $room->Config->time),
             'chipsRest' => $chipsRest,
             'cartons' => $ctns ?? [],
@@ -3040,7 +3040,7 @@ class BingoController extends Controller
                     $finalSaleRoom = $room->CtnsLot->sum('final_sale_amount');
                     $comSaleSellerRoom = $allSaleRoom - $finalSaleRoom;
                     $comBancaRoom = $allSaleRoom * ($room->Config->room_commn / 100);
-                    $prize_poolRoom = $allSaleRoom - $comSaleSellerRoom - $comRKE - $comBancaRoom;
+                    $prizePoolRoom = $allSaleRoom - $comSaleSellerRoom - $comRKE - $comBancaRoom;
 
                     $ctns = $room->CtnsLot->sum('ctns');
 
@@ -3049,7 +3049,7 @@ class BingoController extends Controller
                     $totals['allSales'] += $allSaleRoom;
                     $totals['comSaleSeller'] += $comSaleSellerRoom;
                     $totals['finalSale'] += $finalSaleRoom;
-                    $totals['prize_pool'] += $prize_poolRoom;
+                    $totals['prize_pool'] += $prizePoolRoom;
                     $totals['comBanca'] += $comBancaRoom;
 
                     // Formatear para mostrar por sala
@@ -3062,7 +3062,7 @@ class BingoController extends Controller
                         'finalSaleRoom' => number_format($finalSaleRoom, 2, '.', ','),
                         'comSaleSellerRoom' => number_format($comSaleSellerRoom, 2, '.', ','),
                         'comBancaRoom' => number_format($comBancaRoom, 2, '.', ','),
-                        'prize_poolRoom' => number_format($prize_poolRoom, 2, '.', ','),
+                        'prize_poolRoom' => number_format($prizePoolRoom, 2, '.', ','),
                         'allCtns' => $ctns
                     ];
                 }

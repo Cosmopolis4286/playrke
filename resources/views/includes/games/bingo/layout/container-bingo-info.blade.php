@@ -9,7 +9,7 @@
             </small>
             <div id="cont-prize_pool-amount">
                 <small id="prize_pool-coin-sym" class="mr-1">{{ $coinSym }}</small>
-                <span id="prize_pool-amount">{{ $prize_pool ?? 0 }}</span>
+                <span id="prize_pool-amount">{{ $prizePool ?? 0 }}</span>
             </div>
         </div>
     </div>

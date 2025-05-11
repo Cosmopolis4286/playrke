@@ -48,8 +48,8 @@
                                                 $allSalePreJackpot = $allSale - $comSaleSeller;
                                                 $comBanca = round($allSalePreJackpot * $comCommerceRm, 2);
 
-                                                $prize_pool = $allSalePreJackpot - $comBanca;
-                                                $totalJackpot += $prize_pool;
+                                                $prizePool = $allSalePreJackpot - $comBanca;
+                                                $totalJackpot += $prizePool;
                                                 $totalComBanca += $comBanca;
                                             @endphp
                                             <tr>
@@ -63,7 +63,7 @@
                                                 <td>{{ $coinSym }} {{ $allSale }}</td>
                                                 <td>{{ $coinSym }} {{ $comSaleSeller }}</td>
                                                 <td>{{ $coinSym }} {{ $finalSale }}</td>
-                                                <td>{{ $coinSym }} {{ $prize_pool }}</td>
+                                                <td>{{ $coinSym }} {{ $prizePool }}</td>
                                                 <td>{{ $coinSym }} {{ $comBanca }}</td>
                                             </tr>
                                         @endforeach

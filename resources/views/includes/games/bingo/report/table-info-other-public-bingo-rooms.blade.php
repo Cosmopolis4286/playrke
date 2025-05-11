@@ -41,10 +41,10 @@
 
                     $ctnPrice = ($room->Config->ctn_price ?? 0) * $rate;
                     $allSale = ($room->all_sale ?? 0) * $rate;
-                    $prize_pool = ($room->prize_pool ?? 0) * $rate;
+                    $prizePool = ($room->prize_pool ?? 0) * $rate;
 
                     $totalAllSale += $allSale;
-                    $totalJackpot += $prize_pool;
+                    $totalJackpot += $prizePool;
                 @endphp
                 <tr>
                     <td class="align-middle">
@@ -78,7 +78,7 @@
                         {{ number_format($allSale, 2, '.') }}</td>
                     <td>
                         <small>{{ $room->Config->JackpotType->description }}</small>
-                        <br>{{ $coinSym }} {{ number_format($prize_pool, 2, '.') }}
+                        <br>{{ $coinSym }} {{ number_format($prizePool, 2, '.') }}
                     </td>
                     {{-- Estado --}}
                     <td class="align-middle">
