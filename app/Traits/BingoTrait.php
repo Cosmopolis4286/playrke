@@ -970,7 +970,7 @@ trait BingoTrait
             $coin = $this->getCoinByPlayer($userType, $roomUser);
 
             // Verificar si el usuario del enlace es un ganador
-            $winPlayer = BingoRoomUser::where('room', $room)->where('winner', 1)->exists();
+            $winPlayer = BingoRoomUser::where('room', $roomID)->where('winner', 1)->exists();
         }
 
         // Obtener Premio a repartir en seriales 
@@ -986,38 +986,29 @@ trait BingoTrait
 
     public function getArrayWinnersData($exchangeRate, $winPlayer, $winners)
     {
-        // Inicializar el array para guardar información
         $infoPlayer = ['size' => 0, 'name' => [], 'gain' => [], 'ctn' => []];
 
-        // Función para agregar la información de un jugador
-        $addPlayerInfo = function ($player) use (&$infoPlayer, $exchangeRate, $winPlayer) {
+        foreach ($winners as $player) {
 
             $ctnId = optional($player->PrizeCtns[0])->ctn;
 
+            if (!$ctnId) {
+                continue; // Evitar errores si no hay ctn
+            }
+
             $prizeCtn = BingoPrizeCtns::getById($ctnId, ['usd_amount', 'amount']);
 
+            // Calcular el monto dependiendo del tipo de jugador
             if (!$winPlayer) {
-                // Usamos floor() para truncar y luego formateamos a 2 decimales
-                $convertedAmount = $prizeCtn->usd_amount * $exchangeRate;
-                $otherValue = number_format(floor($convertedAmount * 100) / 100, 2, '.', '');
+                $amount = floor($prizeCtn->usd_amount * $exchangeRate * 100) / 100;
+            } else {
+                $amount = $prizeCtn->amount;
             }
-
-            $amount = isset($otherValue) ? $otherValue : $prizeCtn->amount;
 
             $infoPlayer['name'][] = BingoCtns::getValueById($ctnId, 'serial');
-            $infoPlayer['gain'][] = $amount;
+            $infoPlayer['gain'][] = number_format($amount, 2, ',', '.');
             $infoPlayer['ctn'][] = encrypt($ctnId);
             $infoPlayer['size']++;
-        };
-
-        // Crear una colección para evitar duplicados
-        $allPlayers = collect([$winPlayer])->merge($winners)->unique('id');
-
-        // Iterar sobre todos los jugadores únicos y agregar la información
-        foreach ($allPlayers as $player) {
-            if ($player) {
-                $addPlayerInfo($player);
-            }
         }
 
         return $infoPlayer;

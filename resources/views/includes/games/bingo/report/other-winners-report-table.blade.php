@@ -8,10 +8,8 @@
                 <th>Comercio</th>
                 <th>Jugador</th>
                 <th>País</th>
-                <th>Moneda</th>
                 <th>Premio</th>
                 <th>Tipo</th>
-                <th>Enviar</th>
                 <th>Status</th>
                 <th>Acción</th>
             </tr>
@@ -31,10 +29,8 @@
                     </td>
                     <td>{{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}</td>
                     <td>{{ $win->PlayerLink->Country->name }}</td>
-                    <td>{{ $win->Coin->long_name }}</td>
                     <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount }}</td>
                     <td>{{ $win->Prize->description }}</td>
-                    <td>--</td>
                     <td>
                         @if ($win->PlayerGame->winner == 1)
                             <span class="badge bg-dark">Pendiente</span>
