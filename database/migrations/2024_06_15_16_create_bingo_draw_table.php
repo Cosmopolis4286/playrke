@@ -19,8 +19,11 @@ return new class extends Migration
             $table->string('chip', 2);
             $table->string('code', 8);
             $table->integer('time');
-            $table->string('status',)->default('0');
+            $table->string('status')->default('0');
             $table->timestamps();
+
+            // Índice único para evitar duplicados de chip por sala
+            $table->unique(['room', 'chip'], 'unique_chip_per_room');
         });
     }
 

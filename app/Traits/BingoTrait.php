@@ -43,36 +43,35 @@ trait BingoTrait
 
     private function encryptDraw($room)
     {
-        $existingSymbols = BingoDrawCode::select('sym')->where('room', $room)
-            ->distinct()->pluck('sym')->toArray();
+        // Revisa qué números ya tienen símbolo en esta sala
+        $existingNums = BingoDrawCode::where('room', $room)->pluck('num')->all();
 
-        $symbolsCount = count($existingSymbols);
+        // Si ya existen los 10 números codificados (0 a 9), no hacer nada
+        if (count($existingNums) >= 10) return false;
 
-        if ($symbolsCount) return false;
+        $newSymbols = collect();
+        $timestamp = now();
 
         DB::beginTransaction();
 
         try {
-
-            $newSymbols = collect();
-            $timestamp = now();
-
-            for ($i = $symbolsCount + 1; $i <= 10; $i++) {
-                $num = $i === 10 ? 0 : $i;
+            for ($i = 0; $i <= 9; $i++) {
+                if (in_array($i, $existingNums)) {
+                    continue;
+                }
 
                 do {
                     $code = Str::random(3);
-                } while (in_array($code, $existingSymbols));
+                    $exists = BingoDrawCode::where('room', $room)->where('sym', $code)->exists();
+                } while ($exists); // Reintentar hasta que sea único
 
                 $newSymbols->push([
-                    'num' => $num,
+                    'num' => $i,
                     'sym' => $code,
                     'room' => $room,
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp,
                 ]);
-
-                $existingSymbols[] = $code;
             }
 
             if ($newSymbols->isNotEmpty()) {
@@ -83,43 +82,51 @@ trait BingoTrait
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error al crear código de encriptación de fichas para la sala de bingo {$room}: {$e->getMessage()}");
+            Log::error("Error al crear códigos de símbolos para la sala de bingo {$room}: {$e->getMessage()}");
             return false;
         }
     }
 
     public function handleDraw($room, $roomUser = '')
     {
+        $roomStatus = BingoRoom::where('id', $room)->value('status');
+
+        if ($roomStatus != 3) {
+            return true;
+        }
+
         date_default_timezone_set(config('app.timezone'));
 
         $draw = BingoDraw::where('room', $room)->exists();
 
         if (!$draw) {
-            // Obtener la información de la sala y la hora base
             $roomInfo = BingoRoomConfig::getByRoom($room, ['date', 'time']);
             $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
 
-            // Generar codigo por cada numero 0-10
+            // Generar símbolos codificados si aún no existen
             $this->encryptDraw($room);
 
-            // Obtener chips existentes y símbolos
-            $existingChipsSet = BingoDraw::select('chip')->where('room', $room)->pluck('chip')->flip();
+            // Obtener símbolos una vez
             $symbols = BingoDrawCode::select('sym', 'num')->where('room', $room)->pluck('sym', 'num');
 
-            // Variables de control
             $lastDrawTime = BingoDraw::where('room', $room)->max('time') ?? $dataTime;
             $currentTimestamp = now();
             $timeChip = BingoRoomConfig::getValueByRoom($room, 'time_chip') ?? 6;
             $timeIncrement = 8;
-            $inserts = [];
-            $availableChips = range(1, 75);
 
-            // Mezclar el array para obtener números aleatorios sin repeticiones
+            // Generar todos los chips posibles
+            $availableChips = range(1, 75);
             shuffle($availableChips);
+
+            // Obtener chips ya existentes en este momento
+            $existingChips = BingoDraw::where('room', $room)->pluck('chip')->toArray();
+            $existingChipsSet = array_flip($existingChips); // Para búsqueda rápida
+
+            $inserts = [];
 
             foreach ($availableChips as $rnd) {
                 if (isset($existingChipsSet[$rnd])) {
-                    continue; // Si el número ya existe en la BD, se ignora
+                    continue; // Ya existe
                 }
 
                 // Codificar el número
@@ -128,7 +135,7 @@ trait BingoTrait
                     str_split($rnd)
                 ));
 
-                // Calcular la hora del sorteo para este chip
+                // Calcular hora del sorteo
                 $currentDrawTime = $lastDrawTime + $timeIncrement;
 
                 $inserts[] = [
@@ -141,7 +148,7 @@ trait BingoTrait
                 ];
 
                 $lastDrawTime = $currentDrawTime;
-                $timeIncrement = $timeChip; // Cambiar el incremento después del primer chip
+                $timeIncrement = $timeChip;
             }
 
             if (!empty($inserts)) {
@@ -150,9 +157,9 @@ trait BingoTrait
                     BingoDraw::insert($inserts);
                     DB::commit();
                     return $this->chipWin($room);
-                } catch (\Throwable $th) {
+                } catch (\Exception $e) {
                     DB::rollBack();
-                    throw $th;
+                    Log::error('Error al insertar fichas: ' . $e->getMessage());
                 }
             }
         } else if ($draw && $roomUser && $this->user(['user_type']) == 2) {
@@ -1034,6 +1041,11 @@ trait BingoTrait
         // Obtener todos los chips sorteados hasta el último
         $chipsDraw = BingoDraw::select('chip')->where('room', $roomID)
             ->where('id', '<=', $lastChip->id)->distinct()->pluck('chip')->toArray();
+
+        if (count($chipsDraw) < 24) {
+            Log::warning('Aún no hay suficientes fichas sorteadas para validar cartón lleno');
+            $this->chipWin($room);
+        }
 
         // Declarar ultima ficha
         $lastChipNum = $lastChip->chip;

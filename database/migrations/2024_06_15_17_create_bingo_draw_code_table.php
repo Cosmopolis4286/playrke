@@ -21,6 +21,12 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
+
+            // Evitar duplicados: un número único por sala
+            $table->unique(['room', 'num'], 'unique_num_per_room');
+
+            // Opcional: evitar que se repita un símbolo por sala (si aplica en tu lógica)
+            // $table->unique(['room', 'sym'], 'unique_sym_per_room');
         });
     }
 
