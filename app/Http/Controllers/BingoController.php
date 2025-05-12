@@ -33,6 +33,7 @@ use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\CustomerGames;
 use App\Models\CustomerUser;
+use App\Models\GameConfig;
 use App\Models\GameRules;
 use App\Models\Games;
 use App\Models\Room;
@@ -1289,6 +1290,8 @@ class BingoController extends Controller
 
         try {
 
+            $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
+
             $roomID = BingoRoom::create($createData)->id;
 
             $dataConfig = [
@@ -1301,7 +1304,7 @@ class BingoController extends Controller
                 'unix_date' => strtotime("{$request->date} {$request->time}"),
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
-                'rke_commn' => $request->rke_commn,
+                'rke_commn' => $bingoRKECommission,
                 'room_commn' => $request->room_commn,
                 'jackpot_type' => $request->jackpot_type,
                 'amount_added_jackpot' => $fixedJackpotValue,
@@ -2103,6 +2106,9 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
+
+            $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
+
             // Obtener la nueva sala
             $newRoomID = BingoRoom::create($createData)->id;
 
@@ -2116,7 +2122,7 @@ class BingoController extends Controller
                 'unix_date' => strtotime("{$existingRoomConfig->date} {$existingRoomConfig->time}"),
                 'coin' => $coin,
                 'ctn_price' => $existingRoomConfig->ctn_price,
-                'rke_commn' => $existingRoomConfig->rke_commn,
+                'rke_commn' => $bingoRKECommission,
                 'room_commn' => $existingRoomConfig->room_commn,
                 'jackpot_type' => $existingRoomConfig->jackpot_type,
                 'amount_added_jackpot' => $existingRoomConfig->amount_added_jackpot,
