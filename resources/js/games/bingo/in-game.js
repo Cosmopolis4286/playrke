@@ -276,7 +276,7 @@ function getNewChip(newChip) {
         $('#text-check-bingo').show();
         setTimeout(() => {
             showWinners(decryptJson(infoGame, r4nd0m), chpLast);
-        }, 2600);
+        }, 3500);
         endWin = 1;
     }
 }
