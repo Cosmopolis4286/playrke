@@ -2811,7 +2811,7 @@ class BingoController extends Controller
         $symbols = BingoDrawCode::select('sym', 'num')->where('room', $room)->pluck('sym', 'num');
         $draws = BingoDraw::where('room', $room)->get();
         $currentTimestamp = now()->addMinutes(1)->timestamp;
-        $timeIncrement = 8;
+        $timeIncrement = 0;
 
         // Eliminar Ultima Ficha en salir (ganadora)
         BingoDraw::where('room', $room)->where('status', 3)->update(['status' => 0]);
@@ -2848,7 +2848,7 @@ class BingoController extends Controller
             $chips[$rnd] = true;
 
             // Cambiar incremento después del primer chip
-            $timeIncrement = 9;
+            $timeIncrement = 5;
         }
 
         // Realizar transacción
