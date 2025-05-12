@@ -16,7 +16,7 @@ class GamePrizesSeeder extends Seeder
     {
         // Insertar los datos en la tabla 'game_prizes'
         DB::table('game_prizes')->insert([
-            ['id' => 1, 'description' => 'Premio Mayor', 'game' => 1, 'status' => 1],
+            ['id' => 1, 'description' => 'Cartón Lleno', 'game' => 1, 'status' => 1],
             ['id' => 2, 'description' => 'Serial', 'game' => 1, 'status' => 1]
         ]);
     }

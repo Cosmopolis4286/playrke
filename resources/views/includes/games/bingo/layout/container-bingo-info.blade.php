@@ -8,8 +8,8 @@
                 {{ $jackpot_type == 1 ? 'Bote' : ($jackpot_type == 2 ? 'Premio' : '') }}
             </small>
             <div id="cont-prize_pool-amount">
-                <small id="prize_pool-coin-sym" class="mr-1">{{ $coinSym }}</small>
-                <span id="prize_pool-amount">{{ $prizePool ?? 0 }}</span>
+                <small id="prize-pool-coin-sym" class="mr-1">{{ $coinSym }}</small>
+                <span id="prize-pool-amount">{{ $prizePool ?? 0 }}</span>
             </div>
         </div>
     </div>

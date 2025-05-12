@@ -56,7 +56,7 @@
                                 </span>
                                 <div class="card-game-room__prize_pool-amount">
                                     <h3>
-                                        <span id="prize_pool-room_{{ $room->encrypted }}">
+                                        <span id="prize-pool-room_{{ $room->encrypted }}">
                                             {{ number_format($room->prize_pool * $exchangeRate, 2) }}
                                         </span>
                                         <small id="coin-symbol-room_{{ $room->encrypted }}">

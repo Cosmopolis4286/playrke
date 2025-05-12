@@ -7,7 +7,7 @@
             <div class="purchase-ctns__coin">
                 <div id="purchase-ctns__coin-text"></div>
                 <div id="purchase-ctns__coin-number">
-                    <span id="prize_pool-amount"></span>
+                    <span id="prize-pool-amount"></span>
                     <small id="purchase-ctns__coin-label" class="ml-1 mt-1 purchase-ctns__coin-label"></small>
                 </div>
             </div>

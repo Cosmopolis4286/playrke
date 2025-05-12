@@ -332,7 +332,7 @@ function showWinners(arrInfo, chipWin) {
         });
 
         showJackpotWinners(arrInfo.prizePoolWinners, arrSizeJackpot);
-        $('#prize_pool-value').text(arrInfo.prizesValues[0]);
+        $('#prize-pool-value').text(arrInfo.prizesValues[0]);
 
         if (arrSizeSerials > 0) {
             showSeriaslWinners(arrInfo.serialsWinners, arrSizeSerials);
