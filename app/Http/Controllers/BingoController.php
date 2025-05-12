@@ -419,7 +419,7 @@ class BingoController extends Controller
     public function generateCarton(Request $request)
     {
         $room = BingoRoom::with('Config:room,jackpot_type,ctn_price')
-            ->select('id', 'room_type', 'status')
+            ->select('id', 'room_type', 'status', 'prize_pool')
             ->where('encrypted', $request->room)->first();
 
         if (!$room || ($room && $room->status > 2)) {
@@ -525,7 +525,7 @@ class BingoController extends Controller
                     app(HandleTransactions::class)->validateTransactions($creator['id']);
                 }
 
-                $prizePool = number_format($this->convertPrizeValue($data['room'], $data['coin']), 2, '.');
+                $prizePool = $this->convertPrizeValue($data['room'], $data['coin'], $room->prize_pool);
                 $ctns = BingoRoomUser::getValue($cartonStore, 'ctns');
 
                 DB::commit(); // Confirmar transacción
