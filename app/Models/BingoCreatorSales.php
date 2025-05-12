@@ -13,7 +13,6 @@ class BingoCreatorSales extends Model
         'coin',
         'sale_amount',
         'final_sale_amount',
-        'prize_pool',
         'created_at',
         'updated_at'
     ];
