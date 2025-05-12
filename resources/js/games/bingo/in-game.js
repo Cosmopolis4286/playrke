@@ -300,9 +300,9 @@ function getWinners(arrInfo, arrSize) {
     return content;
 }
 
-function showJackpotWinners(arr, size) {
+function showFullHouseWinners(arr, size) {
     const content = getWinners(arr, size);
-    $('#prize_pool-winners').html(content);
+    $('#full-house-winners').html(content);
 }
 
 function showSeriaslWinners(arr, size) {
@@ -315,10 +315,10 @@ function showWinners(arrInfo, chipWin) {
     if (loaderChip) $('#cont-loader').hide();
     if (roomStatus == 3) $('#text-check-bingo').hide();
 
-    const arrSizeJackpot = arrInfo.prizePoolWinners.size;
+    const arrSizefullHouse = arrInfo.fullHouseWinners.size;
     const arrSizeSerials = arrInfo.serialsWinners.size ?? 0;
 
-    const countWinners = arrSizeJackpot + arrSizeSerials;
+    const countWinners = arrSizefullHouse + arrSizeSerials;
 
     if (countWinners === 0) {
         $("#cont-info-winners").hide() && $('#sin_wn').show();
@@ -331,8 +331,8 @@ function showWinners(arrInfo, chipWin) {
             "alt": chipWin
         });
 
-        showJackpotWinners(arrInfo.prizePoolWinners, arrSizeJackpot);
-        $('#prize-pool-value').text(arrInfo.prizesValues[0]);
+        showFullHouseWinners(arrInfo.fullHouseWinners, arrSizefullHouse);
+        $('#full-house-value').text(arrInfo.prizesValues[0]);
 
         if (arrSizeSerials > 0) {
             showSeriaslWinners(arrInfo.serialsWinners, arrSizeSerials);

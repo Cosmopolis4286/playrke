@@ -54,7 +54,7 @@
                                 <span class="card-game-room__prize_pool-text">
                                     {{ $room->Config->jackpot_type == 1 ? 'Bote:' : 'Premio:' }}
                                 </span>
-                                <div class="card-game-room__prize_pool-amount">
+                                <div class="card-game-room__prize-pool-amount">
                                     <h3>
                                         <span id="prize-pool-room_{{ $room->encrypted }}">
                                             {{ number_format($room->prize_pool * $exchangeRate, 2) }}
@@ -194,7 +194,7 @@
 
                     $('#purchase-ctns__coin-text').text(room.jackpotType);
                     $('.purchase-ctns__coin-label').text(room.coin);
-                    $('#prize_pool-amount').text(room.prizePoolAmount);
+                    $('#prize-pool-amount').text(room.prizePoolAmount);
                     formatDateTime(room.dateTime);
                     handleTotalAmount();
 
@@ -247,7 +247,7 @@
                 success: function(res) {
                     showToast(res.message, res.type);
                     if (res.type === 'success') {
-                        $('#prize_pool-amount').text(res.prize_pool);
+                        $('#prize-pool-amount').text(res.prize_pool);
                         $(`#prize_pool-room_${roomID}`).text(res.prize_pool);
                         $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
                     }

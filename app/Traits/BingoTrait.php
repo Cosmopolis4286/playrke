@@ -388,7 +388,7 @@ trait BingoTrait
 
         if (!$countWinnersJackpot) $this->handleWinners($roomID);
 
-        $prizePoolWinners = $this->getWinnersFullHouse($roomID, $roomUser, $coin);
+        $fullHouseWinners = $this->getWinnersFullHouse($roomID, $roomUser, $coin);
 
         $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2)) ?
             $this->getWinnersSerials($roomID, $roomUser, $coin) : [];
@@ -398,7 +398,7 @@ trait BingoTrait
         $prizesValues = !empty($serialsWinners) ? [100 - $serialPrizePct, $serialPrizePct] : [100];
 
         return [
-            'prizePoolWinners' => $prizePoolWinners,
+            'fullHouseWinners' => $fullHouseWinners,
             'serialsWinners' => $serialsWinners,
             'prizesValues' => $prizesValues
         ];
@@ -1012,7 +1012,7 @@ trait BingoTrait
             }
 
             $infoPlayer['name'][] = BingoCtns::getValueById($ctnId, 'serial');
-            $infoPlayer['gain'][] = number_format($amount, 2, ',', '.');
+            $infoPlayer['gain'][] = number_format($amount, 2, '.', ',');
             $infoPlayer['ctn'][] = encrypt($ctnId);
             $infoPlayer['size']++;
         }
