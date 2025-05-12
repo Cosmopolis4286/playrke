@@ -29,7 +29,7 @@
                             <div class="form-group col-6 col-sm-3">
                                 <label for="num-ctns">#CTNs</label>
                                 <input id="num-ctns" class="form-control" type="number" name="num_ctns" min="1"
-                                    max="30" required disabled>
+                                    max="40" step="1" required disabled>
                             </div>
                         </div>
                         <div class="row mt-1">
@@ -157,13 +157,13 @@
 @section('scripts')
     @vite('resources/js/rke/time-functions.js')
     <script>
+        const form = $("#form-ctns");
         const room = $("#room");
         const rooms = @json($rooms);
         const numCtns = $("#num-ctns");
         const typeSale = $("#type-sale");
         const country = $("#country");
         const sellerCommn = @json($commn);
-        const form = $("#form-ctns");
         const btnGenerate = $("#btn-generate-ctn");
         const btnSearchPhone = $("#btn-search-phone");
         let roomID = '';
@@ -356,16 +356,20 @@
             }
         });
 
+        numCtns.on('input change', function() {
+            validateInput(this, false, function(isValid) {
+                if (isValid) {
+                    calculateSale();
+                }
+            });
+        })
+
         function clearPlayerInfo() {
             $("#get-data-player").show();
             $("#player-ctns").text('');
             $('#player-link-rout').val('');
             $("#new-player, #cont-info-player").addClass('hide-elem');
         }
-
-        numCtns.on("change", function() {
-            if (roomID) calculateSale();;
-        })
 
         country.on("change", function() {
             const countryVal = $(this).val();
