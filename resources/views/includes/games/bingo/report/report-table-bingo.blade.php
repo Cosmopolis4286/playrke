@@ -32,7 +32,7 @@
                     <td>{{ $coinSym }} {{ $room['allSaleRoom'] }}</td>
                     <td>{{ $coinSym }} {{ $room['comSaleSellerRoom'] }}</td>
                     <td>{{ $coinSym }} {{ $room['comBancaRoom'] }}</td>
-                    <td>{{ $coinSym }} {{ $room['prize_poolRoom'] }}</td>
+                    <td>{{ $coinSym }} {{ $room['prizePoolRoom'] }}</td>
                 </tr>
             @endforeach
         </tbody>

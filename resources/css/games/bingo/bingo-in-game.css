@@ -204,7 +204,7 @@ body {
     background: linear-gradient(to bottom, #0b4cfde3, #003bb9);
 }
 
-#cont-prize_pool-info {
+#cont-prize-pool-info {
     position: relative;
     display: flex;
     align-items: center;
@@ -226,7 +226,7 @@ body {
     max-height: 100%;
 }
 
-#cont-prize_pool-info-amount {
+#cont-prize-pool-info-amount {
     color: antiquewhite;
     font-size: 200%;
     line-height: 28px;
@@ -245,7 +245,7 @@ body {
     color: rgb(255, 238, 0);
 }
 
-#cont-prize_pool-amount {
+#cont-prize-pool-amount {
     display: flex;
     justify-content: center;
     align-items: center;

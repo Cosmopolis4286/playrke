@@ -11,10 +11,10 @@
                             <div class="form-group col-9 col-sm-5">
                                 <label for="room">Próximos Bingo</label>
                                 <select disabled id="room" class="form-control" name="room" required></select>
-                                <div id="cont-tx-prize_pool-room" class="mt-1 hide-elem">
+                                <div id="cont-tx-prize-pool-room" class="mt-1 hide-elem">
                                     <b><small><span class="jackpot-type"></span> Actual:</small></b>
                                     <span class="coin-symbol"></span>
-                                    <span id="tx-prize_pool-room"></span>
+                                    <span id="tx-prize-pool-room"></span>
                                 </div>
                             </div>
                             <div class="form-group col-6 col-sm-4">
@@ -171,7 +171,7 @@
         let allowsUSDT = false;
         let coinSym = '';
         let ctnPrice = 1;
-        let prize_poolRoom;
+        let prizePoolRoom;
         let playerInfo = '';
         let playerInGame = false;
 
@@ -267,7 +267,7 @@
             ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
             $("#ctn-price-symbol").text(coinSym);
             $("#ctn-price-amount").text(ctnPrice);
-            $("#tx-prize_pool-room").text(formatNumber((prize_poolRoom * exchangeRate), 3));
+            $("#tx-prize-pool-room").text(formatNumber((prizePoolRoom * exchangeRate), 3));
             calculateSale();
         }
 
@@ -317,7 +317,7 @@
 
             if (!roomID) {
                 $(".coin-symbol, .sale-info").empty();
-                $(".ctn-player-info, #cont-tx-prize_pool-room").addClass('hide-elem');
+                $(".ctn-player-info, #cont-tx-prize-pool-room").addClass('hide-elem');
             } else {
                 $.getJSON({
                     url: route('seller.getCtnPrice', roomID),
@@ -330,8 +330,8 @@
                             return;
                         }
                         const {
-                            prize_pool,
-                            jackpot_type,
+                            prizePool,
+                            jackpotType,
                             price,
                             coin,
                             countries,
@@ -346,11 +346,11 @@
                         $("#ctn-price-amount").text(ctnPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
-                        prize_poolRoom = formatNumber(prize_pool, 3);
-                        $(".jackpot-type").text(jackpot_type == 1 ? 'Bote' : 'Premio');
-                        $("#tx-prize_pool-room").text(prize_poolRoom);
+                        prizePoolRoom = formatNumber(prizePool, 3);
+                        $(".jackpot-type").text(jackpotType == 1 ? 'Bote' : 'Premio');
+                        $("#tx-prize-pool-room").text(prizePoolRoom);
                         calculateSale();
-                        $(".ctn-player-info, #cont-tx-prize_pool-room").removeClass('hide-elem');
+                        $(".ctn-player-info, #cont-tx-prize-pool-room").removeClass('hide-elem');
                     }
                 });
             }

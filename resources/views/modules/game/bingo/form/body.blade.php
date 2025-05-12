@@ -47,8 +47,8 @@
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="room-commn">%Sala*</label>
-        <input type="number" id="room-commn" name="room_commn" class="form-control prize_pool-pct" value="10"
-            step="0.05" min="5" max="50" required>
+        <input type="number" id="room-commn" name="room_commn" class="form-control prize_pool-pct" value="20"
+            step="0.05" min="10" max="50" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>

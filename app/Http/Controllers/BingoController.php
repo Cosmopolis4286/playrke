@@ -2060,7 +2060,7 @@ class BingoController extends Controller
             'dateTime' => $roomConfig->unix_date,
             'coin' => $coin,
             'prizePoolAmount' => number_format(($room->prize_pool * $exchangeRate), 2, '.'),
-            'jackpot_type' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
+            'jackpotType' => $roomConfig->jackpot_type == 1 ? 'Bote' : 'Premio',
             'ctnPrice' => number_format(($ctnPrice), 2, '.')
         ];
 
@@ -3091,7 +3091,7 @@ class BingoController extends Controller
                         'finalSaleRoom' => number_format($finalSaleRoom, 2, '.', ','),
                         'comSaleSellerRoom' => number_format($comSaleSellerRoom, 2, '.', ','),
                         'comBancaRoom' => number_format($comBancaRoom, 2, '.', ','),
-                        'prize_poolRoom' => number_format($prizePoolRoom, 2, '.', ','),
+                        'prizePoolRoom' => number_format($prizePoolRoom, 2, '.', ','),
                         'allCtns' => $ctns
                     ];
                 }
