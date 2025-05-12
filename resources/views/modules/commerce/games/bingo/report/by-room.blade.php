@@ -13,7 +13,7 @@
                             <table class="table table-striped table-bordered my-2 w-100">
                                 <thead>
                                     @php
-                                        $totalCtnsBuy = $totalAllSale = $totalComSaleSeller = $totalJackpot = $totalComBanca = 0;
+                                        $totalCtnsBuy = $totalAllSale = $totalComSaleSeller = $totalJackpot = $totalRoomCommn = 0;
                                     @endphp
                                     <tr>
                                         <th>Nombre</th>
@@ -35,15 +35,15 @@
                                             $comSaleSeller = $saleAmountSeller - $finalSaleAmountSeller;
 
                                             $prizePool = $saleAmountSeller - $comSaleSeller;
-                                            $comBanca = round($saleAmountSeller * $comCommerceRoom, 2);
-                                            $prizePool -= $comBanca;
+                                            $roomCommn = round($saleAmountSeller * $comCommerceRoom, 2);
+                                            $prizePool -= $roomCommn;
 
                                             // Acumular totales
                                             $totalCtnsBuy += $allCtnsSeller;
                                             $totalAllSale += $saleAmountSeller;
                                             $totalComSaleSeller += $comSaleSeller;
                                             $totalJackpot += $prizePool;
-                                            $totalComBanca += $comBanca;
+                                            $totalRoomCommn += $roomCommn;
                                         @endphp
                                         <tr>
                                             <td class="align-middle">
@@ -55,7 +55,7 @@
                                             <td>{{ $allCtnsSeller }}</td>
                                             <td>{{ $coinSym }} {{ number_format($saleAmountSeller, 2) }}</td>
                                             <td>{{ $coinSym }} {{ number_format($comSaleSeller, 2) }}</td>
-                                            <td>{{ $coinSym }} {{ number_format($comBanca, 2) }}</td>
+                                            <td>{{ $coinSym }} {{ number_format($roomCommn, 2) }}</td>
                                             <td>{{ $coinSym }} {{ number_format($prizePool, 2) }}</td>
                                         </tr>
                                     @endforeach
@@ -66,7 +66,7 @@
                                         <td>{{ $totalCtnsBuy }}</td>
                                         <td>{{ $coinSym }} {{ number_format($totalAllSale, 2) }}</td>
                                         <td>{{ $coinSym }} {{ number_format($totalComSaleSeller, 2) }}</td>
-                                        <td>{{ $coinSym }} {{ number_format($totalComBanca, 2) }}</td>
+                                        <td>{{ $coinSym }} {{ number_format($totalRoomCommn, 2) }}</td>
                                         <td>{{ $coinSym }} {{ number_format($totalJackpot, 2) }}</td>
                                     </tr>
                                 </tfoot>

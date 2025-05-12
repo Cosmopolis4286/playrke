@@ -1301,6 +1301,7 @@ class BingoController extends Controller
                 'unix_date' => strtotime("{$request->date} {$request->time}"),
                 'coin' => $coin,
                 'ctn_price' => $request->ctn_price,
+                'rke_commn' => $request->rke_commn,
                 'room_commn' => $request->room_commn,
                 'jackpot_type' => $request->jackpot_type,
                 'amount_added_jackpot' => $fixedJackpotValue,
@@ -1947,21 +1948,19 @@ class BingoController extends Controller
 
         $creatorUser = $userData['userId'];
 
-        return BingoRoom::with([
-            'Creator' => function ($query) use ($creatorUser) {
-                $query->select('room', 'status')
-                    ->where('creator_user', $creatorUser);
-            },
+        $dd = BingoRoom::with([
+            'Creator:id,room,status',
             'CtnsLot' => function ($subquery) use ($creatorUser) {
                 $subquery->where('creator_user', $creatorUser);
             },
-            'Config:room,date,time,ctn_price'
+            'Config:room,date,time'
         ])->select('id', 'encrypted', 'room_commn', 'prize_pool')
             ->whereHas('CtnsLot', function ($query) use ($creatorUser) {
-                $query->where('creator_user', $creatorUser)->where('coin');
+                $query->where('creator_user', $creatorUser);
             })
-            ->where('creator_user', '<>', $userData['userId'])
-            ->where('room_type', 'PB')->where('status', 2)->get();
+            ->where('room_type', 'PB')->where('status', 4)->get();
+
+        dd($dd);
     }
 
     public function getInfoBingoPlay($id)
@@ -2117,6 +2116,7 @@ class BingoController extends Controller
                 'unix_date' => strtotime("{$existingRoomConfig->date} {$existingRoomConfig->time}"),
                 'coin' => $coin,
                 'ctn_price' => $existingRoomConfig->ctn_price,
+                'rke_commn' => $existingRoomConfig->rke_commn,
                 'room_commn' => $existingRoomConfig->room_commn,
                 'jackpot_type' => $existingRoomConfig->jackpot_type,
                 'amount_added_jackpot' => $existingRoomConfig->amount_added_jackpot,
@@ -3053,10 +3053,10 @@ class BingoController extends Controller
                 $totals = [
                     'allCtns' => 0,
                     'allSales' => 0,
-                    'comSaleSeller' => 0,
+                    'saleSellerCommn' => 0,
                     'finalSale' => 0,
                     'prizePool' => 0,
-                    'comBanca' => 0,
+                    'roomCommn' => 0,
                 ];
 
                 $roomData = [];
@@ -3068,18 +3068,18 @@ class BingoController extends Controller
                     $allSaleRoom = $room->CtnsLot->sum('sale_amount');
                     $finalSaleRoom = $room->CtnsLot->sum('final_sale_amount');
                     $comSaleSellerRoom = $allSaleRoom - $finalSaleRoom;
-                    $comBancaRoom = $allSaleRoom * ($room->Config->room_commn / 100);
-                    $prizePoolRoom = $allSaleRoom - $comSaleSellerRoom - $comRKE - $comBancaRoom;
+                    $roomCommn = $allSaleRoom * ($room->Config->room_commn / 100);
+                    $prizePoolRoom = $allSaleRoom - $comSaleSellerRoom - $comRKE - $roomCommn;
 
                     $ctns = $room->CtnsLot->sum('ctns');
 
                     // Sumar a totales
                     $totals['allCtns'] += $ctns;
                     $totals['allSales'] += $allSaleRoom;
-                    $totals['comSaleSeller'] += $comSaleSellerRoom;
+                    $totals['saleSellerCommn'] += $comSaleSellerRoom;
                     $totals['finalSale'] += $finalSaleRoom;
-                    $totals['prize_pool'] += $prizePoolRoom;
-                    $totals['comBanca'] += $comBancaRoom;
+                    $totals['prizePool'] += $prizePoolRoom;
+                    $totals['roomCommn'] += $roomCommn;
 
                     // Formatear para mostrar por sala
                     $roomData[] = [
@@ -3090,7 +3090,7 @@ class BingoController extends Controller
                         'allSaleRoom' => number_format($allSaleRoom, 2, '.', ','),       // separador de miles
                         'finalSaleRoom' => number_format($finalSaleRoom, 2, '.', ','),
                         'comSaleSellerRoom' => number_format($comSaleSellerRoom, 2, '.', ','),
-                        'comBancaRoom' => number_format($comBancaRoom, 2, '.', ','),
+                        'roomCommn' => number_format($roomCommn, 2, '.', ','),
                         'prizePoolRoom' => number_format($prizePoolRoom, 2, '.', ','),
                         'allCtns' => $ctns
                     ];
@@ -3100,10 +3100,10 @@ class BingoController extends Controller
                 $totalsFormatted = [
                     'allCtns' => $totals['allCtns'],
                     'allSales' => number_format($totals['allSales'], 2, '.', ','),
-                    'comSaleSeller' => number_format($totals['comSaleSeller'], 2, '.', ','),
+                    'saleSellerCommn' => number_format($totals['saleSellerCommn'], 2, '.', ','),
                     'finalSale' => number_format($totals['finalSale'], 2, '.', ','),
-                    'prizePool' => number_format($totals['prize_pool'], 2, '.', ','),
-                    'comBanca' => number_format($totals['comBanca'], 2, '.', ','),
+                    'prizePool' => number_format($totals['prizePool'], 2, '.', ','),
+                    'roomCommn' => number_format($totals['roomCommn'], 2, '.', ','),
                 ];
 
                 return view(
@@ -3119,7 +3119,7 @@ class BingoController extends Controller
                 // Inicializar los totales
                 $totalSale = 0;
                 $totalComision = 0;
-                $totalBanca = 0;
+                $totalRoom = 0;
 
                 // Almacenar cálculos en una colección
                 $roomsData = [];
@@ -3501,6 +3501,8 @@ class BingoController extends Controller
                         )
                     );
                 } else {
+                    $this->handlePublicRoomPendingPayments(1);
+
                     return view(
                         'modules.commerce.games.bingo.cartons.awarded.other-winners',
                         compact(

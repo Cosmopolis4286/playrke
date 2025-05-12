@@ -31,7 +31,7 @@
                     <td>{{ $room['allCtns'] }}</td>
                     <td>{{ $coinSym }} {{ $room['allSaleRoom'] }}</td>
                     <td>{{ $coinSym }} {{ $room['comSaleSellerRoom'] }}</td>
-                    <td>{{ $coinSym }} {{ $room['comBancaRoom'] }}</td>
+                    <td>{{ $coinSym }} {{ $room['roomCommn'] }}</td>
                     <td>{{ $coinSym }} {{ $room['prizePoolRoom'] }}</td>
                 </tr>
             @endforeach
@@ -42,9 +42,9 @@
                 @if (count($roomData))
                     <td>{{ $totalsFormatted['allCtns'] }}</td>
                     <td>{{ $coinSym }} {{ $totalsFormatted['allSales'] }}</td>
-                    <td>{{ $coinSym }} {{ $totalsFormatted['comSaleSeller'] }}</td>
-                    <td>{{ $coinSym }} {{ $totalsFormatted['comBanca'] }}</td>
-                    <td>{{ $coinSym }} {{ $totalsFormatted['prize_pool'] }}</td>
+                    <td>{{ $coinSym }} {{ $totalsFormatted['saleSellerCommn'] }}</td>
+                    <td>{{ $coinSym }} {{ $totalsFormatted['roomCommn'] }}</td>
+                    <td>{{ $coinSym }} {{ $totalsFormatted['prizePool'] }}</td>
                 @endif
             </tr>
         </tfoot>

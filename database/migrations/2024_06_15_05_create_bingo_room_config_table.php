@@ -25,6 +25,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->unsignedBigInteger('country')->nullable();
             $table->string('coin', 15)->nullable();
             $table->double('ctn_price');
+            $table->double('rke_commn')->nullable();
             $table->double('room_commn')->nullable();
             $table->unsignedBigInteger('jackpot_type')->default(1);
             $table->double('amount_added_jackpot')->nullable();

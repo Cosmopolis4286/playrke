@@ -3,6 +3,8 @@
 namespace App\Traits;
 
 use App\Events\Games\BingoOFF_ProccessDraw;
+use App\Models\BingoCreator;
+use App\Models\BingoCreatorPendingPayments;
 use App\Models\BingoCreatorSales;
 use App\Models\SellerRoomLimits;
 use App\Models\BingoCtns;
@@ -457,13 +459,15 @@ trait BingoTrait
             $finalSaleAmount = round($saleAmount * (1 - $sellerCommn), 2);
         }
 
+        $creatorUser = $arrCtn['creator']['userId'];
+        $roomID = $arrCtn['room'];
+        $coin = $arrCtn['coin'];
+
+        $roomCommn = BingoRoomConfig::getValueByRoom($roomID, 'room_commn');
+
         $currentTime = now();
 
         try {
-
-            $creatorUser = $arrCtn['creator']['userId'];
-            $roomID = $arrCtn['room'];
-            $coin = $arrCtn['coin'];
 
             $BingoCtnsLotID = BingoCtnsLot::insertGetId([
                 'creator_user' => $creatorUser,
@@ -484,7 +488,7 @@ trait BingoTrait
             ]);
 
             // Actualizar monto de venta total por monedas
-            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, $coin, $saleAmount, $finalSaleAmount);
+            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, $roomCommn, $coin, $saleAmount, $finalSaleAmount);
 
             return $BingoCtnsLotID;
         } catch (\Exception $e) {
@@ -858,6 +862,8 @@ trait BingoTrait
 
     private function registerPrizeCtn($roomID, $cartons, $prizeType, $USDValue)
     {
+        $roomType = BingoRoom::getValueById($roomID, 'room_type');
+
         $recordsToInsert = $playersToUpdate = [];
 
         foreach ($cartons as $ctn) {
@@ -924,12 +930,49 @@ trait BingoTrait
                 BingoPrizeCtns::insert($recordsToInsert);
             }
 
+            if ($roomType === 'PB') {
+                // Manejar los pagos pendientes de los BingoRoomCreators
+                $this->handlePublicRoomPendingPayments($roomID);
+            }
+
             DB::commit();
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al registrar carton ganador ===> $prizeType [' . $prizeType . '] : ' . $e->getMessage());
             return false;
+        }
+    }
+
+    private function handlePublicRoomPendingPayments($roomID)
+    {
+        // Manejador de pagos pendientes de los BingoRoomCreators
+        $bingoCreators = BingoCreator::where('room', $roomID)->count();
+
+        if ($bingoCreators === 1) return;
+
+        $recordsToInsert = [];
+
+        $bingoCreatorSales = BingoCreatorSales::where('room', $roomID)->get();
+
+        dd($bingoCreatorSales);
+
+        foreach ($bingoCreatorSales as $item) {
+
+            // solo sumar los pertenecientes de esa moneda y insertar en el array 
+            // despues hacer los mismos
+            $finalSaleAmount = $bingoCreatorSales->sum('final_sale_amount');
+
+            $recordsToInsert[] = [
+                'coin' => $item->coin,
+                'amount' => $finalSaleAmount
+            ];
+        }
+
+        try {
+            BingoCreatorPendingPayments::insert($recordsToInsert);
+        } catch (\Exception $e) {
+            Log::error('Error al insertar los registros de pagos pendientes para la sala {$roomID}:' . $e->getMessage());
         }
     }
 

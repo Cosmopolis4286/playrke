@@ -12,7 +12,7 @@
                             <h5>Mis Vendedores</h5>
                             <table class="table table-striped table-bordered my-2 w-100">
                                 <thead>
-                                    @php $totalCtnsBuy =  $totalAllSale = $totalComSaleSeller = $totalFinalSale = $totalJackpot = $totalComBanca = 0; @endphp
+                                    @php $totalCtnsBuy =  $totalAllSale = $totalComSaleSeller = $totalFinalSale = $totalJackpot = $totalRoomCommn = 0; @endphp
                                     <tr>
                                         <th>Nombre</th>
                                         <th>Pais</th>
@@ -46,11 +46,11 @@
                                                 $totalFinalSale += $finalSale;
 
                                                 $allSalePreJackpot = $allSale - $comSaleSeller;
-                                                $comBanca = round($allSalePreJackpot * $comCommerceRm, 2);
+                                                $roomCommn = round($allSalePreJackpot * $comCommerceRm, 2);
 
-                                                $prizePool = $allSalePreJackpot - $comBanca;
+                                                $prizePool = $allSalePreJackpot - $roomCommn;
                                                 $totalJackpot += $prizePool;
-                                                $totalComBanca += $comBanca;
+                                                $totalRoomCommn += $roomCommn;
                                             @endphp
                                             <tr>
                                                 <td class="align-middle">
@@ -64,7 +64,7 @@
                                                 <td>{{ $coinSym }} {{ $comSaleSeller }}</td>
                                                 <td>{{ $coinSym }} {{ $finalSale }}</td>
                                                 <td>{{ $coinSym }} {{ $prizePool }}</td>
-                                                <td>{{ $coinSym }} {{ $comBanca }}</td>
+                                                <td>{{ $coinSym }} {{ $roomCommn }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -76,7 +76,7 @@
                                             <td>{{ $coinSym }} {{ $totalComSaleSeller }}</td>
                                             <td>{{ $coinSym }} {{ $totalFinalSale }}</td>
                                             <td>{{ $coinSym }} {{ $totalJackpot }}</td>
-                                            <td>{{ $coinSym }} {{ $totalComBanca }}</td>
+                                            <td>{{ $coinSym }} {{ $totalRoomCommn }}</td>
                                         </tr>
                                     </tfoot>
                                 @endif

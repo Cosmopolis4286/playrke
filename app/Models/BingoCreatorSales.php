@@ -13,6 +13,7 @@ class BingoCreatorSales extends Model
         'coin',
         'sale_amount',
         'final_sale_amount',
+        'room_commn',
         'created_at',
         'updated_at'
     ];
@@ -50,16 +51,38 @@ class BingoCreatorSales extends Model
         return $query->exists();
     }
 
-    public static function updateOrCreateSale($roomID, $creatorUser, $coin, $amount, $finalAmount)
+    public static function updateOrCreateSale($roomID, $creatorUser, $roomCommn, $coin, $amount, $finalAmount)
     {
+        $commnRKE = 0;
+
+        if (BingoRoomConfig::getValueByRoom($roomID, 'rke_commn')) {
+            $commnRKE = (5 / 100);
+            $commnRKE =  $amount * $commnRKE;
+        }
+
+        $sellerCommn = $amount - $finalAmount;
+        $roomCommn = $amount * ($roomCommn / 100);
+        $prizePoolAmount = $amount -  $roomCommn - $sellerCommn - $commnRKE;
+
         $sale = self::firstOrCreate(
             ['room' => $roomID, 'creator_user' => $creatorUser, 'coin' => $coin],
-            ['sale_amount' => $amount, 'final_sale_amount' => $finalAmount]
+            [
+                'sale_amount' => $amount,
+                'final_sale_amount' => $finalAmount,
+                'room_commn' => $roomCommn,
+                'seller_commn' => $sellerCommn,
+                'rke_commn' => $commnRKE,
+                'prize_pool_amount' => $prizePoolAmount
+            ]
         );
 
         if (!$sale->wasRecentlyCreated && $amount) {
             $sale->increment('sale_amount', $amount);
             $sale->increment('final_sale_amount', $finalAmount);
+            $sale->increment('room_commn', $roomCommn);
+            $sale->increment('seller_commn', $sellerCommn);
+            $sale->increment('rke_commn', $commnRKE);
+            $sale->increment('prize_pool_amount', $prizePoolAmount);
         }
     }
 }
