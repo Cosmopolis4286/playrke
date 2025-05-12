@@ -91,7 +91,7 @@ trait BingoTrait
     {
         $roomStatus = BingoRoom::where('id', $room)->value('status');
 
-        if ($roomStatus != 3) {
+        if ($roomStatus != 2) {
             return true;
         }
 
