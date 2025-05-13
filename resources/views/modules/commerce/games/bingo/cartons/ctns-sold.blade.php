@@ -14,6 +14,7 @@
                                 <thead>
                                     <tr>
                                         <th>Sala</th>
+                                        <th>Tipo</th>
                                         <th>Vendedor</th>
                                         <th>Moneda</th>
                                         <th>#CTN</th>
@@ -43,6 +44,7 @@
                                                     {{ $ctn->Room->encrypted }}
                                                 </a>
                                             </td>
+                                            <td>{{ $ctn->Room->room_type_description }}</td>
                                             <td>{{ $ctn->Seller->name }}</td>
                                             <td>{{ $ctn->Coin->long_name }} ({{ $coinSym }})</td>
                                             <td>{{ $ctn->ctns }}</td>
@@ -78,7 +80,7 @@
                                 @if (count($ctnsSold))
                                     <tfoot>
                                         <tr>
-                                            <td colspan="3" class="text-right"><b>Total:</b></td>
+                                            <td colspan="4" class="text-right"><b>Total:</b></td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
                                             <td>
                                                 {{ $coinSym }}

@@ -28,7 +28,9 @@
                     </div>
                     <div class="form-group">
                         <label for="bingo-rules">Reglamento:</label>
-                        <textarea class="form-control" id="bingo-rules" name="rules" rows="10">{{ $gameRules }}</textarea>
+                        <textarea class="form-control" id="bingo-rules" name="rules" rows="10">
+                            {{ $gameRules ?? view('includes.info.game.bingo')->render() }}
+                        </textarea>
                     </div>
                     <div class="d-flex justify-content-center">
                         <button type="button" id="btn-form-bingo-rules" class="btn btn-primary">

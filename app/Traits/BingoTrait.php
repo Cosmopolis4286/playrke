@@ -955,7 +955,7 @@ trait BingoTrait
 
         $bingoCreatorSales = BingoCreatorSales::where('room', $roomID)->get();
 
-        dd($bingoCreatorSales);
+        //dd($bingoCreatorSales);
 
         foreach ($bingoCreatorSales as $item) {
 

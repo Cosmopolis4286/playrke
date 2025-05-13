@@ -1599,8 +1599,8 @@ class BingoController extends Controller
         }
 
         $game = GameRules::getByGame('BINGO', $user, ['id', 'rules', 'encrypted']);
-        $rulesID = '';
-        $gameRules = '';
+        $rulesID = null;
+        $gameRules = null;
 
         if ($game) {
             $rulesID = encrypt($game->id);
@@ -1667,9 +1667,11 @@ class BingoController extends Controller
 
                 $code = $this->generateUniqueCode('GameRules', 12);
 
+                $image = null;
+
                 if ($fileImage) {
                     $folder = 'game/bingo/bingo-rules';
-                    $image = $fileImage ? $this->saveImage($fileImage, $folder, $code) : null;
+                    $image = $this->saveImage($fileImage, $folder, $code);
                 }
 
                 GameRules::create([
@@ -3309,13 +3311,14 @@ class BingoController extends Controller
                 $coinSym = Coin::getValue($coin, 'symbol');
 
                 $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
-                    ->whereHas('Room', function ($query) use ($userData) {
-                        $query->where('creator_user', $userData['userId'])->whereIn('status', [2, 3, 4]);
+                    ->whereHas('Room', function ($query) {
+                        $query->select('id', 'room_type', 'status')->whereIn('status', [2, 3, 4]);
                     });
 
                 $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
-                $ctnsSold = $ctnsSoldQuery->where('coin', $coin)->where('creator_user', $userData['userId'])
+                $ctnsSold = $ctnsSoldQuery->where('coin', $coin)
+                    ->where('creator_user', $userData['userId'])
                     ->whereHas('Seller')->orderBy('status')->orderByDesc('id')->get();
 
                 $coins = $this->getUserCoins($userData, ['CtnsLot', 'Coin'], $dateFilter);
