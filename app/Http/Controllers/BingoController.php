@@ -989,7 +989,7 @@ class BingoController extends Controller
                 ->where('creator_user', $creatorUser)->where('status', 1);
 
             $relations['CtnsLot'] = fn($q) => $q->select('id', 'room', 'exchange_rate', 'sale_amount')
-                ->where('creator_user', $creatorUser)->where('status', 1);
+                ->where('creator_user', $creatorUser);
         } else {
             $relations['Creator'] = fn($query) => $query->select('id', 'room');
         }
@@ -1962,8 +1962,6 @@ class BingoController extends Controller
                 $query->where('creator_user', $creatorUser);
             })
             ->where('room_type', 'PB')->where('status', 4)->get();
-
-        dd($dd);
     }
 
     public function getInfoBingoPlay($id)
@@ -3515,7 +3513,7 @@ class BingoController extends Controller
                         )
                     );
                 } else {
-                    $this->handlePublicRoomPendingPayments(1);
+                    //$this->handlePublicRoomPendingPayments(1);
 
                     return view(
                         'modules.commerce.games.bingo.cartons.awarded.other-winners',
