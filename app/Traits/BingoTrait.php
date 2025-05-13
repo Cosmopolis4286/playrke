@@ -438,7 +438,7 @@ trait BingoTrait
     {
         if (!$seller) return 0;
 
-        $commnSeller = SellerRoomLimits::getGameRoomValueBySeller(1, $seller, $roomID, 'commn') ?? Seller::getValueById($seller, 'commn');
+        $commnSeller = SellerRoomLimits::getGameRoomValueBySeller('BINGO', $seller, $roomID, 'commn') ?? Seller::getValueById($seller, 'commn');
         // Registar la comision del vendedor para la sala de jeugo
         SellerRoomLimits::firstOrCreate(['game' => 1, 'room' => $roomID, 'seller' => $seller], ['commn' => $commnSeller]);
 

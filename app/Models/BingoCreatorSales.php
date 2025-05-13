@@ -56,12 +56,8 @@ class BingoCreatorSales extends Model
 
     public static function updateOrCreateSale($roomID, $creatorUser, $roomCommn, $coin, $amount, $finalAmount)
     {
-        $commnRKE = 0;
-
-        if (BingoRoomConfig::getValueByRoom($roomID, 'rke_commn')) {
-            $commnRKE = (5 / 100);
-            $commnRKE =  $amount * $commnRKE;
-        }
+        $commnRKE = BingoRoomConfig::getValueByRoom($roomID, 'rke_commn') ?? 0;
+        $commnRKE =  $amount * ($commnRKE / 100);
 
         $sellerCommn = $amount - $finalAmount;
         $roomCommn = $amount * ($roomCommn / 100);
