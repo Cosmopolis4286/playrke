@@ -14,6 +14,9 @@ class BingoCreatorSales extends Model
         'sale_amount',
         'final_sale_amount',
         'room_commn',
+        'seller_commn',
+        'rke_commn',
+        'prize_pool_amount',
         'created_at',
         'updated_at'
     ];

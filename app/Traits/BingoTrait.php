@@ -678,7 +678,7 @@ trait BingoTrait
             $gameConfig = GameConfig::getGameParam('BINGO', 'COMMN');
 
             if ($gameConfig && $gameConfig->status == 1) {
-                $gameCommn = number_format(($amountAddJackpot * $gameConfig->param_val) / 100, 3, '.');
+                $gameCommn = number_format(($amountAddJackpot * $gameConfig->param_value) / 100, 3, '.');
                 $amountAddJackpot -= $gameCommn;
             }
 

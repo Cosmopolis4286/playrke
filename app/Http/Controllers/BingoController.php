@@ -2568,6 +2568,9 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
+
+            $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
+
             $creator = json_decode($data->creator);
 
             $automaticBingoID = BingoRoomAutomatic::create([
@@ -2578,6 +2581,7 @@ class BingoController extends Controller
                 'amount_added_jackpot' => $data->amount_added_jackpot,
                 'time_chip' => $data->time_chip,
                 'ctn_price' => $data->ctn_price,
+                'rke_commn' => $bingoRKECommission,
                 'room_commn' => $data->room_commn,
                 'pct_jackpot' => $data->serials_commission,
                 'pct_serials' => $data->pct_serials,
@@ -2624,6 +2628,9 @@ class BingoController extends Controller
         DB::beginTransaction();
 
         try {
+
+            $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
+
             BingoRoomAutomatic::where('id', $id)->update([
                 'time' => $request->time,
                 'game_mode' => $request->game_mode,
@@ -2632,6 +2639,7 @@ class BingoController extends Controller
                 'amount_added_jackpot' => $request->amount_added_jackpot,
                 'time_chip' => $request->time_chip,
                 'ctn_price' => $request->ctn_price,
+                'rke_commn' => $bingoRKECommission,
                 'room_commn' => $request->room_commn,
                 'pct_serials' => $request->pct_serials,
                 'num_serials' => $request->num_serials

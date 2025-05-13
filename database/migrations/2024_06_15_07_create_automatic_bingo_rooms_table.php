@@ -21,6 +21,7 @@ return new class extends Migration
             $table->enum('room_type', ['PV', 'PB'])->default('PV');
             $table->foreignId('jackpot_type')->constrained('jackpot_types')->onDelete('cascade')->default(1);
             $table->double('amount_added_jackpot')->nullable();
+            $table->double('rke_commn')->default(0);
             $table->double('room_commn')->default(0);
             $table->double('ctn_price');
             $table->string('time_chip', 2)->nullable();
