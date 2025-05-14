@@ -34,6 +34,11 @@ class CommerceCountriesCoins extends Model
         return $this->hasMany(BingoCtnsLot::class, 'creator_user', 'creator_user');
     }
 
+    public function PrizeCtns()
+    {
+        return $this->hasMany(BingoPrizeCtns::class, 'creator_user', 'creator_user');
+    }
+
     public static function getAvailableCoins($commerce, $exceptCoin = '')
     {
         return self::select('coin')->where('commerce', $commerce)

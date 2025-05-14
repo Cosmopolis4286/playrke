@@ -29,7 +29,7 @@
                                         <tr>
                                             <td class="align-middle">
                                                 <a class="badge bg-navy" title="Ver Reporte"
-                                                    href="{{ route('bingo.reportSalesByRoom', [
+                                                    href="{{ route('bingo.reportSalesByRoomWinners', [
                                                         'room' => $win->Room->encrypted,
                                                         'coin' => encrypt($win->Coin->id),
                                                     ]) }}">

@@ -3570,7 +3570,7 @@ class BingoController extends Controller
                 $coinISOCode = $coinInfo->iso_code;
 
                 return view(
-                    'modules.seller.games.bingo.cartons.awarded',
+                    'modules.seller.games.bingo.cartons.awarded.winners',
                     compact('title', 'name', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
                 );
 
@@ -3586,7 +3586,7 @@ class BingoController extends Controller
     {
         $userData = $this->getUserData();
 
-        $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted', 'creator_user']);
+        $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted']);
         $roomID = $room->id;
 
         $verifyCoin = $this->verifyExistenceOfSales($userData, '', $coin, $roomID);
@@ -3617,33 +3617,33 @@ class BingoController extends Controller
         $name = 'bingo-winners';
         $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
 
-        $where = collect([
-            (object)[
-                'relation' => 'CtnsLot',
-                'constraints' => function ($query) use ($roomID) {
-                    $query->where('room', $roomID);
-                }
-            ],
-            (object)[
-                'relation' => 'PlayerLink',
-                'constraints' => function ($query) use ($creatorUser) {
-                    $query->whereColumn('coin', 'commerces_countries_coins.coin')
-                        ->where('creator_user', $creatorUser);
-                }
-            ],
-            (object)[
-                'relation' => 'PlayerLink.PlayerGame',
-                'constraints' => function ($query) {
-                    $query->where('winner', '>', 0);
-                }
-            ]
-        ]);
-
         switch ($userData['type']) {
 
             case 'commerce':
 
                 $creatorUser = $userData['userId'];
+
+                $where = collect([
+                    (object)[
+                        'relation' => 'PrizeCtns',
+                        'constraints' => function ($query) use ($roomID, $creatorUser) {
+                            $query->where('room', $roomID)->where('creator_user', $creatorUser);
+                        }
+                    ],
+                    (object)[
+                        'relation' => 'PlayerLink',
+                        'constraints' => function ($query) use ($creatorUser) {
+                            $query->whereColumn('coin', 'commerces_countries_coins.coin')
+                                ->where('creator_user', $creatorUser);
+                        }
+                    ],
+                    (object)[
+                        'relation' => 'PlayerLink.PlayerGame',
+                        'constraints' => function ($query) {
+                            $query->where('winner', '>', 0);
+                        }
+                    ]
+                ]);
 
                 // Pagos Pendientes de otros comercios
                 $paymentsOtherCommerces = 0;
@@ -3656,7 +3656,12 @@ class BingoController extends Controller
 
                 $coin = $this->wallet()->Coin->id;
 
-                $coins = $this->getUserCoins($userData, ['Coin', 'PlayerLink.PlayerGame'], 'today', $where);
+                $coins = $this->getUserCoins(
+                    $userData,
+                    ['PrizeCtns', 'PlayerLink', 'PlayerLink.PlayerGame'],
+                    'all',
+                    $where
+                );
 
                 $commerce = Commerce::getById($userData['id'], ['code_rke', 'code_uuid']);
                 $commerce = $commerce->code_rke ?? $commerce->code_uuid;
@@ -3683,17 +3688,18 @@ class BingoController extends Controller
                 })->whereHas('Seller')->whereHas('GameExchangeRate');
 
                 $winners = $winnersQuery->where('active', 'Y')
+                    ->where('creator_user', $creatorUser)
                     ->where('room', $roomID)->orderBy('prize_type')->get();
 
                 return view(
-                    'modules.commerce.games.bingo.cartons.awarded.my-winners',
+                    'modules.commerce.games.bingo.cartons.awarded.by-room',
                     compact(
                         'title',
+                        'cardTitle',
                         'name',
-                        'dateFilter',
                         'commerce',
-                        'winners',
                         'routeWithCoin',
+                        'winners',
                         'paymentsOtherCommerces',
                         'countWinnersOtherCommerces',
                         'countWinnersByCommerce',
@@ -3736,7 +3742,7 @@ class BingoController extends Controller
                 $coinISOCode = $coinInfo->iso_code;
 
                 return view(
-                    'modules.seller.games.bingo.cartons.awarded',
+                    'modules.seller.games.bingo.cartons.awarded.by-room',
                     compact('title', 'name', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
                 );
 
