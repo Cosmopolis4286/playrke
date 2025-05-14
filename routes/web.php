@@ -274,6 +274,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     // Reporte de ventas de salas
     Route::get('sales-report/{coin?}/{dateFilter?}', [BingoController::class, 'reportSalesRooms'])->name('reportSalesRooms');
     Route::get('sales-report-by-room/{room}/{coin}', [BingoController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
+    Route::get('sales-report-by-room-winners/{room}/{coin}', [BingoController::class, 'reportSalesByRoomWinners'])->name('reportSalesByRoomWinners');
     Route::get('sales-report-by-room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 
     Route::get('winners/{type}/{dateFilter}/{coin?}', [BingoController::class, 'ctnsAwarded'])->name('ctnsAwarded');

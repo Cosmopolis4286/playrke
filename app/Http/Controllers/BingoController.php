@@ -3169,17 +3169,17 @@ class BingoController extends Controller
         }
     }
 
-    public function reportSalesByRoom($roomID, $coin)
+    public function reportSalesByRoom($roomEncrypted, $coin)
     {
         $userData = $this->getUserData();
 
-        $room = BingoRoom::getByEncrypted($roomID, ['id', 'encrypted', 'creator_user']);
+        $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted', 'creator_user']);
         $roomID = $room->id;
         $bingoConfig = BingoRoomConfig::getByRoom($roomID, ['ctn_price', 'room_commn']);
 
         $routeWithCoin = [
             'route' => 'bingo.reportSalesByRoom',
-            'parameters' => ['room' => $roomID, 'coin' => $coin]
+            'parameters' => ['room' => $roomEncrypted, 'coin' => $coin]
         ];
 
         $coinID = decrypt($coin);
@@ -3190,7 +3190,7 @@ class BingoController extends Controller
             // Si no existe venta para esa fecha
             return redirect()->route(
                 'bingo.reportSalesByRoom',
-                ['room' => $roomID, 'coin' => $coin]
+                ['room' => $roomEncrypted, 'coin' => $coin]
             );
         }
 
@@ -3419,7 +3419,7 @@ class BingoController extends Controller
         app(HandleBingoRooms::class)->checkRoomClosure();
 
         $title = 'Ganadores';
-        $name = 'notify-payment-win-ctns-off';
+        $name = 'bingo-winners';
 
         switch ($userData['type']) {
 
@@ -3558,6 +3558,172 @@ class BingoController extends Controller
 
                 $winners = $winnersQuery->where('seller', $seller->id)
                     ->where('active', 'Y')->where('coin', $coin)->get();
+
+                $commerce = Commerce::getById($seller->commerce, ['code_rke', 'code_uuid']);
+
+                $commerce = $commerce->code_rke ?? $commerce->code_uuid;
+
+                $coins = $this->getUserCoins($userData, ['PlayerLink', 'PrizeCtns'], $dateFilter);
+
+                $coinInfo = Coin::getById($coin, ['id', 'symbol', 'iso_code']);
+                $coinSym = $coinInfo->symbol;
+                $coinISOCode = $coinInfo->iso_code;
+
+                return view(
+                    'modules.seller.games.bingo.cartons.awarded',
+                    compact('title', 'name', 'commerce', 'winners', 'routeWithCoin', 'dateFilter', 'coin', 'coinSym', 'coinISOCode', 'coins')
+                );
+
+                break;
+
+            default:
+                # code...
+                break;
+        }
+    }
+
+    public function reportSalesByRoomWinners($roomEncrypted, $coin)
+    {
+        $userData = $this->getUserData();
+
+        $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted', 'creator_user']);
+        $roomID = $room->id;
+
+        $verifyCoin = $this->verifyExistenceOfSales($userData, '', $coin, $roomID);
+
+        if (isset($verifyCoin['return'])) {
+            return redirect()->route(
+                'bingo.reportSalesByRoomWinners',
+                [
+                    'room' => $roomEncrypted,
+                    'coin' => encrypt($verifyCoin['coin'])
+                ]
+            );
+        }
+
+        $routeWithCoin = [
+            'route' => 'bingo.reportSalesByRoomWinners',
+            'parameters' => [
+                'room' => $roomEncrypted,
+                'coin' => $coin
+            ]
+        ];
+
+        $coin = $verifyCoin;
+
+        app(HandleBingoRooms::class)->checkRoomClosure();
+
+        $title = 'Reporte de Sala';
+        $name = 'bingo-winners';
+        $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
+
+        $where = collect([
+            (object)[
+                'relation' => 'CtnsLot',
+                'constraints' => function ($query) use ($roomID) {
+                    $query->where('room', $roomID);
+                }
+            ],
+            (object)[
+                'relation' => 'PlayerLink',
+                'constraints' => function ($query) use ($creatorUser) {
+                    $query->whereColumn('coin', 'commerces_countries_coins.coin')
+                        ->where('creator_user', $creatorUser);
+                }
+            ],
+            (object)[
+                'relation' => 'PlayerLink.PlayerGame',
+                'constraints' => function ($query) {
+                    $query->where('winner', '>', 0);
+                }
+            ]
+        ]);
+
+        switch ($userData['type']) {
+
+            case 'commerce':
+
+                $creatorUser = $userData['userId'];
+
+                // Pagos Pendientes de otros comercios
+                $paymentsOtherCommerces = 0;
+
+                // Contar los ganadores pendientes de pago para otros comercios
+                $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($creatorUser);
+
+                // Contar los ganadores pendientes de pago para el propio comercio
+                $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($creatorUser);
+
+                $coin = $this->wallet()->Coin->id;
+
+                $coins = $this->getUserCoins($userData, ['Coin', 'PlayerLink.PlayerGame'], 'today', $where);
+
+                $commerce = Commerce::getById($userData['id'], ['code_rke', 'code_uuid']);
+                $commerce = $commerce->code_rke ?? $commerce->code_uuid;
+
+                // Obtener los datos de los ganadores
+                $winnersQuery = BingoPrizeCtns::with([
+                    'Room:id,encrypted,room_type',
+                    'Room.Config:id,room,date,time',
+                    'Coin',
+                    'PlayerLink.Country',
+                    'Payments',
+                    'Seller.Commerce:id,name',
+                    'Seller' => function ($query) {
+                        $query->select('id', 'name', 'commerce');
+                    },
+                    'Prize' => function ($query) {
+                        $query->select('id', 'description');
+                    },
+                    'GameExchangeRate' => function ($query) {
+                        $query->where('game', 1);
+                    }
+                ])->whereHas('Room', function ($query) {
+                    $query->where('status', '<', 5)->with('CtnsLot');
+                })->whereHas('Seller')->whereHas('GameExchangeRate');
+
+                $winners = $winnersQuery->where('active', 'Y')
+                    ->where('room', $roomID)->orderBy('prize_type')->get();
+
+                return view(
+                    'modules.commerce.games.bingo.cartons.awarded.my-winners',
+                    compact(
+                        'title',
+                        'name',
+                        'dateFilter',
+                        'commerce',
+                        'winners',
+                        'routeWithCoin',
+                        'paymentsOtherCommerces',
+                        'countWinnersOtherCommerces',
+                        'countWinnersByCommerce',
+                        'coin',
+                        'coins'
+                    )
+                );
+
+                break;
+
+            case 'seller':
+
+                $seller = Seller::getById($userData['id'], ['id', 'commerce']);
+
+                $winnersQuery = BingoPrizeCtns::with([
+                    'Coin',
+                    'Prize',
+                    'GameExchangeRate',
+                    'Room',
+                    'PlayerLink.Country',
+                    'PlayerGame'
+                ])->whereHas('Room', function ($query) {
+                    $query->whereColumn('id', 'bingo_prize_ctns.room')->where('status', 4);
+                })->whereHas('GameExchangeRate', function ($query) use ($coin) {
+                    $query->where('game', 1)->where('coin', $coin);
+                });
+
+                $winners = $winnersQuery->where('seller', $seller->id)
+                    ->where('room', $roomID)->where('active', 'Y')
+                    ->where('coin', $coin)->get();
 
                 $commerce = Commerce::getById($seller->commerce, ['code_rke', 'code_uuid']);
 
