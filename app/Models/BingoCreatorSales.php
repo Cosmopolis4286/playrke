@@ -61,7 +61,7 @@ class BingoCreatorSales extends Model
 
         $sellerCommn = $amount - $finalAmount;
         $roomCommn = $amount * ($roomCommn / 100);
-        $prizePoolAmount = $amount -  $roomCommn - $sellerCommn - $commnRKE;
+        $prizePool = $amount -  $roomCommn - $sellerCommn - $commnRKE;
 
         $sale = self::firstOrCreate(
             ['room' => $roomID, 'creator_user' => $creatorUser, 'coin' => $coin],
@@ -71,7 +71,7 @@ class BingoCreatorSales extends Model
                 'room_commn' => $roomCommn,
                 'seller_commn' => $sellerCommn,
                 'rke_commn' => $commnRKE,
-                'prize_pool_amount' => $prizePoolAmount
+                'prize_pool_amount' => $prizePool
             ]
         );
 
@@ -81,7 +81,7 @@ class BingoCreatorSales extends Model
             $sale->increment('room_commn', $roomCommn);
             $sale->increment('seller_commn', $sellerCommn);
             $sale->increment('rke_commn', $commnRKE);
-            $sale->increment('prize_pool_amount', $prizePoolAmount);
+            $sale->increment('prize_pool_amount', $prizePool);
         }
     }
 }

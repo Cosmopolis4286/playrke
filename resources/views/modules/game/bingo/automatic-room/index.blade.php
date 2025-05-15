@@ -33,11 +33,11 @@
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const roomType = $("#room-type");
-        const jackpot_type = $("#jackpot-type");
+        const type_prize_pool = $("#type-prize-pool");
         const gameMode = $("#game-mode");
         const roomTypes = @json($roomType);
         const existsRoomTypes = !$.isEmptyObject(roomTypes);
-        const arrJackpotType = @json($jackpot_type);
+        const arrTypePrizePool = @json($type_prize_pool);
         const arrGameModes = @json($gameModes);
         let coinsCtnPrice = false;
 
@@ -53,13 +53,13 @@
         });
 
         function changeFixedJackpot(val) {
-            const container = $("#cont-amount-added-jackpot");
+            const container = $("#cont-amount-added-prize-pool");
 
             if (val > 1) {
                 container.removeClass('hide-elem');
             } else {
                 container.addClass('hide-elem');
-                $("#amount-added-jackpot").empty();
+                $("#amount-added-prize-pool").empty();
             }
         }
 
@@ -90,7 +90,7 @@
                 });
         });
 
-        jackpot_type.on('change', function() {
+        type_prize_pool.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
@@ -116,7 +116,7 @@
                 roomType.empty();
             }
 
-            jackpot_type.empty();
+            type_prize_pool.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -131,7 +131,7 @@
                     gameMode.append(`<option value="1" selected>Online</option>`);
                 }
 
-                jackpot_type.append(defaultOption);
+                type_prize_pool.append(defaultOption);
             }
 
             if (creatorType !== 'customer' && existsRoomTypes) {
@@ -141,9 +141,9 @@
                 });
             }
 
-            $.each(arrJackpotType, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.room.jackpot_type) ? 'selected' : '';
-                jackpot_type.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+            $.each(arrTypePrizePool, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.room.type_prize_pool) ? 'selected' : '';
+                type_prize_pool.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             if (creatorType !== 'customer' && arrGameModes.length) {
@@ -169,9 +169,9 @@
                 $('#num-serials').val(room.num_serials);
                 $('#serials-commn').val(room.pct_jackpot);
 
-                if (room.jackpot_type > 1) {
+                if (room.type_prize_pool > 1) {
                     changeFixedJackpot(2);
-                    $('#amount-added-jackpot').val(room.amount_added_jackpot);
+                    $('#amount-added-prize-pool').val(room.amount_added_prize_pool);
                 }
             }
 
@@ -180,7 +180,7 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'time', 'room-type', 'jackpot-type', 'game-mode',
+                'time', 'room-type', 'type-prize-pool', 'game-mode',
                 'room-commn', 'ctn-price', 'time-chip', 'pct-serials', 'num-serials'
             ]);
         });

@@ -13,8 +13,8 @@ class BingoRoomAutomatic extends Model
     'days',
     'time',
     'game_mode',
-    'jackpot_type',
-    'amount_added_jackpot',
+    'type_prize_pool',
+    'amount_added_prize_pool',
     'room_type',
     'rke_commn',
     'room_commn',
@@ -34,9 +34,9 @@ class BingoRoomAutomatic extends Model
     return $this->belongsTo(GameModes::class, 'game_mode');
   }
 
-  public function JackpotType()
+  public function TypePrizePool()
   {
-    return $this->belongsTo(JackpotType::class, 'jackpot_type');
+    return $this->belongsTo(TypePrizePool::class, 'type_prize_pool');
   }
 
   public static function getById($id, $fields = ['*'])

@@ -24,7 +24,7 @@
                     <td>{{ $room->GameMode->description }}</td>
                     <td>{{ $room->time }} H</td>
                     <td>{{ $room->ctn_price }}&nbsp<small>USDT</small></td>
-                    <td>{{ $room->JackpotType->description }}</td>
+                    <td>{{ $room->TypePrizePool->description }}</td>
                     <td>{{ $room->room_commn }}%</td>
                     <td>{{ $room->pct_serials }}%</td>
                     <td>{{ $room->num_serials }}</td>

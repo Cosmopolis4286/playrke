@@ -22,6 +22,7 @@ return new class extends Migration
             $table->integer('players')->default(0);
             $table->integer('ctns')->default(0);
             $table->double('all_sale')->default(0);
+            $table->double('rke_commn')->default(0);
             $table->double('room_commn')->default(0);
             $table->double('seller_commn')->default(0);
             $table->double('prize_pool')->default(0);

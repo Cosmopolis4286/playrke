@@ -12,7 +12,7 @@
                                 <label for="room">Próximos Bingo</label>
                                 <select disabled id="room" class="form-control" name="room" required></select>
                                 <div id="cont-tx-prize-pool-room" class="mt-1 hide-elem">
-                                    <b><small><span class="jackpot-type"></span> Actual:</small></b>
+                                    <b><small><span class="type-prize-pool"></span> Actual:</small></b>
                                     <span class="coin-symbol"></span>
                                     <span id="tx-prize-pool-room"></span>
                                 </div>
@@ -251,13 +251,13 @@
             let ctns = numCtns.val();
             let total = formatNumber(ctnPrice * ctns);
             let totalsellerCommn = formatNumber(total * (sellerCommn / 100));
-            let prizePoolAmount = formatNumber((total - totalsellerCommn));
+            let prizePool = formatNumber((total - totalsellerCommn));
 
             if (roomID) {
                 $(".coin-symbol").text(coinSym);
                 $("#tx-total-amount").html(total);
                 $("#tx-seller-commn").html(totalsellerCommn);
-                $("#tx-commerce-amount").html(prizePoolAmount);
+                $("#tx-commerce-amount").html(prizePool);
             }
         }
 
@@ -331,7 +331,7 @@
                         }
                         const {
                             prizePool,
-                            jackpotType,
+                            typePrizePool,
                             price,
                             coin,
                             countries,
@@ -347,7 +347,7 @@
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
                         prizePool = formatNumber(prizePool, 3);
-                        $(".jackpot-type").text(jackpotType == 1 ? 'Bote' : 'Premio');
+                        $(".type-prize-pool").text(typePrizePool == 1 ? 'Bote' : 'Premio');
                         $("#tx-prize-pool-room").text(prizePool);
                         calculateSale();
                         $(".ctn-player-info, #cont-tx-prize-pool-room").removeClass('hide-elem');

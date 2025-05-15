@@ -31,16 +31,16 @@
         <select id="game-mode" name="game_mode" class="form-control"></select>
     </div>
     <div class="form-group col-sm-6 col-md-4">
-        <label for="jackpot-type">Tipo Bote*</label>
-        <select id="jackpot-type" name="jackpot_type" class="form-control" required></select>
+        <label for="type-prize-pool">Tipo Bote*</label>
+        <select id="type-prize-pool" name="type_prize_pool" class="form-control" required></select>
     </div>
-    <div id="cont-amount-added-jackpot" class="form-group col-sm-6 col-md-4 hide-elem">
-        <label for="amount-added-jackpot">Valor Fijo/Extra*</label>
+    <div id="cont-amount-added-prize-pool" class="form-group col-sm-6 col-md-4 hide-elem">
+        <label for="amount-added-prize-pool">Valor Fijo/Extra*</label>
         <div class="input-group">
             <div class="input-group-prepend">
                 <span class="input-group-text">$</span>
             </div>
-            <input type="number" id="amount-added-jackpot" name="amount_added_jackpot" class="form-control"
+            <input type="number" id="amount-added-prize-pool" name="amount_added_prize_pool" class="form-control"
                 step="0.05" min="20" max="10000">
         </div>
     </div>

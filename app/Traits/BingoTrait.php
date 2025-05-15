@@ -658,36 +658,38 @@ trait BingoTrait
                 $sellerSaleCommn /= $exchangeRate;
             }
 
-            // Variable para definir monto a anexar al bote
-            $amountAddJackpot = number_format($saleAmount, 3, '.');
+            $bingoConfig = BingoRoomConfig::getByRoom($room->id, ['rke_commn', 'room_commn', 'type_prize_pool']);
 
-            if ($arrCtn['jackpot_type'] == 2) {
+            $roomComm = $bingoConfig->room_commn;
+
+            // Variable para definir monto a anexar al bote
+            $prizePool = number_format($saleAmount, 3, '.');
+
+            if ($bingoConfig->type_prize_pool == 2) {
                 // Si el bote es tipo "Premio"
-                $amountAddJackpot = 0;
+                $prizePool = 0;
             }
 
             // Obtener comision del creador/casa (comision por sala)\
-            $creatorCommn = ($amountAddJackpot * BingoRoomConfig::getValueByRoom($room->id, 'room_commn')) / 100;
-            $creatorCommn =  number_format($creatorCommn, 3, '.');
+            $creatorCommn = ($prizePool * $roomComm) / 100;
+            $creatorCommn =  round($creatorCommn, 3);
 
             // Restar al bote la comision del creador de la sala
-            if ($creatorCommn) $amountAddJackpot -= $creatorCommn;
+            if ($creatorCommn) $prizePool -= $creatorCommn;
 
-            if ($sellerSaleCommn) $amountAddJackpot -= $sellerSaleCommn;
+            if ($sellerSaleCommn) $prizePool -= $sellerSaleCommn;
 
-            $gameConfig = GameConfig::getGameParam('BINGO', 'COMMN');
-
-            if ($gameConfig && $gameConfig->status == 1) {
-                $gameCommn = number_format(($amountAddJackpot * $gameConfig->param_value) / 100, 3, '.');
-                $amountAddJackpot -= $gameCommn;
-            }
+            // Restar comision de Pla
+            $rkeCommn = round(($prizePool * $bingoConfig->rke_commn) / 100, 3);
+            $prizePool -= $rkeCommn;
 
             // Preparar los datos para actualizar la sala
             $updateData = [
                 'all_sale' => $room->all_sale + $saleAmount,
-                'prize_pool' => $room->prize_pool + $amountAddJackpot,
-                'full_house_prize' => $room->full_house_prize + $amountAddJackpot,
+                'prize_pool' => $room->prize_pool + $prizePool,
+                'full_house_prize' => $room->full_house_prize + $prizePool,
                 'ctns' => $room->ctns + $arrCtn['numOfCtns'],
+                'rke_commn' => $room->rke_commn + $rkeCommn,
                 'room_commn' => $room->room_commn + $creatorCommn
             ];
 
@@ -706,14 +708,14 @@ trait BingoTrait
     public function calculateCtnPrice($bingoCtnPrice, $setPrice = false, $exchangeRate = 1)
     {
         // Calcular precio del carton en USDT 
-        $formattedPrice = number_format($exchangeRate * $bingoCtnPrice, 2, '.');
+        $formattedPrice = round($exchangeRate * $bingoCtnPrice, 2);
 
         if ($setPrice) {
             // Calcular precio del carton en USDT y redondear de acuerdo a la moneda 
-            $formattedPrice = number_format($formattedPrice / $exchangeRate, 3, '.', '');
+            $formattedPrice = round($formattedPrice / $exchangeRate, 3);
 
             if (fmod($formattedPrice, 1) == 0) {
-                $formattedPrice = number_format($formattedPrice, 2, '.', '');
+                $formattedPrice = round($formattedPrice, 2);
             }
         }
 
@@ -737,7 +739,6 @@ trait BingoTrait
             $playerUser = $arrCtn['playerUser'] ?? null;
             $coin = $arrCtn['coin'];
             $numOfCtns = $arrCtn['numOfCtns'];
-            $gameMode = $room->Config->game_mode;
 
             // Formatear Monto de Venta
             $saleAmount = round($numOfCtns * $arrCtn['ctnPrice'], 2);
@@ -751,6 +752,8 @@ trait BingoTrait
 
             // Anexar atributo al array
             $arrCtn['roomUser'] = $roomUser;
+            
+            $gameMode = $room->Config->game_mode;
 
             if ($gameMode != 1 && ($creator['type'] === 'commerce' || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor
@@ -832,17 +835,6 @@ trait BingoTrait
         } catch (\Exception $e) {
             Log::error('Error al crear los cartones cartonStore(): ' . $e->getMessage());
             return ['Error' => 'Error al crear los cartones'];
-        }
-    }
-
-    public function handleCartonStore($data)
-    {
-        $room = BingoRoom::with(['Config:room,jackpot_type'])
-            ->select('id', 'room_type', 'status')
-            ->where('id', $data['room'])->first();
-
-        if ($room->status > 2) {
-            return ['Error' => 'Sala no disponible'];
         }
     }
 

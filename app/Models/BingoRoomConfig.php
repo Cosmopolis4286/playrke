@@ -20,8 +20,8 @@ class BingoRoomConfig extends Model
     'ctn_price',
     'rke_commn',
     'room_commn',
-    'jackpot_type',
-    'amount_added_jackpot',
+    'type_prize_pool',
+    'amount_added_prize_pool',
     'time_chip',
     'pct_serials',
     'num_serials',
@@ -40,9 +40,9 @@ class BingoRoomConfig extends Model
     return $this->belongsTo(GameModes::class, 'game_mode');
   }
 
-  public function JackpotType()
+  public function TypePrizePool()
   {
-    return $this->belongsTo(JackpotType::class, 'jackpot_type');
+    return $this->belongsTo(TypePrizePool::class, 'type_prize_pool');
   }
 
   static function getValueByRoom($room, $value)
