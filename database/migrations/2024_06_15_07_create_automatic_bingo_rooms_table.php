@@ -25,6 +25,7 @@ return new class extends Migration
             $table->double('room_commn')->default(0);
             $table->double('ctn_price');
             $table->string('time_chip', 2)->nullable();
+            $table->string('rounds', 2)->default(1);
             $table->double('pct_serials')->nullable();
             $table->double('num_serials', 2)->nullable();
             $table->double('pct_jackpot')->nullable();

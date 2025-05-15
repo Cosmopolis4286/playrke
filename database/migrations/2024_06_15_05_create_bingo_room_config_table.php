@@ -30,7 +30,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->unsignedBigInteger('type_prize_pool')->default(1);
             $table->double('amount_added_prize_pool')->nullable();
             $table->string('time_chip', 2)->nullable();
-            $table->boolean('replay')->default(0);
+            $table->string('rounds', 2)->default(1);
             $table->double('pct_serials')->nullable();
             $table->string('num_serials', 2)->nullable();
             $table->double('pct_jackpot')->nullable();

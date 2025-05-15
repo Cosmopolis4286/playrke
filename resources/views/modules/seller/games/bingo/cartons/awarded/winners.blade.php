@@ -31,7 +31,7 @@
                                                 <a class="badge bg-navy" title="Ver Reporte"
                                                     href="{{ route('bingo.reportSalesByRoomWinners', [
                                                         'room' => $win->Room->encrypted,
-                                                        'coin' => encrypt($win->Coin->id),
+                                                        'coin' => encrypt($coin),
                                                     ]) }}">
                                                     {{ $win->Room->encrypted }}
                                                 </a>
@@ -43,8 +43,8 @@
                                             <td>{{ $win->PlayerLink->name }}
                                                 {{ $win->PlayerLink->lastname }}</td>
                                             <td>{{ $win->PlayerLink->Country->name }}</td>
-                                            <td>{{ $coinISOCode }} ({{ $coinSym }})</td>
-                                            <td>{{ $coinSym }} {{ $win->amount }}</td>
+                                            <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
+                                            <td>{{ $coinData->iso_code }} {{ $win->amount }}</td>
                                             <td>{{ $win->Prize->description }}</td>
                                             <td class="align-middle">
                                                 @if ($win->status == null)
@@ -83,7 +83,7 @@
                                     <tfoot>
                                         <tr>
                                             <td colspan="5" class="text-right"><b>Total:</b></td>
-                                            <td>{{ $coinSym }} {{ $winners->sum('amount') }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ $winners->sum('amount') }}</td>
                                             <td colspan="3"></td>
                                         </tr>
                                     </tfoot>

@@ -38,8 +38,8 @@
                                                     {{ $win->PlayerLink->Country->name }}
                                                 @endif
                                             </td>
-                                            <td>{{ $win->Coin->long_name }}</td>
-                                            <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount }}</td>
+                                            <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
+                                            <td>{{ $coinData->iso_code }} {{ $win->amount }}</td>
                                             <td>{{ $win->Prize->description }}</td>
                                             <td>
                                                 @if ($win->status == null)
@@ -76,6 +76,15 @@
                                         </tr>
                                     @endforeach
                                 </tbody>
+                                @if (count($winners))
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="4" class="text-right"><b>Total:</b></td>
+                                            <td>{{ $coinData->iso_code }} {{ $winners->sum('amount') }}</td>
+                                            <td colspan="3"></td>
+                                        </tr>
+                                    </tfoot>
+                                @endif
                             </table>
                         </div>
                     </div>

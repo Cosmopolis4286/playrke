@@ -20,6 +20,7 @@ class BingoRoomAutomatic extends Model
     'room_commn',
     'ctn_price',
     'time_chip',
+    'rounds',
     'pct_serials',
     'num_serials',
     'pct_jackpot',
