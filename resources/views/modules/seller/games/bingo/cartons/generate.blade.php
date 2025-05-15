@@ -171,7 +171,7 @@
         let allowsUSDT = false;
         let coinSym = '';
         let ctnPrice = 1;
-        let prizePoolRoom;
+        let prizePool;
         let playerInfo = '';
         let playerInGame = false;
 
@@ -267,7 +267,7 @@
             ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
             $("#ctn-price-symbol").text(coinSym);
             $("#ctn-price-amount").text(ctnPrice);
-            $("#tx-prize-pool-room").text(formatNumber((prizePoolRoom * exchangeRate), 3));
+            $("#tx-prize-pool-room").text(formatNumber((prizePool * exchangeRate), 3));
             calculateSale();
         }
 
@@ -346,9 +346,9 @@
                         $("#ctn-price-amount").text(ctnPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
-                        prizePoolRoom = formatNumber(prizePool, 3);
+                        prizePool = formatNumber(prizePool, 3);
                         $(".jackpot-type").text(jackpotType == 1 ? 'Bote' : 'Premio');
-                        $("#tx-prize-pool-room").text(prizePoolRoom);
+                        $("#tx-prize-pool-room").text(prizePool);
                         calculateSale();
                         $(".ctn-player-info, #cont-tx-prize-pool-room").removeClass('hide-elem');
                     }

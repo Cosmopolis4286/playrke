@@ -24,35 +24,35 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($roomsData as $data)
+                                    @foreach ($roomsData as $room)
                                         <tr>
                                             <td class="align-middle">
                                                 <a class="badge bg-navy" title="Ver Reporte"
                                                     href="{{ route('bingo.reportSalesByRoom', [
-                                                        'room' => $data['room']->encrypted,
+                                                        'room' => $room['encrypted'],
                                                         'coin' => encrypt($coin),
                                                     ]) }}">
-                                                    {{ $data['room']->encrypted }}
+                                                    {{ $room['encrypted'] }}
                                                 </a>
                                             </td>
-                                            <td>{{ $data['room']->room_type_description }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($data['room']->Config->date)->format('d/m/y') }}
+                                            <td>{{ $room['roomType'] }}</td>
+                                            <td>{{ $room['date'] }}
                                             </td>
-                                            <td>{{ $data['room']->Config->time }}h</td>
-                                            <td>{{ $coinName }}</td>
-                                            <td>{{ $data['calculatedCtns'] }}</td>
-                                            <td>{{ $coinSym }} {{ $data['calculatedSale'] }}</td>
-                                            <td>{{ $coinSym }} {{ $data['calculatedCom'] }}</td>
+                                            <td>{{ $room['time'] }}h</td>
+                                            <td>{{ $coinName ?? '' }}</td>
+                                            <td>{{ $room['calculatedCtns'] }}</td>
+                                            <td>{{ $coinSym ?? '' }} {{ $room['calculatedSale'] }}</td>
+                                            <td>{{ $coinSym ?? '' }} {{ $room['calculatedCom'] }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
-                                @if (count($roomsData))
+                                @if (!empty($roomsData))
                                     <tfoot>
                                         <tr>
                                             <td colspan="5" class="text-right"><b>Total:</b></td>
-                                            <td>{{ collect($roomsData)->sum('calculatedCtns') }}</td>
-                                            <td>{{ $coinSym }} {{ $totalSale }}</td>
-                                            <td>{{ $coinSym }} {{ $totalComision }}</td>
+                                            <td>{{ collect($rooms)->sum('calculatedCtns') }}</td>
+                                            <td>{{ $coinSym ?? '' }} {{ $totalSale }}</td>
+                                            <td>{{ $coinSym ?? '' }} {{ $totalComision }}</td>
                                         </tr>
                                     </tfoot>
                                 @endif
