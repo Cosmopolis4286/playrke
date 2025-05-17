@@ -28,7 +28,7 @@
                                             <td>{{ $player->lastname }}</td>
                                             <td>{{ $player->phone }}</td>
                                             <td>{{ $player->CtnsLot->sum('ctns') }}</td>
-                                            <td>{{ $player->Coin->symbol }} {{ $player->CtnsLot->sum('sale_amount') }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ $player->CtnsLot->sum('sale_amount') }}</td>
                                             <td>
                                                 <a class="btn btn-sm bg-primary show-ctns" target="_blank"
                                                     href="{{ route('bingo.in-game', ['player' => $player->link]) }}">
@@ -41,8 +41,8 @@
                                 <tfoot>
                                     <tr>
                                         <td colspan="3" class="text-right"><b>Total:</b></td>
-                                        <td>{{ $totalCtnsByRoom }}</td>
-                                        <td colspan="2">{{ $coinSym }} {{ $totalCtnsPurchased }}</td>
+                                        <td>{{ $totalsFormatted['ctns'] }}</td>
+                                        <td colspan="2">{{ $coinData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
                                     </tr>
                                 </tfoot>
                             </table>

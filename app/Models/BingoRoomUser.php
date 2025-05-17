@@ -10,9 +10,7 @@ class BingoRoomUser extends Model
     protected $fillable = [
         'room',
         'creator_user',
-        'seller',
         'player_user',
-        'player_link',
         'ctns',
         'automarker',
         'winner'
@@ -41,11 +39,6 @@ class BingoRoomUser extends Model
     public function PlayerUser()
     {
         return $this->belongsTo(User::class, 'player_user', 'id');
-    }
-
-    public function PlayerLink()
-    {
-        return $this->belongsTo(PlayerLink::class, 'player_link', 'id');
     }
 
     public function PrizeCtns()

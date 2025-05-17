@@ -11,9 +11,8 @@ class BingoCtnsLot extends Model
         'room',
         'creator_user',
         'seller',
-        'room_user',
         'player_user',
-        'player_link',
+        'room_user',
         'ctn_price',
         'exchange_rate',
         'ctns',
@@ -44,7 +43,7 @@ class BingoCtnsLot extends Model
     // Relación con el enlace del jugador
     public function PlayerLink()
     {
-        return $this->belongsTo(PlayerLink::class, 'player_link', 'id');
+        return $this->belongsTo(PlayerLink::class, 'room_user', 'room_user');
     }
 
     // Relación con los cartones

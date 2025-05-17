@@ -380,7 +380,7 @@ class BingoController extends Controller
                         'country' => $request->country ?? null,
                         'playerPhone' => $request->phone ?? null,
                         'playerName' => $request->name ?? null,
-                        'playerLastname' => $request->last_name ?? null,
+                        'playerLastName' => $request->last_name ?? null,
                     ];
                 } else {
                     $data['playerLink'] = $player ?? null;
@@ -410,7 +410,10 @@ class BingoController extends Controller
         $data['coin'] = Coin::getValueByCountry($request->country, 'id');
         $data['playerPhone'] = $request->phone ?? null;
         $data['playerName'] = $request->name ?? null;
-        $data['playerLastname'] = $request->last_name ?? null;
+        $data['playerLastName'] = $request->last_name ?? null;
+
+        $arrInitials = $this->initialCharacters([$data['playerName'], $data['playerLastName']]);
+        $data['initials'] =  $arrInitials[0] . $arrInitials[1];
 
         $data['exchangeRate'] = CommerceExchangeRate::getCommerceCoinValue($commerce, $data['coin']);
 
@@ -486,13 +489,6 @@ class BingoController extends Controller
 
         try {
 
-            if (isset($data['commerce']) || isset($data['seller'])) {
-                // Usuario Fuera de Sesion
-                if (!isset($data['isLogin'])) {
-                    $data = $this->handlePlayerLink($data);
-                }
-            }
-
             if (!isset($data['initials'])) {
                 // Manejar iniciales del cliente
                 $serialText = isset($data['customer'])
@@ -514,24 +510,31 @@ class BingoController extends Controller
                 return $response;
             }
 
-            if ($creatorType && isset($creator)) {
-                if ($creator['type'] === 'customer') {
-                    // Validar transacciones del cliente
-                    app(HandleTransactions::class)->validateTransactions($creator['id']);
+            if (isset($data['commerce']) || isset($data['seller'])) {
+                // Usuario Fuera de Sesion
+                if (!isset($data['isLogin'])) {
+                    $data['roomUser'] = $cartonStore;
+                    $data = $this->handlePlayerLink($data);
                 }
-
-                $prizePool = $this->convertPrizeValue($data['room'], $data['coin'], $room->prize_pool);
-                $ctns = BingoRoomUser::getValue($cartonStore, 'ctns');
-
-                DB::commit(); // Confirmar transacción
-
-                return response()->json([
-                    'prizePool' => $prizePool,
-                    'ctns' => $ctns,
-                    'type' => 'success',
-                    'message' => 'Proceso efectuado con éxito'
-                ]);
             }
+
+            if ($creatorType === 'customer') {
+                // Validar transacciones del cliente
+                app(HandleTransactions::class)->validateTransactions($creator['id']);
+            }
+
+            $prizePool = $this->convertPrizeValue($data['room'], $data['coin'], $room->prize_pool);
+            $ctns = BingoRoomUser::getValue($cartonStore, 'ctns');
+
+            DB::commit(); // Confirmar transacción
+
+            return response()->json([
+                'prizePool' => $prizePool,
+                'ctns' => $ctns,
+                'type' => 'success',
+                'message' => 'Proceso efectuado con éxito'
+            ]);
+
 
             DB::commit(); // Confirmar transacción
 
@@ -3148,38 +3151,50 @@ class BingoController extends Controller
     {
         $userData = $this->getUserData();
 
-        $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted', 'creator_user']);
-        $roomID = $room->id;
-        $bingoConfig = BingoRoomConfig::getByRoom($roomID, ['ctn_price', 'room_commn']);
-
         $routeWithCoin = [
             'route' => 'bingo.reportSalesByRoom',
             'parameters' => ['room' => $roomEncrypted, 'coin' => $coin]
         ];
 
-        $coinID = decrypt($coin);
+        $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted', 'creator_user']);
+        $roomID = $room->id;
 
-        $existSale = $this->verifyExistenceOfSales($userData, '', $coinID, $roomID);
+        $coin = decrypt($coin);
+
+        $existSale = $this->verifyExistenceOfSales($userData, '', $coin, $roomID);
 
         if (!$existSale) {
             return redirect()->route(
                 'bingo.reportSalesByRoom',
-                ['room' => $roomEncrypted, 'coin' => $coin]
+                ['room' => $roomEncrypted, 'coin' => encrypt($coin)]
             );
         }
 
         $title = 'Reporte de Sala';
         $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
 
-        $coin = Coin::getById($coinID, ['id', 'symbol']);
+        $coinData = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
 
         $where = collect([
             (object)[
                 'relation' => 'CtnsLot',
-                'constraints' => function ($query) use ($roomID) {
+                'constraints' => function ($query) use ($roomID, $userData) {
                     $query->where('room', $roomID);
+
+                    if ($userData['type'] !== 'commerce') {
+                        $query->where('seller', $userData['id']);
+                    }
                 }
             ]
+        ]);
+
+        $totals = collect([
+            'ctns' => 0,
+            'sales' => 0,
+            'finalSale' => 0,
+            'roomCommn' => 0,
+            'sellerCommn' => 0,
+            'prizePool' => 0,
         ]);
 
         switch ($userData['type']) {
@@ -3199,6 +3214,8 @@ class BingoController extends Controller
 
                 $coins = $this->getUserCoins($userData, ['CtnsLot'], 'all', $where);
 
+                $view = 'modules/commerce/games/bingo/report/by-room';
+
                 return view('modules/commerce/games/bingo/report/by-room')->with([
                     'title' => $title,
                     'cardTitle' => $cardTitle,
@@ -3214,56 +3231,47 @@ class BingoController extends Controller
 
             case 'seller':
 
-                $seller = Seller::getById($userData['id'], ['id', 'commerce']);
-
-                $coin = $coin->id;
-                $coinSym = Coin::getValue($coin, 'symbol');
-
                 $playersRoom = PlayerLink::with(['Coin', 'CtnsLot'])
-                    ->where(['seller' => $seller->id, 'room' => $roomID, 'coin' => $coin])
-                    ->orderByDesc('id')->get(['id', 'link', 'coin', 'name', 'lastname', 'phone']);
+                    ->where(['seller' => $userData['id'], 'room' => $roomID, 'coin' => $coin])
+                    ->orderByDesc('id')->get(['link', 'coin', 'room', 'name', 'lastname', 'phone']);
+
+                dd($playersRoom);
 
                 if (!count($playersRoom)) return redirect()->back();
 
-                // Realizar los cálculos de CTNs 
-                $totalCtnsPurchased = $playersRoom->pluck('CtnsLot')->flatten()->sum('sale_amount');
+                $ctnsLots = $playersRoom->flatMap->CtnsLot;
 
-                $totalCtnsByRoom = $playersRoom->flatMap->CtnsLot->sum('ctns');
+                $totals['ctns'] = $ctnsLots->sum('ctns');
+                $totals['sales'] = $ctnsLots->sum('sale_amount');
 
                 $coins = $this->getUserCoins($userData, ['CtnsLot'], 'all', $where);
 
-                $commerce = Commerce::getValueById($seller->commerce, 'code_uuid');
+                $otherParams = ['playersRoom' => $playersRoom];
 
-                return view(
-                    'modules.seller.games.bingo.report.by-room',
-                    compact(
-                        'title',
-                        'cardTitle',
-                        'commerce',
-                        'playersRoom',
-                        'routeWithCoin',
-                        'coins',
-                        'coin',
-                        'coinSym',
-                        'totalCtnsPurchased',
-                        'totalCtnsByRoom'
-                    )
-                );
+                $view = 'modules.seller.games.bingo.report.by-room';
+
                 break;
             default:
                 # code...
                 break;
         }
 
+        dd($totals);
+
+        // Formatear totales
+        $totalsFormatted = [
+            'ctns' => $totals['ctns'],
+            'sales' => number_format($totals['sales'], 2, '.', ',')
+        ];
+
         $params = compact(
             'title',
             'cardTitle',
-            'name',
-            'winners',
             'routeWithCoin',
             'coin',
             'coinData',
-            'coins'
+            'coins',
+            'totalsFormatted'
         );
 
         if (isset($otherParams)) {

@@ -16,11 +16,10 @@ return new class extends Migration
         Schema::create('bingo_ctns_lot', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('seller')->nullable();
             $table->unsignedBigInteger('room_user');
             $table->integer('player_user')->nullable();
-            $table->unsignedBigInteger('player_link')->nullable();
             $table->double('ctn_price');
             $table->double('exchange_rate');
             $table->integer('ctns');
@@ -33,7 +32,6 @@ return new class extends Migration
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('seller')->references('id')->on('sellers');
             $table->foreign('room_user')->references('id')->on('bingo_rooms_user');
-            $table->foreign('player_link')->references('id')->on('player_link');
 
             $table->index(['room']);
         });

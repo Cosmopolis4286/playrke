@@ -2,12 +2,9 @@
 
 namespace App\Traits;
 
-use App\Models\Commerce;
 use App\Models\Games;
 use App\Models\PlayerLink;
-use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
@@ -85,12 +82,9 @@ trait PlayerLinkTrait
             })->first();
 
         $playerName = $data['playerName'] ?? $player->name;
-        $playerLastname = $data['playerLastname'] ?? $player->lastname;
+        $playerLastName = $data['playerLastName'] ?? $player->lastname;
 
-        $arrInitials = $this->initialCharacters([$playerName, $playerLastname]);
-        $serialText = $arrInitials[0] . $arrInitials[1];
-
-        // Verificar si el jugador no existe
+               // Verificar si el jugador no existe
         if (!$player) {
             $playerLink = $this->createPlayerLink('BINGO');
 
@@ -98,12 +92,13 @@ trait PlayerLinkTrait
                 'game' => Games::getValueByName('BINGO'),
                 'room' => $data['room'],
                 'creator_user' => $data['creator']['userId'],
+                'room_user' => $data['roomUser'],
                 'seller' => $data['seller'],
                 'country' => $data['country'],
                 'coin' => $data['coin'],
                 'link' => $playerLink,
                 'name' => $playerName,
-                'lastname' => $playerLastname,
+                'lastname' => $playerLastName,
                 'identification' => null,
                 'phone' => $playerPhone,
             ];
@@ -117,10 +112,7 @@ trait PlayerLinkTrait
             $player = $player->id ?? null;
         }
 
-        $data['playerLink'] = $player;
-        $data['initials'] = $serialText;
-
-        unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastname']);
+        unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastName']);
 
         return $data;
     }

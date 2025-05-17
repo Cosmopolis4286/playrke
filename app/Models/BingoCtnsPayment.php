@@ -12,7 +12,7 @@ class BingoCtnsPayment extends Model
         'room',
         'creator_user',
         'seller',
-        'player_link',
+        'room_user',
         'coin',
         'lot',
         'amount',
@@ -38,7 +38,7 @@ class BingoCtnsPayment extends Model
 
     public function PlayerLink()
     {
-        return $this->belongsTo(PlayerLink::class, 'player_link');
+        return $this->belongsTo(PlayerLink::class, 'room_user', 'room_user');
     }
 
     public function Coin()

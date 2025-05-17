@@ -472,9 +472,8 @@ trait BingoTrait
             $BingoCtnsLotID = BingoCtnsLot::insertGetId([
                 'creator_user' => $creatorUser,
                 'seller' => $seller,
-                'room_user' => $arrCtn['roomUser'],
                 'player_user' => $arrCtn['playerUser'] ?? null,
-                'player_link' => $arrCtn['playerLink'] ?? null,
+                'room_user' => $arrCtn['roomUser'],
                 'room' => $roomID,
                 'ctn_price' => $arrCtn['ctnPrice'],
                 'exchange_rate' => $exchangeRate,
@@ -572,9 +571,8 @@ trait BingoTrait
             'room' => $arrCtn['room'],
             'creator_user' => $arrCtn['creator']['userId'],
             'seller' => $arrCtn['seller'] ?? null,
-            'room_user' => $arrCtn['roomUser'],
             'player_user' => $arrCtn['playerUser'] ?? null,
-            'player_link' => $arrCtn['playerLink'] ?? null,
+            'room_user' => $arrCtn['roomUser'],
             'coin' => $arrCtn['coin'],
             'lot' => $lotID,
             'serial' => $serialCtn,
@@ -614,21 +612,16 @@ trait BingoTrait
         try {
             $playerUser = $arrCtn['playerUser'] ?? null;
 
-            $playerColumn = $playerUser ? 'player_user' : 'player_link';
-            $playerID = $playerUser ?? $arrCtn['playerLink'];
-
             $defaultValues = [
                 'room' => $arrCtn['room'],
                 'creator_user' => $arrCtn['creator']['userId'],
-                'seller' => $arrCtn['seller'] ?? null,
-                'player_user' => $playerUser,
-                'player_link' => $arrCtn['playerLink'] ?? null,
+                'player_user' => $playerUser ?? null,
                 'ctns' => $arrCtn['numOfCtns'],
                 'automarker' => 1
             ];
 
             $roomUser = BingoRoomUser::firstOrCreate(
-                ['room' => $room->id, $playerColumn => $playerID],
+                ['room' => $room->id, 'id' => $arrCtn['roomUser']],
                 $defaultValues
             );
 
@@ -752,7 +745,7 @@ trait BingoTrait
 
             // Anexar atributo al array
             $arrCtn['roomUser'] = $roomUser;
-            
+
             $gameMode = $room->Config->game_mode;
 
             if ($gameMode != 1 && ($creator['type'] === 'commerce' || $seller)) {

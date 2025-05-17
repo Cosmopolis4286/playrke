@@ -12,7 +12,7 @@ class PlayerLink extends Model
     'room',
     'creator_user',
     'seller',
-    'user',
+    'room_user',
     'link',
     'country',
     'coin',
@@ -65,22 +65,22 @@ class PlayerLink extends Model
 
   public function PlayerGame()
   {
-    return $this->belongsTo(BingoRoomUser::class, 'id', 'player_link');
+    return $this->belongsTo(BingoRoomUser::class, 'id');
   }
 
   public function Ctns()
   {
-    return $this->belongsTo(BingoCtns::class, 'id', 'player_link');
+    return $this->belongsTo(BingoCtns::class, 'room_user', 'id');
   }
 
   public function PrizeCtns()
   {
-    return $this->hasMany(BingoPrizeCtns::class, 'player_link', 'id');
+    return $this->hasMany(BingoPrizeCtns::class, 'id', 'room_user');
   }
 
   public function CtnsLot()
   {
-    return $this->hasMany(BingoCtnsLot::class, 'player_link', 'id');
+    return $this->hasMany(BingoCtnsLot::class, 'room_user', 'id');
   }
 
   public static function getById($id, $fields = ['*'])

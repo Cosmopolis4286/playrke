@@ -18,10 +18,10 @@ return new class extends Migration
             $table->enum('payment', ['PS', 'SC']);
             $table->string('description', 35)->nullable();
             $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('seller')->nullable();
             $table->integer('user')->nullable();
-            $table->unsignedBigInteger('player_link');
+            $table->unsignedBigInteger('room_user');
             $table->unsignedBigInteger('coin');
             $table->unsignedBigInteger('lot');
             $table->double('amount');
@@ -30,7 +30,7 @@ return new class extends Migration
 
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade');
-            $table->foreign('player_link')->references('id')->on('player_link');
+            $table->foreign('room_user')->references('id')->on('bingo_rooms_user');
             $table->foreign('coin')->references('id')->on('coins');
             $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
 
