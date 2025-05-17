@@ -16,6 +16,7 @@ return new class extends Migration
         Schema::create('bingo_draw', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->string('round', 2)->default('1');
             $table->string('chip', 2);
             $table->string('code', 8);
             $table->integer('time');

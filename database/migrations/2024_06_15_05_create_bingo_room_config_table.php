@@ -17,7 +17,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->id();
             $table->unsignedBigInteger('room');
             $table->enum('creation', ['M', 'A'])->default('M');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('game_mode');
             $table->date('date');
             $table->string('time', 10);
@@ -30,7 +30,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->unsignedBigInteger('type_prize_pool')->default(1);
             $table->double('amount_added_prize_pool')->nullable();
             $table->string('time_chip', 2)->nullable();
-            $table->string('rounds', 2)->default(1);
+            $table->string('rounds', 2)->default('1');
             $table->double('pct_serials')->nullable();
             $table->string('num_serials', 2)->nullable();
             $table->double('pct_jackpot')->nullable();

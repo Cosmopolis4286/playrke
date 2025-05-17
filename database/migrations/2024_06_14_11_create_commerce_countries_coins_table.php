@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('commerce');
             $table->unsignedBigInteger('country')->nullable();
             $table->unsignedBigInteger('coin');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->boolean('status')->default(0);
             $table->timestamps();
 

@@ -18,7 +18,7 @@ class CreatePlayerLinkTable extends Migration
             $table->string('link', 25);
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('country');
             $table->unsignedBigInteger('coin');
             $table->unsignedBigInteger('seller')->nullable();
