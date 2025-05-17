@@ -63,26 +63,6 @@ class PlayerLink extends Model
     return $this->belongsTo(Seller::class, 'seller');
   }
 
-  public function PlayerGame()
-  {
-    return $this->belongsTo(BingoRoomUser::class, 'id');
-  }
-
-  public function Ctns()
-  {
-    return $this->belongsTo(BingoCtns::class, 'room_user', 'id');
-  }
-
-  public function PrizeCtns()
-  {
-    return $this->hasMany(BingoPrizeCtns::class, 'id', 'room_user');
-  }
-
-  public function CtnsLot()
-  {
-    return $this->hasMany(BingoCtnsLot::class, 'room_user', 'id');
-  }
-
   public static function getById($id, $fields = ['*'])
   {
     return self::select($fields)->where('id', $id)->first();

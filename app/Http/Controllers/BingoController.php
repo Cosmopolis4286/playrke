@@ -382,8 +382,6 @@ class BingoController extends Controller
                         'playerName' => $request->name ?? null,
                         'playerLastName' => $request->last_name ?? null,
                     ];
-                } else {
-                    $data['playerLink'] = $player ?? null;
                 }
             }
         }
@@ -408,9 +406,21 @@ class BingoController extends Controller
         $data['seller'] = $seller->id;
         $data['country'] = $request->country;
         $data['coin'] = Coin::getValueByCountry($request->country, 'id');
-        $data['playerPhone'] = $request->phone ?? null;
+
+        $playerPhone = $request->phone ?? null;
+        $data['playerPhone'] = $playerPhone;
         $data['playerName'] = $request->name ?? null;
         $data['playerLastName'] = $request->last_name ?? null;
+
+        $roomUser = PlayerLink::select('id', 'name', 'lastname', 'link')
+            ->where('game', 1)->where('room', $data['room'])
+            ->where(function ($query) use ($playerPhone) {
+                $query->where('phone', $playerPhone);
+            })->value('room_user');
+
+        if ($roomUser) {
+            $data['roomUser'] = $roomUser;
+        }
 
         $arrInitials = $this->initialCharacters([$data['playerName'], $data['playerLastName']]);
         $data['initials'] =  $arrInitials[0] . $arrInitials[1];
@@ -513,7 +523,7 @@ class BingoController extends Controller
             if (isset($data['commerce']) || isset($data['seller'])) {
                 // Usuario Fuera de Sesion
                 if (!isset($data['isLogin'])) {
-                    $data['roomUser'] = $cartonStore;
+                    if (isset($data['roomUser'])) $data['roomUser'] = $cartonStore;
                     $data = $this->handlePlayerLink($data);
                 }
             }

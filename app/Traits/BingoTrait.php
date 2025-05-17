@@ -607,34 +607,34 @@ trait BingoTrait
     }
 
     // Función para registrar o actualizar el usuario de la sala
-    private function registerOrUpdateRoomUser($room, $arrCtn)
+    private function registerOrUpdateRoomUser($room, array $arrCtn)
     {
         try {
-            $playerUser = $arrCtn['playerUser'] ?? null;
-
-            $defaultValues = [
-                'room' => $arrCtn['room'],
+            // Definir los valores por defecto para crear un nuevo registro
+            $defaults = [
+                'room'         => $arrCtn['room'],
                 'creator_user' => $arrCtn['creator']['userId'],
-                'player_user' => $playerUser ?? null,
-                'ctns' => $arrCtn['numOfCtns'],
-                'automarker' => 1
+                'player_user'  => $arrCtn['playerUser'] ?? null,
+                'ctns'         => $arrCtn['numOfCtns'],
+                'automarker'   => 1,
             ];
 
+            // Buscar o crear el usuario en la sala
             $roomUser = BingoRoomUser::firstOrCreate(
-                ['room' => $room->id, 'id' => $arrCtn['roomUser']],
-                $defaultValues
+                ['id' => $arrCtn['roomUser']],
+                $defaults
             );
 
-            if ($roomUser->wasRecentlyCreated) {
-                $room->increment('players');
-            } else {
-                // Anexar cantidad de cartones al usuario 
+            // Si ya existía, simplemente sumamos los nuevos cartones
+            if (!$roomUser->wasRecentlyCreated) {
                 $roomUser->increment('ctns', $arrCtn['numOfCtns']);
+            } else {
+                $room->increment('players'); // Nuevo jugador: incrementamos el contador de la sala
             }
 
             return $roomUser->id;
-        } catch (\Exception $e) {
-            Log::error('Error al registar o actualizar los datos del usuario: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Error al registrar o actualizar el usuario de sala: ' . $e->getMessage());
             return false;
         }
     }

@@ -71,20 +71,20 @@ trait PlayerLinkTrait
 
     public function handlePlayerLink($data)
     {
-        $playerLink = $data['playerLink'] ?? null;
+        $roomUser = $data['roomUser'] ?? null;
         $playerPhone = $data['playerPhone'] ?? null;
 
         $player = PlayerLink::select('id', 'name', 'lastname', 'link')
             ->where('game', 1)->where('room', $data['room'])
-            ->where(function ($query) use ($playerPhone, $playerLink) {
+            ->where(function ($query) use ($playerPhone, $roomUser) {
                 $query->where('phone', $playerPhone)
-                    ->orWhere('id', $playerLink);
+                    ->orWhere('id', $roomUser);
             })->first();
 
         $playerName = $data['playerName'] ?? $player->name;
         $playerLastName = $data['playerLastName'] ?? $player->lastname;
 
-               // Verificar si el jugador no existe
+        // Verificar si el jugador no existe
         if (!$player) {
             $playerLink = $this->createPlayerLink('BINGO');
 

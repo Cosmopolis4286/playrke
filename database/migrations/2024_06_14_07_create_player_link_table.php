@@ -22,7 +22,7 @@ class CreatePlayerLinkTable extends Migration
             $table->unsignedBigInteger('country');
             $table->unsignedBigInteger('coin');
             $table->unsignedBigInteger('seller')->nullable();
-            $table->foreignId('room_user')->constrained('bingo_rooms_user');
+            $table->integer('room_user');
             $table->string('name', 20);
             $table->string('lastname', 20);
             $table->string('identification', 12)->nullable();

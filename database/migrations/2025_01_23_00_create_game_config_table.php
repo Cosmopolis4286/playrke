@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('game')->constrained('games')->onDelete('cascade');
             $table->string('param', 35);
-            $table->string('param_valueue', 50)->nullable();
+            $table->string('param_value', 50)->nullable();
             $table->string('description', 70)->nullable();
             $table->boolean('status')->default(1);
             $table->timestamps();
