@@ -475,13 +475,13 @@ class SellerController extends Controller
             case 'BINGO':
                 $room = BingoRoom::getByEncrypted($request->room, ['id', 'room_type']);
 
-                $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
+                $player = PlayerLink::select('room_user', 'name', 'lastname', 'country', 'phone', 'link')
                     ->where('phone', $request->player_info)->where('game', 1)->where('room', $room->id)->first();
 
                 if (!$player)  return response()->json(['response' => false]);
 
                 $route = $this->getGameLinkByPlayer($player->link);
-                $ctnsPlayer = BingoCtns::where(['player_link' => $player->id, 'room' => $room->id])->count();
+                $ctnsPlayer = BingoCtns::where(['room_user' => $player->room_user, 'room' => $room->id])->count();
 
                 return response()->json([
                     'response' => true,
@@ -519,8 +519,8 @@ class SellerController extends Controller
     public function getWinnerInfoForCtn($ctnId)
     {
         $ctnId = decrypt($ctnId);
-        $idPlayer = BingoPrizeCtns::getValueById($ctnId, 'player_link');
-        $player = PlayerLink::getById($idPlayer, ['name', 'lastname', 'phone']);
+        $roomUser = BingoPrizeCtns::getValueById($ctnId, 'room_user');
+        $player = PlayerLink::getByRoomUser('BINGO', $roomUser, ['name', 'lastname', 'phone']);
 
         return json_encode(array(
             'name' => $player->name,
@@ -589,23 +589,24 @@ class SellerController extends Controller
         $allPendingCtns = BingoCtns::with('Lot:id,ctns,sale_amount')
             ->whereHas('Lot', function ($query) use ($seller) {
                 $query->where(['seller' => $seller, 'status' => 0]);
-            })->where('seller', $seller)->get(['room', 'creator_user', 'player_link', 'coin', 'lot']);
+            })->where('seller', $seller)->get(['room', 'creator_user', 'room_user', 'coin', 'lot']);
 
         try {
 
             $paymentToInsert = [];
+            $timestamp = now();
 
             foreach ($allPendingCtns as $ctn) {
 
                 $ctnPrice = $ctn->Lot->sale_amount / $ctn->Lot->ctns;
-                $timestamp = now();
+                $playerLink = PlayerLink::getValueByRoomUser('BINGO', $ctn->room_user, 'id');
 
                 $paymentToInsert[] = [
                     'payment' => 'SC',
                     'room' => $ctn->room,
                     'creator_user' => $ctn->creator_user,
                     'seller' => $seller,
-                    'player_link' => $ctn->player_link,
+                    'player_link' => $playerLink,
                     'lot' => $ctn->lot,
                     'coin' => $ctn->coin,
                     'amount' => $ctnPrice,

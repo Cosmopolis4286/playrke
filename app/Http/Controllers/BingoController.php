@@ -615,12 +615,11 @@ class BingoController extends Controller
                 $moreViewData = ['customerLogo' => "storage/customers/$userToken/$customer->logo"];
 
                 if (isset($data['userToken'])) {
-                    $user = CustomerUser::getByToken($creatorID, $data['userToken'], ['id', 'coin']);
                     $userToken = $data['userToken'];
+                    $user = CustomerUser::getValueByToken($creatorID, $userToken, ['user_id', 'coin']);
 
-                    $coinID = $user->coin;
-                    $coinSym = $coinID;
-                    $roomUser = BingoRoomUser::getValueByColumn($room->id, 'player_user', $user->id, 'id');
+                    $coinSym = $user->coin;
+                    $roomUser = BingoRoomUser::getValueByPlayerUser($room->id, $creatorUser, $user->user_id);
                 } else {
                     $coinID = $data['coin'];
                     $coinSym = CustomerExchangeRate::getValueById($coinID, 'coin');
@@ -646,7 +645,7 @@ class BingoController extends Controller
 
                 if (isset($data['playerLink'])) {
 
-                    $playerLink = PlayerLink::getByLink($data['playerLink'], ['id', 'room', 'room_user', 'country']);
+                    $playerLink = PlayerLink::getByLink($data['playerLink'], ['room', 'room_user', 'country']);
 
                     if (!$playerLink) return ['error' => 'Sala no encontrada'];
 

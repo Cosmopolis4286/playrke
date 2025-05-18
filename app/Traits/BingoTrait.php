@@ -849,12 +849,10 @@ trait BingoTrait
 
         foreach ($cartons as $ctn) {
 
-            //Determinar la columna según el modo de juego
-            $playerColumn = $ctn->player_user ? 'player_user' : 'player_link';
-
-            $playerColumnVal = $ctn->player_user ?? $ctn->player_link;
-
             if (!BingoPrizeCtns::existsPrizeCtn($ctn->id)) {
+
+                // Definir $roomUser
+                $roomUser = $ctn->room_user;
 
                 // Verificar y obtener el tipo de cambio
                 $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $ctn->coin) ?? 1;
@@ -863,7 +861,7 @@ trait BingoTrait
                 $convertedAmount = $USDValue * $exchangeRate;
 
                 // Usamos floor() para truncar y luego formateamos a 2 decimales
-                $prizeWn = number_format(floor($convertedAmount * 100) / 100, 2, '.', '');
+                $prizeAmount = floor($convertedAmount * 100) / 100;
 
                 $timestamp = now();
 
@@ -871,16 +869,15 @@ trait BingoTrait
                     'active' => 'N',
                     'room' => $roomID,
                     'creator_user' => $ctn->creator_user,
-                    'room_user' => $ctn->room_user,
                     'seller' => $ctn->seller,
                     'player_user' => $ctn->player_user,
-                    'room_user' => $ctn->room_user,
+                    'room_user' => $roomUser,
                     'ctn' => $ctn->id,
                     'lot' => $ctn->lot,
                     'prize_type' => $prizeType,
                     'usd_amount' => $USDValue,
                     'coin' => $ctn->coin,
-                    'amount' => $prizeWn,
+                    'amount' => $prizeAmount,
                     'status' => null,
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp
@@ -889,8 +886,8 @@ trait BingoTrait
                 // Añadimos el registro al array de inserciones
                 $recordsToInsert[] = $record;
 
-                // Determinar el campo de actualización basado en el tipo de usuario
-                $playersToUpdate[] = BingoRoomUser::getValueByColumn($roomID, $playerColumn, $playerColumnVal, 'id');
+                // Determinar los jugadores a actualizar
+                $playersToUpdate[] = $roomUser;
             }
         }
 
@@ -964,8 +961,7 @@ trait BingoTrait
                 $coin = CustomerUser::getValueById($playerID, 'coin');
                 break;
             case 'commerce':
-                $playerLink = BingoRoomUser::getValue($playerID, 'player_link');
-                $coin = PlayerLink::getValueById($playerLink, 'coin');
+                $coin = PlayerLink::getValueByRoomUser('BINGO', $playerID, 'coin');
                 break;
             default:
                 break;
@@ -1071,80 +1067,76 @@ trait BingoTrait
             $this->chipWin($room);
         }
 
-        // Declarar ultima ficha
+        // Última ficha sorteada
         $lastChipNum = $lastChip->chip;
 
-        // Inicializar array de jugadores únicos
-        $uniquePlayers = ['playerUser' => [], 'playerLink' => []];
+        // Columnas de los cartones
+        $cartonColumns = [
+            'b1',
+            'b2',
+            'b3',
+            'b4',
+            'b5',
+            'i1',
+            'i2',
+            'i3',
+            'i4',
+            'i5',
+            'n1',
+            'n2',
+            'n3',
+            'n4',
+            'g1',
+            'g2',
+            'g3',
+            'g4',
+            'g5',
+            'o1',
+            'o2',
+            'o3',
+            'o4',
+            'o5'
+        ];
 
-        // Buscar los cartones que contienen el chip
-        $ctnsPlayer = BingoCtns::where('room', $roomID)
+        // Inicializar variables de ganadores
+        $winnersByUser = collect();
+
+        // Consulta perezosa
+        BingoCtns::where('room', $roomID)
             ->whereRaw(
-                "(b1 = ? OR b2 = ? OR b3 = ? OR b4 = ? OR b5 = ? 
-                OR i1 = ? OR i2 = ? OR i3 = ? OR i4 = ? OR i5 = ?
-                OR n1 = ? OR n2 = ? OR n3 = ? OR n4 = ? 
-                OR g1 = ? OR g2 = ? OR g3 = ? OR g4 = ? OR g5 = ? 
-                OR o1 = ? OR o2 = ? OR o3 = ? OR o4 = ? OR o5 = ?)",
-                array_fill(0, 24, $lastChipNum) // Repite el valor 24 veces
-            )->select('id', 'room_user')->cursor();
+                '(' . implode(' = ? OR ', $cartonColumns) . ' = ?)',
+                array_fill(0, count($cartonColumns), $lastChipNum)
+            )
+            ->select(array_merge(['id', 'room_user'], $cartonColumns))
+            ->lazyById(100)
+            ->each(function ($ctn) use ($cartonColumns, $chipsDraw, &$winnersByUser) {
+                if (!$winnersByUser->has($ctn->room_user)) {
+                    $values = [];
+                    foreach ($cartonColumns as $col) {
+                        $values[] = $ctn->$col;
+                    }
 
-        // Filtrar cartones ganadores
-        $prizeCtns = [];
-        $roomUserIds = [];
-        $uniquePlayers = ['playerUser' => [], 'playerLink' => []];
-
-        foreach ($ctnsPlayer as $ctn) {
-            $playerId = $ctn->player_user ?: $ctn->player_link;
-            $playerType = $ctn->player_user ? 'playerUser' : 'playerLink';
-
-            // Evitar revalidaciones innecesarias con `isset()` en lugar de `in_array()`
-            if (!isset($uniquePlayers[$playerType][$playerId])) {
-                $cartonNumbers = BingoCtns::where('id', $ctn->id)
-                    ->select([
-                        'b1',
-                        'b2',
-                        'b3',
-                        'b4',
-                        'b5',
-                        'i1',
-                        'i2',
-                        'i3',
-                        'i4',
-                        'i5',
-                        'n1',
-                        'n2',
-                        'n3',
-                        'n4',
-                        'g1',
-                        'g2',
-                        'g3',
-                        'g4',
-                        'g5',
-                        'o1',
-                        'o2',
-                        'o3',
-                        'o4',
-                        'o5'
-                    ])->first()->toArray();
-
-                if (count(array_intersect($cartonNumbers, $chipsDraw)) === count($cartonNumbers)) {
-                    $uniquePlayers[$playerType][$playerId] = true;
-                    $prizeCtns[] = $ctn->id;
-                    $roomUserIds[] = $ctn->room_user;
+                    if (count(array_intersect($values, $chipsDraw)) === count($values)) {
+                        $winnersByUser->put($ctn->room_user, $ctn->id);
+                    }
                 }
-            }
-        }
+            });
 
-        // Obtener información de los cartones ganadores
-        $ctnsJackpot = BingoCtns::where('room', $roomID)->whereIn('id', $prizeCtns)
+        // IDs de cartones ganadores
+        $prizeCtnIds = $winnersByUser->values()->all();
+        $roomUserIds = $winnersByUser->keys()->all();
+
+        // Obtener información de cartones ganadores
+        $ctnsJackpot = BingoCtns::where('room', $roomID)
+            ->whereIn('id', $prizeCtnIds)
             ->get(['id', 'creator_user', 'seller', 'room_user', 'coin', 'lot']);
 
-        // Obtener la cantidad de ganadores
-        $winnersCount = count(array_merge($uniquePlayers['playerUser'], $uniquePlayers['playerLink']));
-
+        // Contar ganadores y no ganadores
+        $winnersCount = count($prizeCtnIds);
         $nonWinnersCount = BingoRoomUser::getNonWinnersCountByRoom($roomID);
 
-        $generateSerials = $nonWinnersCount - count($prizeCtns);
+        // Seriales a generar
+        $generateSerials = $nonWinnersCount - $winnersCount;
 
         DB::beginTransaction();
 
@@ -1225,81 +1217,100 @@ trait BingoTrait
 
             if ($getWinners) return false;
 
-            // Obtener ultima ficha en salir (ganadora) 
+            // Obtener la última ficha ganadora
             $lastChip = BingoDraw::where('room', $roomID)->where('status', 3)->value('id');
 
-            $chipsDraw = array_flip(BingoDraw::select('chip')->where('room', $roomID)
-                ->where('id', '<', $lastChip)->pluck('chip')->toArray());
+            // Fichas que han salido antes del jackpot
+            $chipsDraw = array_flip(
+                BingoDraw::where('room', $roomID)
+                    ->where('id', '<', $lastChip)
+                    ->pluck('chip')
+                    ->toArray()
+            );
 
-            $countCtns = 0;
             $countSerials = BingoRoomConfig::getValueByRoom($roomID, 'num_serials');
-
-            $ctnsPlayer = BingoCtns::where('room', $roomID)
-                ->whereNotIn('room_user', $roomUserIds)
-                ->lazyById(100)
-                ->takeWhile(function () use (&$countCtns, $countSerials) {
-                    return $countCtns < $countSerials;
-                })->shuffle();
-
+            $countCtns = 0;
             $uniquePlayers = [];
             $serialCtns = [];
 
-            foreach ($ctnsPlayer as $ctn) {
-                // Obtener números del cartón 
-                $numbers = [
-                    $ctn->b1,
-                    $ctn->b2,
-                    $ctn->b3,
-                    $ctn->b4,
-                    $ctn->b5,
-                    $ctn->i1,
-                    $ctn->i2,
-                    $ctn->i3,
-                    $ctn->i4,
-                    $ctn->i5,
-                    $ctn->n1,
-                    $ctn->n2,
-                    $ctn->n3,
-                    $ctn->n4,
-                    $ctn->g1,
-                    $ctn->g2,
-                    $ctn->g3,
-                    $ctn->g4,
-                    $ctn->g5,
-                    $ctn->o1,
-                    $ctn->o2,
-                    $ctn->o3,
-                    $ctn->o4,
-                    $ctn->o5
-                ];
+            $batchSize = 100;
+            $page = 1;
 
-                // Contar aciertos de forma más eficiente
-                $count = count(array_intersect($numbers, array_keys($chipsDraw)));
+            do {
+                // Tomar 100 cartones aleatorios que no pertenezcan a los ganadores previos
+                $batch = BingoCtns::where('room', $roomID)
+                    ->whereNotIn('room_user', $roomUserIds)
+                    ->inRandomOrder()
+                    ->forPage($page, $batchSize)
+                    ->get();
 
-                if ($count > 14 && $count < 24) {
-                    $playerId = $ctn->player_user ?: $ctn->player_link;
-                    $playerType = $ctn->player_user ? 'playerUser' : 'playerLink';
+                // Si no quedan más cartones, salimos
+                if ($batch->isEmpty()) break;
 
-                    // Verificar si el jugador ya ha ganado antes
-                    if (!isset($uniquePlayers[$playerType][$playerId])) {
-                        $uniquePlayers[$playerType][$playerId] = true; // Registrar jugador
-                        $serialCtns[] = $ctn->id;
-                        $countCtns++;
+                foreach ($batch as $ctn) {
+                    if ($countCtns >= $countSerials) break;
 
-                        // Detener la iteración si ya se alcanzó el límite
-                        if ($countCtns == $countSerials) {
-                            break;
+                    // Obtener todos los números del cartón
+                    $numbers = array_filter([
+                        $ctn->b1,
+                        $ctn->b2,
+                        $ctn->b3,
+                        $ctn->b4,
+                        $ctn->b5,
+                        $ctn->i1,
+                        $ctn->i2,
+                        $ctn->i3,
+                        $ctn->i4,
+                        $ctn->i5,
+                        $ctn->n1,
+                        $ctn->n2,
+                        $ctn->n3,
+                        $ctn->n4,
+                        $ctn->g1,
+                        $ctn->g2,
+                        $ctn->g3,
+                        $ctn->g4,
+                        $ctn->g5,
+                        $ctn->o1,
+                        $ctn->o2,
+                        $ctn->o3,
+                        $ctn->o4,
+                        $ctn->o5,
+                    ]);
+
+                    // Calcular cuántos números han salido
+                    $hits = 0;
+                    foreach ($numbers as $number) {
+                        if (isset($chipsDraw[$number])) {
+                            $hits++;
+                        }
+                    }
+
+                    // Validar que el cartón tenga entre 15 y 23 aciertos
+                    if ($hits > 14 && $hits < 24) {
+                        $roomUser = $ctn->room_user;
+
+                        // Verificar si ese jugador ya tiene un cartón premiado
+                        if (!isset($uniquePlayers[$roomUser])) {
+                            $uniquePlayers[$roomUser] = true;
+                            $serialCtns[] = $ctn->id;
+                            $countCtns++;
                         }
                     }
                 }
-            }
 
-            // Si no hay ganadores con aciertos entre 15-23
+                $page++;
+            } while ($countCtns < $countSerials);
+
+            // Si no se encontró ningún ganador, retornar falso
             if ($countCtns === 0) return false;
 
+            // Obtener la información final de los cartones ganadores
             $ctnsSerials = BingoCtns::whereIn('id', $serialCtns)
-                ->where('room', $roomID)->get(['id', 'seller', 'creator_user', 'room_user', 'coin', 'lot']);
+                ->where('room', $roomID)
+                ->get(['id', 'seller', 'creator_user', 'room_user', 'coin', 'lot']);
 
+            // Repartir el premio entre los ganadores
             $winnerJackpotPrize = $serialPrize / count($serialCtns);
 
             $this->registerPrizeCtn($roomID, $ctnsSerials, 2, $winnerJackpotPrize);
@@ -1411,7 +1422,7 @@ trait BingoTrait
             'room' => $lotCtn->room,
             'creator_user' => $lotCtn->creator_user,
             'seller' => $lotCtn->seller,
-            'player_link' => $lotCtn->player_link,
+            'player_link' => PlayerLink::getValueByRoomUser('BINGO', $lotCtn->room_user, 'id'),
             'lot' => $lotCtn->id,
             'coin' => $lotCtn->coin,
             'amount' => $lotCtn->sale_amount,
@@ -1429,7 +1440,7 @@ trait BingoTrait
                 'room' => $prizeCtn->room,
                 'creator_user' => $prizeCtn->creator_user,
                 'seller' => $prizeCtn->seller,
-                'player_link' => $prizeCtn->player_link,
+                'player_link' => PlayerLink::getValueByRoomUser('BINGO', $prizeCtn->room_user, 'id'),
                 'sender' => $sender,
                 'prize_type' => $prizeCtn->prize_type,
                 'lot' => $prizeCtn->lot,
