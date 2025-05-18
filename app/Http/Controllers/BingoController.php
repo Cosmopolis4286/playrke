@@ -523,28 +523,30 @@ class BingoController extends Controller
             if (isset($data['commerce']) || isset($data['seller'])) {
                 // Usuario Fuera de Sesion
                 if (!isset($data['isLogin'])) {
-                    if (isset($data['roomUser'])) $data['roomUser'] = $cartonStore;
+                    if (!isset($data['roomUser'])) $data['roomUser'] = $cartonStore;
                     $data = $this->handlePlayerLink($data);
                 }
             }
 
-            if ($creatorType === 'customer') {
-                // Validar transacciones del cliente
-                app(HandleTransactions::class)->validateTransactions($creator['id']);
+            if ($creatorType) {
+
+                if ($creatorType === 'customer') {
+                    // Validar transacciones del cliente
+                    app(HandleTransactions::class)->validateTransactions($creator['id']);
+                }
+
+                $prizePool = $this->convertPrizeValue($data['room'], $data['coin'], $room->prize_pool);
+                $ctns = BingoRoomUser::getValue($cartonStore, 'ctns');
+
+                DB::commit(); // Confirmar transacción
+
+                return response()->json([
+                    'prizePool' => $prizePool,
+                    'ctns' => $ctns,
+                    'type' => 'success',
+                    'message' => 'Proceso efectuado con éxito'
+                ]);
             }
-
-            $prizePool = $this->convertPrizeValue($data['room'], $data['coin'], $room->prize_pool);
-            $ctns = BingoRoomUser::getValue($cartonStore, 'ctns');
-
-            DB::commit(); // Confirmar transacción
-
-            return response()->json([
-                'prizePool' => $prizePool,
-                'ctns' => $ctns,
-                'type' => 'success',
-                'message' => 'Proceso efectuado con éxito'
-            ]);
-
 
             DB::commit(); // Confirmar transacción
 
@@ -644,9 +646,7 @@ class BingoController extends Controller
 
                 if (isset($data['playerLink'])) {
 
-                    $player = $data['playerLink'];
-
-                    $playerLink = PlayerLink::getByLink($player, ['id', 'room', 'country', 'link']);
+                    $playerLink = PlayerLink::getByLink($data['playerLink'], ['id', 'room', 'room_user', 'country']);
 
                     if (!$playerLink) return ['error' => 'Sala no encontrada'];
 
@@ -659,7 +659,7 @@ class BingoController extends Controller
 
                     $isLogin = false;
 
-                    $roomUser =  BingoRoomUser::getValueByColumn($roomID, 'player_link', $playerLink->id, 'id');
+                    $roomUser = $playerLink->room_user;
 
                     $coin = Coin::getCoinByCountry($playerLink->country, ['id', 'symbol']);
                     $coinID = $coin->id;
@@ -2980,7 +2980,7 @@ class BingoController extends Controller
             BingoPrizeCtns::where('ctn', $ctnId)->update(['status' => $paymentType]);
 
             if ($paymentType === 'SP') {
-                $success = BingoRoomUser::where('player_link', $prizeCtn->player_link)->update(['winner' => 2]);
+                $success = BingoRoomUser::where('id', $prizeCtn->room_user)->update(['winner' => 2]);
                 if (!$success) {
                     DB::rollBack();
                     return response()->json(['error' => 'Error al actualizar el estado del cartón.'], 500);

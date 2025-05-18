@@ -28,11 +28,6 @@ class PlayerLink extends Model
     return $this->belongsTo(Games::class, 'game');
   }
 
-  public function Room()
-  {
-    return $this->belongsTo(BingoRoom::class, 'room');
-  }
-
   public function CreatorUser()
   {
     return $this->belongsTo(User::class, 'creator_user');
@@ -81,5 +76,17 @@ class PlayerLink extends Model
   public static function getValueByLink($link, $value)
   {
     return self::where('link', $link)->value($value);
+  }
+
+  public static function getByRoomUser($game, $roomUser, $fields = ['*'])
+  {
+    $gameID = Games::getValueByName($game);
+    return self::select($fields)->where('game', $gameID)->where('room_user', $roomUser)->first();
+  }
+
+  public static function getValueByRoomUser($game, $roomUser, $value)
+  {
+    $gameID = Games::getValueByName($game);
+    return self::where('game', $gameID)->where('room_user', $roomUser)->value($value);
   }
 }

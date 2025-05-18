@@ -508,8 +508,7 @@ trait BingoTrait
                 $creatorID = $arrCtn['creator']['id'];
                 $country = CustomerUser::getValueByUserId($creatorID, $arrCtn['playerUser'], 'country');
             } else {
-                $countryID = PlayerLink::getValueById($arrCtn['playerLink'], 'country');
-                $country = Country::getValue($countryID, 'iso_code_2');
+                $country = Country::getValue($arrCtn['country'], 'iso_code_2');
             }
 
             // Obtener el último número de cartón creado
@@ -620,16 +619,13 @@ trait BingoTrait
             ];
 
             // Buscar o crear el usuario en la sala
-            $roomUser = BingoRoomUser::firstOrCreate(
-                ['id' => $arrCtn['roomUser']],
-                $defaults
-            );
+            $roomUser = BingoRoomUser::find($arrCtn['roomUser'] ?? null);
 
-            // Si ya existía, simplemente sumamos los nuevos cartones
-            if (!$roomUser->wasRecentlyCreated) {
-                $roomUser->increment('ctns', $arrCtn['numOfCtns']);
+            if (!$roomUser) {
+                $roomUser = BingoRoomUser::create($defaults);
+                $room->increment('players');
             } else {
-                $room->increment('players'); // Nuevo jugador: incrementamos el contador de la sala
+                $roomUser->increment('ctns', $arrCtn['numOfCtns']);
             }
 
             return $roomUser->id;
@@ -878,7 +874,7 @@ trait BingoTrait
                     'room_user' => $ctn->room_user,
                     'seller' => $ctn->seller,
                     'player_user' => $ctn->player_user,
-                    'player_link' => $ctn->player_link,
+                    'room_user' => $ctn->room_user,
                     'ctn' => $ctn->id,
                     'lot' => $ctn->lot,
                     'prize_type' => $prizeType,
@@ -1090,7 +1086,7 @@ trait BingoTrait
                 OR g1 = ? OR g2 = ? OR g3 = ? OR g4 = ? OR g5 = ? 
                 OR o1 = ? OR o2 = ? OR o3 = ? OR o4 = ? OR o5 = ?)",
                 array_fill(0, 24, $lastChipNum) // Repite el valor 24 veces
-            )->select('id', 'room_user', 'player_user', 'player_link')->cursor();
+            )->select('id', 'room_user')->cursor();
 
         // Filtrar cartones ganadores
         $prizeCtns = [];
@@ -1141,7 +1137,7 @@ trait BingoTrait
 
         // Obtener información de los cartones ganadores
         $ctnsJackpot = BingoCtns::where('room', $roomID)->whereIn('id', $prizeCtns)
-            ->get(['id', 'creator_user', 'seller', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
+            ->get(['id', 'creator_user', 'seller', 'room_user', 'coin', 'lot']);
 
         // Obtener la cantidad de ganadores
         $winnersCount = count(array_merge($uniquePlayers['playerUser'], $uniquePlayers['playerLink']));
@@ -1302,7 +1298,7 @@ trait BingoTrait
             if ($countCtns === 0) return false;
 
             $ctnsSerials = BingoCtns::whereIn('id', $serialCtns)
-                ->where('room', $roomID)->get(['id', 'seller', 'creator_user', 'room_user', 'player_user', 'player_link', 'coin', 'lot']);
+                ->where('room', $roomID)->get(['id', 'seller', 'creator_user', 'room_user', 'coin', 'lot']);
 
             $winnerJackpotPrize = $serialPrize / count($serialCtns);
 
@@ -1379,7 +1375,7 @@ trait BingoTrait
             if ($ctn->player_user) {
                 $fullName = User::getValueById($ctn->player_user, 'username');
             } else {
-                $playerLink = PlayerLink::getById($ctn->player_link, ['name', 'lastname']);
+                $playerLink = PlayerLink::getByRoomUser('BINGO', $ctn->room_user, ['name', 'lastname']);
                 $fullName = "$playerLink->name $playerLink->lastname";
             }
         } else {
@@ -1406,31 +1402,6 @@ trait BingoTrait
             // Actualizar el estado de pago de la sala de bingo
             BingoRoom::where('id', $room)->update(['paid_win' => 1]);
         }
-    }
-
-    function insertCartonPayment($arr)
-    {
-        $timestamp = now();
-        // Crear un array de datos para insertar en la base de datos
-        $data = [];
-        foreach ($arr as $payment) {
-            $data[] = [
-                'payment' => $payment[0], // PAGO [CTN] ENVIADO DE VENDEDOR A LA COMERCIALIZADORA
-                'room' => $payment[1],
-                'sender' => $payment[2],
-                'commerce' => $payment[3],
-                'player_link' => $payment[4],
-                'lot' => $payment[5],
-                'ctn' => $payment[6],
-                'coin' => $payment[7],
-                'amount' => $payment[8],
-                'payment_proof' => $payment[10],
-                'created_at' => $timestamp,
-                'updated_at' => $timestamp
-            ];
-        }
-        // Inserción masiva en la base de datos
-        return BingoCtnsPayment::insert($data);
     }
 
     function registerCartonPayment($payment, $lotCtn, $paymentImage)
