@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PlayerLink extends Model
 {
-  protected $table = "player_link";
+  protected $table = "player_links";
   protected $fillable = [
     'game',
     'room',

@@ -136,7 +136,7 @@ class BingoController extends Controller
                 $coinSym = Coin::getValue($coin, 'symbol');
                 $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
 
-                $playerColumn = 'player_link';
+                $playerUser = $data['player'];
 
                 break;
             case 'customer': // Cliente
@@ -149,10 +149,8 @@ class BingoController extends Controller
                 $coinSym = $custCoin->coin;
                 $exchangeRate = $custCoin->exchange_rate;
 
-                $player = $data['player'] ? encrypt($data['player']) : 'GAMES';
-
-                $playerColumn = 'player_user';
-                $roomUser = $data['player'];
+                $playerUser = $data['player'];
+                $player = $$playerUser ? encrypt($playerUser) : 'GAMES';
 
                 $moreViewData = [
                     'customerID' => Customer::getValueById($creatorID, 'customer_id'),
@@ -176,9 +174,9 @@ class BingoController extends Controller
                 $query->where('creator_user', $creatorUser)
                     ->where('coin', $coin);
             },
-            'PlayersRoom' => function ($query) use ($playerColumn, $roomUser) {
-                $query->select('id', $playerColumn, 'room', 'ctns')
-                    ->where($playerColumn, $roomUser);
+            'PlayersRoom' => function ($query) use ($playerUser) {
+                $query->select('id', 'room', 'ctns')
+                    ->where('player_user', $playerUser);
             }
         ])
             ->select([
@@ -265,9 +263,11 @@ class BingoController extends Controller
             'userId' => Auth::id()
         ];
 
+        $player = null;
+
         $viewData = self::getGamesRoomsView(
             $creator,
-            ['coin' => decrypt($coin), 'roomType' => $roomType]
+            ['player' => $player, 'coin' => decrypt($coin), 'roomType' => $roomType]
         );
 
 
@@ -3245,8 +3245,6 @@ class BingoController extends Controller
                     ->where(['seller' => $userData['id'], 'room' => $roomID, 'coin' => $coin])
                     ->orderByDesc('id')->get(['link', 'coin', 'room', 'name', 'lastname', 'phone']);
 
-                dd($playersRoom);
-
                 if (!count($playersRoom)) return redirect()->back();
 
                 $ctnsLots = $playersRoom->flatMap->CtnsLot;
@@ -3499,7 +3497,7 @@ class BingoController extends Controller
                 $winners = $winnersQuery->select(
                     'room',
                     'seller',
-                    'player_link',
+                    'room_user',
                     'ctn',
                     'prize_type',
                     'coin',
