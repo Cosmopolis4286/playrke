@@ -34,7 +34,6 @@ return new class extends Migration
             $table->foreign('prize_ctn')->references('id')->on('bingo_prize_ctns');
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('room_user')->references('id')->on('bingo_rooms_user')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('sender')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('prize_type')->references('id')->on('game_prizes')->onDelete('cascade');
             $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
