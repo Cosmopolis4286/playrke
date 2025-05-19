@@ -3197,6 +3197,8 @@ class BingoController extends Controller
             ]
         ]);
 
+        $coins = $this->getUserCoins($userData, ['CtnsLot'], 'all', $where);
+
         $totals = collect([
             'ctns' => 0,
             'sales' => 0,
@@ -3210,7 +3212,7 @@ class BingoController extends Controller
 
             case 'commerce':
 
-                $ctnsLotFilter = fn($query) => $query->where('room', $roomID)->where('coin', $coin->id);
+                $ctnsLotFilter = fn($query) => $query->where('room', $roomID)->where('coin', $coin);
 
                 $sellers = Seller::select('id', 'name', 'country')
                     ->with([
@@ -3221,21 +3223,12 @@ class BingoController extends Controller
                     ->whereHas('CtnsLot', $ctnsLotFilter)
                     ->get();
 
-                $coins = $this->getUserCoins($userData, ['CtnsLot'], 'all', $where);
+                $roomCommn = BingoRoomConfig::getValueByRoom($roomID, 'room_commn');
 
                 $view = 'modules/commerce/games/bingo/report/by-room';
 
-                return view('modules/commerce/games/bingo/report/by-room')->with([
-                    'title' => $title,
-                    'cardTitle' => $cardTitle,
-                    'sellers' => $sellers,
-                    'comCommerceRoom' => $bingoConfig->room_commn / 100,
-                    'room' => $room->encrypted,
-                    'routeWithCoin' => $routeWithCoin,
-                    'coin' => $coin->id,
-                    'coinSym' => $coin->symbol,
-                    'coins' => $coins
-                ]);
+                $otherParams = ['sellers' => $sellers, 'roomCommn' => $roomCommn / 100];
+
                 break;
 
             case 'seller':
@@ -3256,8 +3249,6 @@ class BingoController extends Controller
 
                 $totals['ctns'] = $ctnsLots->sum('ctns');
                 $totals['sales'] = $ctnsLots->sum('sale_amount');
-
-                $coins = $this->getUserCoins($userData, ['CtnsLot'], 'all', $where);
 
                 $otherParams = ['playersRoom' => $playersRoom];
 
@@ -3321,10 +3312,13 @@ class BingoController extends Controller
 
             case 'commerce':
 
-                $ctnsSoldQuery = BingoCtnsLot::with(['Room', 'Coin', 'Payment', 'Seller'])
-                    ->whereHas('Room', function ($query) {
-                        $query->select('id', 'room_type', 'status')->whereIn('status', [2, 3, 4]);
-                    });
+                $ctnsSoldQuery = BingoCtnsLot::with([
+                    'Room:id,encrypted,room_type,status',
+                    'Payment:id,lot,payment_proof',
+                    'Seller:id,name'
+                ])->whereHas('Room', function ($query) {
+                    $query->whereIn('status', [2, 3, 4]);
+                });
 
                 $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
@@ -3342,10 +3336,13 @@ class BingoController extends Controller
                 $commerce = Seller::getValueById($sellerId, 'commerce');
 
                 $ctnsSoldQuery = BingoCtnsLot::with([
-                    'Payments:prize_ctn,payment_proof',
-                    'PlayerLink:name,lastname,country',
+                    'Room:id,encrypted,room_type,status',
+                    'Payment:id,lot,payment_proof',
+                    'PlayerLink:id,room_user,name,lastname,country',
                     'PlayerLink.Country:id,name'
-                ]);
+                ])->whereHas('Room', function ($query) {
+                    $query->whereIn('status', [2, 3, 4]);
+                });
 
                 $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
@@ -3366,7 +3363,6 @@ class BingoController extends Controller
                 $otherParams = [
                     'allPendingCtnSale' => $allPendingCtnSale,
                     'pendingCtns' => $pendingCtns,
-                    'ctnsSold' => $ctnsSold,
                     'commerceName' => Commerce::getValueById($commerce, 'name')
                 ];
 
@@ -3382,6 +3378,7 @@ class BingoController extends Controller
             'name',
             'routeWithCoin',
             'dateFilter',
+            'ctnsSold',
             'coin',
             'coinData',
             'coins'
@@ -3438,14 +3435,14 @@ class BingoController extends Controller
 
                 $creatorUser = $userData['userId'];
 
-                // // Pagos Pendientes de otros comercios
-                // $paymentsOtherCommerces = 0;
+                // Pagos Pendientes de otros comercios
+                $paymentsOtherCommerces = 0;
 
-                // // Contar los ganadores pendientes de pago para otros comercios
-                // $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($creatorUser);
+                // Contar los ganadores pendientes de pago para otros comercios
+                $countWinnersOtherCommerces = BingoPrizeCtns::getPendingPaymentsCountExcludingCreator($creatorUser);
 
-                // // Contar los ganadores pendientes de pago para el propio comercio
-                // $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($creatorUser);
+                // Contar los ganadores pendientes de pago para el propio comercio
+                $countWinnersByCommerce = BingoPrizeCtns::getPendingPaymentsCountByCreator($creatorUser);
 
                 $coins = $this->getUserCoins($userData, ['PrizeCtns'], $dateFilter);
 
@@ -3480,7 +3477,10 @@ class BingoController extends Controller
                     $view = 'modules.commerce.games.bingo.cartons.awarded.other-winners';
                 }
 
-                // $otherParams = ['countWinnersOtherCommerces', 'countWinnersByCommerce'];
+                $otherParams = [
+                    'countWinnersOtherCommerces' => $countWinnersOtherCommerces,
+                    'countWinnersByCommerce' => $countWinnersByCommerce
+                ];
 
                 break;
 

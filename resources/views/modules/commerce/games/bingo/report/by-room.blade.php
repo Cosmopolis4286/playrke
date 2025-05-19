@@ -35,7 +35,7 @@
                                             $comSaleSeller = $saleAmountSeller - $finalSaleAmountSeller;
 
                                             $prizePool = $saleAmountSeller - $comSaleSeller;
-                                            $roomCommn = round($saleAmountSeller * $comCommerceRoom, 2);
+                                            $roomCommn = round($saleAmountSeller * $roomCommn, 2);
                                             $prizePool -= $roomCommn;
 
                                             // Acumular totales
@@ -53,10 +53,10 @@
                                             </td>
                                             <td>{{ $seller->Country->name }}</td>
                                             <td>{{ $allCtnsSeller }}</td>
-                                            <td>{{ $coinSym }} {{ number_format($saleAmountSeller, 2) }}</td>
-                                            <td>{{ $coinSym }} {{ number_format($comSaleSeller, 2) }}</td>
-                                            <td>{{ $coinSym }} {{ number_format($roomCommn, 2) }}</td>
-                                            <td>{{ $coinSym }} {{ number_format($prizePool, 2) }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ number_format($saleAmountSeller, 2) }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ number_format($comSaleSeller, 2) }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ number_format($roomCommn, 2) }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ number_format($prizePool, 2) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -64,10 +64,10 @@
                                     <tr>
                                         <td colspan="2" class="text-right"><b>Total:</b></td>
                                         <td>{{ $totalCtnsBuy }}</td>
-                                        <td>{{ $coinSym }} {{ number_format($totalAllSale, 2) }}</td>
-                                        <td>{{ $coinSym }} {{ number_format($totalComSaleSeller, 2) }}</td>
-                                        <td>{{ $coinSym }} {{ number_format($totalRoomCommn, 2) }}</td>
-                                        <td>{{ $coinSym }} {{ number_format($totalJackpot, 2) }}</td>
+                                        <td>{{ $coinData->iso_code }} {{ number_format($totalAllSale, 2) }}</td>
+                                        <td>{{ $coinData->iso_code }} {{ number_format($totalComSaleSeller, 2) }}</td>
+                                        <td>{{ $coinData->iso_code }} {{ number_format($totalRoomCommn, 2) }}</td>
+                                        <td>{{ $coinData->iso_code }} {{ number_format($totalJackpot, 2) }}</td>
                                     </tr>
                                 </tfoot>
                             </table>
