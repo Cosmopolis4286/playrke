@@ -16,7 +16,7 @@
                                         <th>Nombre</th>
                                         <th>Apellido</th>
                                         <th>Celular</th>
-                                        <th>#CTNs</th>
+                                        <th>CTNs</th>
                                         <th>Total</th>
                                         <th>Acción</th>
                                     </tr>
@@ -28,7 +28,8 @@
                                             <td>{{ $player->lastname }}</td>
                                             <td>{{ $player->phone }}</td>
                                             <td>{{ $player->CtnsLot->sum('ctns') }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ $player->CtnsLot->sum('sale_amount') }}</td>
+                                            <td>{{ $coinData->iso_code }}
+                                                {{ number_format($player->CtnsLot->sum('sale_amount'), 2, '.', ',') }}</td>
                                             <td>
                                                 <a class="btn btn-sm bg-primary show-ctns" target="_blank"
                                                     href="{{ route('bingo.in-game', ['player' => $player->link]) }}">
