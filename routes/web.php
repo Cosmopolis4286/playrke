@@ -22,6 +22,7 @@ use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\PaymentMethodsCOLController;
+use App\Http\Controllers\TreasurerController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -121,6 +122,16 @@ Route::group(['middleware' => 'auth', 'prefix' => 'iframe', 'as' => 'iframe.'], 
 // Directorio-Datos Bancarios
 Route::group(['middleware' => 'auth', 'prefix' => 'directory', 'as' => 'directory.'], function () {
     Route::get('{countryCode}', [DirectoryController::class, 'index'])->name('index');
+});
+
+// Treasurer Options ADMIN
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-treasurer', 'as' => 'admin-treasurer.'], function () {
+    Route::post('create', [TreasurerController::class, 'create'])->name('create');
+    Route::get('getInfo/{id}', [TreasurerController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [TreasurerController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [TreasurerController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [TreasurerController::class, 'changeStatus'])->name('change-status');
+    Route::put('change-passw/{id}', [TreasurerController::class, 'changePassword'])->name('change-passw');
 });
 
 //Cliente
