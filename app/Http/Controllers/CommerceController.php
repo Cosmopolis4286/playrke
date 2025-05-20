@@ -85,50 +85,6 @@ class CommerceController extends Controller
         return $validator; // Devuelve el validador en caso de éxito
     }
 
-    private function insertOtherCoins($commerceID, $creatorUser, $otherCoins)
-    {
-        if (!empty($otherCoins) && is_array($otherCoins)) {
-
-            // Obtener las monedas seleccionadas y prepararlas para la inserción
-            $otherCoins = Coin::getCoinsById($otherCoins);
-            $coinsToCreate = [];
-
-            foreach ($otherCoins as $coin) {
-                $coinsToCreate[] = [
-                    'commerce' => $commerceID,
-                    'country' => $coin->country,
-                    'coin' => $coin->id,
-                    'creator_user' => $creatorUser,
-                    'status' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ];
-            }
-
-            // Manejo de transacción para insertar las nuevas monedas
-            DB::transaction(function () use ($commerceID, $coinsToCreate) {
-                try {
-                    foreach ($coinsToCreate as $coinData) {
-                        // Insertar la moneda si no existe para ese vendedor
-                        CommerceCountriesCoins::firstOrCreate(
-                            ['commerce' => $commerceID, 'coin' => $coinData['coin']],
-                            $coinData
-                        );
-                    }
-
-                    // Habilitar solo las monedas seleccionadas
-                    CommerceCountriesCoins::where('commerce', $commerceID)
-                        ->whereIn('coin', array_column($coinsToCreate, 'coin'))->update(['status' => 1]);
-                } catch (\Exception $e) {
-                    // Captura de cualquier otra excepción
-                    DB::rollBack();
-                    Log::error('Error general al insertar monedas para el Comercio: ' . $e->getMessage());
-                    throw $e;
-                }
-            });
-        }
-    }
-
     public function create(Request $request) /// Registar Comercializadoras
     {
         if ($this->user(['user_type'])->user_type != 2) {
@@ -194,26 +150,8 @@ class CommerceController extends Controller
                 'status' => 1
             ]);
 
-            $otherCoins = $request->other_coins;
-
-            if (!empty($otherCoins) && is_array($otherCoins)) {
-                $otherCoins = Coin::getCoinsById($otherCoins);
-                $timestamp = now();
-
-                $coinsToCreate = [];
-                foreach ($otherCoins as $coin) {
-                    $coinsToCreate[] = [
-                        'commerce' => $commerce->id,
-                        'country' => $coin->country,
-                        'coin' => $coin->id,
-                        'creator_user' => $newUser,
-                        'status' => 1,
-                        'created_at' => $timestamp,
-                        'updated_at' => $timestamp
-                    ];
-                }
-                CommerceCountriesCoins::insert($coinsToCreate);
-            }
+            // Insertar otras monedas
+            $this->insertOtherCoins($commerce->id, $commerce->user, $request->other_coins);
 
             // Registrar Code UUID
             UUIDCodes::create([
@@ -320,8 +258,8 @@ class CommerceController extends Controller
                         ]);
                 }
 
-                $otherCoins = $request->other_coins;
-                $this->insertOtherCoins($commerce->id, $commerce->user, $otherCoins);
+                // Insertar otras monedas
+                $this->insertOtherCoins($commerce->id, $commerce->user, $request->other_coins);
 
                 DB::commit();
 

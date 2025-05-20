@@ -7,6 +7,9 @@
             <div class="card-body">
                 <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
                     <i class="fas fa-plus-square mr-1"></i>Añadir</button>
+                <button type="button" class="btn-{{ $name }} btn btn-sm btn-primary" data-type="6">
+                    <i class="fa-solid fa-user-plus mr-1"></i>Promover
+                </button>
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">
                         <thead>
@@ -222,6 +225,12 @@
             submitForm(name, ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
         });
 
+        function promoteUser() {
+            const $modal = $('#modal-other-bingo-rooms');
+
+            $modal.modal('show');
+        }
+
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -245,6 +254,7 @@
                     })
                 );
             },
+            6: promoteUser
         };
     </script>
 @endsection

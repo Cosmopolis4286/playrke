@@ -88,60 +88,6 @@ class SellerController extends Controller
         return $validator; // Devuelve el validador en caso de éxito
     }
 
-    private function insertOtherCoins($seller, $otherCoins)
-    {
-        if (empty($otherCoins)) {
-            DB::beginTransaction();
-            try {
-                $sellerCoin = Seller::getValueById($seller, 'coin');
-                SellerCountriesCoins::where('seller', $seller)->whereNot('coin', $sellerCoin)->update(['status' => 0]);
-                DB::commit();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error('Error al inhabilitar todas las monedas para el vendedor: ' . $e->getMessage());
-            }
-        } else if (!empty($otherCoins) && is_array($otherCoins)) {
-            // Obtener las monedas seleccionadas y prepararlas para la inserción
-            $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
-            $timestamp = now();
-
-            $coinsToCreate = [];
-
-            foreach ($otherCoins as $coin) {
-                $coinsToCreate[] = [
-                    'seller' => $seller,
-                    'country' => $coin->country,
-                    'coin' => $coin->id,
-                    'status' => 1,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp
-                ];
-            }
-
-            // Manejo de transacción para insertar las nuevas monedas
-            DB::transaction(function () use ($seller, $coinsToCreate) {
-                try {
-                    foreach ($coinsToCreate as $coinData) {
-                        // Insertar la moneda si no existe para ese vendedor
-                        SellerCountriesCoins::firstOrCreate(
-                            ['seller' => $seller, 'coin' => $coinData['coin']],
-                            $coinData
-                        );
-                    }
-
-                    // Habilitar solo las monedas seleccionadas
-                    SellerCountriesCoins::where('seller', $seller)
-                        ->whereIn('coin', array_column($coinsToCreate, 'coin'))->update(['status' => 1]);
-                } catch (\Exception $e) {
-                    // Captura de cualquier otra excepción
-                    DB::rollBack();
-                    Log::error('Error general al insertar monedas para el vendedor: ' . $e->getMessage());
-                    throw $e;
-                }
-            });
-        }
-    }
-
     public function create(Request $request)
     {
         if (!in_array($this->user(['user_type'])->user_type, [2, 3])) {
@@ -199,8 +145,8 @@ class SellerController extends Controller
                 'status' => 1
             ]);
 
-            $otherCoins = $request->other_coins;
-            $this->insertOtherCoins($seller->id, $otherCoins);
+            // Insertar otras monedas
+            $this->insertOtherCoins($seller->id, $request->other_coins);
 
             DB::commit();
 
@@ -288,8 +234,8 @@ class SellerController extends Controller
                         ]);
                 }
 
-                $otherCoins = $request->other_coins;
-                $this->insertOtherCoins($seller->id, $otherCoins);
+                // Insertar otras monedas
+                $this->insertOtherCoins($seller->id, $request->other_coins);
 
                 DB::commit();
 
