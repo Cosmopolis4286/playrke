@@ -51,6 +51,21 @@
             step="0.05" min="10" max="50" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
+        <label for="time-chip">Tiempo Ficha*</label>
+        <div class="input-group">
+            <input type="number" step="1" value="5" min="3" max="10" id="time-chip"
+                name="time_chip" class="form-control" required>
+            <div class="input-group-append">
+                <span class="input-group-text">SEG</span>
+            </div>
+        </div>
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="rounds">Rondas*</label>
+        <input type="number" step="1" value="1" min="1" max="10" id="rounds" name="rounds"
+            class="form-control" required>
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
         <div class="input-group">
             <div class="input-group-prepend">
@@ -76,16 +91,6 @@
                 </div>
             </div>
             <div id="container-price-config" class="row">
-            </div>
-        </div>
-    </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="time-chip">Tiempo Ficha*</label>
-        <div class="input-group">
-            <input type="number" step="1" value="5" min="3" max="10" id="time-chip"
-                name="time_chip" class="form-control" required>
-            <div class="input-group-append">
-                <span class="input-group-text">SEG</span>
             </div>
         </div>
     </div>

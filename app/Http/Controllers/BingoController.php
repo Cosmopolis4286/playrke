@@ -2325,10 +2325,16 @@ class BingoController extends Controller
     public function actWn(Request $request)
     {
         $playerLink = $request->playerLink;
+        $randomChip = $request->random_chip_count ?? 4;
 
         if (PlayerLink::where('link', $playerLink)->exists()) {
-            $room = PlayerLink::where('link', $playerLink)->value('room');
-            $this->handleDraw($room, $playerLink);
+
+            $player = PlayerLink::getByLink($playerLink, ['room', 'room_user']);
+
+            $roomUser = ['roomUser' => $player->room_user, 'randomChip' => $randomChip];
+
+            $this->handleDraw($player->room, $roomUser);
+
             return redirect()->back()->with('message', 'Carton Ganador Generado');
         } else {
             return redirect()->back()->with('message', 'El PlayerLink no existe');

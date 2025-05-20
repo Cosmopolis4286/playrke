@@ -23,8 +23,8 @@ return new class extends Migration
             $table->string('status')->default('0');
             $table->timestamps();
 
-            // Índice único para evitar duplicados de chip por sala
-            $table->unique(['room', 'chip'], 'unique_chip_per_room');
+            // Índice único para evitar duplicados de chip por sala y ronda
+            $table->unique(['room', 'round', 'chip'], 'unique_chip_per_room_round');
         });
     }
 

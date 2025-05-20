@@ -165,6 +165,7 @@
                 $('#room-commn').val(room.room_commn);
                 $('#ctn-price').val(room.ctn_price);
                 $('#time-chip').val(room.time_chip);
+                $('#rounds').val(room.rounds);
                 $('#pct-serials').val(room.pct_serials);
                 $('#num-serials').val(room.num_serials);
                 $('#serials-commn').val(room.pct_jackpot);
@@ -180,8 +181,8 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'time', 'room-type', 'type-prize-pool', 'game-mode',
-                'room-commn', 'ctn-price', 'time-chip', 'pct-serials', 'num-serials'
+                'time', 'room-type', 'type-prize-pool', 'game-mode', 'room-commn',
+                'ctn-price', 'time-chip', 'rounds', 'pct-serials', 'num-serials'
             ]);
         });
 

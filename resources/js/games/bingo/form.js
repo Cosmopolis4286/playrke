@@ -32,7 +32,7 @@ function handlePercentageAdjust(changedId) {
 
 $(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #num-serials, #max-plays-ramdom", function () {
     const id = $(this).attr('id');
-    validateInput(this, !['num-serials', 'time-chip', 'max-plays-ramdom'].includes(id));
+    validateInput(this, !['num-serials', 'time-chip', 'rounds', 'max-plays-ramdom'].includes(id));
 });
 
 $(document).on("input", ".prize_pool-pct", function () {

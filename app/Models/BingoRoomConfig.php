@@ -23,6 +23,7 @@ class BingoRoomConfig extends Model
     'type_prize_pool',
     'amount_added_prize_pool',
     'time_chip',
+    'rounds',
     'pct_serials',
     'num_serials',
     'pct_jackpot',

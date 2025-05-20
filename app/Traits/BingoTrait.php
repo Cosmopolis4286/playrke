@@ -4,7 +4,6 @@ namespace App\Traits;
 
 use App\Events\Games\BingoOFF_ProccessDraw;
 use App\Models\BingoCreator;
-use App\Models\BingoCreatorPendingPayments;
 use App\Models\BingoCreatorSales;
 use App\Models\SellerRoomLimits;
 use App\Models\BingoCtns;
@@ -88,152 +87,135 @@ trait BingoTrait
         }
     }
 
-    public function handleDraw($room, $roomUser = '')
+    public function handleDraw($room, array $roomUser = [])
     {
         $roomStatus = BingoRoom::where('id', $room)->value('status');
+        if ($roomStatus != 2) return true;
 
-        if ($roomStatus != 2) {
-            return true;
+        $roomInfo = BingoRoomConfig::getByRoom($room, ['date', 'time', 'rounds']);
+        $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
+        $rounds = (int) $roomInfo->rounds;
+        $timeChip = BingoRoomConfig::getValueByRoom($room, 'time_chip') ?? 6;
+
+        // Verificar si existen draws previos
+        $hasDraws = BingoDraw::where('room', $room)->where('time', '>', 0)->exists();
+
+        // Si no hay draws generados, los creamos para cada ronda
+        if (!$hasDraws) {
+            $this->encryptDraw($room);
+            $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
+
+            $allDraws = [];
+
+            $lastDrawTime = $dataTime;
+
+            for ($round = 1; $round <= $rounds; $round++) {
+                $availableChips = range(1, 75);
+                shuffle($availableChips);
+
+                $currentTimestamp = now();
+
+                foreach ($availableChips as $chip) {
+                    $encoded = implode('', array_map(fn($d) => $symbols[$d == '0' ? 10 : $d] ?? '', str_split($chip)));
+                    $lastDrawTime += ($chip == reset($availableChips)) ? 8 : $timeChip;
+
+                    $allDraws[] = [
+                        'chip' => $chip,
+                        'code' => $encoded,
+                        'room' => $room,
+                        'round' => $round,
+                        'time' => $lastDrawTime,
+                        'created_at' => $currentTimestamp,
+                        'updated_at' => $currentTimestamp,
+                    ];
+                }
+            }
+
+            DB::beginTransaction();
+            try {
+                BingoDraw::insert($allDraws);
+                DB::commit();
+                return $this->chipWin($room);
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                Log::error('Error al insertar draws: ' . $e->getMessage());
+            }
         }
 
-        date_default_timezone_set(config('app.timezone'));
+        // Si hay draws existentes y hay un usuario de sala y es tipo 2
+        if ($hasDraws && !empty($roomUser) && $this->user(['user_type']) == 2) {
 
-        $draw = BingoDraw::where('room', $room)->exists();
+            // Cantidad de fichas aleatorias a insertar al principio
+            $randomChipCount = $roomUser['randomChip'] ?? 4;
 
-        if (!$draw) {
-            $roomInfo = BingoRoomConfig::getByRoom($room, ['date', 'time']);
-            $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
+            // Determinar la ronda a usar
+            $roundToUse = $rounds > 1
+                ? BingoDraw::where('room', $room)->max('round')
+                : 1;
 
-            // Generar símbolos codificados si aún no existen
-            $this->encryptDraw($room);
-
-            // Obtener símbolos una vez
-            $symbols = BingoDrawCode::select('sym', 'num')->where('room', $room)->pluck('sym', 'num');
-
-            $lastDrawTime = BingoDraw::where('room', $room)->max('time') ?? $dataTime;
-            $currentTimestamp = now();
-            $timeChip = BingoRoomConfig::getValueByRoom($room, 'time_chip') ?? 6;
-            $timeIncrement = 8;
-
-            // Generar todos los chips posibles
-            $availableChips = range(1, 75);
-            shuffle($availableChips);
-
-            // Obtener chips ya existentes en este momento
-            $existingChips = BingoDraw::where('room', $room)->pluck('chip')->toArray();
-            $existingChipsSet = array_flip($existingChips); // Para búsqueda rápida
-
-            $inserts = [];
-
-            foreach ($availableChips as $rnd) {
-                if (isset($existingChipsSet[$rnd])) {
-                    continue; // Ya existe
-                }
-
-                // Codificar el número
-                $numEncoded = implode('', array_map(
-                    fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '',
-                    str_split($rnd)
-                ));
-
-                // Calcular hora del sorteo
-                $currentDrawTime = $lastDrawTime + $timeIncrement;
-
-                $inserts[] = [
-                    "chip" => $rnd,
-                    "code" => $numEncoded,
-                    "room" => $room,
-                    "time" => $currentDrawTime,
-                    "created_at" => $currentTimestamp,
-                    "updated_at" => $currentTimestamp,
-                ];
-
-                $lastDrawTime = $currentDrawTime;
-                $timeIncrement = $timeChip;
-            }
-
-            if (!empty($inserts)) {
-                DB::beginTransaction();
-                try {
-                    BingoDraw::insert($inserts);
-                    DB::commit();
-                    return $this->chipWin($room);
-                } catch (\Exception $e) {
-                    DB::rollBack();
-                    Log::error('Error al insertar fichas: ' . $e->getMessage());
-                }
-            }
-        } else if ($draw && $roomUser && $this->user(['user_type']) == 2) {
-
-            $ctn = BingoCtns::where('room', $room)->where('id', $roomUser)->inRandomOrder()->first();
+            // Obtener el cartón del usuario
+            $ctn = BingoCtns::where('room', $room)
+                ->where('id', $roomUser[''])
+                ->inRandomOrder()
+                ->first();
 
             if (!$ctn) return false;
 
-            $ctnFull = collect($ctn)->only([
-                'b1',
-                'b2',
-                'b3',
-                'b4',
-                'b5',
-                'i1',
-                'i2',
-                'i3',
-                'i4',
-                'i5',
-                'n1',
-                'n2',
-                'n3',
-                'n4',
-                'g1',
-                'g2',
-                'g3',
-                'g4',
-                'g5',
-                'o1',
-                'o2',
-                'o3',
-                'o4',
-                'o5'
-            ])->values()->shuffle()->all();
+            // Campos de BINGO (excepto el centro 'n3')
+            $fields = collect(['b', 'i', 'n', 'g', 'o'])
+                ->flatMap(fn($col) => $col === 'n'
+                    ? ["{$col}1", "{$col}2", "{$col}3", "{$col}4"]
+                    : ["{$col}1", "{$col}2", "{$col}3", "{$col}4", "{$col}5"]);
 
-            $draw = BingoDraw::select('chip')->where('room', $room)->whereNotIn('chip', $ctnFull)
-                ->inRandomOrder()->pluck('chip')->toArray();
+            // Fichas del cartón
+            $ctnChips = collect($ctn)->only($fields)->values()->shuffle()->all();
 
-            $firstFour = array_slice($draw, 0, 4); // Obtener los primeros 4 elementos
-            $draw = array_slice($draw, 4); // Eliminar los primeros 4 elementos del array original
+            // Fichas que no están en el cartón del usuario, en esta ronda
+            $drawChips = BingoDraw::where('room', $room)
+                ->where('round', $roundToUse)
+                ->whereNotIn('chip', $ctnChips)
+                ->inRandomOrder()
+                ->pluck('chip')
+                ->toArray();
 
-            $newDraw = array_merge($firstFour, $ctnFull, $draw); // Nuevo Draw
+            // Armar nuevo orden: aleatorias + del cartón + resto
+            $newDrawOrder = array_merge(
+                array_slice($drawChips, 0, $randomChipCount),
+                $ctnChips,
+                array_slice($drawChips, $randomChipCount)
+            );
 
-            $newDrawValues = array_map(function ($chip) {
-                return intval($chip);
-            }, $newDraw);
+            // Obtener IDs de la ronda
+            $drawIds = BingoDraw::where('room', $room)
+                ->where('round', $roundToUse)
+                ->pluck('id')
+                ->toArray();
 
-            $OrigDraw = BingoDraw::select('id')->where('room', $room)->pluck('id');
-
-            // Construir un arreglo asociativo de ID => Chip para actualizar
-            $updateData = array_combine($OrigDraw->toArray(), $newDrawValues);
+            // Asociar IDs con nuevo orden de chips
+            $updateData = array_combine($drawIds, array_map('intval', $newDrawOrder));
 
             DB::beginTransaction();
-
             try {
-                // Construir la consulta SQL dinámica para actualizar los chips en función de sus IDs
                 $sql = 'UPDATE bingo_draw SET chip = CASE id ';
                 $bindings = [];
+
                 foreach ($updateData as $id => $chip) {
                     $sql .= 'WHEN ? THEN ? ';
                     $bindings[] = $id;
                     $bindings[] = $chip;
                 }
-                $sql .= 'END WHERE room = ?';
+
+                $sql .= 'END WHERE room = ? AND round = ?';
                 $bindings[] = $room;
+                $bindings[] = $roundToUse;
 
-                // Ejecutar la consulta SQL con bindings
                 DB::update($sql, $bindings);
-
                 DB::commit();
+
                 return true;
-            } catch (\Throwable $th) {
+            } catch (\Throwable $e) {
                 DB::rollBack();
+                Log::error('Error actualizando chips para usuario en ronda ' . $roundToUse . ': ' . $e->getMessage());
             }
         }
 
@@ -249,13 +231,13 @@ trait BingoTrait
         DB::beginTransaction();
 
         try {
-            // Si no hay jugadores, asignar manualmente la ficha ganadora
+            // Si no hay jugadores, reestablecer por defecto
             if (!BingoRoomUser::where('room', $room)->exists()) {
-                $winChip = BingoDraw::getFirstDrawChip($room, 'id')->id + 23;
-                BingoDraw::where('id', $winChip)->where('room', $room)->update(['status' => 3]);
+                BingoRoom::where('id', $room)->update(['status' => 1]);
+                BingoDraw::where('room', $room)->update(['time' => 0]);
 
                 DB::commit();
-                return BingoDraw::select('id', 'chip')->find($winChip);
+                return ['Error' => 'No hay jugadores en la sala'];
             }
 
             // Crear un índice invertido para las fichas en los cartones
@@ -947,7 +929,6 @@ trait BingoTrait
         }
 
         try {
-            BingoCreatorPendingPayments::insert($recordsToInsert);
         } catch (\Exception $e) {
             Log::error('Error al insertar los registros de pagos pendientes para la sala {$roomID}:' . $e->getMessage());
         }
