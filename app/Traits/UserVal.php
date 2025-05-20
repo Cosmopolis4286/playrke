@@ -12,6 +12,7 @@ use App\Models\PagoMovil;
 use App\Models\Pix;
 use App\Models\Seller;
 use App\Models\SellerCountriesCoins;
+use App\Models\Treasurer;
 use App\Models\User;
 use App\Models\UserType;
 use App\Models\Wallet;
@@ -43,6 +44,11 @@ trait UserVal
     public function customer($fields = ['*'])
     {
         return Customer::select($fields)->where('user', Auth::id())->first();
+    }
+
+    public function treasurer($fields = ['*'])
+    {
+        return Treasurer::select($fields)->where('user', Auth::id())->first();
     }
 
     public function seller($fields = ['*'])

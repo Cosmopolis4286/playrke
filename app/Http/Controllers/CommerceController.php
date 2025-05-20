@@ -11,7 +11,6 @@ use App\Models\BingoCtnsLot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
-use App\Models\PagoMovil;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
@@ -39,7 +38,7 @@ class CommerceController extends Controller
 
     private function validateRequest($request, $type = 1, $id = '')
     {
-        // Si es tipo 2, encuentra al vendedor usando el ID descifrado.
+        // Si es tipo 2, encuentra al usuario usando el ID descifrado.
         if ($type == 2) {
             $commerce = Commerce::findOrFail(decrypt($id));
         }
@@ -230,7 +229,7 @@ class CommerceController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error general: ' . $e->getMessage());
+            Log::error('Error al crear Commerce: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
 
@@ -370,15 +369,6 @@ class CommerceController extends Controller
             Session::flash('msg-error', 'Ha ocurrido un error');
         }
         return redirect()->back();
-    }
-
-    public function allDirectories()
-    {
-        $title = 'Datos Bancarios';
-
-        $pagoMovils = PagoMovil::with(['DocumentType', 'Bank'])->where("user", Auth::id())->get();
-
-        return view('modules.commerce.directory.Venezuela.index', compact('title', 'pagoMovils'));
     }
 
     public function sellers()

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('treasurers_countries_coins', function (Blueprint $table) {
             $table->id();
             $table->foreignId('treasurer')->constrained('treasurers');
-            $table->foreignId('country')->constrained('countries');
+            $table->foreignId('country')->constrained('countries')->nullable();
             $table->foreignId('coin')->constrained('coins');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->boolean('status')->default(0);

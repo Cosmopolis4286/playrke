@@ -225,7 +225,7 @@
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
-                    'Deseas cambiar el status de este comercio',
+                    'Deseas cambiar el status de este tesorero',
                     'question',
                     'Sí, cambiar',
                     '#form-other-options',
@@ -236,7 +236,7 @@
             },
             5: function(encryptedId) {
                 showToastOptionBtns(
-                    'Generar nueva contraseña a este comercio',
+                    'Generar nueva contraseña a este tesorero',
                     'info',
                     'Sí, generar',
                     '#form-other-options',

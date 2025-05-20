@@ -24,6 +24,10 @@
         @includeIf('layouts.sections.sidebar.customer.index')
     @break
 
+    @case('treasurer')
+        @includeIf('layouts.sections.sidebar.treasurer.index')
+    @break
+
     @default
         {{-- Código a ejecutar si $creatorTypePrefix no coincide con ningún caso --}}
 @endswitch

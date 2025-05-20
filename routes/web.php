@@ -156,7 +156,6 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', '
 Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
     Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])
         ->withoutMiddleware(['auth', 'commerce'])->name('getPaymentCommerceDetails');
-    Route::get('all-directories', [CommerceController::class, 'allDirectories'])->name('allDirectories');
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
     Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');

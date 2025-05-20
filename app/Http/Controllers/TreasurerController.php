@@ -5,29 +5,20 @@ namespace App\Http\Controllers;
 use App\Traits\EncryptRKE;
 use App\Models\User;
 use App\Models\Coin;
-use App\Models\Seller;
-use App\Models\BingoCtns;
-use App\Models\BingoCtnsLot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
-use App\Models\PagoMovil;
-use App\Models\Commerce;
-use App\Models\CommerceCountriesCoins;
-use App\Models\CommerceExchangeRate;
-use App\Models\Country;
+use App\Models\Treasurer;
+use App\Models\TreasurerCountriesCoins;
+use App\Models\TreasurerExchangeRate;
 use App\Models\PhoneNumbers;
-use App\Models\SellerCountriesCoins;
-use App\Models\TimeZone;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-use App\Traits\BingoTrait;
 use App\Traits\Filters;
 use App\Traits\RouteRKE;
 use App\Traits\UserVal;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,13 +26,13 @@ use Illuminate\Support\Facades\Validator;
 
 class TreasurerController extends Controller
 {
-    use EncryptRKE, UserVal, RouteRKE, BingoTrait, Filters;
+    use EncryptRKE, UserVal, RouteRKE, Filters;
 
     private function validateRequest($request, $type = 1, $id = '')
     {
-        // Si es tipo 2, encuentra al vendedor usando el ID descifrado.
+        // Si es tipo 2, encuentra al usuario usando el ID descifrado.
         if ($type == 2) {
-            $commerce = Commerce::findOrFail(decrypt($id));
+            $treasurer = Treasurer::findOrFail(decrypt($id));
         }
 
         // Definir reglas de validación.
@@ -52,15 +43,15 @@ class TreasurerController extends Controller
             'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
             'coin' => ['required', 'numeric', 'exists:coins,id'],
             'name' => ['required', 'string'],
-            'phone' => ['required', 'string', 'max:20', 'unique:commerces,phone'],
+            'phone' => ['required', 'string', 'max:20', 'unique:treasurers,phone'],
             'other_coins.*' => ['exists:coins,id'],
         ];
 
         // Ajustar reglas de validación si es una actualización.
         if ($type == 2) {
-            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $commerce->user];
-            $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $commerce->user];
-            $rules['phone'] = ['required', 'string', 'max:20', 'unique:commerces,phone,' . $commerce->id];
+            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $treasurer->user];
+            $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $treasurer->user];
+            $rules['phone'] = ['required', 'string', 'max:20', 'unique:treasurers,phone,' . $treasurer->id];
         }
 
         // Definir mensajes de error personalizados.
@@ -86,7 +77,7 @@ class TreasurerController extends Controller
         return $validator; // Devuelve el validador en caso de éxito
     }
 
-    private function insertOtherCoins($commerceID, $creatorUser, $otherCoins)
+    private function insertOtherCoins($treasurerID, $creatorUser, $otherCoins)
     {
         if (!empty($otherCoins) && is_array($otherCoins)) {
 
@@ -96,7 +87,7 @@ class TreasurerController extends Controller
 
             foreach ($otherCoins as $coin) {
                 $coinsToCreate[] = [
-                    'commerce' => $commerceID,
+                    'treasurer' => $treasurerID,
                     'country' => $coin->country,
                     'coin' => $coin->id,
                     'creator_user' => $creatorUser,
@@ -107,18 +98,18 @@ class TreasurerController extends Controller
             }
 
             // Manejo de transacción para insertar las nuevas monedas
-            DB::transaction(function () use ($commerceID, $coinsToCreate) {
+            DB::transaction(function () use ($treasurerID, $coinsToCreate) {
                 try {
                     foreach ($coinsToCreate as $coinData) {
                         // Insertar la moneda si no existe para ese vendedor
-                        CommerceCountriesCoins::firstOrCreate(
-                            ['commerce' => $commerceID, 'coin' => $coinData['coin']],
+                        TreasurerCountriesCoins::firstOrCreate(
+                            ['treasurer' => $treasurerID, 'coin' => $coinData['coin']],
                             $coinData
                         );
                     }
 
                     // Habilitar solo las monedas seleccionadas
-                    CommerceCountriesCoins::where('commerce', $commerceID)
+                    TreasurerCountriesCoins::where('treasurer', $treasurerID)
                         ->whereIn('coin', array_column($coinsToCreate, 'coin'))->update(['status' => 1]);
                 } catch (\Exception $e) {
                     // Captura de cualquier otra excepción
@@ -136,13 +127,6 @@ class TreasurerController extends Controller
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
 
-        $codeRKE = $request->code_rke;
-        $existsCodeRKE = Commerce::existsValue('code_rke', $codeRKE);
-
-        if ($existsCodeRKE) {
-            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
-        }
-
         DB::beginTransaction();
 
         try {
@@ -156,7 +140,7 @@ class TreasurerController extends Controller
 
             $newUser = User::create([
                 'username' => $request->username,
-                'user_type' => UserType::getValueByPrefix('commerce', 'id'),
+                'user_type' => UserType::getValueByPrefix('treasurer', 'id'),
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
@@ -175,22 +159,21 @@ class TreasurerController extends Controller
                 'phone_number' => $phoneNumber
             ]);
 
-            $commerce = Commerce::create([
+            $treasurer = Treasurer::create([
                 'name' => $request->name,
                 'phone' => $phoneNumber,
                 'coin' => $request->coin,
                 'country' => $request->country,
                 'status' => 1,
                 'user' => $newUser,
-                'code_rke' => $this->replaceLettersWithNumbers($codeRKE),
-                'code_uuid' => $this->getCodeUUID('Commerce')
+                'code_uuid' => $this->getCodeUUID('Treasurer')
             ]);
 
             // Registar moneda Principal
-            CommerceCountriesCoins::create([
-                'commerce' => $commerce->id,
-                'country' => $commerce->country,
-                'coin' => $commerce->coin,
+            TreasurerCountriesCoins::create([
+                'treasurer' => $treasurer->id,
+                'country' => $treasurer->country,
+                'coin' => $treasurer->coin,
                 'creator_user' => $newUser,
                 'status' => 1
             ]);
@@ -204,7 +187,7 @@ class TreasurerController extends Controller
                 $coinsToCreate = [];
                 foreach ($otherCoins as $coin) {
                     $coinsToCreate[] = [
-                        'commerce' => $commerce->id,
+                        'treasurer' => $treasurer->id,
                         'country' => $coin->country,
                         'coin' => $coin->id,
                         'creator_user' => $newUser,
@@ -213,14 +196,14 @@ class TreasurerController extends Controller
                         'updated_at' => $timestamp
                     ];
                 }
-                CommerceCountriesCoins::insert($coinsToCreate);
+                TreasurerCountriesCoins::insert($coinsToCreate);
             }
 
             // Registrar Code UUID
             UUIDCodes::create([
-                'code_uuid' => $commerce->code_uuid,
+                'code_uuid' => $treasurer->code_uuid,
                 'user' => $newUser,
-                'user_type' => UserType::getValueByPrefix('commerce', 'id'),
+                'user_type' => UserType::getValueByPrefix('treasurer', 'id'),
             ]);
 
             DB::commit();
@@ -230,7 +213,7 @@ class TreasurerController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error general: ' . $e->getMessage());
+            Log::error('Error al crear Treasurer: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
 
@@ -240,12 +223,12 @@ class TreasurerController extends Controller
     public function getInfo($id) // Obtener Info Comercializadora
     {
         $id = decrypt($id);
-        $commerce = Commerce::getById($id, ['name', 'country', 'coin', 'phone', 'code_rke']);
-        $otherCoins = CommerceCountriesCoins::getAvailableCoins($id);
-        $user = User::getById(Commerce::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
+        $treasurer = Treasurer::getById($id, ['name', 'country', 'coin', 'phone']);
+        $otherCoins = TreasurerCountriesCoins::getAvailableCoins($id);
+        $user = User::getById(Treasurer::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
 
         $data = [
-            'commerce' => $commerce,
+            'treasurer' => $treasurer,
             'user' => $user,
             'other_coins' => $otherCoins
         ];
@@ -259,23 +242,14 @@ class TreasurerController extends Controller
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
 
-        // Decryptar el ID y encontrar el vendedor
-        $commerce = Commerce::findOrFail(decrypt($id));
-
-        $codeRKE = $request->code_rke;
-
-        $existsCodeRKE = Commerce::where('code_rke', $codeRKE)
-            ->where('id', '<>', $commerce->id)->exists();
-
-        if ($existsCodeRKE) {
-            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
-        }
-
         DB::beginTransaction();
 
         try {
 
-            if ($commerce) {
+            // Decryptar el ID y encontrar el vendedor
+            $treasurer = Treasurer::findOrFail(decrypt($id));
+
+            if ($treasurer) {
 
                 $validator = $this->validateRequest($request, 2, $id);
 
@@ -283,7 +257,7 @@ class TreasurerController extends Controller
                     return redirect()->back()->withErrors($validator)->withInput();
                 }
 
-                $userID = $commerce->user;
+                $userID = $treasurer->user;
                 $userTimeZone = User::getValueById($userID, 'time_zone');
 
                 if ($userTimeZone <> $request->time_zone) {
@@ -291,21 +265,20 @@ class TreasurerController extends Controller
                 }
 
                 // Verificar si la moneda principal ha cambiado
-                $coinChange = $commerce->coin !== $request->coin;
+                $coinChange = $treasurer->coin !== $request->coin;
 
                 // Actualizar los campos del vendedor
-                $commerce->update([
+                $treasurer->update([
                     'name' => $request->name,
                     'country' => $request->country,
                     'coin' => $request->coin,
-                    'phone' => $request->phone,
-                    'code_rke' => $codeRKE
+                    'phone' => $request->phone
                 ]);
 
                 $phoneNumber = $request->phone;
 
-                if ($phoneNumber <> $commerce->phone) {
-                    PhoneNumbers::where('user', $commerce->user)->update([
+                if ($phoneNumber <> $treasurer->phone) {
+                    PhoneNumbers::where('user', $treasurer->user)->update([
                         'country' => $request->country,
                         'phone_number' => $phoneNumber
                     ]);
@@ -313,16 +286,16 @@ class TreasurerController extends Controller
 
                 if ($coinChange) {
                     // Actualizar moneda Principal
-                    CommerceCountriesCoins::where('creator_user', $commerce->user)
-                        ->where('coin', $commerce->coin)
+                    TreasurerCountriesCoins::where('creator_user', $treasurer->user)
+                        ->where('coin', $treasurer->coin)
                         ->update([
-                            'country' => $commerce->country,
-                            'coin' => $commerce->coin
+                            'country' => $treasurer->country,
+                            'coin' => $treasurer->coin
                         ]);
                 }
 
                 $otherCoins = $request->other_coins;
-                $this->insertOtherCoins($commerce->id, $commerce->user, $otherCoins);
+                $this->insertOtherCoins($treasurer->id, $treasurer->user, $otherCoins);
 
                 DB::commit();
 
@@ -342,8 +315,8 @@ class TreasurerController extends Controller
 
     public function delete($id)
     {
-        //Commerce::destroy(decrypt($request->id));
-        Commerce::where('id', decrypt($id))->update(['status' => 3]);
+        //Treasurer::destroy(decrypt($request->id));
+        Treasurer::where('id', decrypt($id))->update(['status' => 3]);
         Session::flash('message', 'El Comercio fue eliminado');
         return redirect()->back();
     }
@@ -351,8 +324,8 @@ class TreasurerController extends Controller
     public function changeStatus($id)
     {
         $id = decrypt($id);
-        $commerceStatus = (int)!Commerce::getValueById($id, 'status');
-        Commerce::where('id', $id)->update(['status' => $commerceStatus]);
+        $treasurerStatus = (int)!Treasurer::getValueById($id, 'status');
+        Treasurer::where('id', $id)->update(['status' => $treasurerStatus]);
 
         Session::flash('message', 'Status actualizado');
         return redirect()->back()->with('type', 'success');
@@ -360,7 +333,7 @@ class TreasurerController extends Controller
 
     public function changePassword($id)
     {
-        $res = $this->handleChangePassword('Commerce', $id);
+        $res = $this->handleChangePassword('Treasurer', $id);
 
         if (isset($res['PWD'])) {
             $password = $res['PWD'];
@@ -372,111 +345,22 @@ class TreasurerController extends Controller
         return redirect()->back();
     }
 
-    public function allDirectories()
+    public function getPaymentTreasurerDetails($treasurer, $coin)
     {
-        $title = 'Datos Bancarios';
-
-        $pagoMovils = PagoMovil::with(['DocumentType', 'Bank'])->where("user", Auth::id())->get();
-
-        return view('modules.commerce.directory.Venezuela.index', compact('title', 'pagoMovils'));
-    }
-
-    public function sellers()
-    {
-        $title = 'Mis Vendedores';
-        $name = 'seller';
-        $commerce = $this->commerce()->id;
-
-        $sellers = Seller::with(['Country', 'CountriesCoins.Coin'])->where('commerce', $commerce)->get();
-
-        $countries = $this->getAvailableCountries(Auth::id());
-        $countriesCommerce = Country::getCountries($countries, ['id', 'name']);
-
-        $coins = $this->getAvailableCoins(Auth::id());
-        $coinsCommerce = Coin::getCoinsById($coins, ['id', 'symbol', 'short_name', 'long_name', 'country']);
-
-        $timeZones = TimeZone::select('id', 'name', 'country')->where('status', 1)->get();
-
-        return view(
-            'modules.commerce.sellers.index',
-            compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce')
-        );
-    }
-
-    public function getCoinByCountry($country, $seller)
-    {
-        $coin = Coin::getCoinByCountry($country);
-
-        $coinsSeller = SellerCountriesCoins::getCoinsByIdBySeller($seller);
-
-        $othersCoins = Coin::getCoinsById($coinsSeller);
-
-        return json_encode(array('coin' => $coin, 'othersCoins' => $othersCoins));
-    }
-
-    public function getSellerInfoByCtn($ctn) // Obtener informacion del Vendedor por un Carton Vendido
-    {
-        try {
-            $ctnId = decrypt($ctn);
-            $ctn = BingoCtns::getById($ctnId, ['seller', 'coin']);
-
-            $seller = Seller::getById($ctn->seller, ['name', 'phone', 'user']);
-            // Obtener detalles de pago del vendedor usando el ID del usuario autenticado y la moneda decriptada
-            $data = $this->getPaymentDetailsByUserId($seller->user, $ctn->coin);
-
-            // Verificar si se obtuvieron datos y retornar una respuesta JSON adecuada
-            if ($data) {
-                return response()->json(['data' => $data, 'seller' => [$seller->name, $seller->phone]]);
-            } else {
-                Session::flash('msg-error', 'Datos de pago no encontrados');
-                return response()->json(['error' => 'Datos de pago no encontrados.'], 404);
-            }
-        } catch (\Exception $e) {
-            // Manejar cualquier excepción que ocurra y retornar un error del servidor
-            return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
-        }
-    }
-
-    public function updateCommissionForAllSellers(Request $request)
-    {
-        Seller::where('commerce', $request->id_comm)->update(['com' => $request->commn]);
-    }
-
-    public function getPaymentCommerceDetails($commerce, $coin)
-    {
-        $commerceID = decrypt($commerce);
+        $treasurerID = decrypt($treasurer);
         $coin = decrypt($coin);
 
-        $commerce = Commerce::getById($commerceID, ['name', 'user']);
-        // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda desencriptada
-        $paymentDetails = $this->getPaymentDetailsByUserId($commerce->user, $coin);
+        $treasurer = Treasurer::getById($treasurerID, ['name', 'user']);
+        // Obtener detalles de pago por tesorero usando el ID del usuario autenticado y la moneda desencriptada
+        $paymentDetails = $this->getPaymentDetailsByUserId($treasurer->user, $coin);
 
         if (!$paymentDetails) {
-            return response()->json(['Error' => 'El comercio no ha cargado los datos bancarios']);
+            return response()->json(['Error' => 'El tesorero no ha cargado los datos bancarios']);
         }
 
-        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerceID, $coin);
-        $commerce = $commerce->name;
+        $exchangeRate = TreasurerExchangeRate::getTreasurerCoinValue($treasurerID, $coin);
+        $treasurer = $treasurer->name;
 
-        return response()->json(compact('commerce', 'paymentDetails', 'exchangeRate'));
-    }
-
-    public function ctnsLotPayment(Request $request)
-    {
-        DB::beginTransaction();
-
-        try {
-            $lot = decrypt($request->lot);
-            $lotCtn = BingoCtnsLot::where('id', $lot)->firstOrFail();
-            $lotCtn->update(['status' => 2]);
-
-            DB::commit();
-
-            return redirect()->back()->with('message', 'Pago confirmado con éxito');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al confirmar el pago: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Hubo un error al confirmar el pago.']);
-        }
+        return response()->json(compact('treasurer', 'paymentDetails', 'exchangeRate'));
     }
 }
