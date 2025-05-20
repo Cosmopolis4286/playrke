@@ -20,7 +20,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($commerces as $item)
+                            @foreach ($treasurers as $item)
                                 <tr>
                                     <td>{{ $item->name }}</td>
                                     <td>{{ $item->Country->name }}</td>
@@ -66,11 +66,11 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.admin.commerce.form')->render(),
+        'dataForm' => view('modules.admin.treasurer.form')->render(),
     ])
     @include('includes.modal-copy-info', [
         'name' => 'copy-passw',
-        'title' => 'Contraseña Comercio',
+        'title' => 'Contraseña Tesorero',
     ])
     @include('includes.form-other-options')
 @endsection
@@ -130,11 +130,11 @@
             let elem = error == 1 ? $(`#btn-${name}-insert`) :
                 (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
 
-            formCRUD(elem, name, 'Comercio');
+            formCRUD(elem, name, 'Tesorero');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Comercio', otherCasesMap)
+            formCRUD($(this), name, 'Tesorero', otherCasesMap)
         });
 
         country.on("change", function() {
@@ -186,7 +186,7 @@
             }
 
             $.each(arrCountries, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.commerce.country) ? 'selected' : '';
+                const isSelected = (type == 2 && item.id == data.treasurer.country) ? 'selected' : '';
                 country.append(
                     `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
@@ -198,13 +198,12 @@
             });
 
             if (type == 2) {
-                const commerce = data.commerce;
+                const treasurer = data.treasurer;
                 const otherCoins = data.other_coins;
                 const user = data.user;
 
-                $('#name').val(commerce.name);
-                $('#phone').val(commerce.phone);
-                $('#code-rke').val(commerce.code_rke);
+                $('#name').val(treasurer.name);
+                $('#phone').val(treasurer.phone);
                 update = true;
                 country.trigger('change');
                 insertOtherCoins(otherCoins)

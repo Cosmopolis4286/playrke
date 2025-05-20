@@ -10,6 +10,7 @@ use App\Models\Country;
 use App\Models\Customer;
 use App\Models\Games;
 use App\Models\TimeZone;
+use App\Models\Treasurer;
 use App\Traits\EncryptRKE;
 use App\Traits\UserVal;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +23,7 @@ class AdminController extends Controller
 
     public function commerces()
     {
-        $commerces = Commerce::with(['Country', 'User' => function ($query) {
-            $query->select('id', 'email');
-        }])->get();
+        $commerces = Commerce::with(['Country:id,name', 'User:id,email'])->get();
 
         $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
@@ -43,9 +42,7 @@ class AdminController extends Controller
 
     public function customers()
     {
-        $customers = Customer::with(['Country', 'User' => function ($query) {
-            $query->select('id', 'email');
-        }])->get();
+        $customers = Customer::with(['Country:id,name', 'User:id,email'])->get();
 
         $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
@@ -63,18 +60,16 @@ class AdminController extends Controller
 
     public function treasurers()
     {
-        $commerces = Commerce::with(['Country', 'User' => function ($query) {
-            $query->select('id', 'email');
-        }])->get();
+        $treasurers = Treasurer::with(['Country:id,name', 'User:id,email'])->get();
 
         $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
         $timeZones = TimeZone::where('status', 1)->get();
 
         return view('modules/admin/treasurer/index')->with([
-            'title' => 'Comercializadoras',
-            'name' => 'admin-commerce',
-            'commerces' => $commerces,
+            'title' => 'Tesoreros',
+            'name' => 'admin-treasurer',
+            'treasurers' => $treasurers,
             'countries' => $countries,
             'timeZones' => $timeZones,
             'coins' => $coins,
