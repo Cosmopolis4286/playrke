@@ -252,7 +252,7 @@ class BingoController extends Controller
                 [
                     'roomType' => $roomType === 'private' ? 'private-rooms' : 'public-rooms',
                     'creatorType' => 'commerce',
-                    'creatorID' => $commerce,
+                    'creatorID' => encrypt($commerce),
                     'coin' => encrypt(1)
                 ]
             );
@@ -1030,16 +1030,17 @@ class BingoController extends Controller
                 $coinSym = Coin::getValue($coin, 'symbol');
                 $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
 
-                $coins = CommerceExchangeRate::getCoinsByCommerce($creatorID);
-                $coins[] = 1; // ID Coin (USDT)
-                $coins = Coin::getCoinsById($coins);
+                $coins = Coin::getCoinsById([
+                    ...CommerceExchangeRate::getCoinsByCommerce($creatorID),
+                    1
+                ]);
 
                 $routeWithCoin = [
                     'route' => 'bingo.all-rooms',
                     'parameters' => [
                         'roomType' => $roomType,
                         'creatorType' => 'commerce',
-                        'creatorID' => $creator['id']
+                        'creatorID' => encrypt($creator['id'])
                     ]
                 ];
 
@@ -1068,9 +1069,10 @@ class BingoController extends Controller
                     'parameters' => [
                         'roomType' => $roomType,
                         'creatorType' => 'customer',
-                        'creatorID' => $creator['id']
+                        'creatorID' => encrypt($creator['id'])
                     ]
                 ];
+
                 $GMRoute =  route(
                     'bingo.game-rooms-customer',
                     [
@@ -2497,11 +2499,12 @@ class BingoController extends Controller
                 break;
         }
 
-        $coin = Coin::getById($coin, ['id', 'symbol']);
+        $coinData = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
 
-        $coins = CommerceExchangeRate::getCoinsByCommerce($userData['id']);
-        $coins[] = 1;
-        $coins = Coin::getCoinsById($coins);
+        $coins = Coin::getCoinsById([
+            ...CommerceExchangeRate::getCoinsByCommerce($userData['id']),
+            1
+        ]);
 
         $rooms = $this->getInfoRooms($userData['userId'], 'public-rooms', $coin, true);
 
@@ -2512,7 +2515,7 @@ class BingoController extends Controller
             'parameters' => [
                 'roomType' => 'other-public-rooms',
                 'creatorType' => $userData['type'],
-                'creatorID' => $userData['id']
+                'creatorID' => encrypt($userData['id'])
             ]
         ];
 
@@ -2523,8 +2526,8 @@ class BingoController extends Controller
             'name' => 'bingo',
             'returnBtn' => $returnBtn ?? true,
             'creator' => $creator,
-            'coin' => $coin->id,
-            'coinSym' => $coin->symbol,
+            'coin' => $coin,
+            'coinData' => $coinData,
             'coins' => $coins,
             'exchangeRate' => $exchangeRate ?? 1,
             'rooms' => $rooms,
@@ -3188,8 +3191,6 @@ class BingoController extends Controller
         $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted', 'creator_user']);
         $roomID = $room->id;
 
-        $coin = decrypt($coin);
-
         $verifyCoin = $this->verifyExistenceOfSales($userData, $coin, false, $roomID);
 
         if (isset($verifyCoin['return'])) {
@@ -3202,6 +3203,7 @@ class BingoController extends Controller
         $title = 'Reporte de Sala';
         $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
 
+        $coin = $verifyCoin;
         $coinData = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
 
         $where = collect([

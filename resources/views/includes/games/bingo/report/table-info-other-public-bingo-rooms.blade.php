@@ -67,18 +67,18 @@
                         {{ \Carbon\Carbon::parse($room->Config->date)->format('d/m/y') }}
                     </td>
                     <td class="align-middle">{{ $room->Config->time }} H</td>
-                    <td class="align-middle">{{ $coinSym }} {{ $ctnPrice }}</td>
+                    <td class="align-middle">{{ $coinData->iso_code }} {{ $ctnPrice }}</td>
                     <td class="align-middle">
                         <i class="fa-solid fa-users mr-1" title="Jugadores"></i>
                         {{ $room->players }}<br>
                         <i class="fa-solid fa-trophy mr-1" title="Ganadores"></i>
                         {{ count($room->PlayersRoom) ?? 0 }}
                     </td>
-                    <td class="align-middle">{{ $coinSym }}
+                    <td class="align-middle">{{ $coinData->iso_code }}
                         {{ number_format($allSale, 2, '.') }}</td>
                     <td>
                         <small>{{ $room->Config->TypePrizePool->description }}</small>
-                        <br>{{ $coinSym }} {{ number_format($prizePool, 2, '.') }}
+                        <br>{{ $coinData->iso_code }} {{ number_format($prizePool, 2, '.') }}
                     </td>
                     {{-- Estado --}}
                     <td class="align-middle">
@@ -117,8 +117,8 @@
         <tfoot>
             <tr>
                 <td colspan="5" class="text-right"><b>Total:</b></td>
-                <td>{{ $coinSym }} {{ number_format($totalAllSale, 2, '.') }}</td>
-                <td>{{ $coinSym }} {{ number_format($totalJackpot, 2, '.') }}</td>
+                <td>{{ $coinData->iso_code }} {{ number_format($totalAllSale, 2, '.') }}</td>
+                <td>{{ $coinData->iso_code }} {{ number_format($totalJackpot, 2, '.') }}</td>
                 <td colspan="3"></td>
             </tr>
         </tfoot>

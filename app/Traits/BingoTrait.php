@@ -18,7 +18,6 @@ use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomRounds;
 use App\Models\BingoRoomUser;
 use App\Models\CoinGameRoom;
-use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\Customer;
@@ -34,7 +33,6 @@ use App\Services\Customer\HandleTransactions;
 use App\Services\Game\Bingo\HandleBingoRooms;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -1462,40 +1460,55 @@ trait BingoTrait
         }
     }
 
-    public function verifyExistenceOfSales($user, $coin = '', $dateFilter = '',  $room = '')
+    public function verifyExistenceOfSales($user, $coin = '', $dateFilter = '', $room = '')
     {
-        // Aplicar el filtro de moneda (coin) a la consulta
         $query = BingoCtnsLot::where('creator_user', $user['userId']);
 
+        // Filtro por moneda
         if ($coin) {
             try {
-                // Intentar descifrar el valor
                 $coin = decrypt($coin);
-            } catch (DecryptException) {
-                $coin = $coin;
+            } catch (\Exception) {
+                // Si falla el descifrado, asume que viene en texto plano
             }
             $query->where('coin', $coin);
         }
 
+        // Filtro por sala
         if ($room) {
             $query->where('room', $room);
         }
 
         $existsSale = $query->exists();
 
+        // Si existe venta, verifica el filtro de fecha
         if ($existsSale && $dateFilter) {
             $existsSaleDateFilter = $this->applyDateFilter($dateFilter, $query)->exists();
+            // Si no existe venta en la fecha, retorna
             if (!$existsSaleDateFilter) {
                 return ['return' => true, 'coin' => encrypt($coin)];
             }
         }
 
+        // Si no existe venta o no hay filtros de moneda ni sala
         if (!$existsSale || (!$coin && !$room)) {
+            $firstSale = BingoCtnsLot::select('coin')->where('creator_user', $user['userId'])->first();
 
+            if ($firstSale) {
+                return [
+                    'return' => true,
+                    'coin'   => encrypt($firstSale->coin)
+                ];
+            }
 
-            return ['return' => true, 'coin' => encrypt($coin)];
+            // Si no hay ninguna venta
+            return [
+                'return' => false,
+                'coin'   => null
+            ];
         }
 
-        return $coin;
+        // Si existe venta y cumple con todos los filtros
+        return $coin ?? null;
     }
 }

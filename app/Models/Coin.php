@@ -104,4 +104,9 @@ class Coin extends Model
     {
         return self::where('id', $coin)->value('payment_method');
     }
+
+    public static function getAvailableCoins($fields = ['*'])
+    {
+        return self::select($fields)->where('status', 1)->get();
+    }
 }
