@@ -1462,7 +1462,7 @@ trait BingoTrait
         }
     }
 
-    public function verifyExistenceOfSales($user, $dateFilter = '', $coin = '',  $room = '')
+    public function verifyExistenceOfSales($user, $coin = '', $dateFilter = '',  $room = '')
     {
         // Aplicar el filtro de moneda (coin) a la consulta
         $query = BingoCtnsLot::where('creator_user', $user['userId']);
@@ -1486,22 +1486,14 @@ trait BingoTrait
         if ($existsSale && $dateFilter) {
             $existsSaleDateFilter = $this->applyDateFilter($dateFilter, $query)->exists();
             if (!$existsSaleDateFilter) {
-                return ['return' => true, 'coin' => $coin];
+                return ['return' => true, 'coin' => encrypt($coin)];
             }
         }
 
-        if (!$coin && !$room) {
-            switch ($user['type']) {
-                case 'commerce':
-                    $coin = Commerce::getValueById($user['id'], 'coin');
-                    break;
-                case 'seller':
-                    $coin = Seller::getValueById($user['id'], 'coin');
-                    break;
-                default:
-                    break;
-            }
-            return ['return' => true, 'coin' => $coin];
+        if (!$existsSale || (!$coin && !$room)) {
+
+
+            return ['return' => true, 'coin' => encrypt($coin)];
         }
 
         return $coin;

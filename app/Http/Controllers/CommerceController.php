@@ -146,6 +146,7 @@ class CommerceController extends Controller
                 'commerce' => $commerce->id,
                 'country' => $commerce->country,
                 'coin' => $commerce->coin,
+                'level' => '1',
                 'creator_user' => $newUser,
                 'status' => 1
             ]);

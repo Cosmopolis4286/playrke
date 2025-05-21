@@ -3072,11 +3072,11 @@ class BingoController extends Controller
     public function reportSalesRooms($coin = '', $dateFilter = 'today')
     {
         $userData = $this->getUserData();
-        $verifyCoin = $this->verifyExistenceOfSales($userData, $dateFilter, $coin);
+        $verifyCoin = $this->verifyExistenceOfSales($userData, $coin, $dateFilter);
 
         if (isset($verifyCoin['return'])) {
             return redirect()->route('bingo.reportSalesRooms', [
-                'coin' => encrypt($verifyCoin['coin']),
+                'coin' => $verifyCoin['coin'],
                 'dateFilter' => 'all'
             ]);
         }
@@ -3190,12 +3190,12 @@ class BingoController extends Controller
 
         $coin = decrypt($coin);
 
-        $existSale = $this->verifyExistenceOfSales($userData, '', $coin, $roomID);
+        $verifyCoin = $this->verifyExistenceOfSales($userData, $coin, false, $roomID);
 
-        if (!$existSale) {
+        if (isset($verifyCoin['return'])) {
             return redirect()->route(
                 'bingo.reportSalesByRoom',
-                ['room' => $roomEncrypted, 'coin' => encrypt($coin)]
+                ['room' => $roomEncrypted, 'coin' => $verifyCoin['coin']]
             );
         }
 
@@ -3307,12 +3307,12 @@ class BingoController extends Controller
     {
         $userData = $this->getUserData();
 
-        $verifyCoin = $this->verifyExistenceOfSales($userData, $dateFilter, $coin);
+        $verifyCoin = $this->verifyExistenceOfSales($userData, $coin, $dateFilter);
 
         if (isset($verifyCoin['return'])) {
             return redirect()->route(
                 'bingo.ctnsSold',
-                ['coin' => encrypt($verifyCoin['coin']), 'dateFilter' => 'all']
+                ['coin' => $verifyCoin['coin'], 'dateFilter' => 'all']
             );
         }
 
@@ -3419,7 +3419,7 @@ class BingoController extends Controller
 
         $userData = $this->getUserData();
 
-        $verifyCoin = $this->verifyExistenceOfSales($userData, $dateFilter, $coin);
+        $verifyCoin = $this->verifyExistenceOfSales($userData, $coin, $dateFilter);
 
         if (isset($verifyCoin['return'])) {
             return redirect()->route(
@@ -3427,7 +3427,7 @@ class BingoController extends Controller
                 [
                     'type' => $type,
                     'dateFilter' => 'all',
-                    'coin' => encrypt($verifyCoin['coin'])
+                    'coin' => $verifyCoin['coin']
                 ]
             );
         }
@@ -3564,14 +3564,14 @@ class BingoController extends Controller
         $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted']);
         $roomID = $room->id;
 
-        $verifyCoin = $this->verifyExistenceOfSales($userData, '', $coin, $roomID);
+        $verifyCoin = $this->verifyExistenceOfSales($userData, $coin, false, $roomID);
 
         if (isset($verifyCoin['return'])) {
             return redirect()->route(
                 'bingo.reportSalesByRoomWinners',
                 [
                     'room' => $roomEncrypted,
-                    'coin' => encrypt($verifyCoin['coin'])
+                    'coin' => $verifyCoin['coin']
                 ]
             );
         }

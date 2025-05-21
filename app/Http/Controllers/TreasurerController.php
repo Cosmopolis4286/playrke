@@ -143,6 +143,7 @@ class TreasurerController extends Controller
                 'treasurer' => $treasurer->id,
                 'country' => $treasurer->country,
                 'coin' => $treasurer->coin,
+                'level' => '1',
                 'creator_user' => $newUser,
                 'status' => 1
             ]);

@@ -351,13 +351,14 @@ trait UserVal
         foreach ($otherCoins as $coin) {
             $coinIds[] = $coin->id;
             $coinsToCreate[] = [
-                $userColumn     => $creatorID,
-                'country'       => $coin->country,
-                'coin'          => $coin->id,
-                'creator_user'  => $creatorUser['userId'],
-                'status'        => 1,
-                'created_at'    => $timestamp,
-                'updated_at'    => $timestamp
+                $userColumn => $creatorID,
+                'country' => $coin->country,
+                'coin' => $coin->id,
+                'level' => '2',
+                'creator_user' => $creatorUser['userId'],
+                'status' => 1,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp
             ];
         }
 
@@ -375,7 +376,7 @@ trait UserVal
                     ->update(['status' => 1]);
 
                 $model::where($userColumn, $creatorID)
-                    ->whereNotIn('coin', $coinIds)
+                    ->where('level', '2')->whereNotIn('coin', $coinIds)
                     ->update(['status' => 0]); // monedas no seleccionadas = inactivas
 
             } catch (\Exception $e) {

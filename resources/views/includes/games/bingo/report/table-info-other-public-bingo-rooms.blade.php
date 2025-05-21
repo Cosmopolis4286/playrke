@@ -58,7 +58,7 @@
                         <a class="badge bg-navy" title="Ver Reporte"
                             href="{{ route('bingo.reportSalesByRoom', [
                                 'room' => $room->encrypted,
-                                'coin' => encrypt(1),
+                                'coin' => encrypt($coin),
                             ]) }}">
                             {{ $room->encrypted }}
                         </a>

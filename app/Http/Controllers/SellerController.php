@@ -142,6 +142,8 @@ class SellerController extends Controller
                 'seller' => $seller->id,
                 'country' => $seller->country,
                 'coin' => $seller->coin,
+                'level' => '1',
+                'creator_user' => $newUser,
                 'status' => 1
             ]);
 

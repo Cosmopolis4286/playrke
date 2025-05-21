@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('commerce')->constrained('commerces')->onDelete('cascade');
-            $table->foreignId('country')->nullable()->constrained('countries')->nullOnDelete();
+            $table->foreignId('country')->nullable()->constrained('countries');
             $table->foreignId('coin')->constrained('coins')->onDelete('cascade');
 
             $table->enum('level', ['1', '2', '3']);
