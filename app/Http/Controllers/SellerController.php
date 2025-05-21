@@ -145,8 +145,14 @@ class SellerController extends Controller
                 'status' => 1
             ]);
 
+            $creatorUser = [
+                'model' => 'Seller',
+                'id' => $seller->id,
+                'userId' => $newUser
+            ];
+
             // Insertar otras monedas
-            $this->insertOtherCoins($seller->id, $request->other_coins);
+            $this->insertOtherCoins($creatorUser, $request->other_coins);
 
             DB::commit();
 
@@ -234,8 +240,14 @@ class SellerController extends Controller
                         ]);
                 }
 
+                $creatorUser = [
+                    'model' => 'Seller',
+                    'id' => $seller->id,
+                    'userId' => $seller->user
+                ];
+
                 // Insertar otras monedas
-                $this->insertOtherCoins($seller->id, $request->other_coins);
+                $this->insertOtherCoins($creatorUser, $request->other_coins);
 
                 DB::commit();
 

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class TreasurerCountriesCoins extends Model
 {
     protected $table = "treasurers_countries_coins";
-    protected $fillable = ['treasurer', 'country', 'coin', 'creator_user', 'status'];
+    protected $fillable = ['treasurer', 'country', 'coin', 'level', 'creator_user', 'status'];
 
     public function Treasurer()
     {

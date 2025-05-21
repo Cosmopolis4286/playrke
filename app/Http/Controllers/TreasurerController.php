@@ -94,26 +94,32 @@ class TreasurerController extends Controller
 
             $newPassw = $this->valEncrypt();
 
-            $newUser = User::create([
-                'username' => $request->username,
-                'user_type' => UserType::getValueByPrefix('treasurer', 'id'),
-                'email' => $request->email,
-                'password' => Hash::make($newPassw),
-                'country' => $request->country,
-                'time_zone' => $request->time_zone,
-                'email_verified_at' => Carbon::now(),
-                'referral_code' => User::getUniqueReferralCode(),
-            ])->id;
-
-            // Crear un nuevo Wallet para el usuario
-            Wallet::create(['coin' => $request->coin, 'user' => $newUser]);
-
+            $userToPromote = $request->user_to_promote ?? false;
             $phoneNumber = $request->phone;
-            PhoneNumbers::create([
-                'user' => $newUser,
-                'country' => $request->country,
-                'phone_number' => $phoneNumber
-            ]);
+
+            if (!$userToPromote) {
+                $newUser = User::create([
+                    'username' => $request->username,
+                    'user_type' => UserType::getValueByPrefix('treasurer', 'id'),
+                    'email' => $request->email,
+                    'password' => Hash::make($newPassw),
+                    'country' => $request->country,
+                    'time_zone' => $request->time_zone,
+                    'email_verified_at' => Carbon::now(),
+                    'referral_code' => User::getUniqueReferralCode(),
+                ])->id;
+
+                // Crear un nuevo Wallet para el usuario
+                Wallet::create(['coin' => $request->coin, 'user' => $newUser]);
+
+                PhoneNumbers::create([
+                    'user' => $newUser,
+                    'country' => $request->country,
+                    'phone_number' => $phoneNumber
+                ]);
+            } else {
+                $newUser = $userToPromote;
+            }
 
             $treasurer = Treasurer::create([
                 'name' => $request->name,
@@ -125,6 +131,13 @@ class TreasurerController extends Controller
                 'code_uuid' => $this->getCodeUUID('Treasurer')
             ]);
 
+            // Registrar Code UUID
+            UUIDCodes::create([
+                'code_uuid' => $treasurer->code_uuid,
+                'user' => $newUser,
+                'user_type' => UserType::getValueByPrefix('treasurer', 'id'),
+            ]);
+
             // Registar moneda Principal
             TreasurerCountriesCoins::create([
                 'treasurer' => $treasurer->id,
@@ -134,15 +147,14 @@ class TreasurerController extends Controller
                 'status' => 1
             ]);
 
-            // Insertar otras monedas
-            $this->insertOtherCoins($treasurer->id, $treasurer->user, $request->other_coins);
+            $creatorUser = [
+                'model' => 'Treasurer',
+                'id' => $treasurer->id,
+                'userId' => $newUser
+            ];
 
-            // Registrar Code UUID
-            UUIDCodes::create([
-                'code_uuid' => $treasurer->code_uuid,
-                'user' => $newUser,
-                'user_type' => UserType::getValueByPrefix('treasurer', 'id'),
-            ]);
+            // Insertar otras monedas
+            $this->insertOtherCoins($creatorUser, $request->other_coins);
 
             DB::commit();
 
@@ -232,8 +244,14 @@ class TreasurerController extends Controller
                         ]);
                 }
 
+                $creatorUser = [
+                    'model' => 'Treasurer',
+                    'id' => $treasurer->id,
+                    'userId' => $treasurer->user
+                ];
+
                 // Insertar otras monedas
-                $this->insertOtherCoins($treasurer->id, $treasurer->user, $request->other_coins);
+                $this->insertOtherCoins($creatorUser, $request->other_coins);
 
                 DB::commit();
 

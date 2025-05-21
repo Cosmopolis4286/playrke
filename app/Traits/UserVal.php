@@ -334,47 +334,55 @@ trait UserVal
         return ['type' => $userType, 'id' => $userTypeId, 'userId' => $userId];
     }
 
-    public function insertOtherCoins($commerceID, $creatorUser, $otherCoins)
+    public function insertOtherCoins($creatorUser, $otherCoins)
     {
-        if (!empty($otherCoins) && is_array($otherCoins)) {
+        if (empty($otherCoins) || !is_array($otherCoins)) return;
 
-            // Obtener las monedas seleccionadas y prepararlas para la inserción
-            $otherCoins = Coin::getCoinsById($otherCoins);
-            $coinsToCreate = [];
+        $creatorID = $creatorUser['id'];
+        $modelName = $creatorUser['model'];
+        $userColumn = strtolower($modelName);
+        $model = app("App\\Models\\{$modelName}CountriesCoins");
 
-            foreach ($otherCoins as $coin) {
-                $coinsToCreate[] = [
-                    'commerce' => $commerceID,
-                    'country' => $coin->country,
-                    'coin' => $coin->id,
-                    'creator_user' => $creatorUser,
-                    'status' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ];
-            }
+        $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
+        $coinsToCreate = [];
+        $coinIds = [];
+        $timestamp = now();
 
-            // Manejo de transacción para insertar las nuevas monedas
-            DB::transaction(function () use ($commerceID, $coinsToCreate) {
-                try {
-                    foreach ($coinsToCreate as $coinData) {
-                        // Insertar la moneda si no existe para ese vendedor
-                        CommerceCountriesCoins::firstOrCreate(
-                            ['commerce' => $commerceID, 'coin' => $coinData['coin']],
-                            $coinData
-                        );
-                    }
-
-                    // Habilitar solo las monedas seleccionadas
-                    CommerceCountriesCoins::where('commerce', $commerceID)
-                        ->whereIn('coin', array_column($coinsToCreate, 'coin'))->update(['status' => 1]);
-                } catch (\Exception $e) {
-                    // Captura de cualquier otra excepción
-                    DB::rollBack();
-                    Log::error('Error general al insertar monedas para el Comercio: ' . $e->getMessage());
-                    throw $e;
-                }
-            });
+        foreach ($otherCoins as $coin) {
+            $coinIds[] = $coin->id;
+            $coinsToCreate[] = [
+                $userColumn     => $creatorID,
+                'country'       => $coin->country,
+                'coin'          => $coin->id,
+                'creator_user'  => $creatorUser['userId'],
+                'status'        => 1,
+                'created_at'    => $timestamp,
+                'updated_at'    => $timestamp
+            ];
         }
+
+        DB::transaction(function () use ($model, $userColumn, $creatorID, $coinsToCreate, $coinIds) {
+            try {
+                foreach ($coinsToCreate as $coinData) {
+                    $model::firstOrCreate(
+                        [$userColumn => $creatorID, 'coin' => $coinData['coin']],
+                        $coinData
+                    );
+                }
+
+                $model::where($userColumn, $creatorID)
+                    ->whereIn('coin', $coinIds)
+                    ->update(['status' => 1]);
+
+                $model::where($userColumn, $creatorID)
+                    ->whereNotIn('coin', $coinIds)
+                    ->update(['status' => 0]); // monedas no seleccionadas = inactivas
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error("Error al insertar monedas para el $userColumn: " . $e->getMessage());
+                throw $e;
+            }
+        });
     }
 }

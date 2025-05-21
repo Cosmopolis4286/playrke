@@ -150,8 +150,14 @@ class CommerceController extends Controller
                 'status' => 1
             ]);
 
+            $creatorUser = [
+                'model' => 'Commerce',
+                'id' => $commerce->id,
+                'userId' => $newUser
+            ];
+
             // Insertar otras monedas
-            $this->insertOtherCoins($commerce->id, $commerce->user, $request->other_coins);
+            $this->insertOtherCoins($creatorUser, $request->other_coins);
 
             // Registrar Code UUID
             UUIDCodes::create([
@@ -258,8 +264,14 @@ class CommerceController extends Controller
                         ]);
                 }
 
+                $creatorUser = [
+                    'model' => 'Commerce',
+                    'id' => $commerce->id,
+                    'userId' => $commerce->user
+                ];
+
                 // Insertar otras monedas
-                $this->insertOtherCoins($commerce->id, $commerce->user, $request->other_coins);
+                $this->insertOtherCoins($creatorUser, $request->other_coins);
 
                 DB::commit();
 

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CommerceCountriesCoins extends Model
 {
     protected $table = "commerces_countries_coins";
-    protected $fillable = ['commerce', 'country', 'coin', 'creator_user', 'status'];
+    protected $fillable = ['commerce', 'country', 'coin', 'level', 'creator_user', 'status'];
 
     public function Commerce()
     {
