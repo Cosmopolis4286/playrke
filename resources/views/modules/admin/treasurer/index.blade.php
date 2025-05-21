@@ -7,9 +7,6 @@
             <div class="card-body">
                 <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
                     <i class="fas fa-plus-square mr-1"></i>Añadir</button>
-                <button type="button" class="btn-{{ $name }} btn btn-sm btn-primary" data-type="6">
-                    <i class="fa-solid fa-user-plus mr-1"></i>Promover
-                </button>
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">
                         <thead>
@@ -117,6 +114,7 @@
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
         const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const coins = JSON.parse('<?php echo $coins; ?>');
+        const userRole = $("#select-user-role");
         const country = $("#country");
         const timeZone = $("#time-zone");
         const coin = $("#coin");
@@ -184,8 +182,14 @@
             $('#username, #email').attr('readonly', false);
 
             if (type == 1) {
-                country.append(`<option value="" disabled selected>Seleccionar País:</option>`);
-                timeZone.append(`<option value="" disabled selected>Seleccionar Zona:</option>`);
+                country.html(`<option value="" disabled selected>Seleccionar País:</option>`);
+                timeZone.html(`<option value="" disabled selected>Seleccionar Zona:</option>`);
+                userRole.html(`
+                    <option value="" disabled selected>Seleccione un rol:</option>
+                    <option value="admin">Administradores</option>
+                    <option value="commerce">Comercios</option>
+                `);
+                $('#cont-select-user-to-promote').addClass('hide-elem');
             }
 
             $.each(arrCountries, function(index, item) {
@@ -225,12 +229,60 @@
             submitForm(name, ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
         });
 
-        function promoteUser() {
-            const $modal = $('#modal-other-bingo-rooms');
+        function insertUsers(data, label) {
+            $('#label-user-promote').text(label);
 
-            $modal.modal('show');
+            $('#select-user-to-promote').prop('disabled', false);
+
+            $.each(data, function(index, item) {
+                $('#select-user-to-promote').append(`<option value="${item.user}">${item.name}</option>`);
+            });
+
+            $('#cont-select-user-to-promote').removeClass('hide-elem');
         }
 
+        function getUserInfo(userRole, text) {
+            $.getJSON({
+                url: route('admin.getUserInfo', userRole),
+                data: {
+                    '_token': $("#5K3_70K").val()
+                },
+                success: function(data) {
+                    if (data.length) {
+                        insertUsers(data, text);
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Failed to fetch exchange rate:', textStatus, errorThrown);
+                }
+            });
+        }
+
+        function hideSelectUserRole() {
+            $('#label-user-promote').text('');
+            $('#select-user-to-promote').empty().prop('disabled', true);
+            $('#cont-select-user-to-promote').addClass('hide-elem');
+        }
+
+        $('#checkbox-promote-user').on('change', function() {
+            if ($(this).is(':checked')) {
+                userRole.prop('disabled', false);
+            } else {
+                userRole.prop('disabled', true).val('');
+                hideSelectUserRole();
+            }
+        });
+
+        userRole.on("change", function() {
+            const value = $(this).val();
+            const text = $(this).find('option:selected').text();
+
+            if (value) {
+                getUserInfo(value, `${text}: *`);
+            } else {
+                hideSelectUserRole();
+            }
+        });
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -254,7 +306,6 @@
                     })
                 );
             },
-            6: promoteUser
         };
     </script>
 @endsection

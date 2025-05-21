@@ -85,7 +85,7 @@
             const listBanks = $("#bank");
             $("#document-type, #bank").empty(); // Limpia las opciones existentes
 
-            if (type == 1) documentType.append(`<option value="" selected>-</option>`);
+            if (type == 1) documentType.html(`<option value="" selected>-</option>`);
 
             /// Tipo Documento
             $.each(arrDocumentType, function(index, IDType) {
@@ -93,7 +93,7 @@
                 documentType.append(`<option value="${IDType.id}" ${isSelected}>${IDType.value}</option>`);
             });
 
-            if (type == 1) listBanks.append(`<option value="" disabled selected>Seleccionar:</option>`);
+            if (type == 1) listBanks.html(`<option value="" disabled selected>Seleccionar:</option>`);
             /// Obtener Bancos
             $.each(arrBanks, function(index, bank) {
                 const isSelected = (type == 2 && bank.id == data.bank) ? 'selected' : '';

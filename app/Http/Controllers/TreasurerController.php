@@ -301,6 +301,4 @@ class TreasurerController extends Controller
 
         return response()->json(compact('treasurer', 'paymentDetails', 'exchangeRate'));
     }
-
-    public function promoteUser(Request $request, $id = '') {}
 }

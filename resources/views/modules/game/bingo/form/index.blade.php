@@ -151,10 +151,10 @@
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
 
                 if (arrGameModes.length > 1) {
-                    gameMode.append(defaultOption);
+                    gameMode.html(defaultOption);
                 }
 
-                type_prize_pool.append(defaultOption);
+                type_prize_pool.html(defaultOption);
             }
 
             $('#room-type').val(roomType);

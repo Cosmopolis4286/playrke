@@ -70,7 +70,7 @@
         function insertInfo(type, data = '') {
             $("#data-value").empty();
 
-            if (type == 1) $('#account-type').append(`<option value="" disabled selected>Seleccionar:</option>`);
+            if (type == 1) $('#account-type').html(`<option value="" disabled selected>Seleccionar:</option>`);
 
             $.each(accountTypes, function(index, item) {
                 const isSelected = (type == 2 && item == data.account_type) ? 'selected' : '';

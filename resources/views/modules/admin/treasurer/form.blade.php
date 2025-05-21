@@ -1,4 +1,19 @@
 <div class="row">
+    <div class="form-group col-6">
+        <label for="select-user-role">Promover Usuario</label>
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <div class="input-group-text">
+                    <input type="checkbox" id="checkbox-promote-user" aria-label="Activar promoción de usuario">
+                </div>
+            </div>
+            <select class="form-control" id="select-user-role" name="user_role" disabled></select>
+        </div>
+    </div>
+    <div id="cont-select-user-to-promote" class="form-group col-sm-6 hide-elem">
+        <label id="label-user-promote" for="user-to-promote"></label>
+        <select class="form-control" id="select-user-to-promote" name="user_to_promote" disabled></select>
+    </div>
     <div class="form-group col-sm-12 col-md-6">
         <label for="name">Nombre*</label>
         <input type="text" id="name" name="name" class="form-control" required value="{{ old('name') }}">

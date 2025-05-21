@@ -104,4 +104,15 @@ class AdminController extends Controller
             Log::error('Error al promover usuario a tipo comercializadora: ' . $e->getMessage());
         }
     }
+
+    public function getUserInfo($userRole)
+    {
+        if ($userRole === 'admin') {
+            $data = [];
+        } else if ($userRole === 'commerce') {
+            $data = Commerce::getActiveCommerces(['name', 'user']);
+        }
+
+        return $data;
+    }
 }

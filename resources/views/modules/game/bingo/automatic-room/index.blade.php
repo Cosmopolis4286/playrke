@@ -122,16 +122,16 @@
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
 
                 if (creatorType !== 'customer' && existsRoomTypes) {
-                    roomType.append(defaultOption);
+                    roomType.html(defaultOption);
                 }
 
                 if (arrGameModes.length > 1 && creatorType !== 'customer') {
-                    gameMode.append(defaultOption);
+                    gameMode.html(defaultOption);
                 } else {
-                    gameMode.append(`<option value="1" selected>Online</option>`);
+                    gameMode.html(`<option value="1" selected>Online</option>`);
                 }
 
-                type_prize_pool.append(defaultOption);
+                type_prize_pool.html(defaultOption);
             }
 
             if (creatorType !== 'customer' && existsRoomTypes) {

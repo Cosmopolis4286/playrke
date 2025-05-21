@@ -86,6 +86,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin', 'as' => 'a
     Route::get('sellers', [AdminController::class, 'sellers'])->name('sellers');
     Route::get('customers', [AdminController::class, 'customers'])->name('customers');
     Route::get('treasurers', [AdminController::class, 'treasurers'])->name('treasurers');
+    Route::get('get-user-info/{userRole}', [AdminController::class, 'getUserInfo'])->name('getUserInfo');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'info', 'as' => 'info.'], function () {
@@ -139,7 +140,6 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-treasurer', 
     Route::put('delete/{id}', [TreasurerController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [TreasurerController::class, 'changeStatus'])->name('change-status');
     Route::put('change-passw/{id}', [TreasurerController::class, 'changePassword'])->name('change-passw');
-    Route::put('promote-user/{id?}', [TreasurerController::class, 'promoteUser'])->name('promote-user');
 });
 
 //Cliente

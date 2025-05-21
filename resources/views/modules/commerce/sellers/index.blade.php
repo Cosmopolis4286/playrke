@@ -194,8 +194,8 @@
             $('#username, #email').attr('readonly', false);
 
             if (type == 1) {
-                country.append(`<option value="" disabled selected>Seleccionar:</option>`);
-                timeZone.append(`<option value="" disabled selected>Seleccionar Zona:</option>`);
+                country.html(`<option value="" disabled selected>Seleccionar:</option>`);
+                timeZone.html(`<option value="" disabled selected>Seleccionar Zona:</option>`);
             }
 
             $.each(arrCountries, function(index, item) {
