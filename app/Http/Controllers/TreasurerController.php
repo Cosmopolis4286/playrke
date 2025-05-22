@@ -97,29 +97,25 @@ class TreasurerController extends Controller
             $userToPromote = $request->user_to_promote ?? false;
             $phoneNumber = $request->phone;
 
-            if (!$userToPromote) {
-                $newUser = User::create([
-                    'username' => $request->username,
-                    'user_type' => UserType::getValueByPrefix('treasurer', 'id'),
-                    'email' => $request->email,
-                    'password' => Hash::make($newPassw),
-                    'country' => $request->country,
-                    'time_zone' => $request->time_zone,
-                    'email_verified_at' => Carbon::now(),
-                    'referral_code' => User::getUniqueReferralCode(),
-                ])->id;
+            $newUser = User::create([
+                'username' => $request->username,
+                'user_type' => UserType::getValueByPrefix('treasurer', 'id'),
+                'email' => $request->email,
+                'password' => Hash::make($newPassw),
+                'country' => $request->country,
+                'time_zone' => $request->time_zone,
+                'email_verified_at' => Carbon::now(),
+                'referral_code' => User::getUniqueReferralCode(),
+            ])->id;
 
-                // Crear un nuevo Wallet para el usuario
-                Wallet::create(['coin' => $request->coin, 'user' => $newUser]);
+            // Crear un nuevo Wallet para el usuario
+            Wallet::create(['coin' => $request->coin, 'user' => $newUser]);
 
-                PhoneNumbers::create([
-                    'user' => $newUser,
-                    'country' => $request->country,
-                    'phone_number' => $phoneNumber
-                ]);
-            } else {
-                $newUser = $userToPromote;
-            }
+            PhoneNumbers::create([
+                'user' => $newUser,
+                'country' => $request->country,
+                'phone_number' => $phoneNumber
+            ]);
 
             $treasurer = Treasurer::create([
                 'name' => $request->name,
@@ -128,7 +124,7 @@ class TreasurerController extends Controller
                 'country' => $request->country,
                 'status' => 1,
                 'user' => $newUser,
-                'code_uuid' => $this->getCodeUUID('Treasurer')
+                'other_user_id' => $userToPromote,
             ]);
 
             // Registrar Code UUID

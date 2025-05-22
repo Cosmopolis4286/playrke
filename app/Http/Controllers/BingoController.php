@@ -13,6 +13,7 @@ use App\Models\BingoCtns;
 use App\Models\PlayHistory;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
+use App\Models\BingoCreatorSales;
 use App\Models\BingoCtnPrice;
 use App\Models\BingoCtnPriceAutomatic;
 use App\Models\BingoCtnsLot;
@@ -40,6 +41,7 @@ use App\Models\Games;
 use App\Models\Room;
 use App\Models\Seller;
 use App\Models\TimeZone;
+use App\Models\Treasurer;
 use App\Models\User;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
@@ -1958,25 +1960,34 @@ class BingoController extends Controller
     {
         $userData = $this->getUserData();
 
-        $allowedPrefixes = ['admin', 'commerce', 'customer'];
-
-        if (!in_array($userData['type'], $allowedPrefixes)) {
+        // Validar el tipo de usuario autorizado
+        if (!in_array($userData['type'], ['admin', 'commerce', 'customer'])) {
             return false;
         }
 
         $creatorUser = $userData['userId'];
+        $treasurer = Treasurer::where('other_user_id', $creatorUser)->exists();
 
-        $dd = BingoRoom::with([
-            'Creator:id,room,status',
-            'CtnsLot' => function ($subquery) use ($creatorUser) {
-                $subquery->where('creator_user', $creatorUser);
-            },
-            'Config:room,date,time'
-        ])->select('id', 'encrypted', 'room_commn', 'prize_pool')
-            ->whereHas('CtnsLot', function ($query) use ($creatorUser) {
-                $query->where('creator_user', $creatorUser);
+        if ($treasurer) {
+            return collect(); // Retorna colección vacía
+        }
+
+        // Obtener IDs de salas públicas (PB) con estado 4
+        $roomIds = BingoPrizeCtns::where('creator_user', $creatorUser)
+            ->whereHas('Room', function ($query) {
+                $query->where('room_type', 'PB')
+                    ->where('status', 4);
             })
-            ->where('room_type', 'PB')->where('status', 4)->get();
+            ->where('status', null)->distinct()->pluck('room');
+
+        if ($roomIds->isEmpty()) {
+            return collect(); // Retorna colección vacía
+        }
+
+        // Obtener ventas del creador para esas salas
+        return BingoCreatorSales::with('Coin:id,iso_code')
+            ->where('creator_user', $creatorUser)->whereIn('room', $roomIds)
+            ->get(['coin', 'prize_pool_amount']);
     }
 
     public function getInfoBingoPlay($id)

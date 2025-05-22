@@ -26,6 +26,11 @@ class BingoCreatorSales extends Model
         return $this->belongsTo(BingoRoom::class, 'room');
     }
 
+    public function Coin()
+    {
+        return $this->belongsTo(Coin::class, 'coin');
+    }
+
     public function CreatorUser()
     {
         return $this->belongsTo(User::class, 'creator_user');
@@ -45,6 +50,12 @@ class BingoCreatorSales extends Model
     {
         return self::select($fields)->where('room', $room)->where('coin', $coin)
             ->where('creator_user', $creatorUser)->first();
+    }
+
+    public static function getValueByRoomCreatorUser($room, $creatorUser, $coin, $value)
+    {
+        return self::where('room', $room)->where('coin', $coin)
+            ->where('creator_user', $creatorUser)->value($value);
     }
 
     public static function existsByRoomCreatorUser($room, $creatorUser, $coin = '')
