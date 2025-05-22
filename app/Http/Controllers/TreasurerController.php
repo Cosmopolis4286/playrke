@@ -92,9 +92,13 @@ class TreasurerController extends Controller
                 return redirect()->back()->withErrors($validator)->withInput();
             }
 
-            $newPassw = $this->valEncrypt();
+            $userToPromote = $request->user_to_promote;
 
-            $userToPromote = $request->user_to_promote ?? false;
+            if ($userToPromote) {
+                
+            }
+
+            $newPassw = $this->valEncrypt();
             $phoneNumber = $request->phone;
 
             $newUser = User::create([

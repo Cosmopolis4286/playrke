@@ -189,7 +189,10 @@
                     <option value="admin">Administradores</option>
                     <option value="commerce">Comercios</option>
                 `);
+                $('#cont-select-user-to-promote').removeClass('hide-elem');
                 $('#cont-select-user-to-promote').addClass('hide-elem');
+            } else if (type == 2) {
+                $('#cont-select-user-role, #cont-select-user-to-promote').addClass('hide-elem');
             }
 
             $.each(arrCountries, function(index, item) {
@@ -238,8 +241,9 @@
             $.each(data, function(index, item) {
                 $('#select-user-to-promote').append(`<option value="${item.user}">${item.name}</option>`);
             });
-
-            $('#cont-select-user-to-promote').removeClass('hide-elem');
+            $('.new-treasurer').addClass('hide-elem');
+            $('#label-other-coins').text('Monedas Permitidas:');
+            $('#cont-select-user-to-promote, #cont-other-coins').removeClass('hide-elem');
         }
 
         function getUserInfo(userRole, text) {
@@ -262,7 +266,9 @@
         function hideSelectUserRole() {
             $('#label-user-promote').text('');
             $('#select-user-to-promote').empty().prop('disabled', true);
-            $('#cont-select-user-to-promote').addClass('hide-elem');
+            $('#cont-select-user-to-promote, #cont-other-coins').addClass('hide-elem');
+            $('#label-other-coins').text('Otras Monedas:');
+            $('.new-treasurer').removeClass('hide-elem');
         }
 
         $('#checkbox-promote-user').on('change', function() {
