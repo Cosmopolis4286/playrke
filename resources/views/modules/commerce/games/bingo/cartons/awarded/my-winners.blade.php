@@ -14,6 +14,8 @@
                 @include('includes.date-filter-buttons')
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
+                        <button type="button" id="btn-pending-payments" class="btn btn-sm btn-dark mt-2">
+                            Pagos Pendientes</button>
                         @include('includes.games.bingo.report.my-winners-report-table')
                     </div>
                 </div>
@@ -26,16 +28,17 @@
         'formId' => 'ctn-payment',
         'formRoute' => route('bingo.notifyPaymentPrizeWinningCtn'),
     ])
+    @include('includes.games.bingo.layout.modal-other-bingo-rooms-pending-payments')
 @endsection
 @section('scripts')
-    @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/rke/payment-confirm-button.js'])
+    @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/rke/payment-confirm-button.js', 'resources/js/games/bingo/includes/prize-ctns-pending-payments.js'])
     <script>
         const name = '{{ $name }}';
 
         $(document).on("click", ".notify-ctn-payment", function() {
             const data = $(this).data();
             $.ajax({
-                url: route('commerce.getSellerInfoByCtn', ctnId: data.ctn),
+                url: route('commerce.getSellerInfoByCtn', data.ctn),
                 method: 'GET',
                 dataType: 'json',
                 success: function(res) {

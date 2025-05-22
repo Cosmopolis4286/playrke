@@ -21,6 +21,7 @@ const jsFiles = [
     'resources/js/games/bingo/includes/auto-marked.js',
     'resources/js/games/bingo/includes/bingo-out-buy-ctns.js',
     'resources/js/games/bingo/includes/handle-bingo-plays.js',
+    'resources/js/games/bingo/includes/prize-ctns-pending-payments.js',
     'resources/js/games/bingo/tests/regenerate-draw.js'
 ];
 

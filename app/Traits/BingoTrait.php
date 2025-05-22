@@ -93,6 +93,11 @@ trait BingoTrait
         $roomStatus = BingoRoom::where('id', $room)->value('status');
         if ($roomStatus != 2) return true;
 
+        if (!BingoRoomUser::where('room', $room)->exists()) {
+            BingoRoom::where('id', $room)->update(['status' => 1]);
+            return ['Error' => 'No hay jugadores en la sala'];
+        }
+
         $roomInfo = BingoRoomConfig::getByRoom($room, ['date', 'time', 'rounds']);
         $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
         $rounds = (int) $roomInfo->rounds;
