@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('bingo_rooms_rounds', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms');
-            $table->string('round_num', 2)->default('1');
+            $table->string('round', 2)->default('1');
             $table->string('status', 1)->default('1');
             $table->timestamps();
         });

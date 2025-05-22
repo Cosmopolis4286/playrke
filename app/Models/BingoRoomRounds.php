@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BingoRoomRounds extends Model
 {
     protected $table = 'bingo_rooms_rounds';
-    protected $fillable = ['room', 'round_num', 'status'];
+    protected $fillable = ['room', 'round', 'status'];
 
     public static function getById($id, $fields = ['*'])
     {
@@ -21,6 +21,6 @@ class BingoRoomRounds extends Model
 
     public static function getActiveRound($room)
     {
-        return self::where('room', $room)->where('status', 1)->value('round_num');
+        return self::where('room', $room)->where('status', 1)->value('round');
     }
 }

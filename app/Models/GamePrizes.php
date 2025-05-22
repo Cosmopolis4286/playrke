@@ -13,4 +13,9 @@ class GamePrizes extends Model
     {
         return $this->hasMany(Games::class, 'game');
     }
+
+    public static function getValueByDescription($game, $description, $value = 'id')
+    {
+        return self::where('game', $game)->where('description', $description)->value($value);
+    }
 }

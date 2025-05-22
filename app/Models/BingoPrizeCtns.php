@@ -10,6 +10,7 @@ class BingoPrizeCtns extends Model
     protected $fillable = [
         'active',
         'room',
+        'round',
         'creator_user',
         'seller',
         'room_user',

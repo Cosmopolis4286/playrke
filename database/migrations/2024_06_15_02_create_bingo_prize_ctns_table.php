@@ -16,6 +16,7 @@ return new class extends Migration
         Schema::create('bingo_prize_ctns', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
+            $table->string('round', 2);
             $table->enum('active', ['Y', 'N'])->default('N');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('seller')->nullable();
