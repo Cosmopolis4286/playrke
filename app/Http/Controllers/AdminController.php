@@ -68,6 +68,27 @@ class AdminController extends Controller
 
         return view('modules/admin/treasurer/index')->with([
             'title' => 'Tesoreros',
+            'others' => false,
+            'name' => 'admin-treasurer',
+            'treasurers' => $treasurers,
+            'countries' => $countries,
+            'timeZones' => $timeZones,
+            'coins' => $coins,
+            'games' => Games::where('status', 1)->get()
+        ]);
+    }
+
+    public function otherTreasurers()
+    {
+        $treasurers = Treasurer::with(['Country:id,name', 'User:id,email'])->get();
+
+        $countries = Country::getAllAvailableCountries();
+        $coins = Coin::getByIdForStatus(['=', 1]);
+        $timeZones = TimeZone::where('status', 1)->get();
+
+        return view('modules/admin/treasurer/index')->with([
+            'title' => 'Tesoreros',
+            'others' => false,
             'name' => 'admin-treasurer',
             'treasurers' => $treasurers,
             'countries' => $countries,

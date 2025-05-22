@@ -86,6 +86,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin', 'as' => 'a
     Route::get('sellers', [AdminController::class, 'sellers'])->name('sellers');
     Route::get('customers', [AdminController::class, 'customers'])->name('customers');
     Route::get('treasurers', [AdminController::class, 'treasurers'])->name('treasurers');
+    Route::get('other-treasurers', [AdminController::class, 'otherTreasurers'])->name('otherTreasurers');
     Route::get('get-user-info/{userRole}', [AdminController::class, 'getUserInfo'])->name('getUserInfo');
 });
 
