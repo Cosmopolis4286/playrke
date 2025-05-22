@@ -7,9 +7,9 @@
             <div class="badge badge-dark pt-1">{{ $countWinnersByCommerce }}</div>
         @endif
     </a>
-    <a id="all-winners-tab" class="nav-link @if (!$isCommerce) active @endif"
+    <a id="other-winners-tab" class="nav-link @if (!$isCommerce) active @endif"
         href="{{ route('bingo.ctnsAwarded', ['type' => 'public', 'dateFilter' => 'today']) }}" role="tab"
-        aria-controls="all-winners-tab" aria-selected="true">Otros
+        aria-controls="other-winners-tab" aria-selected="true">Otros
         @if ($countWinnersOtherCommerces > 0)
             <div class="badge badge-dark pt-1">{{ $countWinnersOtherCommerces }}</div>
         @endif

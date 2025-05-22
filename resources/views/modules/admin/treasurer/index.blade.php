@@ -5,60 +5,66 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
-                    <i class="fas fa-plus-square mr-1"></i>Añadir</button>
-                <div class="table-responsive mt-3">
-                    <table class="table table-striped table-bordered my-2 w-100">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Pais</th>
-                                <th>Telefono</th>
-                                <th>Email</th>
-                                <th>Status</th>
-                                <th>Accion</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($treasurers as $item)
-                                <tr>
-                                    <td>{{ $item->name }}</td>
-                                    <td>{{ $item->Country->name }}</td>
-                                    <td>{{ $item->phone }}</td>
-                                    <td>{{ $item->User->email }}</td>
-                                    <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
-                                    <td>
-                                        @include('includes.btn-group', [
-                                            'name' => $name,
-                                            'dataId' => encrypt($item->id),
-                                            'buttons' => [
-                                                (object) [
-                                                    'dataType' => '2',
-                                                    'color' => 'btn-primary',
-                                                    'icon' => 'fas fa-edit',
-                                                ],
-                                                (object) [
-                                                    'dataType' => '3',
-                                                    'color' => 'btn-danger',
-                                                    'icon' => 'fa-solid fa-trash-can',
-                                                ],
-                                                (object) [
-                                                    'dataType' => '4',
-                                                    'color' => 'btn-secondary',
-                                                    'icon' => 'fa-solid fa-repeat',
-                                                ],
-                                                (object) [
-                                                    'dataType' => '5',
-                                                    'color' => 'bg-navy',
-                                                    'icon' => 'fa-solid fa-lock',
-                                                ],
-                                            ],
-                                        ])
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                @include('includes.treasurer.tabs')
+                <div class="tab-content">
+                    <div class="tab-pane fade show active">
+                        <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
+                            <i class="fas fa-plus-square mr-1"></i>Añadir
+                        </button>
+                        <div class="table-responsive mt-3">
+                            <table class="table table-striped table-bordered my-2 w-100">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Pais</th>
+                                        <th>Telefono</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Accion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($treasurers as $item)
+                                        <tr>
+                                            <td>{{ $item->name }}</td>
+                                            <td>{{ $item->Country->name }}</td>
+                                            <td>{{ $item->phone }}</td>
+                                            <td>{{ $item->User->email }}</td>
+                                            <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
+                                            <td>
+                                                @include('includes.btn-group', [
+                                                    'name' => $name,
+                                                    'dataId' => encrypt($item->id),
+                                                    'buttons' => [
+                                                        (object) [
+                                                            'dataType' => '2',
+                                                            'color' => 'btn-primary',
+                                                            'icon' => 'fas fa-edit',
+                                                        ],
+                                                        (object) [
+                                                            'dataType' => '3',
+                                                            'color' => 'btn-danger',
+                                                            'icon' => 'fa-solid fa-trash-can',
+                                                        ],
+                                                        (object) [
+                                                            'dataType' => '4',
+                                                            'color' => 'btn-secondary',
+                                                            'icon' => 'fa-solid fa-repeat',
+                                                        ],
+                                                        (object) [
+                                                            'dataType' => '5',
+                                                            'color' => 'bg-navy',
+                                                            'icon' => 'fa-solid fa-lock',
+                                                        ],
+                                                    ],
+                                                ])
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
