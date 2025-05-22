@@ -5,11 +5,9 @@
             <tr>
                 <th>Sala</th>
                 <th>Tipo</th>
-                <th>Horario</th>
+                <th>#RD</th>
                 <th>Vendedor</th>
                 <th>Jugador</th>
-                <th>País</th>
-                <th>Moneda</th>
                 <th>Premio</th>
                 <th>Tipo</th>
                 <th>Status</th>
@@ -26,10 +24,7 @@
                         </a>
                     </td>
                     <td>{{ $win->Room->room_type_description }}</td>
-                    <td class="align-middle">
-                        {{ \Carbon\Carbon::parse($win->Room->Config->date)->format('d/m/y') }}
-                        {{ $win->Room->Config->time }}
-                    </td>
+                    <td>{{ $win->round }}</td>
                     <td>
                         @if ($win->Seller)
                             {{ $win->Seller->name }}
@@ -42,13 +37,7 @@
                             {{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}
                         @endif
                     </td>
-                    <td>
-                        @if ($win->PlayerLink)
-                            {{ $win->PlayerLink->Country->name }}
-                        @endif
-                    </td>
-                    <td>{{ $win->Coin->long_name }}</td>
-                    <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount }}</td>
+                    <td>{{ $win->Coin->iso_code }}&nbsp{{ $win->amount }}</td>
                     <td>{{ $win->Prize->description }}</td>
                     <td>
                         @if ($win->status == null)

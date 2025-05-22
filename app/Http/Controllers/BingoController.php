@@ -1966,11 +1966,6 @@ class BingoController extends Controller
         }
 
         $creatorUser = $userData['userId'];
-        $treasurer = Treasurer::where('other_user_id', $creatorUser)->exists();
-
-        if ($treasurer) {
-            return collect(); // Retorna colección vacía
-        }
 
         // Obtener IDs de salas públicas (PB) con estado 4
         $roomIds = BingoPrizeCtns::where('creator_user', $creatorUser)

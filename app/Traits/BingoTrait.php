@@ -1523,11 +1523,7 @@ trait BingoTrait
                 ];
             }
 
-            // Si no hay ninguna venta
-            return [
-                'return' => false,
-                'coin'   => null
-            ];
+            return encrypt(1);
         }
 
         // Si existe venta y cumple con todos los filtros

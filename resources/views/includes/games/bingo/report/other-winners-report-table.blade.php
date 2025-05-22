@@ -5,9 +5,9 @@
             <tr>
                 <th>Sala</th>
                 <th>Tipo</th>
+                <th>#RD</th>
                 <th>Comercio</th>
                 <th>Jugador</th>
-                <th>País</th>
                 <th>Premio</th>
                 <th>Tipo</th>
                 <th>Status</th>
@@ -24,10 +24,10 @@
                         </a>
                     </td>
                     <td>{{ $win->Room->room_type_description }}</td>
+                    <td>{{ $win->round }}</td>
                     <td>{{ $win->Seller->Commerce->name }}</td>
                     <td>{{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}</td>
-                    <td>{{ $win->PlayerLink->Country->name }}</td>
-                    <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount }}</td>
+                    <td>{{ $win->Coin->iso_code }} {{ $win->amount }}</td>
                     <td>{{ $win->Prize->description }}</td>
                     <td>
                         @if ($win->PlayerGame->winner == 1)

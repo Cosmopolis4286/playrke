@@ -232,7 +232,8 @@
         function insertUsers(data, label) {
             $('#label-user-promote').text(label);
 
-            $('#select-user-to-promote').html(`<option value=""></option>`).prop('disabled', false);
+            $('#select-user-to-promote').html(`<option value="" disabled selected>Seleccionar usuario:</option>`)
+                .prop('disabled', false);
 
             $.each(data, function(index, item) {
                 $('#select-user-to-promote').append(`<option value="${item.user}">${item.name}</option>`);

@@ -14,8 +14,6 @@
                 @include('includes.date-filter-buttons')
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        <button type="button" id="btn-pending-payments" class="btn btn-sm btn-dark mt-2">
-                            Pagos Pendientes</button>
                         @include('includes.games.bingo.report.other-winners-report-table')
                     </div>
                 </div>
@@ -31,7 +29,7 @@
     @include('includes.games.bingo.layout.modal-other-bingo-rooms-pending-payments')
 @endsection
 @section('scripts')
-    @vite(['resources/js/rke/payment-confirm-button.js', 'resources/js/games/bingo/includes/prize-ctns-pending-payments.js'])
+    @vite('resources/js/rke/payment-confirm-button.js')
     <script>
         function getPaymentCommerceDetails(commerce, coin) {
             $.getJSON(`{{ asset('') }}commerce/getPaymentCommerceDetails/${commerce}/${coin}`, {

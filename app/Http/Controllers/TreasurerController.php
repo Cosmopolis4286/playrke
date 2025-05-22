@@ -123,8 +123,7 @@ class TreasurerController extends Controller
                 'coin' => $request->coin,
                 'country' => $request->country,
                 'status' => 1,
-                'user' => $newUser,
-                'other_user_id' => $userToPromote,
+                'user' => $newUser
             ]);
 
             // Registrar Code UUID
