@@ -176,7 +176,7 @@
             }
         });
 
-        function insertOtherCoins(selectedCoins = '') {
+        function insertOtherCoins(selectedCoins = []) {
             otherCoins.empty();
             $.each(coins, function(index, item) {
                 if (item.id != coin.val()) {

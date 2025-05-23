@@ -62,7 +62,7 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.admin.treasurer.form')->render(),
+        'dataForm' => view('modules.admin.treasurer.other-treasurers-form')->render(),
     ])
     @include('includes.modal-copy-info', [
         'name' => 'copy-passw',
@@ -102,16 +102,16 @@
             formCRUD($(this), name, 'Tesorero', otherCasesMap)
         });
 
-        function insertOtherCoins(selectedCoins = '') {
+        function insertOtherCoins(selectedCoins = []) {
             otherCoins.empty();
+
             $.each(coins, function(index, item) {
-                if (item.id != coin.val()) {
-                    const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
-                    otherCoins.append(
-                        `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
-                    );
-                }
+                const isSelected = selectedCoins.some(val => val == item.id) ? 'selected' : '';
+                otherCoins.append(
+                    `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
+                );
             });
+
             $("#cont-other-coins").removeClass('hide-elem');
         }
 
@@ -126,23 +126,10 @@
         function insertInfo(type, data = '') {
             if (type != 2) return;
 
-            $('#cont-select-user-role, #cont-select-user-to-promote').addClass('hide-elem');
+            $('#username').val(data.username);
+            $('#country').val(data.country);
 
-            const treasurer = data.treasurer;
-            const otherCoins = data.other_coins;
-            const user = data.user;
-
-            $('#name').val(treasurer.name);
-            $('#phone').val(treasurer.phone);
-            update = true;
-            country.trigger('change');
-            insertOtherCoins(otherCoins)
-
-            $("#username").val(user.username);
-            $("#email").val(user.email);
-            $('#username, #email').attr('readonly', true);
-
-            insertGames();
+            insertOtherCoins(data.other_coins);
 
             $(`#modal-${name}`).modal('show');
         }
