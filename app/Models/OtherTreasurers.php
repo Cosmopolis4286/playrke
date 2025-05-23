@@ -33,4 +33,14 @@ class OtherTreasurers extends Model
   {
     return self::where('creator_user', $creatorUser)->value($value);
   }
+
+  public static function existsByCreatorUser($creatorUser)
+  {
+    return self::where('creator_user', $creatorUser)->exists();
+  }
+
+  public static function getAllCreatorUser()
+  {
+    return self::distinct()->pluck('creator_user');
+  }
 }

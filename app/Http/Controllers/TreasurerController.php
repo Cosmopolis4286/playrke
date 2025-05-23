@@ -87,22 +87,37 @@ class TreasurerController extends Controller
         DB::beginTransaction();
 
         try {
-            // Validar la solicitud usando la función validateRequest
-            $validator = $this->validateRequest($request);
-            if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
-            }
 
             $userToPromote = $request->user_to_promote;
             $otherCoins = $request->other_coins;
             $allowedGames = $request->allowed_games;
 
             if ($userToPromote) {
+
+                $existsTreasurer = OtherTreasurers::existsByCreatorUser($userToPromote);
+
+                if ($existsTreasurer) {
+                    return redirect()->back()->with('message', 'Este usuario ya es un Tesorero')
+                        ->with('type', 'warning');
+                }
+
+                $allowedGames = $allowedGames ? implode(';', $allowedGames) : 'ALL';
+
                 OtherTreasurers::create([
                     'creator_user' => $userToPromote,
-                    'allowed_games' => $allowedGames,
-                    'allowed_coins' => $otherCoins,
+                    'allowed_games' =>  $allowedGames,
+                    'allowed_coins' => implode(';', $otherCoins),
                 ]);
+
+                DB::commit();
+                Session::flash('message', 'Registro exitoso');
+                return redirect()->back();
+            }
+
+            // Validar la solicitud usando la función validateRequest
+            $validator = $this->validateRequest($request);
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
             }
 
             $newPassw = $this->valEncrypt();
@@ -170,13 +185,12 @@ class TreasurerController extends Controller
             // Mensajes flash con tiempo de expiración personalizado
             Session::flash('message', 'Registro exitoso');
             Session::flash('message-passw', $newPassw);
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al crear Treasurer: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
-
-        return redirect()->back();
     }
 
     public function getInfo($id) // Obtener Info Comercializadora

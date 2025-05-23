@@ -1328,7 +1328,7 @@ class BingoController extends Controller
 
             if ($typesOfPlays) {
                 $dataConfig['pct_types_plays'] = $request->pct_bingo_plays;
-                $dataConfig['types_plays'] = implode(';', $typesOfPlays);;
+                $dataConfig['types_plays'] = implode(';', $typesOfPlays);
             }
 
             BingoRoomConfig::create($dataConfig);
@@ -1484,7 +1484,7 @@ class BingoController extends Controller
 
         if ($typesOfPlays) {
             $updateDataConfig['pct_types_plays'] = $request->pct_bingo_plays;
-            $updateDataConfig['types_plays'] = implode(';', $typesOfPlays);;
+            $updateDataConfig['types_plays'] = implode(';', $typesOfPlays);
         }
 
         // Solo añadir 'game_mode' si el prize_pool es 0

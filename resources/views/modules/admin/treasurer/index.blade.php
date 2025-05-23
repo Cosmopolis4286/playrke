@@ -235,7 +235,11 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
+            if (!$('#select-user-to-promote').val()) {
+                submitForm(name, ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
+            } else {
+                submitForm(name, ['select-user-role', 'select-user-to-promote', 'other-coins'])
+            }
         });
 
         function insertUsers(data, label) {
@@ -249,12 +253,16 @@
             });
             $('.new-treasurer').addClass('hide-elem');
             $('#label-other-coins').text('Monedas Permitidas:');
+            insertOtherCoins();
             $('#cont-select-user-to-promote, #cont-other-coins').removeClass('hide-elem');
         }
 
         function getUserInfo(userRole, text) {
             $.getJSON({
-                url: route('admin.getUserInfo', userRole),
+                url: route('admin.getUserInfo', {
+                    userRole,
+                    exclude: 'OtherTreasurers'
+                }),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },

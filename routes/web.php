@@ -88,7 +88,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin', 'as' => 'a
     Route::get('customers', [AdminController::class, 'customers'])->name('customers');
     Route::get('treasurers', [AdminController::class, 'treasurers'])->name('treasurers');
     Route::get('other-treasurers', [AdminController::class, 'otherTreasurers'])->name('otherTreasurers');
-    Route::get('get-user-info/{userRole}', [AdminController::class, 'getUserInfo'])->name('getUserInfo');
+    Route::get('get-user-info/{userRole}/{exclude?}', [AdminController::class, 'getUserInfo'])->name('getUserInfo');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'info', 'as' => 'info.'], function () {

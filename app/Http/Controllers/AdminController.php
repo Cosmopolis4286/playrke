@@ -124,14 +124,36 @@ class AdminController extends Controller
         }
     }
 
-    public function getUserInfo($userRole)
+    public function getUserInfo($userRole, $exclude = '')
     {
-        if ($userRole === 'admin') {
-            $data = [];
-        } else if ($userRole === 'commerce') {
-            $data = Commerce::getActiveCommerces(['name', 'user']);
+        $creatorUserToExclude = [];
+
+        // Obtener lista de usuarios a excluir si se proporciona un modelo
+        if (!empty($exclude)) {
+            $model = app("App\\Models\\$exclude");
+
+            if (method_exists($model, 'getAllCreatorUser')) {
+                $creatorUserToExclude = $model::getAllCreatorUser();
+            }
         }
 
-        return $data;
+        // Si es admin, retorna arreglo vacío
+        if ($userRole === 'admin') {
+            return [];
+        }
+
+        // Si es comercio, obtiene la lista de comercios activos
+        if ($userRole === 'commerce') {
+            $query = Commerce::where('status', 1);
+
+            if (!empty($creatorUserToExclude)) {
+                $query->whereNotIn('user', $creatorUserToExclude);
+            }
+
+            return $query->get(['name', 'user']);
+        }
+
+        // Por defecto retorna vacío si no cumple ninguna condición
+        return [];
     }
 }
