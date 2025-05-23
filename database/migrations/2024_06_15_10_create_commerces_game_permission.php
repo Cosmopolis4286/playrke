@@ -8,33 +8,23 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
-        Schema::create('commerces_game_permission', function (Blueprint $table) {
+        Schema::create('commerce_game_permissions', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('commerce')->nullable();
-            $table->unsignedBigInteger('game');
-            $table->unsignedBigInteger('game_mode');
-            $table->boolean('room_types')->default(0);
-            $table->boolean('status')->default(0);
+            $table->foreignId('commerce')->constrained('commerces')->onDelete('cascade');
+            $table->foreignId('game')->constrained('games')->onDelete('cascade');
+            $table->boolean('status')->default(false);
             $table->timestamps();
-
-            $table->foreign('commerce')->references('id')->on('commerces');
-            $table->foreign('game')->references('id')->on('games');
-            $table->foreign('game_mode')->references('id')->on('game_modes');
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
-        Schema::dropIfExists('commerces_game_permission');
+        Schema::dropIfExists('commerce_game_permissions');
     }
 };

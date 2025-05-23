@@ -9,6 +9,7 @@ use App\Models\Commerce;
 use App\Models\Country;
 use App\Models\Customer;
 use App\Models\Games;
+use App\Models\OtherTreasurers;
 use App\Models\TimeZone;
 use App\Models\Treasurer;
 use App\Traits\EncryptRKE;
@@ -80,21 +81,18 @@ class AdminController extends Controller
 
     public function otherTreasurers()
     {
-        $treasurers = Treasurer::with(['Country:id,name', 'User:id,email'])->get();
+        $otherTreasurers = OtherTreasurers::with(['User.Country:id,name'])->get();
 
-        $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
-        $timeZones = TimeZone::where('status', 1)->get();
+        $games = Games::where('status', 1)->get();
 
-        return view('modules/admin/treasurer/index')->with([
-            'title' => 'Tesoreros',
-            'others' => false,
-            'name' => 'admin-treasurer',
-            'treasurers' => $treasurers,
-            'countries' => $countries,
-            'timeZones' => $timeZones,
+        return view('modules/admin/treasurer/other-treasurers')->with([
+            'title' => 'Otros Tesoreros',
+            'others' => true,
+            'name' => 'admin-other-treasurers',
+            'otherTreasurers' => $otherTreasurers,
             'coins' => $coins,
-            'games' => Games::where('status', 1)->get()
+            'games' => $games
         ]);
     }
 

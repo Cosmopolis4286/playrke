@@ -21,6 +21,7 @@ use App\Http\Controllers\IframeController;
 use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
+use App\Http\Controllers\OtherTreasurersController;
 use App\Http\Controllers\PaymentMethodsCOLController;
 use App\Http\Controllers\TreasurerController;
 use App\Models\Settings;
@@ -141,6 +142,13 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-treasurer', 
     Route::put('delete/{id}', [TreasurerController::class, 'delete'])->name('delete');
     Route::put('change-status/{id}', [TreasurerController::class, 'changeStatus'])->name('change-status');
     Route::put('change-passw/{id}', [TreasurerController::class, 'changePassword'])->name('change-passw');
+});
+
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-other-treasurers', 'as' => 'admin-other-treasurers.'], function () {
+    Route::get('getInfo/{id}', [OtherTreasurersController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [OtherTreasurersController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [OtherTreasurersController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [OtherTreasurersController::class, 'changeStatus'])->name('change-status');
 });
 
 //Cliente

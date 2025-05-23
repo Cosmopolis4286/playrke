@@ -12,21 +12,19 @@
                             <table class="table table-striped table-bordered my-2 w-100">
                                 <thead>
                                     <tr>
+                                        <th>Tipo</th>
                                         <th>Nombre</th>
                                         <th>Pais</th>
-                                        <th>Telefono</th>
-                                        <th>Email</th>
                                         <th>Status</th>
                                         <th>Accion</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($treasurers as $item)
+                                    @foreach ($otherTreasurers as $item)
                                         <tr>
+                                            <td></td>
                                             <td>{{ $item->name }}</td>
                                             <td>{{ $item->Country->name }}</td>
-                                            <td>{{ $item->phone }}</td>
-                                            <td>{{ $item->User->email }}</td>
                                             <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                             <td>
                                                 @include('includes.btn-group', [
@@ -80,18 +78,6 @@
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        if (@json(Session::has('message-passw'))) {
-            const newPassw = {!! json_encode(Session::get('message-passw')) !!};
-            $("#info-to-copy").val(newPassw);
-            setTimeout(function() {
-                $("#modal-copy-passw").modal('show');
-            }, 3000);
-        }
-
-        $(document).on("click", "#btn-copy", function() {
-            copyInfo('Contraseña Copiada');
-        });
-
         $(function() {
             $('.select2').each(function() {
                 $(this).select2({
@@ -111,52 +97,14 @@
             $(this).popover('toggle');
         });
 
-        $("#phone").mask("00000000000");
-
         const name = '<?php echo $name; ?>';
-        const arrCountries = JSON.parse('<?php echo $countries; ?>');
-        const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const coins = JSON.parse('<?php echo $coins; ?>');
-        const userRole = $("#select-user-role");
-        const country = $("#country");
-        const timeZone = $("#time-zone");
-        const coin = $("#coin");
-        const coinText = $("#coin-text");
         const otherCoins = $("#other-coins");
         const games = $("#games");
         const arrGames = @json($games);
-        let update = false;
-
-        if (@json(Session::has('msg-error'))) {
-            const error = {!! json_encode(Session::get('msg-error')) !!};
-
-            // Asignar elem basado en el valor de error
-            let elem = error == 1 ? $(`#btn-${name}-insert`) :
-                (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
-
-            formCRUD(elem, name, 'Tesorero');
-        }
 
         $(document).on("click", `.btn-${name}`, function() {
             formCRUD($(this), name, 'Tesorero', otherCasesMap)
-        });
-
-        country.on("change", function() {
-            const selectedCountry = country.val(); // Obtener el valor seleccionado del país
-
-            if (selectedCountry) {
-                $.each(coins, function(index, item) {
-                    if (item.country == selectedCountry) {
-                        coinText.val(`(${item.symbol}) ${item.short_name}`);
-                        coin.val(item.id);
-                    }
-                });
-                if (coins.length > 1 && !update) insertOtherCoins();
-            } else {
-                coinText.val('');
-                coin.val('');
-                $("#cont-other-coins").addClass('hide-elem');
-            }
         });
 
         function insertOtherCoins(selectedCoins = '') {
@@ -181,50 +129,23 @@
         }
 
         function insertInfo(type, data = '') {
-            update = false;
-            $('#username, #email').attr('readonly', false);
+            if (type != 2) return;
 
-            if (type == 1) {
-                country.html(`<option value="" disabled selected>Seleccionar País:</option>`);
-                timeZone.html(`<option value="" disabled selected>Seleccionar Zona:</option>`);
-                userRole.html(`
-                    <option value="" disabled selected>Seleccione un rol:</option>
-                    <option value="admin">Administradores</option>
-                    <option value="commerce">Comercios</option>
-                `);
-                $('#cont-select-user-to-promote').removeClass('hide-elem');
-                $('#cont-select-user-to-promote').addClass('hide-elem');
-            } else if (type == 2) {
-                $('#cont-select-user-role, #cont-select-user-to-promote').addClass('hide-elem');
-            }
+            $('#cont-select-user-role, #cont-select-user-to-promote').addClass('hide-elem');
 
-            $.each(arrCountries, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.treasurer.country) ? 'selected' : '';
-                country.append(
-                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
-            });
+            const treasurer = data.treasurer;
+            const otherCoins = data.other_coins;
+            const user = data.user;
 
-            $.each(arrTimeZones, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.user.time_zone) ? 'selected' : '';
-                timeZone.append(
-                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
-            });
+            $('#name').val(treasurer.name);
+            $('#phone').val(treasurer.phone);
+            update = true;
+            country.trigger('change');
+            insertOtherCoins(otherCoins)
 
-            if (type == 2) {
-                const treasurer = data.treasurer;
-                const otherCoins = data.other_coins;
-                const user = data.user;
-
-                $('#name').val(treasurer.name);
-                $('#phone').val(treasurer.phone);
-                update = true;
-                country.trigger('change');
-                insertOtherCoins(otherCoins)
-
-                $("#username").val(user.username);
-                $("#email").val(user.email);
-                $('#username, #email').attr('readonly', true);
-            }
+            $("#username").val(user.username);
+            $("#email").val(user.email);
+            $('#username, #email').attr('readonly', true);
 
             insertGames();
 
@@ -232,67 +153,9 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
+            submitForm(name, ['other-coins', 'allowed-games']);
         });
 
-        function insertUsers(data, label) {
-            $('#label-user-promote').text(label);
-
-            $('#select-user-to-promote').html(`<option value="" disabled selected>Seleccionar usuario:</option>`)
-                .prop('disabled', false);
-
-            $.each(data, function(index, item) {
-                $('#select-user-to-promote').append(`<option value="${item.user}">${item.name}</option>`);
-            });
-            $('.new-treasurer').addClass('hide-elem');
-            $('#label-other-coins').text('Monedas Permitidas:');
-            $('#cont-select-user-to-promote, #cont-other-coins').removeClass('hide-elem');
-        }
-
-        function getUserInfo(userRole, text) {
-            $.getJSON({
-                url: route('admin.getUserInfo', userRole),
-                data: {
-                    '_token': $("#5K3_70K").val()
-                },
-                success: function(data) {
-                    if (data.length) {
-                        insertUsers(data, text);
-                    }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.error('Failed to fetch exchange rate:', textStatus, errorThrown);
-                }
-            });
-        }
-
-        function hideSelectUserRole() {
-            $('#label-user-promote').text('');
-            $('#select-user-to-promote').empty().prop('disabled', true);
-            $('#cont-select-user-to-promote, #cont-other-coins').addClass('hide-elem');
-            $('#label-other-coins').text('Otras Monedas:');
-            $('.new-treasurer').removeClass('hide-elem');
-        }
-
-        $('#checkbox-promote-user').on('change', function() {
-            if ($(this).is(':checked')) {
-                userRole.prop('disabled', false);
-            } else {
-                userRole.prop('disabled', true).val('');
-                hideSelectUserRole();
-            }
-        });
-
-        userRole.on("change", function() {
-            const value = $(this).val();
-            const text = $(this).find('option:selected').text();
-
-            if (value) {
-                getUserInfo(value, `${text}: *`);
-            } else {
-                hideSelectUserRole();
-            }
-        });
         const otherCasesMap = {
             4: function(encryptedId) {
                 showToastOptionBtns(
@@ -304,18 +167,7 @@
                         id: encryptedId
                     })
                 );
-            },
-            5: function(encryptedId) {
-                showToastOptionBtns(
-                    'Generar nueva contraseña a este tesorero',
-                    'info',
-                    'Sí, generar',
-                    '#form-other-options',
-                    route(`${name}.change-passw`, {
-                        id: encryptedId
-                    })
-                );
-            },
+            }
         };
     </script>
 @endsection

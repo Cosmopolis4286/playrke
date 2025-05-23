@@ -14,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
+use App\Models\CommerceGamePermission;
 use App\Models\Country;
 use App\Models\PhoneNumbers;
 use App\Models\SellerCountriesCoins;
@@ -157,8 +158,18 @@ class CommerceController extends Controller
                 'userId' => $newUser
             ];
 
-            // Insertar otras monedas
-            $this->insertOtherCoins($creatorUser, $request->other_coins);
+            $otherCoins = $request->other_coins;
+            $allowedGames = $request->allowed_games;
+
+            if ($allowedGames) {
+                // Insertar juegos permitidos
+                $this->handleUserGamePermission($creatorUser, $allowedGames);
+            }
+
+            if ($otherCoins) {
+                // Insertar otras monedas
+                $this->insertOtherCoins($creatorUser, $otherCoins);
+            }
 
             // Registrar Code UUID
             UUIDCodes::create([
@@ -271,8 +282,18 @@ class CommerceController extends Controller
                     'userId' => $commerce->user
                 ];
 
-                // Insertar otras monedas
-                $this->insertOtherCoins($creatorUser, $request->other_coins);
+                $otherCoins = $request->other_coins;
+                $allowedGames = $request->allowed_games;
+
+                if ($allowedGames) {
+                    // Insertar juegos permitidos
+                    $this->handleUserGamePermission($creatorUser, $allowedGames);
+                }
+
+                if ($otherCoins) {
+                    // Insertar otras monedas
+                    $this->insertOtherCoins($creatorUser, $otherCoins);
+                }
 
                 DB::commit();
 

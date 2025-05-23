@@ -386,4 +386,58 @@ trait UserVal
             }
         });
     }
+
+    public function handleUserGamePermission($creatorUser, $allowedGames)
+    {
+        return;
+        if (empty($allowedGames) || !is_array($allowedGames)) return;
+
+        $creatorID = $creatorUser['id'];
+        $modelName = $creatorUser['model'];
+        $userColumn = strtolower($modelName);
+        $model = app("App\\Models\\{$modelName}CountriesCoins");
+
+        $allowedGames = Coin::getCoinsById($allowedGames, ['id', 'country']);
+        $coinsToCreate = [];
+        $coinIds = [];
+        $timestamp = now();
+
+        foreach ($allowedGames as $coin) {
+            $coinIds[] = $coin->id;
+            $coinsToCreate[] = [
+                $userColumn => $creatorID,
+                'country' => $coin->country,
+                'coin' => $coin->id,
+                'level' => '2',
+                'creator_user' => $creatorUser['userId'],
+                'status' => 1,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp
+            ];
+        }
+
+        DB::transaction(function () use ($model, $userColumn, $creatorID, $coinsToCreate, $coinIds) {
+            try {
+                foreach ($coinsToCreate as $coinData) {
+                    $model::firstOrCreate(
+                        [$userColumn => $creatorID, 'coin' => $coinData['coin']],
+                        $coinData
+                    );
+                }
+
+                $model::where($userColumn, $creatorID)
+                    ->whereIn('coin', $coinIds)
+                    ->update(['status' => 1]);
+
+                $model::where($userColumn, $creatorID)
+                    ->where('level', '2')->whereNotIn('coin', $coinIds)
+                    ->update(['status' => 0]); // monedas no seleccionadas = inactivas
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error("Error al insertar monedas para el $userColumn: " . $e->getMessage());
+                throw $e;
+            }
+        });
+    }
 }

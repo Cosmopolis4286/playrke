@@ -153,8 +153,12 @@ class SellerController extends Controller
                 'userId' => $newUser
             ];
 
-            // Insertar otras monedas
-            $this->insertOtherCoins($creatorUser, $request->other_coins);
+            $otherCoins = $request->other_coins;
+
+            if ($otherCoins) {
+                // Insertar otras monedas
+                $this->insertOtherCoins($creatorUser, $otherCoins);
+            }
 
             DB::commit();
 
@@ -248,8 +252,12 @@ class SellerController extends Controller
                     'userId' => $seller->user
                 ];
 
-                // Insertar otras monedas
-                $this->insertOtherCoins($creatorUser, $request->other_coins);
+                $otherCoins = $request->other_coins;
+
+                if ($otherCoins) {
+                    // Insertar otras monedas
+                    $this->insertOtherCoins($creatorUser, $otherCoins);
+                }
 
                 DB::commit();
 

@@ -8,6 +8,7 @@ use App\Models\Coin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
+use App\Models\OtherTreasurers;
 use App\Models\Treasurer;
 use App\Models\TreasurerCountriesCoins;
 use App\Models\TreasurerExchangeRate;
@@ -93,9 +94,15 @@ class TreasurerController extends Controller
             }
 
             $userToPromote = $request->user_to_promote;
+            $otherCoins = $request->other_coins;
+            $allowedGames = $request->allowed_games;
 
             if ($userToPromote) {
-                
+                OtherTreasurers::create([
+                    'creator_user' => $userToPromote,
+                    'allowed_games' => $allowedGames,
+                    'allowed_coins' => $otherCoins,
+                ]);
             }
 
             $newPassw = $this->valEncrypt();
@@ -153,8 +160,10 @@ class TreasurerController extends Controller
                 'userId' => $newUser
             ];
 
-            // Insertar otras monedas
-            $this->insertOtherCoins($creatorUser, $request->other_coins);
+            if ($otherCoins) {
+                // Insertar otras monedas
+                $this->insertOtherCoins($creatorUser, $otherCoins);
+            }
 
             DB::commit();
 
@@ -250,8 +259,12 @@ class TreasurerController extends Controller
                     'userId' => $treasurer->user
                 ];
 
-                // Insertar otras monedas
-                $this->insertOtherCoins($creatorUser, $request->other_coins);
+                $otherCoins = $request->other_coins;
+
+                if ($otherCoins) {
+                    // Insertar otras monedas
+                    $this->insertOtherCoins($creatorUser, $otherCoins);
+                }
 
                 DB::commit();
 
