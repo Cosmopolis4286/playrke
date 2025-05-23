@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class UserType extends Model
 {
     protected $table = "user_type";
-    protected $fillable = ['description', 'prefix', 'status'];
+    protected $fillable = ['id', 'description', 'prefix', 'status'];
 
     public static function getValueById($id, $value)
     {

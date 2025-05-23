@@ -341,7 +341,6 @@ class TreasurerController extends Controller
             return response()->json(['Error' => 'El tesorero no ha cargado los datos bancarios']);
         }
 
-        $exchangeRate = TreasurerExchangeRate::getTreasurerCoinValue($treasurerID, $coin);
         $treasurer = $treasurer->name;
 
         return response()->json(compact('treasurer', 'paymentDetails', 'exchangeRate'));

@@ -81,7 +81,10 @@ class AdminController extends Controller
 
     public function otherTreasurers()
     {
-        $otherTreasurers = OtherTreasurers::with(['User.Country:id,name'])->get();
+        $otherTreasurers = OtherTreasurers::with([
+            'User:id,user_type,country,username',
+            'User.Country:id,name'
+        ])->get();
 
         $coins = Coin::getByIdForStatus(['=', 1]);
         $games = Games::where('status', 1)->get();

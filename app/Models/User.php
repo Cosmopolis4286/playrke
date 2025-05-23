@@ -35,6 +35,21 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
     ];
 
+    protected $appends = ['user_type_description'];
+
+    public function UserType()
+    {
+        return $this->belongsTo(UserType::class, 'user_type');
+    }
+
+    /**
+     * Obtener la descripción del tipo de usuario.
+     */
+    public function getUserTypeDescriptionAttribute()
+    {
+        return optional($this->userType)->description;
+    }
+
     public function ReferredBy()
     {
         return $this->belongsTo(User::class, 'referred_by');
@@ -43,11 +58,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function Referrals()
     {
         return $this->hasMany(User::class, 'referred_by');
-    }
-
-    public function UserType()
-    {
-        return $this->belongsTo(UserType::class, 'user_type');
     }
 
     public function Country()

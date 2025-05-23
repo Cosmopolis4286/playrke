@@ -191,18 +191,4 @@ class OtherTreasurersController extends Controller
         Session::flash('message', 'Status actualizado');
         return redirect()->back()->with('type', 'success');
     }
-
-    public function changePassword($id)
-    {
-        $res = $this->handleChangePassword('Treasurer', $id);
-
-        if (isset($res['PWD'])) {
-            $password = $res['PWD'];
-            Session::flash('message', "La nueva contraseña del Comercio es: <b>$password</b>");
-            Session::flash('message-passw', $password);
-        } else {
-            Session::flash('msg-error', 'Ha ocurrido un error');
-        }
-        return redirect()->back();
-    }
 }

@@ -13,7 +13,7 @@
                                 <thead>
                                     <tr>
                                         <th>Tipo</th>
-                                        <th>Nombre</th>
+                                        <th>Usuario</th>
                                         <th>Pais</th>
                                         <th>Status</th>
                                         <th>Accion</th>
@@ -22,9 +22,9 @@
                                 <tbody>
                                     @foreach ($otherTreasurers as $item)
                                         <tr>
-                                            <td></td>
-                                            <td>{{ $item->name }}</td>
-                                            <td>{{ $item->Country->name }}</td>
+                                            <td>{{ $item->User->user_type_description }}</td>
+                                            <td>{{ $item->User->username }}</td>
+                                            <td>{{ $item->User->Country->name }}</td>
                                             <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                             <td>
                                                 @include('includes.btn-group', [
@@ -45,11 +45,6 @@
                                                             'dataType' => '4',
                                                             'color' => 'btn-secondary',
                                                             'icon' => 'fa-solid fa-repeat',
-                                                        ],
-                                                        (object) [
-                                                            'dataType' => '5',
-                                                            'color' => 'bg-navy',
-                                                            'icon' => 'fa-solid fa-lock',
                                                         ],
                                                     ],
                                                 ])
