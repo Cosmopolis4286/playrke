@@ -77,7 +77,6 @@
     </div>
 
     <div class="row">
-        @include('includes.wallet.index', ''=>)
     </div>
 
 @endsection
