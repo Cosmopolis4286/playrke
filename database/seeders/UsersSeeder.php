@@ -31,6 +31,6 @@ class UsersSeeder extends Seeder
         ])->id;
 
         // Registra Monedero
-        Wallet::create(['coin' => 3, 'user' => $userId]);
+        Wallet::create(['coin' => 1, 'user' => $userId]);
     }
 }

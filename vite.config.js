@@ -29,6 +29,7 @@ const jsFiles = [
 const cssFiles = [
     'resources/css/rke/styles.css',
     'resources/css/rke/auth-pages.css',
+    'resources/css/rke/register.css',
     'resources/css/games/bingo/bingo-game-rooms.css',
     'resources/css/games/bingo/bingo-in-game.css',
     'resources/css/games/bingo/bingo-handle-plays.css',
