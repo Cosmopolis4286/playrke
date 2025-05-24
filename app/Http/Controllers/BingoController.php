@@ -768,7 +768,7 @@ class BingoController extends Controller
             'creatorType' => $creator['type'],
             'creatorID' => encrypt($creatorID),
             'room' => $room,
-            'type_prize_pool' => $room->Config->type_prize_pool,
+            'typePrizePool' => $room->Config->type_prize_pool,
             'coinSym' => $coinSym,
             'prizePool' => $this->convertPrizeValue($roomID, $coinID, $prizePool),
             'startTime' => $this->convertToUnixTimestamp($room->Config->date, $room->Config->time),
@@ -3444,7 +3444,6 @@ class BingoController extends Controller
             'route' => 'bingo.ctnsAwarded',
             'parameters' => [
                 'type' => $type,
-                'dateFilter' => $dateFilter,
                 'coin' => $coin
             ]
         ];

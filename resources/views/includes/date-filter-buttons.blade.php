@@ -7,7 +7,7 @@
         $params = $routeWithCoin['parameters'] ?? [];
     @endphp
 
-    <a href="{{ route($routeWithCoin['route'], $params) }}"
+    <a href="{{ route($routeWithCoin['route'], array_merge($params, ['dateFilter' => $filter])) }}"
         class="btn-date-filter btn btn-sm btn-primary {{ $dateFilter === $filter || ($dateFilter === null && $filter === 'today') ? 'active' : '' }}"
         role="button">
         {{ $label }}

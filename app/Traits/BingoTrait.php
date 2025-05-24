@@ -408,6 +408,10 @@ trait BingoTrait
 
         $fullHouseWinners = $this->getWinnersFullHouse($roomID, $roomUser, $coin);
 
+        if (BingoRoomConfig::getValueByRoom($roomID, 'types_plays')) {
+            $bingoPlaysWinners = [];
+        }
+
         $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2)) ?
             $this->getWinnersSerials($roomID, $roomUser, $coin) : [];
 
@@ -418,6 +422,7 @@ trait BingoTrait
         return [
             'fullHouseWinners' => $fullHouseWinners,
             'serialsWinners' => $serialsWinners,
+            'bingoPlaysWinners' => $bingoPlaysWinners ?? [],
             'prizesValues' => $prizesValues
         ];
     }
@@ -861,9 +866,7 @@ trait BingoTrait
     {
         $roomType = BingoRoom::getValueById($roomID, 'room_type');
 
-        $gameID = Games::getValueByName('BINGO');
-
-        $prizeType = GamePrizes::getValueByDescription($gameID, $prizeType);
+        $prizeType = GamePrizes::getValueByDescription('BINGO', $prizeType);
 
         $recordsToInsert = $playersToUpdate = [];
 
