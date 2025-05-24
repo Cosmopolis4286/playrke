@@ -83,7 +83,7 @@ class BingoPrizeCtns extends Model
 
     public static function existsPrizeCtns($room, $prizeType)
     {
-        $prizeType = $prizeType === 'JACKPOT' ? 1 : 2;
+        $prizeType = GamePrizes::getValueByDescription('BINGO', $prizeType);
 
         return self::where(['room' => $room, 'prize_type' => $prizeType])->exists();
     }

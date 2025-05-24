@@ -300,23 +300,14 @@ function getWinners(arrInfo, arrSize) {
     return content;
 }
 
-function showFullHouseWinners(arr, size) {
-    const content = getWinners(arr, size);
-    $('#full-house-winners').html(content);
-}
-
-function showSeriaslWinners(arr, size) {
-    const content = getWinners(arr, size);
-    $('#serials-winners').html(content);
-}
-
 function showWinners(arrInfo, chipWin) {
 
     if (loaderChip) $('#cont-loader').hide();
     if (roomStatus == 3) $('#text-check-bingo').hide();
 
-    const arrSizefullHouse = arrInfo.fullHouseWinners.size;
+    const arrSizefullHouse = arrInfo.fullHouseWinners.size ?? 0;
     const arrSizeSerials = arrInfo.serialsWinners.size ?? 0;
+    const arrSizeBingoPlays = arrInfo.bingoPlaysWinners.size ?? 0;
 
     const countWinners = arrSizefullHouse + arrSizeSerials;
 
@@ -331,11 +322,22 @@ function showWinners(arrInfo, chipWin) {
             "alt": chipWin
         });
 
-        showFullHouseWinners(arrInfo.fullHouseWinners, arrSizefullHouse);
-        $('#full-house-value').text(arrInfo.prizesValues[0]);
+        if (arrSizefullHouse > 0) {
+            let content = getWinners(arrInfo.fullHouseWinners, arrSizefullHouse);
+            $('#full-house-winners').html(content);
+            $('#full-house-value').text(arrInfo.prizesValues[0]);
+        }
+
+        if (arrSizeBingoPlays > 0) {
+            let content = getWinners(arrInfo.bingoPlaysWinners, arrSizeBingoPlays);
+            $('#bingo-plays-winners').html(content);
+            $('#bingo-plays-value').text(arrInfo.prizesValues[1]);
+            $('#cont-bingo-plays').removeClass('hide-elem');
+        }
 
         if (arrSizeSerials > 0) {
-            showSeriaslWinners(arrInfo.serialsWinners, arrSizeSerials);
+            let content = getWinners(arrInfo.serialsWinners, arrSizeSerials);
+            $('#serials-winners').html(content);
             $('#serial-value').text(arrInfo.prizesValues[1]);
             $('#cont-serials').removeClass('hide-elem');
         }
