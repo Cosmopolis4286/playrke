@@ -28,8 +28,7 @@ const jsFiles = [
 // Lista de CSS (solo para laravel plugin)
 const cssFiles = [
     'resources/css/rke/styles.css',
-    'resources/css/rke/auth-pages.css',
-    'resources/css/rke/register.css',
+    'resources/css/rke/home-page.css',
     'resources/css/games/bingo/bingo-game-rooms.css',
     'resources/css/games/bingo/bingo-in-game.css',
     'resources/css/games/bingo/bingo-handle-plays.css',

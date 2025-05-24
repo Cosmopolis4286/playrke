@@ -1,52 +1,5 @@
-@extends('layouts.app-auth-pages')
+@extends('layouts.app-home-page')
 @section('title', 'Tu Sitio Para Ganar')
-
-@section('content')
-    <form action="{{ route('login') }}" method="post" id="form-login">@csrf
-        <!-- Input para email o nombre de usuario -->
-        <div class="login_form_item">
-            <i class="e_mc fa-solid fa-user" aria-hidden="true"></i>
-            <input id="user-email" type="text" class="@error('login') is-invalid @enderror" name="login"
-                value="{{ old('login') }}" placeholder="Email/Username" aria-label="Email o Nombre de Usuario">
-        </div>
-        <!-- Mostrar error de validación -->
-        @error('login')
-            <span class="er_nw">{{ $message }}</span>
-        @enderror
-        <!-- Input para contraseña -->
-        <div class="login_form_item">
-            <i class="e_mc fa-solid fa-lock" aria-hidden="true"></i>
-            <i id="eyeClose" class="eye_mc fa-solid fa-eye-slash" style="display: none"
-                aria-label="Ocultar contraseña"></i>
-            <input type="password" class="pass" id="user-psw" name="password" placeholder="Contraseña"
-                aria-label="Contraseña">
-            <i id="eyeOpen" class="eye_mc fa-solid fa-eye" aria-label="Mostrar contraseña"></i>
-        </div>
-        <!-- Botón para iniciar sesión -->
-        <div class="login_form_item">
-            <button type="submit" id="Ingresar">Iniciar Sesión
-                <span id="loader-btn" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
-                    style="display: none"></span>
-            </button>
-        </div>
-        <!-- Enlace para recuperar contraseña -->
-        <div class="login_form_item">
-            <a href="{{ route('password.request') }}" class="forget_password">¿Olvidaste tu contraseña?</a>
-        </div>
-    </form>
-@endsection
-
-@section('pre-footer')
-    @if ($register)
-        <div class="login_footer_ck">
-            <a href="{{ route('register') }}">
-                <span class="pre_tx_link">¿No tienes una cuenta?</span>
-                <span class="sep_r"></span>
-                <span class="user_tx_link">Regístrate</span>
-            </a>
-        </div>
-    @endif
-@endsection
 
 @section('scripts')
     <script type="text/javascript">

@@ -1,4 +1,4 @@
-@extends('layouts.app-auth-pages')
+@extends('layouts.app-home-page')
 @section('title', 'Reestablecer Contraseña')
 @section('content')
     <form id="form-forgot-passw" action="{{ route('password.email') }}" method="post">@csrf
