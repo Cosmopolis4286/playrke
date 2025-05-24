@@ -14,6 +14,7 @@
                                 <thead>
                                     <tr>
                                         <th>Sala</th>
+                                        <th>Tipo</th>
                                         <th>Vendedor</th>
                                         <th>Moneda</th>
                                         <th>#CTN</th>
@@ -23,15 +24,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @php $totalNotPaid = 0; @endphp
                                     @foreach ($ctnsSold as $ctn)
-                                        @php
-                                            $totalCtns = $ctn->sum('ctns');
-                                            if ($ctn->status != 2) {
-                                                $totalNotPaid += $ctn->ctns * $ctn->sale_amount;
-                                            }
-                                            $saleReal = $ctn->Room->price * $ctn->ctns * $ctn->exchange_rate;
-                                        @endphp
                                         <tr>
                                             <td class="align-middle">
                                                 <a class="badge bg-navy" title="Ver Reporte"
@@ -43,10 +36,12 @@
                                                     {{ $ctn->Room->encrypted }}
                                                 </a>
                                             </td>
+                                            <td>{{ $ctn->Room->room_type_description }}</td>
                                             <td>{{ $ctn->Seller->name }}</td>
-                                            <td>{{ $ctn->Coin->long_name }} ({{ $coinSym }})</td>
+                                            <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coinSym }} {{ number_format($ctn->sale_amount, 2, '.') }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ number_format($ctn->sale_amount, 2, '.') }}
+                                            </td>
                                             <td>
                                                 {{ $ctn->created_at->format('d/m/y H:i:s') }}
                                                 <small>GMT-4</small>
@@ -58,7 +53,7 @@
                                                     <button class="btn btn-primary btn-sm btn-confirm-payment"
                                                         data-seller="{{ $ctn->Seller->name }}"
                                                         data-lot="{{ encrypt($ctn->id) }}"
-                                                        data-coin_sym="{{ $coinSym }}"
+                                                        data-coin_sym="{{ $coinData->iso_code }}"
                                                         data-sale_ctns="{{ $ctn->sale_amount }}"
                                                         data-proof="{{ $ctn->Payment->payment_proof }}">
                                                         Validar Pago
@@ -78,10 +73,10 @@
                                 @if (count($ctnsSold))
                                     <tfoot>
                                         <tr>
-                                            <td colspan="3" class="text-right"><b>Total:</b></td>
+                                            <td colspan="4" class="text-right"><b>Total:</b></td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
                                             <td>
-                                                {{ $coinSym }}
+                                                {{ $coinData->iso_code }}
                                                 {{ number_format($ctnsSold->sum('sale_amount'), 2, '.') }}
                                             </td>
                                             <td colspan="2"></td>

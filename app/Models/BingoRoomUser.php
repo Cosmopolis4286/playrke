@@ -10,9 +10,7 @@ class BingoRoomUser extends Model
     protected $fillable = [
         'room',
         'creator_user',
-        'seller',
         'player_user',
-        'player_link',
         'ctns',
         'automarker',
         'winner'
@@ -21,31 +19,6 @@ class BingoRoomUser extends Model
     public function Room()
     {
         return $this->belongsTo(BingoRoomUser::class, 'room');
-    }
-
-    public function Coin()
-    {
-        return $this->belongsTo(Coin::class, 'coin');
-    }
-
-    public function ComRoom()
-    {
-        return $this->belongsTo(SellerRoomLimits::class, 'seller', 'seller');
-    }
-
-    public function CustomerUser()
-    {
-        return $this->belongsTo(CustomerUser::class, 'player_user', 'id');
-    }
-
-    public function PlayerUser()
-    {
-        return $this->belongsTo(User::class, 'player_user', 'id');
-    }
-
-    public function PlayerLink()
-    {
-        return $this->belongsTo(PlayerLink::class, 'player_link', 'id');
     }
 
     public function PrizeCtns()
@@ -58,14 +31,16 @@ class BingoRoomUser extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getByColumn($column, $value, $fields = ['*'])
+    public static function getByPlayerUser($room, $creatorUser, $playerUser, $fields = ['*'])
     {
-        return self::select($fields)->where($column, $value)->first();
+        return self::select($fields)->where('room', $room)->where('creator_user', $creatorUser)
+            ->where('player_user', $playerUser)->first();
     }
 
-    public static function getValueByColumn($room, $column, $columValue, $value)
+    public static function getValueByPlayerUser($room, $creatorUser, $playerUser, $value = 'id')
     {
-        return self::where('room', $room)->where($column, $columValue)->value($value);
+        return self::where('room', $room)->where('creator_user', $creatorUser)
+            ->where('player_user', $playerUser)->value($value);
     }
 
     public static function getPlayerCountByRoom($room, $condition = ['!=', ''])

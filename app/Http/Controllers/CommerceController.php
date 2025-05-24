@@ -11,10 +11,10 @@ use App\Models\BingoCtnsLot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
-use App\Models\PagoMovil;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
+use App\Models\CommerceGamePermission;
 use App\Models\Country;
 use App\Models\PhoneNumbers;
 use App\Models\SellerCountriesCoins;
@@ -39,7 +39,7 @@ class CommerceController extends Controller
 
     private function validateRequest($request, $type = 1, $id = '')
     {
-        // Si es tipo 2, encuentra al vendedor usando el ID descifrado.
+        // Si es tipo 2, encuentra al usuario usando el ID descifrado.
         if ($type == 2) {
             $commerce = Commerce::findOrFail(decrypt($id));
         }
@@ -84,50 +84,6 @@ class CommerceController extends Controller
         }
 
         return $validator; // Devuelve el validador en caso de éxito
-    }
-
-    private function insertOtherCoins($commerceID, $creatorUser, $otherCoins)
-    {
-        if (!empty($otherCoins) && is_array($otherCoins)) {
-
-            // Obtener las monedas seleccionadas y prepararlas para la inserción
-            $otherCoins = Coin::getCoinsById($otherCoins);
-            $coinsToCreate = [];
-
-            foreach ($otherCoins as $coin) {
-                $coinsToCreate[] = [
-                    'commerce' => $commerceID,
-                    'country' => $coin->country,
-                    'coin' => $coin->id,
-                    'creator_user' => $creatorUser,
-                    'status' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ];
-            }
-
-            // Manejo de transacción para insertar las nuevas monedas
-            DB::transaction(function () use ($commerceID, $coinsToCreate) {
-                try {
-                    foreach ($coinsToCreate as $coinData) {
-                        // Insertar la moneda si no existe para ese vendedor
-                        CommerceCountriesCoins::firstOrCreate(
-                            ['commerce' => $commerceID, 'coin' => $coinData['coin']],
-                            $coinData
-                        );
-                    }
-
-                    // Habilitar solo las monedas seleccionadas
-                    CommerceCountriesCoins::where('commerce', $commerceID)
-                        ->whereIn('coin', array_column($coinsToCreate, 'coin'))->update(['status' => 1]);
-                } catch (\Exception $e) {
-                    // Captura de cualquier otra excepción
-                    DB::rollBack();
-                    Log::error('Error general al insertar monedas para el Comercio: ' . $e->getMessage());
-                    throw $e;
-                }
-            });
-        }
     }
 
     public function create(Request $request) /// Registar Comercializadoras
@@ -191,29 +147,28 @@ class CommerceController extends Controller
                 'commerce' => $commerce->id,
                 'country' => $commerce->country,
                 'coin' => $commerce->coin,
+                'level' => '1',
                 'creator_user' => $newUser,
                 'status' => 1
             ]);
 
+            $creatorUser = [
+                'model' => 'Commerce',
+                'id' => $commerce->id,
+                'userId' => $newUser
+            ];
+
             $otherCoins = $request->other_coins;
+            $allowedGames = $request->allowed_games;
 
-            if (!empty($otherCoins) && is_array($otherCoins)) {
-                $otherCoins = Coin::getCoinsById($otherCoins);
-                $timestamp = now();
+            if ($allowedGames) {
+                // Insertar juegos permitidos
+                $this->handleUserGamePermission($creatorUser, $allowedGames);
+            }
 
-                $coinsToCreate = [];
-                foreach ($otherCoins as $coin) {
-                    $coinsToCreate[] = [
-                        'commerce' => $commerce->id,
-                        'country' => $coin->country,
-                        'coin' => $coin->id,
-                        'creator_user' => $newUser,
-                        'status' => 1,
-                        'created_at' => $timestamp,
-                        'updated_at' => $timestamp
-                    ];
-                }
-                CommerceCountriesCoins::insert($coinsToCreate);
+            if ($otherCoins) {
+                // Insertar otras monedas
+                $this->insertOtherCoins($creatorUser, $otherCoins);
             }
 
             // Registrar Code UUID
@@ -230,7 +185,7 @@ class CommerceController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error general: ' . $e->getMessage());
+            Log::error('Error al crear Commerce: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
 
@@ -321,8 +276,24 @@ class CommerceController extends Controller
                         ]);
                 }
 
+                $creatorUser = [
+                    'model' => 'Commerce',
+                    'id' => $commerce->id,
+                    'userId' => $commerce->user
+                ];
+
                 $otherCoins = $request->other_coins;
-                $this->insertOtherCoins($commerce->id, $commerce->user, $otherCoins);
+                $allowedGames = $request->allowed_games;
+
+                if ($allowedGames) {
+                    // Insertar juegos permitidos
+                    $this->handleUserGamePermission($creatorUser, $allowedGames);
+                }
+
+                if ($otherCoins) {
+                    // Insertar otras monedas
+                    $this->insertOtherCoins($creatorUser, $otherCoins);
+                }
 
                 DB::commit();
 
@@ -370,15 +341,6 @@ class CommerceController extends Controller
             Session::flash('msg-error', 'Ha ocurrido un error');
         }
         return redirect()->back();
-    }
-
-    public function allDirectories()
-    {
-        $title = 'Datos Bancarios';
-
-        $pagoMovils = PagoMovil::with(['DocumentType', 'Bank'])->where("user", Auth::id())->get();
-
-        return view('modules.commerce.directory.Venezuela.index', compact('title', 'pagoMovils'));
     }
 
     public function sellers()

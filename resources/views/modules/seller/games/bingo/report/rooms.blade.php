@@ -18,41 +18,41 @@
                                         <th>Fecha</th>
                                         <th>Hora</th>
                                         <th>Moneda</th>
-                                        <th>#Ctn</th>
+                                        <th>CTNs</th>
                                         <th>Venta</th>
                                         <th>%Com</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($roomsData as $data)
+                                    @foreach ($roomsData as $room)
                                         <tr>
                                             <td class="align-middle">
                                                 <a class="badge bg-navy" title="Ver Reporte"
                                                     href="{{ route('bingo.reportSalesByRoom', [
-                                                        'room' => $data['room']->encrypted,
+                                                        'room' => $room['encrypted'],
                                                         'coin' => encrypt($coin),
                                                     ]) }}">
-                                                    {{ $data['room']->encrypted }}
+                                                    {{ $room['encrypted'] }}
                                                 </a>
                                             </td>
-                                            <td>{{ $data['room']->room_type_description }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($data['room']->Config->date)->format('d/m/y') }}
+                                            <td>{{ $room['roomType'] }}</td>
+                                            <td>{{ $room['date'] }}
                                             </td>
-                                            <td>{{ $data['room']->Config->time }}h</td>
-                                            <td>{{ $coinName }}</td>
-                                            <td>{{ $data['calculatedCtns'] }}</td>
-                                            <td>{{ $coinSym }} {{ $data['calculatedSale'] }}</td>
-                                            <td>{{ $coinSym }} {{ $data['calculatedCom'] }}</td>
+                                            <td>{{ $room['time'] }}h</td>
+                                            <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
+                                            <td>{{ $room['ctns'] }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ $room['sales'] }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ $room['sellerCommn'] }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
-                                @if (count($roomsData))
+                                @if (!empty($roomsData))
                                     <tfoot>
                                         <tr>
                                             <td colspan="5" class="text-right"><b>Total:</b></td>
-                                            <td>{{ collect($roomsData)->sum('calculatedCtns') }}</td>
-                                            <td>{{ $coinSym }} {{ $totalSale }}</td>
-                                            <td>{{ $coinSym }} {{ $totalComision }}</td>
+                                            <td>{{ $totalsFormatted['ctns'] }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ $totalsFormatted['sellerCommn'] }}</td>
                                         </tr>
                                     </tfoot>
                                 @endif

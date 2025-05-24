@@ -2,67 +2,14 @@
 
 namespace App\Traits;
 
-use App\Models\Commerce;
 use App\Models\Games;
 use App\Models\PlayerLink;
-use App\Models\Seller;
 use App\Models\UserPurchaseCodes;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
 trait PlayerLinkTrait
 {
-    public function createPlayerLinkInfo($arr)
-    {
-        try {
-
-            $country = $arr['country'];
-            $name = $arr['name'];
-            $lastname = $arr['lastname'];
-            $phone = $arr['phone'];
-
-            // Crear código de compra
-            $purchaseCode = UserPurchaseCodes::create([
-                'name' => $name,
-                'lastname' => $lastname,
-                'country' => $country,
-                'phone' => $phone,
-                'code' => strtoupper(Str::random(8)),
-                'status' => 'Activo',
-            ]);
-
-            if (!$purchaseCode) {
-                throw new \Exception('Error al crear el código de compra');
-            }
-
-            // Crear el nuevo registro
-            $player = PlayerLink::create([
-                'game' => $arr['game'], // Bingo
-                'room' => $arr['room'], // ID Sala Bingo
-                'creator_user' => $arr['creator_user'],
-                'seller' => $arr['seller'],
-                'country' => $country,
-                'coin' => $arr['coin'],
-                'link' => $arr['link'],
-                'name' => $name,
-                'lastname' => $lastname,
-                'identification' => $arr['identification'],
-                'phone' => $phone,
-                'purchase_code' => $purchaseCode->id,
-            ]);
-
-            if (!$player) {
-                throw new \Exception('Error al crear el jugador');
-            }
-
-            return $player->id;
-        } catch (\Exception $e) {
-            Log::error('Error en createPlayerLinkInfo(): ' . $e->getMessage());
-            return false; // Retornar false si algo falla
-        }
-    }
-
     public function createPlayerLink($game, $room = '')
     {
         $gameID = Games::getValueByName($game);
@@ -74,53 +21,65 @@ trait PlayerLinkTrait
 
     public function handlePlayerLink($data)
     {
-        $playerLink = $data['playerLink'] ?? null;
+        $roomUser = $data['roomUser'] ?? null;
         $playerPhone = $data['playerPhone'] ?? null;
 
-        $player = PlayerLink::select('id', 'name', 'lastname', 'link')
-            ->where('game', 1)->where('room', $data['room'])
-            ->where(function ($query) use ($playerPhone, $playerLink) {
+        $player = PlayerLink::where('game', 1)->where('room', $data['room'])
+            ->where(function ($query) use ($playerPhone, $roomUser) {
                 $query->where('phone', $playerPhone)
-                    ->orWhere('id', $playerLink);
-            })->first();
-
-        $playerName = $data['playerName'] ?? $player->name;
-        $playerLastname = $data['playerLastname'] ?? $player->lastname;
-
-        $arrInitials = $this->initialCharacters([$playerName, $playerLastname]);
-        $serialText = $arrInitials[0] . $arrInitials[1];
+                    ->orWhere('id', $roomUser);
+            })->value('id');
 
         // Verificar si el jugador no existe
         if (!$player) {
+
+            $playerName = $data['playerName'] ?? $player->name;
+            $playerLastName = $data['playerLastName'] ?? $player->lastname;
+            $country = $data['country'];
+
+            // Crear código de compra
+            $purchaseCode = UserPurchaseCodes::create([
+                'name' => $playerName,
+                'lastname' => $playerLastName,
+                'country' => $country,
+                'phone' => $playerPhone,
+                'code' => strtoupper(Str::random(8)),
+                'status' => 'Activo',
+            ])->id;
+
+            if (!$purchaseCode) {
+                throw new \Exception('Error al crear el código de compra');
+            }
+
             $playerLink = $this->createPlayerLink('BINGO');
 
-            $arrDataPlayer = [
+            $dataPlayer = [
                 'game' => Games::getValueByName('BINGO'),
                 'room' => $data['room'],
                 'creator_user' => $data['creator']['userId'],
+                'room_user' => $roomUser,
                 'seller' => $data['seller'],
-                'country' => $data['country'],
+                'country' => $country,
                 'coin' => $data['coin'],
                 'link' => $playerLink,
                 'name' => $playerName,
-                'lastname' => $playerLastname,
+                'lastname' => $playerLastName,
                 'identification' => null,
                 'phone' => $playerPhone,
+                'purchase_code' => $purchaseCode
             ];
 
-            $player = $this->createPlayerLinkInfo($arrDataPlayer);
+            // Crear el nuevo registro
+            $player = PlayerLink::create($dataPlayer)->id;
 
             if (!$player) {
                 throw new \Exception('Error al crear la información del jugador');
             }
-        } else {
-            $player = $player->id ?? null;
         }
 
         $data['playerLink'] = $player;
-        $data['initials'] = $serialText;
 
-        unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastname']);
+        unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastName']);
 
         return $data;
     }

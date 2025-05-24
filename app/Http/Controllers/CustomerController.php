@@ -31,7 +31,7 @@ class CustomerController extends Controller
 
     private function validateRequest($request, $type = 1, $id = '')
     {
-        // Si es tipo 2, encuentra al Cliente usando el ID descifrado.
+        // Si es tipo 2, encuentra al usuario usando el ID descifrado.
         if ($type == 2) {
             $customer = Customer::findOrFail(decrypt($id));
         }
@@ -198,7 +198,7 @@ class CustomerController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error general: ' . $e->getMessage());
+            Log::error('Error al crear Customer: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
 

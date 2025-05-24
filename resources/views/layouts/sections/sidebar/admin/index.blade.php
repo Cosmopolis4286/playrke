@@ -24,6 +24,13 @@
                     <p>Comercios</p>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('admin.treasurers') }}" title="Tesoreros"
+                    class="nav-link {{ !Route::is('admin.treasurers') ?: 'active' }}"> <i
+                        class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Tesoreros</p>
+                </a>
+            </li>
         </ul>
     </li>
     {{-- <li class="nav-item has-treeview">

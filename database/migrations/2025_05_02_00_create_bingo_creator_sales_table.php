@@ -14,11 +14,14 @@ return new class extends Migration
         Schema::create('bingo_creator_sales', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->string('coin', 15);
             $table->double('sale_amount');
             $table->double('final_sale_amount');
-            $table->double('prize_pool');
+            $table->double('room_commn');
+            $table->double('seller_commn');
+            $table->double('rke_commn');
+            $table->double('prize_pool_amount');
             $table->timestamps();
         });
     }

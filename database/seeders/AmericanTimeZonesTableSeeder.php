@@ -23,17 +23,17 @@ class AmericanTimeZonesTableSeeder extends Seeder
 
         // Preparar los datos para inserción
         $data = array_map(function ($timezone) {
-            // Obtener la diferencia en GMT
+            // Obtener la diferencia en UTC
             $dateTimeZone = new DateTimeZone($timezone);
             $dateTime = new DateTime('now', $dateTimeZone);
             $offset = $dateTime->getOffset(); // Obtiene el offset en segundos
 
-            // Convertir el offset a un formato GMT
-            $gmt = 'GMT' . ($offset < 0 ? '-' : '+') . str_pad(abs($offset) / 3600, 2, '0', STR_PAD_LEFT);
+            // Convertir el offset a un formato UTC
+            $utc = 'UTC' . ($offset < 0 ? '-' : '+') . str_pad(abs($offset) / 3600, 2, '0', STR_PAD_LEFT);
 
             return [
                 'name' => $timezone,
-                'gmt' => $gmt,
+                'utc' => $utc,
                 'created_at' => now(),
                 'updated_at' => now()
             ];

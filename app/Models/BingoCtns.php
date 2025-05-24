@@ -13,7 +13,6 @@ class BingoCtns extends Model
         'seller',
         'room_user',
         'player_user',
-        'player_link',
         'coin',
         'lot',
         'serial',
@@ -62,7 +61,7 @@ class BingoCtns extends Model
 
     public function PlayerLink()
     {
-        return $this->belongsTo(PlayerLink::class, 'player_link', 'id');
+        return $this->belongsTo(PlayerLink::class, 'room_user', 'room_user');
     }
 
     public function Lot()
@@ -89,11 +88,6 @@ class BingoCtns extends Model
     {
         return self::where('room', $room)->where($column, $value)
             ->get(['id', 'serial', 'b1', 'b2', 'b3', 'b4', 'b5', 'i1', 'i2', 'i3', 'i4', 'i5', 'n1', 'n2', 'n3', 'n4', 'g1', 'g2', 'g3', 'g4', 'g5', 'o1', 'o2', 'o3', 'o4', 'o5']);
-    }
-
-    static function getCtnSerialByPlayerInRoom($room, $playerLink)
-    {
-        return self::where('room', $room)->where('player_link', $playerLink)->value('serial');
     }
 
     static function getCountCtnByRoom($room)

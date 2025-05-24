@@ -78,4 +78,9 @@ class Commerce extends Model
   {
     return self::where($colum, $value)->exists();
   }
+
+  public static function getActiveCommerces($fields = ['*'])
+  {
+    return self::where('status', 1)->get($fields);
+  }
 }

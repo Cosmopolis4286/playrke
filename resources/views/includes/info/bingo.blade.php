@@ -17,10 +17,3 @@
 </p>
 <h5>Modalidades:</h5>
 <p><u>Modo Cartón Lleno</u>: En esta modalidad sólo se puede cantar Bingo al completar todos los números en tu cartón.</p>
-<h5>Premio:</h5>
-<p>
-    Cada sala tiene un prize_pool dependiendo de la cantidad de Cartones que se compren 
-    para una partida y, por supuesto, la primera persona que cante Bingo antes de salir 
-    la siguiente Ficha se lleva el total del prize_pool. Todos los prize_pools ya incluyen 20% de 
-    comisión para la plataforma. Adicionalmente, si hay más de un ganador el prize_pool se reparte.
-</p>

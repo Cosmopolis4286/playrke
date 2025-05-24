@@ -19,9 +19,9 @@ return new class extends Migration
             $table->enum('payment', ['CS', 'CC', 'SP']);
             $table->string('description', 35)->nullable();
             $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('seller');
-            $table->unsignedBigInteger('player_link');
+            $table->foreignId('player_link')->constrained('player_links')->onDelete('cascade');
             $table->unsignedBigInteger('sender');
             $table->unsignedBigInteger('prize_type');
             $table->unsignedBigInteger('lot');
@@ -34,7 +34,6 @@ return new class extends Migration
             $table->foreign('prize_ctn')->references('id')->on('bingo_prize_ctns');
             $table->foreign('room')->references('id')->on('bingo_rooms');
             $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('player_link')->references('id')->on('player_link')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('sender')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('prize_type')->references('id')->on('game_prizes')->onDelete('cascade');
             $table->foreign('lot')->references('id')->on('bingo_ctns_lot');

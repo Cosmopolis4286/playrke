@@ -112,7 +112,7 @@
                                             </div>
                                         </div>
                                         <div class="b_info_card">
-                                            <div class="bot_card" title="prize_pool Acumulado">
+                                            <div class="bot_card" title="prize-pool Acumulado">
                                                 <input type="checkbox" id="evento-click">
                                                 <label for="evento-click"></label>
                                                 <i class="icon-min fa-solid fa-coins"></i>

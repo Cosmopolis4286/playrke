@@ -77,7 +77,7 @@
                     <td class="align-middle">{{ $coinSym }}
                         {{ number_format($allSale, 2, '.') }}</td>
                     <td>
-                        <small>{{ $room->Config->JackpotType->description }}</small>
+                        <small>{{ $room->Config->TypePrizePool->description }}</small>
                         <br>{{ $coinSym }} {{ number_format($prizePool, 2, '.') }}
                     </td>
                     {{-- Estado --}}

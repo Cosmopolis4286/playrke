@@ -182,15 +182,23 @@ function validateInput(input, isFloat = true, callback = null) {
         let value = isFloat ? parseFloat($input.val()) : $input.val();
         const min = parseFloat($input.attr('min')) || 0;
         const max = parseFloat($input.attr('max')) || 100;
+        let error = false;
 
+        // Verificar si el valor es válido
         if (isNaN(value) || value < min || value > max) {
             showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
-            value = min;
+            value = min; // Ajustar el valor al mínimo si hay error
+            error = true;
         }
 
+        // Actualizar el valor del input
         $input.val(isFloat ? value.toFixed(2) : value);
 
-        if (typeof callback === 'function') callback();
+        // Llamar al callback si es una función, pasando el estado de error
+        if (typeof callback === 'function') {
+            callback(!error); // Pasa `true` si no hay error, `false` si hay error
+        }
+
     }, 1500);
 }
 

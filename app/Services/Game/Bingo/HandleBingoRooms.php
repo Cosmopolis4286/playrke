@@ -4,6 +4,7 @@ namespace App\Services\Game\Bingo;
 
 use App\Models\{BingoCtns, BingoDraw, BingoPrizeCtns, BingoRoom, BingoRoomUser, User};
 use App\Traits\BingoTrait;
+use Illuminate\Support\Facades\Log;
 
 class HandleBingoRooms
 {
@@ -33,7 +34,11 @@ class HandleBingoRooms
 
         $status = $this->determineRoomStatus($roomID, $existsCtns, $existsPlayers);
 
-        BingoRoom::where('id', $roomID)->update(['status' => $status]);
+        if (!isset($status['Error'])) {
+            BingoRoom::where('id', $roomID)->update(['status' => $status]);
+        } else {
+            Log::info($status['Error'] . ": Sala [ID => $roomID]");
+        }
     }
 
     private function determineRoomStatus(int $roomID, bool $existsCtns, bool $existsPlayers): int
@@ -41,7 +46,13 @@ class HandleBingoRooms
         date_default_timezone_set(config('app.timezone'));
 
         if ($existsCtns && $existsPlayers) {
+
             $winChip = BingoDraw::getWinningChip($roomID) ?? $this->handleDraw($roomID);
+
+            if (isset($winChip['Error'])) {
+                return $winChip;
+            }
+
             return ($winChip->time <= time()) ? 4 : 3;
         }
 

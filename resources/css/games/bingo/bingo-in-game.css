@@ -130,8 +130,8 @@ body {
 }
 
 #last-win-chip {
-    width: 28px;
-    height: 28px;
+    width: 28.5px;
+    height: 28.5px;
 }
 
 #cont-ctn-award-winning {
@@ -146,7 +146,7 @@ body {
     line-height: 20px;
 }
 
-#prize_pool-winners {
+#full-house-winners {
     max-height: 150.5px;
     overflow-y: auto;
 }
@@ -204,7 +204,7 @@ body {
     background: linear-gradient(to bottom, #0b4cfde3, #003bb9);
 }
 
-#cont-prize_pool-info {
+#cont-prize-pool-info {
     position: relative;
     display: flex;
     align-items: center;
@@ -226,7 +226,7 @@ body {
     max-height: 100%;
 }
 
-#cont-prize_pool-info-amount {
+#cont-prize-pool-info-amount {
     color: antiquewhite;
     font-size: 200%;
     line-height: 28px;
@@ -239,25 +239,25 @@ body {
     height: auto;
 }
 
-#cont-jackpot-type {
+#cont-type-prize-pool {
     font-weight: bold;
     font-size: 72.75%;
     color: rgb(255, 238, 0);
 }
 
-#cont-prize_pool-amount {
+#cont-prize-pool-amount {
     display: flex;
     justify-content: center;
     align-items: center;
     font-family: 'Alfa Slab One', cursive;
 }
 
-#prize_pool-coin-sym {
+#prize-pool-coin-sym {
     font-size: 3.45vmin;
     color: rgb(231, 231, 231);
 }
 
-#prize_pool-amount {
+#prize-pool-amount {
     font-weight: 500;
     color: rgb(255, 255, 255);
     font-size: clamp(20px, 2.15vw, 2.5vw);

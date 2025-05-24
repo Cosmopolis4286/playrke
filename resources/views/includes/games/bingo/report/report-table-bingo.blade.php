@@ -16,7 +16,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($roomData as $room)
+            @foreach ($roomsData as $room)
                 <tr>
                     <td class="align-middle">
                         <a class="badge bg-navy" title="Ver Reporte"
@@ -25,28 +25,28 @@
                         </a>
                     </td>
                     <td>{{ $room['roomType'] }}</td>
-                    <td>{{ \Carbon\Carbon::parse($room['date'])->format('d/m/y') }}</td>
+                    <td>{{ $room['date'] }}</td>
                     <td>{{ $room['time'] }}h</td>
-                    <td>{{ $coinName }}</td>
-                    <td>{{ $room['allCtns'] }}</td>
-                    <td>{{ $coinSym }} {{ $room['allSaleRoom'] }}</td>
-                    <td>{{ $coinSym }} {{ $room['comSaleSellerRoom'] }}</td>
-                    <td>{{ $coinSym }} {{ $room['comBancaRoom'] }}</td>
-                    <td>{{ $coinSym }} {{ $room['prize_poolRoom'] }}</td>
+                    <td>{{ $coinData->short_name }}</td>
+                    <td>{{ $room['ctns'] }}</td>
+                    <td>{{ $coinData->iso_code }} {{ $room['sales'] }}</td>
+                    <td>{{ $coinData->iso_code }} {{ $room['sellerCommn'] }}</td>
+                    <td>{{ $coinData->iso_code }} {{ $room['roomCommn'] }}</td>
+                    <td>{{ $coinData->iso_code }} {{ $room['prizePool'] }}</td>
                 </tr>
             @endforeach
         </tbody>
-        <tfoot>
-            <tr>
-                <td colspan="5" class="text-right"><b>Total:</b></td>
-                @if (count($roomData))
-                    <td>{{ $totalsFormatted['allCtns'] }}</td>
-                    <td>{{ $coinSym }} {{ $totalsFormatted['allSales'] }}</td>
-                    <td>{{ $coinSym }} {{ $totalsFormatted['comSaleSeller'] }}</td>
-                    <td>{{ $coinSym }} {{ $totalsFormatted['comBanca'] }}</td>
-                    <td>{{ $coinSym }} {{ $totalsFormatted['prize_pool'] }}</td>
-                @endif
-            </tr>
-        </tfoot>
+        @if (count($roomsData))
+            <tfoot>
+                <tr>
+                    <td colspan="5" class="text-right"><b>Total:</b></td>
+                    <td>{{ $totalsFormatted['ctns'] }}</td>
+                    <td>{{ $coinData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
+                    <td>{{ $coinData->iso_code }} {{ $totalsFormatted['sellerCommn'] }}</td>
+                    <td>{{ $coinData->iso_code }} {{ $totalsFormatted['roomCommn'] }}</td>
+                    <td>{{ $coinData->iso_code }} {{ $totalsFormatted['prizePool'] }}</td>
+                </tr>
+            </tfoot>
+        @endif
     </table>
 </div>

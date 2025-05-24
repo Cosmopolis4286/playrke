@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class JackpotTypeSeeder extends Seeder
+class TypePrizePoolSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -14,8 +14,8 @@ class JackpotTypeSeeder extends Seeder
      */
     public function run()
     {
-        // Insertar los datos en la tabla 'jackpot_types'
-        DB::table('jackpot_types')->insert([
+        // Insertar los datos en la tabla 'type_prize_pools'
+        DB::table('type_prize_pools')->insert([
             ['id' => 1, 'description' => 'Acumulativo'],
             ['id' => 2, 'description' => 'Premio'],
             ['id' => 3, 'description' => 'Mixto']

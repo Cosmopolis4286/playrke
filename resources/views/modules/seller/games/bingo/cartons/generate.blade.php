@@ -11,10 +11,10 @@
                             <div class="form-group col-9 col-sm-5">
                                 <label for="room">Próximos Bingo</label>
                                 <select disabled id="room" class="form-control" name="room" required></select>
-                                <div id="cont-tx-prize_pool-room" class="mt-1 hide-elem">
-                                    <b><small><span class="jackpot-type"></span> Actual:</small></b>
+                                <div id="cont-tx-prize-pool-room" class="mt-1 hide-elem">
+                                    <b><small><span class="type-prize-pool"></span> Actual:</small></b>
                                     <span class="coin-symbol"></span>
-                                    <span id="tx-prize_pool-room"></span>
+                                    <span id="tx-prize-pool-room"></span>
                                 </div>
                             </div>
                             <div class="form-group col-6 col-sm-4">
@@ -29,7 +29,7 @@
                             <div class="form-group col-6 col-sm-3">
                                 <label for="num-ctns">#CTNs</label>
                                 <input id="num-ctns" class="form-control" type="number" name="num_ctns" min="1"
-                                    max="30" required disabled>
+                                    max="40" step="1" required disabled>
                             </div>
                         </div>
                         <div class="row mt-1">
@@ -157,13 +157,13 @@
 @section('scripts')
     @vite('resources/js/rke/time-functions.js')
     <script>
+        const form = $("#form-ctns");
         const room = $("#room");
         const rooms = @json($rooms);
         const numCtns = $("#num-ctns");
         const typeSale = $("#type-sale");
         const country = $("#country");
         const sellerCommn = @json($commn);
-        const form = $("#form-ctns");
         const btnGenerate = $("#btn-generate-ctn");
         const btnSearchPhone = $("#btn-search-phone");
         let roomID = '';
@@ -171,7 +171,7 @@
         let allowsUSDT = false;
         let coinSym = '';
         let ctnPrice = 1;
-        let prize_poolRoom;
+        let prizePool;
         let playerInfo = '';
         let playerInGame = false;
 
@@ -251,13 +251,13 @@
             let ctns = numCtns.val();
             let total = formatNumber(ctnPrice * ctns);
             let totalsellerCommn = formatNumber(total * (sellerCommn / 100));
-            let prizePoolAmount = formatNumber((total - totalsellerCommn));
+            let prizePool = formatNumber((total - totalsellerCommn));
 
             if (roomID) {
                 $(".coin-symbol").text(coinSym);
                 $("#tx-total-amount").html(total);
                 $("#tx-seller-commn").html(totalsellerCommn);
-                $("#tx-commerce-amount").html(prizePoolAmount);
+                $("#tx-commerce-amount").html(prizePool);
             }
         }
 
@@ -267,7 +267,7 @@
             ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
             $("#ctn-price-symbol").text(coinSym);
             $("#ctn-price-amount").text(ctnPrice);
-            $("#tx-prize_pool-room").text(formatNumber((prize_poolRoom * exchangeRate), 3));
+            $("#tx-prize-pool-room").text(formatNumber((prizePool * exchangeRate), 3));
             calculateSale();
         }
 
@@ -317,7 +317,7 @@
 
             if (!roomID) {
                 $(".coin-symbol, .sale-info").empty();
-                $(".ctn-player-info, #cont-tx-prize_pool-room").addClass('hide-elem');
+                $(".ctn-player-info, #cont-tx-prize-pool-room").addClass('hide-elem');
             } else {
                 $.getJSON({
                     url: route('seller.getCtnPrice', roomID),
@@ -330,8 +330,8 @@
                             return;
                         }
                         const {
-                            prize_pool,
-                            jackpot_type,
+                            prizePool: prizePoolAmount,
+                            typePrizePool,
                             price,
                             coin,
                             countries,
@@ -346,15 +346,23 @@
                         $("#ctn-price-amount").text(ctnPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
-                        prize_poolRoom = formatNumber(prize_pool, 3);
-                        $(".jackpot-type").text(jackpot_type == 1 ? 'Bote' : 'Premio');
-                        $("#tx-prize_pool-room").text(prize_poolRoom);
+                        prizePool = formatNumber(prizePoolAmount, 3);
+                        $(".type-prize-pool").text(typePrizePool == 1 ? 'Bote' : 'Premio');
+                        $("#tx-prize-pool-room").text(prizePoolAmount);
                         calculateSale();
-                        $(".ctn-player-info, #cont-tx-prize_pool-room").removeClass('hide-elem');
+                        $(".ctn-player-info, #cont-tx-prize-pool-room").removeClass('hide-elem');
                     }
                 });
             }
         });
+
+        numCtns.on('input change', function() {
+            validateInput(this, false, function(isValid) {
+                if (isValid) {
+                    calculateSale();
+                }
+            });
+        })
 
         function clearPlayerInfo() {
             $("#get-data-player").show();
@@ -362,10 +370,6 @@
             $('#player-link-rout').val('');
             $("#new-player, #cont-info-player").addClass('hide-elem');
         }
-
-        numCtns.on("change", function() {
-            if (roomID) calculateSale();;
-        })
 
         country.on("change", function() {
             const countryVal = $(this).val();

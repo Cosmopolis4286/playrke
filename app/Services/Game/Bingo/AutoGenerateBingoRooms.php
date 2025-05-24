@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceAutomatic, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, UserType};
+use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceAutomatic, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, GameConfig, UserType};
 use App\Traits\EncryptRKE;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -81,8 +81,8 @@ class AutoGenerateBingoRooms
     {
         $model = 'BingoRooms';
 
-        $fixedJackpotValue = $room->amount_added_jackpot;
-        $boat = $room->jackpot_type > 1 ? $fixedJackpotValue : 0;
+        $fixedJackpotValue = $room->amount_added_prize_pool;
+        $boat = $room->type_prize_pool > 1 ? $fixedJackpotValue : 0;
 
         return [
             'encrypted' => $this->generateUniqueCode($model),
@@ -99,6 +99,8 @@ class AutoGenerateBingoRooms
      */
     private function configureRoom($roomID, $dataRoom, $roomDate)
     {
+        $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
+
         $unixDate = Carbon::createFromFormat('Y-m-d H:i', "{$roomDate} {$dataRoom->time}")->timestamp;
 
         BingoRoomConfig::updateOrCreate(
@@ -111,9 +113,10 @@ class AutoGenerateBingoRooms
                 'time' => $dataRoom->time,
                 'unix_date' => $unixDate,
                 'ctn_price' => $dataRoom->ctn_price,
+                'rke_commn' => $bingoRKECommission,
                 'room_commn' => $dataRoom->room_commn,
-                'jackpot_type' => $dataRoom->jackpot_type,
-                'amount_added_jackpot' => $dataRoom->amount_added_jackpot,
+                'type_prize_pool' => $dataRoom->type_prize_pool,
+                'amount_added_prize_pool' => $dataRoom->amount_added_prize_pool,
                 'time_chip' => $dataRoom->time_chip,
                 'pct_serials' => $dataRoom->pct_serials,
                 'num_serials' => $dataRoom->num_serials,

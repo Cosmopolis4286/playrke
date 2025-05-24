@@ -22,8 +22,10 @@ use App\Http\Controllers\PagoMovilController;
 use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\LotteryController;
-use App\Http\Controllers\PaymentMethodsCOLController;
 use App\Http\Controllers\PollaController;
+use App\Http\Controllers\OtherTreasurersController;
+use App\Http\Controllers\PaymentMethodsCOLController;
+use App\Http\Controllers\TreasurerController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -86,6 +88,9 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin', 'as' => 'a
     Route::get('subsidiaries', [AdminController::class, 'subsidiaries'])->name('subsidiaries');
     Route::get('sellers', [AdminController::class, 'sellers'])->name('sellers');
     Route::get('customers', [AdminController::class, 'customers'])->name('customers');
+    Route::get('treasurers', [AdminController::class, 'treasurers'])->name('treasurers');
+    Route::get('other-treasurers', [AdminController::class, 'otherTreasurers'])->name('otherTreasurers');
+    Route::get('get-user-info/{userRole}/{exclude?}', [AdminController::class, 'getUserInfo'])->name('getUserInfo');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'info', 'as' => 'info.'], function () {
@@ -125,6 +130,29 @@ Route::group(['middleware' => 'auth', 'prefix' => 'directory', 'as' => 'director
     Route::get('{countryCode}', [DirectoryController::class, 'index'])->name('index');
 });
 
+// Treasurer/Tesorero
+Route::group(['middleware' => ['auth', 'treasurer'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
+    Route::get('getPaymentTreasurerDetails/{treasurer}/{coin}', [TreasurerController::class, 'getPaymentTreasurerDetails'])
+        ->withoutMiddleware(['auth', 'treasurer'])->name('getPaymentTreasurerDetails');
+});
+
+// Treasurer Options ADMIN
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-treasurer', 'as' => 'admin-treasurer.'], function () {
+    Route::post('create', [TreasurerController::class, 'create'])->name('create');
+    Route::get('getInfo/{id}', [TreasurerController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [TreasurerController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [TreasurerController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [TreasurerController::class, 'changeStatus'])->name('change-status');
+    Route::put('change-passw/{id}', [TreasurerController::class, 'changePassword'])->name('change-passw');
+});
+
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-other-treasurers', 'as' => 'admin-other-treasurers.'], function () {
+    Route::get('getInfo/{id}', [OtherTreasurersController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [OtherTreasurersController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [OtherTreasurersController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [OtherTreasurersController::class, 'changeStatus'])->name('change-status');
+});
+
 //Cliente
 Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as' => 'customer.'], function () {
     Route::get('getUserId/{userToken}', [CustomerController::class, 'getUserId'])->name('getUserId');
@@ -146,7 +174,6 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', '
 Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
     Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])
         ->withoutMiddleware(['auth', 'commerce'])->name('getPaymentCommerceDetails');
-    Route::get('all-directories', [CommerceController::class, 'allDirectories'])->name('allDirectories');
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
     Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
@@ -276,6 +303,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     // Reporte de ventas de salas
     Route::get('sales-report/{coin?}/{dateFilter?}', [BingoController::class, 'reportSalesRooms'])->name('reportSalesRooms');
     Route::get('sales-report-by-room/{room}/{coin}', [BingoController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
+    Route::get('sales-report-by-room-winners/{room}/{coin}', [BingoController::class, 'reportSalesByRoomWinners'])->name('reportSalesByRoomWinners');
     Route::get('sales-report-by-room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 
     Route::get('winners/{type}/{dateFilter}/{coin?}', [BingoController::class, 'ctnsAwarded'])->name('ctnsAwarded');

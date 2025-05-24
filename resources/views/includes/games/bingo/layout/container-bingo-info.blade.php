@@ -1,15 +1,15 @@
 <div id="container-bingo-info" class="mb-2 p-2">
-    <div id="cont-prize_pool-info">
+    <div id="cont-prize-pool-info">
         <div id="cont-prize-chest" class="mr-1">
             <img id="image-prize-chest" src="{{ asset('img/cofre.png') }}">
         </div>
-        <div id="cont-prize_pool-info-amount" class="p-1">
-            <small id="cont-jackpot-type">
-                {{ $jackpot_type == 1 ? 'Bote' : ($jackpot_type == 2 ? 'Premio' : '') }}
+        <div id="cont-prize-pool-info-amount" class="p-1">
+            <small id="cont-type-prize-pool">
+                {{ $typePrizePool == 1 ? 'Bote' : ($typePrizePool == 2 ? 'Premio' : '') }}
             </small>
-            <div id="cont-prize_pool-amount">
-                <small id="prize_pool-coin-sym" class="mr-1">{{ $coinSym }}</small>
-                <span id="prize_pool-amount">{{ $prizePool ?? 0 }}</span>
+            <div id="cont-prize-pool-amount">
+                <small id="prize-pool-coin-sym" class="mr-1">{{ $coinSym }}</small>
+                <span id="prize-pool-amount">{{ $prizePool ?? 0 }}</span>
             </div>
         </div>
     </div>

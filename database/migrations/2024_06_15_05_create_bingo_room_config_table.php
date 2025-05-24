@@ -17,7 +17,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->id();
             $table->unsignedBigInteger('room');
             $table->enum('creation', ['M', 'A'])->default('M');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('game_mode');
             $table->date('date');
             $table->string('time', 10);
@@ -25,11 +25,12 @@ class CreateBingoRoomConfigTable extends Migration
             $table->unsignedBigInteger('country')->nullable();
             $table->string('coin', 15)->nullable();
             $table->double('ctn_price');
+            $table->double('rke_commn')->nullable();
             $table->double('room_commn')->nullable();
-            $table->unsignedBigInteger('jackpot_type')->default(1);
-            $table->double('amount_added_jackpot')->nullable();
+            $table->unsignedBigInteger('type_prize_pool')->default(1);
+            $table->double('amount_added_prize_pool')->nullable();
             $table->string('time_chip', 2)->nullable();
-            $table->boolean('replay')->default(0);
+            $table->string('rounds', 2)->default('1');
             $table->double('pct_serials')->nullable();
             $table->string('num_serials', 2)->nullable();
             $table->double('pct_jackpot')->nullable();
@@ -41,7 +42,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->foreign('room')->references('id')->on('bingo_rooms')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('game_mode')->references('id')->on('game_modes')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('country')->references('id')->on('countries')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('jackpot_type')->references('id')->on('jackpot_types')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('type_prize_pool')->references('id')->on('type_prize_pools')->onDelete('restrict')->onUpdate('cascade');
         });
     }
 

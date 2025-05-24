@@ -1,4 +1,4 @@
-@extends('layouts.app_auth_pages')
+@extends('layouts.app-auth-pages')
 @section('title', 'Reestablecer Contraseña')
 @section('content')
     <form id="pass_chg" method="POST" action="{{ route('password.update') }}">@csrf

@@ -6,33 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('sellers_countries_coins', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('seller');
-            $table->unsignedBigInteger('country')->nullable();
-            $table->unsignedBigInteger('coin');
+
+            $table->foreignId('seller')->constrained('sellers')->onDelete('cascade');
+            $table->foreignId('country')->nullable()->constrained('countries');
+            $table->foreignId('coin')->constrained('coins')->onDelete('cascade');
+
+            $table->enum('level', ['1', '2', '3']);
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+
             $table->boolean('status')->default(0);
             $table->timestamps();
-
-            $table->foreign('seller')->references('id')->on('sellers');
-            $table->foreign('country')->references('id')->on('countries');
-            $table->foreign('coin')->references('id')->on('coins');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('sellers_countries_coins');
     }

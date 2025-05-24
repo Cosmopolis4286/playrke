@@ -31,24 +31,39 @@
         <select id="game-mode" name="game_mode" class="form-control"></select>
     </div>
     <div class="form-group col-sm-6 col-md-4">
-        <label for="jackpot-type">Tipo Bote*</label>
-        <select id="jackpot-type" name="jackpot_type" class="form-control" required></select>
+        <label for="type-prize-pool">Tipo Bote*</label>
+        <select id="type-prize-pool" name="type_prize_pool" class="form-control" required></select>
     </div>
-    <div id="cont-amount-added-jackpot" class="form-group col-sm-6 col-md-4 hide-elem">
-        <label for="amount-added-jackpot">Valor Fijo/Extra*</label>
+    <div id="cont-amount-added-prize-pool" class="form-group col-sm-6 col-md-4 hide-elem">
+        <label for="amount-added-prize-pool">Valor Fijo/Extra*</label>
         <div class="input-group">
             <div class="input-group-prepend">
                 <span class="input-group-text">$</span>
             </div>
-            <input type="number" id="amount-added-jackpot" name="amount_added_jackpot" class="form-control"
+            <input type="number" id="amount-added-prize-pool" name="amount_added_prize_pool" class="form-control"
                 step="0.05" min="20" max="10000">
         </div>
     </div>
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="room-commn">%Sala*</label>
-        <input type="number" id="room-commn" name="room_commn" class="form-control prize_pool-pct" value="10"
-            step="0.05" min="5" max="50" required>
+        <input type="number" id="room-commn" name="room_commn" class="form-control prize_pool-pct" value="20"
+            step="0.05" min="10" max="50" required>
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="time-chip">Tiempo Ficha*</label>
+        <div class="input-group">
+            <input type="number" step="1" value="5" min="3" max="10" id="time-chip"
+                name="time_chip" class="form-control" required>
+            <div class="input-group-append">
+                <span class="input-group-text">SEG</span>
+            </div>
+        </div>
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="rounds">Rondas*</label>
+        <input type="number" step="1" value="1" min="1" max="10" id="rounds" name="rounds"
+            class="form-control" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
@@ -76,16 +91,6 @@
                 </div>
             </div>
             <div id="container-price-config" class="row">
-            </div>
-        </div>
-    </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="time-chip">Tiempo Ficha*</label>
-        <div class="input-group">
-            <input type="number" step="1" value="5" min="3" max="10" id="time-chip"
-                name="time_chip" class="form-control" required>
-            <div class="input-group-append">
-                <span class="input-group-text">SEG</span>
             </div>
         </div>
     </div>

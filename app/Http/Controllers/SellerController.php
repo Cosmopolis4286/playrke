@@ -88,60 +88,6 @@ class SellerController extends Controller
         return $validator; // Devuelve el validador en caso de éxito
     }
 
-    private function insertOtherCoins($seller, $otherCoins)
-    {
-        if (empty($otherCoins)) {
-            DB::beginTransaction();
-            try {
-                $sellerCoin = Seller::getValueById($seller, 'coin');
-                SellerCountriesCoins::where('seller', $seller)->whereNot('coin', $sellerCoin)->update(['status' => 0]);
-                DB::commit();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error('Error al inhabilitar todas las monedas para el vendedor: ' . $e->getMessage());
-            }
-        } else if (!empty($otherCoins) && is_array($otherCoins)) {
-            // Obtener las monedas seleccionadas y prepararlas para la inserción
-            $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
-            $timestamp = now();
-
-            $coinsToCreate = [];
-
-            foreach ($otherCoins as $coin) {
-                $coinsToCreate[] = [
-                    'seller' => $seller,
-                    'country' => $coin->country,
-                    'coin' => $coin->id,
-                    'status' => 1,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp
-                ];
-            }
-
-            // Manejo de transacción para insertar las nuevas monedas
-            DB::transaction(function () use ($seller, $coinsToCreate) {
-                try {
-                    foreach ($coinsToCreate as $coinData) {
-                        // Insertar la moneda si no existe para ese vendedor
-                        SellerCountriesCoins::firstOrCreate(
-                            ['seller' => $seller, 'coin' => $coinData['coin']],
-                            $coinData
-                        );
-                    }
-
-                    // Habilitar solo las monedas seleccionadas
-                    SellerCountriesCoins::where('seller', $seller)
-                        ->whereIn('coin', array_column($coinsToCreate, 'coin'))->update(['status' => 1]);
-                } catch (\Exception $e) {
-                    // Captura de cualquier otra excepción
-                    DB::rollBack();
-                    Log::error('Error general al insertar monedas para el vendedor: ' . $e->getMessage());
-                    throw $e;
-                }
-            });
-        }
-    }
-
     public function create(Request $request)
     {
         if (!in_array($this->user(['user_type'])->user_type, [2, 3])) {
@@ -196,11 +142,23 @@ class SellerController extends Controller
                 'seller' => $seller->id,
                 'country' => $seller->country,
                 'coin' => $seller->coin,
+                'level' => '1',
+                'creator_user' => $newUser,
                 'status' => 1
             ]);
 
+            $creatorUser = [
+                'model' => 'Seller',
+                'id' => $seller->id,
+                'userId' => $newUser
+            ];
+
             $otherCoins = $request->other_coins;
-            $this->insertOtherCoins($seller->id, $otherCoins);
+
+            if ($otherCoins) {
+                // Insertar otras monedas
+                $this->insertOtherCoins($creatorUser, $otherCoins);
+            }
 
             DB::commit();
 
@@ -208,7 +166,7 @@ class SellerController extends Controller
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear vendedor: ' . $e->getMessage());
+            Log::error('Error al crear Seller: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Error al procesar la solicitud']);
         }
 
@@ -288,8 +246,18 @@ class SellerController extends Controller
                         ]);
                 }
 
+                $creatorUser = [
+                    'model' => 'Seller',
+                    'id' => $seller->id,
+                    'userId' => $seller->user
+                ];
+
                 $otherCoins = $request->other_coins;
-                $this->insertOtherCoins($seller->id, $otherCoins);
+
+                if ($otherCoins) {
+                    // Insertar otras monedas
+                    $this->insertOtherCoins($creatorUser, $otherCoins);
+                }
 
                 DB::commit();
 
@@ -406,7 +374,7 @@ class SellerController extends Controller
 
     public function getCtnPrice($roomID)
     {
-        $room = BingoRoom::with('Config:room,jackpot_type,ctn_price')
+        $room = BingoRoom::with('Config:room,type_prize_pool,ctn_price')
             ->select('id', 'encrypted', 'prize_pool')
             ->where('encrypted', $roomID)->first();
 
@@ -417,7 +385,7 @@ class SellerController extends Controller
         $countriesCoins = $this->getAvailableCountriesBySeller($room->id);
 
         return response()->json([
-            'jackpot_type' => $room->Config->jackpot_type,
+            'typePrizePool' => $room->Config->type_prize_pool,
             'prizePool' => $room->prize_pool,
             'coin' => 'USDT',
             'price' => $room->Config->ctn_price,
@@ -475,13 +443,13 @@ class SellerController extends Controller
             case 'BINGO':
                 $room = BingoRoom::getByEncrypted($request->room, ['id', 'room_type']);
 
-                $player = PlayerLink::select('id', 'name', 'lastname', 'country', 'phone', 'link')
+                $player = PlayerLink::select('room_user', 'name', 'lastname', 'country', 'phone', 'link')
                     ->where('phone', $request->player_info)->where('game', 1)->where('room', $room->id)->first();
 
                 if (!$player)  return response()->json(['response' => false]);
 
                 $route = $this->getGameLinkByPlayer($player->link);
-                $ctnsPlayer = BingoCtns::where(['player_link' => $player->id, 'room' => $room->id])->count();
+                $ctnsPlayer = BingoCtns::where(['room_user' => $player->room_user, 'room' => $room->id])->count();
 
                 return response()->json([
                     'response' => true,
@@ -519,8 +487,8 @@ class SellerController extends Controller
     public function getWinnerInfoForCtn($ctnId)
     {
         $ctnId = decrypt($ctnId);
-        $idPlayer = BingoPrizeCtns::getValueById($ctnId, 'player_link');
-        $player = PlayerLink::getById($idPlayer, ['name', 'lastname', 'phone']);
+        $roomUser = BingoPrizeCtns::getValueById($ctnId, 'room_user');
+        $player = PlayerLink::getByRoomUser('BINGO', $roomUser, ['name', 'lastname', 'phone']);
 
         return json_encode(array(
             'name' => $player->name,
@@ -589,23 +557,24 @@ class SellerController extends Controller
         $allPendingCtns = BingoCtns::with('Lot:id,ctns,sale_amount')
             ->whereHas('Lot', function ($query) use ($seller) {
                 $query->where(['seller' => $seller, 'status' => 0]);
-            })->where('seller', $seller)->get(['room', 'creator_user', 'player_link', 'coin', 'lot']);
+            })->where('seller', $seller)->get(['room', 'creator_user', 'room_user', 'coin', 'lot']);
 
         try {
 
             $paymentToInsert = [];
+            $timestamp = now();
 
             foreach ($allPendingCtns as $ctn) {
 
                 $ctnPrice = $ctn->Lot->sale_amount / $ctn->Lot->ctns;
-                $timestamp = now();
+                $playerLink = PlayerLink::getValueByRoomUser('BINGO', $ctn->room_user, 'id');
 
                 $paymentToInsert[] = [
                     'payment' => 'SC',
                     'room' => $ctn->room,
                     'creator_user' => $ctn->creator_user,
                     'seller' => $seller,
-                    'player_link' => $ctn->player_link,
+                    'player_link' => $playerLink,
                     'lot' => $ctn->lot,
                     'coin' => $ctn->coin,
                     'amount' => $ctnPrice,

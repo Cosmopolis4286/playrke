@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class PlayerLink extends Model
 {
-  protected $table = "player_link";
+  protected $table = "player_links";
   protected $fillable = [
     'game',
     'room',
     'creator_user',
     'seller',
-    'user',
+    'room_user',
     'link',
     'country',
     'coin',
@@ -26,11 +26,6 @@ class PlayerLink extends Model
   public function Game()
   {
     return $this->belongsTo(Games::class, 'game');
-  }
-
-  public function Room()
-  {
-    return $this->belongsTo(BingoRoom::class, 'room');
   }
 
   public function CreatorUser()
@@ -63,24 +58,9 @@ class PlayerLink extends Model
     return $this->belongsTo(Seller::class, 'seller');
   }
 
-  public function PlayerGame()
-  {
-    return $this->belongsTo(BingoRoomUser::class, 'id', 'player_link');
-  }
-
-  public function Ctns()
-  {
-    return $this->belongsTo(BingoCtns::class, 'id', 'player_link');
-  }
-
-  public function PrizeCtns()
-  {
-    return $this->hasMany(BingoPrizeCtns::class, 'player_link', 'id');
-  }
-
   public function CtnsLot()
   {
-    return $this->hasMany(BingoCtnsLot::class, 'player_link', 'id');
+    return $this->hasMany(BingoCtnsLot::class, 'room_user', 'room_user');
   }
 
   public static function getById($id, $fields = ['*'])
@@ -101,5 +81,17 @@ class PlayerLink extends Model
   public static function getValueByLink($link, $value)
   {
     return self::where('link', $link)->value($value);
+  }
+
+  public static function getByRoomUser($game, $roomUser, $fields = ['*'])
+  {
+    $gameID = Games::getValueByName($game);
+    return self::select($fields)->where('game', $gameID)->where('room_user', $roomUser)->first();
+  }
+
+  public static function getValueByRoomUser($game, $roomUser, $value)
+  {
+    $gameID = Games::getValueByName($game);
+    return self::where('game', $gameID)->where('room_user', $roomUser)->value($value);
   }
 }

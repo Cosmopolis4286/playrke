@@ -52,11 +52,11 @@
                                 alt="IMG">
                             <div class="container-card-game-room__prize_pool">
                                 <span class="card-game-room__prize_pool-text">
-                                    {{ $room->Config->jackpot_type == 1 ? 'Bote:' : 'Premio:' }}
+                                    {{ $room->Config->type_prize_pool == 1 ? 'Bote:' : 'Premio:' }}
                                 </span>
-                                <div class="card-game-room__prize_pool-amount">
+                                <div class="card-game-room__prize-pool-amount">
                                     <h3>
-                                        <span id="prize_pool-room_{{ $room->encrypted }}">
+                                        <span id="prize-pool-room_{{ $room->encrypted }}">
                                             {{ number_format($room->prize_pool * $exchangeRate, 2) }}
                                         </span>
                                         <small id="coin-symbol-room_{{ $room->encrypted }}">
@@ -192,13 +192,13 @@
 
                     generateModalPurchase(roomID);
 
-                    $('#purchase-ctns__coin-text').text(room.jackpot_type);
+                    $('#purchase-ctns__coin-text').text(room.typePrizePool);
                     $('.purchase-ctns__coin-label').text(room.coin);
-                    $('#prize_pool-amount').text(room.prizePoolAmount);
+                    $('#prize-pool-amount').text(room.prizePool);
                     formatDateTime(room.dateTime);
                     handleTotalAmount();
 
-                    $(`#prize_pool-room_${roomID}`).text(room.prizePoolAmount);
+                    $(`#prize_pool-room_${roomID}`).text(room.prizePool);
 
                     if ($(`#ctn-price_${roomID}`).text() != ctnPrice) {
                         $(`#ctn-price_${roomID}`).text(ctnPrice);
@@ -247,7 +247,7 @@
                 success: function(res) {
                     showToast(res.message, res.type);
                     if (res.type === 'success') {
-                        $('#prize_pool-amount').text(res.prize_pool);
+                        $('#prize-pool-amount').text(res.prize_pool);
                         $(`#prize_pool-room_${roomID}`).text(res.prize_pool);
                         $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
                     }

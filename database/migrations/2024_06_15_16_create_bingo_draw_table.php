@@ -16,11 +16,15 @@ return new class extends Migration
         Schema::create('bingo_draw', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->string('round', 2)->default('1');
             $table->string('chip', 2);
             $table->string('code', 8);
             $table->integer('time');
-            $table->string('status',)->default('0');
+            $table->string('status')->default('0');
             $table->timestamps();
+
+            // Índice único para evitar duplicados de chip por sala y ronda
+            $table->unique(['room', 'round', 'chip'], 'unique_chip_per_room_round');
         });
     }
 

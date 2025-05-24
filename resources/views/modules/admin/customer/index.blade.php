@@ -151,8 +151,8 @@
 
             if (type == 1) {
                 $('#customer-key').val(generateUUID());
-                country.append(`<option value="" disabled selected>Seleccionar País:</option>`);
-                timeZone.append(`<option value="" disabled selected>Seleccionar Zona:</option>`);
+                country.html(`<option value="" disabled selected>Seleccionar País:</option>`);
+                timeZone.html(`<option value="" disabled selected>Seleccionar Zona:</option>`);
             }
 
             $.each(arrCountries, function(index, item) {

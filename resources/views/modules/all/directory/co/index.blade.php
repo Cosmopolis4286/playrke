@@ -79,7 +79,7 @@
         function insertInfo(type, data = '') {
             $("#acc-number, #user-name, #document-number").empty();
 
-            if (type == 1) $('#gateway').append(`<option value=""  disabled selected>Seleccionar:</option>`);
+            if (type == 1) $('#gateway').html(`<option value=""  disabled selected>Seleccionar:</option>`);
 
             // Pasarela de Pago
             $.each(arrPaymentMethod, function(index, item) {

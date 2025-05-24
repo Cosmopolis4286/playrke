@@ -26,14 +26,14 @@ class Customer extends Model
     'status'
   ];
 
-  public function Country()
-  {
-    return $this->belongsTo(Country::class, 'country');
-  }
-
   public function User()
   {
     return $this->belongsTo(User::class, 'user');
+  }
+
+  public function Country()
+  {
+    return $this->belongsTo(Country::class, 'country');
   }
 
   public static function getById($id, $fields = ['*'])

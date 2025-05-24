@@ -1,4 +1,4 @@
-@extends('layouts.app_auth_pages')
+@extends('layouts.app-auth-pages')
 @section('title', 'Tu Sitio Para Ganar')
 
 @section('content')

@@ -15,20 +15,13 @@ return new class extends Migration
     {
         Schema::create('bingo_rooms_user', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
-            $table->unsignedBigInteger('seller')->nullable();
+            $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->integer('player_user')->nullable();
-            $table->unsignedBigInteger('player_link')->nullable();
             $table->string('ctns', 3);
             $table->double('automarker')->nullable();
             $table->string('winner', 1)->default('0');
             $table->timestamps();
-
-            // Definición de claves foráneas
-            $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('seller')->references('id')->on('sellers');
-            $table->foreign('player_link')->references('id')->on('player_link');
         });
     }
 

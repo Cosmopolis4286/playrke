@@ -16,12 +16,13 @@ return new class extends Migration
             $table->string('encrypted', 18)->unique();
             $table->foreignId('status')->constrained('game_status')->onDelete('cascade')->default(1);
             $table->enum('room_type', ['PV', 'PB'])->default('PV');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->boolean('paid_win')->default(0);
             $table->timestamp('publication_date')->nullable();
             $table->integer('players')->default(0);
             $table->integer('ctns')->default(0);
             $table->double('all_sale')->default(0);
+            $table->double('rke_commn')->default(0);
             $table->double('room_commn')->default(0);
             $table->double('seller_commn')->default(0);
             $table->double('prize_pool')->default(0);

@@ -10,11 +10,11 @@ class BingoPrizeCtns extends Model
     protected $fillable = [
         'active',
         'room',
+        'round',
         'creator_user',
         'seller',
         'room_user',
         'player_user',
-        'player_link',
         'lot',
         'ctn',
         'prize_type',
@@ -38,12 +38,12 @@ class BingoPrizeCtns extends Model
 
     public function PlayerLink()
     {
-        return $this->belongsTo(PlayerLink::class, 'player_link', 'id');
+        return $this->belongsTo(PlayerLink::class, 'room_user', 'room_user');
     }
 
     public function PlayerGame()
     {
-        return $this->belongsTo(BingoRoomUser::class, 'player_link', 'player_link');
+        return $this->belongsTo(BingoRoomUser::class, 'room_user');
     }
 
     public function Coin()
@@ -83,7 +83,7 @@ class BingoPrizeCtns extends Model
 
     public static function existsPrizeCtns($room, $prizeType)
     {
-        $prizeType = $prizeType === 'JACKPOT' ? 1 : 2;
+        $prizeType = GamePrizes::getValueByDescription('BINGO', $prizeType);
 
         return self::where(['room' => $room, 'prize_type' => $prizeType])->exists();
     }
@@ -114,12 +114,12 @@ class BingoPrizeCtns extends Model
     public static function getPendingPaymentsCountByCreator($creatorUser)
     {
         return self::where('creator_user', $creatorUser)->where('active', 'Y')
-            ->where('player_link', '<>', '')->where('status', '<', 2)->count();
+            ->where('room_user', '<>', '')->where('status', '<', 2)->count();
     }
 
     public static function getPendingPaymentsCountExcludingCreator($creatorUser)
     {
         return self::whereNot('creator_user', $creatorUser)->where('active', 'Y')
-            ->where('player_link', '<>', '')->where('status', '<>', 3)->count();
+            ->where('room_user', '<>', '')->where('status', '<>', 3)->count();
     }
 }

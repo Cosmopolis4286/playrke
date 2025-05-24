@@ -39,9 +39,9 @@
                                             </td>
                                             <td>{{ $ctn->PlayerLink->name }} {{ $ctn->PlayerLink->lastname }}</td>
                                             <td>{{ $ctn->PlayerLink->Country->name }}</td>
-                                            <td>{{ $coinISOCode }} ({{ $coinSym }})</td>
+                                            <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coinSym }} {{ $ctn->sale_amount }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ $ctn->sale_amount }}</td>
                                             <td>{{ $ctn->created_at->format('d/m/y H:i:s') }}<small
                                                     class="ml-1">GMT-4</small></td>
                                             <td>
@@ -71,7 +71,7 @@
                                         <tr>
                                             <td colspan="4" class="text-right"><b>Total:</b></td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
-                                            <td>{{ $coinSym }} {{ $ctnsSold->sum('sale_amount') }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ $ctnsSold->sum('sale_amount') }}</td>
                                             <td colspan="2"></td>
                                         </tr>
                                     </tfoot>
@@ -96,7 +96,7 @@
     <script>
         const name = '{{ $name }}';
         const coin = '{{ encrypt($coin) }}';
-        const coinName = '{{ $coinName }}';
+        const coinName = '{{ $coinData->short_name }}';
         const allPendingCtnSale = '{{ $allPendingCtnSale }}';
         const commerceName = '{{ $commerceName }}';
         let allNotifyCtns = false;
