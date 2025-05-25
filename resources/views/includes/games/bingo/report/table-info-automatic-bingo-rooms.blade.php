@@ -26,7 +26,7 @@
                     <td>{{ $room->ctn_price }}&nbsp<small>USDT</small></td>
                     <td>{{ $room->TypePrizePool->description }}</td>
                     <td>{{ $room->room_commn }}%</td>
-                    <td>{{ $room->pct_serials }}%</td>
+                    <td>{{ $room->serials_pct }}%</td>
                     <td>{{ $room->num_serials }}</td>
                     <td class="align-middle">
                         @if ($room->status == 1)

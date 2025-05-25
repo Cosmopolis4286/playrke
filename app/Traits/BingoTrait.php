@@ -408,14 +408,14 @@ trait BingoTrait
 
         $fullHouseWinners = $this->getWinnersFullHouse($roomID, $roomUser, $coin);
 
-        if (BingoRoomConfig::getValueByRoom($roomID, 'types_plays')) {
+        if (BingoRoomConfig::getValueByRoom($roomID, 'types_songs')) {
             $bingoPlaysWinners = [];
         }
 
         $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2)) ?
             $this->getWinnersSerials($roomID, $roomUser, $coin) : [];
 
-        $serialPrizePct = BingoRoomConfig::getValueByRoom($roomID, 'pct_serials');
+        $serialPrizePct = BingoRoomConfig::getValueByRoom($roomID, 'serials_pct');
 
         $prizesValues = !empty($serialsWinners) ? [100 - $serialPrizePct, $serialPrizePct] : [100];
 
@@ -1068,7 +1068,7 @@ trait BingoTrait
     public function handleWinners($roomID)
     {
         // Obtener la información de la sala
-        $room = BingoRoom::with('Config:room,pct_serials')
+        $room = BingoRoom::with('Config:room,serials_pct')
             ->select('id', 'creator_user', 'prize_pool', 'full_house_prize', 'serial_prize')
             ->where('id', $roomID)->firstOrFail();
 
@@ -1174,9 +1174,9 @@ trait BingoTrait
             $fullHousePrize = $room->full_house_prize;
 
             // Generar seriales ganadores si hay jugadores no ganadores
-            if ($generateSerials && $room->Config->pct_serials && !$room->seller_commn && !BingoPrizeCtns::existsPrizeCtns($roomID, 'SERIAL')) {
+            if ($generateSerials && $room->Config->serials_pct && !$room->seller_commn && !BingoPrizeCtns::existsPrizeCtns($roomID, 'SERIAL')) {
 
-                $serialPrize = $room->prize_pool * $room->Config->pct_serials / 100;
+                $serialPrize = $room->prize_pool * $room->Config->serials_pct / 100;
 
                 $serialWinners = $this->handleSerialWinners($roomID, $serialPrize, $roomUserIds);
 

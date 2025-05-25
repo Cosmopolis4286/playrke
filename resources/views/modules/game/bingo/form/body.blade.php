@@ -51,6 +51,11 @@
             step="0.05" min="10" max="50" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
+        <label for="jackpot-pct">%Jackpot*</label>
+        <input type="number" id="jackpot-pct" name="jackpot_pct" class="form-control prize_pool-pct" value=""
+            step="0.05" min="1" max="15">
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
         <label for="time-chip">Tiempo Ficha*</label>
         <div class="input-group">
             <input type="number" step="1" value="5" min="3" max="10" id="time-chip"
@@ -64,6 +69,11 @@
         <label for="rounds">Rondas*</label>
         <input type="number" step="1" value="1" min="1" max="10" id="rounds" name="rounds"
             class="form-control" required>
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="rounds-pct">%Rondas*</label>
+        <input type="number" id="rounds-pct" name="rounds_pct" class="form-control prize_pool-pct" value=""
+            step="1" min="1" max="20">
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
@@ -95,28 +105,18 @@
         </div>
     </div>
     <div class="form-group col-sm-6 col-md-4">
-        <label for="pct-serials">%Bote Seriales</label>
-        <input type="number" value="5" min="2" max="35" step="0.25" id="pct-serials"
-            name="pct_serials" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
+        <label for="serials-pct">%Bote Seriales</label>
+        <input type="number" value="5" min="2" max="35" step="0.25" id="serials-pct"
+            name="serials_pct" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="num-serials">#Max. Seriales</label>
         <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
             name="num_serials" class="form-control" placeholder="Ingrese la cantidad" required>
     </div>
-    <div class="form-group col-12 col-md-8">
-        <label for="bingo-plays">Cantos</label>
-        <select id="bingo-plays" name="bingo_plays[]" class="form-control select2" multiple
-            placeholder="   Selecciona los cantos (opcional)" data-allow-clear="true"></select>
-    </div>
-    {{-- <div id="container-max-plays-ramdom" class="form-group col-sm-6 col-md-4 hide-elem">
-        <label for="max-plays-ramdom">#Max. Random</label>
-        <input type="number" step="1" value="1" min="1" max="5" id="max-plays-ramdom"
-            name="max_plays_ramdom" class="form-control" placeholder="Ingrese la cantidad" required>
-    </div> --}}
-    <div id="container-pct-bingo-plays" class="form-group col-sm-6 col-md-4 hide-elem">
-        <label for="pct-bingo-plays">%Bote Cantos</label>
-        <input type="number" value="" min="2" max="35" step="0.25" id="pct-bingo-plays"
-            name="pct_bingo_plays" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
+    <div id="container-songs-pct" class="form-group col-sm-6 col-md-4 hide-elem">
+        <label for="songs-pct">%Bote Cantos</label>
+        <input type="number" value="" min="2" max="35" step="0.25" id="songs-pct"
+            name="songs-pct" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
     </div>
 </div>

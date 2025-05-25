@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms');
             $table->string('round', 2)->default('1');
+            $table->string('type_play', 10);
             $table->string('status', 1)->default('1');
             $table->timestamps();
         });

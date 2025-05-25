@@ -88,7 +88,7 @@
 
         bingoPlays.on('change', function() {
             const selected = $(this).val() || [];
-            const container = $('#container-pct-bingo-plays');
+            const container = $('#container-songs-pct');
 
             if (selected.length === 0) {
                 container.addClass('hide-elem');
@@ -183,19 +183,19 @@
                 $('#ctn-price').val(config.ctn_price);
                 $('#time-chip').val(config.time_chip);
                 $('#rounds').val(config.rounds);
-                $('#pct-serials').val(config.pct_serials);
+                $('#serials-pct').val(config.serials_pct);
                 $('#num-serials').val(config.num_serials);
-                $('#serials-commn').val(config.pct_jackpot);
+                $('#serials-commn').val(config.jackpot_pct);
 
                 if (config.type_prize_pool > 1) {
                     changeFixedJackpot(2);
                     $('#amount-added-prize-pool').val(config.amount_added_prize_pool);
                 }
 
-                if (config.types_plays) {
-                    selectedBingoPlays = stringToArray(config.types_plays);
-                    // $('#max-plays-ramdom').val(config.pct_serials);
-                    $('#pct-bingo-plays').val(config.pct_types_plays);
+                if (config.types_songs) {
+                    selectedBingoPlays = stringToArray(config.types_songs);
+                    // $('#max-plays-ramdom').val(config.serials_pct);
+                    $('#songs-pct').val(config.songs_pct);
                 }
             }
 
@@ -207,7 +207,7 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
                 'date', 'room-type', 'type-prize-pool', 'game-mode', 'room-commn',
-                'ctn-price', 'time-chip', 'rounds', 'pct-serials', 'num-serials'
+                'ctn-price', 'time-chip', 'rounds', 'serials-pct', 'num-serials'
             ]);
         });
 

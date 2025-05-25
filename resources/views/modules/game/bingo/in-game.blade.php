@@ -27,7 +27,7 @@
         @elseif($room->status > 2)
             @include('includes.games.bingo.layout.modal-info-winners')
             @include('includes.games.bingo.layout.sounds')
-            @if ($room->Config->types_plays)
+            @if ($room->Config->types_songs)
                 @include('includes.games.bingo.layout.modal-bingo-plays')
             @endif
         @endif
@@ -86,7 +86,7 @@
             soundWin.muted = true;
         </script>
         @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
-        @if ($room->Config->types_plays)
+        @if ($room->Config->types_songs)
             @vite('resources/js/games/bingo/includes/handle-bingo-plays.js')
         @endif
     @endif

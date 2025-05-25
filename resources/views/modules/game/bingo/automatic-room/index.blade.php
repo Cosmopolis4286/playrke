@@ -166,9 +166,9 @@
                 $('#ctn-price').val(room.ctn_price);
                 $('#time-chip').val(room.time_chip);
                 $('#rounds').val(room.rounds);
-                $('#pct-serials').val(room.pct_serials);
+                $('#serials-pct').val(room.serials_pct);
                 $('#num-serials').val(room.num_serials);
-                $('#serials-commn').val(room.pct_jackpot);
+                $('#serials-commn').val(room.jackpot_pct);
 
                 if (room.type_prize_pool > 1) {
                     changeFixedJackpot(2);
@@ -182,7 +182,7 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
                 'time', 'room-type', 'type-prize-pool', 'game-mode', 'room-commn',
-                'ctn-price', 'time-chip', 'rounds', 'pct-serials', 'num-serials'
+                'ctn-price', 'time-chip', 'rounds', 'serials-pct', 'num-serials'
             ]);
         });
 

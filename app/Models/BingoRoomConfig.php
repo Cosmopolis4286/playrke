@@ -24,11 +24,12 @@ class BingoRoomConfig extends Model
     'amount_added_prize_pool',
     'time_chip',
     'rounds',
-    'pct_serials',
+    'rounds_pct',
+    'serials_pct',
     'num_serials',
-    'pct_jackpot',
-    'pct_types_plays',
-    'types_plays'
+    'jackpot_pct',
+    'songs_pct',
+    'types_songs'
   ];
 
   public function Room()

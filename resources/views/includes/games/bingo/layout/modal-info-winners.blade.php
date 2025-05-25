@@ -138,7 +138,7 @@
                 </div>
                 <b>Cartón Lleno: <small>(<span id="full-house-value"></span>% del Bote)</small></b>
                 <div class="row mb-1" id="full-house-winners"></div>
-                @if ($room->Config->types_plays)
+                @if ($room->Config->types_songs)
                     <div id="cont-bingo-plays" class="hide-elem">
                         <b>Cantos: <small>(<span id="bingo-plays-value"></span>% del Bote)</small></b>
                         <div class="row" id="bingo-plays-winners"></div>

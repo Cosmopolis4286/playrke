@@ -118,9 +118,9 @@ class AutoGenerateBingoRooms
                 'type_prize_pool' => $dataRoom->type_prize_pool,
                 'amount_added_prize_pool' => $dataRoom->amount_added_prize_pool,
                 'time_chip' => $dataRoom->time_chip,
-                'pct_serials' => $dataRoom->pct_serials,
+                'serials_pct' => $dataRoom->serials_pct,
                 'num_serials' => $dataRoom->num_serials,
-                'pct_jackpot' => $dataRoom->pct_jackpot,
+                'jackpot_pct' => $dataRoom->jackpot_pct,
             ]
         );
 

@@ -10,17 +10,17 @@ function setSafeValue($el, value) {
 function handlePercentageAdjust(changedId) {
     const $elements = {
         'room-commn': $('#room-commn'),
-        'pct-serials': $('#pct-serials'),
-        'pct-bingo-plays': $('#pct-bingo-plays'),
+        'serials-pct': $('#serials-pct'),
+        'rounds-pct': $('#rounds-pct'),
     };
 
     const values = {
         'room-commn': getNumericValue($elements['room-commn']),
-        'pct-serials': getNumericValue($elements['pct-serials']),
-        'pct-bingo-plays': getNumericValue($elements['pct-bingo-plays']),
+        'serials-pct': getNumericValue($elements['serials-pct']),
+        'rounds-pct': getNumericValue($elements['rounds-pct']),
     };
 
-    const total = values['room-commn'] + values['pct-serials'] + values['pct-bingo-plays'];
+    const total = values['room-commn'] + values['serials-pct'] + values['rounds-pct'];
 
     if (total > 100) {
         const over = total - 100;
@@ -30,9 +30,9 @@ function handlePercentageAdjust(changedId) {
     }
 }
 
-$(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #num-serials, #max-plays-ramdom", function () {
+$(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #num-serials", function () {
     const id = $(this).attr('id');
-    validateInput(this, !['num-serials', 'time-chip', 'rounds', 'max-plays-ramdom'].includes(id));
+    validateInput(this, !['num-serials', 'time-chip', 'rounds'].includes(id));
 });
 
 $(document).on("input", ".prize_pool-pct", function () {

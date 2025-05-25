@@ -31,11 +31,12 @@ class CreateBingoRoomConfigTable extends Migration
             $table->double('amount_added_prize_pool')->nullable();
             $table->string('time_chip', 2)->nullable();
             $table->string('rounds', 2)->default('1');
-            $table->double('pct_serials')->nullable();
+            $table->double('rounds_pct')->nullable();
+            $table->double('serials_pct')->nullable();
             $table->string('num_serials', 2)->nullable();
-            $table->double('pct_jackpot')->nullable();
-            $table->double('pct_types_plays')->nullable();
-            $table->string('types_plays')->nullable();
+            $table->double('jackpot_pct')->nullable();
+            $table->double('songs_pct')->nullable();
+            $table->string('types_songs')->nullable();
             $table->timestamps();
 
             // Foreign key constraint
