@@ -67,13 +67,45 @@
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="rounds">Rondas*</label>
-        <input type="number" step="1" value="1" min="1" max="10" id="rounds" name="rounds"
-            class="form-control" required>
+        <div class="input-group">
+            <input type="number" step="1" value="1" min="1" max="10" id="rounds"
+                name="rounds" class="form-control" required>
+            <div class="input-group-append">
+                <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button" data-active="0"
+                    data-toggle="popover" data-trigger="hover" data-content="Ajustar precio por monedas">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+            </div>
+        </div>
     </div>
+    <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
+        <div class="container"
+            style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
+            <label for="container-price-config" class="form-label">Ajustar valores de las rondas</label>
+            <div id="container-spinner" class="mt-1">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </div>
+            <div id="container-price-config" class="row">
+            </div>
+        </div>
+    </div>
+
     <div class="form-group col-sm-6 col-md-4">
         <label for="rounds-pct">%Rondas*</label>
         <input type="number" id="rounds-pct" name="rounds_pct" class="form-control prize_pool-pct" value=""
             step="1" min="1" max="20">
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="serials-pct">%Bote Seriales</label>
+        <input type="number" value="5" min="2" max="35" step="0.25" id="serials-pct"
+            name="serials_pct" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
+    </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="num-serials">#Max. Seriales</label>
+        <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
+            name="num_serials" class="form-control" placeholder="Ingrese la cantidad" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="ctn-price">Precio CTN*</label>
@@ -94,7 +126,7 @@
     <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
         <div class="container"
             style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
-            <label for="container-price-config" class="form-label">Ajustar Precio del Cartón</label>
+            <label for="container-price-config" class="form-label">Ajustar precio del cartón</label>
             <div id="container-spinner" class="mt-1">
                 <div class="spinner-border text-primary" role="status">
                     <span class="sr-only"></span>
@@ -103,16 +135,6 @@
             <div id="container-price-config" class="row">
             </div>
         </div>
-    </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="serials-pct">%Bote Seriales</label>
-        <input type="number" value="5" min="2" max="35" step="0.25" id="serials-pct"
-            name="serials_pct" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
-    </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="num-serials">#Max. Seriales</label>
-        <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
-            name="num_serials" class="form-control" placeholder="Ingrese la cantidad" required>
     </div>
     <div id="container-songs-pct" class="form-group col-sm-6 col-md-4 hide-elem">
         <label for="songs-pct">%Bote Cantos</label>
