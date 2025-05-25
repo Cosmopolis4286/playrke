@@ -53,6 +53,7 @@
         const type_prize_pool = $("#type-prize-pool");
         const gameMode = $("#game-mode");
         const rounds = $("#rounds");
+        const roundsPct = $('#rounds-pct');
         const bingoPlays = $("#bingo-plays");
         const arrBingoPlays = @json($bingoPlays);
         const arrCoins = @json($coins);
@@ -94,6 +95,15 @@
             } else {
                 $('.content-rounds-pct').addClass('hide-elem');
                 $('#rounds-pct').prop('required', false);
+            }
+        });
+
+        $('#btn-rounds-config').on('click', function() {
+            if (!roundsPct.val()) {
+                $('#rounds-pct').focus();
+                showToast('Indica un porcentaje para las rondas', 'warning');
+            } else {
+                $('#container-rounds-config').removeClass('hide-elem');
             }
         });
 
@@ -145,10 +155,12 @@
 
             if (type == 1) {
                 coinsCtnPrice = false;
-                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
-                $('#container-price-config').html('');
+                $("#container-ctn-price-config, #container-rounds-config")
+                    .addClass("hide-elem").data("active", 0);
+                $('#content-price-config, #content-rounds-config').html('');
             } else {
                 getCtnPriceCoin(data.room.encrypted, true);
+                getBingoRoundsConfig(data.room.encrypted, true);
             }
 
             gameMode.prop({
@@ -280,7 +292,7 @@
             }
         };
     </script>
-    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
+    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js', 'resources/js/games/bingo/rounds-config.js'])
     @if ($creator['type'] === 'customer' && $view === 'PRIVATE')
         <script>
             $(document).on("click", '#btn-game-id', function() {

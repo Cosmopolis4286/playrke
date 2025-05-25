@@ -87,8 +87,7 @@
                     <span class="sr-only"></span>
                 </div>
             </div>
-            <div id="container-rounds-config" class="row">
-            </div>
+            <div id="content-rounds-config" class="row"></div>
         </div>
     </div>
     <div class="content-rounds-pct form-group col-sm-6 col-md-4 hide-elem">
@@ -131,8 +130,7 @@
                     <span class="sr-only"></span>
                 </div>
             </div>
-            <div id="container-price-config" class="row">
-            </div>
+            <div id="content-ctn-price-config" class="row"></div>
         </div>
     </div>
     <div id="container-songs-pct" class="form-group col-sm-6 col-md-4 hide-elem">
