@@ -27,7 +27,7 @@ class BingoTypesPlays extends Model
             })->get();
     }
 
-    public static function existsSong($column, $value, $user)
+    public static function existsBingoPlay($column, $value, $user)
     {
         return self::where($column, $value)->where('user', $user)->exists();
     }

@@ -118,6 +118,8 @@ class AutoGenerateBingoRooms
                 'type_prize_pool' => $dataRoom->type_prize_pool,
                 'amount_added_prize_pool' => $dataRoom->amount_added_prize_pool,
                 'time_chip' => $dataRoom->time_chip,
+                'rounds' => $dataRoom->rounds,
+                'rounds_pct' => $dataRoom->rounds_pct,
                 'serials_pct' => $dataRoom->serials_pct,
                 'num_serials' => $dataRoom->num_serials,
                 'jackpot_pct' => $dataRoom->jackpot_pct,

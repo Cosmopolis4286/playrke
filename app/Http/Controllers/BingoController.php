@@ -1805,7 +1805,7 @@ class BingoController extends Controller
         $bingoBoxes = $request->bingo_boxes;
 
         // Verificar si el nombre de la jugada existe
-        $existsName = BingoTypesPlays::existsSong('name', $namePlay, $user);
+        $existsName = BingoTypesPlays::existsBingoPlay('name', $namePlay, $user);
         if ($existsName) {
             return redirect()->back()->with([
                 'type' => 'warning',
@@ -1813,7 +1813,7 @@ class BingoController extends Controller
             ]);
         }
         // Verificar si el conjunto de casillas ya esta en uso
-        $existsBoxes = BingoTypesPlays::existsSong('boxes', $bingoBoxes, $user);
+        $existsBoxes = BingoTypesPlays::existsBingoPlay('boxes', $bingoBoxes, $user);
         if ($existsBoxes) {
             return redirect()->back()->with([
                 'type' => 'warning',
