@@ -34,7 +34,7 @@
         <label for="type-prize-pool">Tipo Bote*</label>
         <select id="type-prize-pool" name="type_prize_pool" class="form-control" required></select>
     </div>
-    <div id="cont-amount-added-prize-pool" class="form-group col-sm-6 col-md-4 hide-elem">
+    <div id="container-amount-added-prize-pool" class="form-group col-sm-6 col-md-4">
         <label for="amount-added-prize-pool">Valor Fijo/Extra*</label>
         <div class="input-group">
             <div class="input-group-prepend">
@@ -53,7 +53,7 @@
     <div class="form-group col-sm-6 col-md-4">
         <label for="jackpot-pct">%Jackpot*</label>
         <input type="number" id="jackpot-pct" name="jackpot_pct" class="form-control prize-pool-pct" value=""
-            step="0.05" min="1" max="15">
+            step="0.5" min="1" max="15">
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="time-chip">Tiempo Ficha*</label>
@@ -70,7 +70,7 @@
         <div class="input-group">
             <input type="number" step="1" value="1" min="1" max="10" id="rounds"
                 name="rounds" class="form-control" required>
-            <div class="content-rounds-pct input-group-append hide-elem">
+            <div class="content-rounds-pct input-group-append">
                 <button id="btn-rounds-config" class="btn btn-outline-secondary" type="button" data-active="0"
                     data-toggle="popover" data-trigger="hover" data-content="Ajustar precio por monedas">
                     <i class="fa-solid fa-sliders"></i>
@@ -78,19 +78,18 @@
             </div>
         </div>
     </div>
-    <div id="container-rounds-config" class="form-group col-12 hide-elem">
-        <div class="container"
-            style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
-            <label for="container-rounds-config" class="form-label">Ajustar valores de las rondas</label>
-            <div id="container-spinner" class="mt-1">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only"></span>
+    <div id="container-rounds-config" class="form-group col-12">
+        <div class="border rounded p-3" style="max-height: 155px; overflow-y: auto;">
+            <div class="d-flex">
+                <h6 class="mb-3 mr-1">Ajustar valores de las rondas</h6>
+                <div id="spinner-rounds-config" class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="sr-only">Cargando...</span>
                 </div>
             </div>
             <div id="content-rounds-config" class="row"></div>
         </div>
     </div>
-    <div class="content-rounds-pct form-group col-sm-6 col-md-4 hide-elem">
+    <div class="content-rounds-pct form-group col-sm-6 col-md-4">
         <label for="rounds-pct">%Rondas*</label>
         <input type="number" id="rounds-pct" name="rounds_pct" class="form-control prize-pool-pct" value=""
             step="1" min="1" max="20">
@@ -121,21 +120,21 @@
             </div>
         </div>
     </div>
-    <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
-        <div class="container"
-            style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
-            <label for="container-price-config" class="form-label">Ajustar precio del cartón</label>
-            <div id="container-spinner" class="mt-1">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only"></span>
+    <div id="container-ctn-price-config" class="form-group col-12">
+        <div class="border rounded p-3" style="max-height: 155px; overflow-y: auto;">
+            <div class="d-flex">
+                <h6 class="mb-3 mr-1">Ajustar precio del cartón</h6>
+                <div id="spinner-ctn-price-config" class="spinner-border spinner-border-sm text-primary"
+                    role="status">
+                    <span class="sr-only">Cargando...</span>
                 </div>
             </div>
             <div id="content-ctn-price-config" class="row"></div>
         </div>
     </div>
-    <div id="container-songs-pct" class="form-group col-sm-6 col-md-4 hide-elem">
+    {{-- <div id="container-songs-pct" class="form-group col-sm-6 col-md-4">
         <label for="songs-pct">%Bote Cantos</label>
         <input type="number" value="" min="2" max="35" step="0.25" id="songs-pct"
             name="songs-pct" class="form-control prize-pool-pct" placeholder="Ingrese valor" required>
-    </div>
+    </div> --}}
 </div>

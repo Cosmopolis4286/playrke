@@ -59,6 +59,7 @@
         const arrCoins = @json($coins);
         const arrTypePrizePool = @json($type_prize_pool);
         const arrGameModes = @json($gameModes);
+        let bingoRounds = false;
         let coinsCtnPrice = false;
         let selectedBingoPlays = [];
 
@@ -74,12 +75,12 @@
         });
 
         function changeFixedJackpot(val) {
-            const container = $("#cont-amount-added-prize-pool");
+            const container = $("#container-amount-added-prize-pool");
 
             if (val > 1) {
-                container.removeClass('hide-elem');
+                container.show();
             } else {
-                container.addClass('hide-elem');
+                container.hide();
                 $("#amount-added-prize-pool").empty();
             }
         }
@@ -90,20 +91,11 @@
 
         rounds.on('change', function() {
             if ($(this).val() > 1) {
-                $('.content-rounds-pct').removeClass('hide-elem');
+                $('.content-rounds-pct').show();
                 $('#rounds-pct').prop('required', true);
             } else {
-                $('.content-rounds-pct').addClass('hide-elem');
-                $('#rounds-pct').prop('required', false);
-            }
-        });
-
-        $('#btn-rounds-config').on('click', function() {
-            if (!roundsPct.val()) {
-                $('#rounds-pct').focus();
-                showToast('Indica un porcentaje para las rondas', 'warning');
-            } else {
-                $('#container-rounds-config').removeClass('hide-elem');
+                $('.content-rounds-pct').hide();
+                $('#rounds-pct').val('').prop('required', false);
             }
         });
 
@@ -112,9 +104,9 @@
             const container = $('#container-songs-pct');
 
             if (selected.length === 0) {
-                container.addClass('hide-elem');
+                container.hide();
             } else {
-                container.removeClass('hide-elem');
+                container.show();
 
                 if (selected.includes('random')) {
                     console.log('Random seleccionado');
@@ -155,12 +147,12 @@
 
             if (type == 1) {
                 coinsCtnPrice = false;
-                $("#container-ctn-price-config, #container-rounds-config")
-                    .addClass("hide-elem").data("active", 0);
-                $('#content-price-config, #content-rounds-config').html('');
+                $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
+                $("#btn-rounds-config, #btn-ctn-price-config").data("active", '0');
+                $('#content-rounds-config, #content-price-config').html('');
             } else {
-                getCtnPriceCoin(data.room.encrypted, true);
-                getBingoRoundsConfig(data.room.encrypted, true);
+                getCtnPriceCoin(data.room.encrypted);
+                getRoundsConfig(data.room.encrypted);
             }
 
             gameMode.prop({

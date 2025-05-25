@@ -17,7 +17,7 @@ function handleCtnPriceForCoins(arrCtnPrice) {
     </div>`).join('');
 
     // Actualizar el contenido del contenedor
-    $('#container-price-config').html(dataCoins);
+    $('#content-ctn-price-config').html(dataCoins);
 
     // Marcar que las monedas ya han sido procesadas
     coinsCtnPrice = true;
@@ -25,35 +25,35 @@ function handleCtnPriceForCoins(arrCtnPrice) {
 
 $(document).on("click", "#btn-ctn-price-config", function () {
     const container = $("#container-ctn-price-config");
-    // Alternar la clase y el valor del atributo 'data-active'
-    const isActive = container.toggleClass("hide-elem").data("active") === 1 ? 0 : 1;
-    container.data("active", isActive);
 
-    if (isActive === 0 || coinsCtnPrice) return;
+    if (container.is(":visible")) {
+        container.hide();
+        return;
+    }
 
-    getCtnPriceCoin();
+    container.show();
+
+    if (!coinsCtnPrice) {
+        getCtnPriceCoin();
+    }
 });
 
-function getCtnPriceCoin(room = '', action = '') {
-
-    $('#container-price-config').html('');
-
+function getCtnPriceCoin(room = '') {
     $.ajax({
         url: route('bingo.getCtnPriceForCoin', { creation, creatorType, creatorID, room }),
         method: 'GET',
         dataType: 'json',
         beforeSend: function () {
-            $('#container-spinner').show();
+            $('#spinner-ctn-price-config').show();
+            $('#content-ctn-price-config').html('');
+            $("#container-ctn-price-config").show();
         },
         success: function (res) {
-            if (!action || res.hasPrice) {
-                handleCtnPriceForCoins(res.ctnPrice);
-                $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
-            }
+            handleCtnPriceForCoins(res.ctnPrice);
         },
         error: function (error) { },
         complete: function () {
-            $('#container-spinner').hide();
+            $('#spinner-ctn-price-config').hide();
         }
     });
 }

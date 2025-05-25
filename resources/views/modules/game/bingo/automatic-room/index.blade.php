@@ -53,7 +53,7 @@
         });
 
         function changeFixedJackpot(val) {
-            const container = $("#cont-amount-added-prize-pool");
+            const container = $("#container-amount-added-prize-pool");
 
             if (val > 1) {
                 container.removeClass('hide-elem');
@@ -107,7 +107,7 @@
                 $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
                 $('#container-price-config').html('');
             } else {
-                getCtnPriceCoin(data.room.id, true);
+                getCtnPriceCoin(data.room.id);
             }
 
             gameMode.empty();

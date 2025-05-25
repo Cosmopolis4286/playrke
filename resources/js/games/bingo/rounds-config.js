@@ -1,4 +1,4 @@
-function handleRounds(arrRounds) {
+function handleRoundsConfig(arrRounds) {
     // Generar el contenido HTML usando map y join
     const dataCoins = arrRounds.map((elem) =>
         `<div class="col col-sm-6 col-md-4 mt-1">
@@ -10,52 +10,59 @@ function handleRounds(arrRounds) {
                 type="text" 
                 class="form-control" 
                 name="ctn_price_coins[${elem.coin}]" 
-                id="ctn-price-coin-${elem.coin}" 
+                id="rounds-coin-${elem.coin}" 
                 aria-label="Precio para ${elem.isoCode}" 
                 value="${elem.ctnPrice}">
         </div>
     </div>`).join('');
 
     // Actualizar el contenido del contenedor
-    $('#container-price-config').html(dataCoins);
+    $('#content-rounds-config').html(dataCoins);
 
-    // Marcar que las monedas ya han sido procesadas
-    coinsCtnPrice = true;
+    // Marcar que las rondas ya han sido procesadas
+    bingoRounds = true;
 }
 
-$(document).on("click", "#btn-ctn-price-config", function () {
-    const container = $("#container-ctn-price-config");
-    // Alternar la clase y el valor del atributo 'data-active'
-    const isActive = container.toggleClass("hide-elem").data("active") === 1 ? 0 : 1;
-    container.data("active", isActive);
+$(document).on("click", "#btn-rounds-config", function () {
 
-    if (isActive === 0 || coinsCtnPrice) return;
+    if (!$('#rounds-pct').val()) {
+        $('#rounds-pct').trigger('focus');
+        showToast('Indica un porcentaje para las rondas', 'warning');
+        return;
+    } else {
+        const container = $("#container-rounds-config");
 
-    getBingoRoundsConfig();
+        if (container.is(":visible")) {
+            container.hide();
+            return;
+        }
+
+        container.show();
+
+        if (!bingoRounds) {
+            getRoundsConfig();
+        }
+    }
 });
 
-function getBingoRoundsConfig(room = '', action = '') {
-
-    $('#container-price-config').html('');
-
+function getRoundsConfig(room = '') {
     $.ajax({
         url: route('bingo.getCtnPriceForCoin', { creation, creatorType, creatorID, room }),
         method: 'GET',
         dataType: 'json',
         beforeSend: function () {
-            $('#container-spinner').show();
+            $('#spinner-rounds-config').show();
+            $('#content-rounds-config').html('');
+            $("#container-rounds-config").show();
         },
         success: function (res) {
-            if (!action || res.hasPrice) {
-                handleRounds(res.ctnPrice);
-                $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
-            }
+            handleRoundsConfig(res.ctnPrice);
         },
         error: function (error) { },
         complete: function () {
-            $('#container-spinner').hide();
+            $('#spinner-rounds-config').hide();
         }
     });
 }
 
-window.getBingoRoundsConfig = getBingoRoundsConfig;
+window.getRoundsConfig = getRoundsConfig;
