@@ -199,7 +199,7 @@ function validateInput(input, isFloat = true, callback = null) {
             callback(!error); // Pasa `true` si no hay error, `false` si hay error
         }
 
-    }, 1500);
+    }, 1250);
 }
 
 function stringToArray(str, separator = ';') {

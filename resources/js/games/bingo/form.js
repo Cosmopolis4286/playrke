@@ -30,11 +30,25 @@ function handlePercentageAdjust(changedId) {
     }
 }
 
-$(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #num-serials", function () {
+// Limitar a solo números enteros (sin puntos, comas ni letras)
+$(document).on('input', '#num-serials, #time-chip, #rounds', function () {
+    this.value = this.value.replace(/[^0-9]/g, '');
+});
+
+// Limitar a números decimales válidos (sin letras)
+$(document).on('input', '#amount-added-prize-pool, #room-commn, #serials-pct, #rounds-pct, #ctn-price', function () {
+    this.value = this.value.replace(/,/g, '.'); // Opcional: convertir comas en puntos
+    this.value = this.value
+        .replace(/[^0-9.]/g, '')        // Solo números y punto
+        .replace(/(\..*?)\..*/g, '$1'); // Solo un punto permitido
+});
+
+// Validación general para rango min-max
+$(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #rounds, #num-serials", function () {
     const id = $(this).attr('id');
     validateInput(this, !['num-serials', 'time-chip', 'rounds'].includes(id));
 });
 
-$(document).on("input", ".prize_pool-pct", function () {
+$(document).on("input", ".prize-pool-pct", function () {
     validateInput(this, true, () => handlePercentageAdjust($(this).attr('id')));
 });

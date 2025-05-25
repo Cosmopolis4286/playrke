@@ -1323,12 +1323,9 @@ class BingoController extends Controller
                 'serials_pct' => $request->serials_pct,
                 'num_serials' => $request->num_serials,
                 'jackpot_pct' => $request->jackpot_pct,
-                'songs_pct' => $request->songs_pct
+                'songs_pct' => $request->songs_pct,
+                'types_songs' => implode(';', $typesOfPlays)
             ];
-
-            // if ($typesOfPlays) {
-            //     $dataConfig['types_songs'] = implode(';', $typesOfPlays);
-            // }
 
             BingoRoomConfig::create($dataConfig);
 
@@ -1522,14 +1519,9 @@ class BingoController extends Controller
             'serials_pct' => $request->serials_pct,
             'num_serials' => $request->num_serials,
             'jackpot_pct' => $request->jackpot_pct,
-            'songs_pct' => $request->songs_pct
+            'songs_pct' => $request->songs_pct,
+            'types_songs' => implode(';', $typesOfPlays)
         ];
-
-        // $typesOfPlays = $request->bingo_plays;
-
-        // if ($typesOfPlays) {
-        //     $updateDataConfig['types_songs'] = implode(';', $typesOfPlays);
-        // }
 
         // Solo añadir 'game_mode' si el prize_pool es 0
         if ($room->prize_pool == 0) {
@@ -2198,6 +2190,8 @@ class BingoController extends Controller
                 'serials_pct' => $existingRoomConfig->serials_pct,
                 'num_serials' => $existingRoomConfig->num_serials,
                 'jackpot_pct' => $existingRoomConfig->jackpot_pct,
+                'songs_pct' => $existingRoomConfig->songs_pct,
+                'types_songs' => implode(';', $typesOfPlays)
             ]);
 
             // Registar el creador de la sala
@@ -2450,6 +2444,8 @@ class BingoController extends Controller
                 'rounds_pct',
                 'room_commn',
                 'jackpot_pct',
+                'songs_pct',
+                'types_songs',
                 'serials_pct',
                 'num_serials',
                 'status'
@@ -2661,6 +2657,8 @@ class BingoController extends Controller
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $data->room_commn,
                 'jackpot_pct' => $data->serials_commission,
+                'songs_pct' => $data->songs,
+                'types_songs' => $data->types_songs,
                 'serials_pct' => $data->serials_pct,
                 'num_serials' => $data->num_serials,
                 'creator_type' => UserType::getValueByPrefix($creator->type, 'id'),
@@ -2784,6 +2782,8 @@ class BingoController extends Controller
             'serials_pct',
             'num_serials',
             'jackpot_pct',
+            'songs_pct',
+            'types_songs',
             'status'
         )->where('id', $id)->firstOrFail();
 

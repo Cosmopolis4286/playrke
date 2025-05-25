@@ -47,12 +47,12 @@
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
     <div class="form-group col-sm-6 col-md-4">
         <label for="room-commn">%Sala*</label>
-        <input type="number" id="room-commn" name="room_commn" class="form-control prize_pool-pct" value="20"
+        <input type="number" id="room-commn" name="room_commn" class="form-control prize-pool-pct" value="20"
             step="0.05" min="10" max="50" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="jackpot-pct">%Jackpot*</label>
-        <input type="number" id="jackpot-pct" name="jackpot_pct" class="form-control prize_pool-pct" value=""
+        <input type="number" id="jackpot-pct" name="jackpot_pct" class="form-control prize-pool-pct" value=""
             step="0.05" min="1" max="15">
     </div>
     <div class="form-group col-sm-6 col-md-4">
@@ -70,37 +70,36 @@
         <div class="input-group">
             <input type="number" step="1" value="1" min="1" max="10" id="rounds"
                 name="rounds" class="form-control" required>
-            <div class="input-group-append">
-                <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button" data-active="0"
+            <div class="content-rounds-pct input-group-append hide-elem">
+                <button id="btn-rounds-config" class="btn btn-outline-secondary" type="button" data-active="0"
                     data-toggle="popover" data-trigger="hover" data-content="Ajustar precio por monedas">
                     <i class="fa-solid fa-sliders"></i>
                 </button>
             </div>
         </div>
     </div>
-    <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
+    <div id="container-rounds-config" class="form-group col-12 hide-elem">
         <div class="container"
             style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
-            <label for="container-price-config" class="form-label">Ajustar valores de las rondas</label>
+            <label for="container-rounds-config" class="form-label">Ajustar valores de las rondas</label>
             <div id="container-spinner" class="mt-1">
                 <div class="spinner-border text-primary" role="status">
                     <span class="sr-only"></span>
                 </div>
             </div>
-            <div id="container-price-config" class="row">
+            <div id="container-rounds-config" class="row">
             </div>
         </div>
     </div>
-
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="content-rounds-pct form-group col-sm-6 col-md-4 hide-elem">
         <label for="rounds-pct">%Rondas*</label>
-        <input type="number" id="rounds-pct" name="rounds_pct" class="form-control prize_pool-pct" value=""
+        <input type="number" id="rounds-pct" name="rounds_pct" class="form-control prize-pool-pct" value=""
             step="1" min="1" max="20">
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="serials-pct">%Bote Seriales</label>
         <input type="number" value="5" min="2" max="35" step="0.25" id="serials-pct"
-            name="serials_pct" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
+            name="serials_pct" class="form-control prize-pool-pct" placeholder="Ingrese valor" required>
     </div>
     <div class="form-group col-sm-6 col-md-4">
         <label for="num-serials">#Max. Seriales</label>
@@ -139,6 +138,6 @@
     <div id="container-songs-pct" class="form-group col-sm-6 col-md-4 hide-elem">
         <label for="songs-pct">%Bote Cantos</label>
         <input type="number" value="" min="2" max="35" step="0.25" id="songs-pct"
-            name="songs-pct" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
+            name="songs-pct" class="form-control prize-pool-pct" placeholder="Ingrese valor" required>
     </div>
 </div>
