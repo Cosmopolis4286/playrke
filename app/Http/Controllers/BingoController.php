@@ -1559,6 +1559,14 @@ class BingoController extends Controller
         }
     }
 
+    public function getRoundsConfig($room)
+    {
+        $roomID = BingoRoom::getValueByEncrypted($room, 'id');
+
+        // Retornar respuesta con los datos
+        return response()->json($roomID);
+    }
+
     public function getCtnPriceForCoin($creation, $creatorType, $creatorID, $room = '')
     {
         // Desencriptar $creatorID

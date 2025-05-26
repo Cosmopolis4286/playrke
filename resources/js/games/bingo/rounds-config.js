@@ -1,4 +1,4 @@
-function handleRoundsConfig(arrRounds) {
+function handleRoundsConfig(arrRounds = []) {
     // Generar el contenido HTML usando map y join
     const dataCoins = arrRounds.map((elem) =>
         `<div class="col col-sm-6 col-md-4 mt-1">
@@ -47,7 +47,7 @@ $(document).on("click", "#btn-rounds-config", function () {
 
 function getRoundsConfig(room = '') {
     $.ajax({
-        url: route('bingo.getCtnPriceForCoin', { creation, creatorType, creatorID, room }),
+        url: route('bingo.getRoundsConfig', room),
         method: 'GET',
         dataType: 'json',
         beforeSend: function () {
