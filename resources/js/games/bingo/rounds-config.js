@@ -1,32 +1,55 @@
 function handleRoundsConfig(arrRounds = []) {
-    // Generar el contenido HTML usando map y join
-    const dataCoins = arrRounds.map((elem) =>
-        `<div class="col col-sm-6 col-md-4 mt-1">
-        <div class="input-group">
-            <div class="input-group-prepend">
-                <span class="input-group-text">${elem.isoCode}</span>
+    let dataRounds = '';
+
+    if (arrRounds.length) {
+        dataRounds = arrRounds.map(({ isoCode, coin, ctnPrice }) => `
+            <div class="col col-sm-6 col-md-4 mt-1">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">#${isoCode}</span>
+                    </div>
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        name="ctn_price_coins[${coin}]" 
+                        id="rounds-coin-${coin}" 
+                        aria-label="Precio para ${isoCode}" 
+                        value="${ctnPrice}">
+                </div>
             </div>
-            <input 
-                type="text" 
-                class="form-control" 
-                name="ctn_price_coins[${elem.coin}]" 
-                id="rounds-coin-${elem.coin}" 
-                aria-label="Precio para ${elem.isoCode}" 
-                value="${elem.ctnPrice}">
-        </div>
-    </div>`).join('');
+        `).join('');
+    } else {
+        const numRounds = parseInt(rounds.val()) || 0;
 
-    // Actualizar el contenido del contenedor
-    $('#content-rounds-config').html(dataCoins);
+        dataRounds = Array.from({ length: numRounds }, (_, index) => {
+            const roundNumber = index + 1;
+            return `
+                <div class="col col-sm-6 col-md-4 mt-1">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">#${roundNumber}</span>
+                        </div>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            name="rounds_pcts[]" 
+                            id="rounds-${roundNumber}" 
+                            aria-label="Ronda #${roundNumber}" 
+                            value="">
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
 
-    // Marcar que las rondas ya han sido procesadas
+    $('#content-rounds-config').html(dataRounds);
     bingoRounds = true;
 }
 
 $(document).on("click", "#btn-rounds-config", function () {
 
-    if (!$('#rounds-pct').val()) {
-        $('#rounds-pct').trigger('focus');
+    if (!roundsPct.val()) {
+        roundsPct.trigger('focus');
         showToast('Indica un porcentaje para las rondas', 'warning');
         return;
     } else {
@@ -39,13 +62,18 @@ $(document).on("click", "#btn-rounds-config", function () {
 
         container.show();
 
-        if (!bingoRounds) {
+        if (!bingoRounds && rounds.val() > 1) {
             getRoundsConfig();
         }
     }
 });
 
 function getRoundsConfig(room = '') {
+    if (!room) {
+        $('#spinner-rounds-config').hide();
+        handleRoundsConfig();
+        return;
+    }
     $.ajax({
         url: route('bingo.getRoundsConfig', room),
         method: 'GET',

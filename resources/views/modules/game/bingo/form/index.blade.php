@@ -92,10 +92,10 @@
         rounds.on('change', function() {
             if ($(this).val() > 1) {
                 $('.content-rounds-pct').show();
-                $('#rounds-pct').prop('required', true);
+                roundsPct.prop('required', true);
             } else {
                 $('.content-rounds-pct').hide();
-                $('#rounds-pct').val('').prop('required', false);
+                roundsPct.val('').prop('required', false);
             }
         });
 
