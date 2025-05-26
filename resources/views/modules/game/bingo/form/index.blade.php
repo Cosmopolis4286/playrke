@@ -21,7 +21,7 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'lg',
-        'style' => 'style="max-width: 700px;"',
+        'style' => 'style="max-width: 725px;"',
         'dataForm' => view('modules.game.bingo.form.body', [
             'creator' => $creator,
             'timeZone' => $timeZone,

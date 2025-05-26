@@ -7,26 +7,51 @@ function setSafeValue($el, value) {
     $el.val(Math.min(value, max, 100).toFixed(2));
 }
 
-function handlePercentageAdjust(changedId) {
-    const $elements = {
-        'room-commn': $('#room-commn'),
-        'serials-pct': $('#serials-pct'),
-        'rounds-pct': $('#rounds-pct'),
-    };
+function handlePercentageAdjust(changedSelector, selectors = [], maxValue = 100) {
+    const $elements = {};
+    const values = {};
 
-    const values = {
-        'room-commn': getNumericValue($elements['room-commn']),
-        'serials-pct': getNumericValue($elements['serials-pct']),
-        'rounds-pct': getNumericValue($elements['rounds-pct']),
-    };
+    // Mapear todos los elementos
+    selectors.forEach(selector => {
+        const isClass = selector.startsWith('.');
+        const $el = isClass ? $('.' + selector.slice(1)) : $('#' + selector);
+        $elements[selector] = $el;
 
-    const total = values['room-commn'] + values['serials-pct'] + values['rounds-pct'];
+        // Si es clase, sumar todos los elementos con esa clase
+        const totalValue = isClass 
+            ? $el.toArray().reduce((sum, el) => sum + getNumericValue($(el)), 0)
+            : getNumericValue($el);
 
-    if (total > 100) {
-        const over = total - 100;
-        const $changed = $elements[changedId];
-        const newValue = getNumericValue($changed) - over;
-        setSafeValue($changed, newValue);
+        values[selector] = totalValue;
+    });
+
+    const total = Object.values(values).reduce((acc, val) => acc + val, 0);
+
+    if (total > maxValue) {
+        const over = total - maxValue;
+
+        const isChangedClass = changedSelector.startsWith('.');
+        const $changed = isChangedClass 
+            ? $('.' + changedSelector.slice(1)) 
+            : $('#' + changedSelector);
+
+        const currentValue = isChangedClass
+            ? $changed.toArray().reduce((sum, el) => sum + getNumericValue($(el)), 0)
+            : getNumericValue($changed);
+
+        const newValue = currentValue - over;
+
+        // Si es clase, ajustar proporcionalmente entre todos
+        if (isChangedClass) {
+            const count = $changed.length;
+            const distribute = newValue / count;
+
+            $changed.each((_, el) => {
+                setSafeValue($(el), distribute);
+            });
+        } else {
+            setSafeValue($changed, newValue);
+        }
     }
 }
 
@@ -36,7 +61,7 @@ $(document).on('input', '#num-serials, #time-chip, #rounds', function () {
 });
 
 // Limitar a números decimales válidos (sin letras)
-$(document).on('input', '#amount-added-prize-pool, #room-commn, #serials-pct, #rounds-pct, #ctn-price', function () {
+$(document).on('input', '#amount-added-prize-pool, #room-commn, #serials-pct, #rounds-pct, .rounds-pcts-input, #ctn-price', function () {
     this.value = this.value.replace(/,/g, '.'); // Opcional: convertir comas en puntos
     this.value = this.value
         .replace(/[^0-9.]/g, '')        // Solo números y punto
@@ -50,5 +75,8 @@ $(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #roun
 });
 
 $(document).on("input", ".prize-pool-pct", function () {
-    validateInput(this, true, () => handlePercentageAdjust($(this).attr('id')));
+    const elements = ['room-commn', 'serials-pct', 'rounds-pct'];
+    validateInput(this, true, () => handlePercentageAdjust($(this).attr('id'), elements));
 });
+
+window.handlePercentageAdjust = handlePercentageAdjust; 

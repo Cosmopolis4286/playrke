@@ -5,26 +5,29 @@ const options = [
 ];
 
 function handleRoundsConfig(arrRounds = []) {
+    const pctValue = parseFloat(roundsPct.val()) || 0;
     const content = arrRounds.length
         ? generateRounds(arrRounds)
-        : generateEmptyRounds();
+        : generateEmptyRounds(pctValue);
 
-    $('#content-rounds-config').html(content);
+    $('#content-rounds-config').empty().html(content);
     bingoRounds = true;
 }
 
 function generateRounds(arr) {
-    return arr.map(({ isoCode, coin, ctnPrice }, i) => {
+    return arr.map(({ isoCode, coin }, i) => {
         const roundNumber = i + 1;
         return buildRoundHtml(roundNumber, coin, isoCode);
     }).join('');
 }
 
-function generateEmptyRounds() {
+function generateEmptyRounds(pctValue) {
     const numRounds = parseInt($('#rounds').val()) || 0;
+    const valuePerRound = (numRounds > 0) ? (pctValue / numRounds).toFixed(2) : 0;
+
     return Array.from({ length: numRounds }, (_, i) => {
         const roundNumber = i + 1;
-        return buildRoundHtml(roundNumber);
+        return buildRoundHtml(roundNumber, valuePerRound);
     }).join('');
 }
 
@@ -43,7 +46,7 @@ function buildRoundHtml(roundNumber, value = '', selected = '') {
             <div class="input-group">
                 <input 
                     type="text" 
-                    class="form-control" 
+                    class="form-control rounds-pcts-input" 
                     name="rounds_pcts[]" 
                     id="round-${roundNumber}" 
                     aria-label="Ronda #${roundNumber}" 
@@ -61,7 +64,6 @@ function buildRoundHtml(roundNumber, value = '', selected = '') {
         </div>
     `;
 }
-
 
 function getRoundsConfig(room = '') {
     if (!room) {
@@ -81,7 +83,7 @@ function getRoundsConfig(room = '') {
         success: function (res) {
             handleRoundsConfig(res.ctnPrice);
         },
-        error: function (error) { },
+        error: function () { },
         complete: function () {
             $('#spinner-rounds-config').hide();
         }
@@ -90,34 +92,51 @@ function getRoundsConfig(room = '') {
 
 rounds.on('change', function () {
     if ($(this).val() > 1) {
-        $('.content-rounds-pct').show();
-        roundsPct.prop('required', true);
+        if (!$('.content-rounds-pct').is(":visible")) {
+            $('.content-rounds-pct').show();
+            roundsPct.prop('required', true);
+        } else {
+            getRoundsConfig();
+        }
     } else {
         $('.content-rounds-pct, #container-rounds-config').hide();
         roundsPct.val('').prop('required', false);
     }
 });
 
+roundsPct.on('change', function () {
+    getRoundsConfig();
+});
+
 $(document).on("click", "#btn-rounds-config", function () {
+    const pctValue = parseFloat(roundsPct.val());
 
-    if (!roundsPct.val()) {
+    if (!pctValue || pctValue <= 0) {
         roundsPct.trigger('focus');
-        showToast('Indica un porcentaje para las rondas', 'warning');
+        showToast('Indica un porcentaje válido para las rondas', 'warning');
         return;
-    } else {
-        const container = $("#container-rounds-config");
-
-        if (container.is(":visible")) {
-            container.hide();
-            return;
-        }
-
-        container.show();
-
-        if (!bingoRounds && rounds.val() > 1) {
-            getRoundsConfig();
-        }
     }
+
+    const container = $("#container-rounds-config");
+
+    if (container.is(":visible")) {
+        container.hide();
+        return;
+    }
+
+    container.show();
+
+    if (rounds.val() > 1 && !$('#round-2').val()) {
+        getRoundsConfig();
+    }
+});
+
+$(document).on("input", ".rounds-pcts-input", function () {
+    const elementID = $(this).attr('id');
+    const elements = ['.rounds-pcts-input'];
+    const pctValue = parseFloat(roundsPct.val()) || 0;
+
+    validateInput(this, true, () => handlePercentageAdjust(elementID, elements, pctValue));
 });
 
 window.getRoundsConfig = getRoundsConfig;
