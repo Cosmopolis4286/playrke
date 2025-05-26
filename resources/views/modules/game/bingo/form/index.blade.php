@@ -20,7 +20,8 @@
     </div>
     @include('includes.modal-form', [
         'name' => $name,
-        'size' => 'md',
+        'size' => 'lg',
+        'style' => 'style="max-width: 700px;"',
         'dataForm' => view('modules.game.bingo.form.body', [
             'creator' => $creator,
             'timeZone' => $timeZone,
@@ -87,16 +88,6 @@
 
         type_prize_pool.on('change', function() {
             changeFixedJackpot($(this).val());
-        });
-
-        rounds.on('change', function() {
-            if ($(this).val() > 1) {
-                $('.content-rounds-pct').show();
-                roundsPct.prop('required', true);
-            } else {
-                $('.content-rounds-pct, #container-rounds-config').hide();
-                roundsPct.val('').prop('required', false);
-            }
         });
 
         bingoPlays.on('change', function() {

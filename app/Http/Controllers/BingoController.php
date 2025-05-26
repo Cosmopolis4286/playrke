@@ -1303,6 +1303,8 @@ class BingoController extends Controller
 
             $roomID = BingoRoom::create($createData)->id;
 
+            $typesOfPlays =[];
+
             $dataConfig = [
                 'room' => $roomID,
                 'creation' => 'M',
@@ -1323,7 +1325,7 @@ class BingoController extends Controller
                 'serials_pct' => $request->serials_pct,
                 'num_serials' => $request->num_serials,
                 'jackpot_pct' => $request->jackpot_pct,
-                'songs_pct' => $request->songs_pct,
+                'songs_pct' => $request->rounds_pct,
                 'types_songs' => implode(';', $typesOfPlays)
             ];
 
@@ -1563,8 +1565,10 @@ class BingoController extends Controller
     {
         $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
+        $bingoRounds = BingoRoomRounds::all();
+
         // Retornar respuesta con los datos
-        return response()->json($roomID);
+        return response()->json($bingoRounds);
     }
 
     public function getCtnPriceForCoin($creation, $creatorType, $creatorID, $room = '')
@@ -2665,7 +2669,7 @@ class BingoController extends Controller
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $data->room_commn,
                 'jackpot_pct' => $data->serials_commission,
-                'songs_pct' => $data->songs,
+                'songs_pct' => $data->rounds_pct,
                 'types_songs' => $data->types_songs,
                 'serials_pct' => $data->serials_pct,
                 'num_serials' => $data->num_serials,
