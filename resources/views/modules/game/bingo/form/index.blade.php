@@ -94,7 +94,7 @@
                 $('.content-rounds-pct').show();
                 roundsPct.prop('required', true);
             } else {
-                $('.content-rounds-pct').hide();
+                $('.content-rounds-pct, #container-rounds-config').hide();
                 roundsPct.val('').prop('required', false);
             }
         });
