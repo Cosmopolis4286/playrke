@@ -21,7 +21,7 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'lg',
-        'style' => 'style="max-width: 725px;"',
+        'style' => 'style="max-width: 730px;"',
         'dataForm' => view('modules.game.bingo.form.body', [
             'creator' => $creator,
             'timeZone' => $timeZone,
@@ -60,6 +60,7 @@
         const arrCoins = @json($coins);
         const arrTypePrizePool = @json($type_prize_pool);
         const arrGameModes = @json($gameModes);
+        let totalPct = false;
         let bingoRounds = false;
         let coinsCtnPrice = false;
         let selectedBingoPlays = [];

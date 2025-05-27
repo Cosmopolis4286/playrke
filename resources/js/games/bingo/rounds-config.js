@@ -1,9 +1,3 @@
-const options = [
-    ['1', 'Cruz larga roja'],
-    ['2', '2'],
-    ['3', 'Cruz corta azul']
-];
-
 function handleRoundsConfig(arrRounds = []) {
     const pctValue = parseFloat(roundsPct.val()) || 0;
     const content = arrRounds.length
@@ -32,12 +26,11 @@ function generateEmptyRounds(pctValue) {
 }
 
 function buildRoundHtml(roundNumber, value = '', selected = '') {
-    const optionsHtml = options.map(
-        ([val, label]) => `
-            <option value="${val}" ${val == selected ? 'selected' : ''}>
-                ${label}
-            </option>
-        `
+    const optionsHtml = arrBingoPlays.map(
+        ({ id, name }) => `
+        <option value="${id}" ${id == selected ? 'selected' : ''}>
+            ${name}
+        </option>`
     ).join('');
 
     return `
@@ -56,7 +49,8 @@ function buildRoundHtml(roundNumber, value = '', selected = '') {
                     <select 
                         class="form-control" 
                         name="rounds_types[]" 
-                        aria-label="Seleccionar cantos">
+                        aria-label="Seleccionar cantos"
+                        disabled>
                         ${optionsHtml}
                     </select>
                 </div>
@@ -113,7 +107,7 @@ $(document).on("click", "#btn-rounds-config", function () {
 
     if (!pctValue || pctValue <= 0) {
         roundsPct.trigger('focus');
-        showToast('Indica un porcentaje válido para las rondas', 'warning');
+        showToast('Indica un porcentaje para las rondas', 'warning');
         return;
     }
 
@@ -134,9 +128,18 @@ $(document).on("click", "#btn-rounds-config", function () {
 $(document).on("input", ".rounds-pcts-input", function () {
     const elementID = $(this).attr('id');
     const elements = ['.rounds-pcts-input'];
-    const pctValue = parseFloat(roundsPct.val()) || 0;
 
-    validateInput(this, true, () => handlePercentageAdjust(elementID, elements, pctValue));
+    const inputValue = parseFloat(roundsPct.val()) || 0;
+    const maxInput = parseFloat(roundsPct.attr('max')) || 20;
+
+    const currentTotal = totalPct - inputValue;
+    const availablePct = Math.max(0, 100 - currentTotal);
+    const pctLimit = Math.min(availablePct, maxInput);
+
+    validateInput(this, true, () => {
+        const rTotal = handlePercentageAdjust(true, elementID, elements, pctLimit);
+        roundsPct.val(rTotal).trigger('change');
+    });
 });
 
 window.getRoundsConfig = getRoundsConfig;
