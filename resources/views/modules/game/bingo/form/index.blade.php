@@ -51,14 +51,14 @@
         const roomType = @json($roomType);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
-        const type_prize_pool = $("#type-prize-pool");
+        const typePrizePool = $("#type-prize-pool");
         const gameMode = $("#game-mode");
         const rounds = $("#rounds");
         const roundsPct = $('#rounds-pct');
         const bingoPlays = $("#bingo-plays");
         const arrBingoPlays = @json($bingoPlays);
         const arrCoins = @json($coins);
-        const arrTypePrizePool = @json($type_prize_pool);
+        const arrTypePrizePool = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
         let totalPct = false;
         let bingoRounds = false;
@@ -76,10 +76,10 @@
             });
         });
 
-        function changeFixedJackpot(val) {
+        function changeFixedJackpot(value) {
             const container = $("#container-amount-added-prize-pool");
 
-            if (val > 1) {
+            if (value > 1) {
                 container.show();
             } else {
                 container.hide();
@@ -87,7 +87,7 @@
             }
         }
 
-        type_prize_pool.on('change', function() {
+        typePrizePool.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
@@ -140,7 +140,6 @@
             if (type == 1) {
                 coinsCtnPrice = false;
                 $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
-                $("#btn-rounds-config, #btn-ctn-price-config").data("active", '0');
                 $('#content-rounds-config, #content-price-config').html('');
             } else {
                 getCtnPriceCoin(data.room.encrypted);
@@ -152,7 +151,7 @@
                 required: isRequired
             }).empty();
 
-            type_prize_pool.empty();
+            typePrizePool.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -161,14 +160,14 @@
                     gameMode.html(defaultOption);
                 }
 
-                type_prize_pool.html(defaultOption);
+                typePrizePool.html(defaultOption);
             }
 
             $('#room-type').val(roomType);
 
             $.each(arrTypePrizePool, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.type_prize_pool) ? 'selected' : '';
-                type_prize_pool.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                typePrizePool.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             $.each(arrGameModes, function(index, item) {
@@ -179,9 +178,9 @@
                 }
             });
 
-            if (type == 1) {
-                changeFixedJackpot(1);
-            } else if (type == 2) {
+            let addedPrizePool = 1;
+
+            if (type == 2) {
                 const config = data.config;
 
                 $('#date').val(config.date);
@@ -191,13 +190,17 @@
                 $('#ctn-price').val(config.ctn_price);
                 $('#time-chip').val(config.time_chip);
                 $('#rounds').val(config.rounds);
-                $('#rounds_pct').val(config.rounds_pct);
+                $('#rounds-pct').val(config.rounds_pct);
                 $('#serials-pct').val(config.serials_pct);
                 $('#num-serials').val(config.num_serials);
 
                 if (config.type_prize_pool > 1) {
-                    changeFixedJackpot(2);
+                    addedPrizePool = config.type_prize_pool;
                     $('#amount-added-prize-pool').val(config.amount_added_prize_pool);
+                }
+
+                if (config.rounds > 1) {
+                    $('.content-rounds-pct').show();
                 }
 
                 if (config.types_songs) {
@@ -206,7 +209,9 @@
                 }
             }
 
-            insertBingoPlays();
+            changeFixedJackpot(addedPrizePool);
+
+            // insertBingoPlays();
 
             $(`#modal-${name}`).modal('show');
         }

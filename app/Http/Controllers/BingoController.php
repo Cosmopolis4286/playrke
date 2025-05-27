@@ -1128,7 +1128,7 @@ class BingoController extends Controller
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
-            'type_prize_pool' => TypePrizePool::all(),
+            'typesPrizePool' => TypePrizePool::all(),
             'gameModes' => GameModes::all()
         ];
 
@@ -1302,8 +1302,8 @@ class BingoController extends Controller
             $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
 
             $roomID = BingoRoom::create($createData)->id;
-
-            $typesOfPlays =[];
+            $roundsPct = $request->rounds_pct ?? null;
+            $ctnPriceCoins = $request->ctn_price_coins;
 
             $dataConfig = [
                 'room' => $roomID,
@@ -1321,12 +1321,12 @@ class BingoController extends Controller
                 'amount_added_prize_pool' => $fixedJackpotValue,
                 'time_chip' => $request->time_chip,
                 'rounds' => $request->rounds,
-                'rounds_pct' => $request->rounds_pct,
+                'rounds_pct' => $roundsPct,
                 'serials_pct' => $request->serials_pct,
                 'num_serials' => $request->num_serials,
                 'jackpot_pct' => $request->jackpot_pct,
-                'songs_pct' => $request->rounds_pct,
-                'types_songs' => implode(';', $typesOfPlays)
+                'songs_pct' => null,
+                'types_songs' => null
             ];
 
             BingoRoomConfig::create($dataConfig);
@@ -1343,7 +1343,9 @@ class BingoController extends Controller
                 'ctn_price' => $request->ctn_price,
             ]);
 
-            $ctnPriceCoins = $request->ctn_price_coins;
+            if ($roundsPct) {
+                $this->handleRoundsConfig('CREATE', $request->rounds_pcts, $roomID);
+            }
 
             if ($ctnPriceCoins) {
                 $this->handleCtnPriceCoins('CREATE', $ctnPriceCoins, $roomID, $userID);
@@ -1362,83 +1364,106 @@ class BingoController extends Controller
         }
     }
 
-    private function handleCtnPriceCoins($action, $ctnPriceCoins, $roomID, $creatorUser)
+    private function handleRoundsConfig($action, $rounds, $roomID)
     {
-        $timestamp = now();
+        try {
+            $timestamp = now();
+            $batch = [];
 
-        foreach ($ctnPriceCoins as $coin => $ctnPrice) {
-            if (!$ctnPrice) {
-                continue; // Ignora valores vacíos o falsy
-            }
+            foreach ($rounds as $roundNumber => $value) {
 
-            $data = [
-                'room' => $roomID,
-                'creator_user' => $creatorUser,
-                'coin' => $coin,
-                'ctn_price' => $ctnPrice,
-                'status' => 1,
-                'updated_at' => $timestamp,
-            ];
+                $roundNumber += 1;
 
-            if ($action === 'CREATE') {
-                $data['created_at'] = $timestamp;
-                $batch[] = $data;
-            } else {
-                $existing = BingoCtnPrice::getCtnPrice($roomID, $coin, $creatorUser);
+                $data = [
+                    'room'       => $roomID,
+                    'round'      => $roundNumber,
+                    'type_play'  => 'FULL HOUSE',
+                    'pct'        => $value,
+                    'updated_at' => $timestamp,
+                ];
 
-                if ($existing) {
-                    if ($existing->ctn_price != $ctnPrice) {
-                        $existing->update($data);
-                    }
-                } else {
+                if ($action === 'CREATE') {
                     $data['created_at'] = $timestamp;
-                    BingoCtnPrice::create($data);
+                    $batch[] = $data;
+                } else {
+                    $existing = BingoRoomRounds::getByRound($roomID, $roundNumber, ['type_play', 'pct']);
+
+                    if ($existing) {
+                        if ($existing->pct != $value) {
+                            $existing->update($data);
+                        }
+                    } else {
+                        $data['created_at'] = $timestamp;
+                        BingoRoomRounds::create($data);
+                    }
                 }
             }
-        }
 
-        if ($action === 'CREATE' && !empty($batch ?? [])) {
-            BingoCtnPrice::insert($batch);
+            if ($action === 'CREATE' && !empty($batch)) {
+                BingoRoomRounds::insert($batch);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en handleRoundsConfig: ' . $e->getMessage(), [
+                'action'  => $action,
+                'roomID'  => $roomID,
+                'rounds'  => $rounds,
+                'trace'   => $e->getTraceAsString(),
+            ]);
+
+            throw $e; // Puedes relanzar la excepción o manejarla según tu flujo
         }
     }
 
-    private function handleTypesOfSongs($action, $ctnPriceCoins, $roomID, $creatorUser)
+    private function handleCtnPriceCoins($action, $ctnPriceCoins, $roomID, $creatorUser)
     {
-        $timestamp = now();
+        try {
+            $timestamp = now();
+            $batch = [];
 
-        foreach ($ctnPriceCoins as $coin => $ctnPrice) {
-            if (!$ctnPrice) {
-                continue; // Ignora valores vacíos o falsy
-            }
+            foreach ($ctnPriceCoins as $coin => $ctnPrice) {
+                if (!$ctnPrice) {
+                    continue; // Ignora valores vacíos o cero
+                }
 
-            $data = [
-                'room' => $roomID,
-                'creator_user' => $creatorUser,
-                'coin' => $coin,
-                'ctn_price' => $ctnPrice,
-                'status' => 1,
-                'updated_at' => $timestamp,
-            ];
+                $data = [
+                    'room'         => $roomID,
+                    'creator_user' => $creatorUser,
+                    'coin'         => $coin,
+                    'ctn_price'    => $ctnPrice,
+                    'status'       => 1,
+                    'updated_at'   => $timestamp,
+                ];
 
-            if ($action === 'CREATE') {
-                $data['created_at'] = $timestamp;
-                $batch[] = $data;
-            } else {
-                $existing = BingoCtnPrice::getCtnPrice($roomID, $coin, $creatorUser);
-
-                if ($existing) {
-                    if ($existing->ctn_price != $ctnPrice) {
-                        $existing->update($data);
-                    }
-                } else {
+                if ($action === 'CREATE') {
                     $data['created_at'] = $timestamp;
-                    BingoCtnPrice::create($data);
+                    $batch[] = $data;
+                } else {
+                    $existing = BingoCtnPrice::getCtnPrice($roomID, $coin, $creatorUser);
+
+                    if ($existing) {
+                        if ($existing->ctn_price != $ctnPrice) {
+                            $existing->update($data);
+                        }
+                    } else {
+                        $data['created_at'] = $timestamp;
+                        BingoCtnPrice::create($data);
+                    }
                 }
             }
-        }
 
-        if ($action === 'CREATE' && !empty($batch ?? [])) {
-            BingoCtnPrice::insert($batch);
+            if ($action === 'CREATE' && !empty($batch)) {
+                BingoCtnPrice::insert($batch);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en handleCtnPriceCoins: ' . $e->getMessage(), [
+                'action'       => $action,
+                'roomID'       => $roomID,
+                'creatorUser'  => $creatorUser,
+                'ctnPriceCoins' => $ctnPriceCoins,
+                'trace'        => $e->getTraceAsString(),
+            ]);
+
+            throw $e; // O manejar el error según tu flujo
         }
     }
 
@@ -1451,9 +1476,12 @@ class BingoController extends Controller
 
         $ctnPriceCoins = $request->ctn_price_coins;
 
-        if (($ctnPriceCoins || $request) && $room->creator_user <> $creatorUser) {
+        if ($room->creator_user <> $creatorUser) {
+
             DB::beginTransaction();
+
             try {
+
                 if ($ctnPriceCoins) {
                     $this->handleCtnPriceCoins('UPDATE', $ctnPriceCoins, $roomID, $creatorUser);
                 }
@@ -1495,6 +1523,8 @@ class BingoController extends Controller
         if ($unixDate < time()) {
             return redirect()->back()->with('message', 'Fecha/Hora no permitidas')->with('type', 'warning');
         }
+        $roundsPct = $request->rounds_pct ?? null;
+
 
         $fixedJackpotValue = $request->amount_added_prize_pool;
 
@@ -1517,12 +1547,12 @@ class BingoController extends Controller
             'amount_added_prize_pool' => $fixedJackpotValue,
             'time_chip' => $request->time_chip,
             'rounds' => $request->rounds,
-            'rounds_pct' => $request->rounds_pct,
+            'rounds_pct' => $roundsPct,
             'serials_pct' => $request->serials_pct,
             'num_serials' => $request->num_serials,
             'jackpot_pct' => $request->jackpot_pct,
-            'songs_pct' => $request->songs_pct,
-            'types_songs' => implode(';', $typesOfPlays)
+            'songs_pct' => null,
+            'types_songs' => null
         ];
 
         // Solo añadir 'game_mode' si el prize_pool es 0
@@ -1547,6 +1577,10 @@ class BingoController extends Controller
 
             $creatorUser = $room->creator_user;
 
+            if ($roundsPct) {
+                $this->handleRoundsConfig('UPDATE', $request->rounds_pcts, $roomID);
+            }
+
             if ($ctnPriceCoins) {
                 $this->handleCtnPriceCoins('UPDATE', $ctnPriceCoins, $roomID, $creatorUser);
             }
@@ -1565,7 +1599,8 @@ class BingoController extends Controller
     {
         $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
-        $bingoRounds = BingoRoomRounds::all();
+        $bingoRounds = BingoRoomRounds::where('room', $roomID)
+            ->where('status', 1)->get(['round', 'pct']);
 
         // Retornar respuesta con los datos
         return response()->json($bingoRounds);
@@ -2203,7 +2238,7 @@ class BingoController extends Controller
                 'num_serials' => $existingRoomConfig->num_serials,
                 'jackpot_pct' => $existingRoomConfig->jackpot_pct,
                 'songs_pct' => $existingRoomConfig->songs_pct,
-                'types_songs' => implode(';', $typesOfPlays)
+                'types_songs' => $existingRoomConfig->types_songs
             ]);
 
             // Registar el creador de la sala
@@ -2669,8 +2704,8 @@ class BingoController extends Controller
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $data->room_commn,
                 'jackpot_pct' => $data->serials_commission,
-                'songs_pct' => $data->rounds_pct,
-                'types_songs' => $data->types_songs,
+                'songs_pct' => null,
+                'types_songs' => null,
                 'serials_pct' => $data->serials_pct,
                 'num_serials' => $data->num_serials,
                 'creator_type' => UserType::getValueByPrefix($creator->type, 'id'),

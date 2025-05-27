@@ -51,7 +51,7 @@
             step="0.05" min="10" max="50" required>
     </div>
     <div class="form-group col-sm-6 col-md-4 col-lg-3">
-        <label for="jackpot-pct">%Jackpot*</label>
+        <label for="jackpot-pct">%Jackpot</label>
         <input type="number" id="jackpot-pct" name="jackpot_pct" class="form-control prize-pool-pct" value=""
             step="0.5" min="1" max="15">
     </div>

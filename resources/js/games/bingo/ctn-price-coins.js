@@ -31,11 +31,13 @@ $(document).on("click", "#btn-ctn-price-config", function () {
         return;
     }
 
-    container.show();
-
     if (!coinsCtnPrice) {
+        $('#content-ctn-price-config').html('');
+        $('#spinner-ctn-price-config').show();
         getCtnPriceCoin();
     }
+
+    container.show();
 });
 
 function getCtnPriceCoin(room = '') {
@@ -43,13 +45,11 @@ function getCtnPriceCoin(room = '') {
         url: route('bingo.getCtnPriceForCoin', { creation, creatorType, creatorID, room }),
         method: 'GET',
         dataType: 'json',
-        beforeSend: function () {
-            $('#spinner-ctn-price-config').show();
-            $('#content-ctn-price-config').html('');
-            $("#container-ctn-price-config").show();
-        },
         success: function (res) {
             handleCtnPriceForCoins(res.ctnPrice);
+            if (res.hasPrice) {
+                $("#container-ctn-price-config").show();
+            }
         },
         error: function (error) { },
         complete: function () {

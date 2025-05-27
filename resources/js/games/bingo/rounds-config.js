@@ -44,7 +44,8 @@ function buildRoundHtml(roundNumber, value = '', selected = '') {
                     id="round-${roundNumber}" 
                     aria-label="Ronda #${roundNumber}" 
                     value="${value}"
-                    placeholder="%">
+                    placeholder="%"
+                    required>
                 <div class="input-group-append">
                     <select 
                         class="form-control" 
@@ -75,7 +76,7 @@ function getRoundsConfig(room = '') {
             $("#container-rounds-config").show();
         },
         success: function (res) {
-            handleRoundsConfig(res.ctnPrice);
+            if (res.length) handleRoundsConfig(res);
         },
         error: function () { },
         complete: function () {

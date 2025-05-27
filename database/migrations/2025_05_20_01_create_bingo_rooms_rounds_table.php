@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms');
             $table->string('round', 2)->default('1');
-            $table->string('type_play', 10);
+            $table->string('type_play', 25);
             $table->string('coin', 15)->nullable();
             $table->string('pct', 5);
             $table->double('prize_amount')->nullable();
