@@ -1369,10 +1369,13 @@ class BingoController extends Controller
         try {
             $timestamp = now();
             $batch = [];
+            $lastRound = count($rounds);
 
             foreach ($rounds as $roundNumber => $value) {
 
                 $roundNumber += 1;
+
+                if ($lastRound == $roundNumber) break;
 
                 $data = [
                     'room'       => $roomID,

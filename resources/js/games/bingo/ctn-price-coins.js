@@ -32,7 +32,7 @@ $(document).on("click", "#btn-ctn-price-config", function () {
     }
 
     if (!coinsCtnPrice) {
-        $('#content-ctn-price-config').html('');
+        $('#content-ctn-price-config').empty();
         $('#spinner-ctn-price-config').show();
         getCtnPriceCoin();
     }

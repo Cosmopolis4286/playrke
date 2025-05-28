@@ -9,8 +9,15 @@ function handleRoundsConfig(arrRounds = []) {
 }
 
 function generateRounds(arr) {
+    const lastRound = arr.length;
+    const roundsPctVal = parseFloat(roundsPct.val()) || 0;
+
     return arr.map(({ round, pct }) => {
-        return buildRoundHtml(round, pct);
+        const adjustedPct = (round === lastRound)
+            ? (100 - roundsPctVal)
+            : pct;
+
+        return buildRoundHtml(round, adjustedPct);
     }).join('');
 }
 
@@ -98,7 +105,7 @@ function getRoundsConfig(room = '') {
         dataType: 'json',
         beforeSend: function () {
             $('#spinner-rounds-config').show();
-            $('#content-rounds-config').html('');
+            $('#content-rounds-config').empty();
             $("#container-rounds-config").show();
         },
         success: function (res) {

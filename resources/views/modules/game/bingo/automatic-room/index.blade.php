@@ -16,7 +16,8 @@
     </div>
     @include('includes.modal-form', [
         'name' => $name,
-        'size' => 'md',
+        'size' => 'lg',
+        'style' => 'style="max-width: 730px;"',
         'dataForm' => view('modules.game.bingo.form.body', [
             'creator' => $creator,
             'timeZone' => $timeZone,
@@ -33,11 +34,11 @@
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const roomType = $("#room-type");
-        const type_prize_pool = $("#type-prize-pool");
+        const typePrizePool = $("#type-prize-pool");
         const gameMode = $("#game-mode");
         const roomTypes = @json($roomType);
         const existsRoomTypes = !$.isEmptyObject(roomTypes);
-        const arrTypePrizePool = @json($type_prize_pool);
+        const arrTypePrizePool = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
         let coinsCtnPrice = false;
 
@@ -90,7 +91,7 @@
                 });
         });
 
-        type_prize_pool.on('change', function() {
+        typePrizePool.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
@@ -102,12 +103,15 @@
         });
 
         function insertInfo(type, data = '') {
-            if (type == 1) {
-                coinsCtnPrice = false;
-                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
-                $('#container-price-config').html('');
-            } else {
-                getCtnPriceCoin(data.room.id);
+            //selectedBingoPlays = [];
+            coinsCtnPrice = false;
+
+            $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
+            $('#content-rounds-config, #content-price-config').empty();
+
+            if (type == 2) {
+                getCtnPriceCoin(data.room.encrypted);
+                getRoundsConfig(data.room.encrypted);
             }
 
             gameMode.empty();
@@ -116,7 +120,7 @@
                 roomType.empty();
             }
 
-            type_prize_pool.empty();
+            typePrizePool.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -131,7 +135,7 @@
                     gameMode.html(`<option value="1" selected>Online</option>`);
                 }
 
-                type_prize_pool.html(defaultOption);
+                typePrizePool.html(defaultOption);
             }
 
             if (creatorType !== 'customer' && existsRoomTypes) {
@@ -143,7 +147,7 @@
 
             $.each(arrTypePrizePool, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.room.type_prize_pool) ? 'selected' : '';
-                type_prize_pool.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                typePrizePool.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             if (creatorType !== 'customer' && arrGameModes.length) {

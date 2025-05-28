@@ -139,7 +139,7 @@
             coinsCtnPrice = false;
 
             $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
-            $('#content-rounds-config, #content-price-config').html('');
+            $('#content-rounds-config, #content-price-config').empty();
 
             if (type == 2) {
                 getCtnPriceCoin(data.room.encrypted);
