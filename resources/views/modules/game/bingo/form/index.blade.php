@@ -136,12 +136,12 @@
             const isRequired = !isDisabled;
 
             selectedBingoPlays = [];
+            coinsCtnPrice = false;
 
-            if (type == 1) {
-                coinsCtnPrice = false;
-                $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
-                $('#content-rounds-config, #content-price-config').html('');
-            } else {
+            $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
+            $('#content-rounds-config, #content-price-config').html('');
+
+            if (type == 2) {
                 getCtnPriceCoin(data.room.encrypted);
                 getRoundsConfig(data.room.encrypted);
             }
