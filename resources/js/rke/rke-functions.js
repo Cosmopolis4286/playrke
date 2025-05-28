@@ -179,27 +179,35 @@ function getInfo(name, id) {
 function validateInput(input, isFloat = true, callback = null) {
     setTimeout(() => {
         const $input = $(input);
-        let value = isFloat ? parseFloat($input.val()) : $input.val();
+
+        if (!$input.prop('required')) return;
+
+        const rawValue = $input.val();
+        let value = isFloat ? parseFloat(rawValue) : rawValue;
+        
         const min = parseFloat($input.attr('min')) || 0;
         const max = parseFloat($input.attr('max')) || 100;
-        let error = false;
 
-        // Verificar si el valor es válido
-        if (isNaN(value) || value < min || value > max) {
+        let hasError = false;
+
+        if (isFloat && (isNaN(value) || value < min || value > max)) {
             showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
-            value = min; // Ajustar el valor al mínimo si hay error
-            error = true;
+            value = min;
+            hasError = true;
         }
 
-        // Actualizar el valor del input
-        $input.val(isFloat ? value.toFixed(2) : value);
+        // Formatear si es flotante
+        const formattedValue = isFloat ? parseFloat(value).toFixed(2) : value;
 
-        // Llamar al callback si es una función, pasando el estado de error
+        // Asignar el valor corregido
+        $input.val(formattedValue);
+
+        // Ejecutar el callback si existe
         if (typeof callback === 'function') {
-            callback(!error); // Pasa `true` si no hay error, `false` si hay error
+            callback(!hasError); // true si no hay error, false si hay error
         }
 
-    }, 1250);
+    }, 850);
 }
 
 function stringToArray(str, separator = ';') {

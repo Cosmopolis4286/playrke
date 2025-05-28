@@ -24,7 +24,7 @@ class BingoRoomRounds extends Model
         return self::select($fields)->where('room', $room)->where('round', $round)->first();
     }
 
-    public static function getActiveRound($room)
+    public static function getRoundInProgress($room)
     {
         return self::where('room', $room)->where('status', 1)->value('round');
     }

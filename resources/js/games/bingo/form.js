@@ -47,7 +47,7 @@ function handlePercentageAdjust(rTotal = false, changedSelector, selectors = [],
         }, 0);
     }
 
-    return rTotal ? total : undefined;
+    return rTotal ? total.toFixed(2) : undefined;
 }
 
 // Limitar a solo números enteros (sin puntos, comas ni letras)
@@ -70,7 +70,12 @@ $(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #roun
 });
 
 $(document).on("input change", ".prize-pool-pct", function () {
-    const elements = ['room-commn', 'serials-pct', 'rounds-pct'];
+    let elements = ['room-commn', 'serials-pct'];
+
+    if ($('#rounds').val() > 1) {
+        elements.push('rounds-pct');
+    }
+
     validateInput(this, true, () => {
         const rTotal = handlePercentageAdjust(true, $(this).attr('id'), elements);
         totalPct = rTotal;

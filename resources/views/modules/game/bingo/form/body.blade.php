@@ -92,7 +92,7 @@
     <div class="content-rounds-pct form-group col-sm-6 col-md-4 col-lg-3">
         <label for="rounds-pct">%Rondas*</label>
         <input type="number" id="rounds-pct" name="rounds_pct" class="form-control prize-pool-pct" value=""
-            step="1" min="1" max="20">
+            step="1" min="3" max="25">
     </div>
     <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="serials-pct">%Bote Seriales</label>

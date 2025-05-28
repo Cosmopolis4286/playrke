@@ -16,55 +16,82 @@ function generateRounds(arr) {
 
 function generateEmptyRounds(pctValue) {
     const numRounds = parseInt($('#rounds').val()) || 0;
-    const valuePerRound = (numRounds > 0) ? (pctValue / numRounds).toFixed(2) : 0;
+
+    if (numRounds === 0) return '';
+
+    const valuePerRound = (numRounds > 1)
+        ? (pctValue / (numRounds - 1)).toFixed(2)
+        : pctValue.toFixed(2);
+
+    const totalAssigned = (valuePerRound * (numRounds - 1)).toFixed(2);
+    roundsPct.val(totalAssigned).trigger('input');
 
     return Array.from({ length: numRounds }, (_, i) => {
-        const roundNumber = i + 1;
-        return buildRoundHtml(roundNumber, valuePerRound);
+        const isLastRound = i === numRounds - 1;
+        const roundPCT = isLastRound
+            ? (100 - totalAssigned).toFixed(2)
+            : valuePerRound;
+
+        return buildRoundHtml(i + 1, roundPCT, isLastRound);
     }).join('');
 }
 
-function buildRoundHtml(roundNumber, roundPCT = '', selected = '') {
-    const optionsHtml = arrBingoPlays.map(
-        ({ id, name }) => `
-        <option value="${id}" ${id == selected ? 'selected' : ''}>
-            ${name}
-        </option>`
-    ).join('');
+function buildRoundHtml(roundNumber, roundPCT, isLastRound = false, selected = '') {
+    // const optionsHtml = arrBingoPlays.map(
+    //     ({ id, name }) => `
+    //     <option value="${id}" ${id == selected ? 'selected' : ''}>
+    //         ${name}
+    //     </option>`
+    // ).join('');
+
+    const readonlyAttr = isLastRound ? 'readonly' : '';
+    const hasClass = !isLastRound ? 'rounds-pcts-input' : '';
+
+    // const bingoSongs =
+    //     `<div class="input-group-append">
+    //         <select 
+    //         class="form-control" 
+    //         name="rounds_types[]" 
+    //         aria-label="Seleccionar cantos"
+    //         disabled>
+    //             ${optionsHtml}
+    //         </select>
+    //     </div>`;
 
     return `
         <div class="form-group col-sm-6 col-md-4 mt-1">
             <label for="round-${roundNumber}">Ronda #${roundNumber}</label>
             <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">%</span>
+                </div>
                 <input 
                     type="text" 
-                    class="form-control rounds-pcts-input" 
+                    class="form-control ${hasClass}" 
                     name="rounds_pcts[]" 
                     id="round-${roundNumber}" 
                     aria-label="Ronda #${roundNumber}" 
                     value="${roundPCT}"
                     placeholder="%"
-                    required>
-                <div class="input-group-append">
-                    <select 
-                        class="form-control" 
-                        name="rounds_types[]" 
-                        aria-label="Seleccionar cantos"
-                        disabled>
-                        ${optionsHtml}
-                    </select>
-                </div>
+                    ${readonlyAttr}
+                    required>              
             </div>
         </div>
     `;
 }
 
 function getRoundsConfig(room = '') {
+
+    if (rounds.val() == 1 && $('#round-2').val() || !roundsPct.val()) {
+        return;
+    }
+
     if (!room) {
         $('#spinner-rounds-config').hide();
         handleRoundsConfig();
         return;
     }
+
     $.ajax({
         url: route('bingo.getRoundsConfig', room),
         method: 'GET',
@@ -93,8 +120,9 @@ rounds.on('change', function () {
             getRoundsConfig();
         }
     } else {
+        $('#content-rounds-config').empty();
         $('.content-rounds-pct, #container-rounds-config').hide();
-        roundsPct.val('').prop('required', false);
+        roundsPct.prop('required', false).val('');
     }
 });
 
@@ -120,9 +148,7 @@ $(document).on("click", "#btn-rounds-config", function () {
 
     container.show();
 
-    if (rounds.val() > 1 && !$('#round-2').val()) {
-        getRoundsConfig();
-    }
+    getRoundsConfig();
 });
 
 $(document).on("input", ".rounds-pcts-input", function () {
@@ -138,7 +164,7 @@ $(document).on("input", ".rounds-pcts-input", function () {
 
     validateInput(this, true, () => {
         const rTotal = handlePercentageAdjust(true, elementID, elements, pctLimit);
-        roundsPct.val(rTotal).trigger('change');
+        roundsPct.val(rTotal);
     });
 });
 

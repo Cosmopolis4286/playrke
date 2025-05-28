@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('coin', 15)->nullable();
             $table->string('pct', 5);
             $table->double('prize_amount')->nullable();
-            $table->string('status', 1)->default('1');
+            $table->enum('status', [''])->default('1');
             $table->timestamps();
         });
     }

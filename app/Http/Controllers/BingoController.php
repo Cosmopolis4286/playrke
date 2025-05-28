@@ -723,7 +723,7 @@ class BingoController extends Controller
 
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
-        $round = BingoRoomRounds::getActiveRound($roomID);
+        $round = BingoRoomRounds::getRoundInProgress($roomID);
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -926,7 +926,7 @@ class BingoController extends Controller
 
         if (!$room) ['Error' => 'Sala no encontrada'];
 
-        $round = BingoRoomRounds::getActiveRound($room->id);
+        $round = BingoRoomRounds::getRoundInProgress($room->id);
 
         $chipVanID = BingoDraw::where('room', $room->id)
             ->where('round', $round)->where('status', 3)->value('id');

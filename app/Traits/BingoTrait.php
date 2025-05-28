@@ -391,7 +391,7 @@ trait BingoTrait
         $room = BingoRoom::getByEncrypted($room, ['id', 'status']);
         $roomID = $room->id;
 
-        $round = BingoRoomRounds::getActiveRound($roomID);
+        $round = BingoRoomRounds::getRoundInProgress($roomID);
 
         // Obtener tiempo de salida de la ficha prize_pool
         $lastChipTime = BingoDraw::where('status', 3)->where('room', $roomID)
@@ -1078,7 +1078,7 @@ trait BingoTrait
 
         if ($prizeCtns && $winners) return false; // Ya existen cartones premiados (full_house_prize)
 
-        $round = BingoRoomRounds::getActiveRound($roomID);
+        $round = BingoRoomRounds::getRoundInProgress($roomID);
 
         // Obtener el último chip sorteado
         $lastChip = BingoDraw::select('id', 'chip')->where('status', 3)
@@ -1244,7 +1244,7 @@ trait BingoTrait
 
             if ($getWinners) return false;
 
-            $round = BingoRoomRounds::getActiveRound($roomID);
+            $round = BingoRoomRounds::getRoundInProgress($roomID);
 
             // Obtener la última ficha ganadora
             $lastChip = BingoDraw::where('room', $roomID)->where('status', 3)
