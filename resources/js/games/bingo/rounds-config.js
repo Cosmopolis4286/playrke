@@ -9,9 +9,8 @@ function handleRoundsConfig(arrRounds = []) {
 }
 
 function generateRounds(arr) {
-    return arr.map(({ isoCode, coin }, i) => {
-        const roundNumber = i + 1;
-        return buildRoundHtml(roundNumber, coin, isoCode);
+    return arr.map(({ round, pct }) => {
+        return buildRoundHtml(round, pct);
     }).join('');
 }
 
@@ -25,7 +24,7 @@ function generateEmptyRounds(pctValue) {
     }).join('');
 }
 
-function buildRoundHtml(roundNumber, value = '', selected = '') {
+function buildRoundHtml(roundNumber, roundPCT = '', selected = '') {
     const optionsHtml = arrBingoPlays.map(
         ({ id, name }) => `
         <option value="${id}" ${id == selected ? 'selected' : ''}>
@@ -43,7 +42,7 @@ function buildRoundHtml(roundNumber, value = '', selected = '') {
                     name="rounds_pcts[]" 
                     id="round-${roundNumber}" 
                     aria-label="Ronda #${roundNumber}" 
-                    value="${value}"
+                    value="${roundPCT}"
                     placeholder="%"
                     required>
                 <div class="input-group-append">
