@@ -3,24 +3,50 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class BingoRoomRoundsDrafts extends Model
 {
+    use HasFactory;
+
     protected $table = 'bingo_rooms_rounds_drafts';
-    protected $fillable = ['room', 'num_round', 'prize_types', 'play_types', 'prize_values', 'status'];
 
-    public static function getById($id, $fields = ['*'])
+    protected $fillable = [
+        'room',
+        'rounds',
+        'prize_types',
+        'play_types',
+        'prize_values',
+        'status',
+    ];
+
+    protected $casts = [
+        'prize_types'  => 'array',
+        'play_types'   => 'array',
+        'prize_values' => 'array',
+    ];
+
+    /**
+     * Get a draft by its ID.
+     */
+    public static function getById(int $id, array $fields = ['*']): ?self
     {
-        return self::select($fields)->where('id', $id)->first();
+        return self::select($fields)->find($id);
     }
 
-    public static function getValueById($id, $value)
+    /**
+     * Get a single column value by draft ID.
+     */
+    public static function getValueById(int $id, string $column)
     {
-        return self::where('id', $id)->value($value);
+        return self::where('id', $id)->value($column);
     }
 
-    public static function getByRoom($room, $fields = ['*'])
+    /**
+     * Get the draft by room ID.
+     */
+    public static function getByRoom(int $roomId, array $fields = ['*']): ?self
     {
-        return self::select($fields)->where('room', $room)->first();
+        return self::select($fields)->where('room', $roomId)->first();
     }
 }

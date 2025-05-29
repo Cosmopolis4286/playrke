@@ -12,25 +12,29 @@ function generateRounds(arr) {
     const lastRound = arr.length;
     const roundsPctVal = parseFloat(roundsPct.val()) || 0;
 
-    return arr.map(({ round, pct }) => {
-        const adjustedPct = (round === lastRound)
-            ? (100 - roundsPctVal)
-            : pct;
+    return arr.map(({ round, prizeType, playType, prizeValue }) => {
+        const isLastRound = round === lastRound;
+        const adjustedPrizeValue = isLastRound
+            ? (100 - roundsPctVal).toFixed(2)
+            : prizeValue;
 
-        return buildRoundHtml(round, adjustedPct);
+        return buildRoundHtml(round, prizeType, playType, adjustedPrizeValue, isLastRound);
     }).join('');
 }
 
 function generateEmptyRounds(pctValue) {
     const numRounds = parseInt($('#rounds').val()) || 0;
-
     if (numRounds === 0) return '';
 
-    const valuePerRound = (numRounds > 1)
+    const isMultipleRounds = numRounds > 1;
+    const valuePerRound = isMultipleRounds
         ? (pctValue / (numRounds - 1)).toFixed(2)
         : pctValue.toFixed(2);
 
-    const totalAssigned = (valuePerRound * (numRounds - 1)).toFixed(2);
+    const totalAssigned = isMultipleRounds
+        ? (valuePerRound * (numRounds - 1)).toFixed(2)
+        : valuePerRound;
+
     roundsPct.val(totalAssigned).trigger('input');
 
     return Array.from({ length: numRounds }, (_, i) => {
@@ -39,91 +43,85 @@ function generateEmptyRounds(pctValue) {
             ? (100 - totalAssigned).toFixed(2)
             : valuePerRound;
 
-        return buildRoundHtml(i + 1, roundPCT, isLastRound);
+        return buildRoundHtml(
+            i + 1,
+            'PCT',      // Default prize type
+            'FULL HOUSE', // Default play type
+            roundPCT,
+            isLastRound
+        );
     }).join('');
 }
 
-function buildRoundHtml(roundNumber, roundPCT, isLastRound = false, selected = '') {
-    // const optionsHtml = arrBingoPlays.map(
-    //     ({ id, name }) => `
-    //     <option value="${id}" ${id == selected ? 'selected' : ''}>
-    //         ${name}
-    //     </option>`
-    // ).join('');
-
+function buildRoundHtml(roundNumber, prizeType, playType, prizeValue, isLastRound = false) {
     const readonlyAttr = isLastRound ? 'readonly' : '';
-    const hasClass = !isLastRound ? 'rounds-prize-value-input' : '';
-
-    // const bingoSongs =
-    //     `<div class="input-group-append">
-    //         <select 
-    //         class="form-control" 
-    //         name="rounds_types[]" 
-    //         aria-label="Seleccionar cantos"
-    //         disabled>
-    //             ${optionsHtml}
-    //         </select>
-    //     </div>`;
+    const inputClass = !isLastRound ? 'rounds-prize-value-input' : '';
 
     return `
-        <div class="form-group col-sm-6 col-md-4 mt-1">
+        <div class="form-group col-sm-6">
             <label for="round-${roundNumber}">Ronda #${roundNumber}</label>
             <div class="input-group">
                 <div class="input-group-prepend">
                     <select 
-                    class="form-control" 
-                    name="rounds_prize_type[]" 
-                    aria-label="Seleccionar tipo de premio"
-                    required>
-                        <option value="PCT" selected>%</option>
-                        <option value="USD">$</option>
-                        <option value="OTHER">?</option>
+                        class="form-control" 
+                        name="rounds_prize_type[]" 
+                        aria-label="Seleccionar tipo de premio"
+                        required>
+                        <option value="PCT" ${prizeType === 'PCT' ? 'selected' : ''}>%</option>
+                        <option value="USD" ${prizeType === 'USD' ? 'selected' : ''}>$</option>
+                        <option value="OTHER" ${prizeType === 'OTHER' ? 'selected' : ''}>?</option>
                     </select>
                 </div>
                 <input 
                     type="text" 
-                    class="form-control ${hasClass}" 
+                    class="form-control ${inputClass}" 
                     name="rounds_prize_value[]" 
                     id="round-${roundNumber}" 
                     aria-label="Ronda #${roundNumber}" 
-                    value="${roundPCT}"
+                    value="${prizeValue}" 
                     placeholder="%"
                     ${readonlyAttr}
-                    required>              
+                    required>       
+                <div class="input-group-append">
+                    <select 
+                        class="form-control" 
+                        name="rounds_play_type[]" 
+                        aria-label="Seleccionar cantos"
+                        disabled>
+                        <option value="${playType}" selected>${playType}</option>
+                    </select>
+                </div>
             </div>
         </div>
     `;
 }
 
 function getRoundsConfig(room = '') {
-
-    if (rounds.val() == 1 && $('#round-2').val() || !roundsPct.val()) {
-        return;
-    }
-
     if (!room) {
+        if (rounds.val() == 1 && $('#round-2').val() || !roundsPct.val()) {
+            return;
+        }
         $('#spinner-rounds-config').hide();
         handleRoundsConfig();
-        return;
+    } else {
+        $.ajax({
+            url: route('bingo.getRoundsConfig', room),
+            method: 'GET',
+            dataType: 'json',
+            beforeSend: function () {
+                $('#spinner-rounds-config').show();
+                $('#content-rounds-config').empty();
+                $("#container-rounds-config").show();
+            },
+            success: function (res) {
+                if (res.length) handleRoundsConfig(res);
+            },
+            error: function () { },
+            complete: function () {
+                $('#spinner-rounds-config').hide();
+            }
+        });
     }
-
-    $.ajax({
-        url: route('bingo.getRoundsConfig', room),
-        method: 'GET',
-        dataType: 'json',
-        beforeSend: function () {
-            $('#spinner-rounds-config').show();
-            $('#content-rounds-config').empty();
-            $("#container-rounds-config").show();
-        },
-        success: function (res) {
-            if (res.length) handleRoundsConfig(res);
-        },
-        error: function () { },
-        complete: function () {
-            $('#spinner-rounds-config').hide();
-        }
-    });
 }
 
 rounds.on('change', function () {

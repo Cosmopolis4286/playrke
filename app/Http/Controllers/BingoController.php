@@ -42,7 +42,6 @@ use App\Models\Games;
 use App\Models\Room;
 use App\Models\Seller;
 use App\Models\TimeZone;
-use App\Models\Treasurer;
 use App\Models\User;
 use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
@@ -58,7 +57,6 @@ use App\Traits\RouteRKE;
 use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -1370,54 +1368,51 @@ class BingoController extends Controller
     private function handleRoundsDrafts($action, $roundsPrizeType, $roundsPrizeValue, $roomID)
     {
         try {
+            $numRounds = count($roundsPrizeType);
             $timestamp = now();
-            $batch = [];
-            $lastRound = count($rounds);
 
-            foreach ($rounds as $roundNumber => $value) {
+            $data = [
+                'room' => $roomID,
+                'rounds' => $numRounds,
+                'prize_types' => $roundsPrizeType,
+                'play_types' => array_fill(0, $numRounds, 'FULL HOUSE'), // Array con FULL HOUSE para cada ronda
+                'prize_values' => $roundsPrizeValue,
+                'status' => 'ACTIVE',
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ];
 
-                $roundNumber += 1;
+            $existing = BingoRoomRoundsDrafts::getByRoom($roomID);
 
-                if ($lastRound == $roundNumber) break;
-
-                $data = [
-                    'room'       => $roomID,
-                    'round'      => $roundNumber,
-                    'play_type'  => 'FULL HOUSE',
-                    // 'prize_type' => '',
-                    'prize_value' => $value,
-                    'updated_at' => $timestamp,
-                ];
-
-                if ($action === 'CREATE') {
-                    $data['created_at'] = $timestamp;
-                    $batch[] = $data;
+            if ($action === 'CREATE') {
+                if (!$existing) {
+                    BingoRoomRoundsDrafts::create($data);
                 } else {
-                    $existing = BingoRoomRoundsDrafts::getByRoom($roomID);
-
-                    if ($existing) {
-                        if ($existing->prize_amount != $value) {
-                            $existing->update($data);
-                        }
-                    } else {
-                        $data['created_at'] = $timestamp;
-                        BingoRoomRoundsDrafts::create($data);
-                    }
+                    throw new \Exception('Draft already exists for this room.');
                 }
             }
 
-            if ($action === 'CREATE' && !empty($batch)) {
-                BingoRoomRoundsDrafts::insert($batch);
+            if ($action === 'UPDATE') {
+                if ($existing) {
+                    $existing->update([
+                        'rounds' => $numRounds,
+                        'prize_types' => $roundsPrizeType,
+                        'play_types' => array_fill(0, $numRounds, 'FULL HOUSE'),
+                        'prize_values' => $roundsPrizeValue,
+                        'updated_at' => $timestamp,
+                    ]);
+                } else {
+                    BingoRoomRoundsDrafts::create($data);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Error en handleRoundsDrafts: ' . $e->getMessage(), [
                 'action'  => $action,
                 'roomID'  => $roomID,
-                'rounds'  => $rounds,
                 'trace'   => $e->getTraceAsString(),
             ]);
 
-            throw $e; // Puedes relanzar la excepción o manejarla según tu flujo
+            throw $e;
         }
     }
 
@@ -1608,8 +1603,8 @@ class BingoController extends Controller
     {
         $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
-        $bingoRounds = BingoRoomRounds::where('room', $roomID)
-            ->where('status', 1)->get(['round', 'prize_value']);
+        $bingoRounds = BingoRoomRoundsDrafts::where('room', $roomID)
+            ->where('status', 'ACTIVE')->get(['rounds', 'prize_types', 'play_types', 'prize_values']);
 
         // Retornar respuesta con los datos
         return response()->json($bingoRounds);
