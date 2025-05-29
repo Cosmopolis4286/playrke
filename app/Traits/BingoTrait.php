@@ -408,7 +408,7 @@ trait BingoTrait
 
         $fullHouseWinners = $this->getWinnersFullHouse($roomID, $roomUser, $coin);
 
-        if (BingoRoomConfig::getValueByRoom($roomID, 'types_songs')) {
+        if (BingoRoomConfig::getValueByRoom($roomID, 'play_types')) {
             $bingoPlaysWinners = [];
         }
 
@@ -668,14 +668,14 @@ trait BingoTrait
                 $sellerSaleCommn /= $exchangeRate;
             }
 
-            $bingoConfig = BingoRoomConfig::getByRoom($room->id, ['rke_commn', 'room_commn', 'type_prize_pool']);
+            $bingoConfig = BingoRoomConfig::getByRoom($room->id, ['rke_commn', 'room_commn', 'prize_pool_type']);
 
             $roomComm = $bingoConfig->room_commn;
 
             // Variable para definir monto a anexar al bote
             $prizePool = number_format($saleAmount, 3, '.');
 
-            if ($bingoConfig->type_prize_pool == 2) {
+            if ($bingoConfig->prize_pool_type == 2) {
                 // Si el bote es tipo "Premio"
                 $prizePool = 0;
             }

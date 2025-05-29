@@ -52,7 +52,7 @@ function buildRoundHtml(roundNumber, roundPCT, isLastRound = false, selected = '
     // ).join('');
 
     const readonlyAttr = isLastRound ? 'readonly' : '';
-    const hasClass = !isLastRound ? 'rounds-pcts-input' : '';
+    const hasClass = !isLastRound ? 'rounds-prize-value-input' : '';
 
     // const bingoSongs =
     //     `<div class="input-group-append">
@@ -70,12 +70,19 @@ function buildRoundHtml(roundNumber, roundPCT, isLastRound = false, selected = '
             <label for="round-${roundNumber}">Ronda #${roundNumber}</label>
             <div class="input-group">
                 <div class="input-group-prepend">
-                    <span class="input-group-text">%</span>
+                    <select 
+                    class="form-control" 
+                    name="rounds_types[]" 
+                    aria-label="Seleccionar cantos">
+                        <option value="PCT" selected>%</option>
+                        <option value="USD">$</option>
+                        <option value="OTHER">?</option>
+                    </select>
                 </div>
                 <input 
                     type="text" 
                     class="form-control ${hasClass}" 
-                    name="rounds_pcts[]" 
+                    name="rounds_prize_value[]" 
                     id="round-${roundNumber}" 
                     aria-label="Ronda #${roundNumber}" 
                     value="${roundPCT}"
@@ -158,9 +165,9 @@ $(document).on("click", "#btn-rounds-config", function () {
     getRoundsConfig();
 });
 
-$(document).on("input", ".rounds-pcts-input", function () {
+$(document).on("input", ".rounds-prize-value-input", function () {
     const elementID = $(this).attr('id');
-    const elements = ['.rounds-pcts-input'];
+    const elements = ['.rounds-prize-value-input'];
 
     const inputValue = parseFloat(roundsPct.val()) || 0;
     const maxInput = parseFloat(roundsPct.attr('max')) || 20;

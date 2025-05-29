@@ -171,7 +171,7 @@ class BingoController extends Controller
 
         $rooms = BingoRoom::with([
             'Config' => function ($query) {
-                $query->select('room', 'game_mode', 'type_prize_pool', 'date', 'time', 'coin', 'ctn_price');
+                $query->select('room', 'game_mode', 'prize_pool_type', 'date', 'time', 'coin', 'ctn_price');
             },
             'CtnPrice' => function ($query) use ($creatorUser, $coin) {
                 $query->where('creator_user', $creatorUser)
@@ -718,7 +718,7 @@ class BingoController extends Controller
         // Verificar Cierre de Sala
         (new HandleBingoRooms())->checkRoomClosure($roomID);
 
-        $room = BingoRoom::with('Config:room,date,time,type_prize_pool,rounds,songs_pct,types_songs')
+        $room = BingoRoom::with('Config:room,date,time,prize_pool_type,rounds,plays_pct,play_types')
             ->select('id', 'status', 'encrypted')->where('id', $roomID)->first();
 
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
@@ -768,7 +768,7 @@ class BingoController extends Controller
             'creatorType' => $creator['type'],
             'creatorID' => encrypt($creatorID),
             'room' => $room,
-            'typePrizePool' => $room->Config->type_prize_pool,
+            'prizePoolType' => $room->Config->prize_pool_type,
             'coinSym' => $coinSym,
             'prizePool' => $this->convertPrizeValue($roomID, $coinID, $prizePool),
             'startTime' => $this->convertToUnixTimestamp($room->Config->date, $room->Config->time),
@@ -985,7 +985,7 @@ class BingoController extends Controller
 
         $relations = [
             'Config.TypePrizePool',
-            'Config:room,game_mode,type_prize_pool,ctn_price,date,time,unix_date',
+            'Config:room,game_mode,prize_pool_type,ctn_price,date,time,unix_date',
             'Config.GameMode:id,description',
             'PlayersRoom' => fn($query) => $query->where('winner', '>', 0),
             'GameExchangeRate' => fn($query) => $query->where('coin', $coin)->where('game', $gameID),
@@ -1277,9 +1277,9 @@ class BingoController extends Controller
         }
 
         $userID = Auth::id();
-        $fixedJackpotValue = $request->amount_added_prize_pool;
+        $amountAddedPrizePool= $request->amount_added_prize_pool;
 
-        $boat = $request->type_prize_pool > 1 ? $fixedJackpotValue : 0;
+        $boat = $request->prize_pool_type > 1 ? $amountAddedPrizePool: 0;
         $coin = $request->coin ?? 1; // ID Coin == 1 (USDT)
 
         $model = 'BingoRoom';
@@ -1317,7 +1317,7 @@ class BingoController extends Controller
                 'ctn_price' => $request->ctn_price,
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $request->room_commn,
-                'type_prize_pool' => $request->type_prize_pool,
+                'prize_pool_type' => $request->prize_pool_type,
                 'amount_added_prize_pool' => $fixedJackpotValue,
                 'time_chip' => $request->time_chip,
                 'rounds' => $request->rounds,
@@ -1325,8 +1325,8 @@ class BingoController extends Controller
                 'serials_pct' => $request->serials_pct,
                 'num_serials' => $request->num_serials,
                 'jackpot_pct' => $request->jackpot_pct,
-                'songs_pct' => null,
-                'types_songs' => null
+                'plays_pct' => null,
+                'play_types' => null
             ];
 
             BingoRoomConfig::create($dataConfig);
@@ -1344,7 +1344,7 @@ class BingoController extends Controller
             ]);
 
             if ($roundsPct) {
-                $this->handleRoundsConfig('CREATE', $request->rounds_pcts, $roomID);
+                $this->handleRoundsConfig('CREATE', $request->rounds_prize_value, $roomID);
             }
 
             if ($ctnPriceCoins) {
@@ -1380,8 +1380,9 @@ class BingoController extends Controller
                 $data = [
                     'room'       => $roomID,
                     'round'      => $roundNumber,
-                    'type_play'  => 'FULL HOUSE',
-                    'pct'        => $value,
+                    'play_type'  => 'FULL HOUSE',
+                    // 'prize_type' => '',
+                    'prize_value' => $value,
                     'updated_at' => $timestamp,
                 ];
 
@@ -1389,10 +1390,10 @@ class BingoController extends Controller
                     $data['created_at'] = $timestamp;
                     $batch[] = $data;
                 } else {
-                    $existing = BingoRoomRounds::getByRound($roomID, $roundNumber, ['type_play', 'pct']);
+                    $existing = BingoRoomRounds::getByRound($roomID, $roundNumber, ['prize_type','play_type', 'prize_amount']);
 
                     if ($existing) {
-                        if ($existing->pct != $value) {
+                        if ($existing->prize_amount != $value) {
                             $existing->update($data);
                         }
                     } else {
@@ -1529,9 +1530,9 @@ class BingoController extends Controller
         $roundsPct = $request->rounds_pct ?? null;
 
 
-        $fixedJackpotValue = $request->amount_added_prize_pool;
+        $amountAddedPrizePool= $request->amount_added_prize_pool;
 
-        $boat = $request->type_prize_pool > 1 ? $fixedJackpotValue : 0;
+        $boat = $request->prize_pool_type > 1 ? $amountAddedPrizePool: 0;
         $coin = $request->coin ?? 1;
 
         $updateDataRoom = [
@@ -1546,7 +1547,7 @@ class BingoController extends Controller
             'coin' => $coin,
             'ctn_price' => $request->ctn_price,
             'room_commn' => $request->room_commn,
-            'type_prize_pool' => $request->type_prize_pool,
+            'prize_pool_type' => $request->prize_pool_type,
             'amount_added_prize_pool' => $fixedJackpotValue,
             'time_chip' => $request->time_chip,
             'rounds' => $request->rounds,
@@ -1554,8 +1555,8 @@ class BingoController extends Controller
             'serials_pct' => $request->serials_pct,
             'num_serials' => $request->num_serials,
             'jackpot_pct' => $request->jackpot_pct,
-            'songs_pct' => null,
-            'types_songs' => null
+            'plays_pct' => null,
+            'play_types' => null
         ];
 
         // Solo añadir 'game_mode' si el prize_pool es 0
@@ -1581,7 +1582,7 @@ class BingoController extends Controller
             $creatorUser = $room->creator_user;
 
             if ($roundsPct) {
-                $this->handleRoundsConfig('UPDATE', $request->rounds_pcts, $roomID);
+                $this->handleRoundsConfig('UPDATE', $request->rounds_prize_value, $roomID);
             }
 
             if ($ctnPriceCoins) {
@@ -1603,7 +1604,7 @@ class BingoController extends Controller
         $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
         $bingoRounds = BingoRoomRounds::where('room', $roomID)
-            ->where('status', 1)->get(['round', 'pct']);
+            ->where('status', 1)->get(['round', 'prize_value']);
 
         // Retornar respuesta con los datos
         return response()->json($bingoRounds);
@@ -1932,7 +1933,7 @@ class BingoController extends Controller
             'time',
             'ctn_price',
             'room_commn',
-            'type_prize_pool',
+            'prize_pool_type',
             'amount_added_prize_pool',
             'time_chip',
             'rounds',
@@ -1940,8 +1941,8 @@ class BingoController extends Controller
             'serials_pct',
             'num_serials',
             'jackpot_pct',
-            'songs_pct',
-            'types_songs'
+            'plays_pct',
+            'play_types'
         )->where('room', $roomID)->firstOrFail();
 
         $bingoCreator = true;
@@ -2126,7 +2127,7 @@ class BingoController extends Controller
             'ctn_price',
             'coin',
             'room_commn',
-            'type_prize_pool',
+            'prize_pool_type',
             'amount_added_prize_pool',
             'time_chip',
             'rounds',
@@ -2170,7 +2171,7 @@ class BingoController extends Controller
             'dateTime' => $roomConfig->unix_date,
             'coin' => $coin,
             'prizePool' => number_format(($room->prize_pool * $exchangeRate), 2, '.'),
-            'typePrizePool' => $roomConfig->type_prize_pool == 1 ? 'Bote' : 'Premio',
+            'prizePoolType' => $roomConfig->prize_pool_type == 1 ? 'Bote' : 'Premio',
             'ctnPrice' => number_format(($ctnPrice), 2, '.')
         ];
 
@@ -2188,7 +2189,7 @@ class BingoController extends Controller
         date_default_timezone_set(config('app.timezone'));
 
         $userID = $existingRoom->creator_user;
-        $boat = $existingRoomConfig->type_prize_pool > 1 ? $existingRoomConfig->amount_added_prize_pool : 0;
+        $boat = $existingRoomConfig->prize_pool_type > 1 ? $existingRoomConfig->amount_added_prize_pool : 0;
         $coin = $existingRoomConfig->coin ?? 1; // ID Coin == 1 (USDT)
 
         $model = 'BingoRoom';
@@ -2232,7 +2233,7 @@ class BingoController extends Controller
                 'ctn_price' => $existingRoomConfig->ctn_price,
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $existingRoomConfig->room_commn,
-                'type_prize_pool' => $existingRoomConfig->type_prize_pool,
+                'prize_pool_type' => $existingRoomConfig->prize_pool_type,
                 'amount_added_prize_pool' => $existingRoomConfig->amount_added_prize_pool,
                 'time_chip' => $existingRoomConfig->time_chip,
                 'rounds' => $existingRoomConfig->rounds,
@@ -2240,8 +2241,8 @@ class BingoController extends Controller
                 'serials_pct' => $existingRoomConfig->serials_pct,
                 'num_serials' => $existingRoomConfig->num_serials,
                 'jackpot_pct' => $existingRoomConfig->jackpot_pct,
-                'songs_pct' => $existingRoomConfig->songs_pct,
-                'types_songs' => $existingRoomConfig->types_songs
+                'plays_pct' => $existingRoomConfig->plays_pct,
+                'play_types' => $existingRoomConfig->play_types
             ]);
 
             // Registar el creador de la sala
@@ -2486,7 +2487,7 @@ class BingoController extends Controller
                 'time',
                 'game_mode',
                 'room_type',
-                'type_prize_pool',
+                'prize_pool_type',
                 'amount_added_prize_pool',
                 'ctn_price',
                 'time_chip',
@@ -2494,8 +2495,8 @@ class BingoController extends Controller
                 'rounds_pct',
                 'room_commn',
                 'jackpot_pct',
-                'songs_pct',
-                'types_songs',
+                'plays_pct',
+                'play_types',
                 'serials_pct',
                 'num_serials',
                 'status'
@@ -2517,7 +2518,7 @@ class BingoController extends Controller
             'activeRooms' => $activeRooms,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
-            'type_prize_pool' => TypePrizePool::all(),
+            'prize_pool_type' => TypePrizePool::all(),
             'gameModes' => GameModes::all()
         ];
 
@@ -2698,7 +2699,7 @@ class BingoController extends Controller
                 'time' => $data->time,
                 'game_mode' => $data->game_mode,
                 'room_type' => $data->room_type,
-                'type_prize_pool' => $data->type_prize_pool,
+                'prize_pool_type' => $data->prize_pool_type,
                 'amount_added_prize_pool' => $data->amount_added_prize_pool,
                 'time_chip' => $data->time_chip,
                 'rounds' => $data->rounds,
@@ -2707,8 +2708,8 @@ class BingoController extends Controller
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $data->room_commn,
                 'jackpot_pct' => $data->serials_commission,
-                'songs_pct' => null,
-                'types_songs' => null,
+                'plays_pct' => null,
+                'play_types' => null,
                 'serials_pct' => $data->serials_pct,
                 'num_serials' => $data->num_serials,
                 'creator_type' => UserType::getValueByPrefix($creator->type, 'id'),
@@ -2760,7 +2761,7 @@ class BingoController extends Controller
                 'time' => $request->time,
                 'game_mode' => $request->game_mode,
                 'room_type' => $request->room_type,
-                'type_prize_pool' => $request->type_prize_pool,
+                'prize_pool_type' => $request->prize_pool_type,
                 'amount_added_prize_pool' => $request->amount_added_prize_pool,
                 'time_chip' => $request->time_chip,
                 'rounds' => $request->rounds,
@@ -2822,7 +2823,7 @@ class BingoController extends Controller
             'time',
             'game_mode',
             'room_type',
-            'type_prize_pool',
+            'prize_pool_type',
             'amount_added_prize_pool',
             'room_commn',
             'ctn_price',
@@ -2832,8 +2833,8 @@ class BingoController extends Controller
             'serials_pct',
             'num_serials',
             'jackpot_pct',
-            'songs_pct',
-            'types_songs',
+            'plays_pct',
+            'play_types',
             'status'
         )->where('id', $id)->firstOrFail();
 

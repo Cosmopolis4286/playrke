@@ -12,7 +12,7 @@
                                 <label for="room">Próximos Bingo</label>
                                 <select disabled id="room" class="form-control" name="room" required></select>
                                 <div id="cont-tx-prize-pool-room" class="mt-1 hide-elem">
-                                    <b><small><span class="type-prize-pool"></span> Actual:</small></b>
+                                    <b><small><span class="prize-pool-type"></span> Actual:</small></b>
                                     <span class="coin-symbol"></span>
                                     <span id="tx-prize-pool-room"></span>
                                 </div>
@@ -331,7 +331,7 @@
                         }
                         const {
                             prizePool: prizePoolAmount,
-                            typePrizePool,
+                            prizePoolType,
                             price,
                             coin,
                             countries,
@@ -347,7 +347,7 @@
                         $("#num-ctns").prop('disabled', false).val(1);
                         insertCountries(countries)
                         prizePool = formatNumber(prizePoolAmount, 3);
-                        $(".type-prize-pool").text(typePrizePool == 1 ? 'Bote' : 'Premio');
+                        $(".prize-pool-type").text(prizePoolType == 1 ? 'Bote' : 'Premio');
                         $("#tx-prize-pool-room").text(prizePoolAmount);
                         calculateSale();
                         $(".ctn-player-info, #cont-tx-prize-pool-room").removeClass('hide-elem');

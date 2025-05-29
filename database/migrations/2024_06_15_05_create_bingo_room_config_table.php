@@ -27,7 +27,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->double('ctn_price');
             $table->double('rke_commn')->nullable();
             $table->double('room_commn')->nullable();
-            $table->unsignedBigInteger('type_prize_pool')->default(1);
+            $table->unsignedBigInteger('prize_pool_type')->default(1);
             $table->double('amount_added_prize_pool')->nullable();
             $table->string('time_chip', 2)->nullable();
             $table->string('rounds', 2)->default('1');
@@ -35,15 +35,15 @@ class CreateBingoRoomConfigTable extends Migration
             $table->double('serials_pct')->nullable();
             $table->string('num_serials', 2)->nullable();
             $table->double('jackpot_pct')->nullable();
-            $table->double('songs_pct')->nullable();
-            $table->string('types_songs')->nullable();
+            $table->double('plays_pct')->nullable();
+            $table->string('play_types')->nullable();
             $table->timestamps();
 
             // Foreign key constraint
             $table->foreign('room')->references('id')->on('bingo_rooms')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('game_mode')->references('id')->on('game_modes')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('country')->references('id')->on('countries')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('type_prize_pool')->references('id')->on('type_prize_pools')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('prize_pool_type')->references('id')->on('prize_pool_types')->onDelete('restrict')->onUpdate('cascade');
         });
     }
 

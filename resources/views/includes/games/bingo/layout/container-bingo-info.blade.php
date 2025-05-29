@@ -4,8 +4,8 @@
             <img id="image-prize-chest" src="{{ asset('img/cofre.png') }}">
         </div>
         <div id="cont-prize-pool-info-amount" class="p-1">
-            <small id="cont-type-prize-pool">
-                {{ $typePrizePool == 1 ? 'Bote' : ($typePrizePool == 2 ? 'Premio' : '') }}
+            <small id="cont-prize-pool-type">
+                {{ $prizePoolType == 1 ? 'Bote' : ($prizePoolType == 2 ? 'Premio' : '') }}
             </small>
             <div id="cont-prize-pool-amount">
                 <small id="prize-pool-coin-sym" class="mr-1">{{ $coinSym }}</small>

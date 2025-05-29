@@ -14,8 +14,8 @@ class TypePrizePoolSeeder extends Seeder
      */
     public function run()
     {
-        // Insertar los datos en la tabla 'type_prize_pools'
-        DB::table('type_prize_pools')->insert([
+        // Insertar los datos en la tabla 'prize_pool_types'
+        DB::table('prize_pool_types')->insert([
             ['id' => 1, 'description' => 'Acumulativo'],
             ['id' => 2, 'description' => 'Premio'],
             ['id' => 3, 'description' => 'Mixto']

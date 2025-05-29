@@ -34,7 +34,7 @@
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const roomType = $("#room-type");
-        const typePrizePool = $("#type-prize-pool");
+        const prizePoolType = $("#prize-pool-type");
         const gameMode = $("#game-mode");
         const roomTypes = @json($roomType);
         const existsRoomTypes = !$.isEmptyObject(roomTypes);
@@ -91,7 +91,7 @@
                 });
         });
 
-        typePrizePool.on('change', function() {
+        prizePoolType.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
@@ -120,7 +120,7 @@
                 roomType.empty();
             }
 
-            typePrizePool.empty();
+            prizePoolType.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -135,7 +135,7 @@
                     gameMode.html(`<option value="1" selected>Online</option>`);
                 }
 
-                typePrizePool.html(defaultOption);
+                prizePoolType.html(defaultOption);
             }
 
             if (creatorType !== 'customer' && existsRoomTypes) {
@@ -146,8 +146,8 @@
             }
 
             $.each(arrTypePrizePool, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.room.type_prize_pool) ? 'selected' : '';
-                typePrizePool.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                const isSelected = (type == 2 && item.id == data.room.prize_pool_type) ? 'selected' : '';
+                prizePoolType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             if (creatorType !== 'customer' && arrGameModes.length) {
@@ -174,7 +174,7 @@
                 $('#num-serials').val(room.num_serials);
                 $('#serials-commn').val(room.jackpot_pct);
 
-                if (room.type_prize_pool > 1) {
+                if (room.prize_pool_type > 1) {
                     changeFixedJackpot(2);
                     $('#amount-added-prize-pool').val(room.amount_added_prize_pool);
                 }
@@ -185,7 +185,7 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'time', 'room-type', 'type-prize-pool', 'game-mode', 'room-commn',
+                'time', 'room-type', 'prize-pool-type', 'game-mode', 'room-commn',
                 'ctn-price', 'time-chip', 'rounds', 'serials-pct', 'num-serials'
             ]);
         });

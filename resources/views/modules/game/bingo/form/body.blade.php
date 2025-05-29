@@ -31,8 +31,8 @@
         <select id="game-mode" name="game_mode" class="form-control"></select>
     </div>
     <div class="form-group col-sm-6 col-md-4 col-lg-3">
-        <label for="type-prize-pool">Tipo Bote*</label>
-        <select id="type-prize-pool" name="type_prize_pool" class="form-control" required></select>
+        <label for="prize-pool-type">Tipo Bote*</label>
+        <select id="prize-pool-type" name="prize_pool_type" class="form-control" required></select>
     </div>
     <div id="container-amount-added-prize-pool" class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="amount-added-prize-pool">Valor Fijo/Extra*</label>
@@ -68,7 +68,7 @@
     <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="rounds">Rondas*</label>
         <div class="input-group">
-            <input type="number" step="1" value="1" min="1" max="10" id="rounds"
+            <input type="number" step="1" value="1" min="1" max="15" id="rounds"
                 name="rounds" class="form-control" required>
             <div class="content-rounds-pct input-group-append">
                 <button id="btn-rounds-config" class="btn btn-outline-secondary" type="button" data-active="0"
@@ -92,7 +92,7 @@
     <div class="content-rounds-pct form-group col-sm-6 col-md-4 col-lg-3">
         <label for="rounds-pct">%Rondas*</label>
         <input type="number" id="rounds-pct" name="rounds_pct" class="form-control prize-pool-pct" value=""
-            step="1" min="3" max="25">
+            step="1" min="3" max="30">
     </div>
     <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="serials-pct">%Bote Seriales</label>
@@ -132,9 +132,9 @@
             <div id="content-ctn-price-config" class="row"></div>
         </div>
     </div>
-    {{-- <div id="container-songs-pct" class="form-group col-sm-6 col-md-4">
-        <label for="songs-pct">%Bote Cantos</label>
-        <input type="number" value="" min="2" max="35" step="0.25" id="songs-pct"
-            name="songs-pct" class="form-control prize-pool-pct" placeholder="Ingrese valor" required>
+    {{-- <div id="container-plays-pct" class="form-group col-sm-6 col-md-4">
+        <label for="plays-pct">%Bote Cantos</label>
+        <input type="number" value="" min="2" max="35" step="0.25" id="plays-pct"
+            name="plays-pct" class="form-control prize-pool-pct" placeholder="Ingrese valor" required>
     </div> --}}
 </div>

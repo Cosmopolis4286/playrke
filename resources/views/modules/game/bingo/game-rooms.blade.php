@@ -52,7 +52,7 @@
                                 alt="IMG">
                             <div class="container-card-game-room__prize_pool">
                                 <span class="card-game-room__prize_pool-text">
-                                    {{ $room->Config->type_prize_pool == 1 ? 'Bote:' : 'Premio:' }}
+                                    {{ $room->Config->prize_pool_type == 1 ? 'Bote:' : 'Premio:' }}
                                 </span>
                                 <div class="card-game-room__prize-pool-amount">
                                     <h3>
@@ -192,7 +192,7 @@
 
                     generateModalPurchase(roomID);
 
-                    $('#purchase-ctns__coin-text').text(room.typePrizePool);
+                    $('#purchase-ctns__coin-text').text(room.prizePoolType);
                     $('.purchase-ctns__coin-label').text(room.coin);
                     $('#prize-pool-amount').text(room.prizePool);
                     formatDateTime(room.dateTime);

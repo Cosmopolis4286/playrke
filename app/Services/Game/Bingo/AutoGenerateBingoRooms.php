@@ -81,8 +81,8 @@ class AutoGenerateBingoRooms
     {
         $model = 'BingoRooms';
 
-        $fixedJackpotValue = $room->amount_added_prize_pool;
-        $boat = $room->type_prize_pool > 1 ? $fixedJackpotValue : 0;
+        $amountAddedPrizePool= $room->amount_added_prize_pool;
+        $boat = $room->prize_pool_type > 1 ? $amountAddedPrizePool: 0;
 
         return [
             'encrypted' => $this->generateUniqueCode($model),
@@ -115,7 +115,7 @@ class AutoGenerateBingoRooms
                 'ctn_price' => $dataRoom->ctn_price,
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $dataRoom->room_commn,
-                'type_prize_pool' => $dataRoom->type_prize_pool,
+                'prize_pool_type' => $dataRoom->prize_pool_type,
                 'amount_added_prize_pool' => $dataRoom->amount_added_prize_pool,
                 'time_chip' => $dataRoom->time_chip,
                 'rounds' => $dataRoom->rounds,

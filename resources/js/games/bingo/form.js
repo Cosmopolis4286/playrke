@@ -56,7 +56,7 @@ $(document).on('input', '#num-serials, #time-chip, #rounds', function () {
 });
 
 // Limitar a números decimales válidos (sin letras)
-$(document).on('input', '#amount-added-prize-pool, #room-commn, #serials-pct, #rounds-pct, .rounds-pcts-input, #ctn-price', function () {
+$(document).on('input', '#amount-added-prize-pool, #room-commn, #serials-pct, #rounds-pct, .rounds-prize-value-input, #ctn-price', function () {
     this.value = this.value.replace(/,/g, '.'); // Opcional: convertir comas en puntos
     this.value = this.value
         .replace(/[^0-9.]/g, '')        // Solo números y punto

@@ -51,7 +51,7 @@
         const roomType = @json($roomType);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
-        const typePrizePool = $("#type-prize-pool");
+        const prizePoolType = $("#prize-pool-type");
         const gameMode = $("#game-mode");
         const rounds = $("#rounds");
         const roundsPct = $('#rounds-pct');
@@ -87,13 +87,13 @@
             }
         }
 
-        typePrizePool.on('change', function() {
+        prizePoolType.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
         bingoPlays.on('change', function() {
             const selected = $(this).val() || [];
-            const container = $('#container-songs-pct');
+            const container = $('#container-plays-pct');
 
             if (selected.length === 0) {
                 container.hide();
@@ -151,7 +151,7 @@
                 required: isRequired
             }).empty();
 
-            typePrizePool.empty();
+            prizePoolType.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -160,14 +160,14 @@
                     gameMode.html(defaultOption);
                 }
 
-                typePrizePool.html(defaultOption);
+                prizePoolType.html(defaultOption);
             }
 
             $('#room-type').val(roomType);
 
             $.each(arrTypePrizePool, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.config.type_prize_pool) ? 'selected' : '';
-                typePrizePool.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+                const isSelected = (type == 2 && item.id == data.config.prize_pool_type) ? 'selected' : '';
+                prizePoolType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             $.each(arrGameModes, function(index, item) {
@@ -194,8 +194,8 @@
                 $('#serials-pct').val(config.serials_pct);
                 $('#num-serials').val(config.num_serials);
 
-                if (config.type_prize_pool > 1) {
-                    addedPrizePool = config.type_prize_pool;
+                if (config.prize_pool_type > 1) {
+                    addedPrizePool = config.prize_pool_type;
                     $('#amount-added-prize-pool').val(config.amount_added_prize_pool);
                 }
 
@@ -203,9 +203,9 @@
                     $('.content-rounds-pct').show();
                 }
 
-                if (config.types_songs) {
-                    selectedBingoPlays = stringToArray(config.types_songs);
-                    $('#songs-pct').val(config.songs_pct);
+                if (config.play_types) {
+                    selectedBingoPlays = stringToArray(config.play_types);
+                    $('#plays-pct').val(config.plays_pct);
                 }
             }
 
@@ -218,7 +218,7 @@
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'date', 'room-type', 'type-prize-pool', 'game-mode', 'room-commn',
+                'date', 'room-type', 'prize-pool-type', 'game-mode', 'room-commn',
                 'ctn-price', 'time-chip', 'rounds', 'serials-pct', 'num-serials'
             ]);
         });

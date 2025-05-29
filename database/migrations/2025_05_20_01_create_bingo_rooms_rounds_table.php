@@ -14,12 +14,11 @@ return new class extends Migration
         Schema::create('bingo_rooms_rounds', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms');
-            $table->string('round', 2)->default('1');
-            $table->string('type_play', 25);
-            $table->string('coin', 15)->nullable();
-            $table->string('pct', 5);
-            $table->double('prize_amount')->nullable();
-            $table->enum('status', [''])->default('1');
+            $table->string('round', 2);
+            $table->enum('prize_type', ['PCT', 'USD', 'OTHER']);
+            $table->string('play_type', 25);
+            $table->double('prize_value');
+            $table->enum('status', ['ACTIVE', 'IN PROGRESS', 'COMPLETED'])->default('ACTIVE');
             $table->timestamps();
         });
     }

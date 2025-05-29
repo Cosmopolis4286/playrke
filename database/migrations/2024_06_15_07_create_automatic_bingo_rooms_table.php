@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('time', 10);
             $table->foreignId('game_mode')->constrained('game_modes')->onDelete('cascade');
             $table->enum('room_type', ['PV', 'PB'])->default('PV');
-            $table->foreignId('type_prize_pool')->constrained('type_prize_pools')->onDelete('cascade')->default(1);
+            $table->foreignId('prize_pool_type')->constrained('prize_pool_types')->onDelete('cascade')->default(1);
             $table->double('amount_added_prize_pool')->nullable();
             $table->double('rke_commn')->default(0);
             $table->double('room_commn')->default(0);

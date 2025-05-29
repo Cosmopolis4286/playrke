@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class GameTypePrizePool extends Model
 {
-    protected $table = "game_type_prize_pool";
-    protected $fillable = ['game', 'game_mode', 'type_prize_pool', 'status'];
+    protected $table = "game_prize_pool_type";
+    protected $fillable = ['game', 'game_mode', 'prize_pool_type', 'status'];
 
     public function Game()
     {
@@ -21,12 +21,12 @@ class GameTypePrizePool extends Model
 
     public function TypePrizePool()
     {
-        return $this->belongsTo(TypePrizePool::class, 'type_prize_pool');
+        return $this->belongsTo(TypePrizePool::class, 'prize_pool_type');
     }
 
     public static function getAvailableByGameMode($game, $game_mode = '')
     {
-        return self::select('type_prize_pool')->where('game', $game)->where('game_mode', $game_mode)
-            ->where('status', 1)->distinct()->pluck('type_prize_pool')->toArray();
+        return self::select('prize_pool_type')->where('game', $game)->where('game_mode', $game_mode)
+            ->where('status', 1)->distinct()->pluck('prize_pool_type')->toArray();
     }
 }

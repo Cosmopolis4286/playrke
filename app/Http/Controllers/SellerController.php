@@ -374,7 +374,7 @@ class SellerController extends Controller
 
     public function getCtnPrice($roomID)
     {
-        $room = BingoRoom::with('Config:room,type_prize_pool,ctn_price')
+        $room = BingoRoom::with('Config:room,prize_pool_type,ctn_price')
             ->select('id', 'encrypted', 'prize_pool')
             ->where('encrypted', $roomID)->first();
 
@@ -385,7 +385,7 @@ class SellerController extends Controller
         $countriesCoins = $this->getAvailableCountriesBySeller($room->id);
 
         return response()->json([
-            'typePrizePool' => $room->Config->type_prize_pool,
+            'prizePoolType' => $room->Config->prize_pool_type,
             'prizePool' => $room->prize_pool,
             'coin' => 'USDT',
             'price' => $room->Config->ctn_price,
