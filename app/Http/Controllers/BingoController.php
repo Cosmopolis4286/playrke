@@ -29,7 +29,7 @@ use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\GameModes;
-use App\Models\TypePrizePool;
+use App\Models\PrizePoolType;
 use App\Models\PlayerLink;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
@@ -984,7 +984,7 @@ class BingoController extends Controller
         $operator = $otherCommerce ? '<>' : '=';
 
         $relations = [
-            'Config.TypePrizePool',
+            'Config.PrizePoolType',
             'Config:room,game_mode,prize_pool_type,ctn_price,date,time,unix_date',
             'Config.GameMode:id,description',
             'PlayersRoom' => fn($query) => $query->where('winner', '>', 0),
@@ -1128,7 +1128,7 @@ class BingoController extends Controller
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
-            'typesPrizePool' => TypePrizePool::all(),
+            'typesPrizePool' => PrizePoolType::all(),
             'gameModes' => GameModes::all()
         ];
 
@@ -2518,7 +2518,7 @@ class BingoController extends Controller
             'activeRooms' => $activeRooms,
             'GMRoute' => $GMRoute,
             'roomType' => $roomType ?? [],
-            'prize_pool_type' => TypePrizePool::all(),
+            'prize_pool_type' => PrizePoolType::all(),
             'gameModes' => GameModes::all()
         ];
 

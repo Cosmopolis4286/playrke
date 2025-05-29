@@ -58,7 +58,7 @@
         const bingoPlays = $("#bingo-plays");
         const arrBingoPlays = @json($bingoPlays);
         const arrCoins = @json($coins);
-        const arrTypePrizePool = @json($typesPrizePool);
+        const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
         let totalPct = false;
         let bingoRounds = false;
@@ -165,7 +165,7 @@
 
             $('#room-type').val(roomType);
 
-            $.each(arrTypePrizePool, function(index, item) {
+            $.each(arrPrizePoolType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.prize_pool_type) ? 'selected' : '';
                 prizePoolType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });

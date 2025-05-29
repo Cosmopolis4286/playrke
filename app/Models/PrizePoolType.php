@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class TypePrizePool extends Model
+class PrizePoolType extends Model
 {
     protected $table = "prize_pool_types";
     protected $fillable = ['description'];

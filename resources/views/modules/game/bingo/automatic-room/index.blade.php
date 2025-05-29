@@ -38,7 +38,7 @@
         const gameMode = $("#game-mode");
         const roomTypes = @json($roomType);
         const existsRoomTypes = !$.isEmptyObject(roomTypes);
-        const arrTypePrizePool = @json($typesPrizePool);
+        const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
         let coinsCtnPrice = false;
 
@@ -145,7 +145,7 @@
                 });
             }
 
-            $.each(arrTypePrizePool, function(index, item) {
+            $.each(arrPrizePoolType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.room.prize_pool_type) ? 'selected' : '';
                 prizePoolType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });

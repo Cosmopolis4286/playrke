@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class GameTypePrizePool extends Model
+class GamePrizePoolType extends Model
 {
     protected $table = "game_prize_pool_type";
     protected $fillable = ['game', 'game_mode', 'prize_pool_type', 'status'];
@@ -19,9 +19,9 @@ class GameTypePrizePool extends Model
         return $this->belongsTo(GameModes::class, 'game_mode');
     }
 
-    public function TypePrizePool()
+    public function PrizePoolType()
     {
-        return $this->belongsTo(TypePrizePool::class, 'prize_pool_type');
+        return $this->belongsTo(PrizePoolType::class, 'prize_pool_type');
     }
 
     public static function getAvailableByGameMode($game, $game_mode = '')
