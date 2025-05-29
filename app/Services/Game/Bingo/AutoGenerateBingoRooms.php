@@ -35,13 +35,17 @@ class AutoGenerateBingoRooms
         DB::beginTransaction();
 
         try {
+
             foreach ($automaticRooms as $room) {
+
+                $creatorUser = $room->creator_user;
+
                 // Calcular fecha y hora de la sala
                 $roomTime = Carbon::parse("{$now->format('Y-m-d')} {$room->time}");
                 $roomDate = $this->calculateRoomDate($roomTime, $now);
 
                 // Verificar si la sala ya existe
-                $existingRoom = $this->existingRoom($room->user, $roomDate, $room->time, $room->ctn_price);
+                $existingRoom = $this->existingRoom($creatorUser, $roomDate, $room->time, $room->ctn_price);
 
                 // Saltar si la sala existente tiene un estado >= 2
                 if ($existingRoom && $existingRoom->Room->status >= 2) {
@@ -57,12 +61,18 @@ class AutoGenerateBingoRooms
                     : BingoRoom::create($roomData);
 
                 $roomID = $currentRoom->id;
+                $automaticBingoID = $room->id;
 
                 // Configurar la sala
                 $this->configureRoom($roomID, $room, $roomDate);
 
                 // Asociar precios de monedas a la sala
-                $this->associateCtnPrices($room->id, $roomID, $room->creator_user);
+                $this->associateCtnPrices($automaticBingoID, $roomID, $creatorUser);
+
+                if ($room->rounds > 1 && $room->rounds_pct) {
+                    // Asociar rondas a la sala
+                    $this->associateRounds($automaticBingoID, $roomID, $creatorUser);
+                }
             }
 
             DB::commit();
@@ -144,6 +154,28 @@ class AutoGenerateBingoRooms
      * Asocia los precios de monedas (ctn) a una sala.
      */
     private function associateCtnPrices($automaticBingoID, $roomID, $creatorUser)
+    {
+        $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($automaticBingoID ?? '');
+
+        if (!$coinsCtnPrice) return;
+
+        foreach ($coinsCtnPrice as $key => $ctnPrice) {
+            BingoCtnPrice::updateOrCreate(
+                ['room' => $roomID, 'coin' => $key],
+                [
+                    'creator_user' => $creatorUser,
+                    'ctn_price' => $ctnPrice,
+                ]
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Asocia las rondas a una sala.
+     */
+    private function associateRounds($automaticBingoID, $roomID, $creatorUser)
     {
         $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($automaticBingoID ?? '');
 

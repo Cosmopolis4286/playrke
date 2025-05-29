@@ -98,6 +98,9 @@ trait BingoTrait
             return ['Error' => 'No hay jugadores en la sala'];
         }
 
+        // Insertar configuracion de las rondas de la sala
+        $this->handleRoundsConfig($room);
+
         $roomInfo = BingoRoomConfig::getByRoom($room, ['date', 'time', 'rounds']);
         $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
         $rounds = (int) $roomInfo->rounds;
@@ -1533,7 +1536,7 @@ trait BingoTrait
         return $coin ?? null;
     }
 
-    public function handleRoundsConfig($action, $rounds, $roomID)
+    public function handleRoundsConfig($roomID)
     {
         try {
             $timestamp = now();
