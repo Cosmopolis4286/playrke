@@ -18,4 +18,9 @@ class BingoRoomRoundsDrafts extends Model
     {
         return self::where('id', $id)->value($value);
     }
+
+    public static function getByRoom($room, $fields = ['*'])
+    {
+        return self::select($fields)->where('room', $room)->first();
+    }
 }

@@ -81,8 +81,8 @@ class AutoGenerateBingoRooms
     {
         $model = 'BingoRooms';
 
-        $amountAddedPrizePool= $room->amount_added_prize_pool;
-        $boat = $room->prize_pool_type > 1 ? $amountAddedPrizePool: 0;
+        $amountAddedPrizePool = $room->amount_added_prize_pool;
+        $boat = $room->prize_pool_type > 1 ? $amountAddedPrizePool : 0;
 
         return [
             'encrypted' => $this->generateUniqueCode($model),

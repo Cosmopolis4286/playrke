@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('bingo_rooms_rounds_drafts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room')->constrained('bingo_rooms');
+            $table->foreignId('room')->unique()->constrained('bingo_rooms');
             $table->string('num_round', 2);
             $table->json('prize_types');
             $table->json('play_types');

@@ -1532,4 +1532,58 @@ trait BingoTrait
         // Si existe venta y cumple con todos los filtros
         return $coin ?? null;
     }
+
+    public function handleRoundsConfig($action, $rounds, $roomID)
+    {
+        try {
+            $timestamp = now();
+            $batch = [];
+            $lastRound = count($rounds);
+
+            foreach ($rounds as $roundNumber => $value) {
+
+                $roundNumber += 1;
+
+                if ($lastRound == $roundNumber) break;
+
+                $data = [
+                    'room'       => $roomID,
+                    'round'      => $roundNumber,
+                    'play_type'  => 'FULL HOUSE',
+                    // 'prize_type' => '',
+                    'prize_value' => $value,
+                    'updated_at' => $timestamp,
+                ];
+
+                if ($action === 'CREATE') {
+                    $data['created_at'] = $timestamp;
+                    $batch[] = $data;
+                } else {
+                    $existing = BingoRoomRounds::getByRound($roomID, $roundNumber, ['prize_type', 'play_type', 'prize_amount']);
+
+                    if ($existing) {
+                        if ($existing->prize_amount != $value) {
+                            $existing->update($data);
+                        }
+                    } else {
+                        $data['created_at'] = $timestamp;
+                        BingoRoomRounds::create($data);
+                    }
+                }
+            }
+
+            if ($action === 'CREATE' && !empty($batch)) {
+                BingoRoomRounds::insert($batch);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en handleRoundsConfig: ' . $e->getMessage(), [
+                'action'  => $action,
+                'roomID'  => $roomID,
+                'rounds'  => $rounds,
+                'trace'   => $e->getTraceAsString(),
+            ]);
+
+            throw $e; // Puedes relanzar la excepción o manejarla según tu flujo
+        }
+    }
 }

@@ -72,8 +72,9 @@ function buildRoundHtml(roundNumber, roundPCT, isLastRound = false, selected = '
                 <div class="input-group-prepend">
                     <select 
                     class="form-control" 
-                    name="rounds_types[]" 
-                    aria-label="Seleccionar cantos">
+                    name="rounds_prize_type[]" 
+                    aria-label="Seleccionar tipo de premio"
+                    required>
                         <option value="PCT" selected>%</option>
                         <option value="USD">$</option>
                         <option value="OTHER">?</option>
