@@ -40,7 +40,9 @@
         const existsRoomTypes = !$.isEmptyObject(roomTypes);
         const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
+        let totalPct = false;
         let coinsCtnPrice = false;
+        let selectedBingoPlays = [];
 
         $(function() {
             $('.select2').each(function() {
@@ -103,15 +105,15 @@
         });
 
         function insertInfo(type, data = '') {
-            //selectedBingoPlays = [];
+            // selectedBingoPlays = [];
             coinsCtnPrice = false;
 
             $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
             $('#content-rounds-config, #content-price-config').empty();
 
             if (type == 2) {
-                getCtnPriceCoin(data.room.encrypted);
-                getRoundsConfig(data.room.encrypted);
+                getCtnPriceCoin(data.room.id);
+                getRoundsConfig(data.room.id);
             }
 
             gameMode.empty();
@@ -215,5 +217,5 @@
             },
         };
     </script>
-    @vite('resources/js/games/bingo/ctn-price-coins.js')
+    @vite(['resources/js/games/bingo/ctn-price-coins.js', 'resources/js/games/bingo/rounds-config.js'])
 @endsection

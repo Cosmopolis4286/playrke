@@ -28,8 +28,10 @@ return new class extends Migration
             $table->string('rounds', 2)->default('1');
             $table->double('rounds_pct')->nullable();
             $table->double('serials_pct')->nullable();
-            $table->double('num_serials', 2)->nullable();
+            $table->string('num_serials', 2)->nullable();
             $table->double('jackpot_pct')->nullable();
+            $table->double('plays_pct')->nullable();
+            $table->json('play_types')->nullable();
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');

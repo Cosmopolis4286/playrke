@@ -1,3 +1,6 @@
+const rounds = $("#rounds");
+const roundsPct = $('#rounds-pct');
+
 function handleRoundsConfig(arrRounds = []) {
     const pctValue = parseFloat(roundsPct.val()) || 0;
     const content = arrRounds.length
@@ -5,7 +8,6 @@ function handleRoundsConfig(arrRounds = []) {
         : generateEmptyRounds(pctValue);
 
     $('#content-rounds-config').empty().html(content);
-    bingoRounds = true;
 }
 
 function generateRounds(data) {
@@ -109,7 +111,7 @@ function getRoundsConfig(room = '') {
         handleRoundsConfig();
     } else {
         $.ajax({
-            url: route('bingo.getRoundsConfig', room),
+            url: route('bingo.getRoundsConfig', { room, type: creation }),
             method: 'GET',
             dataType: 'json',
             beforeSend: function () {

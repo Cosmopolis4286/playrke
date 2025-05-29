@@ -53,15 +53,12 @@
         const creatorID = @json($creator['id'] ?? '');
         const prizePoolType = $("#prize-pool-type");
         const gameMode = $("#game-mode");
-        const rounds = $("#rounds");
-        const roundsPct = $('#rounds-pct');
         const bingoPlays = $("#bingo-plays");
         const arrBingoPlays = @json($bingoPlays);
         const arrCoins = @json($coins);
         const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
         let totalPct = false;
-        let bingoRounds = false;
         let coinsCtnPrice = false;
         let selectedBingoPlays = [];
 
