@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('round', 2);
             $table->enum('prize_type', ['PCT', 'USD', 'OTHER']);
             $table->string('play_type', 25);
-            $table->double('prize_value');
+            $table->double('prize_value')->nullable();
             $table->enum('status', ['ACTIVE', 'IN PROGRESS', 'COMPLETED'])->default('ACTIVE');
             $table->timestamps();
         });
