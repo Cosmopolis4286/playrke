@@ -8,17 +8,21 @@ function handleRoundsConfig(arrRounds = []) {
     bingoRounds = true;
 }
 
-function generateRounds(arr) {
-    const lastRound = arr.length;
+function generateRounds(data) {
+    const numRounds = parseInt(data.rounds) || 0;
     const roundsPctVal = parseFloat(roundsPct.val()) || 0;
 
-    return arr.map(({ round, prizeType, playType, prizeValue }) => {
-        const isLastRound = round === lastRound;
-        const adjustedPrizeValue = isLastRound
-            ? (100 - roundsPctVal).toFixed(2)
-            : prizeValue;
+    return Array.from({ length: numRounds }, (_, i) => {
+        const round = i + 1;
+        const isLastRound = round === numRounds;
 
-        return buildRoundHtml(round, prizeType, playType, adjustedPrizeValue, isLastRound);
+        const prizeType = data.prize_types[i];
+        const playType = data.play_types[i];
+        const prizeValue = isLastRound
+            ? (100 - roundsPctVal).toFixed(2)
+            : data.prize_values[i];
+
+        return buildRoundHtml(round, prizeType, playType, prizeValue, isLastRound);
     }).join('');
 }
 
@@ -114,7 +118,7 @@ function getRoundsConfig(room = '') {
                 $("#container-rounds-config").show();
             },
             success: function (res) {
-                if (res.length) handleRoundsConfig(res);
+                if (res.rounds > 1) handleRoundsConfig(res);
             },
             error: function () { },
             complete: function () {

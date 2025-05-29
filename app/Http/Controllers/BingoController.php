@@ -1603,8 +1603,8 @@ class BingoController extends Controller
     {
         $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
-        $bingoRounds = BingoRoomRoundsDrafts::where('room', $roomID)
-            ->where('status', 'ACTIVE')->get(['rounds', 'prize_types', 'play_types', 'prize_values']);
+        $bingoRounds = BingoRoomRoundsDrafts::select('rounds', 'prize_types', 'play_types', 'prize_values')
+            ->where('room', $roomID)->where('status', 'ACTIVE')->first();
 
         // Retornar respuesta con los datos
         return response()->json($bingoRounds);
