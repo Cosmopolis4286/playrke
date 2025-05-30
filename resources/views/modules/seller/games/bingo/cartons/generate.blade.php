@@ -13,7 +13,7 @@
                             <div class="form-group col-9 col-sm-5">
                                 <label for="room">Próximos Bingos</label>
                                 <select id="room" name="room" class="form-control" disabled required></select>
-                                <div id="cont-tx-prize-pool-room" class="mt-1 d-none">
+                                <div id="cont-tx-prize-pool-room" class="ml-1 mt-1 d-none">
                                     <small><b><span class="prize-pool-type"></span> Actual:</b></small>
                                     <span class="coin-symbol"></span>
                                     <span id="tx-prize-pool-room"></span>
@@ -38,13 +38,13 @@
                         </div>
 
                         {{-- Información de la venta --}}
-                        <div class="row mt-2">
-                            @foreach ([['label' => 'Monto Total', 'id' => 'tx-total-amount', 'desc' => 'Costo de los cartones'], ['label' => 'Mi Comisión', 'id' => 'tx-seller-commn', 'desc' => 'Ganancias por venta'], ['label' => 'Total Banca', 'id' => 'tx-commerce-amount', 'desc' => 'Enviar al Comercio']] as $info)
-                                <div class="col-6 col-sm-4">
+                        <div class="row">
+                            @foreach ([['label' => 'Monto Total', 'id' => 'tx-total-amount', 'desc' => 'Costo de los cartones'], ['label' => 'Mi Comisión', 'id' => 'tx-seller-commn', 'desc' => 'Ganancias por venta'], ['label' => 'Total Banca', 'id' => 'tx-commerce-amount', 'desc' => 'Enviar al comercio']] as $info)
+                                <div class="col-6 col-sm-4 mt-1">
                                     <label>{{ $info['label'] }}</label>
-                                    <div>
+                                    <div class="d-flex mt-n1">
                                         <span class="coin-symbol"></span>
-                                        <span class="sale-info" id="{{ $info['id'] }}"></span>
+                                        <span class="sale-info ml-1" id="{{ $info['id'] }}"></span>
                                     </div>
                                     <small>{{ $info['desc'] }}</small>
                                 </div>
@@ -64,7 +64,7 @@
                                 <h6 id="text-new-player">Ingresa los datos del nuevo participante</h6>
                                 <h6 id="new-player" class="d-none">¡Este usuario está participando!</h6>
                             </div>
-                            <div id="container-info-player" class="col-12 col-md-9 d-none">
+                            <div id="info-participating-player" class="col-12 col-md-9 d-none">
                                 <label>Cartones comprados: <b id="player-ctns"></b></label>
                                 <div class="input-group input-group-sm">
                                     <input id="player-link-rout" class="form-control" disabled style="cursor: pointer;">
@@ -92,23 +92,25 @@
                                     <select id="country" name="country" class="form-control info-form" required></select>
                                 </div>
 
-                                <div class="form-group col-12 col-sm-6 info-player">
+                                <div class="form-group col-12 col-sm-6 info-player d-none">
                                     <label for="phone">Teléfono*</label>
                                     <div class="input-group">
                                         <input id="phone" name="phone" class="form-control info-form" required>
-                                        <button class="btn btn-outline-secondary" type="button" id="btn-search-phone"
-                                            data-id="1">
-                                            <i class="fa-solid fa-magnifying-glass"></i>
-                                        </button>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary" type="button" id="btn-search-phone"
+                                                data-id="1">
+                                                <i class="fa-solid fa-magnifying-glass"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="form-group col-12 col-sm-6 info-player">
+                                <div class="form-group col-12 col-sm-6 info-player d-none">
                                     <label for="name">Nombre*</label>
                                     <input id="name" name="name" class="form-control info-form" type="text">
                                 </div>
 
-                                <div class="form-group col-12 col-sm-6 info-player">
+                                <div class="form-group col-12 col-sm-6 info-player d-none">
                                     <label for="last-name">Apellido*</label>
                                     <input id="last-name" name="last_name" class="form-control info-form" type="text">
                                 </div>
@@ -239,9 +241,9 @@
 
             if (roomID) {
                 $(".coin-symbol").text(coinSym);
-                $("#tx-total-amount").html(total);
-                $("#tx-seller-commn").html(totalsellerCommn);
-                $("#tx-commerce-amount").html(prizePool);
+                $("#tx-total-amount").text(total);
+                $("#tx-seller-commn").text(totalsellerCommn);
+                $("#tx-commerce-amount").text(prizePool);
             }
         }
 
@@ -258,7 +260,6 @@
         }
 
         function validateFormFields() {
-            console.log('Validar')
             if (country.val() && $("#name").val() && $("#last-name").val() && $("#phone").val()) {
                 btnGenerate.prop('disabled', false);
             } else {
@@ -326,7 +327,6 @@
 
                         handleAllowsUSDT(USDT);
                         insertCountries(countries)
-                        calculateSale();
 
                         $("#ctn-price-symbol").text(coinSym);
                         $("#ctn-price-amount").text(ctnPrice);
@@ -334,6 +334,8 @@
                         $(".prize-pool-type").text(prizePoolType == 1 ? 'Bote' : 'Premio');
                         $("#tx-prize-pool-room").text(prizePool);
                         $(".ctn-player-info, #cont-tx-prize-pool-room").removeClass('d-none');
+
+                        calculateSale();
                     }
                 });
             }
@@ -349,22 +351,24 @@
             $("#text-new-player").removeClass('d-none');
             $("#player-ctns").text('');
             $('#player-link-rout').val('');
-            $("#new-player, #container-info-player").addClass('d-none');
+            $("#new-player, #info-participating-player").addClass('d-none');
+            btnSearchPhone.html('<i class="fa-solid fa-magnifying-glass"></i>').data('id', '1');
+            $('#name, #last-name, #phone').val('').prop('required', false).prop('readonly', false);
         }
 
         country.on("change", function() {
             const countryVal = $(this).val();
-            const country = countryVal || 0;
+            const country = countryVal || false;
 
-            $("#name, #last-name, #phone").val('').prop('required', true).prop('readonly', false).show();
+            $("#name, #last-name, #phone").val('').prop('required', true).prop('readonly', false);
 
-            $(".info-player").toggle(countryVal === '');
+            $(".info-player").toggleClass('d-none', !countryVal);
 
-            if (countryVal === '') {
+            if (!countryVal) {
                 clearPlayerInfo();
+            } else {
+                getCtnPriceCoin(country);
             }
-
-            if (countryVal) getCtnPriceCoin(country);
         });
 
         function insertCountries(arr) {
@@ -387,6 +391,9 @@
         });
 
         function getPlayer(playerInfo, action = false) {
+
+            if (!playerInfo) return;
+
             $.post({
                 url: route('seller.getPlayer'),
                 headers: {
@@ -408,7 +415,7 @@
 
                         const infoPlayer = data.infoPlayer;
 
-                        btnSearchPhone.html('<i class="fa-solid fa-eraser"></i>').data('id', 2);
+                        btnSearchPhone.html('<i class="fa-solid fa-eraser"></i>').data('id', '2');
 
                         $('#name, #last-name, #phone').prop('required', false).prop('readonly', true);
                         $('#name').val(infoPlayer.name);
@@ -417,7 +424,7 @@
                         $("#text-new-player, #loader-btn-ctn").addClass('d-none');
                         $("#player-ctns").text(data.ctnsLink[0]);
                         $('#player-link-rout').val(data.ctnsLink[2]);
-                        $("#new-player, #container-info-player").show();
+                        $("#new-player, #info-participating-player").removeClass('d-none');
 
                         country.val(infoPlayer.country);
                         playerInGame = true;
@@ -425,17 +432,14 @@
                     } else {
                         $('#name, #last-name, #phone').prop('required', true).prop('readonly', false);
                         $("#player-link-rout").val('');
-                        $("#new-player, #container-info-player").addClass('d-none');
+                        $("#new-player, #info-participating-player").addClass('d-none');
 
                         if (action) {
                             $("#text-new-player, #loader-btn-ctn").removeClass('d-none');
                             form.submit();
                         } else {
-                            if (btnSearchPhone.data('id') == 2) {
-                                btnSearchPhone.html('fa-solid fa-magnifying-glass').data('id', 2);
-                            }
                             showToast('Numero no registrado', 'info');
-                            btnGenerate.prop('disabled', false);
+                            validateFormFields();
                         }
                     }
                 },
