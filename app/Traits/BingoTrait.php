@@ -16,6 +16,7 @@ use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoRoomRounds;
+use App\Models\BingoRoomRoundsDrafts;
 use App\Models\BingoRoomUser;
 use App\Models\CoinGameRoom;
 use App\Models\CommerceExchangeRate;
@@ -34,6 +35,7 @@ use App\Models\Wallet;
 use App\Services\Customer\HandleTransactions;
 use App\Services\Game\Bingo\HandleBingoRooms;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -81,7 +83,7 @@ trait BingoTrait
 
             DB::commit();
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Error al crear códigos de símbolos para la sala de bingo {$room}: {$e->getMessage()}");
             return false;
@@ -111,11 +113,12 @@ trait BingoTrait
 
         // Si no hay draws generados, los creamos para cada ronda
         if (!$hasDraws) {
+
             $this->encryptDraw($room);
+
             $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
 
             $allDraws = [];
-            $bingoRounds = [];
 
             $lastDrawTime = $dataTime;
 
@@ -125,14 +128,6 @@ trait BingoTrait
                 shuffle($availableChips);
 
                 $currentTimestamp = now();
-
-                $bingoRounds[] = [
-                    'room' => $room,
-                    'round' => $round,
-                    'status' => $round == 1 ? 1 : 0,
-                    'created_at' => $currentTimestamp,
-                    'updated_at' => $currentTimestamp,
-                ];
 
                 foreach ($availableChips as $chip) {
                     $encoded = implode('', array_map(fn($d) => $symbols[$d == '0' ? 10 : $d] ?? '', str_split($chip)));
@@ -153,13 +148,9 @@ trait BingoTrait
             DB::beginTransaction();
 
             try {
-
                 BingoDraw::insert($allDraws);
-
-                // Crear registros de relacion Room-Rounds 
-                BingoRoomRounds::insert($bingoRounds);
-
                 DB::commit();
+
                 return $this->chipWin($room);
             } catch (\Throwable $e) {
                 DB::rollBack();
@@ -361,7 +352,7 @@ trait BingoTrait
             DB::commit();
 
             return $chipWin;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Error al registrar ficha ganadora en la Sala Bingo (ID: {$room}): {$e->getMessage()}");
             return null;
@@ -514,7 +505,7 @@ trait BingoTrait
             BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, $roomCommn, $coin, $saleAmount, $finalSaleAmount);
 
             return $BingoCtnsLotID;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error al crear lote de cartones: ' . $e->getMessage());
         }
     }
@@ -569,7 +560,7 @@ trait BingoTrait
                 BingoCtns::insert($recordsToInsert);
             }
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error al generar cartones: ' . $e->getMessage());
             return false;
         }
@@ -712,7 +703,7 @@ trait BingoTrait
 
             // Actualiza la sala con los datos preparados
             return $room->update($updateData);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error al actualizar los datos de la sala: ' . $e->getMessage());
             return false;
         }
@@ -845,7 +836,7 @@ trait BingoTrait
             }
 
             return $roomUser;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error al crear los cartones cartonStore(): ' . $e->getMessage());
             return ['Error' => 'Error al crear los cartones'];
         }
@@ -942,7 +933,7 @@ trait BingoTrait
 
             DB::commit();
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error al registrar carton ganador ===> $prizeType [' . $prizeType . '] : ' . $e->getMessage());
             return false;
@@ -975,7 +966,7 @@ trait BingoTrait
         }
 
         try {
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error al insertar los registros de pagos pendientes para la sala {$roomID}:' . $e->getMessage());
         }
     }
@@ -1205,7 +1196,7 @@ trait BingoTrait
             BingoRoom::where('id', $roomID)->update($updateData);
 
             DB::commit();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error en handleWinners: ' . $e->getMessage());
             // Devolver un mensaje de error
@@ -1349,7 +1340,7 @@ trait BingoTrait
             $this->registerPrizeCtn($roomID, $round, $ctnsSerials, 'Serial', $winnerJackpotPrize);
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error en handleSerialWinners(): ' . $e->getMessage());
             return false;
         }
@@ -1482,7 +1473,7 @@ trait BingoTrait
                 'amount' => $prizeCtn->amount,
                 'payment_proof' => $filePayment,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("'Error al guardar el registro del pago del carton ganador: " . $e->getMessage());
             return false;
         }
@@ -1496,7 +1487,7 @@ trait BingoTrait
         if ($coin) {
             try {
                 $coin = decrypt($coin);
-            } catch (\Exception) {
+            } catch (Exception) {
                 // Si falla el descifrado, asume que viene en texto plano
             }
             $query->where('coin', $coin);
@@ -1539,54 +1530,55 @@ trait BingoTrait
     public function handleRoundsConfig($roomID)
     {
         try {
-            $timestamp = now();
-            $batch = [];
-            $lastRound = count($rounds);
+            $existsRounds = BingoRoomRounds::existsRounds($roomID);
 
-            foreach ($rounds as $roundNumber => $value) {
+            if ($existsRounds) return;
 
-                $roundNumber += 1;
-
-                if ($lastRound == $roundNumber) break;
-
-                $data = [
-                    'room'       => $roomID,
-                    'round'      => $roundNumber,
-                    'play_type'  => 'FULL HOUSE',
-                    // 'prize_type' => '',
-                    'prize_value' => $value,
-                    'updated_at' => $timestamp,
-                ];
-
-                if ($action === 'CREATE') {
-                    $data['created_at'] = $timestamp;
-                    $batch[] = $data;
-                } else {
-                    $existing = BingoRoomRounds::getByRound($roomID, $roundNumber, ['prize_type', 'play_type', 'prize_amount']);
-
-                    if ($existing) {
-                        if ($existing->prize_amount != $value) {
-                            $existing->update($data);
-                        }
-                    } else {
-                        $data['created_at'] = $timestamp;
-                        BingoRoomRounds::create($data);
-                    }
-                }
-            }
-
-            if ($action === 'CREATE' && !empty($batch)) {
-                BingoRoomRounds::insert($batch);
-            }
-        } catch (\Exception $e) {
-            Log::error('Error en handleRoundsConfig: ' . $e->getMessage(), [
-                'action'  => $action,
-                'roomID'  => $roomID,
-                'rounds'  => $rounds,
-                'trace'   => $e->getTraceAsString(),
+            $roundsDraft = BingoRoomRoundsDrafts::getByRoom($roomID, [
+                'rounds',
+                'prize_types',
+                'play_types',
+                'prize_values'
             ]);
 
-            throw $e; // Puedes relanzar la excepción o manejarla según tu flujo
+            if (!$roundsDraft) {
+                throw new Exception("No draft config found for room {$roomID}");
+            }
+
+            $roundsCount = $roundsDraft->rounds;
+            $prizeTypes = $roundsDraft->prize_types;
+            $playTypes = $roundsDraft->play_types;
+            $prizeValues = $roundsDraft->prize_values;
+
+            if (
+                count($prizeTypes) < $roundsCount ||
+                count($playTypes) < $roundsCount ||
+                count($prizeValues) < $roundsCount
+            ) {
+                throw new Exception("Incomplete draft config for room {$roomID}");
+            }
+
+            $timestamp = now();
+            $data = [];
+
+            for ($i = 0; $i < $roundsCount; $i++) {
+                $data[] = [
+                    'room' => $roomID,
+                    'round' => $i + 1,
+                    'prize_type' => $prizeTypes[$i],
+                    'play_type' => $playTypes[$i],
+                    'prize_value' => $prizeValues[$i],
+                    'status' => 'ACTIVE',
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            }
+
+            if (!empty($data)) {
+                BingoRoomRounds::insert($data);
+            }
+        } catch (Exception $e) {
+            Log::error('Error en handleRoundsConfig: ' . $e->getMessage());
         }
     }
 }

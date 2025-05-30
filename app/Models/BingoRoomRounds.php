@@ -26,6 +26,11 @@ class BingoRoomRounds extends Model
 
     public static function getRoundInProgress($room)
     {
-        return self::where('room', $room)->where('status', 1)->value('round');
+        return self::where('room', $room)->where('status', 'IN PROGRESS')->value('round');
+    }
+
+    public static function existsRounds($room)
+    {
+        return self::where('room', $room)->exists();
     }
 }

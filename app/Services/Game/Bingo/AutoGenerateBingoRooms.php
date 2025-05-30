@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceAutomatic, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, GameConfig, UserType};
+use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceAutomatic, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRoomRoundsDrafts, BingoRoomRoundsDraftsAutomatic, GameConfig, UserType};
 use App\Traits\EncryptRKE;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -71,7 +71,7 @@ class AutoGenerateBingoRooms
 
                 if ($room->rounds > 1 && $room->rounds_pct) {
                     // Asociar rondas a la sala
-                    $this->associateRounds($automaticBingoID, $roomID, $creatorUser);
+                    $this->associateRounds($automaticBingoID, $roomID);
                 }
             }
 
@@ -175,23 +175,31 @@ class AutoGenerateBingoRooms
     /**
      * Asocia las rondas a una sala.
      */
-    private function associateRounds($automaticBingoID, $roomID, $creatorUser)
+    private function associateRounds($automaticBingoID, $roomID)
     {
-        $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($automaticBingoID ?? '');
+        try {
+            $data = BingoRoomRoundsDraftsAutomatic::getByRoom($automaticBingoID, [
+                'rounds',
+                'prize_types',
+                'play_types',
+                'prize_values'
+            ]);
 
-        if (!$coinsCtnPrice) return;
+            if (!$data) {
+                throw new \Exception("No draft data found for automatic bingo ID {$automaticBingoID}");
+            }
 
-        foreach ($coinsCtnPrice as $key => $ctnPrice) {
-            BingoCtnPrice::updateOrCreate(
-                ['room' => $roomID, 'coin' => $key],
-                [
-                    'creator_user' => $creatorUser,
-                    'ctn_price' => $ctnPrice,
-                ]
-            );
+            BingoRoomRoundsDrafts::create([
+                'room' => $roomID,
+                'rounds' => $data->rounds,
+                'prize_types' => $data->prize_types,
+                'play_types' => $data->play_types,
+                'prize_values' => $data->prize_values,
+                'status' => 'ACTIVE',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error en associateRounds: ' . $e->getMessage());
         }
-
-        return true;
     }
 
     private function calculateRoomDate($roomTime, $now)
