@@ -1343,9 +1343,9 @@ class BingoController extends Controller
                 'ctn_price' => $request->ctn_price,
             ]);
 
-            if ($roundsPct) {
-                $roundsPrizeType = $request->rounds_prize_type;
-                $roundsPrizeValue = $request->rounds_prize_value;
+            if ($roundsPct || $request->rounds == 1) {
+                $roundsPrizeType = $request->rounds_prize_type ?? [];
+                $roundsPrizeValue = $request->rounds_prize_value ?? [];
                 $this->handleRoundsDrafts('M', 'CREATE', $roundsPrizeType, $roundsPrizeValue, $roomID);
             }
 
@@ -1366,22 +1366,23 @@ class BingoController extends Controller
         }
     }
 
-    private function handleRoundsDrafts(string $type, $action, $roundsPrizeType, $roundsPrizeValue, $roomID)
+    private function handleRoundsDrafts(string $type, string $action, array $roundsPrizeType, array $roundsPrizeValue, int $roomID)
     {
         try {
             $modelName = $type === 'M' ? 'BingoRoomRoundsDrafts' : 'BingoRoomRoundsDraftsAutomatic';
             $model = app("App\\Models\\$modelName");
             $columnRoom = $type === 'M' ? 'room' : 'automatic_bingo_id';
 
-            $numRounds = count($roundsPrizeType);
+            $numRounds = count($roundsPrizeType) ?: 1;
             $timestamp = now();
 
+            // Definir datos comunes
             $data = [
                 $columnRoom => $roomID,
                 'rounds' => $numRounds,
-                'prize_types' => $roundsPrizeType,
-                'play_types' => array_fill(0, $numRounds, 'FULL HOUSE'), // Array con FULL HOUSE para cada ronda
-                'prize_values' => $roundsPrizeValue,
+                'prize_types' => ($numRounds === 1) ? array_fill(0, 1, 'PCT') : $roundsPrizeType,
+                'play_types' => array_fill(0, $numRounds, 'FULL HOUSE'),
+                'prize_values' => ($numRounds === 1) ? array_fill(0, 1, '100') : $roundsPrizeValue,
                 'status' => 'ACTIVE',
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp,
@@ -1395,31 +1396,32 @@ class BingoController extends Controller
                 } else {
                     throw new \Exception('Draft already exists for this room.');
                 }
-            }
-
-            if ($action === 'UPDATE') {
+            } elseif ($action === 'UPDATE') {
                 if ($existing) {
                     $existing->update([
                         'rounds' => $numRounds,
-                        'prize_types' => $roundsPrizeType,
-                        'play_types' => array_fill(0, $numRounds, 'FULL HOUSE'),
-                        'prize_values' => $roundsPrizeValue,
+                        'prize_types' => $data['prize_types'],
+                        'play_types' => $data['play_types'],
+                        'prize_values' => $data['prize_values'],
                         'updated_at' => $timestamp,
                     ]);
                 } else {
                     $model::create($data);
                 }
+            } else {
+                throw new \InvalidArgumentException("Invalid action: $action");
             }
         } catch (\Exception $e) {
-            Log::error("Error al crear o actualizar registro en $modelName: " . $e->getMessage(), [
-                'action'  => $action,
-                'roomID'  => $roomID,
-                'trace'   => $e->getTraceAsString(),
+            Log::error("Error en handleRoundsDrafts para $modelName: " . $e->getMessage(), [
+                'action' => $action,
+                'roomID' => $roomID,
+                'trace'  => $e->getTraceAsString(),
             ]);
 
             throw $e;
         }
     }
+
 
     private function handleCtnPriceCoins($action, $ctnPriceCoins, $roomID, $creatorUser)
     {
@@ -1584,9 +1586,9 @@ class BingoController extends Controller
 
             $creatorUser = $room->creator_user;
 
-            if ($roundsPct) {
-                $roundsPrizeType = $request->rounds_prize_type;
-                $roundsPrizeValue = $request->rounds_prize_value;
+            if ($roundsPct || $request->rounds == 1) {
+                $roundsPrizeType = $request->rounds_prize_type ?? [];
+                $roundsPrizeValue = $request->rounds_prize_value ?? [];
                 $this->handleRoundsDrafts('M', 'UPDATE', $roundsPrizeType, $roundsPrizeValue, $roomID);
             }
 
@@ -2703,7 +2705,7 @@ class BingoController extends Controller
 
             $creator = json_decode($data->creator);
 
-            $roundsPct = $data->rounds_pct;
+            $roundsPct = $data->rounds_pct ?? null;
 
             $automaticBingoID = BingoRoomAutomatic::create([
                 'time' => $data->time,
@@ -2727,9 +2729,9 @@ class BingoController extends Controller
                 'creator_user' => Auth::id()
             ])->id;
 
-            if ($roundsPct) {
-                $roundsPrizeType = $data->rounds_prize_type;
-                $roundsPrizeValue = $data->rounds_prize_value;
+            if ($roundsPct || $data->rounds == 1) {
+                $roundsPrizeType = $data->rounds_prize_type ?? [];
+                $roundsPrizeValue = $data->rounds_prize_value ?? [];
                 $this->handleRoundsDrafts('A', 'CREATE', $roundsPrizeType, $roundsPrizeValue, $automaticBingoID);
             }
 
@@ -2792,9 +2794,9 @@ class BingoController extends Controller
                 'num_serials' => $request->num_serials
             ]);
 
-            if ($roundsPct) {
-                $roundsPrizeType = $request->rounds_prize_type;
-                $roundsPrizeValue = $request->rounds_prize_value;
+            if ($roundsPct || $request->rounds == 1) {
+                $roundsPrizeType = $request->rounds_prize_type ?? [];
+                $roundsPrizeValue = $request->rounds_prize_value ?? [];
                 $this->handleRoundsDrafts('A', 'CREATE', $roundsPrizeType, $roundsPrizeValue, $id);
             }
 

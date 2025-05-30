@@ -13,7 +13,7 @@
                             <div class="form-group col-9 col-sm-5">
                                 <label for="room">Próximos Bingos</label>
                                 <select id="room" name="room" class="form-control" disabled required></select>
-                                <div id="cont-tx-prize-pool-room" class="mt-1">
+                                <div id="cont-tx-prize-pool-room" class="mt-1 d-none">
                                     <small><b><span class="prize-pool-type"></span> Actual:</b></small>
                                     <span class="coin-symbol"></span>
                                     <span id="tx-prize-pool-room"></span>
@@ -52,7 +52,7 @@
                         </div>
 
                         {{-- Información del jugador --}}
-                        <div class="ctn-player-info">
+                        <div class="ctn-player-info d-none">
                             <hr>
                             <div class="alert alert-primary">
                                 <h6 class="alert-heading"><strong>¡Atención!</strong></h6>
@@ -61,10 +61,10 @@
 
                             <div>
                                 <h5>Información del Jugador:</h5>
-                                <h6 id="get-data-player">Ingresa los datos del nuevo participante</h6>
+                                <h6 id="text-new-player">Ingresa los datos del nuevo participante</h6>
                                 <h6 id="new-player" class="d-none">¡Este usuario está participando!</h6>
                             </div>
-                            <div id="cont-info-player" class="form-group col-12 col-md-9">
+                            <div id="container-info-player" class="col-12 col-md-9 d-none">
                                 <label>Cartones comprados: <b id="player-ctns"></b></label>
                                 <div class="input-group input-group-sm">
                                     <input id="player-link-rout" class="form-control" disabled style="cursor: pointer;">
@@ -78,7 +78,8 @@
                         </div>
 
                         {{-- Datos adicionales --}}
-                        <div class="ctn-player-info mt-1">
+                        <div class="ctn-player-info mt-1 d-none">
+                            <hr>
                             <div class="row">
                                 <div class="form-group col-12 col-sm-6">
                                     <label for="type-sale">Venta*</label>
@@ -86,7 +87,7 @@
                                         required></select>
                                 </div>
 
-                                <div class="form-group col-12 col-sm-6">
+                                <div id="container-country" class="form-group col-12 col-sm-6">
                                     <label for="country">País*</label>
                                     <select id="country" name="country" class="form-control info-form" required></select>
                                 </div>
@@ -119,7 +120,7 @@
                 <div class="card-footer text-center">
                     <button type="button" id="btn-generate-ctn" class="btn btn-primary" disabled data-block="1">
                         Generar Cartón
-                        <span id="loader-btn-ctn" class="spinner-border spinner-border-sm"></span>
+                        <span id="loader-btn-ctn" class="spinner-border spinner-border-sm d-none"></span>
                     </button>
                 </div>
             @else
@@ -267,7 +268,7 @@
 
         typeSale.on("change", function() {
             if (allowsUSDT) {
-                $('#cont-country').hide();
+                $('#container-country').addClass('d-none');
             }
         });
 
@@ -300,7 +301,7 @@
 
             if (!roomID) {
                 $(".coin-symbol, .sale-info").empty();
-                $(".ctn-player-info, #cont-tx-prize-pool-room").hide();
+                $(".ctn-player-info, #cont-tx-prize-pool-room").addClass('d-none');
             } else {
                 $.getJSON({
                     url: route('seller.getCtnPrice', roomID),
@@ -332,7 +333,7 @@
                         $("#num-ctns").prop('disabled', false).val(1);
                         $(".prize-pool-type").text(prizePoolType == 1 ? 'Bote' : 'Premio');
                         $("#tx-prize-pool-room").text(prizePool);
-                        $(".ctn-player-info, #cont-tx-prize-pool-room").show();
+                        $(".ctn-player-info, #cont-tx-prize-pool-room").removeClass('d-none');
                     }
                 });
             }
@@ -345,10 +346,10 @@
         })
 
         function clearPlayerInfo() {
-            $("#get-data-player").show();
+            $("#text-new-player").removeClass('d-none');
             $("#player-ctns").text('');
             $('#player-link-rout').val('');
-            $("#new-player, #cont-info-player").hide();
+            $("#new-player, #container-info-player").addClass('d-none');
         }
 
         country.on("change", function() {
@@ -413,10 +414,10 @@
                         $('#name').val(infoPlayer.name);
                         $('#last-name').val(infoPlayer.lastname);
                         $('#phone').val(infoPlayer.phone);
-                        $("#get-data-player, #loader-btn-ctn").hide();
+                        $("#text-new-player, #loader-btn-ctn").addClass('d-none');
                         $("#player-ctns").text(data.ctnsLink[0]);
                         $('#player-link-rout').val(data.ctnsLink[2]);
-                        $("#new-player, #cont-info-player").show();
+                        $("#new-player, #container-info-player").show();
 
                         country.val(infoPlayer.country);
                         playerInGame = true;
@@ -424,10 +425,10 @@
                     } else {
                         $('#name, #last-name, #phone').prop('required', true).prop('readonly', false);
                         $("#player-link-rout").val('');
-                        $("#new-player, #cont-info-player").hide();
+                        $("#new-player, #container-info-player").addClass('d-none');
 
                         if (action) {
-                            $("#get-data-player, #loader-btn-ctn").show();
+                            $("#text-new-player, #loader-btn-ctn").removeClass('d-none');
                             form.submit();
                         } else {
                             if (btnSearchPhone.data('id') == 2) {

@@ -140,7 +140,7 @@
 
             if (type == 2) {
                 getCtnPriceCoin(data.room.encrypted);
-                getRoundsConfig(data.room.encrypted);
+                if (data.config.rounds > 1) getRoundsConfig(data.room.encrypted);
             }
 
             gameMode.prop({

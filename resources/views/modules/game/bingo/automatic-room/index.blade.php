@@ -113,7 +113,7 @@
 
             if (type == 2) {
                 getCtnPriceCoin(data.room.id);
-                getRoundsConfig(data.room.id);
+                if (data.room.rounds > 1) getRoundsConfig(data.room.id);
             }
 
             gameMode.empty();

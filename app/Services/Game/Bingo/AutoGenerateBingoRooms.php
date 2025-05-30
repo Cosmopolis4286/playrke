@@ -197,6 +197,9 @@ class AutoGenerateBingoRooms
                 'prize_values' => $data->prize_values,
                 'status' => 'ACTIVE',
             ]);
+
+            BingoRoomRoundsDraftsAutomatic::where('automatic_bingo_id', $automaticBingoID)
+                ->update(['status' => 'COMPLETED']);
         } catch (\Exception $e) {
             Log::error('Error en associateRounds: ' . $e->getMessage());
         }
