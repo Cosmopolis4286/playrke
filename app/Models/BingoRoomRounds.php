@@ -19,9 +19,15 @@ class BingoRoomRounds extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getByRound($room, $round, $fields = ['*'])
+    public static function getByRoom($room, $round = '', $fields = ['*'])
     {
-        return self::select($fields)->where('room', $room)->where('round', $round)->first();
+        $query = self::select($fields)->where('room', $room);
+
+        if ($round) {
+            $query->where('round', $round);
+        }
+
+        return $query->first();
     }
 
     public static function getRoundInProgress($room)

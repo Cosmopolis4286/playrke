@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCtns, BingoDraw, BingoPrizeCtns, BingoRoom, BingoRoomUser, User};
+use App\Models\{BingoCtns, BingoDraw, BingoPrizeCtns, BingoRoom, BingoRoomRounds, BingoRoomUser, User};
 use App\Traits\BingoTrait;
 use Illuminate\Support\Facades\Log;
 
@@ -36,6 +36,7 @@ class HandleBingoRooms
 
         if (!isset($status['Error'])) {
             BingoRoom::where('id', $roomID)->update(['status' => $status]);
+            $this->determineRoundsStatus($roomID);
         } else {
             Log::info($status['Error'] . ": Sala [ID => $roomID]");
         }
@@ -96,6 +97,24 @@ class HandleBingoRooms
 
         if ($dataTime2Week <= time()) {
             BingoRoom::where('id', $room->id)->update(['status' => 6]); // Status 6: Sala Oculta
+        }
+    }
+
+    private function determineRoundsStatus(int $roomID): void
+    {
+        date_default_timezone_set(config('app.timezone'));
+
+        $rounds = BingoRoomRounds::getByRoom($roomID, false, ['id', 'round', 'status']);
+
+        foreach ($rounds as $item) {
+
+            $drawTime = BingoDraw::select('time')->where('room', $roomID)
+                ->where('round', $item->round)->first();
+
+            if ($drawTime->time <= time()) {
+                $status = 'IN PROGRESS';
+                BingoRoomRounds::where('id', $item->id)->update(['status' => $status]);
+            }
         }
     }
 }

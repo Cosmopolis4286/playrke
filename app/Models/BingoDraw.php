@@ -21,7 +21,7 @@ class BingoDraw extends Model
 
     public static function getWinningChip($room)
     {
-        return self::where('room', $room)->where('status', 3)->first();
+        return self::where('room', $room)->where('status', 3)->orderByDesc('id')->first();
     }
 
     public static function getRoomDraw($room)

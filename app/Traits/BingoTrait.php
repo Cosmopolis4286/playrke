@@ -338,7 +338,7 @@ trait BingoTrait
                         ->where('room', $room)->where('round', $round)
                         ->update(['status' => 3]);
 
-                    if ($round == 1) {
+                    if ($round == $rounds) {
                         // Puedes opcionalmente retornar o guardar el resultado
                         $chipWin = BingoDraw::select('id', 'chip', 'time')
                             ->where('chip', $winningChip)->where('round', $round)
