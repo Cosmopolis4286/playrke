@@ -987,7 +987,6 @@ class BingoController extends Controller
             'Config.PrizePoolType',
             'Config:room,game_mode,prize_pool_type,ctn_price,date,time,unix_date',
             'Config.GameMode:id,description',
-            'PlayersRoom' => fn($query) => $query->where('winner', '>', 0),
             'GameExchangeRate' => fn($query) => $query->where('coin', $coin)->where('game', $gameID),
         ];
 
@@ -1002,6 +1001,11 @@ class BingoController extends Controller
         }
 
         $query = BingoRoom::with($relations)
+            ->withCount([
+                'PlayersRoom as winners' => function ($query) {
+                    $query->where('winner', '<>', '0');
+                }
+            ])
             ->where('creator_user', $operator, $creatorUser)
             ->where('room_type', $roomType);
 

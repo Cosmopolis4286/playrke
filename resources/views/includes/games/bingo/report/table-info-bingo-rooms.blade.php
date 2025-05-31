@@ -72,7 +72,7 @@
                         <i class="fa-solid fa-users mr-1" title="Jugadores"></i>
                         {{ $room->players }}<br>
                         <i class="fa-solid fa-trophy mr-1" title="Ganadores"></i>
-                        {{ count($room->PlayersRoom) ?? 0 }}
+                        {{ $room->winners }}
                     </td>
                     <td class="align-middle">{{ $coinSym }}
                         {{ number_format($allSale, 2, '.') }}</td>
