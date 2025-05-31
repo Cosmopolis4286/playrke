@@ -11,21 +11,24 @@ class AwardsController extends Controller
 
     public function index()
     {
-        $user = $this->user(['id', 'user_type']);
-        $userID = $user->id;
-        $userType = UserType::getValueById($user->user_type, 'prefix');
+        $userData = $this->getUserData();
 
-        if (in_array($userType, ['seller'])) {
+        $creatorType = $userData['type'];
+        $creatorID = $userData['id'];
+
+        if (in_array($creatorType, ['seller'])) {
             return redirect()->back();
         }
 
         $title = 'Premios';
         $name = 'awards';
 
+        $creator = ['type' => $creatorType, 'id' => encrypt($creatorID)];
+
         $additionalData = [];
 
         return view('modules.all.awards.index', array_merge(
-            compact('title', 'name'),
+            compact('title', 'name', 'creator'),
             $additionalData
         ));
     }
