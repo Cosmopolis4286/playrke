@@ -1481,7 +1481,10 @@ trait BingoTrait
 
     public function verifyExistenceOfSales($user, $coin = '', $dateFilter = '', $room = '')
     {
-        $query = BingoCtnsLot::where('creator_user', $user['userId']);
+        $column = $user['type'] !== 'seller' ? 'creator_user' : 'seller';
+        $columnValue = $column !== 'seller' ? $user['userId'] : $user['id'];
+
+        $query = BingoCtnsLot::where($column, $columnValue);
 
         // Filtro por moneda
         if ($coin) {
@@ -1511,7 +1514,8 @@ trait BingoTrait
 
         // Si no existe venta o no hay filtros de moneda ni sala
         if (!$existsSale || (!$coin && !$room)) {
-            $firstSale = BingoCtnsLot::select('coin')->where('creator_user', $user['userId'])->first();
+
+            $firstSale = BingoCtnsLot::select('coin')->where($column, $columnValue)->first();
 
             if ($firstSale) {
                 return [

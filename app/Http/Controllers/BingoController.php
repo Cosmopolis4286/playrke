@@ -3567,6 +3567,7 @@ class BingoController extends Controller
             'route' => 'bingo.ctnsAwarded',
             'parameters' => [
                 'type' => $type,
+                'dateFilter' => $dateFilter,
                 'coin' => $coin
             ]
         ];
