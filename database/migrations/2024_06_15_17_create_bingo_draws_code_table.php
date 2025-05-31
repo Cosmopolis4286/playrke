@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_draw_code', function (Blueprint $table) {
+        Schema::create('bingo_draws_code', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
             $table->string('num', 1);
@@ -37,6 +37,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_draw_code');
+        Schema::dropIfExists('bingo_draws_code');
     }
 };

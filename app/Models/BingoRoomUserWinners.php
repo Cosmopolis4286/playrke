@@ -21,7 +21,7 @@ class BingoRoomUserWinners extends Model
 
     public function Round()
     {
-        return $this->belongsTo(BingoRoomRounds::class, 'round');
+        return $this->belongsTo(BingoRounds::class, 'round');
     }
 
     public static function getById($room, $fields = ['*'])

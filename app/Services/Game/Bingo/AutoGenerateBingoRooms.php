@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceAutomatic, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRoomRoundsDrafts, BingoRoomRoundsDraftsAutomatic, GameConfig, UserType};
+use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceAutomatic, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRoundsDrafts, BingoRoundsDraftsAutomatic, GameConfig, UserType};
 use App\Traits\EncryptRKE;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -178,7 +178,7 @@ class AutoGenerateBingoRooms
     private function associateRounds($automaticBingoID, $roomID)
     {
         try {
-            $data = BingoRoomRoundsDraftsAutomatic::getByRoom($automaticBingoID, [
+            $data = BingoRoundsDraftsAutomatic::getByRoom($automaticBingoID, [
                 'rounds',
                 'prize_types',
                 'play_types',
@@ -189,7 +189,7 @@ class AutoGenerateBingoRooms
                 throw new \Exception("No draft data found for automatic bingo ID {$automaticBingoID}");
             }
 
-            BingoRoomRoundsDrafts::create([
+            BingoRoundsDrafts::create([
                 'room' => $roomID,
                 'rounds' => $data->rounds,
                 'prize_types' => $data->prize_types,
@@ -198,7 +198,7 @@ class AutoGenerateBingoRooms
                 'status' => 'ACTIVE',
             ]);
 
-            BingoRoomRoundsDraftsAutomatic::where('automatic_bingo_id', $automaticBingoID)
+            BingoRoundsDraftsAutomatic::where('automatic_bingo_id', $automaticBingoID)
                 ->update(['status' => 'COMPLETED']);
         } catch (\Exception $e) {
             Log::error('Error en associateRounds: ' . $e->getMessage());

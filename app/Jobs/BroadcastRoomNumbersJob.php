@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Events\DrawNumberEvent;
-use App\Models\BingoDraw;
+use App\Models\BingoDraws;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,7 +33,7 @@ class BroadcastRoomNumbersJob implements ShouldQueue
 
         $elapsedTime = $currentTime->diffInSeconds($startTime);
 
-        $numbers = BingoDraw::where('room', $this->room->id)->where('status', 0)
+        $numbers = BingoDraws::where('room', $this->room->id)->where('status', 0)
             ->orderBy('time', 'asc')->get(['id','chip', 'time', 'status']);
 
         foreach ($numbers as $index => $number) {

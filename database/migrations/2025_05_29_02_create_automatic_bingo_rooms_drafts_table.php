@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('automatic_bingo_rooms_rounds_drafts', function (Blueprint $table) {
+        Schema::create('automatic_bingo_rounds_drafts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('automatic_bingo_id')->constrained('automatic_bingo_rooms')->onDelete('cascade');
             $table->string('rounds', 2);
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('automatic_bingo_rooms_rounds_drafts');
+        Schema::dropIfExists('automatic_bingo_rounds_drafts');
     }
 };

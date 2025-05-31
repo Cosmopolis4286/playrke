@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class BingoRoomRoundsDraftsAutomatic extends Model
+class BingoRoundsDraftsAutomatic extends Model
 {
     use HasFactory;
 
-    protected $table = 'automatic_bingo_rooms_rounds_drafts';
+    protected $table = 'automatic_bingo_rounds_drafts';
 
     protected $fillable = [
         'automatic_bingo_id',

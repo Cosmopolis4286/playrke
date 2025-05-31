@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_draw', function (Blueprint $table) {
+        Schema::create('bingo_draws', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
             $table->string('round', 2)->default('1');
@@ -35,6 +35,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_draw');
+        Schema::dropIfExists('bingo_draws');
     }
 };

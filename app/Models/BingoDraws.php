@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoDraw extends Model
+class BingoDraws extends Model
 {
-    protected $table = 'bingo_draw';
+    protected $table = 'bingo_draws';
     protected $fillable = ['chip', 'code', 'room', 'round', 'time', 'status', 'created_at', 'updated_at'];
 
     public function Room()
@@ -16,7 +16,7 @@ class BingoDraw extends Model
 
     public function CodeDraw()
     {
-        return $this->belongsTo(BingoDrawCode::class, 'room', 'room');
+        return $this->belongsTo(BingoDrawsCode::class, 'room', 'room');
     }
 
     public static function getWinningChip($room)

@@ -7,7 +7,7 @@ use App\Traits\EncryptRKE;
 use App\Models\Wallet;
 use App\Models\Coin;
 use App\Models\BingoRoom;
-use App\Models\BingoDraw;
+use App\Models\BingoDraws;
 use App\Models\BingoRoomUser;
 use App\Models\BingoCtns;
 use App\Models\PlayHistory;
@@ -18,13 +18,13 @@ use App\Models\BingoCtnPrice;
 use App\Models\BingoCtnPriceAutomatic;
 use App\Models\BingoCtnsLot;
 use App\Models\BingoRoomConfig;
-use App\Models\BingoDrawCode;
+use App\Models\BingoDrawsCode;
 use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomAutomatic;
-use App\Models\BingoRoomRounds;
-use App\Models\BingoRoomRoundsDrafts;
-use App\Models\BingoRoomRoundsDraftsAutomatic;
+use App\Models\BingoRounds;
+use App\Models\BingoRoundsDrafts;
+use App\Models\BingoRoundsDraftsAutomatic;
 use App\Models\BingoTypesPlays;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
@@ -723,25 +723,25 @@ class BingoController extends Controller
 
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
-        $round = BingoRoomRounds::getRoundInProgress($roomID);
+        $round = BingoRounds::getRoundInProgress($roomID);
 
         date_default_timezone_set(config('app.timezone'));
 
         $vanDraw = ($room->status > 2) ?
-            BingoDraw::select('id', 'chip')->where('room', $roomID)
+            BingoDraws::select('id', 'chip')->where('room', $roomID)
             ->where('round', $round)->where('status', 3)->first() : [];
 
         $sort = ($room->status == 3) ?
-            BingoDraw::where('room', $roomID)->where('round', $round)->where('id', '<=', $vanDraw->id)
+            BingoDraws::where('room', $roomID)->where('round', $round)->where('id', '<=', $vanDraw->id)
             ->where('time', '>', time())->get(['code', 'time']) : [];
 
         $chipsRest = ($room->status == 3) ?
-            BingoDraw::select('chip')->where('room', $roomID)->where('round', $round)
+            BingoDraws::select('chip')->where('room', $roomID)->where('round', $round)
             ->where('time', '>', time())->where('id', '<=', $vanDraw->id)
             ->orderBy('chip')->pluck('chip')->sort()->toArray() : [];
 
         $codeEncrypt = ($room->status == 3) ?
-            BingoDrawCode::select('sym')->where('room', $roomID)
+            BingoDrawsCode::select('sym')->where('room', $roomID)
             ->pluck('sym')->toArray() : [];
 
         $dataChips = $this->getChips($room->encrypted);
@@ -926,16 +926,16 @@ class BingoController extends Controller
 
         if (!$room) ['Error' => 'Sala no encontrada'];
 
-        $round = BingoRoomRounds::getRoundInProgress($room->id);
+        $round = BingoRounds::getRoundInProgress($room->id);
 
-        $chipVanID = BingoDraw::where('room', $room->id)
+        $chipVanID = BingoDraws::where('room', $room->id)
             ->where('round', $round)->where('status', 3)->value('id');
 
         date_default_timezone_set(config('app.timezone'));
 
         if ($chipVanID) {
             // Realizamos una única consulta para obtener todas las fichas en las condiciones especificadas
-            $allChips = array_map('intval', BingoDraw::select('chip')->where('room', $room->id)
+            $allChips = array_map('intval', BingoDraws::select('chip')->where('room', $room->id)
                 ->where('round', $round)->where('id', '<=', $chipVanID)->where('time', '<=', time())
                 ->orderByDesc('id')->pluck('chip')->toArray());
 
@@ -1369,7 +1369,7 @@ class BingoController extends Controller
     private function handleRoundsDrafts(string $type, string $action, array $roundsPrizeType, array $roundsPrizeValue, int $roomID)
     {
         try {
-            $modelName = $type === 'M' ? 'BingoRoomRoundsDrafts' : 'BingoRoomRoundsDraftsAutomatic';
+            $modelName = $type === 'M' ? 'BingoRoundsDrafts' : 'BingoRoundsDraftsAutomatic';
             $model = app("App\\Models\\$modelName");
             $columnRoom = $type === 'M' ? 'room' : 'automatic_bingo_id';
 
@@ -1611,10 +1611,10 @@ class BingoController extends Controller
         if ($type === 'M') {
             $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
-            $bingoRounds = BingoRoomRoundsDrafts::select('rounds', 'prize_types', 'play_types', 'prize_values')
+            $bingoRounds = BingoRoundsDrafts::select('rounds', 'prize_types', 'play_types', 'prize_values')
                 ->where('room', $roomID)->where('status', 'ACTIVE')->first();
         } else {
-            $bingoRounds = BingoRoomRoundsDraftsAutomatic::select('rounds', 'prize_types', 'play_types', 'prize_values')
+            $bingoRounds = BingoRoundsDraftsAutomatic::select('rounds', 'prize_types', 'play_types', 'prize_values')
                 ->where('automatic_bingo_id', $room)->where('status', 'ACTIVE')->first();
         }
 
@@ -2956,10 +2956,10 @@ class BingoController extends Controller
 
         // Determinar la ronda a utilizar:
         // Si hay más de una ronda, se selecciona la última (max round); de lo contrario se usa la ronda 1.
-        $roundToUse = BingoDraw::where('room', $room)->max('round') ?: '1';
+        $roundToUse = BingoDraws::where('room', $room)->max('round') ?: '1';
 
         // Validar si en la ronda correspondiente se han generado 75 draws (fichas)
-        $drawCount = BingoDraw::where('room', $room)->where('round', $roundToUse)->count();
+        $drawCount = BingoDraws::where('room', $room)->where('round', $roundToUse)->count();
 
         if ($drawCount != 75) {
             $this->handleDraw($room);
@@ -2980,18 +2980,18 @@ class BingoController extends Controller
         date_default_timezone_set(config('app.timezone'));
 
         // Obtener datos iniciales
-        $symbols = BingoDrawCode::select('sym', 'num')
+        $symbols = BingoDrawsCode::select('sym', 'num')
             ->where('room', $room)
             ->pluck('sym', 'num');
 
         // Obtener los chips correspondientes a la ronda a utilizar
-        $draws = BingoDraw::where('room', $room)->where('round', $roundToUse)->get();
+        $draws = BingoDraws::where('room', $room)->where('round', $roundToUse)->get();
 
         $currentTimestamp = now()->addMinutes(1)->timestamp;
         $timeIncrement = 0;
 
         // Eliminar (resetear) la última ficha ganadora (status 3) para la ronda seleccionada
-        BingoDraw::where('room', $room)->where('round', $roundToUse)
+        BingoDraws::where('room', $room)->where('round', $roundToUse)
             ->where('status', 3)->update(['status' => 0]);
 
         $chips = [];
@@ -3046,7 +3046,7 @@ class BingoController extends Controller
 
             // Actualizar cada registro (draw) con los nuevos valores en la ronda determinada
             foreach ($updates as $update) {
-                BingoDraw::where('id', $update['id'])->update([
+                BingoDraws::where('id', $update['id'])->update([
                     'chip' => $update['chip'],
                     'code' => $update['code'],
                     'time' => $update['time'],

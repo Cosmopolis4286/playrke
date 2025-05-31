@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCtns, BingoDraw, BingoPrizeCtns, BingoRoom, BingoRoomRounds, BingoRoomUser, User};
+use App\Models\{BingoCtns, BingoDraws, BingoPrizeCtns, BingoRoom, BingoRounds, BingoRoomUser, User};
 use App\Traits\BingoTrait;
 use Illuminate\Support\Facades\Log;
 
@@ -48,7 +48,7 @@ class HandleBingoRooms
 
         if ($existsCtns && $existsPlayers) {
 
-            $winChip = BingoDraw::getWinningChip($roomID) ?? $this->handleDraw($roomID);
+            $winChip = BingoDraws::getWinningChip($roomID) ?? $this->handleDraw($roomID);
 
             if (isset($winChip['Error'])) {
                 return $winChip;
@@ -69,6 +69,8 @@ class HandleBingoRooms
 
     private function processFinishedRoom($room): void
     {
+        $this->determineRoundsStatus($room->id);
+
         if (!BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 1)) {
             $this->handleWinners($room->id);
         } else {
@@ -104,16 +106,22 @@ class HandleBingoRooms
     {
         date_default_timezone_set(config('app.timezone'));
 
-        $rounds = BingoRoomRounds::getByRoom($roomID, false, ['id', 'round', 'status']);
+        $rounds = BingoRounds::where('room', $roomID)
+            ->where('status', '<>', 'COMPLETED')
+            ->get(['id', 'round', 'status']);
+
+        if (!count($rounds)) return;
 
         foreach ($rounds as $item) {
 
-            $drawTime = BingoDraw::select('time')->where('room', $roomID)
-                ->where('round', $item->round)->first();
+            $drawTime = BingoDraws::select('id', 'time')->where('room', $roomID)
+                ->where('round', 4)->where('status', 3)->first();
+
+            dd($drawTime);
 
             if ($drawTime->time <= time()) {
                 $status = 'IN PROGRESS';
-                BingoRoomRounds::where('id', $item->id)->update(['status' => $status]);
+                BingoRounds::where('id', $item->id)->update(['status' => $status]);
             }
         }
     }

@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoRoomRounds extends Model
+class BingoRounds extends Model
 {
-    protected $table = 'bingo_rooms_rounds';
+    protected $table = 'bingo_rounds';
     protected $fillable = ['room', 'round', 'play_type', 'prize_type', 'prize_value', 'status'];
 
     public static function getById($id, $fields = ['*'])
