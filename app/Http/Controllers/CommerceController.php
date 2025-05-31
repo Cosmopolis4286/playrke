@@ -368,6 +368,30 @@ class CommerceController extends Controller
         );
     }
 
+    public function awards()
+    {
+        $title = 'Mis Vendedores';
+        $name = 'seller';
+        $commerce = $this->commerce()->id;
+
+        $sellers = Seller::with(['Country', 'CountriesCoins.Coin'])->where('commerce', $commerce)->get();
+
+        $countries = $this->getAvailableCountries(Auth::id());
+        $countriesCommerce = Country::getCountries($countries, ['id', 'name']);
+
+        $coins = $this->getAvailableCoins(Auth::id());
+        $coinsCommerce = Coin::getCoinsById($coins, ['id', 'symbol', 'short_name', 'long_name', 'country']);
+
+        $timeZones = TimeZone::select('id', 'name', 'country')->where('status', 1)->get();
+
+        $games = Games::getAvailableGames();
+
+        return view(
+            'modules.commerce.sellers.index',
+            compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce', 'games')
+        );
+    }
+
     public function getCoinByCountry($country, $seller)
     {
         $coin = Coin::getCoinByCountry($country);

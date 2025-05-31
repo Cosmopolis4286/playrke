@@ -23,6 +23,13 @@
             <p>Vendedores</p>
         </a>
     </li>
+    <li class="nav-item has-treeview">
+        <a href="{{ route('commerce.awards') }}" title="Premios"
+            class="nav-link {{ !Route::is('commerce.awards') ?: 'active' }}">
+            <i class="nav-icon fa-solid fa-award"></i>
+            <p>Premios</p>
+        </a>
+    </li>
 
     <li class="nav-item has-treeview">
         <a href="#"
@@ -41,8 +48,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('bingo.ctnsAwarded', ['type' => 'private', 'dateFilter' => 'today']) }}" title="Ganadores"
-                    class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
+                <a href="{{ route('bingo.ctnsAwarded', ['type' => 'private', 'dateFilter' => 'today']) }}"
+                    title="Ganadores" class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Ganadores</p>
                 </a>
