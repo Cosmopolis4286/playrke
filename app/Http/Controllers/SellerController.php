@@ -29,6 +29,7 @@ use App\Models\User;
 use App\Models\UserType;
 use App\Models\Wallet;
 use App\Services\Game\Bingo\HandleBingoRooms;
+use App\Services\RKE\HandleExchangeRates;
 use App\Traits\Filters;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -314,7 +315,9 @@ class SellerController extends Controller
 
         $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
-        (new HandleBingoRooms())->checkRoomClosure();
+        app(HandleBingoRooms::class)->checkRoomClosure();
+
+        (new HandleExchangeRates())->updateExchangeRates($creatorUser);
 
         $rooms = BingoRoom::with([
             'Creator' => function ($query) use ($creatorUser) {

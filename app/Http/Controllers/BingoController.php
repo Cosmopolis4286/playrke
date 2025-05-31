@@ -123,7 +123,7 @@ class BingoController extends Controller
         }
 
         // Verificar Cierre de Salas
-        (new HandleBingoRooms())->checkRoomClosure();
+        app(HandleBingoRooms::class)->checkRoomClosure();
 
         $creatorUser = $creator['userId'];
 
@@ -1022,7 +1022,7 @@ class BingoController extends Controller
 
     private function getGameRoomsInfo($creator, $coin, $roomType)
     {
-        (new HandleBingoRooms())->checkRoomClosure();
+        app(HandleBingoRooms::class)->checkRoomClosure();
 
         $view = $roomType === 'private-rooms' ? 'private' : 'public';
 
@@ -2457,7 +2457,7 @@ class BingoController extends Controller
     public function getAutomaticRoomsInfo($creator)
     {
         //  Lista (CRUD) de configuracion de Salas Automaticas
-        (new HandleBingoRooms())->checkRoomClosure();
+        app(HandleBingoRooms::class)->checkRoomClosure();
 
         $creatorType = $creator['type'];
         $creatorID = decrypt($creator['id']);
@@ -2587,7 +2587,7 @@ class BingoController extends Controller
 
     private function getOtherPublicRoomsInfo($coin)
     {
-        (new HandleBingoRooms())->checkRoomClosure();
+        app(HandleBingoRooms::class)->checkRoomClosure();
 
         $userData = $this->getUserData();
 

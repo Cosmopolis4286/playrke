@@ -728,7 +728,7 @@ trait BingoTrait
 
     public function cartonStore($arrCtn)
     {
-        (new HandleBingoRooms())->checkRoomClosure();
+        app(HandleBingoRooms::class)->checkRoomClosure();
 
         $roomID = $arrCtn['room'];
 

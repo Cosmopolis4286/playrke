@@ -8,7 +8,7 @@ use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\ExchangeRate;
 use App\Models\User;
-use App\Services\Customer\HandleExchangeRates;
+use App\Services\RKE\HandleExchangeRates;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -391,9 +391,7 @@ class ExchangeRateController extends Controller
 
     public function getExchangeRates()
     {
-        $creatorUser = User::getCreatorUser(Auth::id(), false, true);
-
-        $res = app(HandleExchangeRates::class)->updateExchangeRates($creatorUser);
+        $res = app(HandleExchangeRates::class)->updateExchangeRates(Auth::id());
 
         if (isset($res['Error'])) {
             return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error']);

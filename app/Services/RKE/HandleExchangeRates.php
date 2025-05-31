@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Services\Customer;
+namespace App\Services\RKE;
 
 use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -52,11 +53,13 @@ class HandleExchangeRates
         }
     }
 
-    public function updateExchangeRates($creator = '')
+    public function updateExchangeRates($userID = '')
     {
         DB::beginTransaction();
 
         try {
+
+            $creator = User::getCreatorUser($userID, false, true);
 
             $data = $this->getExchangeRates();
 
