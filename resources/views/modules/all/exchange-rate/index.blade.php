@@ -148,7 +148,7 @@
         });
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Tasa de cambio', '{{ asset('') }}exchange-rate', otherCasesMap)
+            formCRUD($(this), name, 'Tasa de cambio', otherCasesMap)
         });
 
         $(document).on("click", "#btn-confirm", function() {

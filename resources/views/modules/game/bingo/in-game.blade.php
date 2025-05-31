@@ -45,7 +45,6 @@
         const encrypted = '{{ $room->encrypted }}';
         const roomStatus = '{{ $room->status }}';
         const coinSym = '{{ $coinSym }}';
-        const images = [];
         const chpLast = @json($vanDraw);
         const player = @json($player);
         const encrypt = @json($encrypt);

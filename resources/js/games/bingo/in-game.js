@@ -1,7 +1,5 @@
 if (restChips.length) {
-    for (const chip of restChips) {
-        images.push(new Image().src = `${preRoute}img/bg/chips/${chip}.png`);
-    }
+    restChips.forEach(chip => new Image().src = `${preRoute}img/bg/chips/${chip}.png`);
 }
 
 $('#btn-bingo-rules').prop('disabled', false);
