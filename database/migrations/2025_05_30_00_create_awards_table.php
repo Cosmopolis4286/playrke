@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('num_items', 2)->default('1');
             $table->double('price');
             $table->string('description');
+            $table->foreignId('user')->constrained('users')->onDelete('cascade');
             $table->boolean('status')->default(true);
             $table->timestamps();
         });

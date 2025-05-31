@@ -7,7 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class Awards extends Model
 {
     protected $table = 'awards';
-    protected $fillable = ['code', 'kit', 'num_items', 'price', 'description'];
+    protected $fillable = ['code', 'kit', 'num_items', 'price', 'description', 'user', 'status'];
+
+    public function User()
+    {
+        return $this->belongsTo(User::class, 'user');
+    }
 
     public static function getById($id, $fields = ['*'])
     {
