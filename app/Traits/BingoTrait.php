@@ -1534,6 +1534,7 @@ trait BingoTrait
     public function handleRoundsConfig($roomID)
     {
         try {
+
             $existsRounds = BingoRounds::existsRounds($roomID);
 
             if ($existsRounds) return;
@@ -1566,15 +1567,18 @@ trait BingoTrait
             $data = [];
             $status = 'ACTIVE';
 
-            for ($i = 1; $i <= $roundsCount; $i++) {
 
-                if ($i = 1) {
+            for ($i = 0; $i < $roundsCount; $i++) {
+
+                $numRound = $i + 1;
+
+                if ($numRound == 1) {
                     $status = 'IN PROGRESS';
                 }
 
                 $data[] = [
                     'room' => $roomID,
-                    'round' => $status,
+                    'round' => $numRound,
                     'prize_type' => $prizeTypes[$i],
                     'play_type' => $playTypes[$i],
                     'prize_value' => $prizeValues[$i],
@@ -1588,8 +1592,10 @@ trait BingoTrait
                 BingoRounds::insert($data);
                 BingoRoundsDrafts::where('room', $roomID)->update(['status' => 'COMPLETED']);
             }
+            return true;
         } catch (Exception $e) {
             Log::error('Error en handleRoundsConfig: ' . $e->getMessage());
+            return false;
         }
     }
 }

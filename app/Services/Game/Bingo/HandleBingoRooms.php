@@ -29,10 +29,19 @@ class HandleBingoRooms
         }
 
         $roomID = $room->id;
+        $status = 1; // Status 1: Borrador
         $existsCtns = BingoCtns::getCountCtnByRoom($roomID);
-        $existsPlayers = BingoRoomUser::getPlayerCountByRoom($roomID);
 
-        $status = $this->determineRoomStatus($roomID, $existsCtns, $existsPlayers);
+        if ($existsCtns) {
+
+            $winChip = BingoDraws::getWinningChip($roomID) ?? $this->handleDraw($roomID);
+
+            if (isset($winChip['Error'])) {
+                $status = $winChip;
+            }
+
+            $status = ($winChip->time <= time()) ? 4 : 3;
+        }
 
         if (!isset($status['Error'])) {
             BingoRoom::where('id', $roomID)->update(['status' => $status]);
@@ -40,24 +49,6 @@ class HandleBingoRooms
         } else {
             Log::info($status['Error'] . ": Sala [ID => $roomID]");
         }
-    }
-
-    private function determineRoomStatus(int $roomID, bool $existsCtns, bool $existsPlayers): int
-    {
-        date_default_timezone_set(config('app.timezone'));
-
-        if ($existsCtns && $existsPlayers) {
-
-            $winChip = BingoDraws::getWinningChip($roomID) ?? $this->handleDraw($roomID);
-
-            if (isset($winChip['Error'])) {
-                return $winChip;
-            }
-
-            return ($winChip->time <= time()) ? 4 : 3;
-        }
-
-        return 1; // Status 1: Borrador
     }
 
     public function handleFinishedRooms($creatorUser = false): void
