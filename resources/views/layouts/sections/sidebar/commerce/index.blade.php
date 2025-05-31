@@ -24,8 +24,8 @@
         </a>
     </li>
     <li class="nav-item has-treeview">
-        <a href="{{ route('commerce.awards') }}" title="Premios"
-            class="nav-link {{ !Route::is('commerce.awards') ?: 'active' }}">
+        <a href="{{ route('awards.index') }}" title="Premios"
+            class="nav-link {{ !Route::is('awards.index') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-award"></i>
             <p>Premios</p>
         </a>

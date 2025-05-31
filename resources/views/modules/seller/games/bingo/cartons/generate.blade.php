@@ -342,8 +342,8 @@
         });
 
         numCtns.on('input change', function() {
-            validateInput(this, false, function() {
-                calculateSale();
+            validateInput(this, false, function(isValid) {
+                if (isValid) calculateSale();
             });
         })
 

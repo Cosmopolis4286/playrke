@@ -183,28 +183,29 @@ function validateInput(input, isFloat = true, callback = null) {
         if (!$input.prop('required')) return;
 
         const rawValue = $input.val();
-        let value = isFloat ? parseFloat(rawValue) : rawValue;
-        
+        let value = isFloat ? parseFloat(rawValue) : parseInt(rawValue);
+
         const min = parseFloat($input.attr('min')) || 0;
         const max = parseFloat($input.attr('max')) || 100;
 
         let hasError = false;
 
-        if (isFloat && (isNaN(value) || value < min || value > max)) {
+        // Verificar si es NaN o está fuera de rango
+        if (isNaN(value) || value < min || value > max) {
             showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
             value = min;
             hasError = true;
         }
 
-        // Formatear si es flotante
-        const formattedValue = isFloat ? parseFloat(value).toFixed(2) : value;
+        // Formatear
+        const formattedValue = isFloat ? parseFloat(value).toFixed(2) : parseInt(value);
 
-        // Asignar el valor corregido
+        // Asignar valor corregido
         $input.val(formattedValue);
 
-        // Ejecutar el callback si existe
+        // Callback
         if (typeof callback === 'function') {
-            callback(!hasError); // true si no hay error, false si hay error
+            callback(!hasError);
         }
 
     }, 850);

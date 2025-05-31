@@ -7,6 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AwardsController;
 use App\Http\Controllers\BinanceController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CommerceController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\OtherTreasurersController;
 use App\Http\Controllers\PaymentMethodsCOLController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\TreasurerController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
@@ -211,6 +213,15 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::get('bingo/getWinnerInfoForCtn/{ctnId}', [SellerController::class, 'getWinnerInfoForCtn'])->name('getWinnerInfoForCtn');
     Route::get('bingo/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
     Route::post('bingo/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
+});
+
+Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'awards', 'as' => 'awards.'], function () {
+    Route::get('', [AwardsController::class, 'index'])->name('index');
+    Route::post('create', [AwardsController::class, 'create'])->name('create');
+    Route::get('getInfo/{id}', [AwardsController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [AwardsController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [AwardsController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [AwardsController::class, 'changeStatus'])->name('change-status');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'report', 'as' => 'report.'], function () {

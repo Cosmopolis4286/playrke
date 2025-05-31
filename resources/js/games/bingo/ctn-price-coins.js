@@ -7,12 +7,13 @@ function handleCtnPriceForCoins(arrCtnPrice) {
                 <span class="input-group-text">${elem.isoCode}</span>
             </div>
             <input 
-                type="text" 
-                class="form-control" 
+                type="number" 
+                class="form-control ctn-price-coins-input" 
                 name="ctn_price_coins[${elem.coin}]" 
                 id="ctn-price-coin-${elem.coin}" 
                 aria-label="Precio para ${elem.isoCode}" 
-                value="${elem.ctnPrice}">
+                value="${elem.ctnPrice}"
+                step="0.05">
         </div>
     </div>`).join('');
 
@@ -57,5 +58,15 @@ function getCtnPriceCoin(room = '') {
         }
     });
 }
+
+$(document).on("input change", ".ctn-price-coins-input", function () {
+    const $input = $(this);
+
+    $input.prop('required', $input.val().trim() !== '');
+
+    if ($input.prop('required')) {
+        validateInput($input, true);
+    }
+});
 
 window.getCtnPriceCoin = getCtnPriceCoin;

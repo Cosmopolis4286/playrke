@@ -17,15 +17,14 @@ class OtherTreasurersController extends Controller
     public function getInfo($id) // Obtener Info 
     {
         $id = decrypt($id);
+
         $otherTreasurer = OtherTreasurers::with(['User:id,username,country', 'User.Country:id,name'])
             ->select('creator_user', 'allowed_games', 'allowed_coins')->where('id', $id)->first();
-
-        $allowedCoins = explode(';', $otherTreasurer->allowed_coins);
 
         $data = [
             'username' => $otherTreasurer->User->username,
             'country' => $otherTreasurer->User->Country->name,
-            'other_coins' => $allowedCoins,
+            'other_coins' => $otherTreasurer->allowedCoins,
             'allowed_games' => $otherTreasurer->allowed_games
         ];
 
@@ -55,7 +54,7 @@ class OtherTreasurersController extends Controller
                 }
 
                 if ($request->other_coins !== $otherTreasurer->allowed_coins) {
-                    $data['allowed_coins'] = implode(';', $request->other_coins);
+                    $data['allowed_coins'] = $request->other_coins;
                 }
 
                 // Actualizar si hay datos para cambiar
