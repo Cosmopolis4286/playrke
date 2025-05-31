@@ -7,7 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\AwardsController;
+use App\Http\Controllers\RewardsController;
 use App\Http\Controllers\BinanceController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CommerceController;
@@ -175,7 +175,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
     Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])
         ->withoutMiddleware(['auth', 'commerce'])->name('getPaymentCommerceDetails');
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
-    Route::get('awards', [CommerceController::class, 'awards'])->name('awards');
+    Route::get('rewards', [CommerceController::class, 'rewards'])->name('rewards');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
     Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
     Route::put('bingo/carton-lot/payment', [CommerceController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
@@ -215,13 +215,13 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::post('bingo/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
 });
 
-Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'awards', 'as' => 'awards.'], function () {
-    Route::get('', [AwardsController::class, 'index'])->name('index');
-    Route::post('create', [AwardsController::class, 'create'])->name('create');
-    Route::get('getInfo/{id}', [AwardsController::class, 'getInfo'])->name('getInfo');
-    Route::put('update/{id}', [AwardsController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [AwardsController::class, 'delete'])->name('delete');
-    Route::put('change-status/{id}', [AwardsController::class, 'changeStatus'])->name('change-status');
+Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'rewards', 'as' => 'rewards.'], function () {
+    Route::get('', [RewardsController::class, 'index'])->name('index');
+    Route::post('create', [RewardsController::class, 'create'])->name('create');
+    Route::get('getInfo/{id}', [RewardsController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [RewardsController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [RewardsController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [RewardsController::class, 'changeStatus'])->name('change-status');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'report', 'as' => 'report.'], function () {

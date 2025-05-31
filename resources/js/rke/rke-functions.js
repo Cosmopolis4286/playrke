@@ -176,38 +176,51 @@ function getInfo(name, id) {
     });
 }
 
+let validateTimer = null;
+
+function cleanInput(input) {
+    const $input = $(input);
+    let val = $input.val();
+
+    val = val
+        .replace(/,/g, '.')
+        .replace(/[^0-9.]/g, '') // Solo números y punto
+        .replace(/(\..*?)\..*/g, '$1'); // Solo un punto permitido
+
+    $input.val(val);
+}
+
 function validateInput(input, isFloat = true, callback = null) {
-    setTimeout(() => {
+    clearTimeout(validateTimer);
+
+    cleanInput(input);
+
+    validateTimer = setTimeout(() => {
         const $input = $(input);
-
-        if (!$input.prop('required')) return;
-
         const rawValue = $input.val();
-        let value = isFloat ? parseFloat(rawValue) : parseInt(rawValue);
 
+        let value = isFloat ? parseFloat(rawValue) : parseInt(rawValue);
         const min = parseFloat($input.attr('min')) || 0;
         const max = parseFloat($input.attr('max')) || 100;
 
         let hasError = false;
 
-        // Verificar si es NaN o está fuera de rango
-        if (isNaN(value) || value < min || value > max) {
-            showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
+        if (isNaN(value)) {
             value = min;
             hasError = true;
+            showToast('Ingresa un número válido', 'info');
+        } else if (value < min || value > max) {
+            value = Math.min(Math.max(value, min), max);
+            hasError = true;
+            showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
         }
 
-        // Formatear
-        const formattedValue = isFloat ? parseFloat(value).toFixed(2) : parseInt(value);
-
-        // Asignar valor corregido
+        const formattedValue = isFloat ? value.toFixed(2) : value;
         $input.val(formattedValue);
 
-        // Callback
         if (typeof callback === 'function') {
             callback(!hasError);
         }
-
     }, 850);
 }
 

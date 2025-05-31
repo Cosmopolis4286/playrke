@@ -368,7 +368,7 @@ class CommerceController extends Controller
         );
     }
 
-    public function awards()
+    public function rewards()
     {
         $title = 'Mis Vendedores';
         $name = 'seller';

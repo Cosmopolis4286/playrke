@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Awards;
+use App\Models\Rewards;
 use App\Models\UserType;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class AwardsController extends Controller
+class RewardsController extends Controller
 {
     use UserVal;
 
@@ -20,20 +20,25 @@ class AwardsController extends Controller
 
         $creatorType = $userData['type'];
         $creatorID = $userData['id'];
+        $creatorUser = $userData['userId'];
 
         if (in_array($creatorType, ['seller'])) {
             return redirect()->back();
         }
 
         $title = 'Premios';
-        $name = 'awards';
+        $name = 'rewards';
 
         $creator = ['type' => $creatorType, 'id' => encrypt($creatorID)];
 
+        $rewards = Rewards::getAllRewardsByCreator($creatorUser);
+
+        $optionsKit = ['N' => 'NO', 'Y' => 'SI'];
+
         $additionalData = [];
 
-        return view('modules.all.awards.index', array_merge(
-            compact('title', 'name', 'creator'),
+        return view('modules.all.rewards.index', array_merge(
+            compact('title', 'name', 'creator', 'rewards', 'optionsKit'),
             $additionalData
         ));
     }
@@ -46,14 +51,14 @@ class AwardsController extends Controller
         DB::beginTransaction();
 
         try {
-            if (Awards::existsAccount($accountType, $dataValue)) {
+            if (Rewards::existsAccount($accountType, $dataValue)) {
                 return redirect()->back()->with([
                     'message' => 'Estos datos ya se encuentran registrados',
                     'type' => 'warning',
                 ]);
             }
 
-            Awards::create([
+            Rewards::create([
                 'account_type' => $accountType,
                 'data_value' => $dataValue,
                 'user' => Auth::id(),
@@ -84,14 +89,14 @@ class AwardsController extends Controller
         DB::beginTransaction();
 
         try {
-            if (Awards::existsAccount($accountType, $dataValue, Auth::id())) {
+            if (Rewards::existsAccount($accountType, $dataValue, Auth::id())) {
                 return redirect()->back()->with([
                     'message' => 'Estos datos ya se encuentran registrados',
                     'type' => 'warning',
                 ]);
             }
 
-            $account = Awards::findOrFail(decrypt($id));
+            $account = Rewards::findOrFail(decrypt($id));
 
             $account->update(['account_type' => $accountType, 'data_value' => $dataValue]);
 
@@ -117,7 +122,7 @@ class AwardsController extends Controller
         DB::beginTransaction();
 
         try {
-            Awards::destroy(decrypt($request->id));
+            Rewards::destroy(decrypt($request->id));
             DB::commit();
             return redirect()->back()->with('message', 'El registro ha sido eliminado')->with('type', 'success');
         } catch (\Exception $e) {
@@ -128,6 +133,6 @@ class AwardsController extends Controller
 
     public function getInfo($id)
     {
-        return Awards::getById(decrypt($id), ['account_type', 'data_value']);
+        return Rewards::getById(decrypt($id), ['account_type', 'data_value']);
     }
 }

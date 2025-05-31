@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Awards extends Model
+class Rewards extends Model
 {
-    protected $table = 'awards';
+    protected $table = 'rewards';
     protected $fillable = ['code', 'kit', 'num_items', 'price', 'description', 'user', 'status'];
 
     public function User()
@@ -22,5 +22,10 @@ class Awards extends Model
     public static function getValueById($id, $value)
     {
         return self::where('id', $id)->value($value);
+    }
+
+    public static function getAllRewardsByCreator($creatorUser)
+    {
+        return self::where('user', $creatorUser)->get();
     }
 }

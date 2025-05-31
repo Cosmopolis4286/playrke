@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('awards', function (Blueprint $table) {
+        Schema::create('rewards', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 15);
+            $table->string('code', 15)->unique();
             $table->enum('kit', ['Y', 'N'])->default('N');
             $table->string('num_items', 2)->default('1');
             $table->double('price');
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('awards');
+        Schema::dropIfExists('rewards');
     }
 };

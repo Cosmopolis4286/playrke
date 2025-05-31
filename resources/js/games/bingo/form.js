@@ -55,14 +55,6 @@ $(document).on('input', '#num-serials, #time-chip, #rounds', function () {
     this.value = this.value.replace(/[^0-9]/g, '');
 });
 
-// Limitar a números decimales válidos (sin letras)
-$(document).on('input', '#amount-added-prize-pool, #room-commn, #serials-pct, #rounds-pct, .rounds-prize-value-input, .ctn-price-coins-input, #ctn-price', function () {
-    this.value = this.value.replace(/,/g, '.'); // Opcional: convertir comas en puntos
-    this.value = this.value
-        .replace(/[^0-9.]/g, '')        // Solo números y punto
-        .replace(/(\..*?)\..*/g, '$1'); // Solo un punto permitido
-});
-
 // Validación general para rango min-max
 $(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #rounds, #num-serials", function () {
     const id = $(this).attr('id');
