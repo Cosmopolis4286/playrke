@@ -14,10 +14,12 @@ return new class extends Migration
         Schema::create('rewards', function (Blueprint $table) {
             $table->id();
             $table->string('code', 15)->unique();
+            $table->enum('product_service', ['P', 'S']);
+            $table->string('name', 50);
             $table->enum('kit', ['Y', 'N'])->default('N');
             $table->string('num_items', 2)->default('1');
             $table->double('price');
-            $table->string('description');
+            $table->text('description');
             $table->foreignId('user')->constrained('users')->onDelete('cascade');
             $table->boolean('status')->default(true);
             $table->timestamps();

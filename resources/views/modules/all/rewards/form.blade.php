@@ -4,9 +4,17 @@
         <input id="code" class="form-control" name="code" readonly>
     </div>
     <div class="form-group col-sm-6 col-md-4">
-        <label for="kit">Es un kit*</label>
-        <select id="kit" class="form-control" required></select>
+        <label for="product-service">Producto/Servicio*</label>
+        <select id="product-service" class="form-control" name="product_service" required></select>
     </div>
+    <div class="form-group col-sm-6 col-md-4">
+        <label for="name">Nombre*</label>
+        <input type="text" id="name" class="form-control" name="name" required>
+    </div>
+    {{-- <div class="form-group col-sm-6 col-md-4">
+        <label for="kit">Es un kit*</label>
+        <select id="kit" class="form-control" name="kit" required></select>
+    </div> --}}
     <div class="form-group col-sm-6 col-md-4">
         <label for="num-items">#Itens*</label>
         <input type="number" step="1" min="1" max="10" id="num-items" class="form-control"
@@ -25,6 +33,6 @@
     </div>
     <div class="form-group col-12 col-md">
         <label for="description">Descripcion*</label>
-        <textarea class="form-control" name="description" id="description" cols="15" rows="3"></textarea>
+        <textarea class="form-control" name="description" id="description" cols="15" rows="2"></textarea>
     </div>
 </div>

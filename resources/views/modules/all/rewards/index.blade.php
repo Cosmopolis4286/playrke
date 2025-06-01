@@ -38,7 +38,7 @@
 @section('scripts')
     <script>
         const name = '{{ $name }}';
-        const optionsKit = @json($optionsKit);
+        const optionsProductService = @json($optionsProductService);
 
         $(document).on("click", `.btn-${name}`, function() {
             formCRUD($(this), name, 'Premio', otherCasesMap)
@@ -47,21 +47,20 @@
         function insertInfo(type, data = {}) {
             if (type == 1) {
                 $('#container-code').addClass('d-none');
-                $('#code').val('');
+                $('#code, #name, #price, #description').val('');
                 $('#num-items').val(1);
-                $('#price').val('');
-                $('#description').val('');
             } else {
                 $('#code').val(data.code || '');
                 $('#container-code').removeClass('d-none');
+                $('#name').val(data.name);
                 $('#num-items').val(data.num_items);
                 $('#price').val(data.price);
                 $('#description').val(data.description);
             }
 
-            Object.entries(optionsKit).forEach(([value, text]) => {
-                const isSelected = (type == 2 && value === data.kit) ? 'selected' : '';
-                $('#kit').append(`<option value="${value}" ${isSelected}>${text}</option>`);
+            Object.entries(optionsProductService).forEach(([value, text]) => {
+                const isSelected = (type == 2 && value === data.product_service) ? 'selected' : '';
+                $('#product-service').append(`<option value="${value}" ${isSelected}>${text}</option>`);
             });
 
             // Mostrar modal
@@ -77,7 +76,7 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['kit', 'num-items', 'price']);
+            submitForm(name, ['product-service', 'name', 'num-items', 'price']);
         });
 
         const otherCasesMap = {
