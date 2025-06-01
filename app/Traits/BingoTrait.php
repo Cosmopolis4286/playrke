@@ -2,7 +2,6 @@
 
 namespace App\Traits;
 
-use App\Events\Games\BingoOFF_ProccessDraw;
 use App\Models\BingoCreator;
 use App\Models\BingoCreatorSales;
 use App\Models\SellerRoomLimits;
@@ -357,25 +356,6 @@ trait BingoTrait
             Log::error("Error al registrar ficha ganadora en la Sala Bingo (ID: {$room}): {$e->getMessage()}");
             return null;
         }
-    }
-
-    public function recorrersorteo($room)
-    {
-        $encrypted = BingoRoom::getValueById($room, 'encrypted');
-        date_default_timezone_set(config('app.timezone'));
-
-        $result = false;
-        do {
-            $chip = BingoDraws::select('id', 'chip', 'status')->where('room', $room)
-                ->where('time', '<=', time())->where('status', 1)->first();
-
-            //if ($chip->win == 1) $result = $this->getInfoWinners($room);
-            event(new BingoOFF_ProccessDraw($encrypted, $chip, $result));
-
-            $chip->update(['status' => 2]);
-
-            if ($chip->win == 1) BingoRoom::where('id', $room)->update(['status' => 4]);
-        } while (BingoRoom::where('id', $room)->where('status', 3)->exists());
     }
 
     public function getInfoWinners($room, $roomUser, $coin = '')
