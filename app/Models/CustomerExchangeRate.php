@@ -43,7 +43,7 @@ class CustomerExchangeRate extends Model
 
     public static function getAllExchangeRates($customer)
     {
-        return self::where('customer', $customer)->where('status', 1)
+        return self::where('customer', $customer)->where('status', 'ACTIVE')
             ->orderByDesc('id')->get(['coin', 'exchange_rate']);
     }
 
@@ -54,7 +54,7 @@ class CustomerExchangeRate extends Model
 
     public static function getAvailableExchangeRates($customer)
     {
-        return self::where('customer', $customer)->whereIn('status', [0, 1])->get();
+        return self::where('customer', $customer)->whereIn('status', ['ACTIVE', 'INACTIVE'])->get();
     }
 
     public static function getCoinsByCustomer($customer, $status = '')
@@ -66,7 +66,7 @@ class CustomerExchangeRate extends Model
         return $query->distinct()->pluck('coin')->toArray();
     }
 
-    public static function getCoinsIDsByCustomer($customer, $status = 1)
+    public static function getCoinsIDsByCustomer($customer, $status = 'ACTIVE')
     {
         return self::select('id', 'coin')->where('customer', $customer)->where('status', $status)->get();
     }
@@ -86,7 +86,7 @@ class CustomerExchangeRate extends Model
 
             // Desactivar la tasa anterior si existe
             if ($lastRate) {
-                $lastRate->status = 2;
+                $lastRate->status = 'OLD';
                 $lastRate->save();
             }
 
@@ -96,7 +96,7 @@ class CustomerExchangeRate extends Model
                 'coin' => $coin,
                 'exchange_rate' => $amount,
                 'pct' => $pct,
-                'status' => 1
+                'status' => 'ACTIVE'
             ]);
         }
     }

@@ -358,7 +358,7 @@ class SellerController extends Controller
         $seller = $this->seller(['id', 'commerce']);
 
         $coinsSeller = array_map('strval', SellerCountriesCoins::getAvailableCoins($seller->id));
-        $commerceCoins = array_map('strval', CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1));
+        $commerceCoins = array_map('strval', CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 'ACTIVE'));
 
         $coinsAvailable = array_intersect($commerceCoins, $coinsSeller);
         $coinsAvailable = array_values($coinsAvailable); // reindexar

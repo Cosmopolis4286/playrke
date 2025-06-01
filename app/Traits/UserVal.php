@@ -140,28 +140,28 @@ trait UserVal
             DB::beginTransaction();
             $commerceID = Commerce::getValueByUserId($user['userId'], 'id');
 
-            // Restaurar monedas que ahora sí tienen directorio
-            $restorables = CommerceExchangeRate::where('commerce', $commerceID)
-                ->where('status', 4)
+            // Obtener los IDs más recientes de cada moneda (coin)
+            $ids = CommerceExchangeRate::select(DB::raw('MAX(id) as id'))
+                ->where('commerce', $commerceID)
+                ->where('status', 'DIRECTORY')
                 ->whereNotIn('coin', $coinsWithoutDirectories)
-                ->orderByDesc('id')
-                ->get()
-                ->unique('coin');
+                ->groupBy('coin')
+                ->pluck('id');
 
-            foreach ($restorables as $record) {
-                $record->update(['status' => 1]);
-            }
+            // Actualizar en una sola consulta
+            CommerceExchangeRate::whereIn('id', $ids)
+                ->update(['status' => 'ACTIVE']);
 
-            // Marcar status 4 en monedas sin directorio
+            // Marcar status 'DIRECTORY' en monedas sin directorio
             foreach ($coinsWithoutDirectories as $coinId) {
                 $record = CommerceExchangeRate::where('commerce', $commerceID)
                     ->where('coin', $coinId)
-                    ->where('status', '!=', 4)
+                    ->where('status', '!=', 'DIRECTORY')
                     ->orderByDesc('id')
                     ->first();
 
                 if ($record) {
-                    $record->update(['status' => 4]);
+                    $record->update(['status' => 'DIRECTORY']);
                 }
             }
 

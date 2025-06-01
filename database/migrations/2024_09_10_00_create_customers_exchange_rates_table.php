@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('coin', 15);
             $table->double('exchange_rate')->default(1);
             $table->unsignedBigInteger('user')->nullable();
-            $table->boolean('status')->default(0);
+            $table->enum('status', ['ACTIVE', 'INACTIVE']);
             $table->string('pct', 8)->default('0');
             $table->timestamps();
 

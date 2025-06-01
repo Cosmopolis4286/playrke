@@ -52,20 +52,20 @@
                                         {{ $item->pct != 0 ? $item->pct . '%' : '-' }}
                                     </td>
                                     <td>
-                                        @if ($item->status == 0)
+                                        @if ($item->status === 'INACTIVE')
                                             <span class="badge badge-secondary">No/Disp</span>
-                                        @elseif($item->status == 1)
+                                        @elseif($item->status === 'ACTIVE')
                                             <span class="badge badge-success">Disponible</span>
-                                        @elseif($item->status == 4)
+                                        @elseif($item->status === 'DIRECTORY')
                                             <a class="badge badge-danger" title="Registrar Datos Bancarios"
                                                 href="{{ route('directory.index', ['countryCode' => strtolower($item->Coin->Country->iso_code_2)]) }}">
-                                                Sin Datos Bancarios
+                                                Falta Directorio
                                             </a>
                                         @endif
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-toggle">
-                                            @if ($item->status == 1)
+                                            @if ($item->status === 'ACTIVE')
                                                 <button class="btn btn-sm btn-primary btn-{{ $name }}"
                                                     data-type="2" data-id="{{ encrypt($item->id) }}"
                                                     title="Editar Tasa de Cambio">

@@ -13,6 +13,7 @@ class BingoRoomAutomatic extends Model
     'days',
     'time',
     'game_mode',
+    'in_live',
     'prize_pool_type',
     'amount_added_prize_pool',
     'room_type',

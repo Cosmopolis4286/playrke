@@ -30,6 +30,13 @@
         <label for="game-mode">Modo de Juego*</label>
         <select id="game-mode" name="game_mode" class="form-control"></select>
     </div>
+    {{-- <div class="form-group col-sm-6 col-md-4 col-lg-3">
+        <label for="in-live">En Vivo*</label>
+        <select id="in-live" name="in_live" class="form-control not-empty">
+            <option value="Y">SI</option>
+            <option value="N" selected>NO</option>
+        </select>
+    </div> --}}
     <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="prize-pool-type">Tipo Bote*</label>
         <select id="prize-pool-type" name="prize_pool_type" class="form-control" required></select>

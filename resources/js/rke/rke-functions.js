@@ -99,7 +99,7 @@ function formCRUD(elem, name, title, otherCasesMap = {}) {
     const formName = $(`#form-${name}`);
 
     formName[0].reset();
-    formName.find('select').empty();
+    formName.find('select:not(.not-empty)').empty();
 
     let type = false;
     let encryptedId = '';

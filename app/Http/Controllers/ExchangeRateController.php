@@ -7,7 +7,6 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\ExchangeRate;
-use App\Models\User;
 use App\Services\RKE\HandleExchangeRates;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
@@ -22,6 +21,8 @@ class ExchangeRateController extends Controller
 
     public function index($creatorType, $creatorID = '')
     {
+        $this->getExchangeRates(true);
+
         switch ($creatorType) {
             case 'customer': //customer
 
@@ -389,9 +390,11 @@ class ExchangeRateController extends Controller
         return view('modules.all.exchange-rate.historical')->with($viewData);
     }
 
-    public function getExchangeRates()
+    public function getExchangeRates($checkUpdate = false)
     {
-        $res = app(HandleExchangeRates::class)->updateExchangeRates(Auth::id());
+        $res = app(HandleExchangeRates::class)->updateExchangeRates(Auth::id(), $checkUpdate);
+
+        if ($checkUpdate) return;
 
         if (isset($res['Error'])) {
             return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error']);

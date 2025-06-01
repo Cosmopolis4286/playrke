@@ -12,6 +12,7 @@ class BingoRoomConfig extends Model
     'creation',
     'creator_user',
     'game_mode',
+    'in_live',
     'date',
     'time',
     'unix_date',

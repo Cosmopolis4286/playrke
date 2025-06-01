@@ -53,7 +53,7 @@ class CommerceExchangeRate extends Model
 
     public static function getAvailableExchangeRates($commerce)
     {
-        return self::where('commerce', $commerce)->whereIn('status', [1, 4])->get();
+        return self::where('commerce', $commerce)->whereIn('status', ['ACTIVE', 'DIRECTORY'])->get();
     }
 
     public static function getCoinsByCommerce($commerce, $status = '')
@@ -75,7 +75,7 @@ class CommerceExchangeRate extends Model
 
             // Desactivar la tasa anterior si existe
             if ($lastRate) {
-                $lastRate->status = 2;
+                $lastRate->status = 'OLD';
                 $lastRate->save();
             }
 
@@ -85,7 +85,7 @@ class CommerceExchangeRate extends Model
                 'coin' => $coin,
                 'exchange_rate' => $amount,
                 'pct' => $pct,
-                'status' => 1
+                'status' => 'ACTIVE'
             ]);
         }
     }
