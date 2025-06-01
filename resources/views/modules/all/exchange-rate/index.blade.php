@@ -53,9 +53,9 @@
                                     </td>
                                     <td>
                                         @if ($item->status == 0)
-                                            No/Disp
+                                            <span class="badge badge-secondary">No/Disp</span>
                                         @elseif($item->status == 1)
-                                            Activo
+                                            <span class="badge badge-success">Disponible</span>
                                         @elseif($item->status == 4)
                                             <a class="badge badge-danger" title="Registrar Datos Bancarios"
                                                 href="{{ route('directory.index', ['countryCode' => strtolower($item->Coin->Country->iso_code_2)]) }}">
