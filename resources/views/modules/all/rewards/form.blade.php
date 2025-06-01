@@ -4,10 +4,10 @@
         <input id="code" class="form-control" name="code" readonly>
     </div>
     <div class="form-group col-sm-6 col-md-4">
-        <label for="product-service">Producto/Servicio*</label>
-        <select id="product-service" class="form-control" name="product_service" required></select>
+        <label for="reward-type">Tipo*</label>
+        <select id="reward-type" class="form-control" name="reward_type" required></select>
     </div>
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-sm-6 col-md-8">
         <label for="name">Nombre*</label>
         <input type="text" id="name" class="form-control" name="name" required>
     </div>
@@ -15,7 +15,7 @@
         <label for="kit">Es un kit*</label>
         <select id="kit" class="form-control" name="kit" required></select>
     </div> --}}
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-sm-6 col-md-3">
         <label for="num-items">#Itens*</label>
         <input type="number" step="1" min="1" max="10" id="num-items" class="form-control"
             name="num_items" value="1" required>
@@ -31,8 +31,8 @@
             <input type="hidden" id="creator" name="creator" value="{{ json_encode($creator) }}">
         </div>
     </div>
-    <div class="form-group col-12 col-md">
-        <label for="description">Descripcion*</label>
+    <div class="form-group col-12">
+        <label for="description">Descripcion</label>
         <textarea class="form-control" name="description" id="description" cols="15" rows="2"></textarea>
     </div>
 </div>

@@ -12,6 +12,8 @@
                         <thead>
                             <tr>
                                 <th>Codigo</th>
+                                <th>Tipo</th>
+                                <th>Nombre</th>
                                 <th>#Itens</th>
                                 <th>Precio</th>
                                 <th>Status</th>
@@ -38,7 +40,7 @@
 @section('scripts')
     <script>
         const name = '{{ $name }}';
-        const optionsProductService = @json($optionsProductService);
+        const rewardTypes = @json($rewardTypes);
 
         $(document).on("click", `.btn-${name}`, function() {
             formCRUD($(this), name, 'Premio', otherCasesMap)
@@ -58,9 +60,9 @@
                 $('#description').val(data.description);
             }
 
-            Object.entries(optionsProductService).forEach(([value, text]) => {
+            Object.entries(rewardTypes).forEach(([value, text]) => {
                 const isSelected = (type == 2 && value === data.product_service) ? 'selected' : '';
-                $('#product-service').append(`<option value="${value}" ${isSelected}>${text}</option>`);
+                $('#reward-type').append(`<option value="${value}" ${isSelected}>${text}</option>`);
             });
 
             // Mostrar modal
@@ -76,7 +78,7 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['product-service', 'name', 'num-items', 'price']);
+            submitForm(name, ['reward-type', 'name', 'num-items', 'price']);
         });
 
         const otherCasesMap = {

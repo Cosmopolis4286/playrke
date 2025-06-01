@@ -33,13 +33,13 @@ class RewardsController extends Controller
 
         $rewards = Rewards::getAllRewardsByCreator($creatorUser);
 
-        $optionsProductService = ['P' => 'Producto', 'S' => 'Servicio'];
+        $rewardTypes = ['P' => 'Producto', 'S' => 'Servicio'];
         $optionsKit = ['N' => 'NO', 'Y' => 'SI'];
 
         $additionalData = [];
 
         return view('modules.all.rewards.index', array_merge(
-            compact('title', 'name', 'creator', 'rewards', 'optionsProductService'),
+            compact('title', 'name', 'creator', 'rewards', 'rewardTypes'),
             $additionalData
         ));
     }
