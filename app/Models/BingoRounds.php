@@ -30,9 +30,14 @@ class BingoRounds extends Model
         return $query->first();
     }
 
-    public static function getRoundInProgress($room)
+    public static function getRoundInProgress($room, $fields = ['*'])
     {
-        return self::where('room', $room)->where('status', 'IN PROGRESS')->value('round');
+        return self::select($fields)->where('room', $room)->where('status', 'IN PROGRESS')->first();
+    }
+
+    public static function getValueByRoundInProgress($room, $value)
+    {
+        return self::where('room', $room)->where('status', 'IN PROGRESS')->value($value);
     }
 
     public static function existsRounds($room)

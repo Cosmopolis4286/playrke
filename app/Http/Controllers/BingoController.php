@@ -723,7 +723,7 @@ class BingoController extends Controller
 
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
-        $round = BingoRounds::getRoundInProgress($roomID);
+        $round = BingoRounds::getValueByRoundInProgress($roomID, 'round');
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -731,7 +731,7 @@ class BingoController extends Controller
             BingoDraws::select('id', 'chip')->where('room', $roomID)
             ->where('round', $round)->where('status', 3)->first() : [];
 
-        $sort = ($room->status == 3) ?
+        $draw = ($room->status == 3) ?
             BingoDraws::where('room', $roomID)->where('round', $round)->where('id', '<=', $vanDraw->id)
             ->where('time', '>', time())->get(['code', 'time']) : [];
 
@@ -774,7 +774,7 @@ class BingoController extends Controller
             'startTime' => $this->convertToUnixTimestamp($room->Config->date, $room->Config->time),
             'chipsRest' => $chipsRest,
             'cartons' => $ctns ?? [],
-            'sort' => $sort,
+            'draw' => $draw,
             'encrypt' => $codeEncrypt,
             'random' => $randomKey,
             'latestChips' => $dataChips['latestChips'],
@@ -792,6 +792,8 @@ class BingoController extends Controller
         if (isset($moreViewData)) {
             $viewData = array_merge($viewData, $moreViewData);
         }
+
+        dd($viewData);
 
         return ['route' => 'modules.game.bingo.in-game', 'data' => $viewData];
     }
@@ -926,14 +928,14 @@ class BingoController extends Controller
 
         if (!$room) ['Error' => 'Sala no encontrada'];
 
-        $round = BingoRounds::getRoundInProgress($room->id);
+        $round = BingoRounds::getValueByRoundInProgress($room->id, 'round');
 
         $chipVanID = BingoDraws::where('room', $room->id)
             ->where('round', $round)->where('status', 3)->value('id');
 
-        date_default_timezone_set(config('app.timezone'));
-
         if ($chipVanID) {
+            date_default_timezone_set(config('app.timezone'));
+
             // Realizamos una única consulta para obtener todas las fichas en las condiciones especificadas
             $allChips = array_map('intval', BingoDraws::select('chip')->where('room', $room->id)
                 ->where('round', $round)->where('id', '<=', $chipVanID)->where('time', '<=', time())

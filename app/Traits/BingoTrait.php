@@ -382,18 +382,7 @@ trait BingoTrait
     {
         date_default_timezone_set(config('app.timezone'));
 
-        $room = BingoRoom::getByEncrypted($room, ['id', 'status']);
-        $roomID = $room->id;
-
-        $round = BingoRounds::getRoundInProgress($roomID);
-
-        // Obtener tiempo de salida de la ficha prize_pool
-        $lastChipTime = BingoDraws::where('status', 3)->where('room', $roomID)
-            ->where('round', $round)->value('time');
-
-        if ($room->status == 3 && ($lastChipTime && $lastChipTime <= time())) {
-            $room->update(['status' => 4]);
-        }
+        $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
         //Obtener Conteo de Ganadores
         $countWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);

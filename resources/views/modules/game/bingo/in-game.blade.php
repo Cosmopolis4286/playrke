@@ -50,7 +50,7 @@
         const encrypt = @json($encrypt);
         const restChips = @json($chipsRest);
 
-        let arrDraw = @json($sort);
+        let arrDraw = @json($draw);
         let latestChips = @json($latestChips);
         let timeServ = @json($timeServ);
         let allChips = @json($allChips);

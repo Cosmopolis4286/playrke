@@ -45,6 +45,12 @@ class HandleBingoRooms
 
         if (!isset($status['Error'])) {
             BingoRoom::where('id', $roomID)->update(['status' => $status]);
+
+            if ($status == 4) {
+                BingoRounds::where('room', $roomID)->where('status', 'IN PROGRESS')
+                    ->update(['status' => 'COMPLETED']);
+            }
+
             $this->determineRoundsStatus($roomID);
         } else {
             Log::info($status['Error'] . ": Sala [ID => $roomID]");
@@ -97,22 +103,37 @@ class HandleBingoRooms
     {
         date_default_timezone_set(config('app.timezone'));
 
+        // Obtener todas las rondas pendientes (no completadas) de la sala
         $rounds = BingoRounds::where('room', $roomID)
             ->where('status', '<>', 'COMPLETED')
-            ->get(['id', 'round', 'status']);
+            ->orderByDesc('id')->get(['id', 'round']);
 
-        if (!count($rounds)) return;
+        if ($rounds->isEmpty()) {
+            return;
+        }
 
-        foreach ($rounds as $item) {
+        // Mapear tiempos de los draws por ronda
+        $drawTimes = BingoDraws::where('room', $roomID)
+            ->whereIn('round', $rounds->pluck('round'))
+            ->where('status', 3)->pluck('time', 'round');
 
-            $drawTime = BingoDraws::select('id', 'time')->where('room', $roomID)
-                ->where('round', 4)->where('status', 3)->first();
+        foreach ($rounds as $round) {
 
-            dd($drawTime);
+            $drawTime = $drawTimes[$round->round] ?? null;
 
-            if ($drawTime->time <= time()) {
-                $status = 'IN PROGRESS';
-                BingoRounds::where('id', $item->id)->update(['status' => $status]);
+            if ($drawTime && $drawTime <= time()) {
+                // Completar cualquier otra ronda que esté en progreso
+                BingoRounds::where('room', $roomID)
+                    ->where('id', '!=', $round->id)
+                    ->where('status', 'IN PROGRESS')
+                    ->update(['status' => 'COMPLETED']);
+
+                // Activar esta ronda
+                BingoRounds::where('id', $round->id)
+                    ->update(['status' => 'IN PROGRESS']);
+
+                // Solo activar una ronda por ciclo
+                break;
             }
         }
     }
