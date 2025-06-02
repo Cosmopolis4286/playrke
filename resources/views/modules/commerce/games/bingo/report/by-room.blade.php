@@ -34,9 +34,9 @@
                                             $finalSaleAmountSeller = $seller->CtnsLot->sum('final_sale_amount');
                                             $comSaleSeller = $saleAmountSeller - $finalSaleAmountSeller;
 
-                                            $prizePool = $saleAmountSeller - $comSaleSeller;
-                                            $roomCommn = round($saleAmountSeller * $roomCommn, 2);
-                                            $prizePool -= $roomCommn;
+                                            $roomCommn = round(($saleAmountSeller * $bingoConfig->room_commn) / 100, 2);
+                                            $rkeCommn = round(($saleAmountSeller * $bingoConfig->rke_commn) / 100, 2);
+                                            $prizePool = $saleAmountSeller - $rkeCommn - $roomCommn - $comSaleSeller;
 
                                             // Acumular totales
                                             $totalCtnsBuy += $allCtnsSeller;

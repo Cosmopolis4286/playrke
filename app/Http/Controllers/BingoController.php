@@ -2949,145 +2949,6 @@ class BingoController extends Controller
         return response()->json(['type' => $typeMessage, 'message' => $message]);
     }
 
-    public function regenerateDraw(Request $request)
-    {
-        // FUNCION PARA REGENERAR SORTEO - USAR SOLO PARA TESTES
-
-        // Declarar variables
-        $roomEncrypted = $request->room;
-        $room = BingoRoom::getValueByEncrypted($roomEncrypted, 'id');
-        $keyword = $request->keyword;
-
-        // Determinar la ronda a utilizar:
-        // Si hay más de una ronda, se selecciona la última (max round); de lo contrario se usa la ronda 1.
-        $roundToUse = BingoDraws::where('room', $room)->max('round') ?: '1';
-
-        // Validar si en la ronda correspondiente se han generado 75 draws (fichas)
-        $drawCount = BingoDraws::where('room', $room)->where('round', $roundToUse)->count();
-
-        if ($drawCount != 75) {
-            $this->handleDraw($room);
-
-            return response()->json([
-                'type' => 'success',
-                'message' => 'Proceso efectuado con éxito'
-            ]);
-        }
-
-        if ($keyword !== 'RK3_T357E*2K25') {
-            return response()->json([
-                'type' => 'warning',
-                'message' => 'Ha ocurrido un error en la solicitud'
-            ]);
-        }
-
-        date_default_timezone_set(config('app.timezone'));
-
-        // Obtener datos iniciales
-        $symbols = BingoDrawsCode::select('sym', 'num')
-            ->where('room', $room)
-            ->pluck('sym', 'num');
-
-        // Obtener los chips correspondientes a la ronda a utilizar
-        $draws = BingoDraws::where('room', $room)->where('round', $roundToUse)->get();
-
-        $currentTimestamp = now()->addMinutes(1)->timestamp;
-        $timeIncrement = 0;
-
-        // Eliminar (resetear) la última ficha ganadora (status 3) para la ronda seleccionada
-        BingoDraws::where('room', $room)->where('round', $roundToUse)
-            ->where('status', 3)->update(['status' => 0]);
-
-        $chips = [];
-        $updates = [];
-
-        // Si no existen símbolos, genera los códigos
-        if (!count($symbols)) {
-            $this->encryptDraw($room);
-        }
-
-        // Recorrer cada registro de sorteo de la ronda
-        foreach ($draws as $index => $draw) {
-            // Genera un número aleatorio entre 1 y 75 que no se haya utilizado ya en esta iteración
-            do {
-                $rnd = mt_rand(1, 75);
-            } while (isset($chips[$rnd]));
-
-            // Codificar el número usando los símbolos: si el dígito es 0 se usa 10, caso contrario se usa el dígito original
-            $numEncoded = implode('', array_map(
-                fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '',
-                str_split($rnd)
-            ));
-
-            // Calcular nuevo tiempo: se parte de un timestamp base y se incrementa por el índice de cada registro
-            $newTime = $currentTimestamp + ($index * $timeIncrement);
-
-            $updates[] = [
-                'id' => $draw->id,
-                'chip' => $rnd,
-                'code' => $numEncoded,
-                'time' => $newTime,
-                'round' => $roundToUse,
-                'updated_at' => now()
-            ];
-
-            $chips[$rnd] = true;
-
-            // Después del primer chip, se fija un incremento de 5 segundos
-            $timeIncrement = 5;
-        }
-
-        // Iniciar transacción para asegurar la atomicidad de la operación
-        DB::beginTransaction();
-
-        try {
-            // Reiniciar registros de ganadores en la sala (no se limitan a la ronda por lo que son a nivel sala)
-            BingoRoomUser::where('room', $room)->where('winner', 1)->update(['winner' => 0]);
-
-            // Eliminar registros de cartones premiados (ganadores)
-            BingoPrizeCtnsPayment::where('room', $room)->delete();
-            BingoPrizeCtns::where('room', $room)->delete();
-
-            // Actualizar cada registro (draw) con los nuevos valores en la ronda determinada
-            foreach ($updates as $update) {
-                BingoDraws::where('id', $update['id'])->update([
-                    'chip' => $update['chip'],
-                    'code' => $update['code'],
-                    'time' => $update['time'],
-                    'round' => $update['round'],
-                    'updated_at' => $update['updated_at'],
-                ]);
-            }
-
-            // Ejecutar la función que determina la ficha ganadora. 
-            $this->chipWin($room);
-
-            // Ajustar el estado de la sala y reiniciar algunos valores relacionados
-            BingoRoom::where('id', $room)->update([
-                'status' => 3,
-                'paid_win' => 0,
-                'full_house_prize' => BingoRoom::getValueById($room, 'prize_pool'),
-                'serial_prize' => 0,
-                'close_room' => null
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'type' => 'success',
-                'message' => 'Proceso efectuado con éxito'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al regenerar sorteo [' . $room . ']: ' . $e->getMessage());
-
-            return response()->json([
-                'type' => 'error',
-                'message' => 'Ha ocurrido un error'
-            ]);
-        }
-    }
-
     public function notifyPaymentPrizeWinningCtn(Request $request)
     {
         try {
@@ -3165,7 +3026,7 @@ class BingoController extends Controller
                 $creatorUser = $user['userId'];
 
                 $query = BingoRoom::with([
-                    'Config:room,date,time,ctn_price,room_commn',
+                    'Config:room,date,time,ctn_price,rke_commn,room_commn',
                     'Status',
                     'CtnsLot' => function ($subquery) use ($creatorUser, $coin) {
                         $subquery->select('room', 'coin', 'ctns', 'sale_amount', 'final_sale_amount')
@@ -3263,8 +3124,8 @@ class BingoController extends Controller
 
             if ($userType === 'commerce') {
                 $roomCommn = $allSale * ($room->Config->room_commn / 100);
-                $comRKE = $allSale * ($room->Config->rke_commn / 100);
-                $prizePool = $allSale - $roomCommn - $sellerCommn - $comRKE;
+                $rkeCommn = $allSale * ($room->Config->rke_commn / 100);
+                $prizePool = $allSale - $roomCommn - $sellerCommn - $rkeCommn;
 
                 $row['finalSale'] = number_format($finalSale, 2, '.', ',');
                 $row['roomCommn'] = number_format($roomCommn, 2, '.', ',');
@@ -3378,11 +3239,11 @@ class BingoController extends Controller
                     ->whereHas('CtnsLot', $ctnsLotFilter)
                     ->get();
 
-                $roomCommn = BingoRoomConfig::getValueByRoom($roomID, 'room_commn');
+                $bingoConfig = BingoRoomConfig::getByRoom($roomID, ['rke_commn', 'room_commn']);
 
                 $view = 'modules/commerce/games/bingo/report/by-room';
 
-                $otherParams = ['sellers' => $sellers, 'roomCommn' => $roomCommn / 100];
+                $otherParams = ['sellers' => $sellers, 'bingoConfig' => $bingoConfig];
 
                 break;
 
@@ -3820,5 +3681,140 @@ class BingoController extends Controller
         }
 
         return view($view, $params);
+    }
+
+    public function regenerateDraw(Request $request)
+    {
+        // FUNCION PARA REGENERAR SORTEO - USAR SOLO PARA TESTES
+
+        $roomEncrypted = $request->room;
+        $room = BingoRoom::getValueByEncrypted($roomEncrypted, 'id');
+        $keyword = $request->keyword;
+
+        if (!$room) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Sala no encontrada'
+            ]);
+        }
+
+        if (BingoDraws::where('room', $room)->doesntExist()) {
+            $this->handleDraw($room);
+
+            return response()->json([
+                'type' => 'success',
+                'message' => 'Proceso efectuado con éxito'
+            ]);
+        }
+
+        if ($keyword !== 'RK3_T357E*2K25') {
+            return response()->json([
+                'type' => 'warning',
+                'message' => 'Ha ocurrido un error en la solicitud'
+            ]);
+        }
+
+        date_default_timezone_set(config('app.timezone'));
+
+        // Resetear estados de las rondas
+        BingoRounds::where('room', $room)->update(['status' => 'ACTIVE']);
+
+        // Obtener símbolos
+        $symbols = BingoDrawsCode::where('room', $room)
+            ->pluck('sym', 'num');
+
+        if ($symbols->isEmpty()) {
+            $this->encryptDraw($room);
+            $symbols = BingoDrawsCode::where('room', $room)->pluck('sym', 'num');
+        }
+
+        $roundsCount = BingoRoomConfig::getValueByRoom($room, 'rounds');
+        $currentTimestamp = now()->addMinutes(1)->timestamp;
+
+        $chipsUsed = [];
+        $updates = [];
+
+        for ($round = 1; $round <= $roundsCount; $round++) {
+
+            $draws = BingoDraws::where('room', $room)->where('round', $round)->get();
+
+            // Resetear ficha ganadora anterior
+            BingoDraws::where('room', $room)
+                ->where('round', $round)
+                ->where('status', 3)
+                ->update(['status' => 0]);
+
+            $timeIncrement = 0;
+
+            foreach ($draws as $index => $draw) {
+                do {
+                    $rnd = mt_rand(1, 75);
+                } while (isset($chipsUsed[$rnd]));
+
+                $chipsUsed[$rnd] = true;
+
+                $numEncoded = collect(str_split($rnd))
+                    ->map(fn($digit) => $symbols[$digit == '0' ? 10 : $digit] ?? '')
+                    ->implode('');
+
+                $updates[] = [
+                    'id' => $draw->id,
+                    'chip' => $rnd,
+                    'code' => $numEncoded,
+                    'time' => $currentTimestamp + ($index * $timeIncrement),
+                    'round' => $round,
+                    'updated_at' => now()
+                ];
+
+                $timeIncrement = 5;
+            }
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Resetear ganadores y eliminar premios
+            BingoRoomUser::where('room', $room)->where('winner', 1)->update(['winner' => 0]);
+            BingoPrizeCtnsPayment::where('room', $room)->delete();
+            BingoPrizeCtns::where('room', $room)->delete();
+
+            // Actualizar sorteos
+            foreach ($updates as $update) {
+                BingoDraws::where('id', $update['id'])->update([
+                    'chip' => $update['chip'],
+                    'code' => $update['code'],
+                    'time' => $update['time'],
+                    'round' => $update['round'],
+                    'updated_at' => $update['updated_at'],
+                ]);
+            }
+
+            // Ejecutar ficha ganadora
+            $this->chipWin($room);
+
+            // Actualizar estado de la sala
+            BingoRoom::where('id', $room)->update([
+                'status' => 3,
+                'paid_win' => 0,
+                'full_house_prize' => BingoRoom::getValueById($room, 'prize_pool'),
+                'serial_prize' => 0,
+                'close_room' => null
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'type' => 'success',
+                'message' => 'Proceso efectuado con éxito'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error al regenerar sorteo [$room]: " . $e->getMessage());
+
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Ha ocurrido un error'
+            ]);
+        }
     }
 }

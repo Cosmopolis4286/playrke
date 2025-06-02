@@ -633,38 +633,35 @@ trait BingoTrait
 
             $bingoConfig = BingoRoomConfig::getByRoom($room->id, ['rke_commn', 'room_commn', 'prize_pool_type']);
 
-            $roomComm = $bingoConfig->room_commn;
+            $prizePoolType = $bingoConfig->prize_pool_type;
 
-            // Variable para definir monto a anexar al bote
-            $prizePool = number_format($saleAmount, 3, '.');
+            // Si el bote acumulado no es tipo "Premio"
+            if ($prizePoolType != 2) {
 
-            if ($bingoConfig->prize_pool_type == 2) {
-                // Si el bote es tipo "Premio"
-                $prizePool = 0;
+                // Variable para definir monto a anexar al bote
+                $prizePool = number_format($saleAmount, 3, '.');
+
+                // Obtener comision del creador/casa (comision por sala)\
+                $creatorCommn = round(($prizePool * $bingoConfig->room_commn) / 100, 3);
+                // Comision de PlayRKE
+                $rkeCommn = round(($prizePool * $bingoConfig->rke_commn) / 100, 3);
+
+                // Restar al bote las comisiones 
+                $prizePool -= $rkeCommn - $creatorCommn - $sellerSaleCommn;
             }
-
-            // Obtener comision del creador/casa (comision por sala)\
-            $creatorCommn = ($prizePool * $roomComm) / 100;
-            $creatorCommn =  round($creatorCommn, 3);
-
-            // Restar al bote la comision del creador de la sala
-            if ($creatorCommn) $prizePool -= $creatorCommn;
-
-            if ($sellerSaleCommn) $prizePool -= $sellerSaleCommn;
-
-            // Restar comision de Pla
-            $rkeCommn = round(($prizePool * $bingoConfig->rke_commn) / 100, 3);
-            $prizePool -= $rkeCommn;
 
             // Preparar los datos para actualizar la sala
             $updateData = [
                 'all_sale' => $room->all_sale + $saleAmount,
-                'prize_pool' => $room->prize_pool + $prizePool,
-                'full_house_prize' => $room->full_house_prize + $prizePool,
                 'ctns' => $room->ctns + $arrCtn['numOfCtns'],
                 'rke_commn' => $room->rke_commn + $rkeCommn,
                 'room_commn' => $room->room_commn + $creatorCommn
             ];
+
+            if ($prizePoolType != 2) {
+                $updateData['prize_pool'] = $room->prize_pool + $prizePool;
+                $updateData['full_house_prize'] = $room->full_house_prize + $prizePool;
+            }
 
             if (isset($arrCtn['seller'])) {
                 $updateData['seller_commn'] = $room->seller_commn + $sellerSaleCommn;

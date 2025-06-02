@@ -67,12 +67,12 @@ class BingoCreatorSales extends Model
 
     public static function updateOrCreateSale($roomID, $creatorUser, $roomCommn, $coin, $amount, $finalAmount)
     {
-        $commnRKE = BingoRoomConfig::getValueByRoom($roomID, 'rke_commn') ?? 0;
-        $commnRKE =  $amount * ($commnRKE / 100);
+        $rkeCommn = BingoRoomConfig::getValueByRoom($roomID, 'rke_commn') ?? 0;
+        $rkeCommn =  $amount * ($rkeCommn / 100);
 
         $sellerCommn = $amount - $finalAmount;
         $roomCommn = $amount * ($roomCommn / 100);
-        $prizePool = $amount -  $roomCommn - $sellerCommn - $commnRKE;
+        $prizePool = $amount -  $roomCommn - $sellerCommn - $rkeCommn;
 
         $sale = self::firstOrCreate(
             ['room' => $roomID, 'creator_user' => $creatorUser, 'coin' => $coin],
@@ -81,7 +81,7 @@ class BingoCreatorSales extends Model
                 'final_sale_amount' => $finalAmount,
                 'room_commn' => $roomCommn,
                 'seller_commn' => $sellerCommn,
-                'rke_commn' => $commnRKE,
+                'rke_commn' => $rkeCommn,
                 'prize_pool_amount' => $prizePool
             ]
         );
@@ -91,7 +91,7 @@ class BingoCreatorSales extends Model
             $sale->increment('final_sale_amount', $finalAmount);
             $sale->increment('room_commn', $roomCommn);
             $sale->increment('seller_commn', $sellerCommn);
-            $sale->increment('rke_commn', $commnRKE);
+            $sale->increment('rke_commn', $rkeCommn);
             $sale->increment('prize_pool_amount', $prizePool);
         }
     }
