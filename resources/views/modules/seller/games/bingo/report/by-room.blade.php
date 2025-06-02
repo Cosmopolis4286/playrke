@@ -17,19 +17,28 @@
                                         <th>Apellido</th>
                                         <th>Celular</th>
                                         <th>CTNs</th>
-                                        <th>Total</th>
+                                        <th>Venta</th>
+                                        <th>%Com</th>
                                         <th>Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    @php
+                                        $totalCommn = 0;
+                                    @endphp
                                     @foreach ($playersRoom as $player)
+                                        @php
+                                            $saleAmount = $player->CtnsLot->sum('sale_amount');
+                                            $commn = $saleAmount - $player->CtnsLot->sum('final_sale_amount');
+                                            $totalCommn += $commn;
+                                        @endphp
                                         <tr>
                                             <td>{{ $player->name }}</td>
                                             <td>{{ $player->lastname }}</td>
                                             <td>{{ $player->phone }}</td>
                                             <td>{{ $player->CtnsLot->sum('ctns') }}</td>
-                                            <td>{{ $coinData->iso_code }}
-                                                {{ number_format($player->CtnsLot->sum('sale_amount'), 2, '.', ',') }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ number_format($saleAmount, 2, '.', ',') }}</td>
+                                            <td>{{ $coinData->iso_code }} {{ number_format($commn, 2, '.', ',') }}</td>
                                             <td>
                                                 <a class="btn btn-sm bg-primary show-ctns" target="_blank"
                                                     href="{{ route('bingo.in-game', ['player' => $player->link]) }}">
@@ -43,7 +52,10 @@
                                     <tr>
                                         <td colspan="3" class="text-right"><b>Total:</b></td>
                                         <td>{{ $totalsFormatted['ctns'] }}</td>
-                                        <td colspan="2">{{ $coinData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
+                                        <td>{{ $coinData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
+                                        <td colspan="2">
+                                            {{ $coinData->iso_code }} {{ number_format($totalCommn, 2, '.', ',') }}
+                                        </td>
                                     </tr>
                                 </tfoot>
                             </table>
