@@ -624,11 +624,10 @@ trait BingoTrait
     {
         try {
             // Recalcular venta y comisiones en base a USDT
-            $exchangeRate = $arrCtn['exchangeRate'];
-
-            if ($exchangeRate != 0) {
-                $saleAmount /= $exchangeRate;
-                $sellerSaleCommn /= $exchangeRate;
+            if (!empty($arrCtn['exchangeRate'])) {
+                $exchangeRate = $arrCtn['exchangeRate'];
+                $saleAmount = round($saleAmount / $exchangeRate, 3);
+                $sellerSaleCommn = round($sellerSaleCommn / $exchangeRate, 3);
             }
 
             $bingoConfig = BingoRoomConfig::getByRoom($room->id, ['rke_commn', 'room_commn', 'prize_pool_type']);
@@ -637,17 +636,12 @@ trait BingoTrait
 
             // Si el bote acumulado no es tipo "Premio"
             if ($prizePoolType != 2) {
-
-                // Variable para definir monto a anexar al bote
-                $prizePool = number_format($saleAmount, 3, '.');
-
                 // Obtener comision del creador/casa (comision por sala)\
-                $creatorCommn = round(($prizePool * $bingoConfig->room_commn) / 100, 3);
+                $creatorCommn = round(($saleAmount * $bingoConfig->room_commn) / 100, 3);
                 // Comision de PlayRKE
-                $rkeCommn = round(($prizePool * $bingoConfig->rke_commn) / 100, 3);
-
+                $rkeCommn = round(($saleAmount * $bingoConfig->rke_commn) / 100, 3);
                 // Restar al bote las comisiones 
-                $prizePool -= $rkeCommn - $creatorCommn - $sellerSaleCommn;
+                $prizePool = $saleAmount - $rkeCommn - $creatorCommn - $sellerSaleCommn;
             }
 
             // Preparar los datos para actualizar la sala
