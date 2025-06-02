@@ -21,7 +21,7 @@ document.addEventListener('dragstart', function (evt) {
 document.addEventListener("contextmenu", e => e.preventDefault());
 
 document.body.addEventListener('click', function () {
-    if (actSound == 0 && endWin == 0 && latestChips && roomStatus == 3) {
+    if (actSound == 0 && endWin == 0 && roomStatus == 3) {
         $('#icon-volume').toggleClass('fa-volume-high fa-volume-xmark');
         actSound = 1;
         soundNext.muted = false;
@@ -60,56 +60,68 @@ $('#btn-volume').on("click", function () {
 
 let posChip = 0;
 
+function preloadImages(chips) {
+    return Promise.all(chips.map(chip => new Promise(resolve => {
+        const img = new Image();
+        img.src = `${preRoute}img/bg/chips/${chip}.png`;
+        img.onload = img.onerror = resolve;
+    })));
+}
+
 function renderChipsView(arrow) {
 
     if (!allChips.length) return;
-    $('#container-history-chips').removeClass('hide-elem');
 
-    const arr = allChips;
+    const container = $('#container-history-chips');
+    const chipsContainer = $('#container-all-chips');
+    const leftArrow = $('#cont-left-arrow');
+    const rightArrow = $('#cont-right-arrow');
 
-    let widthContArrow = $('#cont-right-arrow').width();
+    console.log($('#container-bingo-info').outerWidth(), (rightArrow.outerWidth()));
 
-    // Determina la cantidad de fichas según el ancho de pantalla
-    const screenWidth = $('#container-bingo-info').width() - (widthContArrow * 2);
+    const screenWidth = $('#container-bingo-info').outerWidth() - leftArrow.outerWidth() - rightArrow.outerWidth();
+    const maxPerView = Math.min(Math.floor(screenWidth / widthContainerImage), 12);
+    const totalChips = allChips.length;
 
-    const calculateMaxItems = () => {
-        // Calcula el número máximo de elementos que pueden caber en el carrousel
-        const itemsByScreenWidth = Math.floor(screenWidth / widthContainerImage);
-        // Asegura que no se supere el máximo permitido
-        return Math.min(itemsByScreenWidth, 12);
-    };
+    // Control navegación
+    if (arrow === 1) posChip = Math.max(posChip - 1, 0);
+    if (arrow === 2) posChip = Math.min(posChip + 1, totalChips - maxPerView);
 
-    const totalItems = calculateMaxItems();
-    // Actualiza la posición según la dirección de la flecha
-    if (arrow === 1 && posChip > 0) posChip--;
-    if (arrow === 2 && posChip + totalItems < arr.length) posChip++;
+    const visibleChips = allChips.slice(posChip, posChip + maxPerView);
 
-    // Genera las fichas visibles y el HTML
-    const visibleChips = arr.slice(posChip, posChip + totalItems);
-    const infoHtml = visibleChips
-        .map((chip) => {
-            const imgSrc = `${preRoute}img/bg/chips/${chip}.png`;
-            return `<div class="container-image-history">
-                        <img class="image-history" src="${imgSrc}" alt="${chip}">
-                    </div>`;
-        }).join('');
+    // Prepara las imágenes en un DocumentFragment
+    const fragment = document.createDocumentFragment();
 
-    // Carga imágenes antes de actualizar el DOM
-    const imagePromises = visibleChips.map((chip) => {
-        const img = new Image();
+    visibleChips.forEach(chip => {
+        const chipDiv = document.createElement('div');
+        chipDiv.className = 'container-image-history';
+
+        const img = document.createElement('img');
+        img.className = 'image-history';
         img.src = `${preRoute}img/bg/chips/${chip}.png`;
-        return new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-        });
+        img.alt = chip;
+        img.loading = 'lazy';
+
+        chipDiv.appendChild(img);
+        fragment.appendChild(chipDiv);
     });
 
-    Promise.all(imagePromises).then(() => {
-        $('#container-all-chips').html(infoHtml).css('visibility', 'visible');
+    chipsContainer.addClass('fade-out');
+
+    // Empieza preload
+    preloadImages(visibleChips).then(() => {
+        // Swap sin parpadeo
+        chipsContainer.removeClass('fade-out').empty().append(fragment);
+
         if (roomStatus > 2) adjustWidthBoxesHist();
-        // Configura la visibilidad de las flechas de navegación
-        $('#cont-left-arrow').toggleClass('hide-elem', posChip <= 0);
-        $('#cont-right-arrow').toggleClass('hide-elem', (posChip + totalItems) > arr.length);
+
+        // Control de flechas
+        leftArrow.toggleClass('hide-elem', posChip === 0);
+        rightArrow.toggleClass('hide-elem', (posChip + maxPerView) >= totalChips)
+            .css('opacity', '1');
+
+        // Mostrar contenedor
+        container.css('visibility', 'visible');
     });
 }
 
@@ -275,7 +287,14 @@ function getNewChip(newChip) {
         setTimeout(() => {
             showWinners(decryptJson(infoGame, r4nd0m), chpLast);
         }, 3500);
+
         endWin = 1;
+
+        if (true) {
+            setTimeout(() => {
+                window.location.reload();
+            }, 10000); // 10 segundos
+        }
     }
 }
 

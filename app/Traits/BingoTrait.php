@@ -1487,7 +1487,6 @@ trait BingoTrait
             $data = [];
             $status = 'ACTIVE';
 
-
             for ($i = 0; $i < $roundsCount; $i++) {
 
                 $numRound = $i + 1;

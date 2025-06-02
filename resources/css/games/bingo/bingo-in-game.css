@@ -326,6 +326,7 @@ body {
     height: 48px;
     display: flex;
     align-items: center;
+    visibility: hidden;
 }
 
 .cont-arrow-history-chips {
@@ -349,16 +350,22 @@ body {
     color: rgb(141, 0, 223);
 }
 
+.disabled-arrow {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: default !important;
+}
+
 #cont-left-arrow {
     padding-right: 0.75%;
 }
 
 #cont-right-arrow {
+    opacity: 0;
     padding-left: 0.75%;
 }
 
 #container-all-chips {
-    visibility: hidden;
     position: relative;
     background: rgb(17, 0, 48);
     border-radius: 15px;
@@ -367,6 +374,12 @@ body {
     align-items: center;
     width: auto;
     height: 100%;
+    opacity: 1;
+}
+
+#container-all-chips.fade-out {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .container-image-history {
