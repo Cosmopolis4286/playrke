@@ -17,10 +17,9 @@ return new class extends Migration
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->string('coin', 15);
             $table->double('sale_amount');
-            $table->double('final_sale_amount');
-            $table->double('room_commn');
-            $table->double('seller_commn');
             $table->double('rke_commn');
+            $table->double('room_commn');
+            $table->double('seller_commn')->nullable();
             $table->double('prize_pool_amount');
             $table->timestamps();
         });

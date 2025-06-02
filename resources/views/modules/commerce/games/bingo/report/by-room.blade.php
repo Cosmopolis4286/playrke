@@ -31,8 +31,7 @@
                                             // Cálculos de totales por vendedor
                                             $allCtnsSeller = $seller->CtnsLot->sum('ctns');
                                             $saleAmountSeller = $seller->CtnsLot->sum('sale_amount');
-                                            $finalSaleAmountSeller = $seller->CtnsLot->sum('final_sale_amount');
-                                            $comSaleSeller = $saleAmountSeller - $finalSaleAmountSeller;
+                                            $comSaleSeller = $seller->CtnsLot->sum('seller_commn');
 
                                             $roomCommn = round(($saleAmountSeller * $bingoConfig->room_commn) / 100, 2);
                                             $rkeCommn = round(($saleAmountSeller * $bingoConfig->rke_commn) / 100, 2);

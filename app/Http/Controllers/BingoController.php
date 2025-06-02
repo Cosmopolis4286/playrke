@@ -3021,7 +3021,7 @@ class BingoController extends Controller
                     'Config:room,date,time,ctn_price,rke_commn,room_commn',
                     'Status',
                     'CtnsLot' => function ($subquery) use ($creatorUser, $coin) {
-                        $subquery->select('room', 'coin', 'ctns', 'sale_amount', 'final_sale_amount')
+                        $subquery->select('room', 'coin', 'ctns', 'sale_amount', 'seller_commn')
                             ->where('creator_user', $creatorUser)
                             ->where('coin', $coin)->with('Coin');
                     }
@@ -3038,7 +3038,7 @@ class BingoController extends Controller
                 $query = BingoRoom::with([
                     'Config:room,time,date,ctn_price',
                     'CtnsLot' => function ($query) use ($sellerId, $coin) {
-                        $query->select('room', 'coin', 'ctns', 'sale_amount', 'final_sale_amount')
+                        $query->select('room', 'coin', 'ctns', 'sale_amount', 'seller_commn')
                             ->where('seller', $sellerId)->where('coin', $coin)->with('Coin');
                     }
                 ])->whereHas('CtnsLot', function ($query) use ($sellerId, $coin) {
@@ -3086,7 +3086,6 @@ class BingoController extends Controller
         $totals = collect([
             'ctns' => 0,
             'sales' => 0,
-            'finalSale' => 0,
             'roomCommn' => 0,
             'sellerCommn' => 0,
             'prizePool' => 0,
@@ -3097,8 +3096,7 @@ class BingoController extends Controller
         foreach ($rooms as $room) {
             $ctns = $room->CtnsLot->sum('ctns');
             $allSale = $room->CtnsLot->sum('sale_amount');
-            $finalSale = $room->CtnsLot->sum('final_sale_amount');
-            $sellerCommn = $allSale - $finalSale;
+            $sellerCommn = $room->CtnsLot->sum('seller_commn');
 
             $row = [
                 'encrypted' => $room->encrypted,
@@ -3119,12 +3117,12 @@ class BingoController extends Controller
                 $rkeCommn = $allSale * ($room->Config->rke_commn / 100);
                 $prizePool = $allSale - $roomCommn - $sellerCommn - $rkeCommn;
 
-                $row['finalSale'] = number_format($finalSale, 2, '.', ',');
                 $row['roomCommn'] = number_format($roomCommn, 2, '.', ',');
+                $row['sellerCommn'] = number_format($sellerCommn, 2, '.', ',');
                 $row['prizePool'] = number_format($prizePool, 2, '.', ',');
 
-                $totals['finalSale'] += $finalSale;
                 $totals['roomCommn'] += $roomCommn;
+                $totals['sellerCommn'] += $sellerCommn;
                 $totals['prizePool'] += $prizePool;
             }
 
@@ -3139,8 +3137,8 @@ class BingoController extends Controller
         ];
 
         if ($userType === 'commerce') {
-            $totalsFormatted['finalSale'] = number_format($totals['finalSale'], 2, '.', ',');
             $totalsFormatted['roomCommn'] = number_format($totals['roomCommn'], 2, '.', ',');
+            $totalsFormatted['sellerCommn'] = number_format($totals['sellerCommn'], 2, '.', ',');
             $totalsFormatted['prizePool'] = number_format($totals['prizePool'], 2, '.', ',');
             $view = 'modules.commerce.games.bingo.report.rooms';
         } else {
@@ -3210,7 +3208,6 @@ class BingoController extends Controller
         $totals = collect([
             'ctns' => 0,
             'sales' => 0,
-            'finalSale' => 0,
             'roomCommn' => 0,
             'sellerCommn' => 0,
             'prizePool' => 0,
@@ -3245,7 +3242,7 @@ class BingoController extends Controller
 
                 $playersRoom = PlayerLink::with([
                     'CtnsLot' => function ($query) use ($sellerId, $coin) {
-                        $query->select('room', 'room_user', 'coin', 'ctns', 'sale_amount', 'final_sale_amount')
+                        $query->select('room', 'room_user', 'coin', 'ctns', 'sale_amount', 'seller_commn')
                             ->where('seller', $sellerId)->where('coin', $coin);
                     }
                 ])->where('seller', $sellerId)->where('room', $roomID)->where('coin', $coin)

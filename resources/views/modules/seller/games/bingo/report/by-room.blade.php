@@ -29,7 +29,7 @@
                                     @foreach ($playersRoom as $player)
                                         @php
                                             $saleAmount = $player->CtnsLot->sum('sale_amount');
-                                            $commn = $saleAmount - $player->CtnsLot->sum('final_sale_amount');
+                                            $commn = $player->CtnsLot->sum('seller_commn');
                                             $totalCommn += $commn;
                                         @endphp
                                         <tr>

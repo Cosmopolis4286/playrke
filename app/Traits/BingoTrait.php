@@ -436,18 +436,14 @@ trait BingoTrait
     {
         $seller = $arrCtn['seller'] ?? null;
 
-        $finalSaleAmount = $saleAmount;
-
         if ($seller) {
             $sellerCommn = Seller::getValueById($seller, 'commn') / 100;
-            $finalSaleAmount = round($saleAmount * (1 - $sellerCommn), 2);
+            $sellerCommn = round($saleAmount * $sellerCommn, 2);
         }
 
         $creatorUser = $arrCtn['creator']['userId'];
         $roomID = $arrCtn['room'];
         $coin = $arrCtn['coin'];
-
-        $roomCommn = BingoRoomConfig::getValueByRoom($roomID, 'room_commn');
 
         $currentTime = now();
 
@@ -464,14 +460,14 @@ trait BingoTrait
                 'ctns' => $arrCtn['numOfCtns'],
                 'coin' => $coin,
                 'sale_amount' => $saleAmount,
-                'final_sale_amount' => $finalSaleAmount,
+                'seller_commn' => $sellerCommn ?? null,
                 'status' => 0,
                 'created_at' => $currentTime,
                 'updated_at' => $currentTime,
             ]);
 
             // Actualizar monto de venta total por monedas
-            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, $roomCommn, $coin, $saleAmount, $finalSaleAmount);
+            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, $coin, $saleAmount, $sellerCommn);
 
             return $BingoCtnsLotID;
         } catch (Exception $e) {
@@ -910,20 +906,6 @@ trait BingoTrait
         $recordsToInsert = [];
 
         $bingoCreatorSales = BingoCreatorSales::where('room', $roomID)->get();
-
-        //dd($bingoCreatorSales);
-
-        foreach ($bingoCreatorSales as $item) {
-
-            // solo sumar los pertenecientes de esa moneda y insertar en el array 
-            // despues hacer los mismos
-            $finalSaleAmount = $bingoCreatorSales->sum('final_sale_amount');
-
-            $recordsToInsert[] = [
-                'coin' => $item->coin,
-                'amount' => $finalSaleAmount
-            ];
-        }
 
         try {
         } catch (Exception $e) {

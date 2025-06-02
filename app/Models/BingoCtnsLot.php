@@ -18,7 +18,7 @@ class BingoCtnsLot extends Model
         'ctns',
         'coin',
         'sale_amount',
-        'final_sale_amount',
+        'seller_commn',
         'status'
     ];
 
