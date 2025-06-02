@@ -408,12 +408,13 @@ trait BingoTrait
         return BingoRoom::with('Config:room,game_mode')->select(
             'id',
             'players',
+            'ctns',
             'all_sale',
+            'rke_commn',
             'room_commn',
             'seller_commn',
             'prize_pool',
             'full_house_prize',
-            'ctns'
         )->where('status', 2)->where('id', $roomID)->first();
     }
 
@@ -432,7 +433,7 @@ trait BingoTrait
     }
 
     // Función para crear el lote de cartones
-    private function createCtnsLot($arrCtn, $exchangeRate, $saleAmount)
+    private function createCtnsLot($arrCtn, $saleAmount)
     {
         $seller = $arrCtn['seller'] ?? null;
 
@@ -455,10 +456,10 @@ trait BingoTrait
                 'player_user' => $arrCtn['playerUser'] ?? null,
                 'room_user' => $arrCtn['roomUser'],
                 'room' => $roomID,
-                'ctn_price' => $arrCtn['ctnPrice'],
-                'exchange_rate' => $exchangeRate,
                 'ctns' => $arrCtn['numOfCtns'],
                 'coin' => $coin,
+                'ctn_price' => $arrCtn['ctnPrice'],
+                'exchange_rate' => $arrCtn['exchangeRate'],
                 'sale_amount' => $saleAmount,
                 'seller_commn' => $sellerCommn ?? null,
                 'status' => 0,
@@ -591,11 +592,11 @@ trait BingoTrait
         try {
             // Definir los valores por defecto para crear un nuevo registro
             $defaults = [
-                'room'         => $arrCtn['room'],
+                'room' => $arrCtn['room'],
                 'creator_user' => $arrCtn['creator']['userId'],
-                'player_user'  => $arrCtn['playerUser'] ?? null,
-                'ctns'         => $arrCtn['numOfCtns'],
-                'automarker'   => 1,
+                'player_user' => $arrCtn['playerUser'] ?? null,
+                'ctns' => $arrCtn['numOfCtns'],
+                'automarker' => 1,
             ];
 
             // Buscar o crear el usuario en la sala
@@ -620,11 +621,10 @@ trait BingoTrait
     {
         try {
             // Recalcular venta y comisiones en base a USDT
-            if (!empty($arrCtn['exchangeRate'])) {
-                $exchangeRate = $arrCtn['exchangeRate'];
-                $saleAmount = round($saleAmount / $exchangeRate, 3);
-                $sellerSaleCommn = round($sellerSaleCommn / $exchangeRate, 3);
-            }
+            $exchangeRate = $arrCtn['exchangeRate'];
+
+            $saleAmount = round($saleAmount / $exchangeRate, 3);
+            $sellerSaleCommn = round($sellerSaleCommn / $exchangeRate, 3);
 
             $bingoConfig = BingoRoomConfig::getByRoom($room->id, ['rke_commn', 'room_commn', 'prize_pool_type']);
 
@@ -720,15 +720,16 @@ trait BingoTrait
                 $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $roomID);
             }
 
-            // Evaluar tasa de cambio
-            if ($creator['type'] === 'customer') {
-                $exchangeRate = CustomerExchangeRate::getCustomerCoinValue($arrCtn['customer'], $coin) ?? 1;
-            } else {
-                $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creator['id'], $coin) ?? 1;
+            // Actualizar acumulado y comisiones de la sala
+            $updateRoomMetrics = $this->updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn ?? 0);
+
+            // Verificar si se actualizó los valores de la sala
+            if (!$updateRoomMetrics) {
+                return ['Error' => 'Error al actualizar los valores de la sala'];
             }
 
             // Crear lote de cartones
-            $lotID = $this->createCtnsLot($arrCtn, $exchangeRate, $saleAmount);
+            $lotID = $this->createCtnsLot($arrCtn, $saleAmount);
 
             // Generar y almacenar los cartones de bingo
             $generateAndStoreCtns = $this->generateAndStoreCtns($arrCtn, $lotID);
@@ -749,14 +750,6 @@ trait BingoTrait
                 if ($walletUpdated === 0) {
                     return ['Error' => 'Error al descontar saldo del usuario'];
                 }
-            }
-
-            // Actualizar acumulado y comisiones de la sala
-            $updateRoomMetrics = $this->updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn ?? 0);
-
-            // Verificar si se actualizó los valores de la sala
-            if (!$updateRoomMetrics) {
-                return ['Error' => 'Error al actualizar los valores de la sala'];
             }
 
             // Definir variables dobre el juego

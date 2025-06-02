@@ -372,7 +372,7 @@ class BingoController extends Controller
                     return ['Error' => 'Saldo insuficiente'];
                 }
 
-                $data['exchangeRate'] = $exchangeRate;
+                $data['exchangeRate'] = round($exchangeRate, 2);
             } else {
                 if ($request->purchase_code && !UserPurchaseCodes::existsPurchaseCode($request->purchase_code)) {
                     return ['Error' => 'Código de Compra no existe'];
@@ -428,7 +428,7 @@ class BingoController extends Controller
         $arrInitials = $this->initialCharacters([$data['playerName'], $data['playerLastName']]);
         $data['initials'] =  $arrInitials[0] . $arrInitials[1];
 
-        $data['exchangeRate'] = CommerceExchangeRate::getCommerceCoinValue($commerce, $data['coin']);
+        $data['exchangeRate'] = round(CommerceExchangeRate::getCommerceCoinValue($commerce, $data['coin']), 2);
 
         return $data;
     }
