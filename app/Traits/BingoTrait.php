@@ -362,7 +362,7 @@ trait BingoTrait
         $roomID = BingoRoom::getValueByEncrypted($room, 'id');
 
         //Obtener Conteo de Ganadores
-        $countWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1);
+        $countWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'Cartón Lleno');
 
         if (!$countWinnersJackpot) $this->handleWinners($roomID);
 
@@ -372,7 +372,7 @@ trait BingoTrait
             $bingoPlaysWinners = [];
         }
 
-        $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2)) ?
+        $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'SERIAL')) ?
             $this->getWinnersSerials($roomID, $roomUser, $coin) : [];
 
         $serialPrizePct = BingoRoomConfig::getValueByRoom($roomID, 'serials_pct');
@@ -1048,19 +1048,29 @@ trait BingoTrait
 
         // Verificar si ya hay ganadores del premio mayor
         if (
-            BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 1) &&
+            BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'Cartón Lleno') &&
             BingoRoomUser::getWinnersCountByRoom($roomID)
         ) {
             return false;
         }
 
         $prizePool = $room->prize_pool;
+        $serialsPct = $room->Config->serials_pct;
         $bingoRounds = BingoRounds::where('room', $roomID)->get();
+        $roundsCount = $bingoRounds->count();
 
         foreach ($bingoRounds as $item) {
 
             $round = $item->round;
-            $roundPrizeValue = round(($prizePool * $item->prize_value) / 100, 2);
+
+            $roundPrizeValue = ($prizePool * $item->prize_value) / 100;
+
+            if ($round === $roundsCount && $serialsPct) {
+                $roundPrizeValue -= ($prizePool * $serialsPct) / 100;
+                $hasSerialsPct = true;
+            }
+
+            $roundPrizeValue = round($roundPrizeValue, 2);
 
             $lastChip = BingoDraws::where('room', $roomID)
                 ->where('round', $round)->where('status', 3)
@@ -1096,7 +1106,14 @@ trait BingoTrait
             DB::beginTransaction();
 
             try {
+
                 $winnerJackpotPrize = $roundPrizeValue / max(1, count($ctnsJackpot));
+
+                // Verificar si es la ultima ronda y se aplico premio por seriales
+                if (isset($hasSerialsPct)) {
+                    $serialPrize = round(($prizePool * $serialsPct) / 100, 2);
+                    $serialWinners = $this->handleSerialWinners($roomID, $serialPrize, $roomUserIds);
+                }
 
                 $registerPrizeCtn = $this->registerPrizeCtn(
                     $roomID,
@@ -1111,7 +1128,7 @@ trait BingoTrait
                     continue;
                 }
 
-                if ($round === $bingoRounds->count()) {
+                if ($round === $roundsCount) {
                     BingoRoom::where('id', $roomID)->update(['close_room' => now()->timestamp]);
                 }
 
@@ -1154,7 +1171,7 @@ trait BingoTrait
     {
         try {
 
-            $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 2);
+            $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'SERIAL');
 
             if ($getWinners) return false;
 

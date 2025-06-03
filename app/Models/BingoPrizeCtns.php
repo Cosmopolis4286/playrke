@@ -108,6 +108,7 @@ class BingoPrizeCtns extends Model
 
     public static function getWinnersCountByPrizeType($room, $prizeType)
     {
+        $prizeType = GamePrizes::getValueByDescription('BINGO', $prizeType);
         return self::where(['room' => $room, 'prize_type' => $prizeType])->count();
     }
 

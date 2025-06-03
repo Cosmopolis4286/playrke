@@ -68,7 +68,7 @@ class HandleBingoRooms
     {
         $this->determineRoundsStatus($room->id);
 
-        if (!BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 1)) {
+        if (!BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 'Cartón Lleno')) {
             $this->handleWinners($room->id);
         } else {
             $this->allWinCtnPaid($room->id);
