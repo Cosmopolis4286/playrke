@@ -45,13 +45,7 @@ class HandleBingoRooms
 
         if (!isset($status['Error'])) {
             BingoRoom::where('id', $roomID)->update(['status' => $status]);
-
-            if ($status == 4) {
-                BingoRounds::where('room', $roomID)->where('status', 'IN PROGRESS')
-                    ->update(['status' => 'COMPLETED']);
-            }
-
-            $this->determineRoundsStatus($roomID);
+            $this->determineRoundsStatus($roomID, $status);
         } else {
             Log::info($status['Error'] . ": Sala [ID => $roomID]");
         }
@@ -66,7 +60,7 @@ class HandleBingoRooms
 
     private function processFinishedRoom($room): void
     {
-        $this->determineRoundsStatus($room->id);
+        $this->determineRoundsStatus($room->id, 4);
 
         if (!BingoPrizeCtns::getWinnersCountByPrizeType($room->id, 'Cartón Lleno')) {
             $this->handleWinners($room->id);
@@ -99,7 +93,7 @@ class HandleBingoRooms
         }
     }
 
-    private function determineRoundsStatus(int $roomID): void
+    private function determineRoundsStatus(int $roomID, int $roomStatus): void
     {
         date_default_timezone_set(config('app.timezone'));
 
@@ -128,11 +122,11 @@ class HandleBingoRooms
                     ->where('status', 'IN PROGRESS')
                     ->update(['status' => 'COMPLETED']);
 
-                // Activar esta ronda
-                BingoRounds::where('id', $round->id)
-                    ->update(['status' => 'IN PROGRESS']);
+                $newStatus = $roomStatus == 4 ? 'COMPLETED' : 'IN PROGRESS';
 
-                // Solo activar una ronda por ciclo
+                BingoRounds::where('id', $round->id)
+                    ->update(['status' => $newStatus]);
+
                 break;
             }
         }
