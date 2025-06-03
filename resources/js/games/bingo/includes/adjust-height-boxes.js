@@ -1,17 +1,18 @@
 function adjustHeightBoxes() {
-    let widthNumberBox = $('.number-box').first().width();
+    const widthNumberBox = $('.number-box').first().width();
     $('.number-box').height(widthNumberBox);
+    $('.container-carton').css('visibility', 'visible');
 }
 
-$(function () {
+if (roomStatus == 2) {
+    $(function () {
 
-    if (roomStatus != 2) return;
-
-    adjustHeightBoxes();
-    $('.container-carton').css('visibility', 'visible');
-
-    window.addEventListener('resize', () => {
         adjustHeightBoxes();
+
+        window.addEventListener('resize', () => {
+            adjustHeightBoxes();
+        });
     });
-});
+}
+
 window.adjustHeightBoxes = adjustHeightBoxes;

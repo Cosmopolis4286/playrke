@@ -12,6 +12,7 @@
                 <span id="prize-pool-amount">{{ $prizePool ?? 0 }}</span>
             </div>
         </div>
+        <div id="container-round">Ronda<span id="num-round">#{{ $round }}</span></div>
     </div>
     <div id="cont-bingo-info-extras">
         <div id="cont-game-mode-opcs">

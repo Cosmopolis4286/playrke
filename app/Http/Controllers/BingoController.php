@@ -718,7 +718,7 @@ class BingoController extends Controller
         // Verificar Cierre de Sala
         (new HandleBingoRooms())->checkRoomClosure($roomID);
 
-        $room = BingoRoom::with('Config:room,date,time,prize_pool_type')
+        $room = BingoRoom::with('Config:room,date,time,prize_pool_type,rounds')
             ->select('id', 'status', 'encrypted')->where('id', $roomID)->first();
 
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];

@@ -239,6 +239,28 @@ body {
     height: auto;
 }
 
+#container-round {
+    margin-right: 2%;
+    position: absolute;
+    display: flex;
+    /* flex-direction: column; */
+    justify-content: center;
+    align-items: center;
+    top: 50%;
+    right: 0%;
+    transform: translate(0%, -50%);
+    text-transform: uppercase;
+    line-height: 138%;
+    font-weight: bold;
+    font-size: clamp(12.5px, 1.15vw, 1.38vw);
+}
+
+#num-round{
+    margin: 0% 5.5%;
+    font-size: 118%;
+    color: #161616;
+}
+
 #cont-prize-pool-type {
     font-weight: bold;
     font-size: 72.75%;
@@ -291,7 +313,6 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-
     height: 100%;
 }
 
@@ -391,7 +412,7 @@ body {
     height: 100%;
 }
 
-/*Seccion Carrusel*/
+/*Fin Seccion Carrusel*/
 
 .container-carton {
     width: auto;

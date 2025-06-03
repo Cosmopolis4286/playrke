@@ -58,7 +58,7 @@ trait GameTrait
                         'game' => $gameID,
                         'room' => $room,
                         'coin' => $coin,
-                        'exchange_rate' => $roomExchangeRate,
+                        'exchange_rate' => round($roomExchangeRate, 2),
                         'created_at' => $timestamp,
                         'updated_at' => $timestamp
                     ];

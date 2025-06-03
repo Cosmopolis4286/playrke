@@ -41,10 +41,10 @@
 
     <script>
         const preRoute = '{{ asset('') }}';
-        const logo = `{{ $customerLogo ?? 'img/rke.png' }}`;
-        const encrypted = '{{ $room->encrypted }}';
-        const roomStatus = '{{ $room->status }}';
-        const coinSym = '{{ $coinSym }}';
+        const logo = @json($customerLogo ?? 'img/rke.png');
+        const encrypted = @json($room->encrypted);
+        const roomStatus = @json($room->status);
+        const coinSym = @json($coinSym);
         const chpLast = @json($vanDraw);
         const player = @json($player);
         const encrypt = @json($encrypt);
@@ -71,6 +71,7 @@
     @if ($room->status > 2)
         <script>
             const round = @json($round);
+            const numRounds = @json($room->Config->rounds);
             const startTime = @json($startTime);
             const soundNext = $('#next')[0];
             const soundWin = $('#winner')[0];

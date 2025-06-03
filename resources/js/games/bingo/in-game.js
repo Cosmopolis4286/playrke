@@ -127,7 +127,7 @@ function renderChipsView(arrow) {
 
 // Ajustar tamaño de las casillas
 function adjustHeightBoxesCtnAward() {
-    let widthNumberBoxViewCtn = $('.number-box-view-ctn').first().width();
+    const widthNumberBoxViewCtn = $('.number-box-view-ctn').first().width();
     $('.number-box-view-ctn').height(widthNumberBoxViewCtn);
 }
 
@@ -290,7 +290,7 @@ function getNewChip(newChip) {
 
         endWin = 1;
 
-        if (true) {
+        if (round > 1 && round < numRounds) {
             setTimeout(() => {
                 window.location.reload();
             }, 10000); // 10 segundos
@@ -299,7 +299,9 @@ function getNewChip(newChip) {
 }
 
 function getWinners(arrInfo, arrSize) {
+
     let content = '';
+
     for (let i = 0; i < arrSize; i++) {
 
         let img = arrInfo.photo ? `private/user/img/${arrInfo.photo[i]}` : logo;
@@ -340,20 +342,20 @@ function showWinners(arrInfo, chipWin) {
         });
 
         if (arrSizefullHouse > 0) {
-            let content = getWinners(arrInfo.fullHouseWinners, arrSizefullHouse);
+            const content = getWinners(arrInfo.fullHouseWinners, arrSizefullHouse);
             $('#full-house-winners').html(content);
             $('#full-house-value').text(arrInfo.prizesValues[0]);
         }
 
         if (arrSizeBingoPlays > 0) {
-            let content = getWinners(arrInfo.bingoPlaysWinners, arrSizeBingoPlays);
+            const content = getWinners(arrInfo.bingoPlaysWinners, arrSizeBingoPlays);
             $('#bingo-plays-winners').html(content);
             $('#bingo-plays-value').text(arrInfo.prizesValues[1]);
             $('#cont-bingo-plays').removeClass('hide-elem');
         }
 
         if (arrSizeSerials > 0) {
-            let content = getWinners(arrInfo.serialsWinners, arrSizeSerials);
+            const content = getWinners(arrInfo.serialsWinners, arrSizeSerials);
             $('#serials-winners').html(content);
             $('#serial-value').text(arrInfo.prizesValues[1]);
             $('#cont-serials').removeClass('hide-elem');
@@ -417,14 +419,11 @@ $(function () {
 
     try {
 
-        if (player) {
-            adjustHeightBoxes();
-            $('.container-carton').css('visibility', 'visible');
-        }
+        adjustHeightBoxes();
 
         window.addEventListener('resize', () => {
 
-            if (player) adjustHeightBoxes();
+            adjustHeightBoxes();
 
             if (roomStatus > 2) {
                 renderChipsView();
