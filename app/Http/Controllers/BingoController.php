@@ -951,10 +951,10 @@ class BingoController extends Controller
         ];
     }
 
-    public function getResult($data, $roomUser, $randomKey)
+    public function getResult(array $data, $roomUser, $randomKey)
     {
         // Obtener la información de los ganadores
-        $winnersInfo = self::getInfoWinners($data['room'], $roomUser, $data['coin']);
+        $winnersInfo = self::getInfoWinners($data, $roomUser);
 
         // Encriptar los datos de los ganadores
         $encryptedData = self::encryptData($winnersInfo, $randomKey);
