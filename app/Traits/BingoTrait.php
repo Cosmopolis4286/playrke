@@ -859,18 +859,14 @@ trait BingoTrait
 
         try {
 
-            if (!$playersToUpdate && !$recordsToInsert) return;
+            if (!$playersToUpdate || !$recordsToInsert) return;
 
-            if ($playersToUpdate) {
-                // Actualizar el estado del jugador 
-                BingoRoomUser::where('room', $roomID)->whereIn('id', $playersToUpdate)
-                    ->where('winner', 0)->update(['winner' => 1]);
-            }
+            // Actualizar el estado del jugador 
+            BingoRoomUser::where('room', $roomID)
+                ->whereIn('id', $playersToUpdate)->update(['winner' => '1']);
 
-            if ($recordsToInsert) {
-                //Insertar los registros de una sola vez
-                BingoPrizeCtns::insert($recordsToInsert);
-            }
+            //Insertar los registros de una sola vez
+            BingoPrizeCtns::insert($recordsToInsert);
 
             if ($roomType === 'PB') {
                 // Manejar los pagos pendientes de los BingoRoomCreators
@@ -1042,10 +1038,10 @@ trait BingoTrait
 
             $roundPrizeValue = ($prizePool * $item->prize_value) / 100;
 
-            if ($round === $roundsCount && $serialsPct) {
-                $roundPrizeValue -= ($prizePool * $serialsPct) / 100;
-                $hasSerialsPct = true;
-            }
+            // if ($round === $roundsCount && $serialsPct) {
+            //     $roundPrizeValue -= ($prizePool * $serialsPct) / 100;
+            //     $hasSerialsPct = true;
+            // }
 
             $roundPrizeValue = round($roundPrizeValue, 2);
 
