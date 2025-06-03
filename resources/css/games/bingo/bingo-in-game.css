@@ -1,3 +1,4 @@
+/* bingo-in-game.css */
 @import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
@@ -12,6 +13,7 @@
 
 body {
     font-family: 'Poppins', sans-serif !important;
+    background-image: url("{{ asset('img/body/space.png') }}") !important;
 }
 
 * {
@@ -30,26 +32,24 @@ body {
     aspect-ratio: 1;
     border-radius: 50%;
     background: #25b09b;
-    --_m:
-        conic-gradient(#0000 10%, #000),
-        linear-gradient(#000 0 0) content-box;
+    --_m: conic-gradient(#0000 10%, #000), linear-gradient(#000 0 0) content-box;
     -webkit-mask: var(--_m);
     mask: var(--_m);
     -webkit-mask-composite: source-out;
     mask-composite: subtract;
-    animation: l3 1s infinite linear;
+    animation: l3 1s linear infinite;
 }
 
 @keyframes l3 {
     to {
-        transform: rotate(1turn)
+        transform: rotate(1turn);
     }
 }
 
 #cont-last-chips {
     position: relative;
     display: flex;
-    justify-content: left;
+    justify-content: flex-start;
     flex-wrap: nowrap;
     gap: auto;
     height: 88px;
@@ -75,7 +75,7 @@ body {
     transform: translate(-3.15%, -3.15%);
     font-weight: 600;
     color: #f8fafc;
-    padding: 0% 0.85%;
+    padding: 0 0.85%;
     border-radius: 7px;
     background-color: #0c0074a6;
     z-index: 999;
@@ -113,12 +113,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
     height: auto;
     padding: 4px;
     font-size: 18.5px;
     font-weight: 700;
     width: 100%;
+    text-align: center;
 }
 
 .cont-time-clock {
@@ -146,11 +146,7 @@ body {
     line-height: 20px;
 }
 
-#full-house-winners {
-    max-height: 150.5px;
-    overflow-y: auto;
-}
-
+#full-house-winners,
 #serials-winners {
     max-height: 150.5px;
     overflow-y: auto;
@@ -208,7 +204,7 @@ body {
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: left;
+    justify-content: flex-start;
     width: 70%;
     height: 100%;
 }
@@ -216,47 +212,46 @@ body {
 #cont-prize-chest {
     display: flex;
     align-items: center;
-    width: auto;
-    height: 100%;
     padding: 0.5%;
+    height: 100%;
+    width: auto;
 }
 
 #image-prize-chest {
-    width: auto;
     max-height: 100%;
+    width: auto;
 }
 
 #cont-prize-pool-info-amount {
     color: antiquewhite;
     font-size: 200%;
     line-height: 28px;
-    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: left;
+    align-items: flex-start;
     width: auto;
     height: auto;
+    position: relative;
 }
 
 #container-round {
-    margin-right: 2%;
     position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translate(0%, -50%);
+    margin-right: 2%;
     display: flex;
-    /* flex-direction: column; */
     justify-content: center;
     align-items: center;
-    top: 50%;
-    right: 0%;
-    transform: translate(0%, -50%);
     text-transform: uppercase;
     line-height: 138%;
     font-weight: bold;
     font-size: clamp(12.5px, 1.15vw, 1.38vw);
 }
 
-#num-round{
-    margin: 0% 5.5%;
+#num-round {
+    margin: 0 5.5%;
     font-size: 118%;
     color: #161616;
 }
@@ -272,6 +267,9 @@ body {
     justify-content: center;
     align-items: center;
     font-family: 'Alfa Slab One', cursive;
+    font-weight: 500;
+    color: #fff;
+    font-size: clamp(20px, 2.15vw, 2.5vw);
 }
 
 #prize-pool-coin-sym {
@@ -279,16 +277,10 @@ body {
     color: rgb(231, 231, 231);
 }
 
-#prize-pool-amount {
-    font-weight: 500;
-    color: rgb(255, 255, 255);
-    font-size: clamp(20px, 2.15vw, 2.5vw);
-}
-
 #cont-bingo-info-extras {
     position: relative;
     display: flex;
-    justify-content: right;
+    justify-content: flex-end;
     width: 30%;
     height: 100%;
 }
@@ -296,7 +288,7 @@ body {
 #cont-image-publish {
     position: relative;
     display: flex;
-    justify-content: right;
+    justify-content: flex-end;
     align-items: center;
     width: auto;
     height: 100%;
@@ -304,8 +296,8 @@ body {
 }
 
 #image-publish {
-    width: auto;
     height: 60px;
+    width: auto;
 }
 
 #cont-game-mode-opcs {
@@ -317,30 +309,24 @@ body {
 }
 
 #text-game-mode {
-    width: auto;
-    height: auto;
     color: white;
     font-weight: bold;
-    padding-left: 6px;
-    padding-right: 6px;
+    padding: 0 6px;
     border-radius: 15px;
     background: linear-gradient(to bottom, #e2122bf6, rgb(184, 0, 61));
     display: flex;
     align-items: center;
-    /* Centra verticalmente */
     justify-content: center;
-    /* Centra horizontalmente */
     text-align: center;
     font-size: clamp(12px, 1.12vw, 1.35vw);
-    /* Tamaño de fuente flexible */
     word-break: break-word;
-    /* Rompe palabras largas si es necesario */
     overflow-wrap: break-word;
     overflow: hidden;
+    width: auto;
+    height: auto;
 }
 
-
-/*Seccion Carrusel*/
+/* Sección Carrusel */
 #container-history-chips {
     position: relative;
     width: 100%;
@@ -364,7 +350,7 @@ body {
 .arrow {
     color: rgb(94, 0, 170);
     font-size: 25px;
-    transition: 3.5ms ease;
+    transition: color 0.0035s ease;
 }
 
 .arrow:hover {
@@ -382,8 +368,8 @@ body {
 }
 
 #cont-right-arrow {
-    opacity: 0;
     padding-left: 0.75%;
+    opacity: 0;
 }
 
 #container-all-chips {
@@ -396,6 +382,7 @@ body {
     width: auto;
     height: 100%;
     opacity: 1;
+    transition: opacity 0.3s ease;
 }
 
 #container-all-chips.fade-out {
@@ -410,101 +397,30 @@ body {
 .image-history {
     width: 100%;
     height: 100%;
-}
-
-/*Fin Seccion Carrusel*/
-
-.container-carton {
-    width: auto;
-    visibility: hidden;
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    background-color: rgb(226, 235, 255);
-    margin-bottom: 0;
-}
-
-.section-serial {
-    margin-top: 0;
-    width: 100%;
-    text-align: center;
-    background-color: rgb(209, 219, 243);
-}
-
-.container-view-carton {
-    width: auto;
-    margin-bottom: -1%;
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    background-color: rgb(226, 235, 255);
-}
-
-.section-letter {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-
-.number-box-letter {
-    color: var(--gray-950);
-    background-color: var(--white);
-    position: relative;
-    font-size: 145%;
-    width: 100%;
-    height: auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.number-box,
-.number-box-view-ctn {
-    position: relative;
-    font-size: 112%;
-    display: flex;
-    width: 100%;
-    height: auto;
-    justify-content: center;
-    align-items: center;
-    border: 1px solid var(--white);
-}
-
-.number-box-number {
-    width: 100%;
-    height: 100%;
-    padding-top: 3px;
-    color: var(--gray-900);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.img-logo-ctn {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    max-width: 72.5%;
-    max-height: 72.5%;
-}
-
-.number-box-circle {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    height: 80%;
-    width: 80%;
-    z-index: 999;
-    padding-top: 1.75px;
-    color: var(--white);
-    border: 2px solid #cf1002d5;
-    background: linear-gradient(to bottom, #d60f26, rgb(177, 1, 60));
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    max-width: 48px;
+    max-height: 48px;
     border-radius: 50%;
+}
+
+.container-image-history:hover .text-history-chips {
+    display: flex;
+}
+
+.text-history-chips {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000d;
+    border-radius: 7px;
+    padding: 2px 6px;
+    font-size: 11px;
+    color: #fff;
+    display: none;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.hidden {
+    display: none !important;
 }
