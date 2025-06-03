@@ -366,14 +366,14 @@ trait BingoTrait
 
         if (!$countWinnersJackpot) $this->handleWinners($roomID);
 
-        $fullHouseWinners = $this->getWinnersFullHouse($roomID, $roomUser, $coin);
+        $fullHouseWinners = $this->getWinners('FULL HOUSE', $roomID, $roomUser, $coin);
 
         if (BingoRoomConfig::getValueByRoom($roomID, 'play_types')) {
             $bingoPlaysWinners = [];
         }
 
         $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'SERIAL')) ?
-            $this->getWinnersSerials($roomID, $roomUser, $coin) : [];
+            $this->getWinners('SERIAL', $roomID, $roomUser, $coin) : [];
 
         $serialPrizePct = BingoRoomConfig::getValueByRoom($roomID, 'serials_pct');
 
@@ -919,7 +919,7 @@ trait BingoTrait
         return $coin;
     }
 
-    public function getWinnersData($roomID, $prizeType, $roomUser = '')
+    public function getWinnersData($prizeType, $roomID, $roomUser = false)
     {
         $room = BingoRoom::select('creator_user')->where('id', $roomID)
             ->where('status', '>=', 3)->first();
@@ -927,19 +927,19 @@ trait BingoTrait
         if (!$room) return ['Error' => 'Sala no disponible'];
 
         // Definir $prizeType
-        $prizeType = $prizeType === 'JACKPOT' ? 1 : 2;
+        $prizeType = GamePrizes::getValueByDescription('BINGO', $prizeType);
 
-        // Obtener todos los ganadores por tipo de premio 
-        $winners = BingoRoomUser::with(['PrizeCtns:creator_user,room_user,prize_type,ctn,amount'])
-            ->whereHas('PrizeCtns', function ($query) use ($prizeType) {
-                $query->where('prize_type', $prizeType);
-            })->where('room', $roomID)->where('winner', '>', 0)->get();
+        // Obtener todos los cartones ganadores por tipo de premio 
+        $winners = BingoPrizeCtns::where('room', $roomID)->where('prize_type', $prizeType)
+            ->get(['room_user', 'ctn', 'prize_type', 'usd_amount', 'amount']);
 
         if ($roomUser) {
             // Obtener el creador de la sala
             $creator['type'] = User::getValueById($room->creator_user, 'user_type');
 
             $userType = UserType::getValueById($creator['type'], 'prefix');
+
+            dd($userType);
 
             // Obtener la moneda del jugador
             $coin = $this->getCoinByPlayer($userType, $roomUser);
@@ -948,22 +948,26 @@ trait BingoTrait
             $winPlayer = BingoRoomUser::where('room', $roomID)->where('winner', 1)->exists();
         }
 
-        // Obtener Premio a repartir en seriales 
-        $serialPrize = BingoRoom::where('id', $roomID)->value('serial_prize');
-
         return [
-            'serialPrize' => $serialPrize,
-            'winners' => $winners,
+            'coin' => $coin ?? 1,
+            'prizeCtns' => $winners,
             'winPlayer' => $winPlayer ?? false,
-            'coin' => $coin ?? 1
         ];
     }
 
-    public function getArrayWinnersData($exchangeRate, $winPlayer, $winners)
+    public function getArrayWinnersData($data)
     {
         $infoPlayer = ['size' => 0, 'name' => [], 'gain' => [], 'ctn' => []];
 
-        foreach ($winners as $player) {
+        $exchangeRate = 1;
+        $coin = $coin ? $coin : $data['coin'];
+
+        if (!$data['winPlayer']) {
+            $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin) ?? 1;
+        }
+
+        dd($winners);
+        foreach ($prizeCtns as $ctn) {
 
             $ctnId = optional($player->PrizeCtns[0])->ctn;
 
@@ -1107,11 +1111,11 @@ trait BingoTrait
 
             try {
 
-                $winnerJackpotPrize = $roundPrizeValue / max(1, count($ctnsJackpot));
+                $winnerJackpotPrize = round($roundPrizeValue / max(1, count($ctnsJackpot)), 3);
 
                 // Verificar si es la ultima ronda y se aplico premio por seriales
                 if (isset($hasSerialsPct)) {
-                    $serialPrize = round(($prizePool * $serialsPct) / 100, 2);
+                    $serialPrize = round(($prizePool * $serialsPct) / 100, 3);
                     $serialWinners = $this->handleSerialWinners($roomID, $round, $serialPrize, $roomUserIds);
                 }
 
@@ -1147,24 +1151,14 @@ trait BingoTrait
         }
     }
 
-    public function getWinnersFullHouse($roomID, $roomUser, $coin)
+    public function getWinners(string $prizetype, int $roomID, $roomUser, $coin)
     {
-        $data = $this->getWinnersData($roomID, 'JACKPOT', $roomUser);
+        $data = $this->getWinnersData($prizetype, $roomID, $roomUser);
 
         // Si existe algun error
         if (isset($data['Error'])) return $data['Error'];
 
-        // Si no hay ganadores en la sala
-        if (!count($data['winners'])) $this->handleWinners($roomID);
-
-        $exchangeRate = 1;
-        $coin = $coin ? $coin : $data['coin'];
-
-        if (!$data['winPlayer']) {
-            $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin) ?? 1;
-        }
-
-        return $this->getArrayWinnersData($exchangeRate, $data['winPlayer'], $data['winners']);
+        return $this->getArrayWinnersData($data);
     }
 
     public function handleSerialWinners($roomID, $round, $serialPrize, $roomUserIds)
@@ -1279,23 +1273,6 @@ trait BingoTrait
             Log::error('Error en handleSerialWinners(): ' . $e->getMessage());
             return false;
         }
-    }
-
-    public function getWinnersSerials($roomID, $roomUser, $coin) // Obtener Seriales Ganadores
-    {
-        $data = $this->getWinnersData($roomID, 'SERIAL', $roomUser);
-
-        // Si existe algun error
-        if (isset($data['Error'])) return $data['Error'];
-
-        $exchangeRate = 1;
-        $coin = $coin ? $coin : $data['coin'];
-
-        if (!$data['winPlayer']) {
-            $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin) ?? 1;
-        }
-
-        return $this->getArrayWinnersData($exchangeRate, $data['winPlayer'], $data['winners']);
     }
 
     // Obtener Informacion de un carton especifico (encriptado)
