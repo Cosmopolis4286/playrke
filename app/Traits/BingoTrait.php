@@ -1112,7 +1112,7 @@ trait BingoTrait
                 // Verificar si es la ultima ronda y se aplico premio por seriales
                 if (isset($hasSerialsPct)) {
                     $serialPrize = round(($prizePool * $serialsPct) / 100, 2);
-                    $serialWinners = $this->handleSerialWinners($roomID, $serialPrize, $roomUserIds);
+                    $serialWinners = $this->handleSerialWinners($roomID, $round, $serialPrize, $roomUserIds);
                 }
 
                 $registerPrizeCtn = $this->registerPrizeCtn(
@@ -1167,15 +1167,13 @@ trait BingoTrait
         return $this->getArrayWinnersData($exchangeRate, $data['winPlayer'], $data['winners']);
     }
 
-    public function handleSerialWinners($roomID, $serialPrize, $roomUserIds) // Obtener Seriales Ganadores
+    public function handleSerialWinners($roomID, $round, $serialPrize, $roomUserIds)
     {
         try {
-
+            // Obtener Seriales Ganadores
             $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'SERIAL');
 
             if ($getWinners) return false;
-
-            $round = BingoRounds::getRoundInProgress($roomID);
 
             // Obtener la última ficha ganadora
             $lastChip = BingoDraws::where('room', $roomID)->where('status', 3)
