@@ -133,8 +133,8 @@ trait GameTrait
 
     public function formatAmount($amount, $type)
     {
-        // Truncar a 2 decimales sin redondear
-        $truncated = floor($amount * 100) / 100;
+        // Truncar a 2 decimales 
+        $truncated = round($amount, 2);
 
         if ($type === 'string') {
             // Formatear como string con separador de miles y 2 decimales

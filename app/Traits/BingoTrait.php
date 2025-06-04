@@ -788,7 +788,7 @@ trait BingoTrait
         }
     }
 
-    public function convertPrizeValue($roomID, $coin, $value, $float = false)
+    public function convertPrizeValue($roomID, $coin, $value)
     {
         $room = BingoRoom::getById($roomID, ['creator_user', 'prize_pool']);
 
@@ -823,8 +823,7 @@ trait BingoTrait
                 // Multiplicamos por el exchangeRate
                 $convertedAmount = $USDValue * $exchangeRate;
 
-                // Usamos floor() para truncar y luego formateamos a 2 decimales
-                $prizeAmount = floor($convertedAmount * 100) / 100;
+                $prizeAmount = round($convertedAmount, 2);
 
                 $timestamp = now();
 
@@ -950,8 +949,7 @@ trait BingoTrait
             // Obtener ID del carton
             $ctnId = $prizeCtn->ctn;
 
-            // Calcular el monto dependiendo del tipo de jugador
-            $amount = floor($prizeCtn->usd_amount * $exchangeRate * 100) / 100;
+            $amount = round(($prizeCtn->usd_amount * $exchangeRate), 2);
 
             $infoPlayer['name'][] = BingoCtns::getValueById($ctnId, 'serial');
             $infoPlayer['gain'][] = number_format($amount, 2, '.', ',');
@@ -1082,12 +1080,6 @@ trait BingoTrait
 
                 $winnerJackpotPrize = round($roundPrizeValue / max(1, count($ctnsJackpot)), 3);
 
-                // Verificar si es la ultima ronda y se aplico premio por seriales
-                if (isset($hasSerialsPct)) {
-                    $serialPrize = round(($prizePool * $serialsPct) / 100, 3);
-                    $serialWinners = $this->handleSerialWinners($roomID, $round, $serialPrize, $roomUserIds);
-                }
-
                 $registerPrizeCtn = $this->registerPrizeCtn(
                     $roomID,
                     $round,
@@ -1098,7 +1090,13 @@ trait BingoTrait
 
                 if (!$registerPrizeCtn) {
                     DB::rollBack();
-                    continue;
+                    break;
+                }
+
+                // Verificar si es la ultima ronda y se aplico premio por seriales
+                if (isset($hasSerialsPct)) {
+                    $serialPrize = round(($prizePool * $serialsPct) / 100, 3);
+                    $serialWinners = $this->handleSerialWinners($roomID, $round, $serialPrize, $roomUserIds);
                 }
 
                 if ($round === $roundsCount) {

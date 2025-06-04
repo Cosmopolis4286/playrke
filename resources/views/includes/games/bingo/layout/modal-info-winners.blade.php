@@ -150,7 +150,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary leave-room">Continuar</button>
+                <button type="button" class="btn btn-primary leave-room">
+                    {{ $isLogin ? 'Continuar' : 'Cerrar' }}
+                </button>
             </div>
         </div>
     </div>
