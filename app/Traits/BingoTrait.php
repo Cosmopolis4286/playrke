@@ -23,6 +23,8 @@ use App\Models\Customer;
 use App\Models\CustomerUser;
 use App\Models\GameExchangeRate;
 use App\Models\GamePrizes;
+use App\Models\GameRoomJackpot;
+use App\Models\Games;
 use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\User;
@@ -1166,7 +1168,11 @@ trait BingoTrait
                     ->pluck('chip')->toArray()
             );
 
-            $countSerials = BingoRoomConfig::getValueByRoom($roomID, 'num_serials');
+            $bingoConfig = BingoRoomConfig::getByRoom($roomID, ['serials_pct', 'num_serials']);
+
+            $serialsPct = $bingoConfig->serials_pct / 100;
+            $countSerials = $bingoConfig->num_serials;
+
             $countCtns = 0;
             $uniquePlayers = [];
             $serialCtns = [];
@@ -1241,7 +1247,38 @@ trait BingoTrait
             } while ($countCtns < $countSerials);
 
             // Si no se encontró ningún ganador, retornar falso
-            if ($countCtns === 0) return false;
+            if ($countCtns === 0) {
+
+                $timestamp = now();
+                $gameID = Games::getValueByName('BINGO');
+
+                // Obtener las monedas activas en la sala
+                $coins = CoinGameRoom::getCoinsByRoom($gameID, $roomID);
+
+                // Preparar los datos para insertar
+                $dataJackpots = $coins->map(function ($coin) use ($roomID, $gameID, $serialsPct, $timestamp) {
+
+                    $prizePoolAmount = BingoCreatorSales::getPrizePoolAmountByRoomAndCoin($roomID, $coin);
+                    $amount = round($prizePoolAmount * $serialsPct, 3);
+
+                    return [
+                        'game' => $gameID,
+                        'room' => $roomID,
+                        'coin' => $coin,
+                        'amount' => $amount,
+                        'created_at' => $timestamp,
+                        'updated_at' => $timestamp,
+                    ];
+                })->toArray();
+
+                // Insertar si hay datos
+                if (!empty($dataJackpots)) {
+                    GameRoomJackpot::insert($dataJackpots);
+                }
+
+                Log::info("No hubo ganadores de seriales en la Sala de Bingo {$roomID}. El porcentaje se registró al jackpot acumulado.");
+                return true;
+            }
 
             // Obtener la información final de los cartones ganadores
             $ctnsSerials = BingoCtns::whereIn('id', $serialCtns)

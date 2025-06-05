@@ -64,6 +64,11 @@ class BingoCreatorSales extends Model
         return $query->exists();
     }
 
+    public static function getPrizePoolAmountByRoomAndCoin($room, $coin)
+    {
+        return self::where('room', $room)->where('coin', $coin)->sum('prize_pool_amount');
+    }
+
     public static function updateOrCreateSale($roomID, $creatorUser, $coin, $amount, $sellerCommn)
     {
         $roomConfig = BingoRoomConfig::getByRoom($roomID, ['rke_commn', 'room_commn']);

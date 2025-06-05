@@ -21,7 +21,7 @@ trait GameTrait
         try {
             // Obtener el ID del juego
             $gameID = Games::getValueByName($game);
-            $gameMode = false;
+            $gameMode = null;
 
             if ($game === 'BINGO') {
                 $gameMode = BingoRoomConfig::getValueByRoom($room, 'game_mode');
@@ -32,7 +32,7 @@ trait GameTrait
             }
 
             // Obtener las monedas registradas en la sala de juego
-            $coinsInGameRoom = CoinGameRoom::getCoinsByRoom($gameID, $room, $gameMode);
+            $coinsInGameRoom = CoinGameRoom::getCoinsByRoom('BINGO', $room, $gameMode);
 
             // Obtener ExchangeRates (Tasas de Cambio)
             if ($creatortType === 'commerce') {
