@@ -18,7 +18,7 @@ document.addEventListener('dragstart', function (evt) {
     }
 });
 
-document.addEventListener("contextmenu", e => e.preventDefault());
+// document.addEventListener("contextmenu", e => e.preventDefault());
 
 document.body.addEventListener('click', function () {
     if (actSound == 0 && endWin == 0 && roomStatus == 3) {
@@ -58,8 +58,6 @@ $('#btn-volume').on("click", function () {
     }
 });
 
-let posChip = 0;
-
 function preloadImages(chips) {
     return Promise.all(chips.map(chip => new Promise(resolve => {
         const img = new Image();
@@ -68,76 +66,117 @@ function preloadImages(chips) {
     })));
 }
 
-function renderChipsView(arrow) {
+const heightContainerAllChips = $('#container-history-chips').height();
+const sizeChip = heightContainerAllChips * 0.80;
+const newMargin = sizeChip * 0.070;
+const widthContainerImage = sizeChip + (newMargin * 2);
 
-    if (!allChips.length) return;
+let posChip = 0;
+let isAnimating = false;
+
+function createChipDiv(chip) {
+    const chipDiv = document.createElement('div');
+    chipDiv.className = 'container-image-history';
+    chipDiv.style.width = `${sizeChip}px`;
+    chipDiv.style.height = `${sizeChip}px`;
+    chipDiv.style.margin = `0 ${newMargin}px`;
+
+    const img = document.createElement('img');
+    img.className = 'image-history';
+    img.src = `${preRoute}img/bg/chips/${chip}.png`;
+    img.alt = chip;
+    img.loading = 'lazy';
+
+    chipDiv.appendChild(img);
+    return chipDiv;
+}
+
+function renderChipsView(arrow = false, newChip = false) {
+
+    if (!allChips.length || isAnimating) return;
 
     const container = $('#container-history-chips');
     const chipsContainer = $('#container-all-chips');
     const leftArrow = $('#cont-left-arrow');
     const rightArrow = $('#cont-right-arrow');
 
-    console.log($('#container-bingo-info').outerWidth(), (rightArrow.outerWidth()));
-
     const screenWidth = $('#container-bingo-info').outerWidth() - leftArrow.outerWidth() - rightArrow.outerWidth();
     const maxPerView = Math.min(Math.floor(screenWidth / widthContainerImage), 12);
     const totalChips = allChips.length;
 
-    // Control navegación
-    if (arrow === 1) posChip = Math.max(posChip - 1, 0);
-    if (arrow === 2) posChip = Math.min(posChip + 1, totalChips - maxPerView);
+    if (arrow === 1 || newChip) {
 
-    const visibleChips = allChips.slice(posChip, posChip + maxPerView);
+        isAnimating = true;
 
-    // Prepara las imágenes en un DocumentFragment
-    const fragment = document.createDocumentFragment();
+        if (posChip > 0) posChip--;
 
-    visibleChips.forEach(chip => {
-        const chipDiv = document.createElement('div');
-        chipDiv.className = 'container-image-history';
+        const lastChip = chipsContainer.children().last();
+        lastChip.addClass('fade-out-right');
 
-        const img = document.createElement('img');
-        img.className = 'image-history';
-        img.src = `${preRoute}img/bg/chips/${chip}.png`;
-        img.alt = chip;
-        img.loading = 'lazy';
+        setTimeout(() => {
+            lastChip.remove();
+            const chip = posChip > 0 ? allChips[posChip] : newChip;
+            const chipDiv = createChipDiv(chip);
+            chipDiv.classList.add('fade-in-left');
+            chipsContainer.prepend(chipDiv);
 
-        chipDiv.appendChild(img);
-        fragment.appendChild(chipDiv);
-    });
+            setTimeout(() => {
+                chipDiv.classList.remove('fade-in-left');
+                isAnimating = false;
+            }, 300);
 
-    chipsContainer.addClass('fade-out');
+        }, 300);
 
-    // Empieza preload
-    preloadImages(visibleChips).then(() => {
-        // Swap sin parpadeo
-        chipsContainer.removeClass('fade-out').empty().append(fragment);
+    } else if (arrow === 2) {
+        if (posChip + maxPerView < totalChips) {
+            isAnimating = true;
+            posChip++;
 
-        if (roomStatus > 2) adjustWidthBoxesHist();
+            const firstChip = chipsContainer.children().first();
+            firstChip.addClass('fade-out-left');
 
-        // Control de flechas
-        leftArrow.toggleClass('hide-elem', posChip === 0);
-        rightArrow.toggleClass('hide-elem', (posChip + maxPerView) >= totalChips)
-            .css('opacity', '1');
+            setTimeout(() => {
+                firstChip.remove();
+                const chip = allChips[posChip + maxPerView - 1];
+                const chipDiv = createChipDiv(chip);
+                chipDiv.classList.add('fade-in-right');
+                chipsContainer.append(chipDiv);
 
-        // Mostrar contenedor
-        container.css('visibility', 'visible');
-    });
+                setTimeout(() => {
+                    chipDiv.classList.remove('fade-in-right');
+                    isAnimating = false;
+                }, 300);
+
+            }, 300);
+        }
+    } else {
+        // Render inicial sin animación
+        const visibleChips = allChips.slice(posChip, posChip + maxPerView);
+        chipsContainer.empty();
+        visibleChips.forEach(chip => {
+            chipsContainer.append(createChipDiv(chip));
+        });
+    }
+
+    leftArrow.toggleClass('hide-elem', posChip === 0);
+    rightArrow.toggleClass('hide-elem', (posChip + maxPerView) >= totalChips).css('opacity', '1');
+
+    container.css('visibility', 'visible');
 }
+
+// Ajustar tamaño al redimensionar ventana
+$(window).on('resize', () => {
+    const heightContainerAllChipsNew = $('#container-history-chips').height();
+    const sizeChipNew = heightContainerAllChipsNew * 0.8;
+    const newMarginNew = sizeChipNew * 0.07;
+
+    $('.container-image-history').css({ width: sizeChipNew, height: sizeChipNew, margin: `0 ${newMarginNew}px` });
+});
 
 // Ajustar tamaño de las casillas
 function adjustHeightBoxesCtnAward() {
     const widthNumberBoxViewCtn = $('.number-box-view-ctn').first().width();
     $('.number-box-view-ctn').height(widthNumberBoxViewCtn);
-}
-
-const heightContainerAllChips = $('#container-history-chips').height();
-const sizeChip = heightContainerAllChips * 0.85;
-const newMargin = sizeChip * 0.072;
-const widthContainerImage = sizeChip + (newMargin * 2);
-
-function adjustWidthBoxesHist() {
-    $('.container-image-history').css({ width: sizeChip, height: sizeChip, margin: `0 ${newMargin}px` });
 }
 
 $(document).on("click", ".cont-arrow-history-chips", function () {
@@ -279,7 +318,7 @@ function getNewChip(newChip) {
     latestChips.unshift(newChip);
     allChips.unshift(newChip);
 
-    renderChipsView();
+    renderChipsView(false, newChip);
     autoMarked();
 
     if (newChip === chpLast) {

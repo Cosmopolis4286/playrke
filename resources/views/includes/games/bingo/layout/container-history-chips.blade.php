@@ -1,4 +1,4 @@
-<div id="container-history-chips" class="mt-1 mb-2">
+<div id="container-history-chips">
     <div id="cont-left-arrow" class="cont-arrow-history-chips hide-elem" data-move="1">
         <i id="left-arrow" class="arrow fa-regular fa-circle-left"></i>
     </div>
