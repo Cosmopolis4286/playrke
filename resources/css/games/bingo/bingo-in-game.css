@@ -412,7 +412,7 @@ body {
     aspect-ratio: 1 / 1;
     max-height: 100%;
     max-width: 100%;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: opacity 0.25s ease, transform 0.25s ease;
     opacity: 1;
     transform: translateX(0);
 }
@@ -436,13 +436,13 @@ body {
 .container-image-history.fade-in-left {
     opacity: 0;
     transform: translateX(-20px);
-    animation: fadeInLeft 0.3s forwards;
+    animation: fadeInLeft 0.25s forwards;
 }
 
 .container-image-history.fade-in-right {
     opacity: 0;
     transform: translateX(20px);
-    animation: fadeInRight 0.3s forwards;
+    animation: fadeInRight 0.25s forwards;
 }
 
 @keyframes fadeInLeft {

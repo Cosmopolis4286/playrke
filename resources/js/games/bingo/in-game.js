@@ -66,13 +66,21 @@ function preloadImages(chips) {
     })));
 }
 
-const heightContainerAllChips = $('#container-history-chips').height();
-const sizeChip = heightContainerAllChips * 0.80;
-const newMargin = sizeChip * 0.070;
-const widthContainerImage = sizeChip + (newMargin * 2);
-
+const containerHistoryChips = $('#container-history-chips');
+let sizeChip = 0;
+let newMargin = 0;
 let posChip = 0;
 let isAnimating = false;
+
+function resizeImageChips(widthChip = false) {
+    sizeChip = containerHistoryChips.height() * 0.765;
+    newMargin = sizeChip * 0.070;
+
+    // Ajustar tamaño al redimensionar ventana
+    $('.container-image-history').css({ width: sizeChip, height: sizeChip, margin: `0 ${newMargin}px` });
+
+    if (widthChip) return sizeChip + (newMargin * 2);
+}
 
 function createChipDiv(chip) {
     const chipDiv = document.createElement('div');
@@ -95,14 +103,27 @@ function renderChipsView(arrow = false, newChip = false) {
 
     if (!allChips.length || isAnimating) return;
 
-    const container = $('#container-history-chips');
+    const widthContainerImage = resizeImageChips(true);
+
     const chipsContainer = $('#container-all-chips');
     const leftArrow = $('#cont-left-arrow');
     const rightArrow = $('#cont-right-arrow');
 
-    const screenWidth = $('#container-bingo-info').outerWidth() - leftArrow.outerWidth() - rightArrow.outerWidth();
+    let leftArrowWidth;
+
+    if (arrow === 2) {
+        leftArrowWidth = rightArrow.outerWidth();
+    } else if (posChip === 1) {
+        leftArrowWidth = 0;
+    } else {
+        leftArrowWidth = leftArrow.outerWidth();
+    }
+
+    const screenWidth = $('#container-bingo-info').outerWidth() - leftArrowWidth - rightArrow.outerWidth();
     const maxPerView = Math.min(Math.floor(screenWidth / widthContainerImage), 12);
     const totalChips = allChips.length;
+
+    console.log($('#container-bingo-info').outerWidth(), leftArrowWidth, rightArrow.outerWidth());
 
     if (arrow === 1 || newChip) {
 
@@ -115,7 +136,7 @@ function renderChipsView(arrow = false, newChip = false) {
 
         setTimeout(() => {
             lastChip.remove();
-            const chip = posChip > 0 ? allChips[posChip] : newChip;
+            const chip = !newChip ? allChips[posChip] : newChip;
             const chipDiv = createChipDiv(chip);
             chipDiv.classList.add('fade-in-left');
             chipsContainer.prepend(chipDiv);
@@ -123,32 +144,29 @@ function renderChipsView(arrow = false, newChip = false) {
             setTimeout(() => {
                 chipDiv.classList.remove('fade-in-left');
                 isAnimating = false;
-            }, 300);
+            }, 250);
 
-        }, 300);
-
+        }, 250);
     } else if (arrow === 2) {
-        if (posChip + maxPerView < totalChips) {
-            isAnimating = true;
-            posChip++;
+        isAnimating = true;
+        posChip++;
 
-            const firstChip = chipsContainer.children().first();
-            firstChip.addClass('fade-out-left');
+        const firstChip = chipsContainer.children().first();
+        firstChip.addClass('fade-out-left');
+
+        setTimeout(() => {
+            firstChip.remove();
+            const chip = allChips[posChip + maxPerView - 1];
+            const chipDiv = createChipDiv(chip);
+            chipDiv.classList.add('fade-in-right');
+            chipsContainer.append(chipDiv);
 
             setTimeout(() => {
-                firstChip.remove();
-                const chip = allChips[posChip + maxPerView - 1];
-                const chipDiv = createChipDiv(chip);
-                chipDiv.classList.add('fade-in-right');
-                chipsContainer.append(chipDiv);
+                chipDiv.classList.remove('fade-in-right');
+                isAnimating = false;
+            }, 250);
 
-                setTimeout(() => {
-                    chipDiv.classList.remove('fade-in-right');
-                    isAnimating = false;
-                }, 300);
-
-            }, 300);
-        }
+        }, 250);
     } else {
         // Render inicial sin animación
         const visibleChips = allChips.slice(posChip, posChip + maxPerView);
@@ -161,17 +179,8 @@ function renderChipsView(arrow = false, newChip = false) {
     leftArrow.toggleClass('hide-elem', posChip === 0);
     rightArrow.toggleClass('hide-elem', (posChip + maxPerView) >= totalChips).css('opacity', '1');
 
-    container.css('visibility', 'visible');
+    containerHistoryChips.css('visibility', 'visible');
 }
-
-// Ajustar tamaño al redimensionar ventana
-$(window).on('resize', () => {
-    const heightContainerAllChipsNew = $('#container-history-chips').height();
-    const sizeChipNew = heightContainerAllChipsNew * 0.8;
-    const newMarginNew = sizeChipNew * 0.07;
-
-    $('.container-image-history').css({ width: sizeChipNew, height: sizeChipNew, margin: `0 ${newMarginNew}px` });
-});
 
 // Ajustar tamaño de las casillas
 function adjustHeightBoxesCtnAward() {
@@ -184,7 +193,7 @@ $(document).on("click", ".cont-arrow-history-chips", function () {
 });
 
 function handleLatestChips(latestChips) {
-    const $container = $("#cont-last-chips").empty();
+    const containerLastChips = $("#cont-last-chips").empty();
 
     const chipsHtml = latestChips.slice(0, 6).map((elem, ind) => `
         <div class="cont-img-chip">
@@ -192,7 +201,7 @@ function handleLatestChips(latestChips) {
         </div>
     `).join('');
 
-    $container.html(chipsHtml);
+    containerLastChips.html(chipsHtml);
 
     renderChipsView();
     autoMarked();
@@ -465,7 +474,9 @@ $(function () {
             adjustHeightBoxes();
 
             if (roomStatus > 2) {
+
                 renderChipsView();
+
                 if ($('#cont-ctn-award-winning').data('status')) {
                     adjustHeightBoxesCtnAward();
                 }

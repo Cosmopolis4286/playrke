@@ -957,8 +957,6 @@ class BingoController extends Controller
         // Obtener la información de los ganadores
         $winnersInfo = self::getInfoWinners($data, $roomUser);
 
-        dd($winnersInfo);
-
         // Encriptar los datos de los ganadores
         $encryptedData = self::encryptData($winnersInfo, $randomKey);
 

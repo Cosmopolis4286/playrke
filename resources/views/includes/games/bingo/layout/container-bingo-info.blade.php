@@ -12,14 +12,14 @@
                 <span id="prize-pool-amount">{{ $prizePool ?? 0 }}</span>
             </div>
         </div>
-        @if ($room->Config->rounds)
-            <div id="container-round">Ronda<span id="num-round">#{{ $round }}</span></div>
-        @endif
     </div>
-    <div id="cont-bingo-info-extras">
-        <div id="cont-game-mode-opcs">
-            <div id="text-game-mode">Cartón Lleno</div>
-            <div id="cont-game-ops" class="mt-1">
+    <div id="cont-bingo-info-extras" class="bg-danger">f
+        <div id="cont-game-mode-opcs" class="bg-success">
+            @if ($room->Config->rounds)
+                <div id="container-round">Ronda<span id="num-round">#{{ $round }}</span></div>
+            @endif
+            {{-- <div id="text-game-mode">Cartón Lleno</div> --}}
+            {{-- <div id="cont-game-ops" class="mt-1">
                 <div class="btn-group" role="group" aria-label="Opciones">
                     <button type="button" disabled id="btn-view-winners" class="btn btn-sm btn-primary">
                         <i class="fa-solid fa-trophy"></i>
@@ -33,7 +33,7 @@
                         <i id="icon-volume" class="fa-solid fa-volume-xmark"></i>
                     </button>
                 </div>
-            </div>
+            </div> --}}
         </div>
     </div>
 </div>
