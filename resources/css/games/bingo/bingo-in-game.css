@@ -200,8 +200,8 @@ body {
     justify-content: space-between;
     width: 100%;
     height: 75px;
-    border-radius: 16px;
-    background: linear-gradient(to bottom, #0b4cfde3, #003bb9);
+    border-radius: 15px;
+    background: linear-gradient(to bottom, #0044ff, #002eac);
 }
 
 #cont-prize-pool-info {
