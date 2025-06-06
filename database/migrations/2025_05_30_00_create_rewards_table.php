@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('rewards', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 15)->unique();
+            $table->string('code', 12);
             $table->enum('reward_type', ['P', 'S']);
             $table->string('name', 50);
             $table->enum('kit', ['Y', 'N'])->default('N');
@@ -23,6 +23,9 @@ return new class extends Migration
             $table->foreignId('user')->constrained('users')->onDelete('cascade');
             $table->boolean('status')->default(true);
             $table->timestamps();
+
+            // Clave única compuesta
+            $table->unique(['user', 'code']);
         });
     }
 

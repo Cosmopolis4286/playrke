@@ -957,6 +957,8 @@ class BingoController extends Controller
         // Obtener la información de los ganadores
         $winnersInfo = self::getInfoWinners($data, $roomUser);
 
+        dd($winnersInfo);
+
         // Encriptar los datos de los ganadores
         $encryptedData = self::encryptData($winnersInfo, $randomKey);
 
@@ -1440,12 +1442,12 @@ class BingoController extends Controller
                 }
 
                 $data = [
-                    'room'         => $roomID,
+                    'room' => $roomID,
                     'creator_user' => $creatorUser,
-                    'coin'         => $coin,
-                    'ctn_price'    => $ctnPrice,
-                    'status'       => 1,
-                    'updated_at'   => $timestamp,
+                    'coin' => $coin,
+                    'ctn_price' => $ctnPrice,
+                    'status' => 1,
+                    'updated_at' => $timestamp,
                 ];
 
                 if ($action === 'CREATE') {
@@ -1470,11 +1472,11 @@ class BingoController extends Controller
             }
         } catch (\Exception $e) {
             Log::error('Error en handleCtnPriceCoins: ' . $e->getMessage(), [
-                'action'       => $action,
-                'roomID'       => $roomID,
-                'creatorUser'  => $creatorUser,
+                'action' => $action,
+                'roomID' => $roomID,
+                'creatorUser' => $creatorUser,
                 'ctnPriceCoins' => $ctnPriceCoins,
-                'trace'        => $e->getTraceAsString(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e; // O manejar el error según tu flujo
@@ -2367,10 +2369,11 @@ class BingoController extends Controller
 
     public function changeStatus($id)
     {
-        $id = decrypt($id);
-        BingoRoom::where('id', $id)->update(['status' => 1]);
-        Session::flash('message', 'Sala actualizada');
-        return redirect()->back()->with('type', 'success');
+        BingoRoom::findOrFail(decrypt($id))->update(['status' => 1]);
+
+        return redirect()->back()
+            ->with('message', 'Sala actualizada')
+            ->with('type', 'success');
     }
 
     public function refund($id) // Reembolsar compras de la sala

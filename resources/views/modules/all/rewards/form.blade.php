@@ -26,13 +26,13 @@
             <div class="input-group-prepend">
                 <span class="input-group-text">$</span>
             </div>
-            <input type="number" step="0.05" min="1" id="price" class="form-control" name="price"
-                required>
+            <input type="number" step="0.05" min="1" max="10000" id="price" class="form-control"
+                name="price" required>
             <input type="hidden" id="creator" name="creator" value="{{ json_encode($creator) }}">
         </div>
     </div>
     <div class="form-group col-12">
-        <label for="description">Descripcion</label>
-        <textarea class="form-control" name="description" id="description" cols="15" rows="2"></textarea>
+        <label for="description">Descripcion*</label>
+        <textarea class="form-control" name="description" id="description" cols="15" rows="2" required></textarea>
     </div>
 </div>

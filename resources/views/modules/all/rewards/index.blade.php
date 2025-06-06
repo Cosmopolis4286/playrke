@@ -22,7 +22,35 @@
                         </thead>
                         <tbody>
                             @foreach ($rewards as $item)
-                                <tr></tr>
+                                <tr>
+                                    <td>{{ $item->code }}</td>
+                                    <td>{{ $item->reward_type_description }}</td>
+                                    <td>{{ $item->name }}</td>
+                                    <td>{{ $item->num_items }}</td>
+                                    <td>{{ $item->price }}</td>
+                                    <td>
+                                        {{ $item->status == 1 ? 'Activo' : 'Inactivo' }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-toggle">
+                                            @if ($item->status == 1)
+                                                <button class="btn btn-sm btn-primary btn-{{ $name }}"
+                                                    data-type="2" data-id="{{ encrypt($item->id) }}"
+                                                    title="Editar Tasa de Cambio">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            @endif
+                                            <button class="btn btn-sm btn-secondary btn-{{ $name }}" data-type="4"
+                                                data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
+                                                <i class="fa-solid fa-repeat"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger btn-{{ $name }}" data-type="3"
+                                                data-id="{{ encrypt($item->id) }}" title="Eliminar">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
                             @endforeach
                         </tbody>
                     </table>
@@ -78,7 +106,7 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['reward-type', 'name', 'num-items', 'price']);
+            submitForm(name, ['reward-type', 'name', 'num-items', 'price', 'description']);
         });
 
         const otherCasesMap = {
