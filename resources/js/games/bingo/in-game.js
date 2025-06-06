@@ -111,7 +111,7 @@ function renderChipsView(arrow = false, newChip = false) {
 
     let leftArrowWidth;
 
-    if (arrow === 2) {
+    if (arrow === 'R') {
         leftArrowWidth = rightArrow.outerWidth();
     } else if (posChip === 1) {
         leftArrowWidth = 0;
@@ -125,7 +125,7 @@ function renderChipsView(arrow = false, newChip = false) {
 
     console.log($('#container-bingo-info').outerWidth(), leftArrowWidth, rightArrow.outerWidth());
 
-    if (arrow === 1 || newChip) {
+    if (arrow === 'L' || newChip) {
 
         isAnimating = true;
 
@@ -147,7 +147,7 @@ function renderChipsView(arrow = false, newChip = false) {
             }, 250);
 
         }, 250);
-    } else if (arrow === 2) {
+    } else if (arrow === 'R') {
         isAnimating = true;
         posChip++;
 
@@ -167,6 +167,7 @@ function renderChipsView(arrow = false, newChip = false) {
             }, 250);
 
         }, 250);
+
     } else {
         // Render inicial sin animación
         const visibleChips = allChips.slice(posChip, posChip + maxPerView);

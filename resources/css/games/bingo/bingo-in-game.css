@@ -199,8 +199,8 @@ body {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    height: 77.5px;
-    border-radius: 15px;
+    height: 75px;
+    border-radius: 16px;
     background: linear-gradient(to bottom, #0b4cfde3, #003bb9);
 }
 
@@ -237,28 +237,6 @@ body {
     align-items: left;
     width: auto;
     height: auto;
-}
-
-#container-round {
-    margin-right: 2%;
-    position: absolute;
-    display: flex;
-    /* flex-direction: column; */
-    justify-content: center;
-    align-items: center;
-    top: 50%;
-    right: 0%;
-    transform: translate(0%, -50%);
-    text-transform: uppercase;
-    line-height: 138%;
-    font-weight: bold;
-    font-size: clamp(12.5px, 1.15vw, 1.38vw);
-}
-
-#num-round {
-    margin: 0% 5.5%;
-    font-size: 118%;
-    color: #161616;
 }
 
 #cont-prize-pool-type {
@@ -309,11 +287,33 @@ body {
 }
 
 #cont-game-mode-opcs {
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100%;
+    gap: 6.25%;
+}
+
+#container-round {
+    width: 100%;
+    color: var(--white);
+    padding-top: 0.5%;
+    padding-left: 8%;
+    padding-right: 8%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-radius: 5px;
+    font-size: clamp(12.5px, 1.14vw, 1.37vw);
+    background: linear-gradient(to bottom, rgb(44, 0, 163), rgb(187, 0, 16));
+}
+
+#num-round {
+    margin-left: 5.25%;
 }
 
 #text-game-mode {
@@ -321,29 +321,26 @@ body {
     height: auto;
     color: white;
     font-weight: bold;
-    padding-left: 6px;
-    padding-right: 6px;
-    border-radius: 15px;
-    background: linear-gradient(to bottom, #e2122bf6, rgb(184, 0, 61));
-    display: flex;
-    align-items: center;
-    /* Centra verticalmente */
-    justify-content: center;
-    /* Centra horizontalmente */
+    border-radius: 5px;
+    background: linear-gradient(to bottom, #d41027, rgb(173, 0, 43));
     text-align: center;
-    font-size: clamp(12px, 1.12vw, 1.35vw);
-    /* Tamaño de fuente flexible */
+    font-size: clamp(11.75px, 1.12vw, 1.35vw);
     word-break: break-word;
-    /* Rompe palabras largas si es necesario */
     overflow-wrap: break-word;
     overflow: hidden;
 }
 
+#container-btn-options {
+    position: absolute;
+    z-index: 999;
+    left: 50%;
+    bottom: -71%;
+    transform: translate(-50%, 0%);
+}
 
 /*Seccion Carrusel*/
 #container-history-chips {
     position: relative;
-    width: 100%;
     height: 54px;
     display: flex;
     align-items: center;

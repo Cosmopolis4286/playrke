@@ -13,27 +13,28 @@
             </div>
         </div>
     </div>
-    <div id="cont-bingo-info-extras" class="bg-danger">f
-        <div id="cont-game-mode-opcs" class="bg-success">
+    <div id="cont-bingo-info-extras">
+        <div id="cont-game-mode-opcs">
             @if ($room->Config->rounds)
                 <div id="container-round">Ronda<span id="num-round">#{{ $round }}</span></div>
             @endif
-            {{-- <div id="text-game-mode">Cartón Lleno</div> --}}
-            {{-- <div id="cont-game-ops" class="mt-1">
-                <div class="btn-group" role="group" aria-label="Opciones">
-                    <button type="button" disabled id="btn-view-winners" class="btn btn-sm btn-primary">
+            <div id="text-game-mode"><span class="mx-1">Cartón Lleno</span></div>
+            <div id="container-btn-options">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Opciones">
+                    <button type="button" disabled id="btn-view-winners" class="btn btn-sm btn-success">
                         <i class="fa-solid fa-trophy"></i>
                     </button>
-                    <button type="button" disabled id="btn-bingo-rules" class="btn btn-sm btn-primary"
+                    <button type="button" disabled id="btn-bingo-rules" class="btn btn-sm btn-secondary"
                         data-toggle="modal" data-target="#modal-bingo-rules">
                         <i class="fa-solid fa-circle-info"></i>
                     </button>
-                    <button type="button" id="btn-volume" class="btn btn-sm btn-secondary"
-                        @if ($room->status != 3) disabled @endif>
-                        <i id="icon-volume" class="fa-solid fa-volume-xmark"></i>
-                    </button>
+                    @if ($room->status == 3)
+                        <button type="button" id="btn-volume" class="btn btn-sm btn-secondary">
+                            <i id="icon-volume" class="fa-solid fa-volume-xmark"></i>
+                        </button>
+                    @endif
                 </div>
-            </div> --}}
+            </div>
         </div>
     </div>
 </div>
