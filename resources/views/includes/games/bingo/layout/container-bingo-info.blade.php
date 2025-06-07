@@ -1,8 +1,8 @@
 <div id="container-bingo-info" class="mb-2 p-2">
     <div id="cont-prize-pool-info">
-        <div id="cont-prize-chest" class="mr-1">
+        {{-- <div id="cont-prize-chest" class="mr-1">
             <img id="image-prize-chest" src="{{ asset('img/cofre.png') }}">
-        </div>
+        </div> --}}
         <div id="cont-prize-pool-info-amount" class="p-1">
             <small id="cont-prize-pool-type">
                 {{ $prizePoolType == 1 ? 'Bote' : ($prizePoolType == 2 ? 'Premio' : '') }}
@@ -19,7 +19,7 @@
                 <div id="container-round">Ronda<span id="num-round">#{{ $round }}</span></div>
             @endif
             <div id="text-game-mode"><span class="mx-1">Cartón Lleno</span></div>
-            <div id="container-btn-options">
+            {{-- <div id="container-btn-options">
                 <div class="btn-group btn-group-sm" role="group" aria-label="Opciones">
                     <button type="button" disabled id="btn-view-winners" class="btn btn-sm btn-success">
                         <i class="fa-solid fa-trophy"></i>
@@ -34,7 +34,7 @@
                         </button>
                     @endif
                 </div>
-            </div>
+            </div> --}}
         </div>
     </div>
 </div>

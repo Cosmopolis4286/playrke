@@ -73,8 +73,16 @@ let posChip = 0;
 let isAnimating = false;
 
 function resizeImageChips(widthChip = false) {
-    sizeChip = containerHistoryChips.height() * 0.765;
-    newMargin = sizeChip * 0.070;
+
+    const sizeChipDraw = $('.img-chip').first().width();
+
+    sizeChip = sizeChipDraw * 0.7;
+
+    if (sizeChipDraw > containerHistoryChips.height()) {
+        sizeChip = containerHistoryChips.height() * 0.8;
+    }
+
+    newMargin = sizeChip * 0.075;
 
     // Ajustar tamaño al redimensionar ventana
     $('.container-image-history').css({ width: sizeChip, height: sizeChip, margin: `0 ${newMargin}px` });
@@ -317,7 +325,7 @@ function getNewChip(newChip) {
     $contLastChips.prepend(newChipHtml);
 
     $(`#chp_${newChip}`).on('load', function () {
-        $(this).addClass('show-chip');
+        $(this).removeClass('hide-chip').addClass('show-chip');
     });
 
     if (arrDrawImg.length >= 6) {
