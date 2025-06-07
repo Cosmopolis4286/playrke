@@ -360,30 +360,11 @@ trait BingoTrait
     {
         $roomID = BingoRoom::getValueByEncrypted($data['room'], 'id');
 
-        //Obtener Conteo de Ganadores
-        $countWinnersJackpot = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'Cartón Lleno');
+        $this->handleWinners($roomID);
 
-        if (!$countWinnersJackpot) $this->handleWinners($roomID);
+        $winners = $this->getWinners('ALL', $roomID, $data['coin'], $roomUser);
 
-        $winners = $this->getWinners('Cartón Lleno', $roomID, $data['coin'], $roomUser);
-
-        if (BingoRoomConfig::getValueByRoom($roomID, 'play_types')) {
-            $bingoPlaysWinners = [];
-        }
-
-        $serialsWinners = (BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'SERIAL')) ?
-            $this->getWinners('SERIAL', $roomID, $data['coin'], $roomUser) : [];
-
-        $serialPrizePct = BingoRoomConfig::getValueByRoom($roomID, 'serials_pct');
-
-        $prizesValues = !empty($serialsWinners) ? [100 - $serialPrizePct, $serialPrizePct] : [100];
-
-        return [
-            'fullHouseWinners' => $fullHouseWinners,
-            'serialsWinners' => $serialsWinners,
-            'bingoPlaysWinners' => $bingoPlaysWinners ?? [],
-            'prizesValues' => $prizesValues
-        ];
+        return $winners;
     }
 
     public function generateRandomNumbers($start, $end, $count)
@@ -915,27 +896,41 @@ trait BingoTrait
 
     public function getWinnersData($prizeType, $roomID, $roomUser = null)
     {
-        $existsRoom = BingoRoom::select('creator_user')
-            ->where('id', $roomID)->where('status', '>=', 3)->exists();
+        $room = BingoRoom::select('creator_user')
+            ->where('id', $roomID)
+            ->where('status', '>=', 3)
+            ->first();
 
-        if (!$existsRoom) return ['Error' => 'Sala no disponible'];
+        if (!$room) {
+            return ['Error' => 'Sala no disponible'];
+        }
 
-        // Obtener prize_type válido
-        $prizeType = GamePrizes::getValueByDescription('BINGO', $prizeType);
+        $query = BingoPrizeCtns::where('room', $roomID);
 
-        if (!$prizeType) return ['Error' => "El prizeType {$prizeType} no existe"];
+        // Si se especifica un tipo de premio (que no sea 'ALL')
+        if ($prizeType !== 'ALL') {
+            $typeValue = GamePrizes::getValueByDescription('BINGO', $prizeType);
 
-        // Obtener ganadores del premio
-        $winners = BingoPrizeCtns::where('room', $roomID)
-            ->where('prize_type', $prizeType)
-            ->get(['room_user', 'round', 'ctn', 'prize_type', 'usd_amount', 'amount']);
+            if (!$typeValue) {
+                return ['Error' => "El prizeType '{$prizeType}' no existe"];
+            }
 
-        // Verificar si el usuario es ganador
-        $winPlayer = $roomUser
-            ? BingoRoomUser::where('id', $roomUser)->where('winner', 1)->exists()
-            : false;
+            $query->where('prize_type', $typeValue);
+        }
 
-        return ['prizeCtns' => $winners, 'room' => $roomID, 'winPlayer' => $winPlayer];
+        $winners = $query->get(['room_user', 'round', 'ctn', 'prize_type', 'usd_amount', 'amount']);
+
+        $winPlayer = false;
+
+        if ($roomUser) {
+            $winPlayer = BingoRoomUser::where('id', $roomUser)->where('winner', 1)->exists();
+        }
+
+        return [
+            'prizeCtns' => $winners,
+            'room' => $roomID,
+            'winPlayer' => $winPlayer,
+        ];
     }
 
     public function getArrayWinnersData($data)
@@ -944,45 +939,55 @@ trait BingoTrait
         $gamePrizes = GamePrizes::getAllGamePrize('BINGO'); // [id => code]
 
         $winnersByRound = [
+            'numW' => count($data['prizeCtns']),
             'rounds' => [],
-            'numWinners' => count($data['prizeCtns']),
         ];
 
+        // Cache para contar ganadores por ronda (evita contar repetidamente)
+        $roundCounts = [];
+
         foreach ($data['prizeCtns'] as $prizeCtn) {
+            
             $ctnId = $prizeCtn->ctn;
             $round = $prizeCtn->round;
             $prizeType = $gamePrizes[$prizeCtn->prize_type] ?? 'UNKNOWN';
 
             $serialCtn = BingoCtns::getValueById($ctnId, 'serial');
             $amount = round($prizeCtn->usd_amount * $exchangeRate, 2);
+            $formattedAmount = number_format($amount, 2, '.', ',');
+            $encryptedCtn = encrypt($ctnId);
 
-            // Inicializar la ronda y el tipo de premio si no existen
-            if (!isset($winnersByRound['rounds'][$round])) {
-                $winnersByRound['rounds'][$round] = [];
+            // Cachear conteo de ganadores por ronda
+            if (!isset($roundCounts[$round])) {
+                $roundCounts[$round] = $data['prizeCtns']->where('round', $round)->count();
             }
 
+            // Inicializar la ronda si no existe
+            if (!isset($winnersByRound['rounds'][$round])) {
+                $winnersByRound['rounds'][$round] = [
+                    'numWR' => $roundCounts[$round],
+                ];
+            }
+
+            // Inicializar tipo de premio si no existe
             if (!isset($winnersByRound['rounds'][$round][$prizeType])) {
                 $winnersByRound['rounds'][$round][$prizeType] = [
-                    'size' => 0,
+                    'numWRPT' => 0,
                     'players' => [],
                 ];
             }
 
-            // Inicializar el jugador si no existe
+            // Inicializar jugador si no existe
             if (!isset($winnersByRound['rounds'][$round][$prizeType]['players'][$serialCtn])) {
                 $winnersByRound['rounds'][$round][$prizeType]['players'][$serialCtn] = [
-                    'gain' => [],
-                    'ctn' => [],
+                    'ctn' => $encryptedCtn,
+                    'gain' => $formattedAmount,
                 ];
             }
 
-            // Agregar datos
-            $winnersByRound['rounds'][$round][$prizeType]['players'][$serialCtn]['gain'][] = number_format($amount, 2, '.', ',');
-            $winnersByRound['rounds'][$round][$prizeType]['players'][$serialCtn]['ctn'][] = encrypt($ctnId);
-            $winnersByRound['rounds'][$round][$prizeType]['size']++;
+            // Incrementar contador por tipo de premio
+            $winnersByRound['rounds'][$round][$prizeType]['numWRPT']++;
         }
-
-        dd($winnersByRound);
 
         return $winnersByRound;
     }
