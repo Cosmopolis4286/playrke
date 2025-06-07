@@ -16,11 +16,13 @@ return new class extends Migration
         Schema::create('game_prizes', function (Blueprint $table) {
             $table->id();
             $table->string('description', 20);
+            $table->string('code', 4);
             $table->unsignedBigInteger('game');
             $table->boolean('status')->default(0);
             $table->timestamps();
 
-            $table->foreign('game')->references('id')->on('games');
+            // Clave única compuesta
+            $table->unique(['game', 'code']);
         });
     }
 

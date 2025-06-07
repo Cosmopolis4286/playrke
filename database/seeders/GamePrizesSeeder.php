@@ -19,9 +19,9 @@ class GamePrizesSeeder extends Seeder
         $gameID = Games::getValueByName('BINGO');
 
         GamePrizes::insert([
-            ['id' => 1, 'description' => 'Cartón Lleno', 'game' => $gameID, 'status' => 1],
-            ['id' => 2, 'description' => 'Serial', 'game' => $gameID, 'status' => 1],
-            ['id' => 3, 'description' => 'Canto', 'game' => $gameID, 'status' => 1]
+            ['id' => 1, 'description' => 'Cartón Lleno', 'code' => 'FLHE', 'game' => $gameID, 'status' => 1],
+            ['id' => 2, 'description' => 'Serial', 'code' => 'SRL', 'game' => $gameID, 'status' => 1],
+            ['id' => 3, 'description' => 'Canto', 'code' => 'SONG', 'game' => $gameID, 'status' => 1]
         ]);
     }
 }
