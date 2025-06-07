@@ -214,54 +214,33 @@ body {
     height: 100%;
 }
 
-#cont-prize-chest {
-    display: flex;
-    align-items: center;
-    width: auto;
-    height: 100%;
-    padding: 0.5%;
-}
-
-#image-prize-chest {
-    width: auto;
-    max-height: 100%;
-}
-
 #cont-prize-pool-info-amount {
-    color: antiquewhite;
-    font-size: 200%;
-    line-height: 28px;
     position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: left;
-    width: auto;
-    height: auto;
+    line-height: 195%;
 }
 
 #cont-prize-pool-type {
     font-weight: bold;
-    font-size: 72.75%;
-    color: rgb(255, 238, 0);
+    font-size: 145%;
+    color: var(--gray-950);
 }
 
 #cont-prize-pool-amount {
     display: flex;
-    justify-content: center;
-    align-items: center;
     font-family: 'Alfa Slab One', cursive;
+    font-size: clamp(22px, 1.95vw, 2.2vw);
 }
 
 #prize-pool-coin-sym {
-    font-size: 3.45vmin;
-    color: rgb(231, 231, 231);
+    margin-right: 5%;
+    color: rgb(226, 226, 226);
 }
 
 #prize-pool-amount {
     font-weight: 500;
     color: rgb(255, 255, 255);
-    font-size: clamp(20px, 2.15vw, 2.5vw);
 }
 
 #cont-bingo-info-extras {
@@ -269,22 +248,7 @@ body {
     display: flex;
     justify-content: right;
     width: 30%;
-    height: 100%;
-}
-
-#cont-image-publish {
-    position: relative;
-    display: flex;
-    justify-content: right;
-    align-items: center;
-    width: auto;
-    height: 100%;
-    background-color: #25b09b;
-}
-
-#image-publish {
-    width: auto;
-    height: 60px;
+    min-height: 100%;
 }
 
 #cont-game-mode-opcs {
@@ -294,7 +258,7 @@ body {
     justify-content: center;
     align-items: center;
     height: 100%;
-    gap: 6.25%;
+    gap: 8%;
 }
 
 #container-round {
@@ -310,7 +274,7 @@ body {
     font-weight: bold;
     border-radius: 5px;
     font-size: clamp(12.5px, 1.14vw, 1.37vw);
-    background: linear-gradient(to bottom, rgb(44, 0, 163), rgb(187, 0, 16));
+    background: linear-gradient(to bottom, rgb(56, 0, 88), rgb(42, 0, 53));
 }
 
 #num-round {
@@ -323,7 +287,7 @@ body {
     color: white;
     font-weight: bold;
     border-radius: 5px;
-    background: linear-gradient(to bottom, #d41027, rgb(173, 0, 43));
+    background: linear-gradient(to bottom, #f00034, rgb(145, 0, 0));
     text-align: center;
     font-size: clamp(11.75px, 1.12vw, 1.35vw);
     word-break: break-word;
