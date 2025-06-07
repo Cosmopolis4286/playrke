@@ -325,7 +325,7 @@ function getNewChip(newChip) {
     $contLastChips.prepend(newChipHtml);
 
     $(`#chp_${newChip}`).on('load', function () {
-        $(this).removeClass('hide-chip').addClass('show-chip');
+        $(this).toggleClass('hide-chip show-chip');
     });
 
     if (arrDrawImg.length >= 6) {
