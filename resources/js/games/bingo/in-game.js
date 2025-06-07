@@ -82,7 +82,7 @@ function resizeImageChips(widthChip = false) {
         sizeChip = containerHistoryChips.height() * 0.8;
     }
 
-    newMargin = sizeChip * 0.075;
+    newMargin = sizeChip * 0.07;
 
     // Ajustar tamaño al redimensionar ventana
     $('.container-image-history').css({ width: sizeChip, height: sizeChip, margin: `0 ${newMargin}px` });

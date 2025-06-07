@@ -216,31 +216,43 @@ body {
 
 #cont-prize-pool-info-amount {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    line-height: 195%;
+    width: 100%;
+    line-height: 185%;
 }
 
 #cont-prize-pool-type {
     font-weight: bold;
-    font-size: 145%;
-    color: var(--gray-950);
+    font-size: 122.5%;
+    width: auto;
+    color: var(--white);
+    padding: 0 1.4%;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background: linear-gradient(to bottom, #04001d, #260052);
 }
 
 #cont-prize-pool-amount {
     display: flex;
+    justify-content: left;
+    align-items: center;
+    font-size: clamp(22px, 1.67vw, 2.2vw);
     font-family: 'Alfa Slab One', cursive;
-    font-size: clamp(22px, 1.95vw, 2.2vw);
 }
 
 #prize-pool-coin-sym {
-    margin-right: 5%;
     color: rgb(226, 226, 226);
+    padding: 0% 1.35%;
+    padding-top: 0.45%;
+    background: linear-gradient(to bottom, #04001d, #260052);
 }
 
 #prize-pool-amount {
-    font-weight: 500;
-    color: rgb(255, 255, 255);
+    color: var(--white);
+    padding-top: 0.45%;
+    padding-right: 1.35%;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background: linear-gradient(to bottom, #04001d, #260052);
 }
 
 #cont-bingo-info-extras {

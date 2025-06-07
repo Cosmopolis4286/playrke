@@ -12,9 +12,9 @@
             </div>
         </div>
         <div id="cont-prize-pool-info-amount">
-            <div id="cont-prize-pool-type">
+            <span id="cont-prize-pool-type">
                 {{ $prizePoolType == 1 ? 'Bote' : ($prizePoolType == 2 ? 'Premio' : '') }}
-            </div>
+            </span>
             <div id="cont-prize-pool-amount">
                 <span id="prize-pool-coin-sym">{{ $coinSym }}</span>
                 <span id="prize-pool-amount">{{ $prizePool ?? 0 }}</span>
