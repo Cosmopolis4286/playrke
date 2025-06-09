@@ -905,7 +905,9 @@ trait BingoTrait
             return ['Error' => 'Sala no disponible'];
         }
 
-        $query = BingoPrizeCtns::where('room', $roomID);
+        $round = BingoRounds::getValueByRoundInProgress($roomID, 'round');
+
+        $query = BingoPrizeCtns::where('room', $roomID)->where('round', '<=', $round);
 
         // Si se especifica un tipo de premio (que no sea 'ALL')
         if ($prizeType !== 'ALL') {
@@ -937,6 +939,7 @@ trait BingoTrait
     {
         $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $data['room'], $data['coin']) ?? 1;
         $gamePrizes = GamePrizes::getAllGamePrize('BINGO'); // [id => code]
+        $bingoRounds = BingoRounds::where('room', $data['room'])->pluck('prize_value', 'round');
 
         $winnersByRound = [
             'numW' => count($data['prizeCtns']),
@@ -947,9 +950,10 @@ trait BingoTrait
         $roundCounts = [];
 
         foreach ($data['prizeCtns'] as $prizeCtn) {
-            
+
             $ctnId = $prizeCtn->ctn;
             $round = $prizeCtn->round;
+            $prizeValue = $bingoRounds[$round];
             $prizeType = $gamePrizes[$prizeCtn->prize_type] ?? 'UNKNOWN';
 
             $serialCtn = BingoCtns::getValueById($ctnId, 'serial');
@@ -972,6 +976,7 @@ trait BingoTrait
             // Inicializar tipo de premio si no existe
             if (!isset($winnersByRound['rounds'][$round][$prizeType])) {
                 $winnersByRound['rounds'][$round][$prizeType] = [
+                    'prizeVal' => $prizeValue,
                     'numWRPT' => 0,
                     'players' => [],
                 ];

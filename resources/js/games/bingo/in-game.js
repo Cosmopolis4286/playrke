@@ -193,7 +193,7 @@ function renderChipsView(direction = null, newChip = null) {
         const lastChip = chipsContainer.children().last().addClass('fade-out-right');
 
         animate(() => {
-            lastChip.remove();
+            //lastChip.remove();
             const chipDiv = createChipDiv(allChips[posChip[0]]).addClass('fade-in-left');
             chipsContainer.prepend(chipDiv);
             animate(() => {
@@ -214,7 +214,7 @@ function renderChipsView(direction = null, newChip = null) {
         animate(() => {
             firstChip.remove();
             const chip = allChips[posChip[1]];
-            
+
             if (!chip || chip == lastRightChip) {
                 isAnimating = false;
                 return;
@@ -266,7 +266,7 @@ function handleLatestChips(latestChips) {
     processChips();
 
     if (roomStatus > 3 || latestChips.includes(chpLast)) {
-        showWinners(decryptJson(infoGame, r4nd0m), chpLast);
+        showWinners(decryptJson(infoGame, r4nd0m), round, chpLast);
     }
 }
 
@@ -391,7 +391,7 @@ function getNewChip(newChip) {
     if (newChip === chpLast) {
         $('#text-check-bingo').show();
         setTimeout(() => {
-            showWinners(decryptJson(infoGame, r4nd0m), chpLast);
+            showWinners(decryptJson(infoGame, r4nd0m), round, chpLast);
         }, 3500);
 
         endWin = 1;
@@ -404,73 +404,85 @@ function getNewChip(newChip) {
     }
 }
 
-function getWinners(arrInfo, arrSize) {
+function getWinners(players, numWRPT = '') {
 
     let content = '';
 
-    for (let i = 0; i < arrSize; i++) {
+    Object.entries(players).forEach(([serial, ctnInfo]) => {
 
-        let img = arrInfo.photo ? `private/user/img/${arrInfo.photo[i]}` : logo;
+        const img = logo;
 
         content +=
             `<div class="col-4 my-1 cont-win-info">
-                <div class="cont-win-img" data-id="${arrInfo.ctn[i]}" title="Ver Cartón">
+                <div class="cont-win-img" data-id="${ctnInfo.ctn}" title="Ver Cartón">
                     <i class="eye-icon fa-solid fa-eye"></i>
                     <img class="user-img" src="${preRoute}${img}">                  
-                    <div class="winner-info-text fw-bold badge badge-success w-100">${arrInfo.name[i]}</div>
-                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy w-100">${coinSym} ${arrInfo.gain[i]}</div>
+                    <div class="winner-info-text fw-bold badge badge-success w-100">${serial}</div>
+                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy w-100">${coinSym} ${ctnInfo.gain}</div>
                 </div>
             </div>`;
-    }
+    });
+
     return content;
 }
 
-function showWinners(arrInfo, chipWin) {
+function showWinners(arrInfo, roundNum, chipWin) {
 
     if (loaderChip) $('#cont-loader').hide();
-    if (roomStatus == 3) $('#text-check-bingo').hide();
+    if (roomStatus === 3) $('#text-check-bingo').hide();
 
-    const arrSizefullHouse = arrInfo.fullHouseWinners.size ?? 0;
-    const arrSizeSerials = arrInfo.serialsWinners.size ?? 0;
-    const arrSizeBingoPlays = arrInfo.bingoPlaysWinners.size ?? 0;
-
-    const countWinners = arrSizefullHouse + arrSizeSerials;
-
-    if (countWinners === 0) {
-        $("#cont-info-winners").hide() && $('#sin_wn').show();
-    } else {
-        $('#count-winners').html(`<b>${countWinners}</b>`);
-
-        const chpWinSrc = `${preRoute}img/bg/chips/${chipWin}.png`;
-        $("#last-win-chip").attr({
-            "src": chpWinSrc,
-            "alt": chipWin
-        });
-
-        if (arrSizefullHouse > 0) {
-            const content = getWinners(arrInfo.fullHouseWinners, arrSizefullHouse);
-            $('#full-house-winners').html(content);
-            $('#full-house-value').text(arrInfo.prizesValues[0]);
-        }
-
-        if (arrSizeBingoPlays > 0) {
-            const content = getWinners(arrInfo.bingoPlaysWinners, arrSizeBingoPlays);
-            $('#bingo-plays-winners').html(content);
-            $('#bingo-plays-value').text(arrInfo.prizesValues[1]);
-            $('#cont-bingo-plays').removeClass('hide-elem');
-        }
-
-        if (arrSizeSerials > 0) {
-            const content = getWinners(arrInfo.serialsWinners, arrSizeSerials);
-            $('#serials-winners').html(content);
-            $('#serial-value').text(arrInfo.prizesValues[1]);
-            $('#cont-serials').removeClass('hide-elem');
-        }
-
-        $("#cont-info-winners").show();
+    if (!arrInfo || typeof arrInfo !== 'object') {
+        console.error('arrInfo no es válido:', arrInfo);
+        return;
     }
 
-    if (endWin) $('#com_bin').hide() && endGame();
+    const rounds = arrInfo.rounds;
+    if (!rounds || typeof rounds !== 'object') {
+        console.error('arrInfo.rounds no es válido:', rounds);
+        return;
+    }
+
+    const round = rounds[roundNum];
+    if (!round || typeof round !== 'object') {
+        console.warn(`No hay datos para la ronda ${roundNum}`);
+        return;
+    }
+
+    if (round.numWR === 0) {
+        $("#cont-info-winners").hide();
+        return;
+    }
+
+    $('#count-winners').html(`<b>${round.numWR}</b>`);
+
+    $("#last-win-chip").attr({
+        "src": `${preRoute}img/bg/chips/${chipWin}.png`,
+        "alt": chipWin
+    });
+
+    Object.entries(round).forEach(([prizeType, data]) => {
+        const players = data.players;
+        if (!players || typeof players !== 'object') return;
+
+        const prizeVal = data.prizeVal;
+
+        if (prizeType === 'FLHE') {
+            const content = getWinners(players, data.numWRPT);
+            $('#full-house-winners').html(content);
+            $('#full-house-value').text(prizeVal);
+        }
+
+        if (prizeType === 'SRL') {
+            const content = getWinners(players, data.numWRPT);
+            $('#serials-winners').html(content);
+            $('#serial-value').text(prizeVal);
+            $('#cont-serials').removeClass('hide-elem');
+        }
+    });
+
+    $("#cont-info-winners").show();
+
+    if (endWin) endGame();
 
     $('#draw-date').text(convertAndDisplay(startTime));
 
