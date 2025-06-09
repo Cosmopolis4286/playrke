@@ -70,8 +70,8 @@
     @endif
     @if ($room->status > 2)
         <script>
-            const round = @json($round);
-            const numRounds = @json($room->Config->rounds);
+            const roundNum = @json($round);
+            const numRounds = parseInt(@json($room->Config->rounds));
             const startTime = @json($startTime);
             const soundNext = $('#next')[0];
             const soundWin = $('#winner')[0];

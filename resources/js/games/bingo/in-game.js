@@ -266,7 +266,7 @@ function handleLatestChips(latestChips) {
     processChips();
 
     if (roomStatus > 3 || latestChips.includes(chpLast)) {
-        showWinners(decryptJson(infoGame, r4nd0m), round, chpLast);
+        showWinners(decryptJson(infoGame, r4nd0m), roundNum, chpLast);
     }
 }
 
@@ -391,12 +391,12 @@ function getNewChip(newChip) {
     if (newChip === chpLast) {
         $('#text-check-bingo').show();
         setTimeout(() => {
-            showWinners(decryptJson(infoGame, r4nd0m), round, chpLast);
+            showWinners(decryptJson(infoGame, r4nd0m), roundNum, chpLast);
         }, 3500);
 
         endWin = 1;
 
-        if (round > 1 && round < numRounds) {
+        if (roundNum > 1 && roundNum < numRounds) {
             setTimeout(() => {
                 window.location.reload();
             }, 10000); // 10 segundos
@@ -426,10 +426,12 @@ function getWinners(players, numWRPT = '') {
     return content;
 }
 
-function showWinners(arrInfo, roundNum, chipWin) {
+function showWinners(arrInfo, numRound, chipWin = false) {
 
-    if (loaderChip) $('#cont-loader').hide();
-    if (roomStatus === 3) $('#text-check-bingo').hide();
+    if (chipWin && roundNum != numRound) {
+        if (loaderChip) $('#cont-loader').hide();
+        if (roomStatus === 3) $('#text-check-bingo').hide();
+    }
 
     if (!arrInfo || typeof arrInfo !== 'object') {
         console.error('arrInfo no es válido:', arrInfo);
@@ -442,15 +444,20 @@ function showWinners(arrInfo, roundNum, chipWin) {
         return;
     }
 
-    const round = rounds[roundNum];
+    const round = rounds[numRound];
     if (!round || typeof round !== 'object') {
-        console.warn(`No hay datos para la ronda ${roundNum}`);
+        console.warn(`No hay datos para la ronda ${numRound}`);
         return;
     }
 
     if (round.numWR === 0) {
         $("#cont-info-winners").hide();
         return;
+    }
+
+    if (!chipWin) {
+        chipWin = round.chipWin;
+        startTime = round.startTime;
     }
 
     $('#count-winners').html(`<b>${round.numWR}</b>`);
@@ -484,12 +491,31 @@ function showWinners(arrInfo, roundNum, chipWin) {
 
     if (endWin) endGame();
 
+    $('#num-round-info-winners').val(numRound);
+
     $('#draw-date').text(convertAndDisplay(startTime));
 
     $("#btn-view-winners").prop('disabled', false);
 
     $("#modal-info-winners").modal('show');
 }
+
+$(document).on("input change", "#num-round-info-winners", function () {
+    let val = $(this).val().replace(/\D/g, ''); // elimina caracteres no numéricos
+    val = val.slice(0, 2); // máximo 2 dígitos
+    $(this).val(val); // actualiza el input con solo números válidos
+
+    const num = parseInt(val, 10);
+
+    // Validar que esté dentro del rango permitido
+    if (isNaN(num) || num < 1 || num > numRounds) {
+        $(this).val(numRounds); // restaurar último valor válido
+        return;
+    }
+
+    // Ejecutar función con valor válido
+    showWinners(decryptJson(infoGame, r4nd0m), num);
+});
 
 let getViewCtn = false;
 
