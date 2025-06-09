@@ -69,7 +69,7 @@ function preloadImages(chips) {
 const containerHistoryChips = $('#container-history-chips');
 let sizeChip = 0;
 let newMargin = 0;
-let posChip = [0, 0];
+let posChip = [0];
 let lastRightChip = false;
 let isAnimating = false;
 
@@ -153,14 +153,10 @@ function renderChipsView(direction = null, newChip = null) {
             leftArrowWidth = 0;
         } else {
             leftArrowWidth = leftArrow.outerWidth();
-            if (lastRightChip[allChips.length - 1]) {
-                rightArrowWidth = leftArrowWidth;
-            }
         }
     }
 
     const screenWidth = containerWidth - leftArrowWidth - rightArrowWidth;
-
     const maxPerView = Math.min(Math.floor(screenWidth / chipWidth), 12);
     const totalChips = allChips.length;
 
@@ -191,7 +187,9 @@ function renderChipsView(direction = null, newChip = null) {
 
     else if (direction === 'L' && posChip[0] > 0 && totalChips > 7) {
         isAnimating = true;
-        posChip[0]--; posChip[1]--;
+        posChip[1]--;
+        posChip[0]--;
+
         const lastChip = chipsContainer.children().last().addClass('fade-out-right');
 
         animate(() => {
@@ -200,7 +198,7 @@ function renderChipsView(direction = null, newChip = null) {
             chipsContainer.prepend(chipDiv);
             animate(() => {
                 chipDiv.removeClass('fade-in-left');
-                lastRightChip = allChips[posChip[1] + 2];
+                lastRightChip = allChips[posChip[0] + maxPerView - 1];
                 isAnimating = false;
             });
         });
@@ -208,14 +206,15 @@ function renderChipsView(direction = null, newChip = null) {
 
     else if (direction === 'R' && (posChip[0] + maxPerView) < totalChips) {
         isAnimating = true;
-        const firstChip = chipsContainer.children().first().addClass('fade-out-left');
         posChip[0]++;
         posChip[1] = posChip[0] + maxPerView - 1;
+
+        const firstChip = chipsContainer.children().first().addClass('fade-out-left');
 
         animate(() => {
             firstChip.remove();
             const chip = allChips[posChip[1]];
-
+            
             if (!chip || chip == lastRightChip) {
                 isAnimating = false;
                 return;
