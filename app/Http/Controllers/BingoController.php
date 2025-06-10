@@ -761,7 +761,7 @@ class BingoController extends Controller
                 $randomKey
             ) : [];
 
-        $starTime = $bingoRound->start_time;
+        $starTime = $bingoRound->start_time ?? $this->convertToUnixTimestamp($room->Config->date, $room->Config->time);
 
         $prizePool = BingoRoom::getValueById($roomID, 'prize_pool');
 
