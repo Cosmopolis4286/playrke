@@ -426,9 +426,9 @@ function getWinners(players, numWRPT = '') {
     return content;
 }
 
-function showWinners(arrInfo, numRound, chipWin = false) {
+function showWinners(arrInfo, numRound, lastChip = false) {
 
-    if (chipWin && roundNum != numRound) {
+    if (lastChip && roundNum != numRound) {
         if (loaderChip) $('#cont-loader').hide();
         if (roomStatus === 3) $('#text-check-bingo').hide();
     }
@@ -455,23 +455,17 @@ function showWinners(arrInfo, numRound, chipWin = false) {
         return;
     }
 
-    if (!chipWin) {
-        chipWin = round.chipWin;
-        startTime = round.startTime;
-    }
-
-    $('#count-winners').html(`<b>${round.numWR}</b>`);
-
-    $("#last-win-chip").attr({
-        "src": `${preRoute}img/bg/chips/${chipWin}.png`,
-        "alt": chipWin
-    });
-
     Object.entries(round).forEach(([prizeType, data]) => {
         const players = data.players;
         if (!players || typeof players !== 'object') return;
 
         const prizeVal = data.prizeVal;
+        const lastChip = data.lastChip;
+
+        $("#last-win-chip").attr({
+            "src": `${preRoute}img/bg/chips/${lastChip}.png`,
+            "alt": lastChip
+        });
 
         if (prizeType === 'FLHE') {
             const content = getWinners(players, data.numWRPT);
@@ -491,9 +485,11 @@ function showWinners(arrInfo, numRound, chipWin = false) {
 
     if (endWin) endGame();
 
-    $('#num-round-info-winners').val(numRound);
+    $('#draw-date').text(convertAndDisplay(round.startTime));
 
-    $('#draw-date').text(convertAndDisplay(startTime));
+    $('#count-winners').html(`<b>${round.numWR}</b>`);
+
+    $('#num-round-info-winners').val(numRound);
 
     $("#btn-view-winners").prop('disabled', false);
 

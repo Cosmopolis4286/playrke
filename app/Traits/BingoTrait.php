@@ -330,16 +330,27 @@ trait BingoTrait
                     }
                 }
 
-                if ($winningChip) {
-                    BingoDraws::where('chip', $winningChip)
-                        ->where('room', $room)->where('round', $round)
-                        ->update(['status' => 3]);
+                if (!$winningChip) continue;
 
-                    if ($round == $rounds) {
-                        // Puedes opcionalmente retornar o guardar el resultado
-                        $chipWin = BingoDraws::select('id', 'chip', 'time')
-                            ->where('chip', $winningChip)->where('round', $round)
-                            ->where('room', $room)->first();
+                $chipWin = BingoDraws::select('id', 'time', 'chip', 'status')
+                    ->where('chip', $winningChip)->where('room', $room)
+                    ->where('round', $round)->first();
+
+                if ($chipWin) {
+                    // Actualiza el estado directamente desde el modelo
+                    $chipWin->status = 3;
+                    $chipWin->save();
+
+                    // Actualiza la información de la ronda
+                    BingoRounds::where('room', $room)
+                        ->where('round', $round)
+                        ->update([
+                            'star_time' => $chipWin->time,
+                            'last_chip' => $chipWin->chip,
+                        ]);
+
+                    if ($round === $rounds) {
+                        $startTime = $chipWin->time;
                     }
                 }
             }
@@ -347,8 +358,7 @@ trait BingoTrait
             $this->insertGameExchangeRate($room, 'BINGO');
 
             DB::commit();
-
-            return $chipWin;
+            return $startTime;
         } catch (Exception $e) {
             DB::rollBack();
             Log::error("Error al registrar ficha ganadora en la Sala Bingo (ID: {$room}): {$e->getMessage()}");
@@ -939,7 +949,7 @@ trait BingoTrait
     {
         $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $data['room'], $data['coin']) ?? 1;
         $gamePrizes = GamePrizes::getAllGamePrize('BINGO'); // [id => code]
-        $bingoRounds = BingoRounds::where('room', $data['room'])->pluck('prize_value', 'round');
+        $bingoRounds = BingoRounds::where('room', $data['room'])->pluck('prize_value', 'round', 'start_time');
 
         $winnersByRound = [
             'numW' => count($data['prizeCtns']),
@@ -970,14 +980,16 @@ trait BingoTrait
             if (!isset($winnersByRound['rounds'][$round])) {
                 $winnersByRound['rounds'][$round] = [
                     'numWR' => $roundCounts[$round],
+                    'startTime' => 12,
+                    'lastChip' => 3
                 ];
             }
 
             // Inicializar tipo de premio si no existe
             if (!isset($winnersByRound['rounds'][$round][$prizeType])) {
                 $winnersByRound['rounds'][$round][$prizeType] = [
-                    'prizeVal' => $prizeValue,
                     'numWRPT' => 0,
+                    'prizeVal' => $prizeValue,
                     'players' => [],
                 ];
             }

@@ -723,7 +723,8 @@ class BingoController extends Controller
 
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
-        $round = BingoRounds::getValueByRoundInProgress($roomID, 'round');
+        $bingoRound = BingoRounds::getRoundInProgress($roomID, ['round', 'start_time']);
+        $round = $bingoRound->round;
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -760,6 +761,8 @@ class BingoController extends Controller
                 $randomKey
             ) : [];
 
+        $starTime = $bingoRound->start_time;
+
         $prizePool = BingoRoom::getValueById($roomID, 'prize_pool');
 
         $viewData = [
@@ -773,7 +776,7 @@ class BingoController extends Controller
             'prizePoolType' => $room->Config->prize_pool_type,
             'coinSym' => $coinSym,
             'prizePool' => $this->convertPrizeValue($roomID, $coinID, $prizePool),
-            'startTime' => $this->convertToUnixTimestamp($room->Config->date, $room->Config->time),
+            'startTime' => $starTime,
             'chipsRest' => $chipsRest,
             'cartons' => $ctns ?? [],
             'draw' => $draw,
