@@ -938,16 +938,10 @@ class BingoController extends Controller
         if ($chipVanID) {
             date_default_timezone_set(config('app.timezone'));
 
-          $allChips = BingoDraws::select('chip')
-    ->where('room', $room->id)
-    ->where('round', $round)
-    ->where('id', '<=', $chipVanID)
-    ->where('time', '<=', time())
-    ->orderByDesc('id')
-    ->take(15)
-    ->pluck('chip')
-    ->map(fn($chip) => (int) $chip)
-    ->toArray();
+            // Realizamos una única consulta para obtener todas las fichas en las condiciones especificadas
+            $allChips = array_map('intval', BingoDraws::select('chip')->where('room', $room->id)
+                ->where('round', $round)->where('id', '<=', $chipVanID)->where('time', '<=', time())
+                ->orderByDesc('id')->pluck('chip')->toArray()->take(20));
         }
 
         return ['allChips' => $allChips ?? [], 'timeServ' => time()];
