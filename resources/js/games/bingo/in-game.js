@@ -40,6 +40,7 @@ function endGame(useTimeout = true) {
 
 // Salir de la sala
 $(document).on("click", ".leave-room", function () {
+    document.activeElement.blur();
     $("#modal-info-winners").modal('hide');
     endGame(false);
 });
@@ -181,19 +182,20 @@ function renderChipsView(direction = null, newChip = null) {
     }
     else if (newChip) {
         isAnimating = true;
-        const chipDiv = createChipDiv(newChip).addClass('fade-in-left');
-        chipsContainer.prepend(chipDiv);
-
-        if (chipsContainerLength > maxPerView) {
-            chipsContainer.children().last().addClass('fade-out-right');
-            animate(() => chipsContainer.children('.fade-out-right').remove());
-        }
-
         animate(() => {
-            chipDiv.removeClass('fade-in-left');
-            isAnimating = false;
+            const chipDiv = createChipDiv(newChip).addClass('fade-in-right');
+            chipsContainer.prepend(chipDiv);
+
+            if (chipsContainerLength >= maxPerView && totalChips > 6) {
+                chipsContainer.children().last().remove();
+            }
+            animate(() => {
+                chipDiv.removeClass('fade-in-right');
+                isAnimating = false;
+            });
         });
-    } else if (direction === 'L' && posChip[0] > 0 && totalChips > 7) {
+    }
+    else if (direction === 'L' && posChip[0] > 0 && totalChips > 7) {
         isAnimating = true;
         posChip[0]--;
         let lastChip = null;
@@ -227,7 +229,8 @@ function renderChipsView(direction = null, newChip = null) {
                 isAnimating = false;
             });
         });
-    } else if (direction === 'R' && (posChip[0] + maxPerView) <= totalChips) {
+    }
+    else if (direction === 'R' && (posChip[0] + maxPerView) <= totalChips) {
         isAnimating = true;
         posChip[1] = posChip[0] + maxPerView;
         posChip[0]++;
@@ -259,7 +262,7 @@ function renderChipsView(direction = null, newChip = null) {
     }
 
     leftArrow.toggleClass('hide-elem', posChip[0] === 0);
-    rightArrow.toggleClass('hide-elem', (posChip[0] + maxPerView) >= totalChips).css('opacity', '1');
+    rightArrow.toggleClass('hide-elem', ((posChip[0] + maxPerView) >= totalChips) && totalChips > 6).css('opacity', '1');
     containerHistoryChips.css('visibility', 'visible');
 }
 

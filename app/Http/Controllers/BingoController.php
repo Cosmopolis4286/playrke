@@ -941,7 +941,7 @@ class BingoController extends Controller
             // Realizamos una única consulta para obtener todas las fichas en las condiciones especificadas
             $allChips = array_map('intval', BingoDraws::select('chip')->where('room', $room->id)
                 ->where('round', $round)->where('id', '<=', $chipVanID)->where('time', '<=', time())
-                ->orderByDesc('id')->pluck('chip')->toArray()->take(20));
+                ->orderByDesc('id')->pluck('chip')->toArray());
         }
 
         return ['allChips' => $allChips ?? [], 'timeServ' => time()];
