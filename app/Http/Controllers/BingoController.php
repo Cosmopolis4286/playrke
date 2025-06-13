@@ -782,7 +782,6 @@ class BingoController extends Controller
             'draw' => $draw,
             'encrypt' => $codeEncrypt,
             'random' => $randomKey,
-            'latestChips' => $dataChips['latestChips'],
             'allChips' => $dataChips['allChips'],
             'vanDraw' => $vanDraw ? (int) $vanDraw->chip : '',
             'infoGame' => $infoGame,
@@ -939,20 +938,19 @@ class BingoController extends Controller
         if ($chipVanID) {
             date_default_timezone_set(config('app.timezone'));
 
-            // Realizamos una única consulta para obtener todas las fichas en las condiciones especificadas
-            $allChips = array_map('intval', BingoDraws::select('chip')->where('room', $room->id)
-                ->where('round', $round)->where('id', '<=', $chipVanID)->where('time', '<=', time())
-                ->orderByDesc('id')->pluck('chip')->toArray());
-
-            // Si el estado de la sala es mayor a 2, tomamos los primeros seis elementos de $allChips como $latestChips
-            $latestChips = ($room->status > 2) ? array_slice($allChips, 0, 6) : [];
+          $allChips = BingoDraws::select('chip')
+    ->where('room', $room->id)
+    ->where('round', $round)
+    ->where('id', '<=', $chipVanID)
+    ->where('time', '<=', time())
+    ->orderByDesc('id')
+    ->take(15)
+    ->pluck('chip')
+    ->map(fn($chip) => (int) $chip)
+    ->toArray();
         }
 
-        return [
-            'latestChips' => $latestChips ?? [],
-            'allChips' => $allChips ?? [],
-            'timeServ' => time()
-        ];
+        return ['allChips' => $allChips ?? [], 'timeServ' => time()];
     }
 
     public function getResult(array $data, $roomUser, $randomKey)

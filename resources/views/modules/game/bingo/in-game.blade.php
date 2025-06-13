@@ -51,7 +51,6 @@
         const restChips = @json($chipsRest);
 
         let arrDraw = @json($draw);
-        let latestChips = @json($latestChips);
         let timeServ = @json($timeServ);
         let allChips = @json($allChips);
         let infoGame = @json($infoGame);

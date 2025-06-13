@@ -949,7 +949,9 @@ trait BingoTrait
     {
         $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $data['room'], $data['coin']) ?? 1;
         $gamePrizes = GamePrizes::getAllGamePrize('BINGO'); // [id => code]
-        $bingoRounds = BingoRounds::where('room', $data['room'])->pluck('prize_value', 'round', 'start_time');
+        $bingoRounds = BingoRounds::where('room', $data['room'])
+            ->get(['round', 'prize_value', 'start_time', 'last_chip'])
+            ->keyBy('round');
 
         $winnersByRound = [
             'numW' => count($data['prizeCtns']),
@@ -963,7 +965,9 @@ trait BingoTrait
 
             $ctnId = $prizeCtn->ctn;
             $round = $prizeCtn->round;
-            $prizeValue = $bingoRounds[$round];
+            $startTime = $bingoRounds[$round]->start_time;
+            $lastChip = $bingoRounds[$round]->last_chip;
+            $prizeValue = $bingoRounds[$round]->prize_value;
             $prizeType = $gamePrizes[$prizeCtn->prize_type] ?? 'UNKNOWN';
 
             $serialCtn = BingoCtns::getValueById($ctnId, 'serial');
@@ -980,14 +984,15 @@ trait BingoTrait
             if (!isset($winnersByRound['rounds'][$round])) {
                 $winnersByRound['rounds'][$round] = [
                     'numWR' => $roundCounts[$round],
-                    'startTime' => 12,
-                    'lastChip' => 3
+                    'startTime' => $startTime,
+                    'lastChip' => $lastChip,
+                    'prizeType' => []
                 ];
             }
 
             // Inicializar tipo de premio si no existe
-            if (!isset($winnersByRound['rounds'][$round][$prizeType])) {
-                $winnersByRound['rounds'][$round][$prizeType] = [
+            if (!isset($winnersByRound['rounds'][$round]['prizeType'][$prizeType])) {
+                $winnersByRound['rounds'][$round]['prizeType'][$prizeType] = [
                     'numWRPT' => 0,
                     'prizeVal' => $prizeValue,
                     'players' => [],
@@ -995,15 +1000,15 @@ trait BingoTrait
             }
 
             // Inicializar jugador si no existe
-            if (!isset($winnersByRound['rounds'][$round][$prizeType]['players'][$serialCtn])) {
-                $winnersByRound['rounds'][$round][$prizeType]['players'][$serialCtn] = [
+            if (!isset($winnersByRound['rounds'][$round]['prizeType'][$prizeType]['players'][$serialCtn])) {
+                $winnersByRound['rounds'][$round]['prizeType'][$prizeType]['players'][$serialCtn] = [
                     'ctn' => $encryptedCtn,
                     'gain' => $formattedAmount,
                 ];
             }
 
             // Incrementar contador por tipo de premio
-            $winnersByRound['rounds'][$round][$prizeType]['numWRPT']++;
+            $winnersByRound['rounds'][$round]['prizeType'][$prizeType]['numWRPT']++;
         }
 
         return $winnersByRound;

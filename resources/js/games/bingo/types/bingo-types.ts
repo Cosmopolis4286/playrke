@@ -29,7 +29,6 @@ export interface BingoProps {
     player: Player;
     chipsRest: any;
     draw: any;
-    latestChips: any;
     timeServ: number;
     allChips: any;
     infoGame: any;

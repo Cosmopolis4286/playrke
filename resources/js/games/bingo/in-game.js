@@ -1,3 +1,5 @@
+let latestChips = [];
+
 if (restChips.length) {
     restChips.forEach(chip => new Image().src = `${preRoute}img/bg/chips/${chip}.png`);
 }
@@ -160,17 +162,20 @@ function renderChipsView(direction = null, newChip = null) {
     const maxPerView = Math.min(Math.floor(screenWidth / chipWidth), 12);
     const totalChips = allChips.length;
 
+
+
     if (!direction && !newChip) {
         const visibleChips = allChips.slice(posChip[0], posChip[0] + maxPerView);
         chipsContainer.empty();
         visibleChips.forEach(chip => chipsContainer.append(createChipDiv(chip)));
         lastRightChip = visibleChips.at(-1);
-        posChip[1] = visibleChips.length - 1;
+        posChip[1] = posChip[0] + maxPerView - 1;
     }
 
     else if (newChip) {
         isAnimating = true;
-        posChip = [posChip[0]++, posChip[0]++];
+        posChip[0]++;
+        posChip[1]++;
         const chipDiv = createChipDiv(newChip).addClass('fade-in-left');
         chipsContainer.prepend(chipDiv);
 
@@ -187,13 +192,18 @@ function renderChipsView(direction = null, newChip = null) {
 
     else if (direction === 'L' && posChip[0] > 0 && totalChips > 7) {
         isAnimating = true;
-        posChip[1]--;
         posChip[0]--;
+        if (posChip[0] + maxPerView < posChip[1]) {
+            posChip[1]--;
+        }
 
-        const lastChip = chipsContainer.children().last().addClass('fade-out-right');
+        let lastChip = null;
+        if (chipsContainer.children().length >= maxPerView) {
+            lastChip = chipsContainer.children().last().addClass('fade-out-right');
+        }
 
         animate(() => {
-            //lastChip.remove();
+            lastChip?.remove();
             const chipDiv = createChipDiv(allChips[posChip[0]]).addClass('fade-in-left');
             chipsContainer.prepend(chipDiv);
             animate(() => {
@@ -204,18 +214,22 @@ function renderChipsView(direction = null, newChip = null) {
         });
     }
 
-    else if (direction === 'R' && (posChip[0] + maxPerView) < totalChips) {
+    else if (direction === 'R' && (posChip[0] + maxPerView) <= totalChips) {
         isAnimating = true;
+        posChip[1] = posChip[0] + maxPerView;
         posChip[0]++;
-        posChip[1] = posChip[0] + maxPerView - 1;
 
         const firstChip = chipsContainer.children().first().addClass('fade-out-left');
 
         animate(() => {
             firstChip.remove();
-            const chip = allChips[posChip[1]];
+            let chip = allChips[posChip[1]];
 
-            if (!chip || chip == lastRightChip) {
+            if (chip === undefined && posChip[1] > 0) {
+                chip = allChips[--posChip[1]];
+            }
+
+            if (chip === lastRightChip) {
                 isAnimating = false;
                 return;
             }
@@ -250,10 +264,10 @@ $(document).on("click", ".cont-arrow-history-chips", function () {
     renderChipsView($(this).data('move'));
 });
 
-function handleLatestChips(latestChips) {
+function handleLatestChips(allChips) {
     const containerLastChips = $("#cont-last-chips").empty();
 
-    const chipsHtml = latestChips.slice(0, 6).map((elem, ind) => `
+    const chipsHtml = allChips.slice(0, 6).map((elem, ind) => `
         <div class="cont-img-chip">
             <img id="chp_${elem}" class="img-chip${ind === 0 ? ' zoom' : ''}" alt="${elem}" src="${preRoute}img/bg/chips/${elem}.png">
         </div>
@@ -265,7 +279,7 @@ function handleLatestChips(latestChips) {
     autoMarked();
     processChips();
 
-    if (roomStatus > 3 || latestChips.includes(chpLast)) {
+    if (roomStatus > 3 || allChips.includes(chpLast)) {
         showWinners(decryptJson(infoGame, r4nd0m), roundNum, chpLast);
     }
 }
@@ -282,11 +296,10 @@ async function getGameData() {
             _token: $("#5K3_70K").val()
         });
 
-        latestChips = data.latestChips;
         allChips = data.allChips;
         timeServ = Number(data.timeServ);
 
-        handleLatestChips(latestChips);
+        handleLatestChips(allChips);
 
     } catch (error) {
         console.error("Error al obtener los datos del juego:", error);
@@ -338,7 +351,7 @@ function processChips() {
     if (endWin || intervalId) return;
 
     intervalId = setInterval(() => {
-        if (endWin || latestChips.includes(chpLast)) {
+        if (endWin || allChips.includes(chpLast)) {
             clearInterval(intervalId);
             intervalId = null;
             return;
@@ -352,7 +365,7 @@ function processChips() {
 const r4nd0m = $('#random').val();
 
 function getNewChip(newChip) {
-    if (newChip === undefined || latestChips.includes(newChip)) return;
+    if (newChip === undefined || allChips.includes(newChip)) return;
 
     const $contLastChips = $('#cont-last-chips');
     const $contLoader = $('#cont-loader');
@@ -379,10 +392,8 @@ function getNewChip(newChip) {
 
     if (arrDrawImg.length >= 6) {
         $(arrDrawImg.last()).remove();
-        latestChips.pop();
     }
 
-    latestChips.unshift(newChip);
     allChips.unshift(newChip);
 
     renderChipsView(false, newChip);
@@ -447,33 +458,25 @@ function showWinners(arrInfo, numRound, lastChip = false) {
     const round = rounds[numRound];
     if (!round || typeof round !== 'object') {
         console.warn(`No hay datos para la ronda ${numRound}`);
-        return;
-    }
-
-    if (round.numWR === 0) {
         $("#cont-info-winners").hide();
         return;
     }
 
-    Object.entries(round).forEach(([prizeType, data]) => {
+    const prizeType = round.prizeType;
+
+    Object.entries(prizeType).forEach(([prize, data]) => {
         const players = data.players;
         if (!players || typeof players !== 'object') return;
 
         const prizeVal = data.prizeVal;
-        const lastChip = data.lastChip;
 
-        $("#last-win-chip").attr({
-            "src": `${preRoute}img/bg/chips/${lastChip}.png`,
-            "alt": lastChip
-        });
-
-        if (prizeType === 'FLHE') {
+        if (prize === 'FLHE') {
             const content = getWinners(players, data.numWRPT);
             $('#full-house-winners').html(content);
             $('#full-house-value').text(prizeVal);
         }
 
-        if (prizeType === 'SRL') {
+        if (prize === 'SRL') {
             const content = getWinners(players, data.numWRPT);
             $('#serials-winners').html(content);
             $('#serial-value').text(prizeVal);
@@ -486,6 +489,13 @@ function showWinners(arrInfo, numRound, lastChip = false) {
     if (endWin) endGame();
 
     $('#draw-date').text(convertAndDisplay(round.startTime));
+
+    lastChip = round.lastChip;
+
+    $("#last-win-chip").attr({
+        "src": `${preRoute}img/bg/chips/${lastChip}.png`,
+        "alt": lastChip
+    });
 
     $('#count-winners').html(`<b>${round.numWR}</b>`);
 
@@ -575,10 +585,10 @@ $(function () {
             }
         });
 
-        if (!latestChips.length) {
+        if (!allChips.length) {
             processChips();
         } else {
-            handleLatestChips(latestChips);
+            handleLatestChips(allChips);
         }
     } catch (error) {
         console.error("Error en la inicialización:", error);
