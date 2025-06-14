@@ -52,6 +52,8 @@
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const prizePoolType = $("#prize-pool-type");
+        const coins = JSON.parse('<?php echo $coins; ?>');
+        const allowedCoins = $("#allowed-coins");
         const gameMode = $("#game-mode");
         const bingoPlays = $("#bingo-plays");
         const arrBingoPlays = @json($bingoPlays);
@@ -102,6 +104,18 @@
                 }
             }
         });
+
+        function insertAllowedCoins(selectedCoins = []) {
+            allowedCoins.empty();
+            $.each(coins, function(index, item) {
+                if (item.id != coin.val()) {
+                    const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
+                    allowedCoins.append(
+                        `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
+                    );
+                }
+            });
+        }
 
         function insertBingoPlays() {
             // // Verificar si "random" está seleccionado
@@ -216,7 +230,7 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
                 'date', 'room-type', 'prize-pool-type', 'game-mode', 'room-commn',
-                'ctn-price', 'time-chip', 'rounds', 'serials-pct', 'num-serials'
+                'ctn-price', 'allowed-coins', 'time-chip', 'rounds', 'serials-pct', 'num-serials'
             ]);
         });
 
