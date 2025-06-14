@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
             $table->string('coin', 15);
             $table->double('ctn_price');
-            $table->boolean('status')->default(1);
             $table->timestamps();
         });
     }

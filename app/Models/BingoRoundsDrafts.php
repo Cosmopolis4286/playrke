@@ -12,7 +12,8 @@ class BingoRoundsDrafts extends Model
     protected $table = 'bingo_rounds_drafts';
 
     protected $fillable = [
-        'room',
+        'bingo_room_id',
+        'automatic_bingo_room_id',
         'rounds',
         'prize_types',
         'play_types',
@@ -26,27 +27,23 @@ class BingoRoundsDrafts extends Model
         'prize_values' => 'array',
     ];
 
-    /**
-     * Get a draft by its ID.
-     */
     public static function getById(int $id, array $fields = ['*']): ?self
     {
         return self::select($fields)->find($id);
     }
 
-    /**
-     * Get a single column value by draft ID.
-     */
     public static function getValueById(int $id, string $column)
     {
         return self::where('id', $id)->value($column);
     }
 
-    /**
-     * Get the draft by room ID.
-     */
     public static function getByRoom(int $roomId, array $fields = ['*']): ?self
     {
-        return self::select($fields)->where('room', $roomId)->first();
+        return self::select($fields)->where('bingo_room_id', $roomId)->first();
+    }
+
+    public static function getByAutomaticRoom(int $roomId, array $fields = ['*']): ?self
+    {
+        return self::select($fields)->where('automatic_bingo_room_id', $roomId)->first();
     }
 }

@@ -1,21 +1,24 @@
 function handleCtnPriceForCoins(arrCtnPrice) {
-    // Generar el contenido HTML usando map y join
-    const dataCoins = arrCtnPrice.map((elem) =>
-        `<div class="col col-sm-6 col-md-4 mt-1">
-        <div class="input-group">
-            <div class="input-group-prepend">
-                <span class="input-group-text">${elem.isoCode}</span>
+    const allowedCoinsIDs = allowedCoins.val();
+    const dataCoins = arrCtnPrice
+        .filter(elem => Array.isArray(allowedCoinsIDs) && allowedCoinsIDs.includes(elem.coin))
+        .map(elem => `
+        <div class="col col-sm-6 col-md-4 mt-1">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">${elem.isoCode}</span>
+                </div>
+                <input 
+                    type="number" 
+                    class="form-control ctn-price-coins-input" 
+                    name="ctn_price_coins[${elem.coin}]" 
+                    id="ctn-price-coin-${elem.coin}" 
+                    aria-label="Precio para ${elem.isoCode}" 
+                    value="${elem.ctnPrice}"
+                    step="0.05">
             </div>
-            <input 
-                type="number" 
-                class="form-control ctn-price-coins-input" 
-                name="ctn_price_coins[${elem.coin}]" 
-                id="ctn-price-coin-${elem.coin}" 
-                aria-label="Precio para ${elem.isoCode}" 
-                value="${elem.ctnPrice}"
-                step="0.05">
         </div>
-    </div>`).join('');
+    `).join('');
 
     // Actualizar el contenido del contenedor
     $('#content-ctn-price-config').html(dataCoins);

@@ -52,7 +52,7 @@
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const prizePoolType = $("#prize-pool-type");
-        const coins = JSON.parse('<?php echo $coins; ?>');
+        const coins = @json($coins);
         const allowedCoins = $("#allowed-coins");
         const gameMode = $("#game-mode");
         const bingoPlays = $("#bingo-plays");
@@ -60,6 +60,7 @@
         const arrCoins = @json($coins);
         const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
+        let room = false;
         let totalPct = false;
         let coinsCtnPrice = false;
         let selectedBingoPlays = [];
@@ -108,14 +109,16 @@
         function insertAllowedCoins(selectedCoins = []) {
             allowedCoins.empty();
             $.each(coins, function(index, item) {
-                if (item.id != coin.val()) {
-                    const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
-                    allowedCoins.append(
-                        `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
-                    );
-                }
+                const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
+                allowedCoins.append(
+                    `<option value="${item.id}" ${isSelected}>(${item.iso_code}) ${item.long_name}</option>`
+                );
             });
         }
+
+        allowedCoins.on('change', function() {
+            getCtnPriceCoin(room);
+        });
 
         function insertBingoPlays() {
             // // Verificar si "random" está seleccionado
@@ -148,6 +151,7 @@
 
             selectedBingoPlays = [];
             coinsCtnPrice = false;
+            room = false;
 
             $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
             $('#content-rounds-config, #content-price-config').empty();
@@ -175,6 +179,8 @@
             }
 
             $('#room-type').val(roomType);
+
+            insertAllowedCoins();
 
             $.each(arrPrizePoolType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.prize_pool_type) ? 'selected' : '';

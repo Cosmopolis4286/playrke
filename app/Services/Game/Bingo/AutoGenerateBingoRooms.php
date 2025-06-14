@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceAutomatic, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRoundsDrafts, BingoRoundsDraftsAutomatic, GameConfig, UserType};
+use App\Models\{BingoCreator, BingoCtnPrice, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRoundsDrafts, GameConfig};
 use App\Traits\EncryptRKE;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -155,7 +155,7 @@ class AutoGenerateBingoRooms
      */
     private function associateCtnPrices($automaticBingoID, $roomID, $creatorUser)
     {
-        $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($automaticBingoID ?? '');
+        $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($automaticBingoID ?? '');
 
         if (!$coinsCtnPrice) return;
 

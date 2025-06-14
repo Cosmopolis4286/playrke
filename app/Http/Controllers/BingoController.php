@@ -15,7 +15,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
 use App\Models\BingoCreatorSales;
 use App\Models\BingoCtnPrice;
-use App\Models\BingoCtnPriceAutomatic;
+use App\Models\BingoCtnPriceDrafts;
 use App\Models\BingoCtnsLot;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoDrawsCode;
@@ -24,7 +24,6 @@ use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomAutomatic;
 use App\Models\BingoRounds;
 use App\Models\BingoRoundsDrafts;
-use App\Models\BingoRoundsDraftsAutomatic;
 use App\Models\BingoTypesPlays;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
@@ -2194,7 +2193,7 @@ class BingoController extends Controller
         $existingRoomConfig = BingoRoomConfig::where('room', $roomID)->firstOrFail();
         $existingRoomCreator = BingoCreator::getByRoom($roomID);
         $existingRoomRounds = BingoRounds::getByRoom($roomID);
-        $existingRoomCtnPrice = BingoCtnPrice::getAllCtnPrice($roomID, $existingRoomCreator->creator_user);
+        $existingRoomCtnPrice = BingoCtnPriceDrafts::getByRoom($roomID, ['coins', 'ctn_prices']);
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -2262,23 +2261,12 @@ class BingoController extends Controller
             $this->handleRoundsDrafts('M', 'CREATE', $roundsPrizeType, $roundsPrizeValue, $roomID);
 
             if ($existingRoomCtnPrice) {
-
-                $timestamp = now();
-
-                $recordsToInsert = collect($existingRoomCtnPrice)
-                    ->filter(fn($ctnPrice) => $ctnPrice) // Filtrar solo los elementos con valor
-                    ->map(function ($ctnPrice, $coin) use ($newRoomID, $userID, $timestamp) {
-                        return [
-                            'room' => $newRoomID,
-                            'creator_user' => $userID,
-                            'coin' => $coin,
-                            'ctn_price' => $ctnPrice,
-                            'created_at' => $timestamp,
-                            'updated_at' => $timestamp,
-                        ];
-                    })->values()->toArray();
-
-                BingoCtnPrice::insert($recordsToInsert);
+                BingoCtnPriceDrafts::create([
+                    'room' => $roomID,
+                    'creator_user' => $userID,
+                    'coins' => $existingRoomCtnPrice->coins,
+                    'ctn_prices' => $existingRoomCtnPrice->ctn_prices
+                ]);
             }
 
             DB::commit();

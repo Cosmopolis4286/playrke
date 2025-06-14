@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('automatic_bingo_rounds_drafts', function (Blueprint $table) {
+        Schema::create('bingo_ctn_price_drafts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('automatic_bingo_id')->constrained('automatic_bingo_rooms')->onDelete('cascade');
-            $table->string('rounds', 2);
-            $table->json('prize_types');
-            $table->json('play_types');
-            $table->json('prize_values');
+            $table->foreignId('bingo_room_id')->nullable()->constrained('bingo_rooms');
+            $table->foreignId('automatic_bingo_room_id')->nullable()->constrained('automatic_bingo_rooms');
+            $table->foreignId('creator_user')->constrained('users');
+            $table->json('coins');
+            $table->json('ctn_prices');
             $table->enum('status', ['ACTIVE', 'COMPLETED'])->default('ACTIVE');
             $table->timestamps();
         });
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('automatic_bingo_rounds_drafts');
+        Schema::dropIfExists('bingo_ctn_price_drafts');
     }
 };
