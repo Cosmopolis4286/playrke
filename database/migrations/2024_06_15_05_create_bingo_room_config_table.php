@@ -23,9 +23,8 @@ class CreateBingoRoomConfigTable extends Migration
             $table->date('date');
             $table->string('time', 10);
             $table->integer('unix_date');
-            $table->unsignedBigInteger('country')->nullable();
-            $table->string('coin', 15)->nullable();
             $table->double('ctn_price');
+            $table->json('allowed_coins');
             $table->double('rke_commn')->nullable();
             $table->double('room_commn')->nullable();
             $table->unsignedBigInteger('prize_pool_type')->default(1);
@@ -43,7 +42,6 @@ class CreateBingoRoomConfigTable extends Migration
             // Foreign key constraint
             $table->foreign('room')->references('id')->on('bingo_rooms')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('game_mode')->references('id')->on('game_modes')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('country')->references('id')->on('countries')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('prize_pool_type')->references('id')->on('prize_pool_types')->onDelete('restrict')->onUpdate('cascade');
         });
     }
