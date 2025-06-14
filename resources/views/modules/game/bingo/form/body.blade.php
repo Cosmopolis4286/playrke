@@ -41,6 +41,12 @@
         <label for="prize-pool-type">Tipo Bote*</label>
         <select id="prize-pool-type" name="prize_pool_type" class="form-control" required></select>
     </div>
+    <div id="container-allowed-coins" class="form-group col-sm-6">
+        <label for="allowed-coins">Juegos Permitidos:</label>
+        <select multiple id="allowed-coins" name="allowed_coins[]" placeholder="Seleccionar Monedas"
+            data-allow-clear="1" class="select2 form-control">
+        </select>
+    </div>
     <div id="container-amount-added-prize-pool" class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="amount-added-prize-pool">Valor Fijo/Extra*</label>
         <div class="input-group">

@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
+import vue from '@vitejs/plugin-vue';
 import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator';
 
-// Lista de todos los archivos JS que se van a incluir y posiblemente ofuscar
+// Archivos JS (incluye app.js primero)
 const jsFiles = [
     'resources/js/app.js',
     'resources/js/rke/toast-notify.js',
@@ -27,7 +28,7 @@ const jsFiles = [
     'resources/js/games/bingo/tests/regenerate-draw.js'
 ];
 
-// Lista de CSS (solo para laravel plugin)
+// Archivos CSS
 const cssFiles = [
     'resources/css/rke/styles.css',
     'resources/css/rke/auth-pages.css',
@@ -45,18 +46,33 @@ export default defineConfig(({ mode }) => {
                 input: [...cssFiles, ...jsFiles],
                 refresh: true,
             }),
+            vue(),
             obfuscatorPlugin({
                 include: jsFiles,
                 exclude: [/node_modules/],
                 apply: 'build',
                 options: {
-                    identifierNamesGenerator: 'mangled', // Evita que se rompan los nombres como 'route'
-                    reservedStrings: ['route', 'Ziggy'], // Protege las referencias globales también
+                    identifierNamesGenerator: 'mangled',
+                    reservedStrings: ['route', 'Ziggy'],
                     compact: true,
                     debugProtection: isProduction,
                     selfDefending: isProduction,
                 },
             }),
         ],
+        build: {
+            // Opcional: puedes ajustar más opciones aquí
+            sourcemap: !isProduction,
+            minify: isProduction,
+            rollupOptions: {
+                // Opcional: configura split chunks o alias aquí si quieres
+            },
+        },
+        resolve: {
+            alias: {
+                // Alias para Vue 3 runtime completo si usas templates en .vue
+                'vue': 'vue/dist/vue.esm-bundler.js',
+            },
+        },
     };
 });

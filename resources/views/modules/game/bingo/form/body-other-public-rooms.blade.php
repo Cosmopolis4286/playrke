@@ -1,5 +1,11 @@
 <div class="row">
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
+    <div id="container-allowed-coins" class="form-group col-sm-6">
+        <label for="allowed-coins">Juegos Permitidos:</label>
+        <select multiple id="allowed-coins" name="allowed_coins[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
+            class="select2 form-control">
+        </select>
+    </div>
     <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="ctn-price">Precio CTN*</label>
         <div class="input-group">

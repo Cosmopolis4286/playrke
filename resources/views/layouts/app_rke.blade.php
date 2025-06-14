@@ -4,9 +4,11 @@
 @include('layouts.sections.head')
 
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
-    <div class="wrapper">
+    <div id="app" class="wrapper"> {{-- Contenedor raíz para Vue --}}
+
         @routes
         <input type="hidden" id="5K3_70K" value="{{ csrf_token() }}">
+
         <!-- Navbar -->
         @include('layouts.sections.nav')
 
@@ -20,7 +22,7 @@
         <div class="content-wrapper bg-transparent">
             <div class="content-header">
                 <div class="container-fluid">
-                    @yield('content')
+                    @yield('content') {{-- Aquí puedes incluir componentes Vue --}}
                 </div>
             </div>
         </div>
@@ -37,7 +39,9 @@
         </footer>
 
         <!-- Scripts -->
-        @include('layouts.sections.scripts')
+        @vite('resources/js/app.js') {{-- Aquí cargas el bundle Vue con Vite --}}
+
+        @include('layouts.sections.scripts') {{-- Si tienes otros scripts que no quieres migrar aún --}}
     </div>
 </body>
 
