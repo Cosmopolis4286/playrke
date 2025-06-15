@@ -1302,6 +1302,8 @@ class BingoController extends Controller
 
             $roomID = BingoRoom::create($createData)->id;
             $roundsPct = $request->rounds_pct ?? null;
+
+            $allowedCoins = $request->allowed_coins;
             $ctnPriceCoins = $request->ctn_price_coins;
 
             $dataConfig = [
@@ -1313,7 +1315,7 @@ class BingoController extends Controller
                 'time' => $request->time,
                 'unix_date' => strtotime("{$request->date} {$request->time}"),
                 'ctn_price' => $request->ctn_price,
-                'allowed_coins' => $request->allowed_coins,
+                'allowed_coins' => $allowedCoins,
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $request->room_commn,
                 'prize_pool_type' => $request->prize_pool_type,
@@ -1340,7 +1342,7 @@ class BingoController extends Controller
                 'creator_id' => $creatorID,
                 'creator_commn' => $request->room_commn,
                 'ctn_price' => $request->ctn_price,
-                'allowed_coins' => $request->allowed_coins
+                'allowed_coins' => $allowedCoins
             ]);
 
             $roundsPrizeType = $request->rounds_prize_type ?? [];
@@ -1368,10 +1370,7 @@ class BingoController extends Controller
     private function handleRoundsDrafts(string $type, string $action, array $roundsPrizeType, array $roundsPrizeValue, int $roomID)
     {
         try {
-            $modelName = $type === 'M' ? 'BingoRoundsDrafts' : 'BingoRoundsDraftsAutomatic';
-            $model = app("App\\Models\\$modelName");
-            $columnRoom = $type === 'M' ? 'room' : 'automatic_bingo_id';
-
+            $columnRoom = $type === 'M' ? 'bingo_room_id' : 'automatic_bingo_room_id';
             $numRounds = count($roundsPrizeType) ?: 1;
             $timestamp = now();
 
@@ -1387,11 +1386,11 @@ class BingoController extends Controller
                 'updated_at' => $timestamp,
             ];
 
-            $existing = $model::getByRoom($roomID);
+            $existing = $type === 'M' ? BingoRoundsDrafts::getByRoom($roomID) : BingoRoundsDrafts::getByAutomaticRoom($roomID);
 
             if ($action === 'CREATE') {
                 if (!$existing) {
-                    $model::create($data);
+                    BingoRoundsDrafts::create($data);
                 } else {
                     throw new \Exception('Draft already exists for this room.');
                 }
@@ -1405,13 +1404,13 @@ class BingoController extends Controller
                         'updated_at' => $timestamp,
                     ]);
                 } else {
-                    $model::create($data);
+                    BingoRoundsDrafts::create($data);
                 }
             } else {
                 throw new \InvalidArgumentException("Invalid action: $action");
             }
         } catch (\Exception $e) {
-            Log::error("Error en handleRoundsDrafts para $modelName: " . $e->getMessage(), [
+            Log::error("Error en handleRoundsDrafts para BingoRoundsDrafts: " . $e->getMessage(), [
                 'action' => $action,
                 'roomID' => $roomID,
                 'trace'  => $e->getTraceAsString(),
@@ -1420,7 +1419,6 @@ class BingoController extends Controller
             throw $e;
         }
     }
-
 
     private function handleCtnPriceCoins($action, $ctnPriceCoins, $roomID, $creatorUser)
     {
@@ -1494,7 +1492,7 @@ class BingoController extends Controller
                     $this->handleCtnPriceCoins('UPDATE', $ctnPriceCoins, $roomID, $creatorUser);
                 }
 
-                $bingoCreator = BingoCreator::select('id', 'creator_commn', 'ctn_price')
+                $bingoCreator = BingoCreator::select('id', 'creator_commn', 'ctn_price', 'allowed_coins')
                     ->where('room', $roomID)->where('creator_user', $creatorUser)->first();
 
                 if ($bingoCreator) {
@@ -1506,6 +1504,10 @@ class BingoController extends Controller
 
                     if ($bingoCreator->ctn_price != $request->ctn_price) {
                         $updates['ctn_price'] = $request->ctn_price;
+                    }
+
+                    if ($bingoCreator->allowed_coins != $request->allowed_coins) {
+                        $updates['allowed_coins'] = $request->allowed_coins;
                     }
 
                     if ($updates) {
@@ -1604,15 +1606,21 @@ class BingoController extends Controller
 
     public function getRoundsConfig($room, string $type)
     {
+        $query = BingoRoundsDrafts::select(
+            'rounds',
+            'prize_types',
+            'play_types',
+            'prize_values'
+        );
+
         if ($type === 'M') {
             $roomID = BingoRoom::getValueByEncrypted($room, 'id');
-
-            $bingoRounds = BingoRoundsDrafts::select('rounds', 'prize_types', 'play_types', 'prize_values')
-                ->where('room', $roomID)->where('status', 'ACTIVE')->first();
+            $query->where('bingo_room_id', $roomID);
         } else {
-            $bingoRounds = BingoRoundsDraftsAutomatic::select('rounds', 'prize_types', 'play_types', 'prize_values')
-                ->where('automatic_bingo_id', $room)->where('status', 'ACTIVE')->first();
+            $query->where('automatic_bingo_room_id', $room);
         }
+
+        $bingoRounds = $query->where('status', 'ACTIVE')->first();
 
         // Retornar respuesta con los datos
         return response()->json($bingoRounds);
@@ -2758,7 +2766,6 @@ class BingoController extends Controller
 
             $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
 
-            $roundsPct = $request->rounds_pct;
             $ctnPriceCoins = $request->ctn_price_coins;
 
             BingoRoomAutomatic::where('id', $id)->update([

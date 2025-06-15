@@ -32,6 +32,8 @@ class BingoRoomConfig extends Model
     'play_types'
   ];
 
+  protected $casts = ['allowed_coins' => 'array'];
+
   public function Room()
   {
     return $this->belongsTo(BingoRoom::class, 'room');

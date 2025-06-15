@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('bingo_rounds_drafts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('bingo_room_id')->nullable()->constrained('bingo_rooms');
-            $table->foreignId('automatic_bingo_room_id')->nullable()->constrained('automatic_bingo_rooms');
+            $table->foreignId('bingo_room_id')->unique()->nullable()->constrained('bingo_rooms');
+            $table->foreignId('automatic_bingo_room_id')->unique()->nullable()->constrained('automatic_bingo_rooms');
             $table->string('rounds', 2);
             $table->json('prize_types');
             $table->json('play_types');

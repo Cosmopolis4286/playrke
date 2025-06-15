@@ -20,6 +20,7 @@ class BingoRoomAutomatic extends Model
     'rke_commn',
     'room_commn',
     'ctn_price',
+    'allowed_coins',
     'time_chip',
     'rounds',
     'rounds_pct',
@@ -33,6 +34,8 @@ class BingoRoomAutomatic extends Model
     'creator_user',
     'status'
   ];
+
+  protected $casts = ['allowed_coins' => 'array'];
 
   public function GameMode()
   {

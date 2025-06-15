@@ -25,6 +25,7 @@ return new class extends Migration
             $table->double('rke_commn')->default(0);
             $table->double('room_commn')->default(0);
             $table->double('ctn_price');
+            $table->json('allowed_coins')->nullable();
             $table->string('time_chip', 2)->nullable();
             $table->string('rounds', 2)->default('1');
             $table->double('rounds_pct')->nullable();

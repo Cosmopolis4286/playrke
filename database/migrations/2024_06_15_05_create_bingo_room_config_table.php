@@ -24,7 +24,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->string('time', 10);
             $table->integer('unix_date');
             $table->double('ctn_price');
-            $table->json('allowed_coins');
+            $table->json('allowed_coins')->nullable();
             $table->double('rke_commn')->nullable();
             $table->double('room_commn')->nullable();
             $table->unsignedBigInteger('prize_pool_type')->default(1);

@@ -353,18 +353,32 @@ class SellerController extends Controller
         ]);
     }
 
-    public function getAvailableCountriesBySeller()
+    public function getAvailableCountriesBySeller($roomID)
     {
         $seller = $this->seller(['id', 'commerce']);
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
-        $coinsSeller = array_map('strval', SellerCountriesCoins::getAvailableCoins($seller->id));
-        $commerceCoins = array_map('strval', CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 'ACTIVE'));
+        // Obtenemos las monedas disponibles para el vendedor y el comercio
+        $sellerCoins = SellerCountriesCoins::getAvailableCoins($seller->id);
+        $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 'ACTIVE');
 
-        $coinsAvailable = array_intersect($commerceCoins, $coinsSeller);
-        $coinsAvailable = array_values($coinsAvailable); // reindexar
+        // Obtenemos el campo allowed_coins (json o null) y lo forzamos a array
+        $allowedCoinsRoom = BingoCreator::where('creator_user', $creatorUser)
+            ->where('room', $roomID)->value('allowed_coins');
 
-        if (in_array('1', $coinsAvailable, true)) {
-            $coinsAvailable = array_values(array_diff($coinsAvailable, ['1']));
+        $allowedCoinsRoom = is_array($allowedCoinsRoom) ? $allowedCoinsRoom : [];
+
+        $coinsAvailable = array_values(array_intersect(
+            array_map('strval', $sellerCoins),
+            array_map('strval', $commerceCoins),
+            array_map('strval', $allowedCoinsRoom)
+        ));
+
+        // Eliminamos '1' si existe
+        $USDT = false;
+        if (($key = array_search('1', $coinsAvailable, true)) !== false) {
+            unset($coinsAvailable[$key]);
+            $coinsAvailable = array_values($coinsAvailable);
             $USDT = true;
         }
 

@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCreator, BingoCtnPrice, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRoundsDrafts, GameConfig};
+use App\Models\{BingoCreator, BingoCtnPrice, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRounds, BingoRoundsDrafts, GameConfig};
 use App\Traits\EncryptRKE;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -123,6 +123,7 @@ class AutoGenerateBingoRooms
                 'time' => $dataRoom->time,
                 'unix_date' => $unixDate,
                 'ctn_price' => $dataRoom->ctn_price,
+                'allowed_coins' => $dataRoom->allowed_coins,
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $dataRoom->room_commn,
                 'prize_pool_type' => $dataRoom->prize_pool_type,
@@ -144,6 +145,7 @@ class AutoGenerateBingoRooms
                 'creator_id' => $roomDate->creator_id,
                 'creator_commn' => $dataRoom->room_commn,
                 'ctn_price' => $dataRoom->ctn_price,
+                'allowed_coins' => $dataRoom->allowed_coins
             ]
         )->id;
 
@@ -178,7 +180,7 @@ class AutoGenerateBingoRooms
     private function associateRounds($automaticBingoID, $roomID)
     {
         try {
-            $data = BingoRoundsDraftsAutomatic::getByRoom($automaticBingoID, [
+            $data = BingoRoundsDrafts::getByAutomaticRoom($automaticBingoID, [
                 'rounds',
                 'prize_types',
                 'play_types',
@@ -189,7 +191,7 @@ class AutoGenerateBingoRooms
                 throw new \Exception("No draft data found for automatic bingo ID {$automaticBingoID}");
             }
 
-            BingoRoundsDrafts::create([
+            BingoRounds::create([
                 'room' => $roomID,
                 'rounds' => $data->rounds,
                 'prize_types' => $data->prize_types,
@@ -198,7 +200,7 @@ class AutoGenerateBingoRooms
                 'status' => 'ACTIVE',
             ]);
 
-            BingoRoundsDraftsAutomatic::where('automatic_bingo_id', $automaticBingoID)
+            BingoRoundsDrafts::where('automatic_bingo_id', $automaticBingoID)
                 ->update(['status' => 'COMPLETED']);
         } catch (\Exception $e) {
             Log::error('Error en associateRounds: ' . $e->getMessage());
