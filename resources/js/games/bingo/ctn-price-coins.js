@@ -1,5 +1,5 @@
 function handleCtnPriceForCoins(arrCtnPrice) {
-    const allowedCoinsIDs = allowedCoins.val();
+    const allowedCoinsIDs = $("#allowed-coins").val();
     const dataCoins = arrCtnPrice
         .filter(elem => Array.isArray(allowedCoinsIDs) && allowedCoinsIDs.includes(elem.coin))
         .map(elem => `
@@ -29,6 +29,9 @@ function handleCtnPriceForCoins(arrCtnPrice) {
 
 $(document).on("click", "#btn-ctn-price-config", function () {
     const container = $("#container-ctn-price-config");
+    console.log('$("#allowed-coins").val()', $("#allowed-coins").val());
+
+    if (($("#allowed-coins").val() || []).length === 0) return;
 
     if (container.is(":visible")) {
         container.hide();
@@ -45,6 +48,16 @@ $(document).on("click", "#btn-ctn-price-config", function () {
 });
 
 function getCtnPriceCoin(room = '') {
+
+    if (($("#allowed-coins").val() || []).length === 0) {
+        $("#container-ctn-price-config").hide();
+        $('#content-ctn-price-config').empty();
+        coinsCtnPrice = false;
+        $("#allowed-coins").focus();
+        showToast('Campo obligatorio', 'warning');
+        return;
+    }
+
     $.ajax({
         url: route('bingo.getCtnPriceForCoin', { creation, creatorType, creatorID, room }),
         method: 'GET',

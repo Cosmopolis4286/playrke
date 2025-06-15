@@ -1351,6 +1351,7 @@ class BingoController extends Controller
             $this->handleRoundsDrafts('M', 'CREATE', $roundsPrizeType, $roundsPrizeValue, $roomID);
 
             if ($ctnPriceCoins) {
+                dd($ctnPriceCoins);
                 $this->handleCtnPriceCoins('CREATE', $ctnPriceCoins, $roomID, $userID);
             }
 
@@ -1642,33 +1643,39 @@ class BingoController extends Controller
 
         if ($room) {
             if ($creation === 'M') {
-                // Obtener ID de la sala
                 $roomID = BingoRoom::getValueByEncrypted($room, 'id');
-
-                // Parámetros del creador
-                $creator = ['type' => $creatorType, 'id' => $creatorID];
-
-                // Obtener ID Bingo Creator-User
-                $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'creator_user');
-
-                $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($roomID, $bingoCreatorUser ?? false);
+                $bingoCtnPrice = BingoCtnPriceDrafts::getByRoom($roomID, ['bingo_room_id', 'coins', 'ctn_prices']);
             } else {
-                $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($room ?? '');
+                $bingoCtnPrice = BingoCtnPriceDrafts::getByAutomaticRoom($room, ['automatic_bingo_room_id', 'coins', 'ctn_prices']);
+            }
+
+            $ctnPriceCoins = $bingoCtnPrice->coins;
+            $ctnPriceValue = $bingoCtnPrice->ctn_prices;
+
+            // Asegurarse de que ambos arrays existen y tienen la misma longitud
+            if (is_array($ctnPriceCoins) && is_array($ctnPriceValue) && count($ctnPriceCoins) === count($ctnPriceValue)) {
+                for ($i = 0; $i < count($ctnPriceCoins); $i++) {
+                    $coinsCtnPrice->push([
+                        'coin' => $ctnPriceCoins[$i],
+                        'ctnPrice' => $ctnPriceValue[$i],
+                    ]);
+                }
             }
         }
 
-        // Inicializamos un contador para las claves incrementales
+        // Inicializamos un contador para claves incrementales
         $counter = 0;
 
-        // Obtener información completa de las monedas en `coinsCtnPrice`
-        $presentCoinsData = $coinsCtnPrice->mapWithKeys(function ($ctnPrice, $coin) use (&$counter, $creatorType) {
+        $presentCoinsData = $coinsCtnPrice->mapWithKeys(function ($item) use (&$counter, $creatorType) {
+            $coin = $item['coin'];
+
             return [
                 $counter++ => [
                     'coin' => $coin,
                     'isoCode' => $creatorType === 'customer'
                         ? $coin
                         : Coin::getValue($coin, 'iso_code'),
-                    'ctnPrice' => $ctnPrice,
+                    'ctnPrice' => $item['ctnPrice'],
                 ],
             ];
         });

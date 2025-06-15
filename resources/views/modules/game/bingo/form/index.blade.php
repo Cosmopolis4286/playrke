@@ -60,7 +60,7 @@
         const arrCoins = @json($coins);
         const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
-        let room = false;
+        let room = '';
         let totalPct = false;
         let coinsCtnPrice = false;
         let selectedBingoPlays = [];
@@ -151,12 +151,13 @@
 
             selectedBingoPlays = [];
             coinsCtnPrice = false;
-            room = false;
+            room = '';
 
             $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
             $('#content-rounds-config, #content-price-config').empty();
 
             if (type == 2) {
+                room = data.room.encrypted;
                 getCtnPriceCoin(data.room.encrypted);
                 if (data.config.rounds > 1) getRoundsConfig(data.room.encrypted);
             }

@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCreator, BingoCtnPrice, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRounds, BingoRoundsDrafts, GameConfig};
+use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceDrafts, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRounds, BingoRoundsDrafts, GameConfig};
 use App\Traits\EncryptRKE;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -157,18 +157,23 @@ class AutoGenerateBingoRooms
      */
     private function associateCtnPrices($automaticBingoID, $roomID, $creatorUser)
     {
-        $coinsCtnPrice = BingoCtnPrice::getOnlyCoinsCtnPrice($automaticBingoID ?? '');
+        $bingoCtnPrice = BingoCtnPriceDrafts::getByAutomaticRoom($automaticBingoID, ['coins', 'ctn_prices']);
 
-        if (!$coinsCtnPrice) return;
+        if (!$bingoCtnPrice) return;
 
-        foreach ($coinsCtnPrice as $key => $ctnPrice) {
-            BingoCtnPrice::updateOrCreate(
-                ['room' => $roomID, 'coin' => $key],
-                [
-                    'creator_user' => $creatorUser,
-                    'ctn_price' => $ctnPrice,
-                ]
-            );
+        $ctnPriceCoins = $bingoCtnPrice->coins;
+        $ctnPriceValue = $bingoCtnPrice->ctn_prices;
+
+        if (is_array($ctnPriceCoins) && is_array($ctnPriceValue) && count($ctnPriceCoins) === count($ctnPriceValue)) {
+            for ($i = 0; $i < count($ctnPriceCoins); $i++) {
+                BingoCtnPrice::updateOrCreate(
+                    ['room' => $roomID, 'coin' => $ctnPriceCoins[$i]],
+                    [
+                        'creator_user' => $creatorUser,
+                        'ctn_price' => $ctnPriceValue[$i],
+                    ]
+                );
+            }
         }
 
         return true;
