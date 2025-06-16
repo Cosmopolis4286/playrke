@@ -1351,8 +1351,7 @@ class BingoController extends Controller
             $this->handleRoundsDrafts('M', 'CREATE', $roundsPrizeType, $roundsPrizeValue, $roomID);
 
             if ($ctnPriceCoins) {
-                dd($ctnPriceCoins);
-                $this->handleCtnPriceCoins('CREATE', $ctnPriceCoins, $roomID, $userID);
+                $this->handleCtnPriceCoins('M', 'CREATE', $ctnPriceCoins, $roomID, $userID);
             }
 
             // if (true) {
@@ -1421,45 +1420,57 @@ class BingoController extends Controller
         }
     }
 
-    private function handleCtnPriceCoins($action, $ctnPriceCoins, $roomID, $creatorUser)
+    private function handleCtnPriceCoins(string $type, $action, $ctnPriceCoins, $roomID, $creatorUser = '')
     {
+        $column = $type === 'M' ? 'bingo_room_id' : 'automatic_bingo_room_id';
+        $timestamp = now();
+
+        // Filtrar y preparar arrays de monedas y precios
+        $arrCoins = [];
+        $arrCtnPrices = [];
+
+        foreach ($ctnPriceCoins as $coin => $ctnPrice) {
+            if ($ctnPrice) {
+                $arrCoins[] = $coin;
+                $arrCtnPrices[] = $ctnPrice;
+            }
+        }
+
+        // No hay datos válidos que guardar
+        if (empty($arrCoins) || empty($arrCtnPrices)) {
+            return;
+        }
+
+        $data = [
+            $column => $roomID,
+            'coins' => $arrCoins,
+            'ctn_prices' => $arrCtnPrices,
+        ];
+
+        if ($creatorUser) {
+            $data['creator_user'] = $creatorUser;
+        }
+
         try {
-            $timestamp = now();
-            $batch = [];
-
-            foreach ($ctnPriceCoins as $coin => $ctnPrice) {
-                if (!$ctnPrice) {
-                    continue; // Ignora valores vacíos o cero
-                }
-
-                $data = [
-                    'room' => $roomID,
-                    'creator_user' => $creatorUser,
-                    'coin' => $coin,
-                    'ctn_price' => $ctnPrice,
-                    'status' => 1,
-                    'updated_at' => $timestamp,
-                ];
-
-                if ($action === 'CREATE') {
-                    $data['created_at'] = $timestamp;
-                    $batch[] = $data;
-                } else {
-                    $existing = BingoCtnPrice::getCtnPrice($roomID, $coin, $creatorUser);
-
-                    if ($existing) {
-                        if ($existing->ctn_price != $ctnPrice) {
-                            $existing->update($data);
-                        }
-                    } else {
-                        $data['created_at'] = $timestamp;
-                        BingoCtnPrice::create($data);
-                    }
-                }
+            if ($action === 'CREATE') {
+                $data['created_at'] = $timestamp;
+                BingoCtnPriceDrafts::create($data);
+                return;
             }
 
-            if ($action === 'CREATE' && !empty($batch)) {
-                BingoCtnPrice::insert($batch);
+            // UPDATE
+            $existing = $type === 'M'
+                ? BingoCtnPriceDrafts::getByRoom($roomID)
+                : BingoCtnPriceDrafts::getByAutomaticRoom($roomID);
+
+            if (
+                $existing &&
+                (
+                    $existing->coins != $arrCoins ||
+                    $existing->ctn_prices != $arrCtnPrices
+                )
+            ) {
+                $existing->update($data);
             }
         } catch (\Exception $e) {
             Log::error('Error en handleCtnPriceCoins: ' . $e->getMessage(), [
@@ -1469,8 +1480,7 @@ class BingoController extends Controller
                 'ctnPriceCoins' => $ctnPriceCoins,
                 'trace' => $e->getTraceAsString(),
             ]);
-
-            throw $e; // O manejar el error según tu flujo
+            throw $e;
         }
     }
 
@@ -1490,7 +1500,7 @@ class BingoController extends Controller
             try {
 
                 if ($ctnPriceCoins) {
-                    $this->handleCtnPriceCoins('UPDATE', $ctnPriceCoins, $roomID, $creatorUser);
+                    $this->handleCtnPriceCoins('M', 'UPDATE', $ctnPriceCoins, $roomID, $creatorUser);
                 }
 
                 $bingoCreator = BingoCreator::select('id', 'creator_commn', 'ctn_price', 'allowed_coins')
@@ -1592,7 +1602,7 @@ class BingoController extends Controller
             $this->handleRoundsDrafts('M', 'UPDATE', $roundsPrizeType, $roundsPrizeValue, $roomID);
 
             if ($ctnPriceCoins) {
-                $this->handleCtnPriceCoins('UPDATE', $ctnPriceCoins, $roomID, $room->creator_user);
+                $this->handleCtnPriceCoins('M', 'UPDATE', $ctnPriceCoins, $roomID);
             }
 
             DB::commit();
@@ -2702,8 +2712,10 @@ class BingoController extends Controller
             $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
 
             $creator = json_decode($data->creator);
+            $creatorUser = Auth::id();
 
             $roundsPct = $data->rounds_pct ?? null;
+            $ctnPriceCoins = $data->ctn_price_coins;
 
             $automaticBingoID = BingoRoomAutomatic::create([
                 'time' => $data->time,
@@ -2725,7 +2737,7 @@ class BingoController extends Controller
                 'num_serials' => $data->num_serials,
                 'creator_type' => UserType::getValueByPrefix($creator->type, 'id'),
                 'creator_id' => decrypt($creator->id),
-                'creator_user' => Auth::id()
+                'creator_user' => $creatorUser
             ])->id;
 
             $roundsPrizeType = $data->rounds_prize_type ?? [];
@@ -2733,19 +2745,8 @@ class BingoController extends Controller
 
             $this->handleRoundsDrafts('A', 'CREATE', $roundsPrizeType, $roundsPrizeValue, $automaticBingoID);
 
-            if (!empty($data->ctn_price_coins)) {
-                $timestamp = now();
-
-                $recordsToInsert = array_map(fn($coin, $ctnPrice) =>
-                $ctnPrice ? [
-                    'automatic_bingo_id' => $automaticBingoID,
-                    'coin' => $coin,
-                    'ctn_price' => $ctnPrice,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp,
-                ] : null, array_keys((array) $data->ctn_price_coins), (array) $data->ctn_price_coins);
-
-                BingoCtnPriceAutomatic::insert(array_filter($recordsToInsert));
+            if ($ctnPriceCoins) {
+                $this->handleCtnPriceCoins('A', 'CREATE', $ctnPriceCoins, $automaticBingoID, $creatorUser);
             }
 
             DB::commit();
@@ -2765,7 +2766,7 @@ class BingoController extends Controller
 
     public function updateAutomaticRoom(Request $request, $id)
     {
-        $id = decrypt($id);
+        $automaticBingoID = decrypt($id);
 
         DB::beginTransaction();
 
@@ -2795,36 +2796,10 @@ class BingoController extends Controller
             $roundsPrizeType = $request->rounds_prize_type ?? [];
             $roundsPrizeValue = $request->rounds_prize_value ?? [];
 
-            $this->handleRoundsDrafts('A', 'CREATE', $roundsPrizeType, $roundsPrizeValue, $id);
+            $this->handleRoundsDrafts('A', 'UPDATE', $roundsPrizeType, $roundsPrizeValue, $automaticBingoID);
 
             if ($ctnPriceCoins) {
-
-                $timestamp = now();
-
-                collect($ctnPriceCoins)->each(function ($ctnPrice, $coin) use ($id, $timestamp) {
-                    // Obtener el registro existente
-                    $bingoCtnPrice = BingoCtnPriceAutomatic::getCtnPrice($coin, $id);
-
-                    // Verificar si es necesario actualizar
-                    if ($bingoCtnPrice && $bingoCtnPrice->ctn_price != $ctnPrice) {
-                        // Construir datos para la actualización
-                        $updateData = [
-                            'ctn_price' => $ctnPrice,
-                            'status' => $ctnPrice ? 1 : 0,
-                            'updated_at' => $timestamp,
-                        ];
-                        // Actualizar el registro existente
-                        BingoCtnPriceAutomatic::where('id', $bingoCtnPrice->id)->update($updateData);
-                    } else if (!$bingoCtnPrice && $ctnPrice) {
-                        // Crear nuevo registro
-                        BingoCtnPriceAutomatic::create([
-                            'automatic_bingo_id' => $id,
-                            'coin' => $coin,
-                            'ctn_price' => $ctnPrice,
-                            'status' => 1
-                        ]);
-                    }
-                });
+                $this->handleCtnPriceCoins('A', 'UPDATE', $ctnPriceCoins, $automaticBingoID);
             }
 
             DB::commit();

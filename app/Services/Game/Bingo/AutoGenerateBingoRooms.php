@@ -153,33 +153,6 @@ class AutoGenerateBingoRooms
     }
 
     /**
-     * Asocia los precios de monedas (ctn) a una sala.
-     */
-    private function associateCtnPrices($automaticBingoID, $roomID, $creatorUser)
-    {
-        $bingoCtnPrice = BingoCtnPriceDrafts::getByAutomaticRoom($automaticBingoID, ['coins', 'ctn_prices']);
-
-        if (!$bingoCtnPrice) return;
-
-        $ctnPriceCoins = $bingoCtnPrice->coins;
-        $ctnPriceValue = $bingoCtnPrice->ctn_prices;
-
-        if (is_array($ctnPriceCoins) && is_array($ctnPriceValue) && count($ctnPriceCoins) === count($ctnPriceValue)) {
-            for ($i = 0; $i < count($ctnPriceCoins); $i++) {
-                BingoCtnPrice::updateOrCreate(
-                    ['room' => $roomID, 'coin' => $ctnPriceCoins[$i]],
-                    [
-                        'creator_user' => $creatorUser,
-                        'ctn_price' => $ctnPriceValue[$i],
-                    ]
-                );
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Asocia las rondas a una sala.
      */
     private function associateRounds($automaticBingoID, $roomID)
@@ -209,6 +182,48 @@ class AutoGenerateBingoRooms
                 ->update(['status' => 'COMPLETED']);
         } catch (\Exception $e) {
             Log::error('Error en associateRounds: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Asocia los precios de monedas (ctn) a una sala.
+     */
+    private function associateCtnPrices($automaticBingoID, $roomID)
+    {
+        try {
+            $bingoCtnPrice = BingoCtnPriceDrafts::getByAutomaticRoom($automaticBingoID, ['creator_user', 'coins', 'ctn_prices']);
+
+            if (!$bingoCtnPrice) {
+                return false;
+            }
+
+            $coins = $bingoCtnPrice->coins ?? [];
+            $prices = $bingoCtnPrice->ctn_prices ?? [];
+
+            if (!is_array($coins) || !is_array($prices) || count($coins) !== count($prices)) {
+                throw new \Exception('Datos de monedas y precios inconsistentes.');
+            }
+
+            foreach ($coins as $index => $coin) {
+                BingoCtnPrice::updateOrCreate(
+                    ['room' => $roomID, 'coin' => $coin],
+                    [
+                        'creator_user' => $bingoCtnPrice->creator_user,
+                        'ctn_price' => $prices[$index],
+                    ]
+                );
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error en associateCtnPrices: ' . $e->getMessage(), [
+                'automaticBingoID' => $automaticBingoID,
+                'roomID' => $roomID,
+                'creatorUser' => $bingoCtnPrice->creator_user,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw $e; // O puedes retornar false si prefieres silenciar el error
         }
     }
 

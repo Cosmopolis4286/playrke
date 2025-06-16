@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCtns, BingoDraws, BingoPrizeCtns, BingoRoom, BingoRounds, BingoRoomUser, User};
+use App\Models\{BingoCtnPrice, BingoCtnPriceDrafts, BingoCtns, BingoDraws, BingoPrizeCtns, BingoRoom, BingoRounds, User};
 use App\Traits\BingoTrait;
 use Illuminate\Support\Facades\Log;
 
@@ -46,6 +46,7 @@ class HandleBingoRooms
         if (!isset($status['Error'])) {
             BingoRoom::where('id', $roomID)->update(['status' => $status]);
             $this->determineRoundsStatus($roomID, $status);
+            $this->registerCtnPrices($roomID);
         } else {
             Log::info($status['Error'] . ": Sala [ID => $roomID]");
         }
@@ -129,6 +130,44 @@ class HandleBingoRooms
 
                 break;
             }
+        }
+    }
+
+    private function registerCtnPrices(int $roomID)
+    {
+        try {
+            $bingoCtnPrice = BingoCtnPriceDrafts::getByRoom($roomID, ['creator_user', 'coins', 'ctn_prices']);
+
+            if (!$bingoCtnPrice) {
+                return false;
+            }
+
+            $coins = $bingoCtnPrice->coins ?? [];
+            $prices = $bingoCtnPrice->ctn_prices ?? [];
+
+            if (!is_array($coins) || !is_array($prices) || count($coins) !== count($prices)) {
+                throw new \Exception('Datos de monedas y precios inconsistentes.');
+            }
+
+            foreach ($coins as $index => $coin) {
+                BingoCtnPrice::updateOrCreate(
+                    ['room' => $roomID, 'coin' => $coin],
+                    [
+                        'creator_user' => $bingoCtnPrice->creator_user,
+                        'ctn_price' => $prices[$index],
+                    ]
+                );
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error en registerCtnPrices: ' . $e->getMessage(), [
+                'roomID' => $roomID,
+                'creatorUser' => $bingoCtnPrice->creator_user,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw $e; // O puedes retornar false si prefieres silenciar el error
         }
     }
 }
