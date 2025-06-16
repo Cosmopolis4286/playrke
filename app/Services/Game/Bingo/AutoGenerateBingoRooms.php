@@ -158,28 +158,29 @@ class AutoGenerateBingoRooms
     private function associateRounds($automaticBingoID, $roomID)
     {
         try {
-            $data = BingoRoundsDrafts::getByAutomaticRoom($automaticBingoID, [
+            $bingoRounds = BingoRoundsDrafts::getByAutomaticRoom($automaticBingoID, [
                 'rounds',
                 'prize_types',
                 'play_types',
                 'prize_values'
             ]);
 
-            if (!$data) {
+            if (!$bingoRounds) {
                 throw new \Exception("No draft data found for automatic bingo ID {$automaticBingoID}");
             }
 
             BingoRounds::create([
                 'room' => $roomID,
-                'rounds' => $data->rounds,
-                'prize_types' => $data->prize_types,
-                'play_types' => $data->play_types,
-                'prize_values' => $data->prize_values,
+                'rounds' => $bingoRounds->rounds,
+                'prize_types' => $bingoRounds->prize_types,
+                'play_types' => $bingoRounds->play_types,
+                'prize_values' => $bingoRounds->prize_values,
                 'status' => 'ACTIVE',
             ]);
 
-            BingoRoundsDrafts::where('automatic_bingo_id', $automaticBingoID)
-                ->update(['status' => 'COMPLETED']);
+            $bingoRounds->update(['status' => 'COMPLETED']);
+
+            return true;
         } catch (\Exception $e) {
             Log::error('Error en associateRounds: ' . $e->getMessage());
         }
@@ -213,6 +214,8 @@ class AutoGenerateBingoRooms
                     ]
                 );
             }
+
+            $bingoCtnPrice->update(['status' => 'COMPLETED']);
 
             return true;
         } catch (\Exception $e) {

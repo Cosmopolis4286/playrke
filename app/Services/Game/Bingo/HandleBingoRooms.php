@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCtnPrice, BingoCtnPriceDrafts, BingoCtns, BingoDraws, BingoPrizeCtns, BingoRoom, BingoRounds, User};
+use App\Models\{BingoCtnPrice, BingoCtnPriceDrafts, BingoCtns, BingoDraws, BingoPrizeCtns, BingoRoom, BingoRounds, BingoRoundsDrafts, User};
 use App\Traits\BingoTrait;
 use Illuminate\Support\Facades\Log;
 
@@ -98,6 +98,10 @@ class HandleBingoRooms
     {
         date_default_timezone_set(config('app.timezone'));
 
+        if ($roomStatus === 3) {
+            $this->associateRounds($roomID);
+        }
+
         // Obtener todas las rondas pendientes (no completadas) de la sala
         $rounds = BingoRounds::where('room', $roomID)
             ->where('status', '<>', 'COMPLETED')
@@ -133,10 +137,48 @@ class HandleBingoRooms
         }
     }
 
+    /**
+     * Asocia las rondas a una sala.
+     */
+    private function associateRounds($roomID)
+    {
+        try {
+            $rounds = BingoRounds::where('room', $roomID)->exists();
+
+            if ($rounds) return true;
+
+            $bingoRounds = BingoRoundsDrafts::getByRoom($roomID, [
+                'rounds',
+                'prize_types',
+                'play_types',
+                'prize_values'
+            ]);
+
+            if (!$bingoRounds) {
+                throw new \Exception("No draft data found for bingo ID {$roomID}");
+            }
+
+            BingoRounds::create([
+                'room' => $roomID,
+                'rounds' => $bingoRounds->rounds,
+                'prize_types' => $bingoRounds->prize_types,
+                'play_types' => $bingoRounds->play_types,
+                'prize_values' => $bingoRounds->prize_values,
+                'status' => 'ACTIVE',
+            ]);
+
+            $bingoRounds->update(['status' => 'COMPLETED']);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error en associateRounds: ' . $e->getMessage());
+        }
+    }
+
     private function registerCtnPrices(int $roomID)
     {
         try {
-            $bingoCtnPrice = BingoCtnPriceDrafts::getByRoom($roomID, ['creator_user', 'coins', 'ctn_prices']);
+            $bingoCtnPrice = BingoCtnPriceDrafts::getByRoom($roomID, ['creator_user', 'coins', 'ctn_prices', 'status']);
 
             if (!$bingoCtnPrice) {
                 return false;
@@ -158,6 +200,8 @@ class HandleBingoRooms
                     ]
                 );
             }
+
+            $bingoCtnPrice->update(['status' => 'COMPLETED']);
 
             return true;
         } catch (\Exception $e) {

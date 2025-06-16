@@ -97,9 +97,6 @@ trait BingoTrait
             return ['Error' => 'No hay jugadores en la sala'];
         }
 
-        // Insertar configuracion de las rondas de la sala
-        $this->handleRoundsConfig($room);
-
         $roomInfo = BingoRoomConfig::getByRoom($room, ['date', 'time', 'rounds']);
         $dataTime = strtotime("{$roomInfo->date} {$roomInfo->time}");
         $rounds = (int) $roomInfo->rounds;
@@ -1516,72 +1513,5 @@ trait BingoTrait
 
         // Si existe venta y cumple con todos los filtros
         return $coin ?? null;
-    }
-
-    public function handleRoundsConfig($roomID)
-    {
-        try {
-
-            $existsRounds = BingoRounds::existsRounds($roomID);
-
-            if ($existsRounds) return;
-
-            $roundsDraft = BingoRoundsDrafts::getByRoom($roomID, [
-                'rounds',
-                'prize_types',
-                'play_types',
-                'prize_values'
-            ]);
-
-            if (!$roundsDraft) {
-                throw new Exception("No draft config found for room {$roomID}");
-            }
-
-            $roundsCount = $roundsDraft->rounds;
-            $prizeTypes = $roundsDraft->prize_types;
-            $playTypes = $roundsDraft->play_types;
-            $prizeValues = $roundsDraft->prize_values;
-
-            if (
-                count($prizeTypes) < $roundsCount ||
-                count($playTypes) < $roundsCount ||
-                count($prizeValues) < $roundsCount
-            ) {
-                throw new Exception("Incomplete draft config for room {$roomID}");
-            }
-
-            $timestamp = now();
-            $data = [];
-            $status = 'ACTIVE';
-
-            for ($i = 0; $i < $roundsCount; $i++) {
-
-                $numRound = $i + 1;
-
-                if ($numRound == 1) {
-                    $status = 'IN PROGRESS';
-                }
-
-                $data[] = [
-                    'room' => $roomID,
-                    'round' => $numRound,
-                    'prize_type' => $prizeTypes[$i],
-                    'play_type' => $playTypes[$i],
-                    'prize_value' => $prizeValues[$i],
-                    'status' => $status,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp,
-                ];
-            }
-
-            if (!empty($data)) {
-                BingoRounds::insert($data);
-                BingoRoundsDrafts::where('room', $roomID)->update(['status' => 'COMPLETED']);
-            }
-            return true;
-        } catch (Exception $e) {
-            Log::error('Error en handleRoundsConfig: ' . $e->getMessage());
-            return false;
-        }
     }
 }

@@ -9,6 +9,8 @@ class BingoCtnPriceDrafts extends Model
     protected $table = 'bingo_ctn_price_drafts';
     protected $fillable = ['bingo_room_id', 'automatic_bingo_room_id', 'creator_user', 'coins', 'ctn_prices', 'status'];
 
+    protected $casts = ['coins'  => 'array', 'ctn_prices' => 'array'];
+
     public function Room()
     {
         return $this->belongsTo(BingoRoom::class, 'bingo_room_id');
