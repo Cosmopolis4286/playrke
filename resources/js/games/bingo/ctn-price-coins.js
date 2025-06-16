@@ -51,7 +51,7 @@ $(document).on("click", "#btn-ctn-price-config", function () {
 
 function getCtnPriceCoin(room = '') {
 
-    if (($("#allowed-coins").val() || []).length === 0) {
+    if (coinsCtnPrice && ($("#allowed-coins").val() || []).length === 0) {
         $("#container-ctn-price-config").hide();
         $('#content-ctn-price-config').empty();
         coinsCtnPrice = false;

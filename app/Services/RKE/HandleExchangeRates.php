@@ -42,7 +42,7 @@ class HandleExchangeRates
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new Exception('Error al decodificar el JSON: ' . json_last_error_msg());
             }
-
+            
             return $data;
         } catch (Exception $e) {
             // Manejo del error (puedes registrar el error o realizar otra acción)
@@ -75,7 +75,7 @@ class HandleExchangeRates
                     }
 
                     if ($checkUpdate) {
-                        $lastUpdate = CommerceExchangeRate::where('status', 1)
+                        $lastUpdate = CommerceExchangeRate::where('status', 'ACTIVE')
                             ->where('commerce', $creator['id'])
                             ->orderByDesc('id')->value('updated_at');
 
@@ -114,7 +114,7 @@ class HandleExchangeRates
                     }
 
                     if ($checkUpdate) {
-                        $lastUpdate = CustomerExchangeRate::where('status', 1)
+                        $lastUpdate = CustomerExchangeRate::where('status', 'ACTIVE')
                             ->where('customer', $creator['id'])
                             ->orderByDesc('id')->value('updated_at');
 

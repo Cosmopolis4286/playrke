@@ -32,23 +32,25 @@ class CommerceExchangeRate extends Model
     public static function getAllExchangeRatesByCoin($commerce, $coin)
     {
         return self::where('commerce', $commerce)->where('coin', $coin)
-            ->orderByDesc('id')->get(['coin', 'exchange_rate', 'pct']);
+            ->where('status', 'ACTIVE')->orderByDesc('id')->get(['coin', 'exchange_rate', 'pct']);
     }
 
     public static function getCommerceCoinValue($commerce, $coin, $value = 'exchange_rate')
     {
-        return self::where('commerce', $commerce)->where('coin', $coin)->orderByDesc('id')->value($value);
+        return self::where('commerce', $commerce)->where('coin', $coin)
+            ->where('status', 'ACTIVE')->orderByDesc('id')->value($value);
     }
 
     public static function getAllExchangeRates($commerce)
     {
-        return self::where('commerce', $commerce)->where('status', 1)
+        return self::where('commerce', $commerce)->where('status', 'ACTIVE')
             ->orderByDesc('id')->get(['coin', 'exchange_rate']);
     }
 
     public static function getValuesByCoin($coin)
     {
-        return self::select('exchange_rate')->where('coin', $coin)->pluck('exchange_rate');
+        return self::select('exchange_rate')->where('coin', $coin)
+            ->where('status', 'ACTIVE')->pluck('exchange_rate');
     }
 
     public static function getAvailableExchangeRates($commerce)
@@ -56,7 +58,7 @@ class CommerceExchangeRate extends Model
         return self::where('commerce', $commerce)->whereIn('status', ['ACTIVE', 'DIRECTORY'])->get();
     }
 
-    public static function getCoinsByCommerce($commerce, $status = '')
+    public static function getCoinsByCommerce($commerce, $status = 'ACTIVE')
     {
         $query = self::select('coin')->where('commerce', $commerce);
 
@@ -68,7 +70,7 @@ class CommerceExchangeRate extends Model
     public static function updateOrCreateExchangeRate($commerce, $coin, $amount, $pct = '')
     {
         $lastRate = self::where(['commerce' => $commerce, 'coin' => $coin])
-            ->orderByDesc('id')->first();
+            ->where('status', 'ACTIVE')->orderByDesc('id')->first();
 
         // Solo crear nuevo si no existe o si el valor cambió
         if (!$lastRate || $lastRate->exchange_rate != $amount) {
@@ -79,13 +81,15 @@ class CommerceExchangeRate extends Model
                 $lastRate->save();
             }
 
+            $status = $amount > 0 ? 'ACTIVE' : 'INACTIVE';
+
             // Crear nueva tasa activa
             self::create([
                 'commerce' => $commerce,
                 'coin' => $coin,
                 'exchange_rate' => $amount,
                 'pct' => $pct,
-                'status' => 'ACTIVE'
+                'status' => $status
             ]);
         }
     }

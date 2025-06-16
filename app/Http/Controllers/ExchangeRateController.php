@@ -235,16 +235,6 @@ class ExchangeRateController extends Controller
                 return false;
             }
         }
-
-        // $checkVal = ExchangeRate::getLastValueByCoin($coin);
-        // $valChange = $amount;
-
-        // if ($checkVal) {
-        //     // Ajustar $valChange si está fuera del rango permitido
-        //     $valChange = max($amount, $checkVal - 3); // Mantener $valChange como mínimo igual a $checkVal - 3
-        //     $valChange = min($valChange, $checkVal + 2); // Mantener $valChange como máximo igual a $checkVal + 2
-        // }
-        // return number_format($valChange, 2, '.', '');
     }
 
     public function delete($data)

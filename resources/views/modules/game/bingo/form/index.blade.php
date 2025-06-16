@@ -148,6 +148,7 @@
         function insertInfo(type, data = '') {
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
+            const allowedCoins = (type == 2 && data.config.allowed_coins) ? data.config.allowed_coins : [];
 
             selectedBingoPlays = [];
             coinsCtnPrice = false;
@@ -156,8 +157,8 @@
             $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
             $('#content-rounds-config, #content-price-config').empty();
 
-            if (data.config.rounds > 1) getRoundsConfig(room);
-            insertAllowedCoins(data.config.allowed_coins ?? []);
+            if (type == 2 && data.config.rounds > 1) getRoundsConfig(room);
+            insertAllowedCoins(allowedCoins);
             getCtnPriceCoin(room);
 
             gameMode.prop({

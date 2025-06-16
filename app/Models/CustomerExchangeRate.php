@@ -38,18 +38,20 @@ class CustomerExchangeRate extends Model
 
     public static function getCustomerCoinValue($customer, $coin, $value = 'exchange_rate')
     {
-        return self::where('customer', $customer)->where('coin', $coin)->orderByDesc('id')->value($value);
+        return self::where('customer', $customer)->where('coin', $coin)
+            ->where('status', 'ACTIVE')->orderByDesc('id')->value($value);
     }
 
     public static function getAllExchangeRates($customer)
     {
         return self::where('customer', $customer)->where('status', 'ACTIVE')
-            ->orderByDesc('id')->get(['coin', 'exchange_rate']);
+            ->where('status', 'ACTIVE')->orderByDesc('id')->get(['coin', 'exchange_rate']);
     }
 
     public static function getValuesByCoin($coin)
     {
-        return self::select('exchange_rate')->where('coin', $coin)->pluck('exchange_rate');
+        return self::select('exchange_rate')->where('coin', $coin)
+            ->where('status', 'ACTIVE')->pluck('exchange_rate');
     }
 
     public static function getAvailableExchangeRates($customer)
@@ -57,7 +59,7 @@ class CustomerExchangeRate extends Model
         return self::where('customer', $customer)->whereIn('status', ['ACTIVE', 'INACTIVE'])->get();
     }
 
-    public static function getCoinsByCustomer($customer, $status = '')
+    public static function getCoinsByCustomer($customer, $status = 'ACTIVE')
     {
         $query = self::select('coin')->where('customer', $customer);
 
@@ -79,7 +81,7 @@ class CustomerExchangeRate extends Model
     public static function updateOrCreateExchangeRate($customer, $coin, $amount, $pct = '')
     {
         $lastRate = self::where(['customer' => $customer, 'coin' => $coin])
-            ->orderByDesc('id')->first();
+            ->where('status', 'ACTIVE')->orderByDesc('id')->first();
 
         // Solo crear nuevo si no existe o si el valor cambió
         if (!$lastRate || $lastRate->exchange_rate != $amount) {
