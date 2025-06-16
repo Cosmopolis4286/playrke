@@ -109,7 +109,7 @@
         function insertAllowedCoins(selectedCoins = []) {
             allowedCoins.empty();
             $.each(coins, function(index, item) {
-                const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
+                const isSelected = selectedCoins.some(val => val == item.id) ? 'selected' : '';
                 allowedCoins.append(
                     `<option value="${item.id}" ${isSelected}>(${item.iso_code}) ${item.long_name}</option>`
                 );
@@ -151,16 +151,14 @@
 
             selectedBingoPlays = [];
             coinsCtnPrice = false;
-            room = '';
+            room = type == 2 ? data.room.encrypted : '';
 
             $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
             $('#content-rounds-config, #content-price-config').empty();
 
-            if (type == 2) {
-                room = data.room.encrypted;
-                getCtnPriceCoin(data.room.encrypted);
-                if (data.config.rounds > 1) getRoundsConfig(data.room.encrypted);
-            }
+            if (data.config.rounds > 1) getRoundsConfig(room);
+            insertAllowedCoins(data.config.allowed_coins ?? []);
+            getCtnPriceCoin(room);
 
             gameMode.prop({
                 disabled: isDisabled,
@@ -180,8 +178,6 @@
             }
 
             $('#room-type').val(roomType);
-
-            insertAllowedCoins();
 
             $.each(arrPrizePoolType, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.config.prize_pool_type) ? 'selected' : '';

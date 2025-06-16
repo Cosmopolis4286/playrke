@@ -1639,10 +1639,8 @@ class BingoController extends Controller
 
     public function getCtnPriceForCoin($creation, $creatorType, $creatorID, $room = '')
     {
-        // Desencriptar $creatorID
         $creatorID = decrypt($creatorID);
 
-        // Obtener las monedas relevantes según el tipo de creador
         $coins = match ($creatorType) {
             'admin' => Coin::where('id', '!=', 1)->distinct()->pluck('coin'),
             'commerce' => CommerceCountriesCoins::getAvailableCoins($creatorID, 1),
@@ -1652,67 +1650,64 @@ class BingoController extends Controller
         $coinsCtnPrice = collect();
 
         if ($room) {
-            if ($creation === 'M') {
-                $roomID = BingoRoom::getValueByEncrypted($room, 'id');
-                $bingoCtnPrice = BingoCtnPriceDrafts::getByRoom($roomID, ['bingo_room_id', 'coins', 'ctn_prices']);
-            } else {
-                $bingoCtnPrice = BingoCtnPriceDrafts::getByAutomaticRoom($room, ['automatic_bingo_room_id', 'coins', 'ctn_prices']);
-            }
+            $bingoCtnPrice = $creation === 'M'
+                ? BingoCtnPriceDrafts::getByRoom(BingoRoom::getValueByEncrypted($room, 'id'), ['bingo_room_id', 'coins', 'ctn_prices'])
+                : BingoCtnPriceDrafts::getByAutomaticRoom($room, ['automatic_bingo_room_id', 'coins', 'ctn_prices']);
 
-            $ctnPriceCoins = $bingoCtnPrice->coins;
-            $ctnPriceValue = $bingoCtnPrice->ctn_prices;
+            $ctnPriceCoins = $bingoCtnPrice->coins ?? [];
+            $ctnPriceValues = $bingoCtnPrice->ctn_prices ?? [];
 
-            // Asegurarse de que ambos arrays existen y tienen la misma longitud
-            if (is_array($ctnPriceCoins) && is_array($ctnPriceValue) && count($ctnPriceCoins) === count($ctnPriceValue)) {
-                for ($i = 0; $i < count($ctnPriceCoins); $i++) {
+
+            if (is_array($ctnPriceCoins) && is_array($ctnPriceValues) && count($ctnPriceCoins) === count($ctnPriceValues)) {
+                foreach ($ctnPriceCoins as $i => $coin) {
+                    $valMax = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin) ?? 1;
+
                     $coinsCtnPrice->push([
-                        'coin' => $ctnPriceCoins[$i],
-                        'ctnPrice' => $ctnPriceValue[$i],
+                        'coin' => $coin,
+                        'ctnPrice' => $ctnPriceValues[$i],
+                        'valMax' => round($valMax * 50, 2),
                     ]);
                 }
             }
         }
 
-        // Inicializamos un contador para claves incrementales
-        $counter = 0;
-
-        $presentCoinsData = $coinsCtnPrice->mapWithKeys(function ($item) use (&$counter, $creatorType) {
+        // Convertir los precios presentes en un array con claves por moneda
+        $presentCoinsData = $coinsCtnPrice->mapWithKeys(function ($item) use ($creatorType) {
             $coin = $item['coin'];
 
             return [
-                $counter++ => [
+                $coin => [
                     'coin' => $coin,
-                    'isoCode' => $creatorType === 'customer'
-                        ? $coin
-                        : Coin::getValue($coin, 'iso_code'),
+                    'isoCode' => $creatorType === 'customer' ? $coin : Coin::getValue($coin, 'iso_code'),
                     'ctnPrice' => $item['ctnPrice'],
+                    'valMax' => $item['valMax'],
                 ],
             ];
         });
 
-        // Identificar monedas faltantes
-        $missingCoins = collect($coins)->diff($coinsCtnPrice->keys());
+        // Determinar qué monedas no están en el draft
+        $presentKeys = $presentCoinsData->keys();
+        $missingCoins = collect($coins)->filter(fn($c) => !$presentKeys->contains($c));
 
-        // Procesar las monedas faltantes
-        $missingCoinsData = $missingCoins->mapWithKeys(function ($missingCoin) use (&$counter, $creatorType) {
+        // Construir datos faltantes
+        $missingCoinsData = $missingCoins->mapWithKeys(function ($coin) use ($creatorID, $creatorType) {
+            $valMax = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin) ?? 1;
+
             return [
-                $counter++ => [
-                    'coin' => "$missingCoin",
-                    'isoCode' => $creatorType === 'customer'
-                        ? $missingCoin
-                        : Coin::getValue($missingCoin, 'iso_code'),
-                    'ctnPrice' => '', // Precio vacío
+                $coin => [
+                    'coin' => $coin,
+                    'isoCode' => $creatorType === 'customer' ? $coin : Coin::getValue($coin, 'iso_code'),
+                    'ctnPrice' => '',
+                    'valMax' => round($valMax * 50, 2),
                 ],
             ];
         });
 
-        // Combinar los datos y estructurarlos en un arreglo con identificador clave
         $arrCoinsCtnPrice = $presentCoinsData->merge($missingCoinsData);
 
-        // Retornar respuesta con los datos
         return response()->json([
-            'hasPrice' => count($presentCoinsData) ? true : false,
-            'ctnPrice' => $arrCoinsCtnPrice
+            'hasPrice' => $presentCoinsData->isNotEmpty(),
+            'ctnPrice' => $arrCoinsCtnPrice,
         ]);
     }
 
@@ -1965,6 +1960,7 @@ class BingoController extends Controller
             'date',
             'time',
             'ctn_price',
+            'allowed_coins',
             'room_commn',
             'prize_pool_type',
             'amount_added_prize_pool',

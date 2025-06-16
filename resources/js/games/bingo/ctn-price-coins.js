@@ -1,7 +1,7 @@
 function handleCtnPriceForCoins(arrCtnPrice) {
     const allowedCoinsIDs = $("#allowed-coins").val();
     const dataCoins = arrCtnPrice
-        .filter(elem => Array.isArray(allowedCoinsIDs) && allowedCoinsIDs.includes(elem.coin))
+        .filter(elem => Array.isArray(allowedCoinsIDs) && allowedCoinsIDs.some(id => id == elem.coin))
         .map(elem => `
         <div class="col col-sm-6 col-md-4 mt-1">
             <div class="input-group">
@@ -15,6 +15,8 @@ function handleCtnPriceForCoins(arrCtnPrice) {
                     id="ctn-price-coin-${elem.coin}" 
                     aria-label="Precio para ${elem.isoCode}" 
                     value="${elem.ctnPrice}"
+                    min="1"
+                    max="${elem.valMax}"
                     step="0.05">
             </div>
         </div>
