@@ -14,7 +14,7 @@
                                 <thead>
                                     <tr>
                                         <th>Sala</th>
-                                        <th>Horario</th>
+                                        <th>#RD</th>
                                         <th>Jugador</th>
                                         <th>Pais</th>
                                         <th>Moneda</th>
@@ -36,10 +36,7 @@
                                                     {{ $win->Room->encrypted }}
                                                 </a>
                                             </td>
-                                            <td class="align-middle">
-                                                {{ \Carbon\Carbon::parse($win->Room->Config->date)->format('d/m/y') }}<br>
-                                                {{ $win->Room->Config->time }} <small>GMT-4</small>
-                                            </td>
+                                            <td>{{ $win->round }}</td>
                                             <td>{{ $win->PlayerLink->name }}
                                                 {{ $win->PlayerLink->lastname }}</td>
                                             <td>{{ $win->PlayerLink->Country->name }}</td>

@@ -2,39 +2,52 @@
     @php
         $now = \Carbon\Carbon::now($timeZone->name);
     @endphp
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="time-zone">Zona Horaria</label>
         <input type="text" class="form-control" value="{{ $timeZone->utc }}" disabled>
     </div>
     @if (!isset($automaticRoom))
-        <div class="form-group col-sm-6 col-md-4">
+        <div class="form-group col-sm-6 col-md-4 col-lg-3">
             <label for="date">Fecha*</label>
             <input type="date" id="date" name="date" class="form-control" required
                 min="{{ $now->format('Y-m-d') }}" value="{{ $now->format('Y-m-d') }}">
         </div>
     @endif
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="time">Hora*</label>
         <input type="time" id="time" name="time" class="form-control" required
             value="{{ $now->format('H:i') }}">
     </div>
     @if (isset($automaticRoom) && $creator['type'] !== 'customer')
-        <div class="form-group col-sm-6 col-md-4">
+        <div class="form-group col-sm-6 col-md-4 col-lg-3">
             <label for="room-type">Tipo de Sala*</label>
             <select id="room-type" name="room_type" class="form-control" aria-label="Seleccionar tipo de sala"></select>
         </div>
     @else
         <input type="hidden" id="room-type" name="room_type" class="form-control" required>
     @endif
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="game-mode">Modo de Juego*</label>
         <select id="game-mode" name="game_mode" class="form-control"></select>
     </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="type-prize-pool">Tipo Bote*</label>
-        <select id="type-prize-pool" name="type_prize_pool" class="form-control" required></select>
+    {{-- <div class="form-group col-sm-6 col-md-4 col-lg-3">
+        <label for="in-live">En Vivo*</label>
+        <select id="in-live" name="in_live" class="form-control not-empty">
+            <option value="Y">SI</option>
+            <option value="N" selected>NO</option>
+        </select>
+    </div> --}}
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
+        <label for="prize-pool-type">Tipo Bote*</label>
+        <select id="prize-pool-type" name="prize_pool_type" class="form-control" required></select>
     </div>
-    <div id="cont-amount-added-prize-pool" class="form-group col-sm-6 col-md-4 hide-elem">
+    <div id="container-allowed-coins" class="form-group col-sm-6">
+        <label for="allowed-coins">Monedas Permitidas*</label>
+        <select multiple id="allowed-coins" name="allowed_coins[]" placeholder="  Seleccionar Monedas"
+            data-allow-clear="1" class="select2 form-control">
+        </select>
+    </div>
+    <div id="container-amount-added-prize-pool" class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="amount-added-prize-pool">Valor Fijo/Extra*</label>
         <div class="input-group">
             <div class="input-group-prepend">
@@ -45,12 +58,17 @@
         </div>
     </div>
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="room-commn">%Sala*</label>
-        <input type="number" id="room-commn" name="room_commn" class="form-control prize_pool-pct" value="20"
+        <input type="number" id="room-commn" name="room_commn" class="form-control prize-pool-pct" value="20"
             step="0.05" min="10" max="50" required>
     </div>
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
+        <label for="jackpot-pct">%Jackpot</label>
+        <input type="number" id="jackpot-pct" name="jackpot_pct" class="form-control prize-pool-pct" value=""
+            step="0.5" min="1" max="15">
+    </div>
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="time-chip">Tiempo Ficha*</label>
         <div class="input-group">
             <input type="number" step="1" value="5" min="3" max="10" id="time-chip"
@@ -60,12 +78,46 @@
             </div>
         </div>
     </div>
-    <div class="form-group col-sm-6 col-md-4">
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="rounds">Rondas*</label>
-        <input type="number" step="1" value="1" min="1" max="10" id="rounds" name="rounds"
-            class="form-control" required>
+        <div class="input-group">
+            <input type="number" step="1" value="1" min="1" max="15" id="rounds"
+                name="rounds" class="form-control" required>
+            <div class="content-rounds-pct input-group-append">
+                <button id="btn-rounds-config" class="btn btn-outline-secondary" type="button" data-active="0"
+                    data-toggle="popover" data-trigger="hover" data-content="Ajustar precio por monedas">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="form-group col-sm-6 col-md-4">
+    <div id="container-rounds-config" class="form-group col-12">
+        <div class="border rounded p-3" style="max-height: 155px; overflow-y: auto;">
+            <div class="d-flex">
+                <h6 class="mb-3 mr-1">Ajustar valores de las rondas</h6>
+                <div id="spinner-rounds-config" class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="sr-only">Cargando...</span>
+                </div>
+            </div>
+            <div id="content-rounds-config" class="row"></div>
+        </div>
+    </div>
+    <div class="content-rounds-pct form-group col-sm-6 col-md-4 col-lg-3">
+        <label for="rounds-pct">%Rondas*</label>
+        <input type="number" id="rounds-pct" name="rounds_pct" class="form-control prize-pool-pct" value=""
+            step="1" min="3" max="30">
+    </div>
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
+        <label for="serials-pct">%Bote Seriales</label>
+        <input type="number" value="5" min="2" max="35" step="0.25" id="serials-pct"
+            name="serials_pct" class="form-control prize-pool-pct" placeholder="Ingrese valor" required>
+    </div>
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
+        <label for="num-serials">#Max. Seriales</label>
+        <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
+            name="num_serials" class="form-control" placeholder="Ingrese la cantidad" required>
+    </div>
+    <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="ctn-price">Precio CTN*</label>
         <div class="input-group">
             <div class="input-group-prepend">
@@ -81,42 +133,21 @@
             </div>
         </div>
     </div>
-    <div id="container-ctn-price-config" class="form-group col-12 hide-elem">
-        <div class="container"
-            style="max-height: 155px; overflow-y: auto; border: 1px solid #ccc; padding: 8px 15px; border-radius: 4px;">
-            <label for="container-price-config" class="form-label">Ajustar Precio del Cartón</label>
-            <div id="container-spinner" class="mt-1">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only"></span>
+    <div id="container-ctn-price-config" class="form-group col-12">
+        <div class="border rounded p-3" style="max-height: 155px; overflow-y: auto;">
+            <div class="d-flex">
+                <h6 class="mb-3 mr-1">Ajustar precio del cartón</h6>
+                <div id="spinner-ctn-price-config" class="spinner-border spinner-border-sm text-primary"
+                    role="status">
+                    <span class="sr-only">Cargando...</span>
                 </div>
             </div>
-            <div id="container-price-config" class="row">
-            </div>
+            <div id="content-ctn-price-config" class="row"></div>
         </div>
     </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="pct-serials">%Bote Seriales</label>
-        <input type="number" value="5" min="2" max="35" step="0.25" id="pct-serials"
-            name="pct_serials" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
-    </div>
-    <div class="form-group col-sm-6 col-md-4">
-        <label for="num-serials">#Max. Seriales</label>
-        <input type="number" step="1" value="5" min="3" max="30" id="num-serials"
-            name="num_serials" class="form-control" placeholder="Ingrese la cantidad" required>
-    </div>
-    <div class="form-group col-12 col-md-8">
-        <label for="bingo-plays">Cantos</label>
-        <select id="bingo-plays" name="bingo_plays[]" class="form-control select2" multiple
-            placeholder="   Selecciona los cantos (opcional)" data-allow-clear="true"></select>
-    </div>
-    {{-- <div id="container-max-plays-ramdom" class="form-group col-sm-6 col-md-4 hide-elem">
-        <label for="max-plays-ramdom">#Max. Random</label>
-        <input type="number" step="1" value="1" min="1" max="5" id="max-plays-ramdom"
-            name="max_plays_ramdom" class="form-control" placeholder="Ingrese la cantidad" required>
+    {{-- <div id="container-plays-pct" class="form-group col-sm-6 col-md-4">
+        <label for="plays-pct">%Bote Cantos</label>
+        <input type="number" value="" min="2" max="35" step="0.25" id="plays-pct"
+            name="plays-pct" class="form-control prize-pool-pct" placeholder="Ingrese valor" required>
     </div> --}}
-    <div id="container-pct-bingo-plays" class="form-group col-sm-6 col-md-4 hide-elem">
-        <label for="pct-bingo-plays">%Bote Cantos</label>
-        <input type="number" value="" min="2" max="35" step="0.25" id="pct-bingo-plays"
-            name="pct_bingo_plays" class="form-control prize_pool-pct" placeholder="Ingrese valor" required>
-    </div>
 </div>

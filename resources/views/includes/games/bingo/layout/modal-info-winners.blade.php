@@ -4,12 +4,34 @@
     <div class="modal-dialog modal-sm mx-auto" role="document" style="max-width: 320px">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modal-info-winnersLabel">Información del Juego</h5>
+                <h5 class="modal-title mt-n1" id="modal-info-winnersLabel">Información del Juego</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
+                <div class="input-group mb-2">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Ronda</span>
+                    </div>
+                    <input type="number" step="1" inputmode="numeric" id="num-round-info-winners"
+                        class="form-control" style="max-width: 50px">
+                </div>
+                <h6>Inicio del Sorteo:</h6>
+                <div class="d-flex">
+                    <div id="draw-date"></div>
+                    <div class="clearfix ml-2 mt-1" id="loaderCtn" style="display: none">
+                        <div class="spinner-border spinner-border-sm text-primary float-left" role="status">
+                            <span class="sr-only"></span>
+                        </div>
+                    </div>
+                </div>
+                <div id="cont-info-winners">
+                    <span>Ganadores:</span><span class="ml-1 mr-1" id="count-winners"></span>
+                    <span>|</span>
+                    <span class="ml-1">Última Ficha:</span>
+                    <img class="ml-1 mb-1" id="last-win-chip">
+                </div>
                 <div id="cont-ctn-award-winning" data-status="false">
                     <div class="card">
                         <div class="card-header py-1">
@@ -121,24 +143,9 @@
                         </div>
                     </div>
                 </div>
-                <h6>Inicio del Sorteo:</h6>
-                <div class="d-flex">
-                    <div id="draw-date"></div>
-                    <div class="clearfix ml-2 mt-1" id="loaderCtn" style="display: none">
-                        <div class="spinner-border spinner-border-sm text-primary float-left" role="status">
-                            <span class="sr-only"></span>
-                        </div>
-                    </div>
-                </div>
-                <div id="cont-info-winners">
-                    <span>Ganadores:</span><span class="ml-1 mr-1" id="count-winners"></span>
-                    <span>|</span>
-                    <span class="ml-1">Última Ficha:</span>
-                    <img class="ml-1 mb-1" id="last-win-chip">
-                </div>
                 <b>Cartón Lleno: <small>(<span id="full-house-value"></span>% del Bote)</small></b>
                 <div class="row mb-1" id="full-house-winners"></div>
-                @if ($room->Config->types_plays)
+                @if ($room->Config->play_types)
                     <div id="cont-bingo-plays" class="hide-elem">
                         <b>Cantos: <small>(<span id="bingo-plays-value"></span>% del Bote)</small></b>
                         <div class="row" id="bingo-plays-winners"></div>
@@ -150,7 +157,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary leave-room">Continuar</button>
+                <button type="button" class="btn btn-primary leave-room">
+                    {{ $isLogin ? 'Continuar' : 'Cerrar' }}
+                </button>
             </div>
         </div>
     </div>

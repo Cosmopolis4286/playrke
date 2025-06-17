@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('bingo_types_plays', function (Blueprint $table) {
             $table->id();
+            $table->enum('type_play', ['UNIQUE', 'GROUP'])->default('UNIQUE');
             $table->string('name', 20);
             $table->foreignId('user')->constrained('users')->onDelete('cascade')->nullable();
             $table->string('boxes', 50);

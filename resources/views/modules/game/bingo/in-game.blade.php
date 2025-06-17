@@ -27,7 +27,7 @@
         @elseif($room->status > 2)
             @include('includes.games.bingo.layout.modal-info-winners')
             @include('includes.games.bingo.layout.sounds')
-            @if ($room->Config->types_plays)
+            @if ($room->Config->play_types)
                 @include('includes.games.bingo.layout.modal-bingo-plays')
             @endif
         @endif
@@ -41,18 +41,16 @@
 
     <script>
         const preRoute = '{{ asset('') }}';
-        const logo = `{{ $customerLogo ?? 'img/rke.png' }}`;
-        const encrypted = '{{ $room->encrypted }}';
-        const roomStatus = '{{ $room->status }}';
-        const coinSym = '{{ $coinSym }}';
-        const images = [];
+        const logo = @json($customerLogo ?? 'img/rke.png');
+        const encrypted = @json($room->encrypted);
+        const roomStatus = @json($room->status);
+        const coinSym = @json($coinSym);
         const chpLast = @json($vanDraw);
         const player = @json($player);
         const encrypt = @json($encrypt);
         const restChips = @json($chipsRest);
 
-        let arrDraw = @json($sort);
-        let latestChips = @json($latestChips);
+        let arrDraw = @json($draw);
         let timeServ = @json($timeServ);
         let allChips = @json($allChips);
         let infoGame = @json($infoGame);
@@ -71,6 +69,8 @@
     @endif
     @if ($room->status > 2)
         <script>
+            const roundNum = @json($round);
+            const numRounds = parseInt(@json($room->Config->rounds));
             const startTime = @json($startTime);
             const soundNext = $('#next')[0];
             const soundWin = $('#winner')[0];
@@ -86,7 +86,7 @@
             soundWin.muted = true;
         </script>
         @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
-        @if ($room->Config->types_plays)
+        @if ($room->Config->play_types)
             @vite('resources/js/games/bingo/includes/handle-bingo-plays.js')
         @endif
     @endif

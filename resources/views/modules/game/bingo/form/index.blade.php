@@ -20,7 +20,8 @@
     </div>
     @include('includes.modal-form', [
         'name' => $name,
-        'size' => 'md',
+        'size' => 'lg',
+        'style' => 'style="max-width: 625px;"',
         'dataForm' => view('modules.game.bingo.form.body', [
             'creator' => $creator,
             'timeZone' => $timeZone,
@@ -50,13 +51,17 @@
         const roomType = @json($roomType);
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
-        const type_prize_pool = $("#type-prize-pool");
+        const prizePoolType = $("#prize-pool-type");
+        const coins = @json($coins);
+        const allowedCoins = $("#allowed-coins");
         const gameMode = $("#game-mode");
         const bingoPlays = $("#bingo-plays");
         const arrBingoPlays = @json($bingoPlays);
         const arrCoins = @json($coins);
-        const arrTypePrizePool = @json($type_prize_pool);
+        const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
+        let room = '';
+        let totalPct = false;
         let coinsCtnPrice = false;
         let selectedBingoPlays = [];
 
@@ -71,34 +76,48 @@
             });
         });
 
-        function changeFixedJackpot(val) {
-            const container = $("#cont-amount-added-prize-pool");
+        function changeFixedJackpot(value) {
+            const container = $("#container-amount-added-prize-pool");
 
-            if (val > 1) {
-                container.removeClass('hide-elem');
+            if (value > 1) {
+                container.show();
             } else {
-                container.addClass('hide-elem');
+                container.hide();
                 $("#amount-added-prize-pool").empty();
             }
         }
 
-        type_prize_pool.on('change', function() {
+        prizePoolType.on('change', function() {
             changeFixedJackpot($(this).val());
         });
 
         bingoPlays.on('change', function() {
             const selected = $(this).val() || [];
-            const container = $('#container-pct-bingo-plays');
+            const container = $('#container-plays-pct');
 
             if (selected.length === 0) {
-                container.addClass('hide-elem');
+                container.hide();
             } else {
-                container.removeClass('hide-elem');
+                container.show();
 
                 if (selected.includes('random')) {
                     console.log('Random seleccionado');
                 }
             }
+        });
+
+        function insertAllowedCoins(selectedCoins = []) {
+            allowedCoins.empty();
+            $.each(coins, function(index, item) {
+                const isSelected = selectedCoins.some(val => val == item.id) ? 'selected' : '';
+                allowedCoins.append(
+                    `<option value="${item.id}" ${isSelected}>(${item.iso_code}) ${item.long_name}</option>`
+                );
+            });
+        }
+
+        allowedCoins.on('change', function() {
+            getCtnPriceCoin(room);
         });
 
         function insertBingoPlays() {
@@ -129,23 +148,25 @@
         function insertInfo(type, data = '') {
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
+            const allowedCoins = (type == 2 && data.config.allowed_coins) ? data.config.allowed_coins : [];
 
             selectedBingoPlays = [];
+            coinsCtnPrice = false;
+            room = type == 2 ? data.room.encrypted : '';
 
-            if (type == 1) {
-                coinsCtnPrice = false;
-                $("#container-ctn-price-config").addClass("hide-elem").data("active", 0);
-                $('#container-price-config').html('');
-            } else {
-                getCtnPriceCoin(data.room.encrypted, true);
-            }
+            $(".content-rounds-pct, #container-rounds-config, #container-ctn-price-config").hide();
+            $('#content-rounds-config, #content-price-config').empty();
+
+            if (type == 2 && data.config.rounds > 1) getRoundsConfig(room);
+            insertAllowedCoins(allowedCoins);
+            getCtnPriceCoin(room);
 
             gameMode.prop({
                 disabled: isDisabled,
                 required: isRequired
             }).empty();
 
-            type_prize_pool.empty();
+            prizePoolType.empty();
 
             if (type == 1) {
                 const defaultOption = `<option value="" disabled selected>Seleccionar:</option>`;
@@ -154,14 +175,14 @@
                     gameMode.html(defaultOption);
                 }
 
-                type_prize_pool.html(defaultOption);
+                prizePoolType.html(defaultOption);
             }
 
             $('#room-type').val(roomType);
 
-            $.each(arrTypePrizePool, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.config.type_prize_pool) ? 'selected' : '';
-                type_prize_pool.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
+            $.each(arrPrizePoolType, function(index, item) {
+                const isSelected = (type == 2 && item.id == data.config.prize_pool_type) ? 'selected' : '';
+                prizePoolType.append(`<option value="${item.id}" ${isSelected}>${item.description}</option>`);
             });
 
             $.each(arrGameModes, function(index, item) {
@@ -172,42 +193,48 @@
                 }
             });
 
-            if (type == 1) {
-                changeFixedJackpot(1);
-            } else if (type == 2) {
+            let addedPrizePool = 1;
+
+            if (type == 2) {
                 const config = data.config;
 
                 $('#date').val(config.date);
                 $('#time').val(config.time);
                 $('#room-commn').val(config.room_commn);
+                $('#jackpot-pct').val(config.jackpot_pct);
                 $('#ctn-price').val(config.ctn_price);
                 $('#time-chip').val(config.time_chip);
                 $('#rounds').val(config.rounds);
-                $('#pct-serials').val(config.pct_serials);
+                $('#rounds-pct').val(config.rounds_pct);
+                $('#serials-pct').val(config.serials_pct);
                 $('#num-serials').val(config.num_serials);
-                $('#serials-commn').val(config.pct_jackpot);
 
-                if (config.type_prize_pool > 1) {
-                    changeFixedJackpot(2);
+                if (config.prize_pool_type > 1) {
+                    addedPrizePool = config.prize_pool_type;
                     $('#amount-added-prize-pool').val(config.amount_added_prize_pool);
                 }
 
-                if (config.types_plays) {
-                    selectedBingoPlays = stringToArray(config.types_plays);
-                    // $('#max-plays-ramdom').val(config.pct_serials);
-                    $('#pct-bingo-plays').val(config.pct_types_plays);
+                if (config.rounds > 1) {
+                    $('.content-rounds-pct').show();
+                }
+
+                if (config.play_types) {
+                    selectedBingoPlays = stringToArray(config.play_types);
+                    $('#plays-pct').val(config.plays_pct);
                 }
             }
 
-            insertBingoPlays();
+            changeFixedJackpot(addedPrizePool);
+
+            // insertBingoPlays();
 
             $(`#modal-${name}`).modal('show');
         }
 
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
-                'date', 'room-type', 'type-prize-pool', 'game-mode', 'room-commn',
-                'ctn-price', 'time-chip', 'rounds', 'pct-serials', 'num-serials'
+                'date', 'room-type', 'prize-pool-type', 'game-mode', 'room-commn',
+                'ctn-price', 'allowed-coins', 'time-chip', 'rounds', 'serials-pct', 'num-serials'
             ]);
         });
 
@@ -269,7 +296,7 @@
             }
         };
     </script>
-    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
+    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js', 'resources/js/games/bingo/rounds-config.js'])
     @if ($creator['type'] === 'customer' && $view === 'PRIVATE')
         <script>
             $(document).on("click", '#btn-game-id', function() {

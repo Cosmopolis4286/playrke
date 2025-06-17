@@ -119,7 +119,7 @@
         const coin = $("#coin");
         const coinText = $("#coin-text");
         const otherCoins = $("#other-coins");
-        const games = $("#games");
+        const allowedGames = $("#allowed-games");
         const arrGames = @json($games);
         let update = false;
 
@@ -169,10 +169,10 @@
         }
 
         function insertGames(selectedGames = '') {
-            games.empty();
+            allowedGames.empty();
             $.each(arrGames, function(index, item) {
                 const isSelected = selectedGames.includes(item.id) ? 'selected' : '';
-                games.append(`<option value="${item.id}" ${isSelected}>${item.name}</option>`);
+                allowedGames.append(`<option value="${item.id}" ${isSelected}>${item.name}</option>`);
             });
         }
 

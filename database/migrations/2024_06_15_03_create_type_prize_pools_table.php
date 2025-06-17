@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('type_prize_pools', function (Blueprint $table) {
+        Schema::create('prize_pool_types', function (Blueprint $table) {
             $table->id();
             $table->string('description', 20);
             $table->timestamps();
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('type_prize_pools');
+        Schema::dropIfExists('prize_pool_types');
     }
 };

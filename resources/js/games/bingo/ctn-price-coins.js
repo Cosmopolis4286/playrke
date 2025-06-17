@@ -1,23 +1,29 @@
 function handleCtnPriceForCoins(arrCtnPrice) {
-    // Generar el contenido HTML usando map y join
-    const dataCoins = arrCtnPrice.map((elem) =>
-        `<div class="col col-sm-6 col-md-4 mt-1">
-        <div class="input-group">
-            <div class="input-group-prepend">
-                <span class="input-group-text">${elem.isoCode}</span>
+    const allowedCoinsIDs = $("#allowed-coins").val();
+    const dataCoins = arrCtnPrice
+        .filter(elem => Array.isArray(allowedCoinsIDs) && allowedCoinsIDs.some(id => id == elem.coin))
+        .map(elem => `
+        <div class="col col-sm-6 col-md-4 mt-1">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">${elem.isoCode}</span>
+                </div>
+                <input 
+                    type="number" 
+                    class="form-control ctn-price-coins-input" 
+                    name="ctn_price_coins[${elem.coin}]" 
+                    id="ctn-price-coin-${elem.coin}" 
+                    aria-label="Precio para ${elem.isoCode}" 
+                    value="${elem.ctnPrice}"
+                    min="1"
+                    max="${elem.valMax}"
+                    step="0.05">
             </div>
-            <input 
-                type="text" 
-                class="form-control" 
-                name="ctn_price_coins[${elem.coin}]" 
-                id="ctn-price-coin-${elem.coin}" 
-                aria-label="Precio para ${elem.isoCode}" 
-                value="${elem.ctnPrice}">
         </div>
-    </div>`).join('');
+    `).join('');
 
     // Actualizar el contenido del contenedor
-    $('#container-price-config').html(dataCoins);
+    $('#content-ctn-price-config').html(dataCoins);
 
     // Marcar que las monedas ya han sido procesadas
     coinsCtnPrice = true;
@@ -25,37 +31,60 @@ function handleCtnPriceForCoins(arrCtnPrice) {
 
 $(document).on("click", "#btn-ctn-price-config", function () {
     const container = $("#container-ctn-price-config");
-    // Alternar la clase y el valor del atributo 'data-active'
-    const isActive = container.toggleClass("hide-elem").data("active") === 1 ? 0 : 1;
-    container.data("active", isActive);
+    console.log('$("#allowed-coins").val()', $("#allowed-coins").val());
 
-    if (isActive === 0 || coinsCtnPrice) return;
+    if (($("#allowed-coins").val() || []).length === 0) return;
 
-    getCtnPriceCoin();
+    if (container.is(":visible")) {
+        container.hide();
+        return;
+    }
+
+    if (!coinsCtnPrice) {
+        $('#content-ctn-price-config').empty();
+        $('#spinner-ctn-price-config').show();
+        getCtnPriceCoin();
+    }
+
+    container.show();
 });
 
-function getCtnPriceCoin(room = '', action = '') {
+function getCtnPriceCoin(room = '') {
 
-    $('#container-price-config').html('');
+    if (coinsCtnPrice && ($("#allowed-coins").val() || []).length === 0) {
+        $("#container-ctn-price-config").hide();
+        $('#content-ctn-price-config').empty();
+        coinsCtnPrice = false;
+        $("#allowed-coins").focus();
+        showToast('Campo obligatorio', 'warning');
+        return;
+    }
 
     $.ajax({
         url: route('bingo.getCtnPriceForCoin', { creation, creatorType, creatorID, room }),
         method: 'GET',
         dataType: 'json',
-        beforeSend: function () {
-            $('#container-spinner').show();
-        },
         success: function (res) {
-            if (!action || res.hasPrice) {
-                handleCtnPriceForCoins(res.ctnPrice);
-                $("#container-ctn-price-config").removeClass("hide-elem").data("active", 1);
+            handleCtnPriceForCoins(res.ctnPrice);
+            if (res.hasPrice) {
+                $("#container-ctn-price-config").show();
             }
         },
         error: function (error) { },
         complete: function () {
-            $('#container-spinner').hide();
+            $('#spinner-ctn-price-config').hide();
         }
     });
 }
+
+$(document).on("input change", ".ctn-price-coins-input", function () {
+    const $input = $(this);
+
+    $input.prop('required', $input.val().trim() !== '');
+
+    if ($input.prop('required')) {
+        validateInput($input, true);
+    }
+});
 
 window.getCtnPriceCoin = getCtnPriceCoin;

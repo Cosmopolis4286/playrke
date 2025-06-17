@@ -7,6 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\RewardsController;
 use App\Http\Controllers\BinanceController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CommerceController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\PixController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\OtherTreasurersController;
 use App\Http\Controllers\PaymentMethodsCOLController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\TreasurerController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
@@ -173,6 +175,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as'
     Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])
         ->withoutMiddleware(['auth', 'commerce'])->name('getPaymentCommerceDetails');
     Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
+    Route::get('rewards', [CommerceController::class, 'rewards'])->name('rewards');
     Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
     Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
     Route::put('bingo/carton-lot/payment', [CommerceController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
@@ -210,6 +213,15 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::get('bingo/getWinnerInfoForCtn/{ctnId}', [SellerController::class, 'getWinnerInfoForCtn'])->name('getWinnerInfoForCtn');
     Route::get('bingo/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
     Route::post('bingo/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
+});
+
+Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'rewards', 'as' => 'rewards.'], function () {
+    Route::get('', [RewardsController::class, 'index'])->name('index');
+    Route::post('create', [RewardsController::class, 'create'])->name('create');
+    Route::get('getInfo/{id}', [RewardsController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [RewardsController::class, 'update'])->name('update');
+    Route::put('delete/{id}', [RewardsController::class, 'delete'])->name('delete');
+    Route::put('change-status/{id}', [RewardsController::class, 'changeStatus'])->name('change-status');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'report', 'as' => 'report.'], function () {
@@ -290,6 +302,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('getInfoByEncrypt/{id}/{creatorUser}/{coin}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::get('getInfoPublicRoom', [BingoController::class, 'getInfoPublicRoom'])->name('getInfoPublicRoom');
     Route::get('getInfoPublicRoomPendingPayments', [BingoController::class, 'getInfoPublicRoomPendingPayments'])->name('getInfoPublicRoomPendingPayments');
+    Route::get('getRoundsConfig/{room}/{type}', [BingoController::class, 'getRoundsConfig'])->name('getRoundsConfig');
     Route::get('getDateTimeRooms/{creatorUser}/{player}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
     Route::get('getCtnPriceForCoin/{creation}/{creatorType}/{creatorID}/{room?}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
 

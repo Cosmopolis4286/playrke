@@ -142,6 +142,8 @@
         const coin = $("#coin");
         const coinText = $("#coin-text");
         const otherCoins = $("#other-coins");
+        const allowedGames = $("#allowed-games");
+        const arrGames = @json($games);
         let update = false;
 
         if (@json(Session::has('msg-error'))) {

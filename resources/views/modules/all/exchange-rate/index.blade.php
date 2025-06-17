@@ -31,7 +31,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($exchangeRate as $item)
+                            @foreach ($exchangeRates as $item)
                                 <tr>
                                     @if ($creator['type'] !== 'customer')
                                         <td>
@@ -52,30 +52,33 @@
                                         {{ $item->pct != 0 ? $item->pct . '%' : '-' }}
                                     </td>
                                     <td>
-                                        @if ($item->status == 0)
-                                            No/Disp
-                                        @elseif($item->status == 1)
-                                            Activo
-                                        @elseif($item->status == 4)
+                                        @if ($item->status === 'INACTIVE')
+                                            <span class="badge badge-secondary">No/Disp</span>
+                                        @elseif($item->status === 'ACTIVE')
+                                            <span class="badge badge-success">Disponible</span>
+                                        @elseif($item->status === 'DIRECTORY')
                                             <a class="badge badge-danger" title="Registrar Datos Bancarios"
                                                 href="{{ route('directory.index', ['countryCode' => strtolower($item->Coin->Country->iso_code_2)]) }}">
-                                                Sin Datos Bancarios
+                                                Falta Directorio
                                             </a>
                                         @endif
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-toggle">
-                                            @if ($item->status == 1)
+                                            @if ($item->status === 'ACTIVE' || $item->exchange_rate == 0)
                                                 <button class="btn btn-sm btn-primary btn-{{ $name }}"
                                                     data-type="2" data-id="{{ encrypt($item->id) }}"
                                                     title="Editar Tasa de Cambio">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                             @endif
-                                            <button class="btn btn-sm btn-secondary btn-{{ $name }}" data-type="4"
-                                                data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
-                                                <i class="fa-solid fa-repeat"></i>
-                                            </button>
+                                            @if ($item->exchange_rate > 0)
+                                                <button class="btn btn-sm btn-secondary btn-{{ $name }}"
+                                                    data-type="4" data-id="{{ encrypt($item->id) }}"
+                                                    title="Cambiar Status">
+                                                    <i class="fa-solid fa-repeat"></i>
+                                                </button>
+                                            @endif
                                             @if ((Auth::user() && Auth::user()->user_type == 1) || $creator['type'] === 'customer')
                                                 <button class="btn btn-sm btn-danger btn-{{ $name }}"
                                                     data-type="3" data-id="{{ encrypt($item->id) }}" title="Eliminar">
@@ -148,7 +151,7 @@
         });
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Tasa de cambio', '{{ asset('') }}exchange-rate', otherCasesMap)
+            formCRUD($(this), name, 'Tasa de cambio', otherCasesMap)
         });
 
         $(document).on("click", "#btn-confirm", function() {

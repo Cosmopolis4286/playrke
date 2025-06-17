@@ -7,13 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class BingoCtnPrice extends Model
 {
     protected $table = 'bingo_ctn_price';
-    protected $fillable = ['room', 'creator_user', 'coin', 'ctn_price', 'status', 'created_at', 'updated_at'];
-
-    public function Room()
-    {
-        return $this->belongsTo(BingoRoom::class, 'room');
-    }
-
+    protected $fillable = ['room', 'creator_user', 'coin', 'ctn_price', 'created_at', 'updated_at'];
+   
     public function Coin()
     {
         return $this->belongsTo(Coin::class, 'coin');
@@ -35,15 +30,15 @@ class BingoCtnPrice extends Model
             ->where('creator_user', $creatorUser)->value('ctn_price');
     }
 
-    public static function getAllCoinsCtnPrice($room, $creatorUser, $status = 1)
+    public static function getAllCoinsCtnPrice($room, $creatorUser)
     {
         if (!$creatorUser) return collect();
 
-        return self::select('coin')->where('room', $room)->where('creator_user', $creatorUser)
-            ->where('status', $status)->distinct()->pluck('coin');
+        return self::select('coin')->where('room', $room)
+            ->where('creator_user', $creatorUser)->distinct()->pluck('coin');
     }
 
-    public static function getOnlyCoinsCtnPrice($room, $creatorUser)
+    public static function getOnlyCoinsCtnPrice($room, $creatorUser, string $creation)
     {
         if (!$creatorUser) return collect();
 
@@ -57,7 +52,7 @@ class BingoCtnPrice extends Model
         return self::with('Coin')->where('room', $room)->where('creator_user', $creatorUser)->get();
     }
 
-    public static function getCtnPrice($room, $coin, $creatorUser, $fields = ['id', 'ctn_price', 'status'])
+    public static function getCtnPrice($room, $coin, $creatorUser, $fields = ['id', 'ctn_price'])
     {
         return self::select($fields)->where('room', $room)->where('coin', $coin)
             ->where('creator_user', $creatorUser)->first();

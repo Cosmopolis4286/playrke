@@ -2,7 +2,7 @@
 
 namespace App\Services\Game\Bingo;
 
-use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceAutomatic, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, GameConfig, UserType};
+use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceDrafts, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRounds, BingoRoundsDrafts, GameConfig};
 use App\Traits\EncryptRKE;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,13 +35,17 @@ class AutoGenerateBingoRooms
         DB::beginTransaction();
 
         try {
+
             foreach ($automaticRooms as $room) {
+
+                $creatorUser = $room->creator_user;
+
                 // Calcular fecha y hora de la sala
                 $roomTime = Carbon::parse("{$now->format('Y-m-d')} {$room->time}");
                 $roomDate = $this->calculateRoomDate($roomTime, $now);
 
                 // Verificar si la sala ya existe
-                $existingRoom = $this->existingRoom($room->user, $roomDate, $room->time, $room->ctn_price);
+                $existingRoom = $this->existingRoom($creatorUser, $roomDate, $room->time, $room->ctn_price);
 
                 // Saltar si la sala existente tiene un estado >= 2
                 if ($existingRoom && $existingRoom->Room->status >= 2) {
@@ -57,12 +61,18 @@ class AutoGenerateBingoRooms
                     : BingoRoom::create($roomData);
 
                 $roomID = $currentRoom->id;
+                $automaticBingoID = $room->id;
 
                 // Configurar la sala
                 $this->configureRoom($roomID, $room, $roomDate);
 
                 // Asociar precios de monedas a la sala
-                $this->associateCtnPrices($room->id, $roomID, $room->creator_user);
+                $this->associateCtnPrices($automaticBingoID, $roomID, $creatorUser);
+
+                if ($room->rounds > 1 && $room->rounds_pct) {
+                    // Asociar rondas a la sala
+                    $this->associateRounds($automaticBingoID, $roomID);
+                }
             }
 
             DB::commit();
@@ -81,8 +91,8 @@ class AutoGenerateBingoRooms
     {
         $model = 'BingoRooms';
 
-        $fixedJackpotValue = $room->amount_added_prize_pool;
-        $boat = $room->type_prize_pool > 1 ? $fixedJackpotValue : 0;
+        $amountAddedPrizePool = $room->amount_added_prize_pool;
+        $boat = $room->prize_pool_type > 1 ? $amountAddedPrizePool : 0;
 
         return [
             'encrypted' => $this->generateUniqueCode($model),
@@ -113,14 +123,17 @@ class AutoGenerateBingoRooms
                 'time' => $dataRoom->time,
                 'unix_date' => $unixDate,
                 'ctn_price' => $dataRoom->ctn_price,
+                'allowed_coins' => $dataRoom->allowed_coins,
                 'rke_commn' => $bingoRKECommission,
                 'room_commn' => $dataRoom->room_commn,
-                'type_prize_pool' => $dataRoom->type_prize_pool,
+                'prize_pool_type' => $dataRoom->prize_pool_type,
                 'amount_added_prize_pool' => $dataRoom->amount_added_prize_pool,
                 'time_chip' => $dataRoom->time_chip,
-                'pct_serials' => $dataRoom->pct_serials,
+                'rounds' => $dataRoom->rounds,
+                'rounds_pct' => $dataRoom->rounds_pct,
+                'serials_pct' => $dataRoom->serials_pct,
                 'num_serials' => $dataRoom->num_serials,
-                'pct_jackpot' => $dataRoom->pct_jackpot,
+                'jackpot_pct' => $dataRoom->jackpot_pct,
             ]
         );
 
@@ -132,6 +145,7 @@ class AutoGenerateBingoRooms
                 'creator_id' => $roomDate->creator_id,
                 'creator_commn' => $dataRoom->room_commn,
                 'ctn_price' => $dataRoom->ctn_price,
+                'allowed_coins' => $dataRoom->allowed_coins
             ]
         )->id;
 
@@ -139,25 +153,81 @@ class AutoGenerateBingoRooms
     }
 
     /**
+     * Asocia las rondas a una sala.
+     */
+    private function associateRounds($automaticBingoID, $roomID)
+    {
+        try {
+            $bingoRounds = BingoRoundsDrafts::getByAutomaticRoom($automaticBingoID, [
+                'rounds',
+                'prize_types',
+                'play_types',
+                'prize_values'
+            ]);
+
+            if (!$bingoRounds) {
+                throw new \Exception("No draft data found for automatic bingo ID {$automaticBingoID}");
+            }
+
+            BingoRounds::create([
+                'room' => $roomID,
+                'rounds' => $bingoRounds->rounds,
+                'prize_types' => $bingoRounds->prize_types,
+                'play_types' => $bingoRounds->play_types,
+                'prize_values' => $bingoRounds->prize_values,
+                'status' => 'ACTIVE',
+            ]);
+
+            $bingoRounds->update(['status' => 'COMPLETED']);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error en associateRounds: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Asocia los precios de monedas (ctn) a una sala.
      */
-    private function associateCtnPrices($automaticBingoID, $roomID, $creatorUser)
+    private function associateCtnPrices($automaticBingoID, $roomID)
     {
-        $coinsCtnPrice = BingoCtnPriceAutomatic::getOnlyCoinsCtnPrice($automaticBingoID ?? '');
+        try {
+            $bingoCtnPrice = BingoCtnPriceDrafts::getByAutomaticRoom($automaticBingoID, ['creator_user', 'coins', 'ctn_prices']);
 
-        if (!$coinsCtnPrice) return;
+            if (!$bingoCtnPrice) {
+                return false;
+            }
 
-        foreach ($coinsCtnPrice as $key => $ctnPrice) {
-            BingoCtnPrice::updateOrCreate(
-                ['room' => $roomID, 'coin' => $key],
-                [
-                    'creator_user' => $creatorUser,
-                    'ctn_price' => $ctnPrice,
-                ]
-            );
+            $coins = $bingoCtnPrice->coins ?? [];
+            $prices = $bingoCtnPrice->ctn_prices ?? [];
+
+            if (!is_array($coins) || !is_array($prices) || count($coins) !== count($prices)) {
+                throw new \Exception('Datos de monedas y precios inconsistentes.');
+            }
+
+            foreach ($coins as $index => $coin) {
+                BingoCtnPrice::updateOrCreate(
+                    ['room' => $roomID, 'coin' => $coin],
+                    [
+                        'creator_user' => $bingoCtnPrice->creator_user,
+                        'ctn_price' => $prices[$index],
+                    ]
+                );
+            }
+
+            $bingoCtnPrice->update(['status' => 'COMPLETED']);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error en associateCtnPrices: ' . $e->getMessage(), [
+                'automaticBingoID' => $automaticBingoID,
+                'roomID' => $roomID,
+                'creatorUser' => $bingoCtnPrice->creator_user,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw $e; // O puedes retornar false si prefieres silenciar el error
         }
-
-        return true;
     }
 
     private function calculateRoomDate($roomTime, $now)

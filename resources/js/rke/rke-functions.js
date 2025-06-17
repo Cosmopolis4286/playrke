@@ -99,7 +99,7 @@ function formCRUD(elem, name, title, otherCasesMap = {}) {
     const formName = $(`#form-${name}`);
 
     formName[0].reset();
-    formName.find('select').empty();
+    formName.find('select:not(.not-empty)').empty();
 
     let type = false;
     let encryptedId = '';
@@ -176,30 +176,52 @@ function getInfo(name, id) {
     });
 }
 
+let validateTimer = null;
+
+function cleanInput(input) {
+    const $input = $(input);
+    let val = $input.val();
+
+    val = val
+        .replace(/,/g, '.')
+        .replace(/[^0-9.]/g, '') // Solo números y punto
+        .replace(/(\..*?)\..*/g, '$1'); // Solo un punto permitido
+
+    $input.val(val);
+}
+
 function validateInput(input, isFloat = true, callback = null) {
-    setTimeout(() => {
+    clearTimeout(validateTimer);
+
+    cleanInput(input);
+
+    validateTimer = setTimeout(() => {
         const $input = $(input);
-        let value = isFloat ? parseFloat($input.val()) : $input.val();
+        const rawValue = $input.val();
+
+        let value = isFloat ? parseFloat(rawValue) : parseInt(rawValue);
         const min = parseFloat($input.attr('min')) || 0;
         const max = parseFloat($input.attr('max')) || 100;
-        let error = false;
 
-        // Verificar si el valor es válido
-        if (isNaN(value) || value < min || value > max) {
+        let hasError = false;
+
+        if (isNaN(value)) {
+            value = min;
+            hasError = true;
+            showToast('Ingresa un número válido', 'info');
+        } else if (value < min || value > max) {
+            value = Math.min(Math.max(value, min), max);
+            hasError = true;
             showToast(`El valor debe estar entre ${min} y ${max}`, 'info');
-            value = min; // Ajustar el valor al mínimo si hay error
-            error = true;
         }
 
-        // Actualizar el valor del input
-        $input.val(isFloat ? value.toFixed(2) : value);
+        const formattedValue = isFloat ? value.toFixed(2) : value;
+        $input.val(formattedValue);
 
-        // Llamar al callback si es una función, pasando el estado de error
         if (typeof callback === 'function') {
-            callback(!error); // Pasa `true` si no hay error, `false` si hay error
+            callback(!hasError);
         }
-
-    }, 1500);
+    }, 850);
 }
 
 function stringToArray(str, separator = ';') {

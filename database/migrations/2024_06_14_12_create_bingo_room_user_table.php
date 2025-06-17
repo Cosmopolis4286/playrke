@@ -20,7 +20,7 @@ return new class extends Migration
             $table->integer('player_user')->nullable();
             $table->string('ctns', 3);
             $table->double('automarker')->nullable();
-            $table->string('winner', 1)->default('0');
+            $table->enum('winner', ['0', '1', '2'])->default('0');
             $table->timestamps();
         });
     }

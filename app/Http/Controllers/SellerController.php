@@ -29,6 +29,7 @@ use App\Models\User;
 use App\Models\UserType;
 use App\Models\Wallet;
 use App\Services\Game\Bingo\HandleBingoRooms;
+use App\Services\RKE\HandleExchangeRates;
 use App\Traits\Filters;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -314,7 +315,9 @@ class SellerController extends Controller
 
         $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
-        (new HandleBingoRooms())->checkRoomClosure();
+        app(HandleBingoRooms::class)->checkRoomClosure();
+
+        (new HandleExchangeRates())->updateExchangeRates($creatorUser);
 
         $rooms = BingoRoom::with([
             'Creator' => function ($query) use ($creatorUser) {
@@ -350,18 +353,32 @@ class SellerController extends Controller
         ]);
     }
 
-    public function getAvailableCountriesBySeller()
+    public function getAvailableCountriesBySeller($roomID)
     {
         $seller = $this->seller(['id', 'commerce']);
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
-        $coinsSeller = array_map('strval', SellerCountriesCoins::getAvailableCoins($seller->id));
-        $commerceCoins = array_map('strval', CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 1));
+        // Obtenemos las monedas disponibles para el vendedor y el comercio
+        $sellerCoins = SellerCountriesCoins::getAvailableCoins($seller->id);
+        $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 'ACTIVE');
 
-        $coinsAvailable = array_intersect($commerceCoins, $coinsSeller);
-        $coinsAvailable = array_values($coinsAvailable); // reindexar
+        // Obtenemos el campo allowed_coins (json o null) y lo forzamos a array
+        $allowedCoinsRoom = BingoCreator::where('creator_user', $creatorUser)
+            ->where('room', $roomID)->value('allowed_coins');
 
-        if (in_array('1', $coinsAvailable, true)) {
-            $coinsAvailable = array_values(array_diff($coinsAvailable, ['1']));
+        $allowedCoinsRoom = is_array($allowedCoinsRoom) ? $allowedCoinsRoom : [];
+
+        $coinsAvailable = array_values(array_intersect(
+            array_map('strval', $sellerCoins),
+            array_map('strval', $commerceCoins),
+            array_map('strval', $allowedCoinsRoom)
+        ));
+
+        // Eliminamos '1' si existe
+        $USDT = false;
+        if (($key = array_search('1', $coinsAvailable, true)) !== false) {
+            unset($coinsAvailable[$key]);
+            $coinsAvailable = array_values($coinsAvailable);
             $USDT = true;
         }
 
@@ -374,7 +391,7 @@ class SellerController extends Controller
 
     public function getCtnPrice($roomID)
     {
-        $room = BingoRoom::with('Config:room,type_prize_pool,ctn_price')
+        $room = BingoRoom::with('Config:room,prize_pool_type,ctn_price')
             ->select('id', 'encrypted', 'prize_pool')
             ->where('encrypted', $roomID)->first();
 
@@ -385,7 +402,7 @@ class SellerController extends Controller
         $countriesCoins = $this->getAvailableCountriesBySeller($room->id);
 
         return response()->json([
-            'typePrizePool' => $room->Config->type_prize_pool,
+            'prizePoolType' => $room->Config->prize_pool_type,
             'prizePool' => $room->prize_pool,
             'coin' => 'USDT',
             'price' => $room->Config->ctn_price,

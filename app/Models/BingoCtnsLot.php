@@ -13,12 +13,12 @@ class BingoCtnsLot extends Model
         'seller',
         'player_user',
         'room_user',
-        'ctn_price',
-        'exchange_rate',
         'ctns',
         'coin',
+        'ctn_price',
+        'exchange_rate',
         'sale_amount',
-        'final_sale_amount',
+        'seller_commn',
         'status'
     ];
 

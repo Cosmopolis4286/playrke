@@ -51,7 +51,7 @@
                                                         title="Notificar Pago" data-room="{{ $ctn->Room->encrypted }}"
                                                         data-idlote="{{ $ctn->id }}"
                                                         data-amount="{{ number_format($ctn->sale_amount, 2) }}">
-                                                        Notificar Pago
+                                                        Pendiente
                                                     </button>
                                                 @elseif($ctn->status == 1)
                                                     <a href="{{ route('image.show-image-payment-ctns', ['filename' => $ctn->Payment->payment_proof]) }}"

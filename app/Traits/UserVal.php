@@ -136,33 +136,31 @@ trait UserVal
 
         if (!in_array($user['type'], ['commerce', 'admin'])) return;
 
+        DB::beginTransaction();
+
         try {
-            DB::beginTransaction();
+
             $commerceID = Commerce::getValueByUserId($user['userId'], 'id');
 
-            // Restaurar monedas que ahora sí tienen directorio
-            $restorables = CommerceExchangeRate::where('commerce', $commerceID)
-                ->where('status', 4)
+            // Obtener los IDs más recientes de cada moneda (coin)
+            $ids = CommerceExchangeRate::select(DB::raw('MAX(id) as id'))
+                ->where('commerce', $commerceID)
                 ->whereNotIn('coin', $coinsWithoutDirectories)
-                ->orderByDesc('id')
-                ->get()
-                ->unique('coin');
+                ->groupBy('coin')
+                ->pluck('id');
 
-            foreach ($restorables as $record) {
-                $record->update(['status' => 1]);
-            }
+            CommerceExchangeRate::where('commerce', $commerceID)
+                ->whereIn('id', $ids)->where('exchange_rate', 0)
+                ->whereIn('status', ['ACTIVE', 'DIRECTORY'])
+                ->update(['status' => 'INACTIVE']);
 
-            // Marcar status 4 en monedas sin directorio
-            foreach ($coinsWithoutDirectories as $coinId) {
-                $record = CommerceExchangeRate::where('commerce', $commerceID)
-                    ->where('coin', $coinId)
-                    ->where('status', '!=', 4)
-                    ->orderByDesc('id')
-                    ->first();
-
-                if ($record) {
-                    $record->update(['status' => 4]);
-                }
+            if ($coinsWithoutDirectories) {
+                // Marcar status 'DIRECTORY' en monedas sin directorio
+                CommerceExchangeRate::where('commerce', $commerceID)
+                    ->whereIn('id', $ids)->where('exchange_rate', '>', 0)
+                    ->whereIn('coin', $coinsWithoutDirectories)
+                    ->where('status', '!=', 'DIRECTORY')
+                    ->update(['status' => 'DIRECTORY']);
             }
 
             DB::commit();

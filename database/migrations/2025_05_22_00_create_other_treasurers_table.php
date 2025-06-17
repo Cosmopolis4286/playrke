@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('other_treasurers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('creator_user')->unique()->constrained('users')->onDelete('cascade');
-            $table->string('allowed_games')->default('ALL');
-            $table->string('allowed_coins');
+            $table->json('allowed_games')->default(json_encode(['ALL']));
+            $table->json('allowed_coins');
             $table->boolean('status')->default(1);
             $table->timestamps();
         });

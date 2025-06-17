@@ -20,12 +20,12 @@ return new class extends Migration
             $table->unsignedBigInteger('seller')->nullable();
             $table->unsignedBigInteger('room_user');
             $table->integer('player_user')->nullable();
-            $table->double('ctn_price');
-            $table->double('exchange_rate');
             $table->integer('ctns');
             $table->string('coin', 15);
+            $table->double('ctn_price');
+            $table->double('exchange_rate');
             $table->double('sale_amount');
-            $table->double('final_sale_amount');
+            $table->double('seller_commn')->nullable();
             $table->boolean('status')->default(0);
             $table->timestamps();
 

@@ -13,17 +13,17 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('game_type_prize_pool', function (Blueprint $table) {
+        Schema::create('game_prize_pool_type', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('game');
             $table->unsignedBigInteger('game_mode');
-            $table->unsignedBigInteger('type_prize_pool')->default(1);
+            $table->unsignedBigInteger('prize_pool_type')->default(1);
             $table->boolean('status')->default(1);
             $table->timestamps();
 
             $table->foreign('game')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('game_mode')->references('id')->on('game_modes')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('type_prize_pool')->references('id')->on('type_prize_pools')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('prize_pool_type')->references('id')->on('prize_pool_types')->onDelete('restrict')->onUpdate('cascade');
         });
     }
 
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('game_type_prize_pools');
+        Schema::dropIfExists('game_prize_pool_types');
     }
 };

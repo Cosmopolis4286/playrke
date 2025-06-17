@@ -37,7 +37,7 @@ class AdminController extends Controller
             'countries' => $countries,
             'timeZones' => $timeZones,
             'coins' => $coins,
-            'games' => Games::where('status', 1)->get()
+            'games' => Games::getAvailableGames()
         ]);
     }
 
@@ -75,7 +75,7 @@ class AdminController extends Controller
             'countries' => $countries,
             'timeZones' => $timeZones,
             'coins' => $coins,
-            'games' => Games::where('status', 1)->get()
+            'games' => Games::getAvailableGames()
         ]);
     }
 
@@ -87,7 +87,7 @@ class AdminController extends Controller
         ])->get();
 
         $coins = Coin::getByIdForStatus(['=', 1]);
-        $games = Games::where('status', 1)->get();
+        $games = Games::getAvailableGames();
 
         return view('modules/admin/treasurer/other-treasurers')->with([
             'title' => 'Otros Tesoreros',

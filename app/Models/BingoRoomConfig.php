@@ -12,24 +12,27 @@ class BingoRoomConfig extends Model
     'creation',
     'creator_user',
     'game_mode',
+    'in_live',
     'date',
     'time',
     'unix_date',
-    'country',
-    'coin',
     'ctn_price',
+    'allowed_coins',
     'rke_commn',
     'room_commn',
-    'type_prize_pool',
+    'prize_pool_type',
     'amount_added_prize_pool',
     'time_chip',
     'rounds',
-    'pct_serials',
+    'rounds_pct',
+    'serials_pct',
     'num_serials',
-    'pct_jackpot',
-    'pct_types_plays',
-    'types_plays'
+    'jackpot_pct',
+    'plays_pct',
+    'play_types'
   ];
+
+  protected $casts = ['allowed_coins' => 'array'];
 
   public function Room()
   {
@@ -41,9 +44,9 @@ class BingoRoomConfig extends Model
     return $this->belongsTo(GameModes::class, 'game_mode');
   }
 
-  public function TypePrizePool()
+  public function PrizePoolType()
   {
-    return $this->belongsTo(TypePrizePool::class, 'type_prize_pool');
+    return $this->belongsTo(PrizePoolType::class, 'prize_pool_type');
   }
 
   static function getValueByRoom($room, $value)

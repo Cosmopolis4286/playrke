@@ -77,7 +77,7 @@
                     <td class="align-middle">{{ $coinData->iso_code }}
                         {{ number_format($allSale, 2, '.') }}</td>
                     <td>
-                        <small>{{ $room->Config->TypePrizePool->description }}</small>
+                        <small>{{ $room->Config->PrizePoolType->description }}</small>
                         <br>{{ $coinData->iso_code }} {{ number_format($prizePool, 2, '.') }}
                     </td>
                     {{-- Estado --}}

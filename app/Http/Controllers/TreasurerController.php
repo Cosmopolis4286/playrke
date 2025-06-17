@@ -4,14 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Traits\EncryptRKE;
 use App\Models\User;
-use App\Models\Coin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Models\OtherTreasurers;
 use App\Models\Treasurer;
 use App\Models\TreasurerCountriesCoins;
-use App\Models\TreasurerExchangeRate;
 use App\Models\PhoneNumbers;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
@@ -101,12 +99,10 @@ class TreasurerController extends Controller
                         ->with('type', 'warning');
                 }
 
-                $allowedGames = $allowedGames ? implode(';', $allowedGames) : 'ALL';
-
                 OtherTreasurers::create([
                     'creator_user' => $userToPromote,
-                    'allowed_games' =>  $allowedGames,
-                    'allowed_coins' => implode(';', $otherCoins),
+                    'allowed_games' => $allowedGames,
+                    'allowed_coins' => $otherCoins,
                 ]);
 
                 DB::commit();

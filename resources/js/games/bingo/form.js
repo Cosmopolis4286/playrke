@@ -7,34 +7,73 @@ function setSafeValue($el, value) {
     $el.val(Math.min(value, max, 100).toFixed(2));
 }
 
-function handlePercentageAdjust(changedId) {
-    const $elements = {
-        'room-commn': $('#room-commn'),
-        'pct-serials': $('#pct-serials'),
-        'pct-bingo-plays': $('#pct-bingo-plays'),
-    };
+function handlePercentageAdjust(rTotal = false, changedSelector, selectors = [], maxValue = 100) {
+    const values = {};
 
-    const values = {
-        'room-commn': getNumericValue($elements['room-commn']),
-        'pct-serials': getNumericValue($elements['pct-serials']),
-        'pct-bingo-plays': getNumericValue($elements['pct-bingo-plays']),
-    };
+    // Mapear y calcular los valores de cada selector
+    selectors.forEach(selector => {
+        const $el = selector.startsWith('.') ? $('.' + selector.slice(1)) : $('#' + selector);
+        const totalValue = $el.toArray().reduce((sum, el) => sum + getNumericValue($(el)), 0);
+        values[selector] = totalValue;
+    });
 
-    const total = values['room-commn'] + values['pct-serials'] + values['pct-bingo-plays'];
+    let total = Object.values(values).reduce((acc, val) => acc + val, 0);
 
-    if (total > 100) {
-        const over = total - 100;
-        const $changed = $elements[changedId];
-        const newValue = getNumericValue($changed) - over;
-        setSafeValue($changed, newValue);
+    if (total > maxValue) {
+        const over = total - maxValue;
+
+        const $changed = changedSelector.startsWith('.')
+            ? $('.' + changedSelector.slice(1))
+            : $('#' + changedSelector);
+
+        const currentValue = $changed.toArray().reduce((sum, el) => sum + getNumericValue($(el)), 0);
+        const newValue = Math.max(0, currentValue - over);
+
+        if (changedSelector.startsWith('.')) {
+            const count = $changed.length;
+            const distribute = newValue / count;
+
+            $changed.each((_, el) => {
+                setSafeValue($(el), distribute);
+            });
+        } else {
+            setSafeValue($changed, newValue);
+        }
+
+        // Recalcular total con los valores actualizados
+        total = selectors.reduce((sum, selector) => {
+            const $el = selector.startsWith('.') ? $('.' + selector.slice(1)) : $('#' + selector);
+            return sum + $el.toArray().reduce((acc, el) => acc + getNumericValue($(el)), 0);
+        }, 0);
     }
+
+    return rTotal ? total.toFixed(2) : undefined;
 }
 
-$(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #num-serials, #max-plays-ramdom", function () {
-    const id = $(this).attr('id');
-    validateInput(this, !['num-serials', 'time-chip', 'rounds', 'max-plays-ramdom'].includes(id));
+// Limitar a solo números enteros (sin puntos, comas ni letras)
+$(document).on('input', '#num-serials, #time-chip, #rounds', function () {
+    this.value = this.value.replace(/[^0-9]/g, '');
 });
 
-$(document).on("input", ".prize_pool-pct", function () {
-    validateInput(this, true, () => handlePercentageAdjust($(this).attr('id')));
+// Validación general para rango min-max
+$(document).on("input", "#amount-added-prize-pool, #ctn-price, #time-chip, #rounds, #num-serials", function () {
+    const id = $(this).attr('id');
+    validateInput(this, !['num-serials', 'time-chip', 'rounds'].includes(id));
 });
+
+$(document).on("input change", ".prize-pool-pct", function () {
+    let elements = ['room-commn', 'serials-pct'];
+
+    if ($('#rounds').val() > 1) {
+        elements.push('rounds-pct');
+    }
+
+    validateInput(this, true, (isValid) => {
+        if (isValid) {
+            const rTotal = handlePercentageAdjust(true, $(this).attr('id'), elements);
+            totalPct = rTotal;
+        }
+    });
+});
+
+window.handlePercentageAdjust = handlePercentageAdjust; 

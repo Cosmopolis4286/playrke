@@ -2,8 +2,11 @@ import './bootstrap';
 
 import { route } from 'ziggy-js';
 
-import Alpine from 'alpinejs';
+// import { createApp } from 'vue';
+// import ExampleComponent from './components/ExampleComponent.vue';
 
-window.Alpine = Alpine;
+// const app = createApp({});
+// app.component('example-component', ExampleComponent);
+// app.mount('#app');
 
-Alpine.start();
+// window.route = route;

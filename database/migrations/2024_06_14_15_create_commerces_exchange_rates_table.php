@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('commerce')->constrained('commerces')->onDelete('cascade');
             $table->unsignedBigInteger('coin');
             $table->double('exchange_rate')->default(1);
-            $table->boolean('status')->default(0);
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'OLD', 'DIRECTORY']);
             $table->string('pct', 8)->default('0');
             $table->timestamps();
 

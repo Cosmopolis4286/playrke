@@ -39,9 +39,9 @@
 
                     $rate = $room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate;
 
-                    $ctnPrice = ($room->Config->ctn_price ?? 0) * $rate;
-                    $allSale = ($room->all_sale ?? 0) * $rate;
-                    $prizePool = ($room->prize_pool ?? 0) * $rate;
+                    $ctnPrice = truncate(($room->Config->ctn_price ?? 0) * $rate);
+                    $allSale = truncate(($room->all_sale ?? 0) * $rate);
+                    $prizePool = truncate(($room->prize_pool ?? 0) * $rate);
 
                     $totalAllSale += $allSale;
                     $totalJackpot += $prizePool;
@@ -72,12 +72,12 @@
                         <i class="fa-solid fa-users mr-1" title="Jugadores"></i>
                         {{ $room->players }}<br>
                         <i class="fa-solid fa-trophy mr-1" title="Ganadores"></i>
-                        {{ count($room->PlayersRoom) ?? 0 }}
+                        {{ $room->winners }}
                     </td>
                     <td class="align-middle">{{ $coinSym }}
                         {{ number_format($allSale, 2, '.') }}</td>
                     <td>
-                        <small>{{ $room->Config->TypePrizePool->description }}</small>
+                        <small>{{ $room->Config->PrizePoolType->description }}</small>
                         <br>{{ $coinSym }} {{ number_format($prizePool, 2, '.') }}
                     </td>
                     {{-- Estado --}}

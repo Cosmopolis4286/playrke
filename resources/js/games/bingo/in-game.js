@@ -1,7 +1,7 @@
+let latestChips = [];
+
 if (restChips.length) {
-    for (const chip of restChips) {
-        images.push(new Image().src = `${preRoute}img/bg/chips/${chip}.png`);
-    }
+    restChips.forEach(chip => new Image().src = `${preRoute}img/bg/chips/${chip}.png`);
 }
 
 $('#btn-bingo-rules').prop('disabled', false);
@@ -20,10 +20,10 @@ document.addEventListener('dragstart', function (evt) {
     }
 });
 
-document.addEventListener("contextmenu", e => e.preventDefault());
+// document.addEventListener("contextmenu", e => e.preventDefault());
 
 document.body.addEventListener('click', function () {
-    if (actSound == 0 && endWin == 0 && latestChips && roomStatus == 3) {
+    if (actSound == 0 && endWin == 0 && roomStatus == 3) {
         $('#icon-volume').toggleClass('fa-volume-high fa-volume-xmark');
         actSound = 1;
         soundNext.muted = false;
@@ -40,6 +40,7 @@ function endGame(useTimeout = true) {
 
 // Salir de la sala
 $(document).on("click", ".leave-room", function () {
+    document.activeElement.blur();
     $("#modal-info-winners").modal('hide');
     endGame(false);
 });
@@ -60,97 +61,242 @@ $('#btn-volume').on("click", function () {
     }
 });
 
-let posChip = 0;
-
-function renderChipsView(arrow) {
-
-    if (!allChips.length) return;
-    $('#container-history-chips').removeClass('hide-elem');
-
-    const arr = allChips;
-
-    let widthContArrow = $('#cont-right-arrow').width();
-
-    // Determina la cantidad de fichas según el ancho de pantalla
-    const screenWidth = $('#container-bingo-info').width() - (widthContArrow * 2);
-
-    const calculateMaxItems = () => {
-        // Calcula el número máximo de elementos que pueden caber en el carrousel
-        const itemsByScreenWidth = Math.floor(screenWidth / widthContainerImage);
-        // Asegura que no se supere el máximo permitido
-        return Math.min(itemsByScreenWidth, 12);
-    };
-
-    const totalItems = calculateMaxItems();
-    // Actualiza la posición según la dirección de la flecha
-    if (arrow === 1 && posChip > 0) posChip--;
-    if (arrow === 2 && posChip + totalItems < arr.length) posChip++;
-
-    // Genera las fichas visibles y el HTML
-    const visibleChips = arr.slice(posChip, posChip + totalItems);
-    const infoHtml = visibleChips
-        .map((chip) => {
-            const imgSrc = `${preRoute}img/bg/chips/${chip}.png`;
-            return `<div class="container-image-history">
-                        <img class="image-history" src="${imgSrc}" alt="${chip}">
-                    </div>`;
-        }).join('');
-
-    // Carga imágenes antes de actualizar el DOM
-    const imagePromises = visibleChips.map((chip) => {
+function preloadImages(chips) {
+    return Promise.all(chips.map(chip => new Promise(resolve => {
         const img = new Image();
         img.src = `${preRoute}img/bg/chips/${chip}.png`;
-        return new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-        });
+        img.onload = img.onerror = resolve;
+    })));
+}
+
+const containerHistoryChips = $('#container-history-chips');
+let sizeChip = 0;
+let newMargin = 0;
+let maxPerView = 0;
+let posChip = [0];
+let lastRightChip = false;
+let isAnimating = false;
+
+function resizeImageChips(returnWidth = false) {
+    const containerHeight = containerHistoryChips.height();
+    const firstChipWidth = $('.img-chip').first().width();
+
+    sizeChip = firstChipWidth * 0.7;
+
+    if (firstChipWidth > containerHeight) {
+        sizeChip = containerHeight * 0.8;
+    }
+
+    newMargin = sizeChip * 0.07;
+
+    $('.container-image-history').css({
+        width: sizeChip,
+        height: sizeChip,
+        margin: `0 ${newMargin}px`
     });
 
-    Promise.all(imagePromises).then(() => {
-        $('#container-all-chips').html(infoHtml).css('visibility', 'visible');
-        if (roomStatus > 2) adjustWidthBoxesHist();
-        // Configura la visibilidad de las flechas de navegación
-        $('#cont-left-arrow').toggleClass('hide-elem', posChip <= 0);
-        $('#cont-right-arrow').toggleClass('hide-elem', (posChip + totalItems) > arr.length);
-    });
+    return returnWidth ? sizeChip + newMargin * 2 : undefined;
 }
+
+function createChipDiv(chip) {
+    return $('<div>', {
+        class: 'container-image-history',
+        css: {
+            width: sizeChip,
+            height: sizeChip,
+            margin: `0 ${newMargin}px`
+        }
+    }).append($('<img>', {
+        class: 'image-history',
+        src: `${preRoute}img/bg/chips/${chip}.png`,
+        alt: chip,
+        loading: 'lazy'
+    }));
+}
+
+function debounce(func, delay) {
+    let timeout;
+    return (...args) => {
+        if (timeout) return;
+        timeout = setTimeout(() => timeout = null, delay);
+        func(...args);
+    };
+}
+
+function animate(callback, duration = 250) {
+    const start = performance.now();
+    function step(now) {
+        if (now - start < duration) {
+            requestAnimationFrame(step);
+        } else {
+            callback();
+        }
+    }
+    requestAnimationFrame(step);
+}
+
+function renderChipsView(direction = null, newChip = null) {
+    if (!allChips.length || isAnimating) return;
+
+    const chipsContainer = $('#container-all-chips');
+    const leftArrow = $('#cont-left-arrow');
+    const rightArrow = $('#cont-right-arrow');
+    const chipWidth = resizeImageChips(true);
+    const containerWidth = $('#container-bingo-info').outerWidth();
+    const chipsContainerLength = chipsContainer.children().length;
+
+    let rightArrowWidth = rightArrow.outerWidth();
+    let leftArrowWidth = 0;
+
+    if (direction === 'R') {
+        leftArrowWidth = rightArrowWidth;
+        if (lastRightChip === allChips[allChips.length - 2]) {
+            rightArrowWidth = 0;
+        }
+    } else {
+        if (!direction) {
+            leftArrowWidth = leftArrow.outerWidth();
+        } else {
+            rightArrowWidth = rightArrow.outerWidth();
+            if (posChip[0] === 1) {
+                leftArrowWidth = 0;
+            } else {
+                leftArrowWidth = rightArrowWidth ? rightArrowWidth : leftArrow.outerWidth();
+            }
+            if (chipsContainerLength + 1 == maxPerView) {
+                rightArrowWidth = leftArrowWidth;
+            }
+        }
+    }
+
+    const screenWidth = containerWidth - leftArrowWidth - rightArrowWidth;
+    maxPerView = Math.min(Math.floor(screenWidth / chipWidth), 12);
+    const totalChips = allChips.length;
+
+    if (!direction && !newChip) {
+        const visibleChips = allChips.slice(posChip[0], posChip[0] + maxPerView);
+        chipsContainer.empty();
+        visibleChips.forEach(chip => chipsContainer.append(createChipDiv(chip)));
+        lastRightChip = visibleChips.at(-1);
+        posChip[1] = posChip[0] + maxPerView - 1;
+    }
+    else if (newChip) {
+        isAnimating = true;
+        animate(() => {
+            const chipDiv = createChipDiv(newChip).addClass('fade-in-right');
+            chipsContainer.prepend(chipDiv);
+
+            if (chipsContainerLength >= maxPerView && totalChips > 6) {
+                chipsContainer.children().last().remove();
+            }
+            animate(() => {
+                chipDiv.removeClass('fade-in-right');
+                isAnimating = false;
+            });
+        });
+    }
+    else if (direction === 'L' && posChip[0] > 0 && totalChips > 7) {
+        isAnimating = true;
+        posChip[0]--;
+        let lastChip = null;
+
+        if (chipsContainerLength >= maxPerView) {
+            const children = chipsContainer.children();
+            let removeLast = true;
+
+            if (chipsContainerLength > maxPerView) {
+                if (chipsContainerLength - 1 <= maxPerView) {
+                    removeLast = false;
+                    lastChip = children.eq(-2).addClass('fade-out-right'); // penúltimo elemento
+                    children.last().remove();
+                    posChip[1] = posChip[1] - 2;
+                }
+            }
+
+            if (removeLast) {
+                lastChip = children.last().addClass('fade-out-right');
+                posChip[1]--;
+            }
+
+            lastRightChip = allChips[posChip[0] + maxPerView - 1];
+        }
+        animate(() => {
+            lastChip?.remove();
+            const chipDiv = createChipDiv(allChips[posChip[0]]).addClass('fade-in-left');
+            chipsContainer.prepend(chipDiv);
+            animate(() => {
+                chipDiv.removeClass('fade-in-left');
+                isAnimating = false;
+            });
+        });
+    }
+    else if (direction === 'R' && (posChip[0] + maxPerView) <= totalChips) {
+        isAnimating = true;
+        posChip[1] = posChip[0] + maxPerView;
+        posChip[0]++;
+
+        const firstChip = chipsContainer.children().first().addClass('fade-out-left');
+
+        animate(() => {
+            firstChip.remove();
+            let chip = allChips[posChip[1]];
+
+            if (chip === undefined && posChip[1] > 0) {
+                chip = allChips[--posChip[1]];
+            }
+
+            if (chip === lastRightChip) {
+                isAnimating = false;
+                return;
+            }
+
+            const chipDiv = createChipDiv(chip).addClass('fade-in-right');
+            chipsContainer.append(chipDiv);
+
+            animate(() => {
+                chipDiv.removeClass('fade-in-right');
+                lastRightChip = allChips[posChip[1]++];
+                isAnimating = false;
+            });
+        });
+    }
+
+    leftArrow.toggleClass('hide-elem', posChip[0] === 0);
+    rightArrow.toggleClass('hide-elem', ((posChip[0] + maxPerView) >= totalChips) && totalChips > 6).css('opacity', '1');
+    containerHistoryChips.css('visibility', 'visible');
+}
+
+// Eventos con debounce
+$('#cont-left-arrow').on('click', debounce(() => renderChipsView('L'), 300));
+$('#cont-right-arrow').on('click', debounce(() => renderChipsView('R'), 300));
 
 // Ajustar tamaño de las casillas
 function adjustHeightBoxesCtnAward() {
-    let widthNumberBoxViewCtn = $('.number-box-view-ctn').first().width();
+    const widthNumberBoxViewCtn = $('.number-box-view-ctn').first().width();
     $('.number-box-view-ctn').height(widthNumberBoxViewCtn);
-}
-
-const heightContainerAllChips = $('#container-history-chips').height();
-const sizeChip = heightContainerAllChips * 0.85;
-const newMargin = sizeChip * 0.072;
-const widthContainerImage = sizeChip + (newMargin * 2);
-
-function adjustWidthBoxesHist() {
-    $('.container-image-history').css({ width: sizeChip, height: sizeChip, margin: `0 ${newMargin}px` });
 }
 
 $(document).on("click", ".cont-arrow-history-chips", function () {
     renderChipsView($(this).data('move'));
 });
 
-function handleLatestChips(latestChips) {
-    const $container = $("#cont-last-chips").empty();
+function handleLatestChips(allChips) {
+    const containerLastChips = $("#cont-last-chips").empty();
 
-    const chipsHtml = latestChips.slice(0, 6).map((elem, ind) => `
+    const chipsHtml = allChips.slice(0, 6).map((elem, ind) => `
         <div class="cont-img-chip">
             <img id="chp_${elem}" class="img-chip${ind === 0 ? ' zoom' : ''}" alt="${elem}" src="${preRoute}img/bg/chips/${elem}.png">
         </div>
     `).join('');
 
-    $container.html(chipsHtml);
+    containerLastChips.html(chipsHtml);
 
     renderChipsView();
     autoMarked();
     processChips();
 
-    if (roomStatus > 3 || latestChips.includes(chpLast)) {
-        showWinners(decryptJson(infoGame, r4nd0m), chpLast);
+    if (roomStatus > 3 || allChips.includes(chpLast)) {
+        showWinners(decryptJson(infoGame, r4nd0m), roundNum, chpLast);
     }
 }
 
@@ -166,11 +312,10 @@ async function getGameData() {
             _token: $("#5K3_70K").val()
         });
 
-        latestChips = data.latestChips;
         allChips = data.allChips;
         timeServ = Number(data.timeServ);
 
-        handleLatestChips(latestChips);
+        handleLatestChips(allChips);
 
     } catch (error) {
         console.error("Error al obtener los datos del juego:", error);
@@ -222,7 +367,7 @@ function processChips() {
     if (endWin || intervalId) return;
 
     intervalId = setInterval(() => {
-        if (endWin || latestChips.includes(chpLast)) {
+        if (endWin || allChips.includes(chpLast)) {
             clearInterval(intervalId);
             intervalId = null;
             return;
@@ -236,7 +381,7 @@ function processChips() {
 const r4nd0m = $('#random').val();
 
 function getNewChip(newChip) {
-    if (newChip === undefined || latestChips.includes(newChip)) return;
+    if (newChip === undefined || allChips.includes(newChip)) return;
 
     const $contLastChips = $('#cont-last-chips');
     const $contLoader = $('#cont-loader');
@@ -258,101 +403,141 @@ function getNewChip(newChip) {
     $contLastChips.prepend(newChipHtml);
 
     $(`#chp_${newChip}`).on('load', function () {
-        $(this).addClass('show-chip');
+        $(this).toggleClass('hide-chip show-chip');
     });
 
     if (arrDrawImg.length >= 6) {
         $(arrDrawImg.last()).remove();
-        latestChips.pop();
     }
 
-    latestChips.unshift(newChip);
     allChips.unshift(newChip);
 
-    renderChipsView();
+    renderChipsView(false, newChip);
     autoMarked();
 
     if (newChip === chpLast) {
         $('#text-check-bingo').show();
         setTimeout(() => {
-            showWinners(decryptJson(infoGame, r4nd0m), chpLast);
+            showWinners(decryptJson(infoGame, r4nd0m), roundNum, chpLast);
         }, 3500);
+
         endWin = 1;
+
+        if (roundNum > 1 && roundNum < numRounds) {
+            setTimeout(() => {
+                window.location.reload();
+            }, 10000); // 10 segundos
+        }
     }
 }
 
-function getWinners(arrInfo, arrSize) {
-    let content = '';
-    for (let i = 0; i < arrSize; i++) {
+function getWinners(players, numWRPT = '') {
 
-        let img = arrInfo.photo ? `private/user/img/${arrInfo.photo[i]}` : logo;
+    let content = '';
+
+    Object.entries(players).forEach(([serial, ctnInfo]) => {
+
+        const img = logo;
 
         content +=
             `<div class="col-4 my-1 cont-win-info">
-                <div class="cont-win-img" data-id="${arrInfo.ctn[i]}" title="Ver Cartón">
+                <div class="cont-win-img" data-id="${ctnInfo.ctn}" title="Ver Cartón">
                     <i class="eye-icon fa-solid fa-eye"></i>
                     <img class="user-img" src="${preRoute}${img}">                  
-                    <div class="winner-info-text fw-bold badge badge-success w-100">${arrInfo.name[i]}</div>
-                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy w-100">${coinSym} ${arrInfo.gain[i]}</div>
+                    <div class="winner-info-text fw-bold badge badge-success w-100">${serial}</div>
+                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy w-100">${coinSym} ${ctnInfo.gain}</div>
                 </div>
             </div>`;
-    }
+    });
+
     return content;
 }
 
-function showWinners(arrInfo, chipWin) {
+function showWinners(arrInfo, numRound, lastChip = false) {
 
-    if (loaderChip) $('#cont-loader').hide();
-    if (roomStatus == 3) $('#text-check-bingo').hide();
-
-    const arrSizefullHouse = arrInfo.fullHouseWinners.size ?? 0;
-    const arrSizeSerials = arrInfo.serialsWinners.size ?? 0;
-    const arrSizeBingoPlays = arrInfo.bingoPlaysWinners.size ?? 0;
-
-    const countWinners = arrSizefullHouse + arrSizeSerials;
-
-    if (countWinners === 0) {
-        $("#cont-info-winners").hide() && $('#sin_wn').show();
-    } else {
-        $('#count-winners').html(`<b>${countWinners}</b>`);
-
-        const chpWinSrc = `${preRoute}img/bg/chips/${chipWin}.png`;
-        $("#last-win-chip").attr({
-            "src": chpWinSrc,
-            "alt": chipWin
-        });
-
-        if (arrSizefullHouse > 0) {
-            let content = getWinners(arrInfo.fullHouseWinners, arrSizefullHouse);
-            $('#full-house-winners').html(content);
-            $('#full-house-value').text(arrInfo.prizesValues[0]);
-        }
-
-        if (arrSizeBingoPlays > 0) {
-            let content = getWinners(arrInfo.bingoPlaysWinners, arrSizeBingoPlays);
-            $('#bingo-plays-winners').html(content);
-            $('#bingo-plays-value').text(arrInfo.prizesValues[1]);
-            $('#cont-bingo-plays').removeClass('hide-elem');
-        }
-
-        if (arrSizeSerials > 0) {
-            let content = getWinners(arrInfo.serialsWinners, arrSizeSerials);
-            $('#serials-winners').html(content);
-            $('#serial-value').text(arrInfo.prizesValues[1]);
-            $('#cont-serials').removeClass('hide-elem');
-        }
-
-        $("#cont-info-winners").show();
+    if (lastChip && roundNum != numRound) {
+        if (loaderChip) $('#cont-loader').hide();
+        if (roomStatus === 3) $('#text-check-bingo').hide();
     }
 
-    if (endWin) $('#com_bin').hide() && endGame();
+    if (!arrInfo || typeof arrInfo !== 'object') {
+        console.error('arrInfo no es válido:', arrInfo);
+        return;
+    }
 
-    $('#draw-date').text(convertAndDisplay(startTime));
+    const rounds = arrInfo.rounds;
+    if (!rounds || typeof rounds !== 'object') {
+        console.error('arrInfo.rounds no es válido:', rounds);
+        return;
+    }
+
+    const round = rounds[numRound];
+    if (!round || typeof round !== 'object') {
+        console.warn(`No hay datos para la ronda ${numRound}`);
+        $("#cont-info-winners").hide();
+        return;
+    }
+
+    const prizeType = round.prizeType;
+
+    Object.entries(prizeType).forEach(([prize, data]) => {
+        const players = data.players;
+        if (!players || typeof players !== 'object') return;
+
+        const prizeVal = data.prizeVal;
+
+        if (prize === 'FLHE') {
+            const content = getWinners(players, data.numWRPT);
+            $('#full-house-winners').html(content);
+            $('#full-house-value').text(prizeVal);
+        }
+
+        if (prize === 'SRL') {
+            const content = getWinners(players, data.numWRPT);
+            $('#serials-winners').html(content);
+            $('#serial-value').text(prizeVal);
+            $('#cont-serials').removeClass('hide-elem');
+        }
+    });
+
+    $("#cont-info-winners").show();
+
+    if (endWin) endGame();
+
+    $('#draw-date').text(convertAndDisplay(round.startTime));
+
+    lastChip = round.lastChip;
+
+    $("#last-win-chip").attr({
+        "src": `${preRoute}img/bg/chips/${lastChip}.png`,
+        "alt": lastChip
+    });
+
+    $('#count-winners').html(`<b>${round.numWR}</b>`);
+
+    $('#num-round-info-winners').val(numRound);
 
     $("#btn-view-winners").prop('disabled', false);
 
     $("#modal-info-winners").modal('show');
 }
+
+$(document).on("input change", "#num-round-info-winners", function () {
+    let val = $(this).val().replace(/\D/g, ''); // elimina caracteres no numéricos
+    val = val.slice(0, 2); // máximo 2 dígitos
+    $(this).val(val); // actualiza el input con solo números válidos
+
+    const num = parseInt(val, 10);
+
+    // Validar que esté dentro del rango permitido
+    if (isNaN(num) || num < 1 || num > numRounds) {
+        $(this).val(numRounds); // restaurar último valor válido
+        return;
+    }
+
+    // Ejecutar función con valor válido
+    showWinners(decryptJson(infoGame, r4nd0m), num);
+});
 
 let getViewCtn = false;
 
@@ -400,27 +585,26 @@ $(function () {
 
     try {
 
-        if (player) {
-            adjustHeightBoxes();
-            $('.container-carton').css('visibility', 'visible');
-        }
+        adjustHeightBoxes();
 
         window.addEventListener('resize', () => {
 
-            if (player) adjustHeightBoxes();
+            adjustHeightBoxes();
 
             if (roomStatus > 2) {
+
                 renderChipsView();
+
                 if ($('#cont-ctn-award-winning').data('status')) {
                     adjustHeightBoxesCtnAward();
                 }
             }
         });
 
-        if (!latestChips.length) {
+        if (!allChips.length) {
             processChips();
         } else {
-            handleLatestChips(latestChips);
+            handleLatestChips(allChips);
         }
     } catch (error) {
         console.error("Error en la inicialización:", error);

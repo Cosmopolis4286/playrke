@@ -7,147 +7,133 @@
             @if ($status == 1)
                 <div class="card-body">
                     <form id="form-ctns" action="{{ route('seller.generateCarton') }}" method="POST">@csrf
+
+                        {{-- Información del Bingo --}}
                         <div class="row">
                             <div class="form-group col-9 col-sm-5">
-                                <label for="room">Próximos Bingo</label>
-                                <select disabled id="room" class="form-control" name="room" required></select>
-                                <div id="cont-tx-prize-pool-room" class="mt-1 hide-elem">
-                                    <b><small><span class="type-prize-pool"></span> Actual:</small></b>
+                                <label for="room">Próximos Bingos</label>
+                                <select id="room" name="room" class="form-control" disabled required></select>
+                                <div id="cont-tx-prize-pool-room" class="ml-1 mt-1 d-none">
+                                    <small><b><span class="prize-pool-type"></span> Actual:</b></small>
                                     <span class="coin-symbol"></span>
                                     <span id="tx-prize-pool-room"></span>
                                 </div>
                             </div>
+
                             <div class="form-group col-6 col-sm-4">
-                                <label for="ctn-price">Precio Carton</label>
+                                <label for="ctn-price-amount">Precio Cartón</label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
                                         <span id="ctn-price-symbol" class="input-group-text"></span>
                                     </div>
-                                    <span id="ctn-price-amount" class="form-control"></span>
+                                    <span id="ctn-price-amount" class="form-control bg-light"></span>
                                 </div>
                             </div>
+
                             <div class="form-group col-6 col-sm-3">
                                 <label for="num-ctns">#CTNs</label>
-                                <input id="num-ctns" class="form-control" type="number" name="num_ctns" min="1"
-                                    max="40" step="1" required disabled>
+                                <input id="num-ctns" type="number" name="num_ctns" class="form-control" min="1"
+                                    max="40" required disabled>
                             </div>
                         </div>
-                        <div class="row mt-1">
-                            <div class="col-6 col-sm-4">
-                                <label for="total-amount">Monto Total</label>
-                                <div>
-                                    <span class="coin-symbol"></span>
-                                    <span class="sale-info" id="tx-total-amount"></span>
-                                </div>
-                                <small>Costo de los cartones</small>
-                            </div>
-                            <div class="col-6 col-sm-4">
-                                <label for="seller-commn">Mi Comisión</label>
-                                <div>
-                                    <span class="coin-symbol"></span>
-                                    <span class="sale-info" id="tx-seller-commn"></span>
-                                </div>
-                                <small>Ganancias por venta</small>
-                            </div>
-                            <div class="col-12 col-sm-4">
-                                <label for="commerce-amount">Total Banca</label>
-                                <div>
-                                    <span class="coin-symbol"></span>
-                                    <span class="sale-info" id="tx-commerce-amount"></span>
-                                </div>
-                                <small>Enviar al Comercio</small>
-                            </div>
-                        </div>
-                        <div class="ctn-player-info hide-elem">
-                            <hr>
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="alert alert-primary" role="alert">
-                                        <h6 class="alert-heading"><strong>¡Atencion!</strong></h6>
-                                        <p class="mt-n1 mb-0">Genera los cartones solo después de confirmar el pago.</p>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <h5>Informacion del Jugador:</h5>
-                                    <h6 id="get-data-player">Ingresa los datos del nuevo
-                                        participante
-                                    </h6>
-                                    <h6 id="new-player" class="hide-elem">
-                                        ¡Este usuario esta participando!
-                                    </h6>
-                                </div>
-                                <div id="cont-info-player" class="col-12 col-md-9 hide-elem">
-                                    <label class="mb-n1">Cartones comprados: <b id="player-ctns"></b></label>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <label for="copy-player-link" class="mt-2" style="min-width: 120px;">Link de
-                                            acceso:</label>
-                                        <div id="copy-player-link" class="input-group input-group-sm ml-auto">
-                                            <input disabled id="player-link-rout" class="form-control"
-                                                aria-label="Link Jugador" aria-describedby="button-addon2"
-                                                style="cursor: pointer" />
-                                            <div class="input-group-append">
-                                                <button class="btn btn-outline-secondary" type="button" id="button-addon2">
-                                                    <i class="fa-solid fa-copy"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="ctn-player-info mt-1 hide-elem">
 
+                        {{-- Información de la venta --}}
+                        <div class="row">
+                            @foreach ([['label' => 'Monto Total', 'id' => 'tx-total-amount', 'desc' => 'Costo de los cartones'], ['label' => 'Mi Comisión', 'id' => 'tx-seller-commn', 'desc' => 'Ganancias por venta'], ['label' => 'Total Banca', 'id' => 'tx-commerce-amount', 'desc' => 'Enviar al comercio']] as $info)
+                                <div class="col-6 col-sm-4 mt-1">
+                                    <label>{{ $info['label'] }}</label>
+                                    <div class="d-flex mt-n1">
+                                        <span class="coin-symbol"></span>
+                                        <span class="sale-info ml-1" id="{{ $info['id'] }}"></span>
+                                    </div>
+                                    <small>{{ $info['desc'] }}</small>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        {{-- Información del jugador --}}
+                        <div class="ctn-player-info d-none">
+                            <hr>
+                            <div class="alert alert-primary">
+                                <h6 class="alert-heading"><strong>¡Atención!</strong></h6>
+                                <p class="mb-0">Genera los cartones solo después de confirmar el pago.</p>
+                            </div>
+
+                            <div>
+                                <h5>Información del Jugador:</h5>
+                                <h6 id="text-new-player">Ingresa los datos del nuevo participante</h6>
+                                <h6 id="new-player" class="d-none">¡Este usuario está participando!</h6>
+                            </div>
+                            <div id="info-participating-player" class="col-12 col-md-9 d-none">
+                                <label>Cartones comprados: <b id="player-ctns"></b></label>
+                                <div class="input-group input-group-sm">
+                                    <input id="player-link-rout" class="form-control" disabled style="cursor: pointer;">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button" id="button-addon2">
+                                            <i class="fa-solid fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Datos adicionales --}}
+                        <div class="ctn-player-info mt-1 d-none">
+                            <hr>
                             <div class="row">
                                 <div class="form-group col-12 col-sm-6">
                                     <label for="type-sale">Venta*</label>
-                                    <select id="type-sale" class="form-control info-form" name="type_sale"
+                                    <select id="type-sale" name="type_sale" class="form-control info-form"
                                         required></select>
                                 </div>
-                                <div class="form-group col-12 col-sm-6" id="cont-country">
-                                    <label for="country">Pais*</label>
-                                    <select id="country" class="form-control info-form" name="country" required></select>
+
+                                <div id="container-country" class="form-group col-12 col-sm-6">
+                                    <label for="country">País*</label>
+                                    <select id="country" name="country" class="form-control info-form" required></select>
                                 </div>
-                                <div class="form-group col-12 col-sm-6 hide-elem info-player">
+
+                                <div class="form-group col-12 col-sm-6 info-player d-none">
                                     <label for="phone">Teléfono*</label>
                                     <div class="input-group">
-                                        <input type="text" id="phone" class="form-control info-form" name="phone"
-                                            required>
+                                        <input id="phone" name="phone" class="form-control info-form" required>
                                         <div class="input-group-append">
-                                            <button id="btn-search-phone" class="btn btn-outline-secondary"
-                                                type="button" data-id="1">
+                                            <button class="btn btn-outline-secondary" type="button" id="btn-search-phone"
+                                                data-id="1">
                                                 <i class="fa-solid fa-magnifying-glass"></i>
                                             </button>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-group col-12 col-sm-6 hide-elem info-player">
+
+                                <div class="form-group col-12 col-sm-6 info-player d-none">
                                     <label for="name">Nombre*</label>
-                                    <input id="name" class="form-control input-text info-form" type="text"
-                                        name="name">
+                                    <input id="name" name="name" class="form-control info-form" type="text">
                                 </div>
-                                <div class="form-group col-12 col-sm-6 hide-elem info-player">
+
+                                <div class="form-group col-12 col-sm-6 info-player d-none">
                                     <label for="last-name">Apellido*</label>
-                                    <input id="last-name" class="form-control input-text info-form" type="text"
-                                        name="last_name">
+                                    <input id="last-name" name="last_name" class="form-control info-form" type="text">
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
-                <div class="card-footer text-muted text-center">
-                    <button type="button" data-block="0" disabled id="btn-generate-ctn" class="btn btn-primary">Generar
-                        Cartón <span id="loader-btn-ctn" class="spinner-border spinner-border-sm" role="status"
-                            aria-hidden="true" style="display: none"></span>
+
+                <div class="card-footer text-center">
+                    <button type="button" id="btn-generate-ctn" class="btn btn-primary" disabled data-block="1">
+                        Generar Cartón
+                        <span id="loader-btn-ctn" class="spinner-border spinner-border-sm d-none"></span>
                     </button>
                 </div>
             @else
                 <div class="card-body">
-                    <div class="alert alert-info alert-dismissible text-center" role="alert">
+                    <div class="alert alert-info text-center">
                         ¡No puedes vender cartones, contacta a tu gestor!
                     </div>
                 </div>
             @endif
         </div>
+
     </div>
     @include('includes.modal-copy-info', [
         'name' => 'copy-link',
@@ -248,16 +234,16 @@
         }
 
         function calculateSale() {
-            let ctns = numCtns.val();
-            let total = formatNumber(ctnPrice * ctns);
-            let totalsellerCommn = formatNumber(total * (sellerCommn / 100));
-            let prizePool = formatNumber((total - totalsellerCommn));
+            const ctns = numCtns.val();
+            const total = formatNumber(ctnPrice * ctns);
+            const totalsellerCommn = formatNumber(total * (sellerCommn / 100));
+            const prizePool = formatNumber((total - totalsellerCommn));
 
             if (roomID) {
                 $(".coin-symbol").text(coinSym);
-                $("#tx-total-amount").html(total);
-                $("#tx-seller-commn").html(totalsellerCommn);
-                $("#tx-commerce-amount").html(prizePool);
+                $("#tx-total-amount").text(total);
+                $("#tx-seller-commn").text(totalsellerCommn);
+                $("#tx-commerce-amount").text(prizePool);
             }
         }
 
@@ -265,9 +251,11 @@
             const exchangeRate = data.exchangeRate;
             coinSym = data.sym;
             ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
+
             $("#ctn-price-symbol").text(coinSym);
             $("#ctn-price-amount").text(ctnPrice);
-            $("#tx-prize-pool-room").text(formatNumber((prizePool * exchangeRate), 3));
+            $("#tx-prize-pool-room").text(formatNumber((prizePool * exchangeRate), 2));
+
             calculateSale();
         }
 
@@ -281,15 +269,14 @@
 
         typeSale.on("change", function() {
             if (allowsUSDT) {
-                $('#cont-country').hide();
+                $('#container-country').addClass('d-none');
             }
         });
 
-        function handleAllowsUSDT(USDT) {
-            allowsUSDT = USDT;
+        function handleAllowsUSDT(allowUSDT = false) {
             typeSale.empty().append('<option value="currency" selected>Moneda Local</option>');
 
-            if (allowsUSDT) {
+            if (allowUSDT) {
                 typeSale.append('<option value="usdt">Venta en USDT</option>');
             }
         }
@@ -300,9 +287,6 @@
                     room: roomID,
                     country
                 }),
-                data: {
-                    '_token': $("#5K3_70K").val()
-                },
                 success: function(data) {
                     convertCurrency(data);
                 },
@@ -313,17 +297,15 @@
         }
 
         room.on("change", function() {
+
             roomID = $(this).val();
 
             if (!roomID) {
                 $(".coin-symbol, .sale-info").empty();
-                $(".ctn-player-info, #cont-tx-prize-pool-room").addClass('hide-elem');
+                $(".ctn-player-info, #cont-tx-prize-pool-room").addClass('d-none');
             } else {
                 $.getJSON({
                     url: route('seller.getCtnPrice', roomID),
-                    headers: {
-                        'X-CSRF-TOKEN': $("#5K3_70K").val()
-                    },
                     success: function(data) {
                         if (data.message) {
                             showToast(data.message, data.type);
@@ -331,26 +313,29 @@
                         }
                         const {
                             prizePool: prizePoolAmount,
-                            typePrizePool,
+                            prizePoolType,
                             price,
                             coin,
                             countries,
                             USDT
                         } = data;
 
-                        handleAllowsUSDT(USDT);
+                        prizePool = formatNumber(prizePoolAmount, 2);
                         roomCtnPrice = formatNumber(price);
                         ctnPrice = roomCtnPrice;
                         coinSym = coin;
+
+                        handleAllowsUSDT(USDT);
+                        insertCountries(countries)
+
                         $("#ctn-price-symbol").text(coinSym);
                         $("#ctn-price-amount").text(ctnPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
-                        insertCountries(countries)
-                        prizePool = formatNumber(prizePoolAmount, 3);
-                        $(".type-prize-pool").text(typePrizePool == 1 ? 'Bote' : 'Premio');
-                        $("#tx-prize-pool-room").text(prizePoolAmount);
+                        $(".prize-pool-type").text(prizePoolType == 1 ? 'Bote' : 'Premio');
+                        $("#tx-prize-pool-room").text(prizePool);
+                        $(".ctn-player-info, #cont-tx-prize-pool-room").removeClass('d-none');
+
                         calculateSale();
-                        $(".ctn-player-info, #cont-tx-prize-pool-room").removeClass('hide-elem');
                     }
                 });
             }
@@ -358,32 +343,32 @@
 
         numCtns.on('input change', function() {
             validateInput(this, false, function(isValid) {
-                if (isValid) {
-                    calculateSale();
-                }
+                if (isValid) calculateSale();
             });
         })
 
         function clearPlayerInfo() {
-            $("#get-data-player").show();
+            $("#text-new-player").removeClass('d-none');
             $("#player-ctns").text('');
             $('#player-link-rout').val('');
-            $("#new-player, #cont-info-player").addClass('hide-elem');
+            $("#new-player, #info-participating-player").addClass('d-none');
+            btnSearchPhone.html('<i class="fa-solid fa-magnifying-glass"></i>').data('id', '1');
+            $('#name, #last-name, #phone').val('').prop('required', false).prop('readonly', false);
         }
 
         country.on("change", function() {
             const countryVal = $(this).val();
-            const country = countryVal || 0;
+            const country = countryVal || false;
 
-            $("#name, #last-name, #phone").val('').prop('required', true).prop('readonly', false).show();
+            $("#name, #last-name, #phone").val('').prop('required', true).prop('readonly', false);
 
-            $(".info-player").toggleClass('hide-elem', countryVal === '');
+            $(".info-player").toggleClass('d-none', !countryVal);
 
-            if (countryVal === '') {
+            if (!countryVal) {
                 clearPlayerInfo();
+            } else {
+                getCtnPriceCoin(country);
             }
-
-            if (countryVal) getCtnPriceCoin(country);
         });
 
         function insertCountries(arr) {
@@ -394,7 +379,7 @@
             });
         }
 
-        $(document).on("input", ".info-form", function() {
+        $(document).on("input change", ".info-form", function() {
             validateFormFields();
         });
 
@@ -406,6 +391,9 @@
         });
 
         function getPlayer(playerInfo, action = false) {
+
+            if (!playerInfo) return;
+
             $.post({
                 url: route('seller.getPlayer'),
                 headers: {
@@ -423,36 +411,35 @@
                 },
                 success: function(data) {
                     if (data.response) {
-                        const infoPlayer = data.infoPlayer;
                         showToast('Este usuario está participando', 'warning');
 
-                        btnSearchPhone.html('<i class="fa-solid fa-eraser"></i>').data('id', 2);
+                        const infoPlayer = data.infoPlayer;
+
+                        btnSearchPhone.html('<i class="fa-solid fa-eraser"></i>').data('id', '2');
 
                         $('#name, #last-name, #phone').prop('required', false).prop('readonly', true);
-                        country.val(infoPlayer.country);
                         $('#name').val(infoPlayer.name);
                         $('#last-name').val(infoPlayer.lastname);
                         $('#phone').val(infoPlayer.phone);
-                        $("#get-data-player, #loader-btn-ctn").hide();
+                        $("#text-new-player, #loader-btn-ctn").addClass('d-none');
                         $("#player-ctns").text(data.ctnsLink[0]);
                         $('#player-link-rout').val(data.ctnsLink[2]);
-                        $("#new-player, #cont-info-player").removeClass('hide-elem');
+                        $("#new-player, #info-participating-player").removeClass('d-none');
+
+                        country.val(infoPlayer.country);
                         playerInGame = true;
                         btnGenerate.prop('disabled', false);
                     } else {
                         $('#name, #last-name, #phone').prop('required', true).prop('readonly', false);
                         $("#player-link-rout").val('');
-                        $("#new-player, #cont-info-player").addClass('hide-elem');
+                        $("#new-player, #info-participating-player").addClass('d-none');
 
                         if (action) {
-                            $("#get-data-player, #loader-btn-ctn").show();
+                            $("#text-new-player, #loader-btn-ctn").removeClass('d-none');
                             form.submit();
                         } else {
-                            if (btnSearchPhone.data('id') == 2) {
-                                btnSearchPhone.html('fa-solid fa-magnifying-glass').data('id', 2);
-                            }
                             showToast('Numero no registrado', 'info');
-                            btnGenerate.prop('disabled', false);
+                            validateFormFields();
                         }
                     }
                 },

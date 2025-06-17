@@ -18,7 +18,7 @@ class BingoRoomUser extends Model
 
     public function Room()
     {
-        return $this->belongsTo(BingoRoomUser::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room');
     }
 
     public function PrizeCtns()

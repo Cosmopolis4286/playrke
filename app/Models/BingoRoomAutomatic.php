@@ -13,31 +13,38 @@ class BingoRoomAutomatic extends Model
     'days',
     'time',
     'game_mode',
-    'type_prize_pool',
+    'in_live',
+    'prize_pool_type',
     'amount_added_prize_pool',
     'room_type',
     'rke_commn',
     'room_commn',
     'ctn_price',
+    'allowed_coins',
     'time_chip',
     'rounds',
-    'pct_serials',
+    'rounds_pct',
+    'serials_pct',
     'num_serials',
-    'pct_jackpot',
+    'jackpot_pct',
+    'plays_pct',
+    'play_types',
     'creator_type',
     'creator_id',
     'creator_user',
     'status'
   ];
 
+  protected $casts = ['allowed_coins' => 'array'];
+
   public function GameMode()
   {
     return $this->belongsTo(GameModes::class, 'game_mode');
   }
 
-  public function TypePrizePool()
+  public function PrizePoolType()
   {
-    return $this->belongsTo(TypePrizePool::class, 'type_prize_pool');
+    return $this->belongsTo(PrizePoolType::class, 'prize_pool_type');
   }
 
   public static function getById($id, $fields = ['*'])

@@ -16,6 +16,7 @@ use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
 use App\Models\CommerceGamePermission;
 use App\Models\Country;
+use App\Models\Games;
 use App\Models\PhoneNumbers;
 use App\Models\SellerCountriesCoins;
 use App\Models\TimeZone;
@@ -359,9 +360,35 @@ class CommerceController extends Controller
 
         $timeZones = TimeZone::select('id', 'name', 'country')->where('status', 1)->get();
 
+        $games = Games::getAvailableGames();
+
         return view(
             'modules.commerce.sellers.index',
-            compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce')
+            compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce', 'games')
+        );
+    }
+
+    public function rewards()
+    {
+        $title = 'Mis Vendedores';
+        $name = 'seller';
+        $commerce = $this->commerce()->id;
+
+        $sellers = Seller::with(['Country', 'CountriesCoins.Coin'])->where('commerce', $commerce)->get();
+
+        $countries = $this->getAvailableCountries(Auth::id());
+        $countriesCommerce = Country::getCountries($countries, ['id', 'name']);
+
+        $coins = $this->getAvailableCoins(Auth::id());
+        $coinsCommerce = Coin::getCoinsById($coins, ['id', 'symbol', 'short_name', 'long_name', 'country']);
+
+        $timeZones = TimeZone::select('id', 'name', 'country')->where('status', 1)->get();
+
+        $games = Games::getAvailableGames();
+
+        return view(
+            'modules.commerce.sellers.index',
+            compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce', 'games')
         );
     }
 

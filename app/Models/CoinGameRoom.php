@@ -52,17 +52,20 @@ class CoinGameRoom extends Model
         return $query->exists();
     }
 
-    public static function getCoinsByRoom($game, $room, $gameMode)
+    public static function getCoinsByRoom($game, $room, $gameMode = null)
     {
-        // Iniciar la consulta
-        $query = self::select('coin')->where('game', $game)->where('room', $room);
+        // Obtener el ID del juego si se pasa como string
+        $gameID = is_string($game) ? Games::getValueByName($game) : $game;
 
-        // Añadir condicionalmente el filtro de 'game_mode'
-        if ($gameMode) {
+        // Construir la consulta
+        $query = self::select('coin')->where('game', $gameID)->where('room', $room);
+
+        // Agregar filtro de modo de juego si se proporciona
+        if (!is_null($gameMode)) {
             $query->where('game_mode', $gameMode);
         }
 
-        // Retornar el true/false de los resultados
+        // Retornar monedas distintas disponibles en esa sala y modo
         return $query->distinct()->pluck('coin');
     }
 }

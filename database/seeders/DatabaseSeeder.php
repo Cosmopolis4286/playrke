@@ -25,8 +25,8 @@ class DatabaseSeeder extends Seeder
             GameModesSeeder::class,
             GameStatusSeeder::class,
             GamePrizesSeeder::class,
-            TypePrizePoolSeeder::class,
-            GameTypePrizePoolSeeder::class,
+            PrizePoolTypeSeeder::class,
+            GamePrizePoolTypeSeeder::class,
             SettingsSeeder::class,
             UsersSeeder::class
         ]);

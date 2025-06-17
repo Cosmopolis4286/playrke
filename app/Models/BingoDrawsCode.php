@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoDrawCode extends Model
+class BingoDrawsCode extends Model
 {
-    protected $table = 'bingo_draw_code';
+    protected $table = 'bingo_draws_code';
     protected $fillable = ['num', 'sym', 'room'];   
     
     public function Room()

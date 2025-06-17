@@ -21,7 +21,7 @@ trait GameTrait
         try {
             // Obtener el ID del juego
             $gameID = Games::getValueByName($game);
-            $gameMode = false;
+            $gameMode = null;
 
             if ($game === 'BINGO') {
                 $gameMode = BingoRoomConfig::getValueByRoom($room, 'game_mode');
@@ -32,7 +32,7 @@ trait GameTrait
             }
 
             // Obtener las monedas registradas en la sala de juego
-            $coinsInGameRoom = CoinGameRoom::getCoinsByRoom($gameID, $room, $gameMode);
+            $coinsInGameRoom = CoinGameRoom::getCoinsByRoom('BINGO', $room, $gameMode);
 
             // Obtener ExchangeRates (Tasas de Cambio)
             if ($creatortType === 'commerce') {
@@ -58,7 +58,7 @@ trait GameTrait
                         'game' => $gameID,
                         'room' => $room,
                         'coin' => $coin,
-                        'exchange_rate' => $roomExchangeRate,
+                        'exchange_rate' => round($roomExchangeRate, 2),
                         'created_at' => $timestamp,
                         'updated_at' => $timestamp
                     ];
@@ -133,8 +133,8 @@ trait GameTrait
 
     public function formatAmount($amount, $type)
     {
-        // Truncar a 2 decimales sin redondear
-        $truncated = floor($amount * 100) / 100;
+        // Truncar a 2 decimales 
+        $truncated = round($amount, 2);
 
         if ($type === 'string') {
             // Formatear como string con separador de miles y 2 decimales

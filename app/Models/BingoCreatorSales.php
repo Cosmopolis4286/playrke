@@ -12,10 +12,9 @@ class BingoCreatorSales extends Model
         'creator_user',
         'coin',
         'sale_amount',
-        'final_sale_amount',
+        'rke_commn',
         'room_commn',
         'seller_commn',
-        'rke_commn',
         'prize_pool_amount',
         'created_at',
         'updated_at'
@@ -65,33 +64,36 @@ class BingoCreatorSales extends Model
         return $query->exists();
     }
 
-    public static function updateOrCreateSale($roomID, $creatorUser, $roomCommn, $coin, $amount, $finalAmount)
+    public static function getPrizePoolAmountByRoomAndCoin($room, $coin)
     {
-        $commnRKE = BingoRoomConfig::getValueByRoom($roomID, 'rke_commn') ?? 0;
-        $commnRKE =  $amount * ($commnRKE / 100);
+        return self::where('room', $room)->where('coin', $coin)->sum('prize_pool_amount');
+    }
 
-        $sellerCommn = $amount - $finalAmount;
-        $roomCommn = $amount * ($roomCommn / 100);
-        $prizePool = $amount -  $roomCommn - $sellerCommn - $commnRKE;
+    public static function updateOrCreateSale($roomID, $creatorUser, $coin, $amount, $sellerCommn)
+    {
+        $roomConfig = BingoRoomConfig::getByRoom($roomID, ['rke_commn', 'room_commn']);
+
+        $rkeCommn =  round($amount * ($roomConfig->rke_commn / 100), 3);
+        $roomCommn = round($amount * ($roomConfig->room_commn / 100), 3);
+        $sellerCommn = round(($sellerCommn ?? 0), 3);
+        $prizePool = round(($amount - $rkeCommn - $roomCommn - $sellerCommn), 3);
 
         $sale = self::firstOrCreate(
             ['room' => $roomID, 'creator_user' => $creatorUser, 'coin' => $coin],
             [
                 'sale_amount' => $amount,
-                'final_sale_amount' => $finalAmount,
+                'rke_commn' => $rkeCommn,
                 'room_commn' => $roomCommn,
                 'seller_commn' => $sellerCommn,
-                'rke_commn' => $commnRKE,
                 'prize_pool_amount' => $prizePool
             ]
         );
 
         if (!$sale->wasRecentlyCreated && $amount) {
             $sale->increment('sale_amount', $amount);
-            $sale->increment('final_sale_amount', $finalAmount);
+            $sale->increment('rke_commn', $rkeCommn);
             $sale->increment('room_commn', $roomCommn);
             $sale->increment('seller_commn', $sellerCommn);
-            $sale->increment('rke_commn', $commnRKE);
             $sale->increment('prize_pool_amount', $prizePool);
         }
     }

@@ -18,4 +18,9 @@ class Games extends Model
     {
         return self::where('name', strtoupper($name))->value($value);
     }
+
+    public static function getAvailableGames()
+    {
+        return self::where('status', 1)->get();
+    }
 }

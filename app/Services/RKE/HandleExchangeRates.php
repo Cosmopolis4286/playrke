@@ -1,12 +1,14 @@
 <?php
 
-namespace App\Services\Customer;
+namespace App\Services\RKE;
 
 use App\Models\Coin;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -52,11 +54,13 @@ class HandleExchangeRates
         }
     }
 
-    public function updateExchangeRates($creator = '')
+    public function updateExchangeRates($userID = '', $checkUpdate = false)
     {
         DB::beginTransaction();
 
         try {
+
+            $creator = User::getCreatorUser($userID, false, true);
 
             $data = $this->getExchangeRates();
 
@@ -70,11 +74,21 @@ class HandleExchangeRates
                         $commerces = Commerce::where('status', 1)->pluck('id');
                     }
 
+                    if ($checkUpdate) {
+                        $lastUpdate = CommerceExchangeRate::where('status', 'ACTIVE')
+                            ->where('commerce', $creator['id'])
+                            ->orderByDesc('id')->value('updated_at');
+
+                        if ($lastUpdate && Carbon::parse($lastUpdate)->addHours(3) > now()) {
+                            return;
+                        }
+                    }
+
                     foreach ($commerces as $commerceID) {
 
                         foreach ($data as $coin => $newExchangeRate) {
 
-                            if ($coin === 'Promedio') continue;
+                            if ($coin === 'Promedio' || $newExchangeRate == 0) continue;
 
                             $coin = Coin::getValueByISOCode($coin, 'id');
 
@@ -99,11 +113,21 @@ class HandleExchangeRates
                         $customers = Customer::where('status', 1)->pluck('id');
                     }
 
+                    if ($checkUpdate) {
+                        $lastUpdate = CustomerExchangeRate::where('status', 'ACTIVE')
+                            ->where('customer', $creator['id'])
+                            ->orderByDesc('id')->value('updated_at');
+
+                        if ($lastUpdate && Carbon::parse($lastUpdate)->addHours(3) > now()) {
+                            return;
+                        }
+                    }
+
                     foreach ($customers as $customerID) {
 
                         foreach ($data as $coin => $newExchangeRate) {
 
-                            if ($coin === 'Promedio') continue;
+                            if ($coin === 'Promedio' || $newExchangeRate == 0) continue;
 
                             $currentRate = CustomerExchangeRate::getCustomerCoinValue($customerID, $coin);
 
