@@ -59,7 +59,8 @@ class ExchangeRateController extends Controller
                         $query->where('commerce', $creatorID);
                     })->get(['id', 'symbol', 'long_name']);
 
-                $exchangeRate = CommerceExchangeRate::getAvailableExchangeRates($creatorID);
+
+                $exchangeRates = CommerceExchangeRate::getAvailableExchangeRates($creatorID);
                 $isLogin = true;
                 break;
 
@@ -75,7 +76,7 @@ class ExchangeRateController extends Controller
             'returnBtn' => $returnBtn ?? true,
             'creator' => ['type' => $creatorType, 'id' => encrypt($creatorID)],
             'coins' => $coins ?? [],
-            'exchangeRate' => $exchangeRate
+            'exchangeRates' => $exchangeRates
         ];
 
         if (isset($moreViewData)) {
@@ -165,10 +166,10 @@ class ExchangeRateController extends Controller
                         'coin' => $dataExchangeRate->coin,
                         'exchange_rate' => $newExchangeRate,
                         'pct' => $pct,
-                        'status' => 1
+                        'status' => 'ACTIVE'
                     ]);
 
-                    $dataExchangeRate->status = 2;
+                    $dataExchangeRate->status = 'OLD';
                     $dataExchangeRate->save();
                     break;
                 case 'customer':
@@ -184,10 +185,10 @@ class ExchangeRateController extends Controller
                         'coin' => $dataExchangeRate->coin,
                         'exchange_rate' => $newExchangeRate,
                         'pct' => $pct,
-                        'status' => 1
+                        'status' => 'ACTIVE'
                     ]);
 
-                    $dataExchangeRate->status = 2;
+                    $dataExchangeRate->status = 'OLD';
                     $dataExchangeRate->save();
                     break;
                 default:
@@ -270,11 +271,8 @@ class ExchangeRateController extends Controller
                     // Obtener el estado del comercio
                     $exchangeStatus = CommerceExchangeRate::getValueById($exchangeRateID, 'status');
 
-                    // Determinar si la tasa de cambio está inactiva
-                    $isInactive = $exchangeStatus == 0 ? true : false;
-
                     // Determinar el estado basado en si está inactiva o no
-                    $status = $isInactive ? 1 : 0;
+                    $status = $exchangeStatus == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
                     CommerceExchangeRate::where('id', $exchangeRateID)->update(['status' => $status]);
                     break;
@@ -282,11 +280,8 @@ class ExchangeRateController extends Controller
                     // Obtener el estado de la tasa de cambio del cliente
                     $exchangeStatus = CustomerExchangeRate::getValueById($exchangeRateID, 'status');
 
-                    // Determinar si la tasa de cambio está inactiva
-                    $isInactive = $exchangeStatus == 0 ? true : false;
-
                     // Determinar el estado basado en si está inactiva o no
-                    $status = $isInactive ? 1 : 0;
+                    $status = $exchangeStatus == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
                     CustomerExchangeRate::where('id', $exchangeRateID)->update(['status' => $status]);
                     break;

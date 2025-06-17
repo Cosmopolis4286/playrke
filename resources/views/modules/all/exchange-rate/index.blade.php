@@ -31,7 +31,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($exchangeRate as $item)
+                            @foreach ($exchangeRates as $item)
                                 <tr>
                                     @if ($creator['type'] !== 'customer')
                                         <td>
@@ -65,17 +65,20 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-toggle">
-                                            @if ($item->status === 'ACTIVE')
+                                            @if ($item->status === 'ACTIVE' || $item->exchange_rate == 0)
                                                 <button class="btn btn-sm btn-primary btn-{{ $name }}"
                                                     data-type="2" data-id="{{ encrypt($item->id) }}"
                                                     title="Editar Tasa de Cambio">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                             @endif
-                                            <button class="btn btn-sm btn-secondary btn-{{ $name }}" data-type="4"
-                                                data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
-                                                <i class="fa-solid fa-repeat"></i>
-                                            </button>
+                                            @if ($item->exchange_rate > 0)
+                                                <button class="btn btn-sm btn-secondary btn-{{ $name }}"
+                                                    data-type="4" data-id="{{ encrypt($item->id) }}"
+                                                    title="Cambiar Status">
+                                                    <i class="fa-solid fa-repeat"></i>
+                                                </button>
+                                            @endif
                                             @if ((Auth::user() && Auth::user()->user_type == 1) || $creator['type'] === 'customer')
                                                 <button class="btn btn-sm btn-danger btn-{{ $name }}"
                                                     data-type="3" data-id="{{ encrypt($item->id) }}" title="Eliminar">

@@ -42,7 +42,7 @@ class HandleExchangeRates
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new Exception('Error al decodificar el JSON: ' . json_last_error_msg());
             }
-            
+
             return $data;
         } catch (Exception $e) {
             // Manejo del error (puedes registrar el error o realizar otra acción)
@@ -88,7 +88,7 @@ class HandleExchangeRates
 
                         foreach ($data as $coin => $newExchangeRate) {
 
-                            if ($coin === 'Promedio') continue;
+                            if ($coin === 'Promedio' || $newExchangeRate == 0) continue;
 
                             $coin = Coin::getValueByISOCode($coin, 'id');
 
@@ -127,7 +127,7 @@ class HandleExchangeRates
 
                         foreach ($data as $coin => $newExchangeRate) {
 
-                            if ($coin === 'Promedio') continue;
+                            if ($coin === 'Promedio' || $newExchangeRate == 0) continue;
 
                             $currentRate = CustomerExchangeRate::getCustomerCoinValue($customerID, $coin);
 

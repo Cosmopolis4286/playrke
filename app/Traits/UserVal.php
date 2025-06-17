@@ -136,33 +136,31 @@ trait UserVal
 
         if (!in_array($user['type'], ['commerce', 'admin'])) return;
 
+        DB::beginTransaction();
+
         try {
-            DB::beginTransaction();
+
             $commerceID = Commerce::getValueByUserId($user['userId'], 'id');
 
             // Obtener los IDs más recientes de cada moneda (coin)
             $ids = CommerceExchangeRate::select(DB::raw('MAX(id) as id'))
                 ->where('commerce', $commerceID)
-                ->where('status', 'DIRECTORY')
                 ->whereNotIn('coin', $coinsWithoutDirectories)
                 ->groupBy('coin')
                 ->pluck('id');
 
-            // Actualizar en una sola consulta
-            CommerceExchangeRate::whereIn('id', $ids)
-                ->update(['status' => 'ACTIVE']);
+            CommerceExchangeRate::where('commerce', $commerceID)
+                ->whereIn('id', $ids)->where('exchange_rate', 0)
+                ->whereIn('status', ['ACTIVE', 'DIRECTORY'])
+                ->update(['status' => 'INACTIVE']);
 
-            // Marcar status 'DIRECTORY' en monedas sin directorio
-            foreach ($coinsWithoutDirectories as $coinId) {
-                $record = CommerceExchangeRate::where('commerce', $commerceID)
-                    ->where('coin', $coinId)
+            if ($coinsWithoutDirectories) {
+                // Marcar status 'DIRECTORY' en monedas sin directorio
+                CommerceExchangeRate::where('commerce', $commerceID)
+                    ->whereIn('id', $ids)->where('exchange_rate', '>', 0)
+                    ->whereIn('coin', $coinsWithoutDirectories)
                     ->where('status', '!=', 'DIRECTORY')
-                    ->orderByDesc('id')
-                    ->first();
-
-                if ($record) {
-                    $record->update(['status' => 'DIRECTORY']);
-                }
+                    ->update(['status' => 'DIRECTORY']);
             }
 
             DB::commit();
