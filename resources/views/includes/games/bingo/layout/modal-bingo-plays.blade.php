@@ -61,10 +61,10 @@
                                         src="{{ isset($customerLogo) ? asset('storage/customers/' . $customerLogo) : asset('img/rke.png') }}">
                                 </div>
                                 <div class="number-box-view-ctn">
-                                    <span id="ctn-n3" class="number-box-number ctn-plays">N3</span>
+                                    <span id="ctn-n4" class="number-box-number ctn-plays">N4</span>
                                 </div>
                                 <div class="number-box-view-ctn">
-                                    <span id="ctn-n4" class="number-box-number ctn-plays">N4</span>
+                                    <span id="ctn-n5" class="number-box-number ctn-plays">N5</span>
                                 </div>
                             </div>
                             <div class="section-letter">

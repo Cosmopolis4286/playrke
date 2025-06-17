@@ -1915,6 +1915,7 @@ class BingoController extends Controller
                 }
             } else {
                 BingoTypesPlays::create([
+                    // 'type_play' => 'UNIQUE',
                     'name' => $namePlay,
                     'user' => $user,
                     'boxes' => $bingoBoxes,
