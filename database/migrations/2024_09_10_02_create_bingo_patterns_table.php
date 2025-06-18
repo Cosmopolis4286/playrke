@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bingo_types_plays', function (Blueprint $table) {
+        Schema::create('bingo_patterns', function (Blueprint $table) {
             $table->id();
-            $table->enum('type_play', ['UNIQUE', 'GROUP'])->default('UNIQUE');
-            $table->string('name', 20);
-            $table->foreignId('user')->nullable()->constrained('users')->onDelete('cascade');
-            $table->string('boxes', 50);
+            $table->enum('type_pattern', ['UNIQUE', 'GROUP'])->default('UNIQUE');
+            $table->string('name', 15);
+            $table->foreignId('user')->nullable()->constrained()->onDelete('cascade');
+            $table->string('boxes', 100);
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();
         });
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bingo_types_plays');
+        Schema::dropIfExists('bingo_patterns');
     }
 };

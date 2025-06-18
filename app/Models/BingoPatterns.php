@@ -4,10 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BingoTypesPlays extends Model
+class BingoPatterns extends Model
 {
-    protected $table = 'bingo_types_plays';
-    protected $fillable = ['type_play', 'name', 'user', 'boxes', 'status'];
+    protected $table = 'bingo_patterns';
+    protected $fillable = ['type_pattern', 'name', 'user', 'boxes', 'status'];
 
     public static function getById($id, $fields = ['*'])
     {
