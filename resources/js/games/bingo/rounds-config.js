@@ -68,20 +68,21 @@ function buildRoundHtml({ roundNumber, prizeType, playType, prizeValue, isLastRo
     const readonlyAttr = isLastRound ? 'readonly' : '';
     const inputClass = !isLastRound ? 'rounds-prize-value-input' : '';
 
-    const selectBingoPatterns = `
-        <select class="form-control" name="rounds_play_type[]" aria-label="Seleccionar cantos">
-            ${arrBingoPatterns.map(item => `
-                <option value="${item.id}" ${item.id == playType ? 'selected' : ''}>${item.name}</option>
-            `).join('')}
-        </select>
-    `;
+    const selectBingoPatterns =
+        `<select class="form-control" name="rounds_play_type[]" 
+    aria-label="Seleccionar cantos" ${isLastRound ? 'disabled' : ''}>
+        ${arrBingoPatterns.map(item => {
+            const selected = item.id == playType || (isLastRound && item.id == 1) ? 'selected' : '';
+            return `<option value="${item.id}" ${selected}>${item.name}</option>`;
+        }).join('')}
+    </select>`;
 
     return `
         <div class="form-group col-sm-6">
             <label for="round-${roundNumber}">Ronda #${roundNumber}</label>
             <div class="input-group">
                 <div class="input-group-prepend">
-                    <select class="form-control" name="rounds_prize_type[]" required>
+                    <select class="form-control" name="rounds_prize_type[]" disabled>
                         <option value="PCT" ${prizeType === 'PCT' ? 'selected' : ''}>%</option>
                         <option value="USD" ${prizeType === 'USD' ? 'selected' : ''}>$</option>
                         <option value="OTHER" ${prizeType === 'OTHER' ? 'selected' : ''}>?</option>
@@ -115,6 +116,7 @@ function getRoundsConfig(room = '') {
         return;
     }
 
+    console.log(room);
     $.ajax({
         url: route('bingo.getRoundsConfig', { room, type: creation }),
         method: 'GET',
@@ -140,7 +142,7 @@ rounds.on('change', function () {
     if (value > 1) {
         $('.content-rounds-pct').show();
         roundsPct.prop('required', true);
-        getRoundsConfig();
+        getRoundsConfig(room);
     } else {
         $('#content-rounds-config').empty();
         $('.content-rounds-pct, #container-rounds-config').hide();
@@ -148,7 +150,7 @@ rounds.on('change', function () {
     }
 });
 
-roundsPct.on('change', getRoundsConfig);
+roundsPct.on('change', getRoundsConfig(room));
 
 $(document).on("click", "#btn-rounds-config", function () {
     const pctValue = parseFloat(roundsPct.val());
@@ -163,7 +165,7 @@ $(document).on("click", "#btn-rounds-config", function () {
     container.toggle();
 
     if (container.is(":visible")) {
-        getRoundsConfig();
+        getRoundsConfig(room);
     }
 });
 

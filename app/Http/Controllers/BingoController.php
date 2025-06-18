@@ -1019,10 +1019,10 @@ class BingoController extends Controller
                 $coinSym = Coin::getValue($coin, 'symbol');
                 $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
 
-                $coins = Coin::getCoinsById([
-                    ...CommerceExchangeRate::getCoinsByCommerce($creatorID),
-                    1
-                ]);
+                $coins = Coin::getCoinsById(
+                    [...CommerceExchangeRate::getCoinsByCommerce($creatorID), 1],
+                    ['id', 'iso_code', 'short_name']
+                );
 
                 $routeWithCoin = [
                     'route' => 'bingo.all-rooms',
