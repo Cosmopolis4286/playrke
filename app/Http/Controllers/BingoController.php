@@ -1092,9 +1092,9 @@ class BingoController extends Controller
 
         $rooms = $this->getInfoRooms($creatorUser, $roomType, $coin);
 
-        $bingoPlays = BingoPatterns::getAllByUser($creatorUser, ['id', 'name'], 'ACTIVE');
+        $bingoPatterns = BingoPatterns::getAllByUser($creatorUser, ['id', 'name'], 'ACTIVE');
 
-        $bingoPlays = BingoPatterns::where(function ($query) use ($creatorUser) {
+        $bingoPatterns = BingoPatterns::where(function ($query) use ($creatorUser) {
             $query->where('user', $creatorUser)
                 ->orWhereNull('user');
         })->where('status', '<>', 'DELETED')->get();
@@ -1117,7 +1117,7 @@ class BingoController extends Controller
             'coinSym' => $coinSym,
             'exchangeRate' => $exchangeRate ?? 1,
             'roomType' => $view === 'private' ? 'PV' : 'PB',
-            'bingoPlays' => $bingoPlays,
+            'bingoPatterns' => $bingoPatterns,
             'timeZone' => $timeZone,
             'rooms' => $rooms,
             'GMRoute' => $GMRoute,
@@ -1894,20 +1894,20 @@ class BingoController extends Controller
 
             if (!empty($playID)) {
 
-                $bingoPlays = BingoPatterns::findOrFail($playID);
+                $bingoPatterns = BingoPatterns::findOrFail($playID);
 
                 $updateData = [];
 
-                if ($bingoPlays->name != $namePlay) {
+                if ($bingoPatterns->name != $namePlay) {
                     $updateData['name'] = $namePlay;
                 }
 
-                if ($bingoPlays->boxes != $bingoBoxes) {
+                if ($bingoPatterns->boxes != $bingoBoxes) {
                     $updateData['boxes'] = $bingoBoxes;
                 }
 
                 if (!empty($updateData)) {
-                    $bingoPlays->update($updateData);
+                    $bingoPatterns->update($updateData);
                 }
             } else {
                 BingoPatterns::create([
@@ -2110,7 +2110,7 @@ class BingoController extends Controller
         return response()->json(['name' => $bingoPlay->name, 'boxes' => $boxes]);
     }
 
-    public function bingoPlays($userToken = false)
+    public function bingoPatterns($userToken = false)
     {
         if ($userToken) {
             $userType = 'customer';
@@ -2126,17 +2126,17 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $bingoPlays = BingoPatterns::where('user', $user)->where('status', '<>', 'DELETED')->get();
+        $bingoPatterns = BingoPatterns::where('user', $user)->where('status', '<>', 'DELETED')->get();
 
         $viewData = [
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
             'title' => 'Bingo Configuración',
-            'name' => 'bingo-plays',
+            'name' => 'bingo-patterns',
             'userToken' => $userToken,
-            'bingoPlays' => $bingoPlays
+            'bingoPatterns' => $bingoPatterns
         ];
 
-        $viewData = ['route' => 'modules.game.bingo.configuration.handle-plays', 'data' => $viewData];
+        $viewData = ['route' => 'modules.game.bingo.configuration.handle-patterns', 'data' => $viewData];
 
         return $this->handleViewData($viewData, $userType);
     }

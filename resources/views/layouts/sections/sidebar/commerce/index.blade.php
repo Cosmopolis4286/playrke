@@ -33,7 +33,7 @@
 
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('bingo.all-rooms', 'bingo.ctnsAwarded', 'bingo.ctnsSold', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom', 'bingo.configuration', 'bingo.bingoPlays') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('bingo.all-rooms', 'bingo.ctnsAwarded', 'bingo.ctnsSold', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom', 'bingo.configuration', 'bingo.bingoPatterns') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>

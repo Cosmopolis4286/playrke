@@ -289,13 +289,13 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'games', 'as' => 'games.'], 
         ->name('handleCustomerGames')->withoutMiddleware(['auth']);
 });
 
-Route::group(['prefix' => 'bingo-plays', 'as' => 'bingo-plays.'], function () {
+Route::group(['prefix' => 'bingo-patterns', 'as' => 'bingo-patterns.'], function () {
     Route::get('getInfo/{id}', [BingoController::class, 'getInfoBingoPlay'])->name('getInfo');
     Route::put('handler/{id?}/{action?}', [BingoController::class, 'handleBingoPlays'])->name('handler');
 });
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
-    Route::get('configuration/plays/{userToken?}', [BingoController::class, 'bingoPlays'])->name('bingoPlays');
+    Route::get('configuration/patterns/{userToken?}', [BingoController::class, 'bingoPatterns'])->name('bingoPatterns');
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
 
     Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');

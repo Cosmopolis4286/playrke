@@ -1,6 +1,6 @@
 function checkBoxes(boxes) {
-    $('.ctn-plays').removeClass("number-box-circle");
-    $('.ctn-plays').each(function () {
+    $('.ctn-patterns').removeClass("number-box-circle");
+    $('.ctn-patterns').each(function () {
         if (boxes.includes($(this).text().trim())) {
             $(this).addClass("number-box-circle");
         }
@@ -8,7 +8,7 @@ function checkBoxes(boxes) {
 }
 
 function cleanBoxes() {
-    $('.ctn-plays').removeClass('number-box-circle');
+    $('.ctn-patterns').removeClass('number-box-circle');
     bingoBoxes = [];
     namePlay.val('');
 }

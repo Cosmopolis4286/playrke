@@ -1,12 +1,12 @@
 @extends($layout)
 @section('styles')
-    @vite('resources/css/games/bingo/bingo-handle-plays.css')
+    @vite('resources/css/games/bingo/bingo-handle-patterns.css')
 @endsection
 @section('title', $title)
 @section('content')
     <div class="col-12 @if (isset($userToken)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header', ['subtitle' => 'Jugadas'])
+            @include('includes.card-header', ['subtitle' => 'Patrones/Cantos'])
             <div class="card-body">
                 <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="4">
                     <i class="fas fa-plus-square"></i> Crear
@@ -22,7 +22,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($bingoPlays as $item)
+                            @foreach ($bingoPatterns as $item)
                                 <tr>
                                     <td>{{ $item->name }}</td>
                                     <td>{{ $item->boxes }}</td>
@@ -46,29 +46,29 @@
                 </div>
             </div>
         </div>
-        @include('includes.games.bingo.layout.modal-bingo-plays')
+        @include('includes.games.bingo.layout.modal-bingo-patterns')
         @include('includes.form-other-options')
     </div>
 @endsection
 @section('scripts')
-    @vite('resources/js/games/bingo/includes/handle-bingo-plays.js')
+    @vite('resources/js/games/bingo/includes/handle-bingo-patterns.js')
     <script>
         const name = @json($name);
         const form = $(`#form-${name}`);
-        let namePlay = $('#name-play');
+        let namePattern = $('#name-pattern');
         let bingoBoxes = [];
         let playId = false;
 
         function insertInfo(type, data = '') {
             if (type != 2) return;
             cleanBoxes();
-            namePlay.val(data.name);
+            namePattern.val(data.name);
             checkBoxes(data.boxes);
             $(`#modal-${name}`).modal('show');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Jugada de Bingo', otherCasesMap)
+            formCRUD($(this), name, 'Patron de Bingo', otherCasesMap)
         });
 
         const otherCasesMap = {
@@ -92,7 +92,7 @@
 
         const bingoOrder = ['B', 'I', 'N', 'G', 'O'];
 
-        $(document).on("click", ".ctn-plays", function() {
+        $(document).on("click", ".ctn-patterns", function() {
             const box = $(this);
             const value = box.text().trim();
 
@@ -126,7 +126,7 @@
 
         $(document).on("click", "#btn-confirm", function() {
 
-            if (!namePlay.val()) {
+            if (!namePattern.val()) {
                 showToast('Es obligatorio un nombre de jugada', 'info');
                 return;
             }

@@ -28,7 +28,7 @@
             @include('includes.games.bingo.layout.modal-info-winners')
             @include('includes.games.bingo.layout.sounds')
             @if ($room->Config->play_types)
-                @include('includes.games.bingo.layout.modal-bingo-plays')
+                @include('includes.games.bingo.layout.modal-bingo-patterns')
             @endif
         @endif
         @include('includes.games.bingo.layout.modal-bingo-rules')
@@ -87,7 +87,7 @@
         </script>
         @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
         @if ($room->Config->play_types)
-            @vite('resources/js/games/bingo/includes/handle-bingo-plays.js')
+            @vite('resources/js/games/bingo/includes/handle-bingo-patterns.js')
         @endif
     @endif
 @endsection

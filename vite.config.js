@@ -23,7 +23,7 @@ const jsFiles = [
     'resources/js/games/bingo/includes/adjust-height-boxes.js',
     'resources/js/games/bingo/includes/auto-marked.js',
     'resources/js/games/bingo/includes/bingo-out-buy-ctns.js',
-    'resources/js/games/bingo/includes/handle-bingo-plays.js',
+    'resources/js/games/bingo/includes/handle-bingo-patterns.js',
     'resources/js/games/bingo/includes/prize-ctns-pending-payments.js',
     'resources/js/games/bingo/tests/regenerate-draw.js'
 ];
@@ -34,7 +34,7 @@ const cssFiles = [
     'resources/css/rke/auth-pages.css',
     'resources/css/games/bingo/bingo-game-rooms.css',
     'resources/css/games/bingo/bingo-in-game.css',
-    'resources/css/games/bingo/bingo-handle-plays.css',
+    'resources/css/games/bingo/bingo-handle-patterns.css',
 ];
 
 export default defineConfig(({ mode }) => {

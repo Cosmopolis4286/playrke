@@ -55,8 +55,8 @@
         const coins = @json($coins);
         const allowedCoins = $("#allowed-coins");
         const gameMode = $("#game-mode");
-        const bingoPlays = $("#bingo-plays");
-        const arrBingoPlays = @json($bingoPlays);
+        const bingoPatterns = $("#bingo-patterns");
+        const arrBingoPatterns = @json($bingoPatterns);
         const arrCoins = @json($coins);
         const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
@@ -91,7 +91,7 @@
             changeFixedJackpot($(this).val());
         });
 
-        bingoPlays.on('change', function() {
+        bingoPatterns.on('change', function() {
             const selected = $(this).val() || [];
             const container = $('#container-plays-pct');
 
@@ -125,17 +125,17 @@
             // const randomSelected = selectedBingoPlays.includes('random') ? 'selected' : '';
 
             // // Agregar opción Random
-            // bingoPlays.append(`<option value="random" ${randomSelected}>Random</option>`);
+            // bingoPatterns.append(`<option value="random" ${randomSelected}>Random</option>`);
 
             // Recorrer las jugadas normales
-            $.each(arrBingoPlays, function(index, item) {
+            $.each(arrBingoPatterns, function(index, item) {
                 const isSelected = selectedBingoPlays.includes(String(item.id)) ? 'selected' : '';
-                bingoPlays.append(
+                bingoPatterns.append(
                     `<option value="${item.id}" ${isSelected}>${item.name}</option>`
                 );
             });
 
-            bingoPlays.trigger('change');
+            bingoPatterns.trigger('change');
         }
 
         $(document).on("click", `.btn-${name}`, function() {
