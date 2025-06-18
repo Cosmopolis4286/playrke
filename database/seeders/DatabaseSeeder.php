@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             GamePrizesSeeder::class,
             PrizePoolTypeSeeder::class,
             GamePrizePoolTypeSeeder::class,
+            BingoTypesPlaysSeeder::class,
             SettingsSeeder::class,
             UsersSeeder::class
         ]);

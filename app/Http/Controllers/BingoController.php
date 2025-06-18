@@ -1101,11 +1101,18 @@ class BingoController extends Controller
                 break;
         }
 
-        $rooms = $this->getInfoRooms($creator['userId'], $roomType, $coin);
+        $creatorUser = $creator['userId'];
 
-        $bingoPlays = BingoTypesPlays::getAllByUser($creator['userId'], ['id', 'name'], 1);
+        $rooms = $this->getInfoRooms($creatorUser, $roomType, $coin);
 
-        $timeZoneID = User::getValueById($creator['userId'], 'time_zone');
+        $bingoPlays = BingoTypesPlays::getAllByUser($creatorUser, ['id', 'name'], 'ACTIVE');
+
+        $bingoPlays = BingoTypesPlays::where(function ($query) use ($creatorUser) {
+            $query->where('user', $creatorUser)
+                ->orWhereNull('user');
+        })->where('status', '<>', 'DELETED')->get();
+
+        $timeZoneID = User::getValueById($creatorUser, 'time_zone');
         $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $viewData = [
@@ -1844,7 +1851,7 @@ class BingoController extends Controller
                     $status = BingoTypesPlays::getValueById($playID, 'status');
 
                     // Verificar el valor actual de 'status' y actualizarlo
-                    $newStatus = ($status == 0) ? 1 : 0; // Si es 1, cambia a 2, si es 2, cambia a 1
+                    $newStatus = $status == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
                     BingoTypesPlays::where('id', $playID)->update(['status' => $newStatus]);
 
@@ -1855,7 +1862,7 @@ class BingoController extends Controller
                         'message' => 'Registro actualizado'
                     ]);
                 } else if ($action === 'delete') {
-                    BingoTypesPlays::where('id', $playID)->update(['status' => 2]);
+                    BingoTypesPlays::where('id', $playID)->update(['status' => 'DELETED']);
 
                     DB::commit();
 
@@ -1919,7 +1926,7 @@ class BingoController extends Controller
                     'name' => $namePlay,
                     'user' => $user,
                     'boxes' => $bingoBoxes,
-                    'status' => 1
+                    'status' => 'ACTIVE'
                 ]);
             }
 
@@ -2109,7 +2116,7 @@ class BingoController extends Controller
 
         $bingoPlay = BingoTypesPlays::where('id', $id)->first();
 
-        $boxes = explode(',', $bingoPlay->boxes);
+        $boxes = explode(';', $bingoPlay->boxes);
 
         return response()->json(['name' => $bingoPlay->name, 'boxes' => $boxes]);
     }
@@ -2130,7 +2137,7 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $bingoPlays = BingoTypesPlays::where('user', $user)->where('status', '<>', 2)->get();
+        $bingoPlays = BingoTypesPlays::where('user', $user)->where('status', '<>', 'DELETED')->get();
 
         $viewData = [
             'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
