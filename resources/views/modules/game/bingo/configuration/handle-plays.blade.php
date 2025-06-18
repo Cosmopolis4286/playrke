@@ -136,7 +136,7 @@
                 return;
             }
 
-            $('#bingo-boxes').val(bingoBoxes.join(','));
+            $('#bingo-boxes').val(bingoBoxes.join(';'));
 
             form.submit();
         });

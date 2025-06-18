@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->enum('type_play', ['UNIQUE', 'GROUP'])->default('UNIQUE');
             $table->string('name', 20);
-            $table->foreignId('user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('user')->nullable()->constrained('users')->onDelete('cascade');
             $table->string('boxes', 50);
-            $table->boolean('status')->default(0);
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();
         });
     }
