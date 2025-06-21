@@ -2,7 +2,7 @@ const rounds = $("#rounds");
 const roundsPct = $('#rounds-pct');
 
 function handleRoundsConfig(arrRounds = []) {
-    const content = arrRounds.length
+    const content = arrRounds.rounds > 1
         ? generateRounds(arrRounds)
         : generateEmptyRounds();
 
@@ -68,20 +68,30 @@ function buildRoundHtml({ roundNumber, prizeType, playType, prizeValue, isLastRo
     const readonlyAttr = isLastRound ? 'readonly' : '';
     const inputClass = !isLastRound ? 'rounds-prize-value-input' : '';
 
-    const selectBingoPatterns =
-        `<select class="form-control" name="rounds_play_type[]" 
-    aria-label="Seleccionar cantos" ${isLastRound ? 'disabled' : ''}>
-        ${arrBingoPatterns.map(item => {
-            const selected = item.id == playType || (isLastRound && item.id == 1) ? 'selected' : '';
-            return `<option value="${item.id}" ${selected}>${item.name}</option>`;
-        }).join('')}
-    </select>`;
+    const selectBingoPatterns = `
+    ${isLastRound
+            ? `
+        <input type="hidden" name="rounds_play_type[]" value="1">
+        <select class="form-control" disabled aria-label="Seleccionar cantos">
+            <option value="1" selected>
+                ${arrBingoPatterns.find(item => item.id == 1)?.name || 'Opción 1'}
+            </option>
+        </select>`
+            : `
+        <select class="form-control" name="rounds_play_type[]" aria-label="Seleccionar cantos">
+            ${arrBingoPatterns.map(item => {
+                const selected = item.id == playType ? 'selected' : '';
+                return `<option value="${item.id}" ${selected}>${item.name}</option>`;
+            }).join('')}
+        </select>`
+        }`;
 
     return `
         <div class="form-group col-sm-6">
             <label for="round-${roundNumber}">Ronda #${roundNumber}</label>
             <div class="input-group">
                 <div class="input-group-prepend">
+                    <input type="hidden" name="rounds_prize_type[]" value="PCT">
                     <select class="form-control" name="rounds_prize_type[]" disabled>
                         <option value="PCT" ${prizeType === 'PCT' ? 'selected' : ''}>%</option>
                         <option value="USD" ${prizeType === 'USD' ? 'selected' : ''}>$</option>
@@ -116,7 +126,6 @@ function getRoundsConfig(room = '') {
         return;
     }
 
-    console.log(room);
     $.ajax({
         url: route('bingo.getRoundsConfig', { room, type: creation }),
         method: 'GET',

@@ -1366,7 +1366,7 @@ class BingoController extends Controller
     {
         try {
             $columnRoom = $type === 'M' ? 'bingo_room_id' : 'automatic_bingo_room_id';
-            $numRounds = count($roundsPrizeType) ?: 1;
+            $numRounds = count($roundsPlayType);
             $timestamp = now();
 
             // Definir datos comunes
@@ -1374,7 +1374,7 @@ class BingoController extends Controller
                 $columnRoom => $roomID,
                 'rounds' => $numRounds,
                 'prize_types' => ($numRounds === 1) ? array_fill(0, 1, 'PCT') : $roundsPrizeType,
-                'play_types' => ($numRounds === 1) ? array_fill(0, 1, 'CARTON LLENO') : $roundsPlayType,
+                'play_types' => ($numRounds === 1) ? array_fill(0, 1, '1') : $roundsPlayType,
                 'prize_values' => ($numRounds === 1) ? array_fill(0, 1, '100') : $roundsPrizeValue,
                 'status' => 'ACTIVE',
                 'created_at' => $timestamp,
@@ -2612,10 +2612,7 @@ class BingoController extends Controller
 
         $coinData = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
 
-        $coins = Coin::getCoinsById([
-            ...CommerceExchangeRate::getCoinsByCommerce($userData['id']),
-            1
-        ]);
+        $coins = Coin::getCoinsById([...CommerceExchangeRate::getCoinsByCommerce($userData['id']), 1]);
 
         $rooms = $this->getInfoRooms($userData['userId'], 'public-rooms', $coin, true);
 
