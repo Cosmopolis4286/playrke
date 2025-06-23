@@ -31,4 +31,21 @@ class BingoPatterns extends Model
     {
         return self::where($column, $value)->where('user', $user)->exists();
     }
+
+    public static function getColumnsBoxesById($id)
+    {
+        $bingoPattern = self::select('type_pattern', 'boxes')->where('id', $id)->first();
+
+        if ($bingoPattern->type_pattern === 'UNIQUE') {
+            $columns = explode(';', $bingoPattern->boxes);
+        } else {
+            $patterns = explode(';', $bingoPattern->boxes);
+            $columns = [];
+
+            foreach ($patterns as $patternId) {
+                $columns = $columns + [self::getValueById($patternId, 'boxes')];
+            }
+        }
+        return $columns;
+    }
 }

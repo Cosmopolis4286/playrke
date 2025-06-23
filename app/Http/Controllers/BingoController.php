@@ -3748,7 +3748,7 @@ class BingoController extends Controller
             }
 
             // Ejecutar ficha ganadora
-            $this->chipWin($room);
+            $this->registerWinningChips($room);
 
             // Actualizar estado de la sala
             BingoRoom::where('id', $room)->update([
