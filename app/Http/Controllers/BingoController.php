@@ -710,7 +710,7 @@ class BingoController extends Controller
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
         $bingoRound = BingoRounds::getRoundInProgress($roomID, ['round', 'start_time']);
-        $round = $bingoRound->round;
+        $round = $bingoRound->round ?? 1;
 
         date_default_timezone_set(config('app.timezone'));
 

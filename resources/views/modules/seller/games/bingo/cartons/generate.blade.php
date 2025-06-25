@@ -268,9 +268,8 @@
         }
 
         typeSale.on("change", function() {
-            if (allowsUSDT) {
-                $('#container-country').addClass('d-none');
-            }
+            const isUSDT = $(this).val() === 'usdt';
+            $('#container-country').toggleClass('d-none', isUSDT);
         });
 
         function handleAllowsUSDT(allowUSDT = false) {
