@@ -431,9 +431,9 @@ function getNewChip(newChip) {
     }
 }
 
-function renderPrizeSection(dd, pct) {
-    return `<b>${}: <small>(<span>${pct}</span>% del ${prizePoolType})</small></b>
-            <div class="row mb-1"></div>`;
+function renderPrizeSection(content, prizeType, pct) {
+    return `<b>${prizeType}: <small>(<span>${pct}</span>% del ${prizePoolType})</small></b>
+            <div class="row mb-1">${content}</div>`;
 }
 
 function getWinners(players, numWRPT = '') {
@@ -483,14 +483,25 @@ function showWinners(arrInfo, numRound, lastChip = false) {
         return;
     }
 
+    $('#container-prize-ctns').html('');
+
     const prizeType = round.prizeType;
+    let prizeSectionHTML = '';
 
     Object.entries(prizeType).forEach(([prize, data]) => {
-        const players = data.players;
-        if (!players || typeof players !== 'object') return;
+        if (!data || typeof data !== 'object') return;
 
-        renderPrizeSection(22, data.prizeVal);
+        const players = data.players;
+        const prizeVal = data.prizeVal;
+        const numWinners = data.numWRPT;
+
+        if (!Array.isArray(players) || players.length === 0) return;
+
+        const content = getWinners(players, numWinners);
+        prizeSectionHTML += renderPrizeSection(content, prize, prizeVal);
     });
+
+    $('#container-prize-ctns').html(prizeSectionHTML);
 
     $("#cont-info-winners").show();
 

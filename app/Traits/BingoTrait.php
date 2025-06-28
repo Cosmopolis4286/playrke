@@ -121,10 +121,27 @@ trait BingoTrait
 
             for ($round = 1; $round <= $rounds; $round++) {
 
+                $currentTimestamp = now();
+
+                // Preparar info de las rondas
+                $playType = $bingoRound->play_types[$round - 1];
+                $prizeType = $bingoRound->prize_types[$round - 1];
+                $prizeValue = $bingoRound->prize_values[$round - 1];
+
+                $allRounds[] = [
+                    'room' => $room,
+                    'round' => $round,
+                    'start_time' => $lastDrawTime,
+                    'play_type' => $playType,
+                    'prize_type' => $prizeType,
+                    'prize_value' => $prizeValue,
+                    'status' => 'ACTIVE',
+                    'created_at' => $currentTimestamp,
+                    'updated_at' => $currentTimestamp,
+                ];
+
                 $availableChips = range(1, 75);
                 shuffle($availableChips);
-
-                $currentTimestamp = now();
 
                 foreach ($availableChips as $chip) {
                     $encoded = implode('', array_map(fn($d) => $symbols[$d == '0' ? 10 : $d] ?? '', str_split($chip)));
@@ -140,22 +157,6 @@ trait BingoTrait
                         'updated_at' => $currentTimestamp,
                     ];
                 }
-
-                $playType = $bingoRound->prize_types[$round - 1];
-                $prizeType = $bingoRound->play_types[$round - 1];
-                $prizeValue = $bingoRound->prize_values[$round - 1];
-
-                $allRounds[] = [
-                    'room' => $room,
-                    'round' => $round,
-                    'start_time' => $currentTimestamp,
-                    'play_type' => $playType,
-                    'prize_type' => $prizeType,
-                    'prize_value' => $prizeValue,
-                    'status' => 'ACTIVE',
-                    'created_at' => $currentTimestamp,
-                    'updated_at' => $currentTimestamp,
-                ];
             }
 
             DB::beginTransaction();
@@ -278,9 +279,6 @@ trait BingoTrait
             for ($round = 1; $round <= $roundsCount; $round++) {
 
                 $playType = $roundPlayTypes[$round] ?? null;
-
-                dd($roundPlayTypes);
-
 
                 if (!$playType) continue;
 
