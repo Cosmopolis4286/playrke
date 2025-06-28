@@ -143,18 +143,7 @@
                         </div>
                     </div>
                 </div>
-                <b>Cartón Lleno: <small>(<span id="full-house-value"></span>% del Bote)</small></b>
-                <div class="row mb-1" id="full-house-winners"></div>
-                @if ($room->Config->play_types)
-                    <div id="cont-bingo-patterns" class="hide-elem">
-                        <b>Cantos: <small>(<span id="bingo-patterns-value"></span>% del Bote)</small></b>
-                        <div class="row" id="bingo-patterns-winners"></div>
-                    </div>
-                @endif
-                <div id="cont-serials" class="hide-elem">
-                    <b>Seriales: <small>(<span id="serial-value"></span>% del Bote)</small></b>
-                    <div class="row" id="serials-winners"></div>
-                </div>
+                <div id="container-prize-ctns"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary leave-room">

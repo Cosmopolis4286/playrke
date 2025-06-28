@@ -12,9 +12,7 @@
             </div>
         </div>
         <div id="cont-prize-pool-info-amount">
-            <span id="cont-prize-pool-type">
-                {{ $prizePoolType == 1 ? 'Bote' : ($prizePoolType == 2 ? 'Premio' : '') }}
-            </span>
+            <span id="cont-prize-pool-type">{{ $prizePoolType }}</span>
             <div id="cont-prize-pool-amount">
                 <span id="prize-pool-coin-sym">{{ $coinSym }}</span>
                 <span id="prize-pool-amount">{{ $prizePool ?? 0 }}</span>
@@ -26,7 +24,7 @@
             @if ($room->Config->rounds)
                 <div id="container-round">Ronda<span id="num-round">#{{ $round }}</span></div>
             @endif
-            <div id="text-game-mode"><span class="mx-1">Cartón Lleno</span></div>
+            <div id="text-game-mode"><span class="mx-1">{{ $bingoPattern }}</span></div>
         </div>
     </div>
 </div>

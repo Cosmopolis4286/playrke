@@ -431,6 +431,11 @@ function getNewChip(newChip) {
     }
 }
 
+function renderPrizeSection(dd, pct) {
+    return `<b>${}: <small>(<span>${pct}</span>% del ${prizePoolType})</small></b>
+            <div class="row mb-1"></div>`;
+}
+
 function getWinners(players, numWRPT = '') {
 
     let content = '';
@@ -484,20 +489,7 @@ function showWinners(arrInfo, numRound, lastChip = false) {
         const players = data.players;
         if (!players || typeof players !== 'object') return;
 
-        const prizeVal = data.prizeVal;
-
-        if (prize === 'FLHE') {
-            const content = getWinners(players, data.numWRPT);
-            $('#full-house-winners').html(content);
-            $('#full-house-value').text(prizeVal);
-        }
-
-        if (prize === 'SRL') {
-            const content = getWinners(players, data.numWRPT);
-            $('#serials-winners').html(content);
-            $('#serial-value').text(prizeVal);
-            $('#cont-serials').removeClass('hide-elem');
-        }
+        renderPrizeSection(22, data.prizeVal);
     });
 
     $("#cont-info-winners").show();

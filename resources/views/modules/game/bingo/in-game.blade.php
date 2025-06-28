@@ -69,6 +69,7 @@
     @endif
     @if ($room->status > 2)
         <script>
+            const prizePoolType = @json($prizePoolType);
             const roundNum = @json($round);
             const numRounds = parseInt(@json($room->Config->rounds));
             const startTime = @json($startTime);
