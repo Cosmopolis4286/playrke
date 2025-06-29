@@ -57,12 +57,12 @@ class BingoRoomUser extends Model
 
     public static function getWinnersCountByRoom($room)
     {
-        return self::where('room', $room)->where('winner', '>', 0)->count();
+        return self::where('room', $room)->where('winner', '!=', '0')->count();
     }
 
     public static function getNonWinnersCountByRoom($room)
     {
-        return self::where('room', $room)->where('winner', 0)->count();
+        return self::where('room', $room)->where('winner', '0')->count();
     }
 
     public static function existsPlayerInRoom($room, $creator, $player)

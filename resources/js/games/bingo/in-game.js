@@ -495,7 +495,7 @@ function showWinners(arrInfo, numRound, lastChip = false) {
         const prizeVal = data.prizeVal;
         const numWinners = data.numWRPT;
 
-        if (!Array.isArray(players) || players.length === 0) return;
+        if (!players || typeof players !== 'object' || Object.keys(players).length === 0) return;
 
         const content = getWinners(players, numWinners);
         prizeSectionHTML += renderPrizeSection(content, prize, prizeVal);

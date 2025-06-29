@@ -112,7 +112,7 @@ trait BingoTrait
             $this->encryptDraw($room);
 
             $symbols = BingoDrawsCode::where('room', $room)->pluck('sym', 'num');
-            $bingoRound = BingoRoundsDrafts::where('bingo_room_id', $room)->first();
+            $bingoRoundDraft = BingoRoundsDrafts::where('bingo_room_id', $room)->first();
 
             $allDraws = [];
             $allRounds = [];
@@ -124,9 +124,9 @@ trait BingoTrait
                 $currentTimestamp = now();
 
                 // Preparar info de las rondas
-                $playType = $bingoRound->play_types[$round - 1];
-                $prizeType = $bingoRound->prize_types[$round - 1];
-                $prizeValue = $bingoRound->prize_values[$round - 1];
+                $playType = $bingoRoundDraft->play_types[$round - 1];
+                $prizeType = $bingoRoundDraft->prize_types[$round - 1];
+                $prizeValue = $bingoRoundDraft->prize_values[$round - 1];
 
                 $allRounds[] = [
                     'room' => $room,
@@ -164,7 +164,7 @@ trait BingoTrait
             try {
                 BingoDraws::insert($allDraws);
                 BingoRounds::insert($allRounds);
-                $bingoRound->update(['status' => 'COMPLETED']);
+                $bingoRoundDraft->update(['status' => 'COMPLETED']);
                 DB::commit();
             } catch (\Throwable $e) {
                 DB::rollBack();
@@ -274,7 +274,7 @@ trait BingoTrait
             $roundsCount = (int) BingoRoomConfig::getValueByRoom($roomId, 'rounds');
             $roundPlayTypes = BingoRounds::where('room', $roomId)->pluck('play_type', 'round');
 
-            $firstRoundStartTime = null;
+            $firstChipDraw = null;
 
             for ($round = 1; $round <= $roundsCount; $round++) {
 
@@ -289,7 +289,6 @@ trait BingoTrait
 
                 // Asegurar 'id' como primera columna y evitar duplicados
                 $columns = array_unique(array_merge(['id'], $columns));
-
 
                 // Índice de fichas jugadas -> cartones
                 $chipIndex = [];
@@ -351,12 +350,12 @@ trait BingoTrait
                     BingoRounds::where('room', $roomId)
                         ->where('round', $round)
                         ->update([
-                            'star_time' => $chipDraw->time,
+                            'start_time' => $chipDraw->time,
                             'last_chip' => $chipDraw->chip,
                         ]);
 
-                    if ($round === $roundsCount) {
-                        $firstRoundStartTime = $chipDraw->time;
+                    if ($round === 1) {
+                        $firstChipDraw = $chipDraw;
                     }
                 }
             }
@@ -364,7 +363,7 @@ trait BingoTrait
             $this->insertGameExchangeRate($roomId, 'BINGO');
 
             DB::commit();
-            return $firstRoundStartTime;
+            return $firstChipDraw;
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error al procesar chipWin para sala {$roomId}: {$e->getMessage()}");
@@ -802,7 +801,11 @@ trait BingoTrait
     {
         $roomType = BingoRoom::getValueById($roomID, 'room_type');
 
-        $prizeType = GamePrizes::getValueByDescription('BINGO', $prizeType);
+        if ($prizeType != 'SRL') {
+            $prizeType = $prizeType == 1 ? 'FLHE' : 'SONG';
+        }
+
+        $prizeType = GamePrizes::getValueByCode('BINGO', $prizeType);
 
         $recordsToInsert = $playersToUpdate = [];
 
@@ -1022,9 +1025,13 @@ trait BingoTrait
 
     public function handleTypesOfPlays($roomID) {}
 
-    private function findWinners($roomID, array $chipsDraw)
+    private function findWinners($roomID, $round, array $chipsDraw)
     {
-        $columns = BingoCtns::ALL_BOXES;
+        dd();
+        // Obtener columnas del patrón de juego
+        $columns = ($playType == 1)
+            ? BingoCtns::ALL_BOXES
+            : BingoPatterns::getColumnsBoxesById($playType);
 
         $winners = collect();
 
@@ -1052,13 +1059,8 @@ trait BingoTrait
             ->select('id', 'creator_user', 'prize_pool', 'serial_prize')
             ->findOrFail($roomID);
 
-        // Validar si ya hay ganadores de Cartón Lleno
-        if (
-            BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'Cartón Lleno') ||
-            BingoRoomUser::getWinnersCountByRoom($roomID)
-        ) {
-            return false;
-        }
+        // Validar si ya hay ganadores 
+        if (BingoRoomUser::getWinnersCountByRoom($roomID)) return false;
 
         $prizePool = $room->prize_pool;
         $serialsPct = $room->Config->serials_pct;
@@ -1104,7 +1106,7 @@ trait BingoTrait
                 continue;
             }
 
-            $winners = $this->findWinners($roomID, $chipsDrawn);
+            $winners = $this->findWinners($roomID, $roundNumber, $chipsDrawn);
 
             if ($winners->isEmpty()) {
                 Log::info("Sin ganadores en la ronda $roundNumber de la sala $roomID");
@@ -1118,18 +1120,19 @@ trait BingoTrait
             DB::beginTransaction();
 
             try {
+
                 $jackpotPrizePerCtn = round($roundPrizeValue / max(1, $ctnsJackpot->count()), 3);
 
                 $register = $this->registerPrizeCtn(
                     $roomID,
                     $roundNumber,
                     $ctnsJackpot,
-                    'Cartón Lleno',
+                    $roundItem->play_type,
                     $jackpotPrizePerCtn
                 );
 
                 if (!$register) {
-                    throw new Exception('Fallo al registrar premio de Cartón Lleno.');
+                    throw new Exception('Fallo al registrar el carton premiado.');
                 }
 
                 if ($applySerialPrize) {
@@ -1322,7 +1325,7 @@ trait BingoTrait
             // Repartir el premio entre los ganadores
             $winnerJackpotPrize = $serialPrize / count($serialCtns);
 
-            $this->registerPrizeCtn($roomID, $round, $ctnsSerials, 'Serial', $winnerJackpotPrize);
+            $this->registerPrizeCtn($roomID, $round, $ctnsSerials, 'SRL', $winnerJackpotPrize);
 
             return true;
         } catch (Exception $e) {
