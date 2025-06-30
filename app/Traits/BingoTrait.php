@@ -944,7 +944,7 @@ trait BingoTrait
         $winPlayer = false;
 
         if ($roomUser) {
-            $winPlayer = BingoRoomUser::where('id', $roomUser)->where('winner', 1)->exists();
+            $winPlayer = BingoRoomUser::where('id', $roomUser)->where('winner', '1')->exists();
         }
 
         return [
@@ -1023,30 +1023,36 @@ trait BingoTrait
         return $winnersByRound;
     }
 
-    public function handleTypesOfPlays($roomID) {}
-
-    private function findWinners($roomID, $round, array $chipsDraw)
+    private function findWinners($roomID, $roundID, array $chipsDraw)
     {
-        dd();
-        // Obtener columnas del patrón de juego
-        $columns = ($playType == 1)
+        $playType = BingoRounds::getValueById($roundID, 'play_type');
+
+        // Columnas del patrón
+        $patternColumns = ($playType == 1)
             ? BingoCtns::ALL_BOXES
             : BingoPatterns::getColumnsBoxesById($playType);
 
+        $columns = array_unique(array_merge(['id', 'room_user'], $patternColumns));
         $winners = collect();
 
         BingoCtns::where('room', $roomID)
-            ->select(array_merge(['id', 'room_user'], $columns))
-            ->lazyById(100)
-            ->each(function ($ctn) use ($columns, $chipsDraw, &$winners) {
-                if ($winners->has($ctn->room_user)) {
-                    return;
-                }
+            ->select($columns)
+            ->chunk(100, function ($ctns) use ($patternColumns, $chipsDraw, &$winners) {
+                foreach ($ctns as $ctn) {
+                    $roomUser = $ctn->room_user;
 
-                $values = array_map(fn($col) => $ctn->$col, $columns);
+                    // Ya ganó
+                    if ($winners->has($roomUser)) {
+                        continue;
+                    }
 
-                if (count(array_intersect($values, $chipsDraw)) === count($values)) {
-                    $winners->put($ctn->room_user, $ctn->id);
+                    // Extraer solo los valores del patrón
+                    $values = array_map(fn($col) => $ctn->$col, $patternColumns);
+
+                    // Verifica si todos los valores están en los chips sorteados
+                    if (count(array_intersect($values, $chipsDraw)) === count($patternColumns)) {
+                        $winners->put($roomUser, $ctn->id);
+                    }
                 }
             });
 
@@ -1106,7 +1112,7 @@ trait BingoTrait
                 continue;
             }
 
-            $winners = $this->findWinners($roomID, $roundNumber, $chipsDrawn);
+            $winners = $this->findWinners($roomID, $roundItem->id, $chipsDrawn);
 
             if ($winners->isEmpty()) {
                 Log::info("Sin ganadores en la ronda $roundNumber de la sala $roomID");
@@ -1399,8 +1405,8 @@ trait BingoTrait
     public function allWinCtnPaid($room)
     {
         // Verificar la cantidad total de cartones premiados y la cantidad pagada
-        $winnersCount = BingoRoomUser::where('room', $room)->where('winner', '>', 0)->count();
-        $winnersPaidCount = BingoRoomUser::where('room', $room)->where('winner', 2)->count();
+        $winnersCount = BingoRoomUser::where('room', $room)->where('winner', '!=', '0')->count();
+        $winnersPaidCount = BingoRoomUser::where('room', $room)->where('winner', '2')->count();
 
         // Si la cantidad total de cartones premiados es igual a la cantidad pagada,
         // entonces todos los cartones premiados han sido pagados

@@ -2961,7 +2961,7 @@ class BingoController extends Controller
             BingoPrizeCtns::where('ctn', $ctnId)->update(['status' => $paymentType]);
 
             if ($paymentType === 'SP') {
-                $success = BingoRoomUser::where('id', $prizeCtn->room_user)->update(['winner' => 2]);
+                $success = BingoRoomUser::where('id', $prizeCtn->room_user)->update(['winner' => '2']);
                 if (!$success) {
                     DB::rollBack();
                     return response()->json(['error' => 'Error al actualizar el estado del cartón.'], 500);
@@ -3477,6 +3477,7 @@ class BingoController extends Controller
 
                 $winners = $winnersQuery->select(
                     'room',
+                    'round',
                     'seller',
                     'room_user',
                     'ctn',
@@ -3736,7 +3737,7 @@ class BingoController extends Controller
 
         try {
             // Resetear ganadores y eliminar premios
-            BingoRoomUser::where('room', $room)->where('winner', 1)->update(['winner' => 0]);
+            BingoRoomUser::where('room', $room)->where('winner', '1')->update(['winner' => '0']);
             BingoPrizeCtnsPayment::where('room', $room)->delete();
             BingoPrizeCtns::where('room', $room)->delete();
 
