@@ -271,9 +271,11 @@ $('#cont-left-arrow').on('click', debounce(() => renderChipsView('L'), 300));
 $('#cont-right-arrow').on('click', debounce(() => renderChipsView('R'), 300));
 
 // Ajustar tamaño de las casillas
-function adjustHeightBoxesCtnAward() {
+function adjustHeightBoxesCtnAward(checkBoxes = []) {
     const widthNumberBoxViewCtn = $('.number-box-view-ctn').first().width();
     $('.number-box-view-ctn').height(widthNumberBoxViewCtn);
+
+    if (checkBoxes.length) autoMarked(checkBoxes);
 }
 
 $(document).on("click", ".cont-arrow-history-chips", function () {
@@ -562,14 +564,22 @@ $(document).on("click", ".cont-win-img", function () {
         success: function (res) {
             const {
                 ctn,
+                checkBoxes,
                 playerName,
                 serialCtn
             } = res;
-            ctn.forEach((elem, ind) => $(`#ctn-vchip${ind}`).html(elem));
+
+            ctn.forEach((elem, ind) => {
+                const target = document.querySelector(`#box-${checkBoxes[ind]}`);
+                if (target) {
+                    target.innerHTML = elem;
+                }
+            });
+
             $("#ctn-player-name").text(playerName);
             $("#serial-ctn").text(`Serial: ${serialCtn}`);
             $("#cont-ctn-award-winning").data('status', true).show();
-            adjustHeightBoxesCtnAward();
+            adjustHeightBoxesCtnAward(checkBoxes);
         },
         error: function (xhr, status, error) {
             console.error("Error en la solicitud:", error);

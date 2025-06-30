@@ -274,11 +274,11 @@ body {
 }
 
 #container-round {
-    width: 100%;
+    width: auto;
     color: var(--white);
     padding-top: 0.5%;
-    padding-left: 8%;
-    padding-right: 8%;
+    padding-left: 9.5%;
+    padding-right: 9.5%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -297,6 +297,9 @@ body {
     width: auto;
     height: auto;
     color: white;
+    padding-top: 0.5%;
+    padding-left: 9.5%;
+    padding-right: 9.5%;
     font-weight: bold;
     border-radius: 5px;
     background: linear-gradient(to bottom, #f00034, rgb(145, 0, 0));
@@ -306,8 +309,6 @@ body {
     overflow-wrap: break-word;
     overflow: hidden;
 }
-
-#container-btn-options {}
 
 /*Seccion Carrusel*/
 #container-history-chips {

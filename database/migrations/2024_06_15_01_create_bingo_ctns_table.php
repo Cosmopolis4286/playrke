@@ -35,8 +35,9 @@ return new class extends Migration
             $table->string('i5', 2);
             $table->string('n1', 2);
             $table->string('n2', 2);
-            $table->string('n3', 2);
+            $table->string('n3', 2)->nullable();
             $table->string('n4', 2);
+            $table->string('n5', 2);
             $table->string('g1', 2);
             $table->string('g2', 2);
             $table->string('g3', 2);

@@ -560,8 +560,8 @@ trait BingoTrait
             'i5' => $nwCtn[9],
             'n1' => $nwCtn[10],
             'n2' => $nwCtn[11],
-            'n3' => $nwCtn[12],
-            'n4' => $nwCtn[13],
+            'n4' => $nwCtn[12],
+            'n5' => $nwCtn[13],
             'g1' => $nwCtn[14],
             'g2' => $nwCtn[15],
             'g3' => $nwCtn[16],
@@ -957,9 +957,8 @@ trait BingoTrait
     public function getArrayWinnersData($data)
     {
         $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $data['room'], $data['coin']) ?? 1;
-        $gamePrizes = GamePrizes::getAllGamePrize('BINGO'); // [id => code]
         $bingoRounds = BingoRounds::where('room', $data['room'])
-            ->get(['round', 'prize_value', 'start_time', 'last_chip'])
+            ->get(['round', 'play_type', 'prize_value', 'start_time', 'last_chip'])
             ->keyBy('round');
 
         $winnersByRound = [
@@ -977,7 +976,12 @@ trait BingoTrait
             $startTime = $bingoRounds[$round]->start_time;
             $lastChip = $bingoRounds[$round]->last_chip;
             $prizeValue = $bingoRounds[$round]->prize_value;
-            $prizeType = $gamePrizes[$prizeCtn->prize_type] ?? 'UNKNOWN';
+
+            if ($prizeCtn->prize_type != 3) {
+                $prizeType = BingoPatterns::getValueById($bingoRounds[$round]->play_type, 'name');
+            } else {
+                $prizeType = 'SERIALES';
+            }
 
             $serialCtn = BingoCtns::getValueById($ctnId, 'serial');
             $amount = round($prizeCtn->usd_amount * $exchangeRate, 2);
@@ -1251,8 +1255,8 @@ trait BingoTrait
                         $ctn->i5,
                         $ctn->n1,
                         $ctn->n2,
-                        $ctn->n3,
                         $ctn->n4,
+                        $ctn->n5,
                         $ctn->g1,
                         $ctn->g2,
                         $ctn->g3,
@@ -1346,39 +1350,17 @@ trait BingoTrait
         // Desencriptar ID del carton
         $ctnId = decrypt($ctn);
 
+        // Obtener todas las casillas del carton
+        $boxes = BingoCtns::ALL_BOXES;
+
         // Obtener el cartón
-        $ctn = BingoCtns::find($ctnId);
+        $ctn = BingoCtns::select(array_merge(['room_user', 'player_user', 'serial'], $boxes))->find($ctnId);
 
         // Si no se encuentra el cartón, retornar false
         if (!$ctn) return false;
 
         // Obtener los números del cartón en un solo array
-        $allCtn = [
-            $ctn->b1,
-            $ctn->b2,
-            $ctn->b3,
-            $ctn->b4,
-            $ctn->b5,
-            $ctn->i1,
-            $ctn->i2,
-            $ctn->i3,
-            $ctn->i4,
-            $ctn->i5,
-            $ctn->n1,
-            $ctn->n2,
-            $ctn->n3,
-            $ctn->n4,
-            $ctn->g1,
-            $ctn->g2,
-            $ctn->g3,
-            $ctn->g4,
-            $ctn->g5,
-            $ctn->o1,
-            $ctn->o2,
-            $ctn->o3,
-            $ctn->o4,
-            $ctn->o5
-        ];
+        $allCtn = array_values($ctn->only($boxes));
 
         $creatorUser = $ctn->creator_user;
         $creatorUserType = User::getUserTypePrefix($creatorUser);
@@ -1394,9 +1376,17 @@ trait BingoTrait
             $fullName = Customer::getValueByUserId($creatorUser, 'name');
         }
 
+        $prizeCtn = BingoPrizeCtns::getById($ctnId, ['room', 'round', 'prize_type']);
+
+        if ($prizeCtn->prize_type == 2) {
+            $bingoPattern = BingoRounds::getValueByRoom($prizeCtn->room, $prizeCtn->round, 'play_type');
+            $checkBoxes = BingoPatterns::getColumnsBoxesById($bingoPattern);
+        }
+
         // Retornar los datos del cartón
         return [
             'ctn' => $allCtn,
+            'checkBoxes' => $checkBoxes ?? $boxes,
             'playerName' => $fullName,
             'serialCtn' => $ctn->serial
         ];

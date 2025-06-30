@@ -30,6 +30,11 @@ class BingoRounds extends Model
         return $query->first();
     }
 
+    public static function getValueByRoom($room, $round, $value)
+    {
+        return self::where('room', $room)->where('round', $round)->value($value);
+    }
+
     public static function getRoundInProgress($room, $fields = ['*'])
     {
         return self::select($fields)->where('room', $room)
