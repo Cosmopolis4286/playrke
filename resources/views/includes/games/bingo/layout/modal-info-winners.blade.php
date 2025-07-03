@@ -32,7 +32,7 @@
                     <span class="ml-1">Última Ficha:</span>
                     <img class="ml-1 mb-1" id="last-win-chip">
                 </div>
-                <div id="cont-ctn-award-winning" data-status="false">
+                <div id="cont-ctn-award-winning">
                     <div class="card">
                         <div class="card-header py-1">
                             <h6 class="card-title d-inline m-0">Cartón Ganador</h6>
@@ -51,7 +51,7 @@
                                         <span id="box-B2" class="number-box-number"></span>
                                     </div>
                                     <div class="number-box-view-ctn">
-                                        <span id="box-B3" class="number-box-number"></span>
+                                        <span id="box-B3" class="number-box-number number-box-circle">ss</span>
                                     </div>
                                     <div class="number-box-view-ctn">
                                         <span id="box-B4" class="number-box-number"></span>

@@ -46,7 +46,7 @@ $(document).on("click", ".leave-room", function () {
 });
 
 $(document).on("click", "#btn-close-carton-awarded", function () {
-    $("#cont-ctn-award-winning").data('status', false).hide();
+    $("#cont-ctn-award-winning").hide();
 });
 
 $('#btn-volume').on("click", function () {
@@ -540,11 +540,23 @@ $(document).on("input change", "#num-round-info-winners", function () {
         return;
     }
 
+    $('#cont-ctn-award-winning').hide();
+    $("#ctn-player-name").text('playerName');
+    $("#serial-ctn").text('');
+    clearMarkedBoxes(".number-box-view-ctn .number-box-number");
+
     // Ejecutar función con valor válido
     showWinners(decryptJson(infoGame, r4nd0m), num);
 });
 
 let getViewCtn = false;
+
+function clearMarkedBoxes(selector, className = 'number-box-circle') {
+    document.querySelectorAll(selector).forEach((el) => {
+        el.textContent = '';
+        el.classList.remove(className);
+    });
+}
 
 $(document).on("click", ".cont-win-img", function () {
 
@@ -563,22 +575,27 @@ $(document).on("click", ".cont-win-img", function () {
         },
         success: function (res) {
             const {
-                ctn,
-                checkBoxes,
+                carton,
                 playerName,
                 serialCtn
             } = res;
 
-            ctn.forEach((elem, ind) => {
-                const target = document.querySelector(`#box-${checkBoxes[ind]}`);
+            let checkBoxes = [];
+
+            //Limpiar carton
+            clearMarkedBoxes(".number-box-view-ctn .number-box-number");
+
+            Object.entries(carton).forEach(([key, elem]) => {
+                const target = document.querySelector(`#box-${key}`);
                 if (target) {
-                    target.innerHTML = elem;
+                    target.innerHTML = elem.value;
+                    checkBoxes.unshift(key);
                 }
             });
 
             $("#ctn-player-name").text(playerName);
             $("#serial-ctn").text(`Serial: ${serialCtn}`);
-            $("#cont-ctn-award-winning").data('status', true).show();
+            $("#cont-ctn-award-winning").show();
             adjustHeightBoxesCtnAward(checkBoxes);
         },
         error: function (xhr, status, error) {
@@ -608,7 +625,7 @@ $(function () {
 
                 renderChipsView();
 
-                if ($('#cont-ctn-award-winning').data('status')) {
+                if ($('#cont-ctn-award-winning').is(':visible')) {
                     adjustHeightBoxesCtnAward();
                 }
             }

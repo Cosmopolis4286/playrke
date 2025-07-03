@@ -1,30 +1,31 @@
+function markBoxes({ selector, getValue, validValues, className = 'number-box-circle' }) {
+    const validSet = new Set(validValues);
+
+    document.querySelectorAll(selector).forEach((el) => {
+        const value = getValue(el);
+        if (value && validSet.has(value)) {
+            el.classList.add(className);
+        }
+    });
+}
+
 function autoMarked(checkBoxes = []) {
-    const markBoxes = (selector, numbers, attr = "box") => {
-        document.querySelectorAll(selector).forEach((el) => {
-            const num = Number(el.dataset[attr]);
-            if (numbers.includes(num) && el.textContent == num) {
-                el.innerHTML = `<div class="number-box-circle">${num}</div>`;
-            }
-        });
-    };
-
     // Marcar cartones principales
-    markBoxes(".number-box[data-box]", allChips);
+    markBoxes({
+        selector: ".number-box[data-box]",
+        getValue: el => {
+            const num = Number(el.dataset.box);
+            return el.textContent == num ? num : null;
+        },
+        validValues: allChips
+    });
 
+    // Marcar cartones premiados
     if (checkBoxes.length) {
-        // // Limpiar vista secundaria
-        // document.querySelectorAll(".number-box-view-ctn .number-box-number").forEach((el) => {
-        //     el.textContent = '';
-        // });
-
-        // Marcar vista secundaria
-        document.querySelectorAll(".number-box-view-ctn .number-box-number").forEach((el) => {
-            const id = el.id?.split('-')[1]; // por ejemplo: de "box-O3" toma "O3"
-            const num = Number(id?.replace(/[A-Z]/g, '')); // extrae "3" de "O3"
-
-            if (checkBoxes.includes(num)) {
-                el.innerHTML = `<div class="number-box-circle">${num}</div>`;
-            }
+        markBoxes({
+            selector: ".number-box-view-ctn .number-box-number",
+            getValue: el => el.id?.split('-')[1],
+            validValues: checkBoxes
         });
     }
 }

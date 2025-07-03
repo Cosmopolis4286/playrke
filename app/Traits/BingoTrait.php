@@ -284,7 +284,7 @@ trait BingoTrait
 
                 // Obtener columnas del patrón de juego
                 $columns = ($playType == 1)
-                    ? BingoCtns::ALL_BOXES
+                    ? array_diff(BingoCtns::ALL_BOXES, ['N3'])
                     : BingoPatterns::getColumnsBoxesById($playType);
 
                 // Asegurar 'id' como primera columna y evitar duplicados
@@ -1033,7 +1033,7 @@ trait BingoTrait
 
         // Columnas del patrón
         $patternColumns = ($playType == 1)
-            ? BingoCtns::ALL_BOXES
+            ? array_diff(BingoCtns::ALL_BOXES, ['N3'])
             : BingoPatterns::getColumnsBoxesById($playType);
 
         $columns = array_unique(array_merge(['id', 'room_user'], $patternColumns));
@@ -1351,16 +1351,13 @@ trait BingoTrait
         $ctnId = decrypt($ctn);
 
         // Obtener todas las casillas del carton
-        $boxes = BingoCtns::ALL_BOXES;
+        $boxes = array_diff(BingoCtns::ALL_BOXES, ['N3']);
 
         // Obtener el cartón
         $ctn = BingoCtns::select(array_merge(['room_user', 'player_user', 'serial'], $boxes))->find($ctnId);
 
         // Si no se encuentra el cartón, retornar false
         if (!$ctn) return false;
-
-        // Obtener los números del cartón en un solo array
-        $allCtn = array_values($ctn->only($boxes));
 
         $creatorUser = $ctn->creator_user;
         $creatorUserType = User::getUserTypePrefix($creatorUser);
@@ -1378,15 +1375,27 @@ trait BingoTrait
 
         $prizeCtn = BingoPrizeCtns::getById($ctnId, ['room', 'round', 'prize_type']);
 
-        if ($prizeCtn->prize_type == 2) {
+        if ($prizeCtn->prize_type > 1) {
             $bingoPattern = BingoRounds::getValueByRoom($prizeCtn->room, $prizeCtn->round, 'play_type');
             $checkBoxes = BingoPatterns::getColumnsBoxesById($bingoPattern);
+        } else {
+            $checkBoxes = $boxes;
         }
+
+        // Obtener los números del cartón en un solo array
+        $carton = $ctn->only($boxes);
+
+        // Añadir clave 'check' => true a las casillas dentro de $checkBoxes
+        $carton = collect($carton)->mapWithKeys(function ($value, $key) use ($checkBoxes) {
+            if (in_array($key, $checkBoxes)) {
+                return [$key => ['value' => $value, 'check' => true]];
+            }
+            return [$key => ['value' => $value]];
+        })->toArray();
 
         // Retornar los datos del cartón
         return [
-            'ctn' => $allCtn,
-            'checkBoxes' => $checkBoxes ?? $boxes,
+            'carton' => $carton,
             'playerName' => $fullName,
             'serialCtn' => $ctn->serial
         ];
