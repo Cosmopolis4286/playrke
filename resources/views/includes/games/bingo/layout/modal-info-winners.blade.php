@@ -51,7 +51,7 @@
                                         <span id="box-B2" class="number-box-number"></span>
                                     </div>
                                     <div class="number-box-view-ctn">
-                                        <span id="box-B3" class="number-box-number number-box-circle">ss</span>
+                                        <span id="box-B3" class="number-box-number"></span>
                                     </div>
                                     <div class="number-box-view-ctn">
                                         <span id="box-B4" class="number-box-number"></span>
