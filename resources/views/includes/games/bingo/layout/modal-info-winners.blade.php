@@ -42,97 +42,27 @@
                         </div>
                         <div class="card-body">
                             <div class="card container-view-carton">
-                                <div class="section-letter">
-                                    <div class="number-box-letter"><b>B</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-B1" class="number-box-number"></span>
+                                @php
+                                    $columns = ['B' => 1, 'I' => 1, 'N' => 1, 'G' => 1, 'O' => 1];
+                                @endphp
+                                @foreach ($columns as $letter => $_)
+                                    <div class="section-letter">
+                                        <div class="number-box-letter"><b>{{ $letter }}</b></div>
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            @if ($letter === 'N' && $i === 3)
+                                                <div class="number-box-view-ctn">
+                                                    <img class="img-fluid img-logo-ctn"
+                                                        src="{{ asset($customerLogo ?? 'img/rke.png') }}">
+                                                </div>
+                                            @else
+                                                <div class="number-box-view-ctn">
+                                                    <span id="box-{{ $letter }}{{ $i }}"
+                                                        class="number-box-number"></span>
+                                                </div>
+                                            @endif
+                                        @endfor
                                     </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-B2" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-B3" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-B4" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-B5" class="number-box-number"></span>
-                                    </div>
-                                </div>
-                                <div class="section-letter">
-                                    <div class="number-box-letter"><b>I</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-I1" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-I2" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-I3" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-I4" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-I5" class="number-box-number"></span>
-                                    </div>
-                                </div>
-                                <div class="section-letter">
-                                    <div class="number-box-letter"><b>N</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-N1" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-N2" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <img class="img-fluid img-logo-ctn"
-                                            src="{{ isset($customerLogo) ? asset($customerLogo) : asset('img/rke.png') }}">
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-N4" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-N5" class="number-box-number"></span>
-                                    </div>
-                                </div>
-                                <div class="section-letter">
-                                    <div class="box number-box-letter"><b>G</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-G1" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-G2" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-G3" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-G4" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-G5" class="number-box-number"></span>
-                                    </div>
-                                </div>
-                                <div class="section-letter">
-                                    <div class="number-box-letter"><b>O</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-O1" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-O2" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-O3" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-O4" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="box-O5" class="number-box-number"></span>
-                                    </div>
-                                </div>
+                                @endforeach
                             </div>
                         </div>
                         <div class="card-footer text-muted py-1">

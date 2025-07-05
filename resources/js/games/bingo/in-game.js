@@ -274,8 +274,6 @@ $('#cont-right-arrow').on('click', debounce(() => renderChipsView('R'), 300));
 function adjustHeightBoxesCtnAward(checkBoxes = []) {
     const widthNumberBoxViewCtn = $('.number-box-view-ctn').first().width();
     $('.number-box-view-ctn').height(widthNumberBoxViewCtn);
-
-    if (checkBoxes.length) autoMarked(checkBoxes);
 }
 
 $(document).on("click", ".cont-arrow-history-chips", function () {
@@ -540,23 +538,13 @@ $(document).on("input change", "#num-round-info-winners", function () {
         return;
     }
 
-    $('#cont-ctn-award-winning').hide();
-    $("#ctn-player-name").text('playerName');
-    $("#serial-ctn").text('');
-    clearMarkedBoxes(".number-box-view-ctn .number-box-number");
+    clearMarkedBoxes();
 
     // Ejecutar función con valor válido
     showWinners(decryptJson(infoGame, r4nd0m), num);
 });
 
 let getViewCtn = false;
-
-function clearMarkedBoxes(selector, className = 'number-box-circle') {
-    document.querySelectorAll(selector).forEach((el) => {
-        el.textContent = '';
-        el.classList.remove(className);
-    });
-}
 
 $(document).on("click", ".cont-win-img", function () {
 
@@ -574,29 +562,8 @@ $(document).on("click", ".cont-win-img", function () {
             getViewCtn = true;
         },
         success: function (res) {
-            const {
-                carton,
-                playerName,
-                serialCtn
-            } = res;
-
-            let checkBoxes = [];
-
-            //Limpiar carton
-            clearMarkedBoxes(".number-box-view-ctn .number-box-number");
-
-            Object.entries(carton).forEach(([key, elem]) => {
-                const target = document.querySelector(`#box-${key}`);
-                if (target) {
-                    target.innerHTML = elem.value;
-                    checkBoxes.unshift(key);
-                }
-            });
-
-            $("#ctn-player-name").text(playerName);
-            $("#serial-ctn").text(`Serial: ${serialCtn}`);
-            $("#cont-ctn-award-winning").show();
-            adjustHeightBoxesCtnAward(checkBoxes);
+            markCartonNumbers(res);
+            adjustHeightBoxesCtnAward();
         },
         error: function (xhr, status, error) {
             console.error("Error en la solicitud:", error);
