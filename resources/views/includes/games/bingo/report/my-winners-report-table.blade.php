@@ -38,7 +38,7 @@
                         @endif
                     </td>
                     <td>{{ $win->Coin->iso_code }}&nbsp{{ $win->amount }}</td>
-                    <td>{{ $win->Prize->description }}</td>
+                    <td>{{ $win->prize_type_description }}</td>
                     <td>
                         @if ($win->status == null)
                             <span class="badge bg-dark">Pendiente</span>

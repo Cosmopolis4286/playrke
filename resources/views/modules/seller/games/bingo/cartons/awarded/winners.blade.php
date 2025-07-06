@@ -42,7 +42,7 @@
                                             <td>{{ $win->PlayerLink->Country->name }}</td>
                                             <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
                                             <td>{{ $coinData->iso_code }} {{ $win->amount }}</td>
-                                            <td>{{ $win->Prize->description }}</td>
+                                            <td>{{ $win->prize_type_description }}</td>
                                             <td class="align-middle">
                                                 @if ($win->status == null)
                                                     <span class="badge bg-secondary">Pendiente</span>

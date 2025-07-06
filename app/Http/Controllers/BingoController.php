@@ -2091,7 +2091,7 @@ class BingoController extends Controller
                 $query->where('room_type', 'PB')
                     ->where('status', 4);
             })
-            ->where('status', null)->distinct()->pluck('room');
+            ->where('status', 'WT')->distinct()->pluck('room');
 
         if ($roomIds->isEmpty()) {
             return collect(); // Retorna colección vacía
@@ -3428,7 +3428,6 @@ class BingoController extends Controller
                 $winnersQuery = BingoPrizeCtns::with([
                     'Room:id,encrypted,room_type',
                     'Room.Config:id,room,date,time',
-                    'Prize:id,description',
                     'Payments:prize_ctn,payment_proof',
                     'PlayerLink.Country:id,name',
                     'Seller.Commerce:id,name',
@@ -3465,7 +3464,6 @@ class BingoController extends Controller
             case 'seller':
 
                 $winnersQuery = BingoPrizeCtns::with([
-                    'Prize:id,description',
                     'Payments:prize_ctn,payment_proof',
                     'Room:id,encrypted,room_type',
                     'PlayerLink.Country:id,name',
@@ -3578,10 +3576,7 @@ class BingoController extends Controller
                     'Seller.Commerce:id,name',
                     'Seller' => function ($query) {
                         $query->select('id', 'name', 'commerce');
-                    },
-                    'Prize' => function ($query) {
-                        $query->select('id', 'description');
-                    },
+                    }
                 ])->whereHas('Room', function ($query) {
                     $query->where('status', 4);
                 })->whereHas('Seller')->whereHas('CtnsLot')
@@ -3598,7 +3593,6 @@ class BingoController extends Controller
             case 'seller':
 
                 $winnersQuery = BingoPrizeCtns::with([
-                    'Prize:id,description',
                     'Payments:prize_ctn,payment_proof',
                     'PlayerLink.Country:id,name',
                 ])->whereHas('Room', function ($query) {

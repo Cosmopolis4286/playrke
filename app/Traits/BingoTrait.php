@@ -801,10 +801,6 @@ trait BingoTrait
     {
         $roomType = BingoRoom::getValueById($roomID, 'room_type');
 
-        if ($prizeType != 'SRL') {
-            $prizeType = $prizeType == 1 ? 'FLHE' : 'SONG';
-        }
-
         $prizeType = GamePrizes::getValueByCode('BINGO', $prizeType);
 
         $recordsToInsert = $playersToUpdate = [];
@@ -977,7 +973,7 @@ trait BingoTrait
             $lastChip = $bingoRounds[$round]->last_chip;
             $prizeValue = $bingoRounds[$round]->prize_value;
 
-            if ($prizeCtn->prize_type != 3) {
+            if ($prizeCtn->prize_type !== 'SRL') {
                 $prizeType = BingoPatterns::getValueById($bingoRounds[$round]->play_type, 'name');
             } else {
                 $prizeType = 'SERIALES';
@@ -1375,7 +1371,7 @@ trait BingoTrait
 
         $prizeCtn = BingoPrizeCtns::getById($ctnId, ['room', 'round', 'prize_type']);
 
-        if ($prizeCtn->prize_type > 1) {
+        if ($prizeCtn->prize_type === 'SONG') {
             $bingoPattern = BingoRounds::getValueByRoom($prizeCtn->room, $prizeCtn->round, 'play_type');
             $checkBoxes = BingoPatterns::getColumnsBoxesById($bingoPattern);
         } else {
@@ -1430,7 +1426,7 @@ trait BingoTrait
         ]);
     }
 
-    function registerPrizeCartonPayment($prizeCtn, $payment, $sender, $filePayment)
+    function registerPrizeCartonPayment($prizeCtn, $payment, $user, $filePayment)
     {
         try {
 
@@ -1441,7 +1437,7 @@ trait BingoTrait
                 'creator_user' => $prizeCtn->creator_user,
                 'seller' => $prizeCtn->seller,
                 'player_link' => PlayerLink::getValueByRoomUser('BINGO', $prizeCtn->room_user, 'id'),
-                'sender' => $sender,
+                'user' => $user,
                 'prize_type' => $prizeCtn->prize_type,
                 'lot' => $prizeCtn->lot,
                 'ctn' => $prizeCtn->ctn,

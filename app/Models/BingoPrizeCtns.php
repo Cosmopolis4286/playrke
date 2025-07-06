@@ -26,6 +26,19 @@ class BingoPrizeCtns extends Model
         'updated_at'
     ];
 
+    protected $appends = ['prize_type_description'];
+
+    public const PRIZE_TYPES = [
+        'FLHE' => 'Cartón Lleno',
+        'SONG' => 'Canto',
+        'SRL' => 'Serial'
+    ];
+
+    public function getPrizeTypeDescriptionAttribute()
+    {
+        return self::PRIZE_TYPES[$this->prize_type] ?? '';
+    }
+
     public function Room()
     {
         return $this->belongsTo(BingoRoom::class, 'room');
@@ -69,11 +82,6 @@ class BingoPrizeCtns extends Model
     public function Payments()
     {
         return $this->hasMany(BingoPrizeCtnsPayment::class, 'prize_ctn', 'id');
-    }
-
-    public function Prize()
-    {
-        return $this->belongsTo(GamePrizes::class, 'prize_type');
     }
 
     public static function getById($ctnId, $fields = ['*'])

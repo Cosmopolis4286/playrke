@@ -40,7 +40,7 @@
                                             </td>
                                             <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
                                             <td>{{ $coinData->iso_code }} {{ $win->amount }}</td>
-                                            <td>{{ $win->Prize->description }}</td>
+                                            <td>{{ $win->prize_type_description }}</td>
                                             <td>
                                                 @if ($win->status == null)
                                                     <span class="badge bg-dark">Pendiente</span>

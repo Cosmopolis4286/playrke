@@ -144,8 +144,9 @@ class TreasurerController extends Controller
                 'phone' => $phoneNumber,
                 'coin' => $request->coin,
                 'country' => $request->country,
-                'status' => 1,
-                'user' => $newUser
+                'user' => $newUser,
+                'code_uuid' => $this->getCodeUUID('Treasurer'),
+                'status' => 1
             ]);
 
             // Registrar Code UUID
