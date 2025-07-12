@@ -1357,9 +1357,6 @@ trait BingoTrait
         // Si no se encuentra el cartón, retornar false
         if (!$ctn) return false;
 
-        // Verificar si es un carton ganador por serial premiado
-        $serialAward = BingoPrizeCtns::where('ctn', $ctnId)->where('prize_type', 'SRL')->exists();
-
         $creatorUser = $ctn->creator_user;
         $creatorUserType = User::getUserTypePrefix($creatorUser);
 
@@ -1376,9 +1373,20 @@ trait BingoTrait
 
         $prizeCtn = BingoPrizeCtns::getById($ctnId, ['room', 'round', 'prize_type']);
 
-        if ($prizeCtn->prize_type === 'SONG') {
-            $bingoPattern = BingoRounds::getValueByRoom($prizeCtn->room, $prizeCtn->round, 'play_type');
+        $roomID = $prizeCtn->room;
+        $round = $prizeCtn->round;
+        $prizeType = $prizeCtn->prize_type;
+
+        // Verificar si es un carton ganador por serial premiado
+        $serialAward = $prizeType === 'SRL' ? true : false;
+
+        if ($prizeType === 'SONG') {
+            $bingoPattern = BingoRounds::getValueByRoom($roomID, $round, 'play_type');
             $checkBoxes = BingoPatterns::getColumnsBoxesById($bingoPattern);
+
+            // Verificar las checkBoxes con respeto al sorteo (draw) de la ronda 
+            $chipDraw = BingoDraws::select('chip')->where('room', $roomID)
+                ->where('round', $round)->pluck('chip')->sort()->toArray();
         } else {
             $checkBoxes = $boxes;
         }
