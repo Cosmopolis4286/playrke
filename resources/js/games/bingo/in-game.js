@@ -271,7 +271,7 @@ $('#cont-left-arrow').on('click', debounce(() => renderChipsView('L'), 300));
 $('#cont-right-arrow').on('click', debounce(() => renderChipsView('R'), 300));
 
 // Ajustar tamaño de las casillas
-function adjustHeightBoxesCtnAward(checkBoxes = []) {
+function adjustHeightBoxesCtnAward() {
     const widthNumberBoxViewCtn = $('.number-box-view-ctn').first().width();
     $('.number-box-view-ctn').height(widthNumberBoxViewCtn);
 }

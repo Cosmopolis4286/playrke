@@ -24,7 +24,9 @@
             @if ($room->Config->rounds)
                 <div id="container-round">Ronda<span id="num-round">#{{ $round }}</span></div>
             @endif
-            <div id="text-game-mode">{{ $bingoPattern }}</div>
+            @if ($bingoPattern)
+                <div id="text-game-mode">{{ $bingoPattern }}</div>
+            @endif
         </div>
     </div>
 </div>

@@ -277,9 +277,7 @@ body {
 #container-round {
     width: auto;
     color: var(--white);
-    padding-top: 0.5%;
-    padding-left: 9.5%;
-    padding-right: 9.5%;
+    padding: 0 1.75vmin;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -297,7 +295,7 @@ body {
 #text-game-mode {
     text-align: center;
     border-radius: 5px;
-    padding: 0 10px;
+    padding: 0 1.85vmin;
     background: linear-gradient(to bottom, #f00034, rgb(145, 0, 0));
     color: var(--white);
     width: 100%;

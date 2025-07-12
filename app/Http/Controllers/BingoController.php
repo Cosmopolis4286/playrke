@@ -704,16 +704,25 @@ class BingoController extends Controller
         // Verificar Cierre de Sala
         (new HandleBingoRooms())->checkRoomClosure($roomID);
 
-        $room = BingoRoom::with('Config:room,date,time,prize_pool_type,rounds')
+        $room = BingoRoom::with('Config:room,date,time,unix_date,prize_pool_type,rounds')
             ->select('id', 'status', 'encrypted')->where('id', $roomID)->first();
 
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
         $bingoRound = BingoRounds::getRoundInProgress($roomID, ['round', 'start_time', 'play_type']);
 
-        $round = $bingoRound->round ?? 1;
-
-        $bingoPattern = BingoPatterns::getValueById($bingoRound->play_type, 'name') ?? '';
+        if ($bingoRound) {
+            $round = $bingoRound->round;
+            $starTime = $bingoRound->start_time;
+            $bingoPattern = 'CARTON LLENO';
+            if ($bingoRound->play_type > 1) {
+                $bingoPattern = BingoPatterns::getValueById($bingoRound->play_type, 'name');
+            }
+        } else {
+            $round = 1;
+            $starTime = $room->Config->unix_date;
+            $bingoPattern = false;
+        }
 
         date_default_timezone_set(config('app.timezone'));
 
@@ -750,7 +759,7 @@ class BingoController extends Controller
                 $randomKey
             ) : [];
 
-        $starTime = $bingoRound->start_time ?? $this->convertToUnixTimestamp($room->Config->date, $room->Config->time);
+        $starTime = $starTime ?? $this->convertToUnixTimestamp($room->Config->date, $room->Config->time);
 
         $prizePool = BingoRoom::getValueById($roomID, 'prize_pool');
 
@@ -3747,7 +3756,7 @@ class BingoController extends Controller
             }
 
             // Ejecutar ficha ganadora
-            $this->registerWinningChips($room);
+            // $this->registerWinningChips($room);
 
             // Actualizar estado de la sala
             BingoRoom::where('id', $room)->update([
@@ -3774,4 +3783,15 @@ class BingoController extends Controller
             ]);
         }
     }
+}
+// VISTA DE INFORMACION DEL BINGO Y RESULTADOS USANDO VUE.JS
+function getGameInfoResults($creator, $data = [])
+{
+    $viewData = [];
+
+    if (isset($moreViewData)) {
+        $viewData = array_merge($viewData, $moreViewData);
+    }
+
+    return ['route' => 'modules.game.bingo.gameInfo.vue', 'data' => $viewData];
 }

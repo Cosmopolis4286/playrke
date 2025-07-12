@@ -63,11 +63,14 @@ function clearMarkedBoxes() {
 }
 
 function markCartonNumbers(data = {}) {
-    const carton = data.carton;
-    let checkBoxes = [];
-
     // Limpiar casillas
     clearMarkedBoxes();
+
+    // Si es un carton premiado por serial retorna 
+    if (data.srl) return;
+
+    const carton = data.carton;
+    let checkBoxes = [];
 
     // Llenar números del carton y crear lista de números a marcar
     Object.entries(carton).forEach(([key, elem]) => {

@@ -797,17 +797,15 @@ trait BingoTrait
         return $this->convertValueByGame('BINGO', $roomID, $data);
     }
 
-    private function registerPrizeCtn($roomID, $round, $cartons, $prizeType, $USDValue)
+    private function registerPrizeCtn($roomID, $round, $cartons, $pattern, $USDValue)
     {
-        $roomType = BingoRoom::getValueById($roomID, 'room_type');
-
-        $prizeType = GamePrizes::getValueByCode('BINGO', $prizeType);
+        if ($pattern !== 'SRL') $pattern = $pattern == 1 ? 'FLHE' : 'SONG';
 
         $recordsToInsert = $playersToUpdate = [];
 
         foreach ($cartons as $ctn) {
 
-            if (!BingoPrizeCtns::existsPrizeCtn($ctn->id)) {
+            if (!BingoPrizeCtns::existsPrizeCtn($ctn->id, $round)) {
 
                 // Definir $roomUser
                 $roomUser = $ctn->room_user;
@@ -828,15 +826,14 @@ trait BingoTrait
                     'round' => $round,
                     'creator_user' => $ctn->creator_user,
                     'seller' => $ctn->seller,
-                    'player_user' => $ctn->player_user,
                     'room_user' => $roomUser,
                     'ctn' => $ctn->id,
                     'lot' => $ctn->lot,
-                    'prize_type' => $prizeType,
+                    'prize_type' => $pattern,
                     'usd_amount' => $USDValue,
                     'coin' => $ctn->coin,
                     'amount' => $prizeAmount,
-                    'status' => null,
+                    'status' => 'WT',
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp
                 ];
@@ -853,25 +850,28 @@ trait BingoTrait
 
         try {
 
-            if (!$playersToUpdate || !$recordsToInsert) return;
+            if ($playersToUpdate && $recordsToInsert) {
 
-            // Actualizar el estado del jugador 
-            BingoRoomUser::where('room', $roomID)
-                ->whereIn('id', $playersToUpdate)->update(['winner' => '1']);
+                // Actualizar el estado del jugador 
+                BingoRoomUser::where('room', $roomID)->where('winner', '0')
+                    ->whereIn('id', $playersToUpdate)->update(['winner' => '1']);
 
-            //Insertar los registros de una sola vez
-            BingoPrizeCtns::insert($recordsToInsert);
+                //Insertar los registros de una sola vez
+                BingoPrizeCtns::insert($recordsToInsert);
 
-            if ($roomType === 'PB') {
-                // Manejar los pagos pendientes de los BingoRoomCreators
-                $this->handlePublicRoomPendingPayments($roomID);
+                $roomType = BingoRoom::getValueById($roomID, 'room_type');
+
+                if ($roomType === 'PB') {
+                    // Manejar los pagos pendientes de los BingoRoomCreators
+                    $this->handlePublicRoomPendingPayments($roomID);
+                }
             }
 
             DB::commit();
             return true;
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error al registrar carton ganador ===> $prizeType [' . $prizeType . '] : ' . $e->getMessage());
+            Log::error('Error al registrar carton ganador ===> $prizeType [' . $pattern . '] : ' . $e->getMessage());
             return false;
         }
     }
@@ -973,10 +973,12 @@ trait BingoTrait
             $lastChip = $bingoRounds[$round]->last_chip;
             $prizeValue = $bingoRounds[$round]->prize_value;
 
-            if ($prizeCtn->prize_type !== 'SRL') {
-                $prizeType = BingoPatterns::getValueById($bingoRounds[$round]->play_type, 'name');
-            } else {
+            if ($prizeCtn->prize_type === 'SRL') {
                 $prizeType = 'SERIALES';
+            } else if ($prizeCtn->prize_type === 'FLHE') {
+                $prizeType = 'CARTON LLENO';
+            } else {
+                $prizeType = BingoPatterns::getValueById($bingoRounds[$round]->play_type, 'name');
             }
 
             $serialCtn = BingoCtns::getValueById($ctnId, 'serial');
@@ -1062,7 +1064,7 @@ trait BingoTrait
     public function handleWinners($roomID)
     {
         $room = BingoRoom::with('Config:room,serials_pct')
-            ->select('id', 'creator_user', 'prize_pool', 'serial_prize')
+            ->select('id', 'creator_user', 'prize_pool', 'serial_prize', 'players')
             ->findOrFail($roomID);
 
         // Validar si ya hay ganadores 
@@ -1080,7 +1082,7 @@ trait BingoTrait
             $roundPrizeValue = ($prizePool * $roundItem->prize_value) / 100;
 
             // Si es la última ronda y hay porcentaje para seriales, ajusta premio
-            if ($roundNumber === $roundsCount && $serialsPct) {
+            if ($roundNumber === $roundsCount && $serialsPct && $room->players > 1) {
                 $serialPrizeValue = ($prizePool * $serialsPct) / 100;
                 $roundPrizeValue -= $serialPrizeValue;
                 $applySerialPrize = true;
@@ -1099,20 +1101,20 @@ trait BingoTrait
                 continue;
             }
 
-            $chipsDrawn = BingoDraws::where('room', $roomID)
+            $chipsDraw = BingoDraws::where('room', $roomID)
                 ->where('round', $roundNumber)
                 ->where('id', '<=', $lastChip->id)
                 ->pluck('chip')
                 ->unique()
                 ->toArray();
 
-            if (count($chipsDrawn) < 24) {
+            if (count($chipsDraw) < 24) {
                 Log::warning("Faltan fichas para validar cartón lleno en la ronda $roundNumber");
                 $this->chipWin($room);
                 continue;
             }
 
-            $winners = $this->findWinners($roomID, $roundItem->id, $chipsDrawn);
+            $winners = $this->findWinners($roomID, $roundItem->id, $chipsDraw);
 
             if ($winners->isEmpty()) {
                 Log::info("Sin ganadores en la ronda $roundNumber de la sala $roomID");
@@ -1355,6 +1357,9 @@ trait BingoTrait
         // Si no se encuentra el cartón, retornar false
         if (!$ctn) return false;
 
+        // Verificar si es un carton ganador por serial premiado
+        $serialAward = BingoPrizeCtns::where('ctn', $ctnId)->where('prize_type', 'SRL')->exists();
+
         $creatorUser = $ctn->creator_user;
         $creatorUserType = User::getUserTypePrefix($creatorUser);
 
@@ -1393,7 +1398,8 @@ trait BingoTrait
         return [
             'carton' => $carton,
             'playerName' => $fullName,
-            'serialCtn' => $ctn->serial
+            'serialCtn' => $ctn->serial,
+            'srl' => $serialAward
         ];
     }
 

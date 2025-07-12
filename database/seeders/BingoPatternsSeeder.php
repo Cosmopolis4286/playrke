@@ -18,7 +18,7 @@ class BingoPatternsSeeder extends Seeder
         $now = Carbon::now();
 
         $plays = [
-            ['type_pattern' => 'UNIQUE', 'name' => 'FULL', 'boxes' => 'ALL', 'status' => 1],
+            ['type_pattern' => 'UNIQUE', 'name' => 'FULL HOUSE', 'boxes' => 'ALL', 'status' => 1],
             ['type_pattern' => 'UNIQUE', 'name' => 'LINEA B1-B5', 'boxes' => 'B1;B2;B3;B4;B5', 'status' => 1],
             ['type_pattern' => 'UNIQUE', 'name' => 'LINEA I1-I5', 'boxes' => 'I1;I2;I3;I4;I5', 'status' => 1],
             ['type_pattern' => 'UNIQUE', 'name' => 'LINEA N1-N5', 'boxes' => 'N1;N2;N4;N5', 'status' => 1],
