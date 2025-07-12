@@ -42,7 +42,7 @@
                                             <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount }}</td>
                                             <td>{{ $win->prize_type_description }}</td>
                                             <td>
-                                                @if ($win->status == null)
+                                                @if ($win->status === 'WT')
                                                     <span class="badge bg-dark">Pendiente</span>
                                                 @elseif($win->status === 'CS')
                                                     <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payments[0]->payment_proof]) }}"

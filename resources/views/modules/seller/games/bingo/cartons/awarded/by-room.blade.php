@@ -56,7 +56,7 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group" role="group" aria-label="Acciones">
-                                                    @if ($win->status == null)
+                                                    @if ($win->status === 'WT')
                                                         <button type="button"
                                                             class="btn btn-danger btn-sm notify-ctn-payment"
                                                             title="Notificar Pago" data-coin_sym="{{ $win->Coin->symbol }}"

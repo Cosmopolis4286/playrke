@@ -217,9 +217,7 @@ trait BingoTrait
 
             // Obtener IDs de la ronda
             $drawIds = BingoDraws::where('room', $room)
-                ->where('round', $roundToUse)
-                ->pluck('id')
-                ->toArray();
+                ->where('round', $roundToUse)->pluck('id')->toArray();
 
             // Asociar IDs con nuevo orden de chips
             $updateData = array_combine($drawIds, array_map('intval', $newDrawOrder));
@@ -256,6 +254,71 @@ trait BingoTrait
         return false;
     }
 
+    /**
+     * Obtiene la última ficha que provocó al menos una coincidencia ganadora en la sala/ronda dada.
+     *
+     * @param int $roomId    ID de la sala de Bingo
+     * @param int $round     Numero de la ronda   
+     * @param int $playType  Tipo de jugada o patron de casillas para ganar
+     * @return string|null   Última ficha ganadora o null si no hubo coincidencias
+     */
+    private function getLastWinningChip(int $roomId, int $round, int $playType): ?string
+    {
+        // Obtener columnas del patrón de juego
+        $columns = ($playType == 1)
+            ? array_diff(BingoCtns::ALL_BOXES, ['N3'])
+            : BingoPatterns::getColumnsBoxesById($playType);
+
+        // Asegurar 'id' como primera columna y evitar duplicados
+        $columns = array_unique(array_merge(['id'], $columns));
+
+        // Índice de fichas => IDs de cartones donde aparecen
+        $chipIndex = [];
+
+        BingoCtns::where('room', $roomId)
+            ->select($columns)
+            ->chunk(100, function ($cartons) use (&$chipIndex) {
+                foreach ($cartons as $carton) {
+                    foreach (collect($carton)->except('id') as $chip) {
+                        if (!is_null($chip)) {
+                            $chipIndex[$chip][] = $carton->id;
+                        }
+                    }
+                }
+            });
+
+        // Fichas jugadas en orden descendente (última primero)
+        $drawnChips = BingoDraws::where('room', $roomId)
+            ->where('round', $round)->orderByDesc('id')
+            ->pluck('chip')->toArray();
+
+        // Seguimiento de coincidencias
+        $matchedCartons = [];
+        $winningChips = [];
+
+        foreach ($drawnChips as $chip) {
+            if (!isset($chipIndex[$chip])) {
+                continue;
+            }
+
+            foreach ($chipIndex[$chip] as $ctnId) {
+                if (!isset($matchedCartons[$ctnId])) {
+                    $matchedCartons[$ctnId] = true;
+                    $winningChips[$chip] = true;
+                }
+            }
+        }
+
+        // Buscar la última ficha que provocó un acierto
+        foreach (array_reverse($drawnChips) as $chip) {
+            if (isset($winningChips[$chip])) {
+                return $chip;
+            }
+        }
+
+        return null;
+    }
+
     public function chipWin($roomId)
     {
         DB::beginTransaction();
@@ -282,69 +345,17 @@ trait BingoTrait
 
                 if (!$playType) continue;
 
-                // Obtener columnas del patrón de juego
-                $columns = ($playType == 1)
-                    ? array_diff(BingoCtns::ALL_BOXES, ['N3'])
-                    : BingoPatterns::getColumnsBoxesById($playType);
+                // Obtiene la última ficha que provocó al menos una coincidencia ganadora
+                $winningChip = $this->getLastWinningChip($roomId, $round, $playType);
 
-                // Asegurar 'id' como primera columna y evitar duplicados
-                $columns = array_unique(array_merge(['id'], $columns));
+                dd($winningChip);
 
-                // Índice de fichas jugadas -> cartones
-                $chipIndex = [];
-
-                BingoCtns::where('room', $roomId)
-                    ->select($columns)
-                    ->chunk(100, function ($cartons) use (&$chipIndex) {
-                        foreach ($cartons as $carton) {
-                            $chips = collect($carton)->except('id');
-                            foreach ($chips as $chip) {
-                                if (!is_null($chip)) {
-                                    $chipIndex[$chip][] = $carton->id;
-                                }
-                            }
-                        }
-                    });
-
-                // Obtener fichas jugadas en orden descendente
-                $drawnChips = BingoDraws::where('room', $roomId)
-                    ->where('round', $round)
-                    ->orderByDesc('id')
-                    ->pluck('chip')
-                    ->toArray();
-
-                $matchedCartons = [];
-                $winningChips = [];
-
-                foreach ($drawnChips as $chip) {
-                    if (isset($chipIndex[$chip])) {
-                        foreach ($chipIndex[$chip] as $ctnId) {
-                            if (!isset($matchedCartons[$ctnId])) {
-                                $matchedCartons[$ctnId] = true;
-                                $winningChips[$chip] = true;
-                            }
-                        }
-                    }
-                }
-
-                // Encontrar la última ficha ganadora
-                $winningChip = null;
-                foreach (array_reverse($drawnChips) as $chip) {
-                    if (isset($winningChips[$chip])) {
-                        $winningChip = $chip;
-                        break;
-                    }
-                }
-
-                if (!$winningChip) continue;
-
-                $chipDraw = BingoDraws::where('room', $roomId)
-                    ->where('round', $round)
-                    ->where('chip', $winningChip)
-                    ->select('id', 'time', 'chip', 'status')
-                    ->first();
+                $chipDraw = BingoDraws::select('id', 'time', 'chip', 'status')
+                    ->where('room', $roomId)->where('round', $round)
+                    ->where('chip', $winningChip)->first();
 
                 if ($chipDraw) {
+
                     $chipDraw->update(['status' => 3]);
 
                     BingoRounds::where('room', $roomId)
@@ -1380,19 +1391,26 @@ trait BingoTrait
         // Verificar si es un carton ganador por serial premiado
         $serialAward = $prizeType === 'SRL' ? true : false;
 
+        // Obtener los números del cartón en un solo array
+        $carton = $ctn->only($boxes);
+
         if ($prizeType === 'SONG') {
             $bingoPattern = BingoRounds::getValueByRoom($roomID, $round, 'play_type');
             $checkBoxes = BingoPatterns::getColumnsBoxesById($bingoPattern);
 
             // Verificar las checkBoxes con respeto al sorteo (draw) de la ronda 
-            $chipDraw = BingoDraws::select('chip')->where('room', $roomID)
-                ->where('round', $round)->pluck('chip')->sort()->toArray();
+            $lastId = BingoDraws::where('room', $roomID)->where('round', $round)
+                ->where('status', 3)->orderByDesc('id')->value('id');
+
+            $chipDraw = $lastId
+                ? BingoDraws::where('room', $roomID)->where('round', $round)
+                ->where('id', '<=', $lastId)->pluck('chip')->toArray()
+                : [];
+
+            dd($checkBoxes, $chipDraw, $carton);
         } else {
             $checkBoxes = $boxes;
         }
-
-        // Obtener los números del cartón en un solo array
-        $carton = $ctn->only($boxes);
 
         // Añadir clave 'check' => true a las casillas dentro de $checkBoxes
         $carton = collect($carton)->mapWithKeys(function ($value, $key) use ($checkBoxes) {

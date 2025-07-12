@@ -44,7 +44,7 @@
                                             <td>{{ $coinData->iso_code }} {{ $win->amount }}</td>
                                             <td>{{ $win->prize_type_description }}</td>
                                             <td class="align-middle">
-                                                @if ($win->status == null)
+                                                @if ($win->status === 'WT')
                                                     <span class="badge bg-secondary">Pendiente</span>
                                                 @elseif($win->status === 'CS')
                                                     <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payments[0]->payment_proof]) }}"
