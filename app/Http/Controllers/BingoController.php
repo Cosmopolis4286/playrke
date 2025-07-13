@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\BingoNumberCalled;
 use App\Traits\UserVal;
 use App\Traits\EncryptRKE;
 use App\Models\Wallet;
@@ -3791,5 +3792,22 @@ class BingoController extends Controller
             'numbers' => [12, 23, 34, 45, 56],
         ];
         return view('modules.game.bingo.game-info', compact('data'));
+    }
+
+    public function callNumber(Request $request, int $roomId)
+    {
+        $number = $request->input('number');
+
+        // Validar el número si es necesario
+        if (!$number || !is_numeric($number)) {
+            return response()->json(['error' => 'Número inválido.'], 400);
+        }
+
+        // Lógica para guardar o validar el número llamado...
+
+        // Disparar evento
+        event(new BingoNumberCalled($number, $roomId));
+
+        return response()->json(['message' => 'Número llamado enviado al canal']);
     }
 }
