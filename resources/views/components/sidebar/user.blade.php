@@ -1,5 +1,9 @@
-@extends('layouts/sections/sidebar/index')
-@section('body')
+@php
+    $countryCode = strtolower(session('countryCode'));
+@endphp
+
+<x-sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Jugador">
+    {{-- Slot de navegación específica para Usuario --}}
     <li class="nav-item has-treeview">
         <a href="{{ route('directory.index', ['countryCode' => strtolower(session('countryCode'))]) }}" title="Directorio"
             class="nav-link  {{ !Route::is('directory.index') ?: 'active' }}">
@@ -13,4 +17,4 @@
             <p>Bingo</p>
         </a>
     </li>
-@endsection
+</x-sidebar>

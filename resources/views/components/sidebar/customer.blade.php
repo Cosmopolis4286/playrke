@@ -1,7 +1,9 @@
-{{-- Cliente --}}
-@extends('layouts/sections/sidebar/index')
-@section('user-type', 'Cliente')
-@section('body')
+@php
+    $countryCode = strtolower(session('countryCode'));
+@endphp
+
+<x-sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Cliente">
+    {{-- Slot de navegación específica para Cliente --}}
     <li class="nav-item has-treeview">
         <a href="{{ route('exchange-rate.index', ['creatorType' => 'customer']) }}" title="Tasa de Cambio"
             class="nav-link  {{ !Route::is('exchange-rate.index') ?: 'active' }}">
@@ -10,7 +12,8 @@
         </a>
     </li>
     <li class="nav-item has-treeview">
-        <a href="{{ route('iframe.index') }}" title="Iframes" class="nav-link  {{ !Route::is('iframe.index') ?: 'active' }}">
+        <a href="{{ route('iframe.index') }}" title="Iframes"
+            class="nav-link  {{ !Route::is('iframe.index') ?: 'active' }}">
             <i class="nav-icon fa-regular fa-file-code"></i>
             <p>Iframes</p>
         </a>
@@ -32,5 +35,4 @@
             </li>
         </ul>
     </li>
-@endsection
-{{-- Comercializadora --}}
+</x-sidebar>

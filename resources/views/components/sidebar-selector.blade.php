@@ -3,29 +3,30 @@
 @endphp
 
 @switch($creatorTypePrefix)
-    {{-- @case('user')
-        <x-sidebar-user />
-    @break --}}
+    @case('admin')
+        <x-sidebar.admin />
+    @break
 
-    {{-- @case('admin')
-        <x-sidebar-admin />
-    @break --}}
     @case('commerce')
     @case('subsidiary')
         <x-sidebar.commerce />
     @break
 
-    @case('seller')
-        <x-sidebar-seller />
+    @case('customer')
+        <x-sidebar.customer />
     @break
 
-    {{-- @case('customer')
-        <x-sidebar-customer />
+    @case('seller')
+        <x-sidebar.seller />
     @break
 
     @case('treasurer')
-        <x-sidebar-treasurer />
-    @break --}}
+        <x-sidebar.treasurer />
+    @break
+
+    @case('user')
+        <x-sidebar.user />
+    @break
 
     @default
         {{-- Puedes mostrar un mensaje o no renderizar nada --}}

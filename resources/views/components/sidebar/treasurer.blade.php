@@ -1,7 +1,9 @@
-{{-- Comercializadora --}}
-@extends('layouts/sections/sidebar/index')
-@section('user-type', 'Tesorero')
-@section('body')
+@php
+    $countryCode = strtolower(session('countryCode'));
+@endphp
+
+<x-sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Tesorero">
+    {{-- Slot de navegación específica para Tesorero --}}
     <li class="nav-item has-treeview">
         <a href="{{ route('directory.index', ['countryCode' => strtolower(session('countryCode'))]) }}" title="Directorio"
             class="nav-link  {{ !Route::is('directory.index') ?: 'active' }}">
@@ -41,8 +43,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('bingo.ctnsAwarded', ['type' => 'private', 'dateFilter' => 'today']) }}" title="Ganadores"
-                    class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
+                <a href="{{ route('bingo.ctnsAwarded', ['type' => 'private', 'dateFilter' => 'today']) }}"
+                    title="Ganadores" class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Ganadores</p>
                 </a>
@@ -63,5 +65,4 @@
             </li>
         </ul>
     </li>
-@endsection
-{{-- Comercializadora --}}
+</x-sidebar>
