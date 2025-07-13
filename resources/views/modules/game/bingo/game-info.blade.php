@@ -1,4 +1,4 @@
-@extends('layouts.layout-online_off')
+@extends('layouts.layout-offline')
 
 @section('styles')
     @vite(['resources/css/games/bingo/bingo-game-rooms.css'])
