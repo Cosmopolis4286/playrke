@@ -87,19 +87,18 @@
             const loader = document.getElementById('app-loader');
             const appWrapper = document.getElementById('app-wrapper');
             if (loader) loader.style.display = 'none';
-            if (appWrapper) appWrapper.style.display = 'block';
+            if (appWrapper) appWrapper.classList.remove('d-none');
         }
 
-        // Si Vue está integrado, espera a que se monte completamente
+        // Función que Vue llamará cuando esté lista
         window.vueAppIsReady = showApp;
 
-        // Si Vue aún no está montando nada, muestra después de timeout corto
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                if (!window._vueMounted) {
-                    showApp();
-                }
-            }, 150); // pequeño delay para dejar cargar Vite
+        // Mostrar solo cuando **todo** (DOM + recursos) esté cargado
+        window.addEventListener('load', () => {
+            // Si Vue no montó todavía, mostramos igual después del load
+            if (!window._vueMounted) {
+                showApp();
+            }
         });
     })();
 </script>

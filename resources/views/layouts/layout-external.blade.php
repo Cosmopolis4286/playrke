@@ -46,7 +46,7 @@
                 </div>
             </div>
         </div>
-        @include('layouts/modals/tap')
+        <x-modals.app-info />
     </main>
 
     <script src="https://www.google.com/recaptcha/api.js"></script>
@@ -71,7 +71,7 @@
                     },
                     success: function(response) {
                         $(".modal-body").html(response);
-                        $("#tap").modal("show");
+                        $("#app-info").modal("show");
                     },
                     error: function() {
                         console.log("No se pudo cargar el contenido.");

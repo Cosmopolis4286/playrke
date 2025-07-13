@@ -1,17 +1,66 @@
-<div id="app-loader"
-    style="
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #ffffff;
-        z-index: 9999;
-    ">
-    <div style="text-align:center;">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Cargando...</span>
+<div id="app-loader" class="app-loader" role="alert" aria-busy="true" aria-live="polite">
+    <div class="loader-content">
+        <div class="spinner-border text-primary loader-spinner" role="status" aria-hidden="true">
+            <img src="{{ asset('img/rke.png') }}" alt="Logo PlayRKE" class="loader-spin" />
         </div>
-        <div style="margin-top:10px;">Cargando la aplicación...</div>
+        <div class="loader-text">Cargando la aplicación...</div>
     </div>
 </div>
+
+<style>
+    .app-loader {
+        position: fixed;
+        inset: 0;
+        background-color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .loader-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .loader-spinner {
+        width: 70px;
+        height: 70px;
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .loader-spin {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        max-height: 36px;
+        transform-origin: center;
+        transform: translate(-50%, -50%) rotate(0deg);
+        animation: spin 2s linear infinite;
+    }
+
+    .loader-text {
+        font-size: 1rem;
+        color: #333;
+    }
+
+    @keyframes spin {
+        from {
+            transform: translate(-50%, -50%) rotate(0deg);
+        }
+
+        to {
+            transform: translate(-50%, -50%) rotate(360deg);
+        }
+    }
+
+    /* Ocultar el SVG del spinner de Bootstrap */
+    .spinner-border>svg {
+        display: none;
+    }
+</style>

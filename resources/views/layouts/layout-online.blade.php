@@ -2,14 +2,16 @@
 <html lang="en">
 <x-head />
 
-<body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
+<body
+    class="d-flex flex-column min-vh-100 hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
     @routes
     <!-- Loader al iniciar -->
     <x-app-loader />
     <!-- Contenido oculto hasta que Vue esté montado o scripts cargados -->
-    <div id="app-wrapper" style="display: none;">
+    <div id="app-wrapper" class="flex-grow-1 d-none">
         {{-- Navbar --}}
         <x-navbar />
+        <x-modals.change-password />
         {{-- Sidebar --}}
         <x-sidebar-selector />
         {{-- SweetAlert Notifications --}}
