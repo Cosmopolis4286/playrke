@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>Retirar USDT - Blockchain</title>
 @section('content')
     <div class="row">

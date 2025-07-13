@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>Retirar Saldo - Pago Móvil</title>
 @section('content')
     <div class="row">

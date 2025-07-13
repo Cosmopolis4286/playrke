@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>Historial de Jugadas - PlayRKE</title>
 @section('content')
     <div class="row">

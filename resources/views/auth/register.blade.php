@@ -1,4 +1,4 @@
-@extends('layouts.app-auth-pages')
+@extends('layouts.layout-external')
 @section('title', 'Registro')
 @section('content')
     <form action="{{ route('register') }}" method="post" id="form-register">@csrf

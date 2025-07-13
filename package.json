@@ -34,7 +34,9 @@
         "vite-plugin-obfuscator": "^1.0.5"
     },
     "dependencies": {
+        "@popperjs/core": "^2.11.8",
         "@vitejs/plugin-vue": "^5.2.4",
+        "bootstrap": "^5.3.7",
         "crypto-js": "^4.2.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",

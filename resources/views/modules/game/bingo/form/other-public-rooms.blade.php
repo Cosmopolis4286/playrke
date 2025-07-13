@@ -19,7 +19,7 @@
         'size' => 'md',
         'dataForm' => view('modules.game.bingo.form.body-other-public-rooms', ['creator' => $creator])->render(),
     ])
-    @include('includes.games.bingo.layout.modal-other-bingo-rooms')
+    @include('includes.games.bingo.layouts.modal-other-bingo-rooms')
     @include('includes.form-other-options')
 @endsection
 @section('scripts')

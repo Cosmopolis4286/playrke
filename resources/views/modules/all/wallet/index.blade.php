@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', 'Monedero')
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/styles-rke.css') }}">

@@ -203,7 +203,7 @@ class BingoController extends Controller
         $creator['id'] = encrypt($creator['id']);
 
         $viewData = [
-            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'layout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-online_off',
             'title' => 'Bingo Salas de Juego',
             'coinSym' => $coinSym,
             'coin' => encrypt($coin),
@@ -765,7 +765,7 @@ class BingoController extends Controller
         $prizePool = BingoRoom::getValueById($roomID, 'prize_pool');
 
         $viewData = [
-            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'layout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-online_off',
             'title' => 'BingoCash',
             'isLogin' => $isLogin,
             'creatorType' => $creator['type'],
@@ -1019,7 +1019,7 @@ class BingoController extends Controller
 
     private function getGameRoomsInfo($creator, $coin, $roomType)
     {
-        app(HandleBingoRooms::class)->checkRoomClosure();
+        //app(HandleBingoRooms::class)->checkRoomClosure();
 
         $view = $roomType === 'private-rooms' ? 'private' : 'public';
 
@@ -1117,7 +1117,7 @@ class BingoController extends Controller
         $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $viewData = [
-            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'layout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-online_off',
             'title' => 'Salas de Bingo',
             'subtitle' => $view === 'private' ? 'Privadas' : 'Publicas',
             'view' => strtoupper($view),
@@ -1144,7 +1144,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.form.index', 'data' => $viewData];
+        return ['route' => 'modules.game.bingo.summary.index', 'data' => $viewData];
     }
 
     public function allRooms($roomType, $creatorType, $creatorID = '', $coin = '')
@@ -1747,7 +1747,7 @@ class BingoController extends Controller
         }
 
         $viewData = [
-            'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'layout' => !$userToken ? 'layouts.layout-online' : 'layouts.layout-online_off',
             'title' => 'Bingo Configuración',
             'userToken' => $userToken,
             'rulesID' => $rulesID,
@@ -2143,7 +2143,7 @@ class BingoController extends Controller
         $bingoPatterns = BingoPatterns::where('user', $user)->where('status', '<>', 'DELETED')->get();
 
         $viewData = [
-            'layout' => !$userToken ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'layout' => !$userToken ? 'layouts.layout-online' : 'layouts.layout-online_off',
             'title' => 'Bingo Configuración',
             'name' => 'bingo-patterns',
             'userToken' => $userToken,
@@ -2534,7 +2534,7 @@ class BingoController extends Controller
         $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $viewData = [
-            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'layout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-online_off',
             'title' => 'Salas de Bingo',
             'name' => 'bingo-automatic-room',
             'returnBtn' => $returnBtn ?? true,
@@ -2642,7 +2642,7 @@ class BingoController extends Controller
         ];
 
         $viewData = [
-            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'layout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-online_off',
             'title' => 'Salas de Bingo',
             'subtitle' => 'Otras Salas Publicas',
             'name' => 'bingo',

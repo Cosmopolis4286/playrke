@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', 'Wallet')
 @section('content')
     <div class="row">

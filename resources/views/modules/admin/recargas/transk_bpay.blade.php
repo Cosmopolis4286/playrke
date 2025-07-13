@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>PlayRKE - DP Binance</title>
 @section('fnd-content')
     <div class="content-wrapper">

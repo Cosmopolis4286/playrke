@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>Juegos USDT - PlayRKE</title>
 @section('fnd-content')
     <div class="content-wrapper" style="background-image: url(../../img-noise-480x400.png);">

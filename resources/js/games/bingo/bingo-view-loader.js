@@ -6,6 +6,7 @@ const props = window.bingoProps || {}
 
 const views = {
     GameInfo: () => import('./views/GameInfo.vue'),
+    Summary: () => import('./views/Summary.vue'),
     // agrega más vistas aquí según crezcan tus componentes
 }
 

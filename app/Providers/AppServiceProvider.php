@@ -2,10 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\UserType;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Log\Events\MessageLogged;
-use App\Listeners\ChangeLogPermissionsListener;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +26,17 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
-        //Event::listen(MessageLogged::class, ChangeLogPermissionsListener::class);
+
+        // Inyectar $creatorTypePrefix en todas las vistas
+        View::composer('*', function ($view) {
+            $prefix = null;
+
+            if (Auth::check()) {
+                $userTypeId = Auth::user()->user_type;
+                $prefix = UserType::getValueById($userTypeId, 'prefix');
+            }
+
+            $view->with('creatorTypePrefix', $prefix);
+        });
     }
 }

@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', $title)
 @section('content')
     <div class="col-md-9 col-lg-6 m-auto" style="max-width:535px">

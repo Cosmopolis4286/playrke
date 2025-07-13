@@ -1,10 +1,13 @@
-@extends('layouts.app_rke_off')
+@extends('layouts.layout-online_off')
 
 @section('styles')
-    @vite(['resources/css/rke/styles.css', 'resources/css/games/bingo/bingo-game-rooms.css', 'resources/js/games/bingo/bingo-view-loader.js'])
+    @vite(['resources/css/games/bingo/bingo-game-rooms.css'])
 @endsection
 
+@section('title', 'BingoPlay')
+
 @section('scripts')
+    @vite('resources/js/games/bingo/bingo-view-loader.js')
     <script>
         window.currentBingoView = 'GameInfo';
         window.bingoProps = {

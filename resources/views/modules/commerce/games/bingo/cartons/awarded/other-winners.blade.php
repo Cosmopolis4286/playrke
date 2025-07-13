@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', $title)
 
 @section('content')
@@ -26,7 +26,7 @@
         'formId' => 'ctn-payment',
         'formRoute' => route('bingo.notifyPaymentPrizeWinningCtn'),
     ])
-    @include('includes.games.bingo.layout.modal-other-bingo-rooms-pending-payments')
+    @include('includes.games.bingo.layouts.modal-other-bingo-rooms-pending-payments')
 @endsection
 @section('scripts')
 @endsection
