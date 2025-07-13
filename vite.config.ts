@@ -1,3 +1,4 @@
+// vite.config.ts
 import { defineConfig } from 'vite'
 import laravel from 'laravel-vite-plugin'
 import vue from '@vitejs/plugin-vue'
@@ -19,11 +20,11 @@ const cssFiles = [
 // Archivos JS globales
 const globalJsFiles = [
     'resources/js/app.js',
-    'resources/js/rke/toast-notify.js',
+    'resources/js/rke/toast-notify.ts',
     'resources/js/rke/register.js',
     'resources/js/rke/rke-crypt.js',
     'resources/js/rke/get-uuid.js',
-    'resources/js/rke/rke-functions.js',
+    'resources/js/rke/rke-functions.ts',  
     'resources/js/rke/time-functions.js',
     'resources/js/rke/format-daQte-time-unix.js',
     'resources/js/rke/switch-payment-method.js',
@@ -31,25 +32,35 @@ const globalJsFiles = [
 ]
 
 // Función para detectar bundles helpers y main por juego
-function getGameBundles() {
+function getGameBundles(): { helpers: string[]; mains: string[] } {
     const gamesPath = path.resolve(__dirname, 'resources/js/games')
-    const helpers = []
-    const mains = []
+    const helpers: string[] = []
+    const mains: string[] = []
 
     if (fs.existsSync(gamesPath)) {
         const games = fs
             .readdirSync(gamesPath, { withFileTypes: true })
-            .filter((dirent) => dirent.isDirectory())
-            .map((dirent) => dirent.name)
+            .filter(dirent => dirent.isDirectory())
+            .map(dirent => dirent.name)
 
         for (const game of games) {
             const basePath = path.join(gamesPath, game)
 
-            const helperFile = path.join(basePath, `${game}.js`)
-            if (fs.existsSync(helperFile)) helpers.push(`resources/js/games/${game}/${game}.js`)
+            const helperFile = path.join(basePath, `${game}.ts`) // mira a TS primero
+            if (fs.existsSync(helperFile)) {
+                helpers.push(`resources/js/games/${game}/${game}.ts`)
+            } else {
+                const helperJs = path.join(basePath, `${game}.js`) // fallback a JS
+                if (fs.existsSync(helperJs)) helpers.push(`resources/js/games/${game}/${game}.js`)
+            }
 
-            const mainFile = path.join(basePath, `${game}-main.js`)
-            if (fs.existsSync(mainFile)) mains.push(`resources/js/games/${game}/${game}-main.js`)
+            const mainFileTs = path.join(basePath, `${game}-main.ts`)
+            if (fs.existsSync(mainFileTs)) {
+                mains.push(`resources/js/games/${game}/${game}-main.ts`)
+            } else {
+                const mainFileJs = path.join(basePath, `${game}-main.js`)
+                if (fs.existsSync(mainFileJs)) mains.push(`resources/js/games/${game}/${game}-main.js`)
+            }
         }
     }
 
@@ -71,11 +82,10 @@ export default defineConfig(({ mode }) => {
             }),
             vue(),
             vueJsx(),
-            // Plugins solo para producción
             ...(isProduction
                 ? [
                     obfuscatorPlugin({
-                        include: ['resources/js/**/*.js', 'resources/js/**/*.tsx'],
+                        include: ['resources/js/**/*.ts', 'resources/js/**/*.tsx', 'resources/js/**/*.js'],
                         exclude: [/node_modules/],
                         apply: 'build',
                         options: {

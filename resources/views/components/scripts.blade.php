@@ -81,7 +81,30 @@
         $(this).val(phoneNumber);
     });
 
-    // Control de visibilidad: espera a que DOM + scripts estén cargados 
+    // Selecciona todos los elementos con clase 'logout-btn'
+    document.querySelectorAll('.logout-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            fetch("{{ route('logout') }}", {
+                    method: "POST",
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '{{ route('login') }}';
+                    } else {
+                        alert('Error al cerrar sesión');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                });
+        });
+    });
+
+    // Control de visibilidad: espera a que DOM + scripts estén cargados
     (function() {
         function showApp() {
             const loader = document.getElementById('app-loader');

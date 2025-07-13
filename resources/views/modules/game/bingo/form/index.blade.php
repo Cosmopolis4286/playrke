@@ -44,6 +44,7 @@
     @endif
 @endsection
 @section('scripts')
+@vite('resources/js/rke/rke-functions.ts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
         const name = @json($name);

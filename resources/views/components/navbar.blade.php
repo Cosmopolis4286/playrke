@@ -64,11 +64,7 @@
                 <button id="change-password" class="dropdown-item" type="button" data-type="change_pwd">
                     <i class="mr-1 fa-solid fa-lock"></i> Contraseña
                 </button>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                    @csrf
-                </form>
-                <button type="button" class="dropdown-item"
-                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                <button type="button" class="dropdown-item logout-btn">
                     <i class="mr-1 nav-icon fas fa-sign-out-alt"></i> Cerrar sesión
                 </button>
             </div>

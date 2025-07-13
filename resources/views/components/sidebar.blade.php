@@ -120,14 +120,10 @@
                 </li>
 
                 <li class="nav-item has-treeview">
-                    <a href="#" class="nav-link"
-                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <a href="#" class="nav-link logout-btn">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
                         <p>Cerrar sesión</p>
                     </a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                        @csrf
-                    </form>
                 </li>
 
                 <li class="mt-2 nav-item text-center">
