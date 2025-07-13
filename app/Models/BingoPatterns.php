@@ -36,27 +36,32 @@ class BingoPatterns extends Model
     {
         $bingoPattern = self::select('type_pattern', 'boxes')->find($id);
 
-        if (!$bingoPattern || !$bingoPattern->boxes) {
+        if (empty($bingoPattern?->boxes)) {
             return [];
+        }
+
+        $typePattern = $bingoPattern->type_pattern;
+
+        if ($typePattern === 'UNIQUE') {
+            $columns = explode(';', $bingoPattern->boxes);
+            // Si se desea mantener la estructura con una única clave para UNIQUE
+            return [
+                'type' => $typePattern,
+                'columns' => array_values(array_unique(array_filter($columns)))
+            ];
         }
 
         $columns = [];
 
-        if ($bingoPattern->type_pattern === 'UNIQUE') {
-            $columns = explode(';', $bingoPattern->boxes);
-        } else {
-            $patternIds = explode(';', $bingoPattern->boxes);
+        foreach (explode(';', $bingoPattern->boxes) as $patternId) {
+            $boxes = self::getValueById($patternId, 'boxes');
 
-            foreach ($patternIds as $patternId) {
-                $boxes = self::getValueById($patternId, 'boxes');
-
-                if ($boxes) {
-                    $columns = array_merge($columns, explode(';', $boxes));
-                }
+            if ($boxes) {
+                $boxArray = array_values(array_unique(array_filter(explode(';', $boxes))));
+                $columns[$patternId] = $boxArray;
             }
         }
 
-        // Eliminar duplicados y vacíos
-        return array_values(array_unique(array_filter($columns)));
+        return ['type' => $typePattern, 'columns' => $columns];
     }
 }

@@ -36,6 +36,7 @@ use App\Services\Game\Bingo\HandleBingoRooms;
 use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 
 trait BingoTrait
@@ -254,54 +255,146 @@ trait BingoTrait
         return false;
     }
 
-    /**
-     * Obtiene la última ficha que provocó al menos una coincidencia ganadora en la sala/ronda dada.
-     *
-     * @param int $roomId    ID de la sala de Bingo
-     * @param int $round     Numero de la ronda   
-     * @param int $playType  Tipo de jugada o patron de casillas para ganar
-     * @return string|null   Última ficha ganadora o null si no hubo coincidencias
-     */
-    private function getLastWinningChip(int $roomId, int $round, int $playType): ?string
+    private static function buildChipIndex(int $roomId, int $playType, int $chunkSize = 100): array
     {
-        // Obtener columnas del patrón de juego
-        $columns = ($playType == 1)
-            ? array_diff(BingoCtns::ALL_BOXES, ['N3'])
+        $bingoPattern = ($playType == 1)
+            ? ['type' => 'UNIQUE', 'columns' => array_diff(BingoCtns::ALL_BOXES, ['N3'])]
             : BingoPatterns::getColumnsBoxesById($playType);
 
-        // Asegurar 'id' como primera columna y evitar duplicados
-        $columns = array_unique(array_merge(['id'], $columns));
+        if (empty($bingoPattern['type']) || empty($bingoPattern['columns'])) {
+            throw new ModelNotFoundException("No se encontró patrón válido para playType: $playType");
+        }
 
-        // Índice de fichas => IDs de cartones donde aparecen
         $chipIndex = [];
 
-        BingoCtns::where('room', $roomId)
-            ->select($columns)
-            ->chunk(100, function ($cartons) use (&$chipIndex) {
-                foreach ($cartons as $carton) {
-                    foreach (collect($carton)->except('id') as $chip) {
-                        if (!is_null($chip)) {
-                            $chipIndex[$chip][] = $carton->id;
+        try {
+            if ($bingoPattern['type'] === 'GROUP') {
+                $groupedColumns = $bingoPattern['columns'];
+                $columnsToSelect = array_unique(array_merge(['id'], ...array_values($groupedColumns)));
+
+                BingoCtns::where('room', $roomId)
+                    ->select($columnsToSelect)
+                    ->chunk($chunkSize, function ($cartons) use (&$chipIndex, $groupedColumns, $playType) {
+                        foreach ($cartons as $carton) {
+                            foreach ($groupedColumns as $groupId => $columns) {
+                                foreach ($columns as $column) {
+                                    $chip = $carton->$column ?? null;
+                                    if ($chip !== null) {
+                                        $chipIndex[$playType][$groupId][$column][$chip][] = $carton->id;
+                                    }
+                                }
+                            }
                         }
+                    });
+            } else {
+                $columns = array_unique(array_merge(['id'], $bingoPattern['columns']));
+
+                BingoCtns::where('room', $roomId)
+                    ->select($columns)
+                    ->chunk($chunkSize, function ($cartons) use (&$chipIndex, $playType, $bingoPattern) {
+                        foreach ($cartons as $carton) {
+                            foreach ($bingoPattern['columns'] as $column) {
+                                $chip = $carton->$column ?? null;
+                                if ($chip !== null) {
+                                    $chipIndex[$playType][$column][$chip][] = $carton->id;
+                                }
+                            }
+                        }
+                    });
+            }
+        } catch (\Exception $e) {
+            Log::error("Error al construir chipIndex: " . $e->getMessage(), compact('roomId', 'playType'));
+            throw $e;
+        }
+
+        return $chipIndex;
+    }
+
+    private function getLastWinningChip(int $roomId, int $round, int $playType): ?string
+    {
+        $chipIndex = $this->buildChipIndex($roomId, $playType);
+
+        if (empty($chipIndex[$playType])) {
+            Log::warning("Índice de fichas vacío para roomId={$roomId}, playType={$playType}");
+            return null;
+        }
+
+        $indexedData = $chipIndex[$playType];
+
+        // Detectamos si es GROUP (grupoId => columnas => chips)
+        $firstSub = reset($indexedData);
+        $isGroup = is_array($firstSub) && is_array(reset($firstSub));
+
+        if ($isGroup) {
+            // Evaluamos por cada grupo
+            foreach ($indexedData as $groupId => $columns) {
+
+                $flatGroupChipIndex = [];
+
+                foreach ($columns as $column => $chips) {
+                    foreach ($chips as $chip => $cartonIds) {
+                        $flatGroupChipIndex[$chip] = array_merge($flatGroupChipIndex[$chip] ?? [], $cartonIds);
                     }
                 }
-            });
 
+                // Eliminar duplicados por ficha
+                foreach ($flatGroupChipIndex as &$cartons) {
+                    $cartons = array_unique($cartons);
+                }
+                unset($cartons);
+
+                // Buscar última ficha que generó coincidencia dentro de este grupo
+                $lastChip = $this->getLastMatchingChip($roomId, $round, $flatGroupChipIndex);
+                if ($lastChip !== null) {
+                    return $lastChip;
+                }
+            }
+
+            return null;
+        }
+
+        // UNIQUE
+        $flatChipIndex = [];
+        foreach ($indexedData as $column => $chips) {
+            foreach ($chips as $chip => $cartonIds) {
+                $flatChipIndex[$chip] = array_merge($flatChipIndex[$chip] ?? [], $cartonIds);
+            }
+        }
+
+        foreach ($flatChipIndex as &$cartons) {
+            $cartons = array_unique($cartons);
+        }
+        unset($cartons);
+
+        return $this->getLastMatchingChip($roomId, $round, $flatChipIndex);
+    }
+
+    /**
+     * Devuelve la última ficha jugada que provocó al menos una coincidencia en cartones.
+     *
+     * @param int $roomId
+     * @param int $round
+     * @param array $flatChipIndex [chip => array de cartonIds]
+     * @return string|null
+     */
+    private function getLastMatchingChip(int $roomId, int $round, array $flatChipIndex): ?string
+    {
         // Fichas jugadas en orden descendente (última primero)
         $drawnChips = BingoDraws::where('room', $roomId)
-            ->where('round', $round)->orderByDesc('id')
-            ->pluck('chip')->toArray();
+            ->where('round', $round)
+            ->orderByDesc('id')
+            ->pluck('chip')
+            ->toArray();
 
-        // Seguimiento de coincidencias
         $matchedCartons = [];
         $winningChips = [];
 
         foreach ($drawnChips as $chip) {
-            if (!isset($chipIndex[$chip])) {
+            if (empty($flatChipIndex[$chip])) {
                 continue;
             }
 
-            foreach ($chipIndex[$chip] as $ctnId) {
+            foreach ($flatChipIndex[$chip] as $ctnId) {
                 if (!isset($matchedCartons[$ctnId])) {
                     $matchedCartons[$ctnId] = true;
                     $winningChips[$chip] = true;
@@ -309,7 +402,7 @@ trait BingoTrait
             }
         }
 
-        // Buscar la última ficha que provocó un acierto
+        // Buscar la última ficha (cronológicamente más antigua) que causó acierto
         foreach (array_reverse($drawnChips) as $chip) {
             if (isset($winningChips[$chip])) {
                 return $chip;

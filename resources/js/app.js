@@ -1,5 +1,6 @@
-import './bootstrap';
+import './bootstrap'
 
-import { route } from 'ziggy-js';
+import { route } from 'ziggy-js'
 
-window.route = route;
+// Ziggy global
+window.route = route

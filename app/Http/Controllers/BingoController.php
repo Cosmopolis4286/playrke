@@ -3783,15 +3783,13 @@ class BingoController extends Controller
             ]);
         }
     }
-}
-// VISTA DE INFORMACION DEL BINGO Y RESULTADOS USANDO VUE.JS
-function getGameInfoResults($creator, $data = [])
-{
-    $viewData = [];
 
-    if (isset($moreViewData)) {
-        $viewData = array_merge($viewData, $moreViewData);
+    public function showGameInfo()
+    {
+        $data = [
+            'round' => 5,
+            'numbers' => [12, 23, 34, 45, 56],
+        ];
+        return view('modules.game.bingo.game-info', compact('data'));
     }
-
-    return ['route' => 'modules.game.bingo.gameInfo.vue', 'data' => $viewData];
 }

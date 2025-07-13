@@ -295,6 +295,7 @@ Route::group(['prefix' => 'bingo-patterns', 'as' => 'bingo-patterns.'], function
 });
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
+    Route::get('showGameInfo', [BingoController::class, 'showGameInfo'])->name('showGameInfo');
     Route::get('configuration/patterns/{userToken?}', [BingoController::class, 'bingoPatterns'])->name('bingoPatterns');
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
 
