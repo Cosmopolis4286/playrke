@@ -141,7 +141,7 @@
     ])
 @endsection
 @section('scripts')
-    @vite('resources/js/rke/time-functions.js')
+    @vite('resources/js/helpers/time-functions.js')
     <script>
         const form = $("#form-ctns");
         const room = $("#room");

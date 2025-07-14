@@ -37,7 +37,7 @@
 
 @section('scripts')
     <script src="{{ asset('js/crypto-js.min.js') }}"></script>
-    @vite('resources/js/rke/time-functions.js')
+    @vite('resources/js/helpers/time-functions.js')
 
     <script>
         const preRoute = '{{ asset('') }}';
@@ -66,7 +66,7 @@
             let gameStartTime = @json($startTime);
             let amount = ctnPrice;
         </script>
-        @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'])
+        @vite(['resources/js/helpers/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'])
     @endif
     @if ($room->status > 2)
         <script>
@@ -87,7 +87,7 @@
             soundNext.muted = true;
             soundWin.muted = true;
         </script>
-        @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
+        @vite(['resources/js/helpers/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
         @if ($room->Config->play_types)
             @vite('resources/js/games/bingo/includes/handle-bingo-patterns.js')
         @endif

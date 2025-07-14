@@ -88,7 +88,7 @@
     </div>
 @endsection
 @section('scripts')
-    @vite('resources/js/rke/register.js')
+    @vite('resources/js/helpers/register.js')
     <script>
         const list = $('#dropdown_list');
         const dropdownSelect = $('#dropdown_select');

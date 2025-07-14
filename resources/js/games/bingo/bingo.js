@@ -2,7 +2,7 @@
 
 // Importar scripts auxiliares (lógica no Vue)
 import './helpers/form.js';
-import './helpers/ctn-price-coins.js';
+import './helpers/coinPriceConfig.ts';
 import './helpers/rounds-config.js';
 import './helpers/in-game.js';
 import './helpers/adjust-height-boxes.js';

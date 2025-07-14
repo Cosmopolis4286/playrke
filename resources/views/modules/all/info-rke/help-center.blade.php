@@ -116,5 +116,5 @@
     @include('layouts/modals/report')
 @endsection
 @section('scripts')
-    @vite('resources/js/rke/faq.js')
+    @vite('resources/js/helpers/faq.js')
 @endsection

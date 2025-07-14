@@ -83,7 +83,7 @@
 @endsection
 
 @section('scripts')
-    @vite('resources/js/rke/format-date-time-unix.js')
+    @vite('resources/js/helpers/format-date-time-unix.js')
     <script>
         const creator = @json($creator);
         const coin = @json($coin ?? null);

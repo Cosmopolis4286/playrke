@@ -40,7 +40,7 @@
         function insertInfo(type, data = '') {
             if (type !== 2) return;
 
-            getCtnPriceCoin(data.room.encrypted);
+            getCtnPriceCoin(data.room.encrypted, creation, creatorType, creatorID);
 
             $('#ctn-price').val(data.creator?.ctn_price ?? data.config?.ctn_price);
             $('#room-commn').val(data.creator?.creator_commn ?? data.config?.room_commn);

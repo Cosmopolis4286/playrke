@@ -1,12 +1,11 @@
-// vite.config.ts
-import { defineConfig } from 'vite'
-import laravel from 'laravel-vite-plugin'
-import vue from '@vitejs/plugin-vue'
-import vueJsx from '@vitejs/plugin-vue-jsx'
-import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator'
-import { visualizer } from 'rollup-plugin-visualizer'
-import fs from 'fs'
-import path from 'path'
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import vue from '@vitejs/plugin-vue';
+import vueJsx from '@vitejs/plugin-vue-jsx';
+import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator';
+import { visualizer } from 'rollup-plugin-visualizer';
+import fs from 'fs';
+import path from 'path';
 
 // Archivos CSS globales
 const cssFiles = [
@@ -15,64 +14,59 @@ const cssFiles = [
     'resources/css/games/bingo/bingo-game-rooms.css',
     'resources/css/games/bingo/bingo-in-game.css',
     'resources/css/games/bingo/bingo-handle-patterns.css',
-]
+];
 
 // Archivos JS globales
 const globalJsFiles = [
     'resources/js/app.js',
-    'resources/js/rke/toast-notify.ts',
-    'resources/js/rke/register.js',
-    'resources/js/rke/rke-crypt.js',
-    'resources/js/rke/get-uuid.js',
-    'resources/js/rke/rke-functions.ts',  
-    'resources/js/rke/time-functions.js',
-    'resources/js/rke/format-daQte-time-unix.js',
-    'resources/js/rke/switch-payment-method.js',
-    'resources/js/rke/payment-confirm-button.js',
-]
+    'resources/js/helpers/toast-notify.ts',
+    'resources/js/helpers/register.js',
+    'resources/js/helpers/crypt.js',
+    'resources/js/helpers/get-uuid.js',
+    'resources/js/helpers/functions.ts',
+    'resources/js/helpers/time-functions.js',
+    'resources/js/helpers/format-daQte-time-unix.js',
+    'resources/js/helpers/switch-payment-method.js',
+    'resources/js/helpers/payment-confirm-button.js',
+];
 
 // Función para detectar bundles helpers y main por juego
-function getGameBundles(): { helpers: string[]; mains: string[] } {
-    const gamesPath = path.resolve(__dirname, 'resources/js/games')
-    const helpers: string[] = []
-    const mains: string[] = []
+function getGameBundles() {
+    const gamesPath = path.resolve(__dirname, 'resources/js/games');
+    const helpers: string[] = [];
+    const mains: string[] = [];
 
     if (fs.existsSync(gamesPath)) {
-        const games = fs
-            .readdirSync(gamesPath, { withFileTypes: true })
+        const games = fs.readdirSync(gamesPath, { withFileTypes: true })
             .filter(dirent => dirent.isDirectory())
-            .map(dirent => dirent.name)
+            .map(dirent => dirent.name);
 
         for (const game of games) {
-            const basePath = path.join(gamesPath, game)
+            const basePath = path.join(gamesPath, game);
 
-            const helperFile = path.join(basePath, `${game}.ts`) // mira a TS primero
-            if (fs.existsSync(helperFile)) {
-                helpers.push(`resources/js/games/${game}/${game}.ts`)
-            } else {
-                const helperJs = path.join(basePath, `${game}.js`) // fallback a JS
-                if (fs.existsSync(helperJs)) helpers.push(`resources/js/games/${game}/${game}.js`)
-            }
+            // Helper (TS o JS)
+            const helperTs = path.join(basePath, `${game}.ts`);
+            const helperJs = path.join(basePath, `${game}.js`);
+            if (fs.existsSync(helperTs)) helpers.push(`resources/js/games/${game}/${game}.ts`);
+            else if (fs.existsSync(helperJs)) helpers.push(`resources/js/games/${game}/${game}.js`);
 
-            const mainFileTs = path.join(basePath, `${game}-main.ts`)
-            if (fs.existsSync(mainFileTs)) {
-                mains.push(`resources/js/games/${game}/${game}-main.ts`)
-            } else {
-                const mainFileJs = path.join(basePath, `${game}-main.js`)
-                if (fs.existsSync(mainFileJs)) mains.push(`resources/js/games/${game}/${game}-main.js`)
-            }
+            // Main (TS o JS)
+            const mainTs = path.join(basePath, `${game}-main.ts`);
+            const mainJs = path.join(basePath, `${game}-main.js`);
+            if (fs.existsSync(mainTs)) mains.push(`resources/js/games/${game}/${game}-main.ts`);
+            else if (fs.existsSync(mainJs)) mains.push(`resources/js/games/${game}/${game}-main.js`);
         }
     }
 
-    return { helpers, mains }
+    return { helpers, mains };
 }
 
-const { helpers: gameHelpers, mains: gameMains } = getGameBundles()
+const { helpers: gameHelpers, mains: gameMains } = getGameBundles();
 
-const inputs = [...cssFiles, ...globalJsFiles, ...gameHelpers, ...gameMains]
+const inputs = [...cssFiles, ...globalJsFiles, ...gameHelpers, ...gameMains];
 
 export default defineConfig(({ mode }) => {
-    const isProduction = mode === 'production'
+    const isProduction = mode === 'production';
 
     return {
         plugins: [
@@ -112,14 +106,14 @@ export default defineConfig(({ mode }) => {
                 output: {
                     manualChunks(id) {
                         if (id.includes('resources/js/games/')) {
-                            const match = id.match(/resources\/js\/games\/([^\/]+)\//)
+                            const match = id.match(/resources\/js\/games\/([^\/]+)\//);
                             if (match) {
-                                const game = match[1]
-                                if (id.includes('/components/')) return `${game}-components`
-                                return game
+                                const game = match[1];
+                                if (id.includes('/components/')) return `${game}-components`;
+                                return game;
                             }
                         }
-                        if (id.includes('resources/js/rke')) return 'rke'
+                        if (id.includes('resources/js/rke')) return 'rke';
                     },
                 },
             },
@@ -135,5 +129,5 @@ export default defineConfig(({ mode }) => {
             port: 5173,
             strictPort: true,
         },
-    }
-})
+    };
+});

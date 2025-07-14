@@ -44,7 +44,7 @@
     @endif
 @endsection
 @section('scripts')
-@vite('resources/js/rke/rke-functions.ts')
+    @vite(['resources/js/helpers/functions.ts', 'resources/js/games/bingo/form.js', 'resources/js/games/bingo/helpers/coinPriceConfig.ts', 'resources/js/games/bingo/rounds-config.js'])
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
         const name = @json($name);
@@ -118,7 +118,7 @@
         }
 
         allowedCoins.on('change', function() {
-            getCtnPriceCoin(room);
+            getCtnPriceCoin(room, creation, creatorType, creatorID);
         });
 
         function insertBingoPlays() {
@@ -143,7 +143,7 @@
             if ($(this).data('type') == 1) {
                 extraInfo = `{"creatorType": ${creatorType}}`;
             }
-            formCRUD($(this), name, 'Sala de Bingo', otherCasesMap);
+            formCRUD($(this)[0], name, 'Sala de Bingo', otherCasesMap);
         });
 
         function insertInfo(type, data = '') {
@@ -160,7 +160,7 @@
 
             if (type == 2 && data.config.rounds > 1) getRoundsConfig(room);
             insertAllowedCoins(allowedCoins);
-            getCtnPriceCoin(room);
+            getCtnPriceCoin(room, creation, creatorType, creatorID);
 
             gameMode.prop({
                 disabled: isDisabled,
@@ -297,7 +297,6 @@
             }
         };
     </script>
-    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js', 'resources/js/games/bingo/rounds-config.js'])
     @if ($creator['type'] === 'customer' && $view === 'PRIVATE')
         <script>
             $(document).on("click", '#btn-game-id', function() {
