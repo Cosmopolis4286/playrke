@@ -3810,4 +3810,12 @@ class BingoController extends Controller
 
         return response()->json(['message' => 'Número llamado enviado al canal']);
     }
+
+    public function form($creator, $coin, $roomType) {
+         $data = [
+            'round' => 5,
+            'numbers' => [12, 23, 34, 45, 56],
+        ];
+        return view('modules.game.bingo.form.index', compact('data'));
+    }
 }

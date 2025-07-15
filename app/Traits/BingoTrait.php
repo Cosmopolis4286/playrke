@@ -321,6 +321,8 @@ trait BingoTrait
 
         $indexedData = $chipIndex[$playType];
 
+        dd($chipIndex);
+
         // Detectamos si es GROUP (grupoId => columnas => chips)
         $firstSub = reset($indexedData);
         $isGroup = is_array($firstSub) && is_array(reset($firstSub));

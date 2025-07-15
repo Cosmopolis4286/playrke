@@ -5,6 +5,7 @@ const view = window.currentBingoView || 'GameInfo'
 const props = window.bingoProps || {}
 
 const views = {
+    Form: () => import('./views/Form.vue'),
     GameInfo: () => import('./views/GameInfo.vue'),
     Summary: () => import('./views/Summary.vue'),
     // agrega más vistas aquí según crezcan tus componentes

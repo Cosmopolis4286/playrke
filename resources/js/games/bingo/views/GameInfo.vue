@@ -17,7 +17,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
-import BingoBoard from '../components/BingoBoard.vue'
+import BingoBoard from '../components/game-info/BingoBoard.vue'
 import echo from '@/echo.js'
 
 const props = defineProps({
