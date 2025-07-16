@@ -18,7 +18,6 @@
 
 @section('content')
     <div id="app" v-cloak></div>
-
     <style>
         [v-cloak] {
             display: none;
