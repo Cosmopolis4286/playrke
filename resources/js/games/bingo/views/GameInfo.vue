@@ -1,108 +1,136 @@
+<!-- BingoBoard.vue -->
 <template>
   <div class="game-info">
-    <h1>Ronda {{ data.round }}</h1>
+    <div class="container">
+      <div class="row">
+        <div
+          class="col-12 my-2 d-flex flex-column justify-content-center align-items-center"
+        >
+          <h1>Ronda {{ data.round }}</h1>
+          <div v-if="currentNumber !== null" class="called-number">
+            <strong>Último número llamado:</strong> {{ currentNumber }}
+          </div>
+        </div>
 
-    <div v-if="currentNumber !== null" class="called-number mt-2">
-      <strong>Último número llamado:</strong> {{ currentNumber }}
+        <BingoBoard :calledNumbers="numbers" :currentNumber="currentNumber" />
+
+        <div class="col-12 d-flex justify-content-center">
+          <NumberCaller
+            :calledNumbers="numbers"
+            @call-number="callNumberFromInput"
+          />
+        </div>
+      </div>
     </div>
-
-    <BingoBoard :numbers="numbers" />
-
-    <button @click="callNumber" class="btn btn-primary mt-3">
-      Llamar número aleatorio
-    </button>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import axios from 'axios'
-import BingoBoard from '../components/game-info/BingoBoard.vue'
-import echo from '@/echo.js'
+import { ref, watch, onMounted, onBeforeUnmount } from "vue";
+import BingoBoard from "../components/game-info/BingoBoard.vue";
+import NumberCaller from "../components/game-info/NumberCaller.vue";
+import echo from "@/echo.js";
 
 const props = defineProps({
   data: {
     type: Object,
     required: true,
   },
-})
+});
 
-const numbers = ref([...props.data.numbers])
-const currentNumber = ref(null)
-const roomId = ref(props.data.roomId ?? 1)
-let channel = null
+const numbers = ref([...props.data.numbers]);
+const currentNumber = ref(null);
+const roomId = ref(props.data.roomId ?? 1);
+let channel = null;
 
+// Función para suscribirse al canal WebSocket de la sala
 const subscribeToChannel = (id) => {
-  const channelName = `bingo.room.${id}`
-  channel = echo.channel(channelName)
+  const channelName = `bingo.room.${id}`;
+  channel = echo.channel(channelName);
 
-  // Debug conexión Reverb
   if (window.Echo?.connector?.pusher) {
-    const pusher = window.Echo.connector.pusher
+    const pusher = window.Echo.connector.pusher;
 
-    pusher.connection.bind('state_change', (states) => {
-      console.log('Cambio de estado conexión:', states)
-    })
+    pusher.connection.bind("state_change", (states) => {
+      console.log("Cambio de estado conexión:", states);
+    });
 
-    pusher.bind('pusher:subscription_error', (error) => {
-      console.error('❌ Error de subscripción:', error)
-    })
+    pusher.bind("pusher:subscription_error", (error) => {
+      console.error("❌ Error de subscripción:", error);
+    });
 
-    pusher.bind('pusher_internal:subscription_succeeded', (chan) => {
-      console.log('✅ Subscripción exitosa al canal:', chan.name)
-    })
+    pusher.bind("pusher_internal:subscription_succeeded", (chan) => {
+      console.log("✅ Subscripción exitosa al canal:", chan.name);
+    });
   }
 
-  // Escuchar evento
-  console.log(`🎧 Escuchando evento .BingoNumberCalled en canal ${channelName}`)
+  console.log(
+    `🎧 Escuchando evento .BingoNumberCalled en canal ${channelName}`
+  );
 
-  channel.listen('.BingoNumberCalled', (event) => {
-    console.log('📡 Evento recibido:', event)
+  channel.listen(".BingoNumberCalled", (event) => {
     if (!numbers.value.includes(event.number)) {
-      numbers.value.push(event.number)
+      numbers.value.push(event.number);
     }
-    currentNumber.value = event.number
-  })
-}
+    currentNumber.value = event.number;
+  });
+};
 
+// Función para dejar de escuchar el canal
 const unsubscribeFromChannel = (id) => {
-  if (!id) return
-  const channelName = `bingo.room.${id}`
-  echo.leave(channelName)
-  channel = null
-}
+  if (!id) return;
+  echo.leave(`bingo.room.${id}`);
+  channel = null;
+};
 
-onMounted(() => {
-  subscribeToChannel(roomId.value)
-})
+onMounted(async () => {
+  try {
+    // 1. Obtener los números previamente llamados
+    const res = await axios.get(route("bingo.called-numbers", roomId.value));
+    numbers.value = res.data ?? [];
+  } catch (error) {
+    console.error("❌ Error al cargar números anteriores:", error);
+  }
+
+  // 2. Suscribirse al canal WebSocket
+  subscribeToChannel(roomId.value);
+});
 
 onBeforeUnmount(() => {
-  unsubscribeFromChannel(roomId.value)
-})
+  unsubscribeFromChannel(roomId.value);
+});
 
-watch(() => props.data.numbers, (newNumbers) => {
-  numbers.value = [...newNumbers]
-})
-
-watch(() => props.data.roomId, (newId, oldId) => {
-  if (newId && newId !== oldId) {
-    unsubscribeFromChannel(oldId)
-    roomId.value = newId
-    subscribeToChannel(newId)
+// Reactividad para cambios en las props
+watch(
+  () => props.data.numbers,
+  (newNumbers) => {
+    numbers.value = [...newNumbers];
   }
-})
+);
 
-function callNumber() {
-  const number = Math.floor(Math.random() * 75) + 1
-  console.log('📤 Enviando número al backend:', number)
+watch(
+  () => props.data.roomId,
+  (newId, oldId) => {
+    if (newId && newId !== oldId) {
+      unsubscribeFromChannel(oldId);
+      roomId.value = newId;
+      subscribeToChannel(newId);
+    }
+  }
+);
 
-  axios.post(route('bingo.call-number', roomId.value), { number })
+// Función que maneja el evento emitido por NumberCaller.vue
+function callNumberFromInput(number) {
+  console.log("📤 Enviando número al backend:", number);
+
+  axios
+    .post(route("bingo.call-number", roomId.value), { number })
     .then((res) => {
-      console.log('✅ Número enviado con éxito:', res.data)
+      console.log("✅ Número enviado con éxito:", res.data);
     })
     .catch((err) => {
-      console.error('❌ Error al enviar número', err)
-    })
+      console.error("❌ Error al enviar número", err);
+    });
 }
 </script>
 

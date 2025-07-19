@@ -3797,6 +3797,7 @@ class BingoController extends Controller
     public function callNumber(Request $request, int $roomId)
     {
         $number = $request->input('number');
+        $round = $request->input('round');
 
         // Validar el número si es necesario
         if (!$number || !is_numeric($number)) {
@@ -3804,6 +3805,15 @@ class BingoController extends Controller
         }
 
         // Lógica para guardar o validar el número llamado...
+        // BingoDraws::where('room', $roomId)->where('round', $round)
+        //     ->create([
+        //         'chip' => $number,
+        //         'code',
+        //         'room',
+        //         'round',
+        //         'time',
+        //         'status',
+        //     ]);
 
         // Disparar evento
         event(new BingoNumberCalled($number, $roomId));
@@ -3811,8 +3821,9 @@ class BingoController extends Controller
         return response()->json(['message' => 'Número llamado enviado al canal']);
     }
 
-    public function form($creator, $coin, $roomType) {
-         $data = [
+    public function form($creator, $coin, $roomType)
+    {
+        $data = [
             'round' => 5,
             'numbers' => [12, 23, 34, 45, 56],
         ];

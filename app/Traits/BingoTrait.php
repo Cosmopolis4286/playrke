@@ -310,10 +310,22 @@ trait BingoTrait
         return $chipIndex;
     }
 
+    /**
+     * Obtiene la última ficha que causó al menos una coincidencia ganadora en un cartón.
+     * La función detecta si los datos están organizados por grupos (GROUP) o son únicos (UNIQUE)
+     * y llama a `getLastMatchingChip` con el formato adecuado.
+     *
+     * @param int $roomId   ID de la sala de juego.
+     * @param int $round    Número de ronda actual.
+     * @param int $playType Tipo de juego (usado para obtener el índice correcto).
+     * @return string|null  Última ficha válida que causó ganancia, o null si no hay coincidencias.
+     */
     private function getLastWinningChip(int $roomId, int $round, int $playType): ?string
     {
+        // Construye el índice de fichas para la sala y tipo de juego
         $chipIndex = $this->buildChipIndex($roomId, $playType);
 
+        // Verifica que haya datos
         if (empty($chipIndex[$playType])) {
             Log::warning("Índice de fichas vacío para roomId={$roomId}, playType={$playType}");
             return null;
@@ -321,82 +333,85 @@ trait BingoTrait
 
         $indexedData = $chipIndex[$playType];
 
-        dd($chipIndex);
-
-        // Detectamos si es GROUP (grupoId => columnas => chips)
+        // Detecta si se trata de un formato GROUP (grupoId => columnas => chips)
         $firstSub = reset($indexedData);
         $isGroup = is_array($firstSub) && is_array(reset($firstSub));
 
-        if ($isGroup) {
-            // Evaluamos por cada grupo
-            foreach ($indexedData as $groupId => $columns) {
-
-                $flatGroupChipIndex = [];
-
-                foreach ($columns as $column => $chips) {
-                    foreach ($chips as $chip => $cartonIds) {
-                        $flatGroupChipIndex[$chip] = array_merge($flatGroupChipIndex[$chip] ?? [], $cartonIds);
-                    }
-                }
-
-                // Eliminar duplicados por ficha
-                foreach ($flatGroupChipIndex as &$cartons) {
-                    $cartons = array_unique($cartons);
-                }
-                unset($cartons);
-
-                // Buscar última ficha que generó coincidencia dentro de este grupo
-                $lastChip = $this->getLastMatchingChip($roomId, $round, $flatGroupChipIndex);
-                if ($lastChip !== null) {
-                    return $lastChip;
-                }
-            }
-
-            return null;
-        }
-
-        // UNIQUE
-        $flatChipIndex = [];
-        foreach ($indexedData as $column => $chips) {
-            foreach ($chips as $chip => $cartonIds) {
-                $flatChipIndex[$chip] = array_merge($flatChipIndex[$chip] ?? [], $cartonIds);
-            }
-        }
-
-        foreach ($flatChipIndex as &$cartons) {
-            $cartons = array_unique($cartons);
-        }
-        unset($cartons);
-
-        return $this->getLastMatchingChip($roomId, $round, $flatChipIndex);
+        // Llama a la función que obtiene la última ficha que generó ganancia
+        return $this->getLastMatchingChip($roomId, $round, $indexedData, $isGroup);
     }
 
     /**
-     * Devuelve la última ficha jugada que provocó al menos una coincidencia en cartones.
+     * Devuelve la última ficha jugada (cronológicamente más antigua) que provocó una coincidencia válida en al menos un cartón.
+     * Soporta tanto estructuras simples como estructuras agrupadas por grupo.
      *
-     * @param int $roomId
-     * @param int $round
-     * @param array $flatChipIndex [chip => array de cartonIds]
-     * @return string|null
+     * @param int $roomId      ID de la sala.
+     * @param int $round       Ronda actual.
+     * @param array $chipIndex Índice de fichas. Puede ser:
+     *                          - [chip => [cartonIds]] para tipo UNIQUE
+     *                          - [groupId => [col => [chip => [cartonIds]]]] para tipo GROUP
+     * @param bool $isGroup    Indica si se trata de un índice agrupado (GROUP).
+     * @return string|null     Última ficha que generó coincidencia, o null si ninguna lo hizo.
      */
-    private function getLastMatchingChip(int $roomId, int $round, array $flatChipIndex): ?string
+    private function getLastMatchingChip(int $roomId, int $round, array $chipIndex, bool $isGroup = false): ?string
     {
-        // Fichas jugadas en orden descendente (última primero)
+        // Obtiene las fichas jugadas en orden descendente (última jugada primero)
         $drawnChips = BingoDraws::where('room', $roomId)
             ->where('round', $round)
             ->orderByDesc('id')
             ->pluck('chip')
             ->toArray();
 
-        $matchedCartons = [];
-        $winningChips = [];
+        // Modo GROUP: recorrer cada grupo y calcular la última ficha válida de cada uno
+        if ($isGroup) {
+            $lastChipsOfEachGroup = [];
+
+            foreach ($chipIndex as $groupId => $columns) {
+                $flatGroupChipIndex = [];
+
+                // Aplana el índice de fichas del grupo actual
+                foreach ($columns as $chips) {
+                    foreach ($chips as $chip => $cartonIds) {
+                        if (!isset($flatGroupChipIndex[$chip])) {
+                            $flatGroupChipIndex[$chip] = [];
+                        }
+                        dd($cartonIds);
+
+                        // Combina y elimina duplicados
+                        $flatGroupChipIndex[$chip] = array_unique(array_merge($flatGroupChipIndex[$chip], $cartonIds));
+                    }
+                }
+
+                // Recursivamente obtiene la última ficha válida del grupo actual
+                $lastChipsOfEachGroup[$groupId] = $this->getLastMatchingChip($roomId, $round, $flatGroupChipIndex, false);
+            }
+
+            // Filtra las fichas válidas (no null) y elimina duplicados
+            $validChips = array_filter($lastChipsOfEachGroup);
+            $validChips = array_unique(array_values($validChips));
+
+            // Recorre las fichas jugadas en orden original (primera jugada primero)
+            // para encontrar cuál fue la última que causó coincidencia
+            foreach (array_reverse($drawnChips) as $chip) {
+                if (in_array($chip, $validChips, true)) {
+                    return $chip;
+                }
+            }
+
+            return null;
+        }
+
+        // Modo UNIQUE: índice plano de chip => [cartonIds]
+        $matchedCartons = [];  // Evita contar el mismo cartón varias veces
+        $winningChips = [];    // Fichas que han causado coincidencia
 
         foreach ($drawnChips as $chip) {
-            if (empty($flatChipIndex[$chip])) {
+            if (empty($chipIndex[$chip])) {
                 continue;
             }
 
-            foreach ($flatChipIndex[$chip] as $ctnId) {
+            foreach ($chipIndex[$chip] as $ctnId) {
+                // Si este cartón no ha sido contado antes
                 if (!isset($matchedCartons[$ctnId])) {
                     $matchedCartons[$ctnId] = true;
                     $winningChips[$chip] = true;
@@ -404,7 +419,7 @@ trait BingoTrait
             }
         }
 
-        // Buscar la última ficha (cronológicamente más antigua) que causó acierto
+        // Recorre las fichas jugadas en orden original (primera jugada primero)
         foreach (array_reverse($drawnChips) as $chip) {
             if (isset($winningChips[$chip])) {
                 return $chip;
@@ -442,8 +457,6 @@ trait BingoTrait
 
                 // Obtiene la última ficha que provocó al menos una coincidencia ganadora
                 $winningChip = $this->getLastWinningChip($roomId, $round, $playType);
-
-                dd($winningChip);
 
                 $chipDraw = BingoDraws::select('id', 'time', 'chip', 'status')
                     ->where('room', $roomId)->where('round', $round)

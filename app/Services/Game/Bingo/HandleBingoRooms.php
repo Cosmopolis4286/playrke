@@ -35,8 +35,6 @@ class HandleBingoRooms
         if ($existsCtns) {
             $winChip = BingoDraws::getWinningChip($roomID) ?? $this->handleDraw($roomID);
 
-            dd($winChip);
-
             if (isset($winChip['Error'])) {
                 Log::info($winChip['Error'] . ": Sala [ID => $roomID]");
                 return;
