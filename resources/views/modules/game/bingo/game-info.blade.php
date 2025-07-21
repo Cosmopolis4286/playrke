@@ -1,20 +1,15 @@
-@extends('layouts.layout-offline')
-
-@section('styles')
-    @vite(['resources/css/games/bingo/bingo-game-rooms.css'])
-@endsection
+@extends('layouts.layout-offline', ['withoutScripts' => false])
 
 @section('title', 'BingoPlay')
 
-@section('scripts')
-    @vite('resources/js/games/bingo/bingo-view-loader.js')
-    <script>
-        window.currentBingoView = 'GameInfo';
-        window.bingoProps = {
-            data: @json($data)
-        };
-    </script>
-@endsection
+@vite('resources/js/games/bingo/bingo-view-loader.js')
+
+<script>
+    window.currentBingoView = 'GameInfo';
+    window.bingoProps = {
+        data: @json($data)
+    };
+</script>
 
 @section('content')
     <div id="app" v-cloak></div>

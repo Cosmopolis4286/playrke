@@ -1144,7 +1144,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.form.index', 'data' => $viewData];
+        return ['route' => 'modules.game.bingo.summary.index', 'data' => $viewData];
     }
 
     public function allRooms($roomType, $creatorType, $creatorID = '', $coin = '')

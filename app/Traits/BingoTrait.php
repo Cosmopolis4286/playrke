@@ -375,10 +375,9 @@ trait BingoTrait
                         if (!isset($flatGroupChipIndex[$chip])) {
                             $flatGroupChipIndex[$chip] = [];
                         }
-                        dd($cartonIds);
-
                         // Combina y elimina duplicados
                         $flatGroupChipIndex[$chip] = array_unique(array_merge($flatGroupChipIndex[$chip], $cartonIds));
+                        dd($flatGroupChipIndex[$chip]);
                     }
                 }
 
