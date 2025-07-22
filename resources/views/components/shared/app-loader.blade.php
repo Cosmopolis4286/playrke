@@ -3,7 +3,7 @@
         <div class="spinner-border text-primary loader-spinner" role="status" aria-hidden="true">
             <img src="{{ asset('img/rke.png') }}" alt="Logo PlayRKE" class="loader-spin" />
         </div>
-        <div class="loader-text">Cargando la aplicación...</div>
+        <div class="loader-text">Cargando...</div>
     </div>
 </div>
 

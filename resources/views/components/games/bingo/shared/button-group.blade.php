@@ -7,9 +7,9 @@
                 <i class="fa-solid fa-list-check"></i> Ver Salas
             </button>
         @else
-            <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="1">
+            <a href="{{ route('bingo.form') }}" class="btn btn-sm btn-success">
                 <i class="fas fa-plus"></i> Crear
-            </button>
+            </a>
         @endif
 
         @if ($view === 'AUTO')

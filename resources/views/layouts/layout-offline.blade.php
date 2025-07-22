@@ -6,7 +6,7 @@
     @routes
 
     @unless (!isset($withoutLoader))
-        <x-app-loader />
+        <x-shared.app-loader />
     @endunless
 
     @include('sweetalert::alert')
@@ -19,7 +19,7 @@
     @vite('resources/js/app.js')
 
     @if (!isset($withoutScripts))
-        <x-scripts />
+        <x-template.scripts />
     @endif
 </body>
 

@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-<x-head />
+<x-template.head />
 
 <body
     class="d-flex flex-column min-vh-100 hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
     @routes
     <!-- Loader al iniciar -->
-    <x-app-loader />
+    <x-shared.app-loader />
     <!-- Contenido oculto hasta que Vue esté montado o scripts cargados -->
     <div id="app-wrapper" class="flex-grow-1 d-none">
         {{-- Navbar --}}
-        <x-navbar />
+        <x-template.navbar />
         <x-modals.change-password />
         {{-- Sidebar --}}
-        <x-sidebar-selector />
+        <x-template.sidebar.sidebar-selector />
         {{-- SweetAlert Notifications --}}
         @include('sweetalert::alert')
         {{-- Main Content --}}
@@ -24,11 +24,11 @@
                 </div>
             </div>
         </div>
-        <x-footer />
+        <x-template.footer />
     </div>
     {{-- Scripts de tu app --}}
     @vite('resources/js/app.js')
-    <x-scripts />
+    <x-template.scripts />
 </body>
 
 </html>

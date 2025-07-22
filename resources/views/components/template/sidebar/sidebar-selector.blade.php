@@ -4,28 +4,28 @@
 
 @switch($creatorTypePrefix)
     @case('admin')
-        <x-sidebar.admin />
+        <x-template.sidebar.admin />
     @break
 
     @case('commerce')
     @case('subsidiary')
-        <x-sidebar.commerce />
+        <x-template.sidebar.commerce />
     @break
 
     @case('customer')
-        <x-sidebar.customer />
+        <x-template.sidebar.customer />
     @break
 
     @case('seller')
-        <x-sidebar.seller />
+        <x-template.sidebar.seller />
     @break
 
     @case('treasurer')
-        <x-sidebar.treasurer />
+        <x-template.sidebar.treasurer />
     @break
 
     @case('user')
-        <x-sidebar.user />
+        <x-template.sidebar.user />
     @break
 
     @default

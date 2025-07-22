@@ -2,7 +2,7 @@
     $countryCode = strtolower(session('countryCode'));
 @endphp
 
-<x-sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Vendedor">
+<x-template.sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Vendedor">
     {{-- Slot de navegación específica para Vendedor@ --}}
     <li class="nav-item has-treeview">
         <a href="{{ route('directory.index', ['countryCode' => strtolower(session('countryCode'))]) }}"
@@ -50,4 +50,4 @@
             </li>
         </ul>
     </li>
-</x-sidebar>
+</x-template.sidebar>

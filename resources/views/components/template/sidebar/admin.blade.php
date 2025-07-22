@@ -2,7 +2,7 @@
     $countryCode = strtolower(session('countryCode'));
 @endphp
 
-<x-sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Admin">
+<x-template.sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Admin">
     {{-- Slot de navegación específica para Admin --}}
     <li class="nav-item has-treeview">
         <a href="#" class="nav-link {{ !Route::is('admin.customers', 'admin.commerces') ?: 'active' }} ">
@@ -35,4 +35,4 @@
             </li>
         </ul>
     </li>
-</x-sidebar>
+</x-template.sidebar>

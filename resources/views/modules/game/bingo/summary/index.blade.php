@@ -3,13 +3,15 @@
 @section('content')
     <div class="col-12 @if (isset($customer)) p-2 @endif">
         <div class="card">
-            @include('includes.card-header', [
-                'subtitle' => $subtitle,
-                'btnCardHeader' => ['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear'],
-            ])
+            <x-shared.card-header :subtitle="$subtitle" :btn-card-header="['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear']" />
             <div class="card-body">
                 @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
-                <x-games.bingo.shared.button-group :view="$view" />
+                {{-- <x-shared.coin-tabs :coins="$coins" :coin="$coin" :route-with-coin="[
+                    'route' => 'some.route.name',
+                    'parameters' => ['foo' => 'bar'],
+                ]" /> --}}
+                {{-- <x-games.bingo.shared.button-group :view="$view" /> --}}
+                @include('includes.games.bingo.report.btn-group', ['view' => $view])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <x-games.bingo.tables.table-info-bingo-rooms :rooms="$rooms" :creator="$creator" :coinSym="$coinSym"

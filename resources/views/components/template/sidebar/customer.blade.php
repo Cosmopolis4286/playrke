@@ -2,7 +2,7 @@
     $countryCode = strtolower(session('countryCode'));
 @endphp
 
-<x-sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Cliente">
+<x-template.sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Cliente">
     {{-- Slot de navegación específica para Cliente --}}
     <li class="nav-item has-treeview">
         <a href="{{ route('exchange-rate.index', ['creatorType' => 'customer']) }}" title="Tasa de Cambio"
@@ -35,4 +35,4 @@
             </li>
         </ul>
     </li>
-</x-sidebar>
+</x-template.sidebar>
