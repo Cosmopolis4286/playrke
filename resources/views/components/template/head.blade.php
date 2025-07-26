@@ -4,7 +4,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <link rel="icon" href="{{ asset('img/fav.ico') }}" sizes="192x192" />
 
-    <!-- CSRF Token para seguridad en peticiones AJAX -->
     <meta name="csrf-token" content="{{ csrf_token() }}" />
 
     <!-- Stylesheets agrupados y ordenados -->

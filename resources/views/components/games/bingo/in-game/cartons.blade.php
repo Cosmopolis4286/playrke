@@ -1,3 +1,5 @@
+{{-- Componente Blade: <x-cartons :cartons="$cartons" :customerLogo="$customerLogo" /> --}}
+
 <div class="row">
     @foreach ($cartons as $index => $ctn)
         <div class="col-6 col-sm-4 col-xl-3 my-1 notranslate" translate="no">
@@ -11,7 +13,7 @@
                                 @if ($letter === 'N' && $i === 3)
                                     <div class="number-box is-logo">
                                         <img class="img-fluid img-logo-ctn"
-                                            src="{{ asset($customerLogo ?? 'img/rke.png') }}">
+                                            src="{{ asset($customerLogo ?? 'img/rke.png') }}" alt="Logo">
                                     </div>
                                 @else
                                     <div class="number-box" data-pos="{{ $key }}">

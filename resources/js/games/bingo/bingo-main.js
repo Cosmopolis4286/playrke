@@ -1,23 +1,33 @@
+// resources/js/bingo-main.js
 import { createApp } from 'vue'
 import axios from 'axios'
-// import BingoBoard from './components/game-info/BingoBoard.vue'
-// import NumberCaller from './components/game-info/NumberCaller.vue'
 
 export default function mountApp(Component, props = {}) {
+    // Crear instancia local de Axios
+    const localAxios = axios.create()
+
+    // Agregar token CSRF desde el <meta>
+    const token = document.querySelector('meta[name="csrf-token"]')
+    if (token) {
+        localAxios.defaults.headers.common['X-CSRF-TOKEN'] = token.content
+    } else {
+        console.warn('⚠️ CSRF token no encontrado. Asegúrate de tener <meta name="csrf-token" content="{{ csrf_token() }}"> en el layout.')
+    }
+
+    // Crear instancia de Vue
     const app = createApp(Component, props)
 
-    // Registrar componentes globales
-    // app.component('BingoBoard', BingoBoard)
-    // app.component('NumberCaller', NumberCaller)
+    // Agregar Axios como propiedad global SOLO para esta app Vue
+    app.config.globalProperties.$axios = localAxios
 
-    // Agregar axios a globalProperties para poder usarlo con this.$axios
-    app.config.globalProperties.$axios = axios
-
-    // También puedes agregar $route u otras cosas
-    app.config.globalProperties.$route = window.route
+    // // Agregar route de Ziggy (si window.route ya existe por @routes o ziggy-js importado)
+    if (typeof window.route === 'function') {
+        app.config.globalProperties.$route = window.route
+    }
 
     app.mount('#app')
 
+    // Flags opcionales
     window._vueMounted = true
     if (typeof window.vueAppIsReady === 'function') {
         window.vueAppIsReady()

@@ -1,26 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-<x-head />
+<x-template.head />
 
 <body>
-    @routes
-
-    @unless (!isset($withoutLoader))
+    @empty($withoutLoader)
         <x-shared.app-loader />
-    @endunless
+    @endempty
 
     @include('sweetalert::alert')
 
     <main class="container-fluid">
-        <input type="hidden" id="5K3_70K" value="{{ csrf_token() }}">
         @yield('content')
     </main>
 
     @vite('resources/js/app.js')
 
-    @if (!isset($withoutScripts))
+    @empty($withoutScripts)
         <x-template.scripts />
-    @endif
+    @endempty
 </body>
 
 </html>

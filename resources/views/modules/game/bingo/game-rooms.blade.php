@@ -78,7 +78,7 @@
                 @endforeach
             </div>
         </div>
-        @include('includes.games.bingo.layouts.modal-bingo-rules')
+        @include('includes.games.bingo.layout.modal-bingo-rules')
     </div>
 @endsection
 
@@ -90,7 +90,7 @@
         const player = @json($player);
         const userToken = @json($userToken ?? null);
         const creatorUser = @json($creatorUser);
-        const modalHTML = @json(view('includes.games.bingo.layouts.container-purchase-ctns')->render());
+        const modalHTML = @json(view('includes.games.bingo.layout.container-purchase-ctns')->render());
 
         let dateTimeRooms = @json($dateTimeRooms);
         let timestamp = new Date(dateTimeRooms['timestamp']);

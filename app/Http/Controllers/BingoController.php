@@ -746,19 +746,26 @@ class BingoController extends Controller
 
         $dataChips = $this->getChips($room->encrypted);
 
-        $randomKey = base64_encode(random_bytes(32));
-
         if (isset($roomUser)) {
             // Obtener Cartones del ID jugador-sala
             $ctns = BingoCtns::getCtnsByPlayerInRoom($roomID, 'room_user', $roomUser);
         }
 
-        $infoGame = ($room->status >= 3) ?
-            $this->getResult(
+        $infoGame = [];
+
+        if ($room->status >= 3) {
+            // Genera la llave random de 32 bytes codificada en base64
+            $randomKey = base64_encode(random_bytes(32));
+
+            $infoGame = $this->getResult(
                 ['room' => $room->encrypted, 'coin' => $coinID],
                 $roomUser ?? null,
                 $randomKey
-            ) : [];
+            );
+
+            // Guarda la llave en sesión para poder recuperarla desde frontend
+            session(['r4m60nk3y' => $randomKey]);
+        }
 
         $starTime = $starTime ?? $this->convertToUnixTimestamp($room->Config->date, $room->Config->time);
 
@@ -781,7 +788,6 @@ class BingoController extends Controller
             'cartons' => $ctns ?? [],
             'draw' => $draw,
             'encrypt' => $codeEncrypt,
-            'random' => $randomKey,
             'allChips' => $dataChips['allChips'],
             'vanDraw' => $vanDraw ? (int) $vanDraw->chip : '',
             'infoGame' => $infoGame,

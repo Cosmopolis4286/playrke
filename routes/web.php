@@ -29,8 +29,13 @@ use App\Http\Controllers\TreasurerController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Tightenco\Ziggy\Ziggy;
 
 require __DIR__ . '/auth.php';
+
+Route::middleware('auth')->get('/ziggy/routes', function () {
+    return response()->json(app(Ziggy::class)->toArray());
+});
 
 Route::get('/', function () {
     $register = Settings::getStatus('REGISTER');
@@ -344,12 +349,19 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::post('actWn', [BingoController::class, 'actWn'])->middleware(['auth', 'admin'])->name('actWn');
 });
 
+
 Route::get('bingo/view-ctn/{ctnId}', [BingoController::class, 'viewCtn'])->name('bingo.viewCtn');
 // Salas de Juego BINGO 
 Route::get('bingo/{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoController::class, 'allRooms'])->name('bingo.all-rooms');
 // URL de Compra CUSTOMERS
 //Route::get('{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('bingo.game-rooms-customer');
 Route::get('bingoplay/player/{player}/{room?}', [BingoController::class, 'inGame'])->name('bingo.in-game');
+
+Route::get('bingo/k3yg4m3/play-rke', function () {
+    $key = session('r4m60nk3y');  
+    return response()->json(['key' => $key]);
+})->name('bingo.k3yg4m3');
+
 
 Route::group(['prefix' => 'bingo-automatic-room', 'as' => 'bingo-automatic-room.'], function () {
     /// Rutas de Salas Automaticas

@@ -378,7 +378,19 @@ function processChips() {
     }, 1000);
 }
 
-const r4nd0m = $('#random').val();
+async function getDecryptionKey() {
+    try {
+        const response = await fetch(route('bingo.k3yg4m3'), { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('No se pudo obtener la clave');
+        const { key } = await response.json();
+        return key;
+    } catch (error) {
+        console.error('Error al obtener la clave:', error);
+        return null;
+    }
+}
+
+let r4nd0m = '';
 
 function getNewChip(newChip) {
     if (newChip === undefined || allChips.includes(newChip)) return;
@@ -581,6 +593,10 @@ $(document).on("click", "#btn-view-winners", function () {
 $(function () {
 
     try {
+
+        if (roomStatus > 2) {
+            r4nd0m = getDecryptionKey();
+        }
 
         adjustHeightBoxes();
 

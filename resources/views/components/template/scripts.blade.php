@@ -105,20 +105,20 @@
     });
 
     // Control de visibilidad: espera a que DOM + scripts estén cargados
-    (function() {
-        function showApp() {
-            const loader = document.getElementById('app-loader');
-            const appWrapper = document.getElementById('app-wrapper');
-            if (loader) loader.style.display = 'none';
-            if (appWrapper) appWrapper.classList.remove('d-none');
-        }
+    (() => {
+        const showApp = () => {
+            document.getElementById('app-loader')?.remove();
+            document.getElementById('app-wrapper')?.classList.remove('d-none');
+        };
 
-        // Función que Vue llamará cuando esté lista
-        window.vueAppIsReady = showApp;
+        // Exponer la función globalmente para que Vue la llame
+        window.vueAppIsReady = () => {
+            window._vueMounted = true;
+            showApp();
+        };
 
-        // Mostrar solo cuando **todo** (DOM + recursos) esté cargado
+        // Fallback si Vue nunca llama vueAppIsReady
         window.addEventListener('load', () => {
-            // Si Vue no montó todavía, mostramos igual después del load
             if (!window._vueMounted) {
                 showApp();
             }

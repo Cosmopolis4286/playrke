@@ -46,7 +46,7 @@
                 </div>
             </div>
         </div>
-        @include('includes.games.bingo.layouts.modal-bingo-patterns')
+        @include('includes.games.bingo.layout.modal-bingo-patterns')
         @include('includes.form-other-options')
     </div>
 @endsection

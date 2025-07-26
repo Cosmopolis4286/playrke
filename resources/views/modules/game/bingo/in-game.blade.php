@@ -11,27 +11,29 @@
 
 @section('content')
     <div class="col-md-11 col-lg-7 col-xl-8 m-auto">
-        @include('includes.games.bingo.layouts.container-last-chips')
-        @include('includes.games.bingo.layouts.container-bingo-info')
+        @include('includes.games.bingo.layout.container-last-chips')
+        @include('includes.games.bingo.layout.container-bingo-info')
+
         @if ($room->status > 2)
-            @include('includes.games.bingo.layouts.container-history-chips')
+            @include('includes.games.bingo.layout.container-history-chips')
         @endif
+
         <div class="container mt-1">
-            @if (!empty($cartons))
-                @include('includes.games.bingo.layouts.cartons')
-            @endif
-            <input type="hidden" id="random" value="{{ $random }}">
+            <x-games.bingo.in-game.cartons :cartons="$cartons ?? []" :customerLogo="$customerLogo ?? null" />
         </div>
+
         @if ($room->status == 2)
-            @include('includes.games.bingo.layouts.modal-info-draw')
-        @elseif($room->status > 2)
-            @include('includes.games.bingo.layouts.modal-info-winners')
-            @include('includes.games.bingo.layouts.sounds')
+            @include('includes.games.bingo.layout.modal-info-draw')
+        @elseif ($room->status > 2)
+            @include('includes.games.bingo.layout.modal-info-winners')
+            @include('includes.games.bingo.layout.sounds')
+
             @if ($room->Config->play_types)
-                @include('includes.games.bingo.layouts.modal-bingo-patterns')
+                @include('includes.games.bingo.layout.modal-bingo-patterns')
             @endif
         @endif
-        @include('includes.games.bingo.layouts.modal-bingo-rules')
+
+        @include('includes.games.bingo.layout.modal-bingo-rules')
     </div>
 @endsection
 
