@@ -19,7 +19,7 @@
         <x-template.footer />
         <x-modals.change-password />
     </div>
-    @vite('resources/js/app.js')
+    @vite(['resources/js/app.js', 'resources/js/helpers/functions.ts'])
     <x-template.scripts />
 </body>
 

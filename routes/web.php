@@ -29,12 +29,11 @@ use App\Http\Controllers\TreasurerController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
-use Tightenco\Ziggy\Ziggy;
 
 require __DIR__ . '/auth.php';
 
-Route::middleware('auth')->get('/ziggy/routes', function () {
-    return response()->json(app(Ziggy::class)->toArray());
+Route::get('/ziggy/routes', function () {
+    return response()->json(app(\Tightenco\Ziggy\Ziggy::class)->toArray());
 });
 
 Route::get('/', function () {

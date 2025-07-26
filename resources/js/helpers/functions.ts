@@ -1,13 +1,9 @@
+// resources/js/helpers/functions.ts
 import { showToast, showToastOptionBtns } from './toast-notify';
 
 // Tipado global
 declare const params: Record<string, any>;
 type InsertInfoFn = (type: number, data?: any) => void;
-
-// Helpers
-function getCsrfToken(): string {
-    return (document.getElementById('5K3_70K') as HTMLInputElement)?.value || '';
-}
 
 // Loader
 export function ajaxStart(): void {
@@ -26,23 +22,23 @@ export function ajaxStop(): void {
         .forEach(btn => btn.disabled = false);
 }
 
-// Copiar texto
-export function copyInfo(text: string, elem?: HTMLInputElement | null): void {
-    const input = elem ?? document.getElementById('info-to-copy') as HTMLInputElement;
-    if (!navigator.clipboard || !input) return;
+// Copiar texto (usa el texto que se pasa, no el valor de un input)
+export function copyInfo(text: string): void {
+    if (!navigator.clipboard) {
+        showToast('Tu navegador no soporta copiar al portapapeles', 'error');
+        return;
+    }
 
-    navigator.clipboard.writeText(input.value);
-    showToast(text, 'success');
+    navigator.clipboard.writeText(text)
+        .then(() => showToast('Texto copiado: ' + text, 'success'))
+        .catch(() => showToast('Error al copiar el texto', 'error'));
 }
 
 // Eliminar mensajes flash
 export function deleteSessionFlash(keys: string[] = []): void {
     fetch(window.route('clear.flash.messages'), {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': getCsrfToken(),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message_keys: keys }),
     }).catch(err => console.error('Error eliminando flash messages:', err));
 }
@@ -54,7 +50,10 @@ export function submitForm(formName: string, requiredFields: string[] = []): voi
 
     if (!requiredFields.length) {
         requiredFields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[required], select[required]'))
-            .map(el => el.id).filter(Boolean);
+            .map(el => {
+                if (!el.id) console.warn('Campo requerido sin id:', el);
+                return el.id;
+            }).filter(Boolean) as string[];
     }
 
     const invalid = requiredFields.filter(id => {
@@ -165,12 +164,12 @@ export function formCRUD(
 // Obtener información
 export function getInfo(name: string, id: string): void {
     fetch(window.route(`${name}.getInfo`, id), {
-        method: 'GET',
-        headers: {
-            'X-CSRF-TOKEN': getCsrfToken(),
-        }
+        method: 'GET'
     })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            return res.json();
+        })
         .then(data => (window as any).insertInfo?.(2, data))
         .catch(err => console.error('Error al obtener información:', err));
 }
@@ -181,8 +180,8 @@ const inputTimers = new Map<HTMLInputElement, number>();
 function cleanInput(input: HTMLInputElement): void {
     input.value = input.value
         .replace(/,/g, '.')
-        .replace(/[^0-9.]/g, '')
-        .replace(/(\..*?)\..*/g, '$1');
+        .replace(/[^\d.]/g, '')
+        .replace(/^(\d*\.?\d{0,2}).*$/, '$1');
 }
 
 export function validateInput(
@@ -231,16 +230,11 @@ const exports = {
     ajaxStart,
     ajaxStop,
     copyInfo,
-    deleteSessionFlash,
-    submitForm,
-    setExtraInfo,
-    setVariable,
     formCRUD,
-    getInfo,
     validateInput,
-    stringToArray,
 };
 
 Object.entries(exports).forEach(([key, fn]) => {
-    (window as any)[key] = fn;
+    // Asignamos en globalThis para que sea accesible como variable global
+    (globalThis as any)[key] = fn;
 });

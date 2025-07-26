@@ -42,7 +42,7 @@
     @endif
 @endsection
 @section('scripts')
-    @vite(['resources/js/helpers/functions.ts', 'resources/js/games/bingo/form.js', 'resources/js/games/bingo/helpers/coinPriceConfig.ts', 'resources/js/games/bingo/rounds-config.js'])
+    {{-- @vite(['resources/js/helpers/functions.ts', 'resources/js/games/bingo/form.js', 'resources/js/games/bingo/helpers/coinPriceConfig.ts', 'resources/js/games/bingo/rounds-config.js']) --}}
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
         const name = @json($name);

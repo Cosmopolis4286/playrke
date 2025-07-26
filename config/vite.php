@@ -14,7 +14,7 @@ return [
 
     'entrypoints' => [
         'resources/js/app.js',
-        'resources/js/helpers/rke-functions.js',  // Incluye todos los archivos JS necesarios
+        'resources/js/helpers/functions.ts',  // Incluye todos los archivos JS necesarios
         'resources/css/app.css',
     ],
 

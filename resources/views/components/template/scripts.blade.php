@@ -103,27 +103,6 @@
                 });
         });
     });
-
-    // Control de visibilidad: espera a que DOM + scripts estén cargados
-    (() => {
-        const showApp = () => {
-            document.getElementById('app-loader')?.remove();
-            document.getElementById('app-wrapper')?.classList.remove('d-none');
-        };
-
-        // Exponer la función globalmente para que Vue la llame
-        window.vueAppIsReady = () => {
-            window._vueMounted = true;
-            showApp();
-        };
-
-        // Fallback si Vue nunca llama vueAppIsReady
-        window.addEventListener('load', () => {
-            if (!window._vueMounted) {
-                showApp();
-            }
-        });
-    })();
 </script>
 
 <!-- Archivos JS personalizados compilados con Vite -->

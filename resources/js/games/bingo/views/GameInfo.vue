@@ -1,4 +1,4 @@
-<!-- BingoBoard.vue -->
+<!-- resources/js/games/bingo/views/GameInfo.vue -->
 <template>
   <div class="game-info">
     <div class="container">
@@ -12,9 +12,14 @@
           </div>
         </div>
 
-        <BingoBoard :calledNumbers="numbers" :currentNumber="currentNumber" />
+        <!-- Componente que muestra el tablero visual de números -->
+        <BingoBoard
+          :calledNumbers="numbers"
+          :currentNumber="currentNumber"
+        />
 
         <div class="col-12 d-flex justify-content-center">
+          <!-- Componente que permite llamar números -->
           <NumberCaller
             :calledNumbers="numbers"
             @call-number="callNumberFromInput"
@@ -27,9 +32,13 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
+
+import axios from '@/axios.js';  
+import { route } from '@/ziggy-routes.js'; 
+import echo from "@/echo.js";
+
 import BingoBoard from "../components/game-info/BingoBoard.vue";
 import NumberCaller from "../components/game-info/NumberCaller.vue";
-import echo from "@/echo.js";
 
 const props = defineProps({
   data: {
@@ -43,7 +52,6 @@ const currentNumber = ref(null);
 const roomId = ref(props.data.roomId ?? 1);
 let channel = null;
 
-// Función para suscribirse al canal WebSocket de la sala
 const subscribeToChannel = (id) => {
   const channelName = `bingo.room.${id}`;
   channel = echo.channel(channelName);
@@ -76,7 +84,6 @@ const subscribeToChannel = (id) => {
   });
 };
 
-// Función para dejar de escuchar el canal
 const unsubscribeFromChannel = (id) => {
   if (!id) return;
   echo.leave(`bingo.room.${id}`);
@@ -85,14 +92,12 @@ const unsubscribeFromChannel = (id) => {
 
 onMounted(async () => {
   try {
-    // 1. Obtener los números previamente llamados
     const res = await axios.get(route("bingo.called-numbers", roomId.value));
     numbers.value = res.data ?? [];
   } catch (error) {
     console.error("❌ Error al cargar números anteriores:", error);
   }
 
-  // 2. Suscribirse al canal WebSocket
   subscribeToChannel(roomId.value);
 });
 
@@ -100,7 +105,6 @@ onBeforeUnmount(() => {
   unsubscribeFromChannel(roomId.value);
 });
 
-// Reactividad para cambios en las props
 watch(
   () => props.data.numbers,
   (newNumbers) => {
@@ -119,18 +123,15 @@ watch(
   }
 );
 
-// Función que maneja el evento emitido por NumberCaller.vue
-function callNumberFromInput(number) {
-  console.log("📤 Enviando número al backend:", number);
-
-  axios
-    .post(route("bingo.call-number", roomId.value), { number })
-    .then((res) => {
-      console.log("✅ Número enviado con éxito:", res.data);
-    })
-    .catch((err) => {
-      console.error("❌ Error al enviar número", err);
+async function callNumberFromInput(number) {
+  try {
+    const res = await axios.post(route("bingo.call-number", roomId.value), {
+      number,
     });
+    console.log("✅ Número enviado con éxito:", res.data);
+  } catch (err) {
+    console.error("❌ Error al enviar número", err);
+  }
 }
 </script>
 

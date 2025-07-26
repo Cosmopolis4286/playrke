@@ -1,15 +1,6 @@
-@extends('layouts.layout-offline', ['withoutScripts' => false])
+@extends('layouts.layout-offline', ['withoutAppJS' => true, 'withoutScripts' => true])
 
 @section('title', 'BingoPlay')
-
-@vite('resources/js/games/bingo/bingo-view-loader.js')
-
-<script>
-    window.currentBingoView = 'GameInfo';
-    window.bingoProps = {
-        data: @json($data)
-    };
-</script>
 
 @section('content')
     <div id="app" v-cloak></div>
@@ -18,4 +9,15 @@
             display: none;
         }
     </style>
+@endsection
+
+@section('scripts')
+    @vite('resources/js/games/bingo/bingo-view-loader.js')
+
+   <script>
+    window.currentBingoView = 'GameInfo';
+    window.bingoProps = {
+        data: @json($data)
+    };
+</script>
 @endsection

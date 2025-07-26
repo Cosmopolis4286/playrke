@@ -3,9 +3,9 @@
 <x-template.head />
 
 <body>
-    @empty($withoutLoader)
+    @if (empty($withoutLoader))
         <x-shared.app-loader />
-    @endempty
+    @endif
 
     @include('sweetalert::alert')
 
@@ -13,11 +13,15 @@
         @yield('content')
     </main>
 
-    @vite('resources/js/app.js')
+    @if (empty($withoutAppJS))
+        @vite('resources/js/app.js')
+    @endif
 
-    @empty($withoutScripts)
+    @if (empty($withoutScripts))
         <x-template.scripts />
-    @endempty
+    @else
+        @yield('scripts')
+    @endif
 </body>
 
 </html>
