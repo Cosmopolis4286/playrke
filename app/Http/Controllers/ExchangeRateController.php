@@ -70,7 +70,7 @@ class ExchangeRateController extends Controller
         }
 
         $viewData = [
-            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'layout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
             'title' => 'Tasas de Cambio',
             'name' => 'exchange-rate',
             'returnBtn' => $returnBtn ?? true,
@@ -363,7 +363,7 @@ class ExchangeRateController extends Controller
         }
 
         $viewData = [
-            'layout' => $isLogin ? 'layouts.app_rke' : 'layouts.app_rke_off',
+            'layout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
             'title' => 'Histórico Tasa de Cambio',
             'name' => 'exchange-rate-historical',
             'returnBtn' => $returnBtn ?? true,

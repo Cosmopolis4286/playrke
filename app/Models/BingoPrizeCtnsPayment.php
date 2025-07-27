@@ -14,10 +14,8 @@ class BingoPrizeCtnsPayment extends Model
         'creator_user',
         'seller',
         'player_link',
-        'sender',
-        'prize_type',
+        'user',
         'coin',
-        'lot',
         'ctn',
         'amount',
         'payment_proof',
@@ -25,19 +23,9 @@ class BingoPrizeCtnsPayment extends Model
         'updated_at'
     ];
 
-    public function Prize()
-    {
-        return $this->belongsTo(GamePrizes::class, 'prize_type');
-    }
-
     public function Coin()
     {
         return $this->belongsTo(Coin::class, 'coin');
-    }
-
-    public function CtnLot()
-    {
-        return $this->belongsTo(BingoCtnsLot::class, 'lot');
     }
 
     public function Ctn()

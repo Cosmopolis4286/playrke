@@ -11,7 +11,7 @@
 
 @section('content')
     <div class="container-fluid">
-        <div class="col-12 @if ($layout === 'layouts.app_rke_off') mt-2 @endif">
+        <div class="col-12 @if ($layout === 'layouts.layout-offline') mt-2 @endif">
             <div id="container-spinner" class="mt-1">
                 <div class="spinner-border text-primary" role="status">
                     <span class="sr-only"></span>
@@ -83,7 +83,7 @@
 @endsection
 
 @section('scripts')
-    @vite('resources/js/rke/format-date-time-unix.js')
+    @vite('resources/js/helpers/format-date-time-unix.js')
     <script>
         const creator = @json($creator);
         const coin = @json($coin ?? null);

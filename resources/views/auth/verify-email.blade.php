@@ -1,4 +1,4 @@
-@extends('layouts.app-home-page')
+@extends('layouts.layout-external')
 @section('title', 'Confirmar Email')
 @section('content')
     <div class="login_form_item text-center">

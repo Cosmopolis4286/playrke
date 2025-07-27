@@ -33,23 +33,21 @@ class HandleBingoRooms
         $existsCtns = BingoCtns::getCountCtnByRoom($roomID);
 
         if ($existsCtns) {
-
             $winChip = BingoDraws::getWinningChip($roomID) ?? $this->handleDraw($roomID);
 
             if (isset($winChip['Error'])) {
-                $status = $winChip;
+                Log::info($winChip['Error'] . ": Sala [ID => $roomID]");
+                return;
             }
 
             $status = ($winChip->time <= time()) ? 4 : 3;
-        }
 
-        if (!isset($status['Error'])) {
             BingoRoom::where('id', $roomID)->update(['status' => $status]);
             $this->determineRoundsStatus($roomID, $status);
             $this->registerCtnPrices($roomID);
-        } else {
-            Log::info($status['Error'] . ": Sala [ID => $roomID]");
         }
+
+        BingoRoom::where('id', $roomID)->update(['status' => $status]);
     }
 
     public function handleFinishedRooms($creatorUser = false): void
@@ -211,7 +209,7 @@ class HandleBingoRooms
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            throw $e; // O puedes retornar false si prefieres silenciar el error
+            throw $e;
         }
     }
 }

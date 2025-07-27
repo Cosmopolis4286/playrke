@@ -28,7 +28,7 @@
                     <td>{{ $win->Seller->Commerce->name }}</td>
                     <td>{{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}</td>
                     <td>{{ $win->Coin->iso_code }} {{ $win->amount }}</td>
-                    <td>{{ $win->Prize->description }}</td>
+                    <td>{{ $win->prize_type_description }}</td>
                     <td>
                         @if ($win->PlayerGame->winner == 1)
                             <span class="badge bg-dark">Pendiente</span>

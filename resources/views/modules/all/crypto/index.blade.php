@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>Cryptos - PlayRKE</title>
 @section('content')
     <div class="row">

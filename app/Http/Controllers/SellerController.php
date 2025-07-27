@@ -375,18 +375,17 @@ class SellerController extends Controller
         ));
 
         // Eliminamos '1' si existe
-        $USDT = false;
-        if (($key = array_search('1', $coinsAvailable, true)) !== false) {
+        $USDT = ($key = array_search('1', $coinsAvailable, true)) !== false;
+        if ($USDT) {
             unset($coinsAvailable[$key]);
             $coinsAvailable = array_values($coinsAvailable);
-            $USDT = true;
         }
 
         $countriesAvailable = Coin::getCountriesByCoinInArray($coinsAvailable);
 
         $countries = Country::getCountries($countriesAvailable, ['id', 'name']);
 
-        return ['countries' => $countries, 'USDT' => isset($USDT)];
+        return ['countries' => $countries, 'USDT' => $USDT];
     }
 
     public function getCtnPrice($roomID)

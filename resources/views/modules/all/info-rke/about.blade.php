@@ -1,4 +1,4 @@
-@extends ('layouts.app_rke')
+@extends ('layouts.layout-online')
 @section('title', 'Quienes Somos')
 @section('content')
     <div class="col-lg-9 m-auto">

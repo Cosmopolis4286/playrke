@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>Retirar Pesos CLP</title>
 @section('content')
     <div class="row">

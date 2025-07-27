@@ -6,48 +6,31 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('bingo_prize_ctns', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('room');
+
+            $table->foreignId('room')->constrained('bingo_rooms');
             $table->string('round', 2);
             $table->enum('active', ['Y', 'N'])->default('N');
             $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
-            $table->unsignedBigInteger('seller')->nullable();
-            $table->unsignedBigInteger('room_user');
-            $table->integer('player_user')->nullable();
-            $table->unsignedBigInteger('lot');
-            $table->unsignedBigInteger('ctn');
-            $table->unsignedBigInteger('prize_type');
-            $table->double('usd_amount');
+            $table->foreignId('seller')->nullable()->constrained('sellers');
+            $table->foreignId('room_user')->constrained('bingo_rooms_user');
+            $table->foreignId('lot')->constrained('bingo_ctns_lot');
+            $table->foreignId('ctn')->constrained('bingo_ctns');
+            $table->enum('prize_type', ['FLHE', 'SONG', 'SRL']);
+            $table->string('pattern', 50);
+            $table->double('usd_amount', 10, 2);
             $table->string('coin', 15);
-            $table->double('amount');
-            $table->enum('status', ['CC', 'CS', 'SP'])->nullable();
+            $table->double('amount', 16, 8);
+            $table->enum('status', ['WT', 'CC', 'CS', 'SP']);
             $table->timestamps();
-
-            $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('seller')->references('id')->on('sellers');
-            $table->foreign('room_user')->references('id')->on('bingo_rooms_user');
-            $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
-            $table->foreign('ctn')->references('id')->on('bingo_ctns');
-            $table->foreign('prize_type')->references('id')->on('game_prizes')->onUpdate('cascade');
-
-            // Índice compuesto
-            $table->index(['room']);
+            $table->index('room'); // índice ya existente
         });
     }
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+
+    public function down(): void
     {
         Schema::dropIfExists('bingo_prize_ctns');
     }

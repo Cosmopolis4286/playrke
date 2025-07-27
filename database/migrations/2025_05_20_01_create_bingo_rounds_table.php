@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('start_time')->nullable();
             $table->string('last_chip', 2)->nullable();
             $table->enum('prize_type', ['PCT', 'USD', 'OTHER']);
-            $table->string('play_type', 25);
+            $table->foreignId('play_type')->constrained('bingo_patterns');
             $table->double('prize_value')->nullable();
             $table->enum('status', ['ACTIVE', 'IN PROGRESS', 'COMPLETED'])->default('ACTIVE');
             $table->timestamps();

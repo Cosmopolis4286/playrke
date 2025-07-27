@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', $title)
 @section('content')
     <div class="col-md-9 col-lg-6 m-auto" style="max-width:535px">
@@ -141,7 +141,7 @@
     ])
 @endsection
 @section('scripts')
-    @vite('resources/js/rke/time-functions.js')
+    @vite('resources/js/helpers/time-functions.js')
     <script>
         const form = $("#form-ctns");
         const room = $("#room");
@@ -268,9 +268,8 @@
         }
 
         typeSale.on("change", function() {
-            if (allowsUSDT) {
-                $('#container-country').addClass('d-none');
-            }
+            const isUSDT = $(this).val() === 'usdt';
+            $('#container-country').toggleClass('d-none', isUSDT);
         });
 
         function handleAllowsUSDT(allowUSDT = false) {

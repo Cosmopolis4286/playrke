@@ -30,6 +30,7 @@ class BingoCtns extends Model
         'n2',
         'n3',
         'n4',
+        'n5',
         'g1',
         'g2',
         'g3',
@@ -43,6 +44,8 @@ class BingoCtns extends Model
         'hash',
         'created_at'
     ];
+
+    public const ALL_BOXES = ['B1', 'B2', 'B3', 'B4', 'B5', 'I1', 'I2', 'I3', 'I4', 'I5', 'N1', 'N2', 'N3', 'N4', 'N5', 'G1', 'G2', 'G3', 'G4', 'G5', 'O1', 'O2', 'O3', 'O4', 'O5'];
 
     public function Seller()
     {
@@ -87,7 +90,7 @@ class BingoCtns extends Model
     static function getCtnsByPlayerInRoom($room, $column, $value)
     {
         return self::where('room', $room)->where($column, $value)
-            ->get(['id', 'serial', 'b1', 'b2', 'b3', 'b4', 'b5', 'i1', 'i2', 'i3', 'i4', 'i5', 'n1', 'n2', 'n3', 'n4', 'g1', 'g2', 'g3', 'g4', 'g5', 'o1', 'o2', 'o3', 'o4', 'o5']);
+            ->get(['id', 'serial', 'b1', 'b2', 'b3', 'b4', 'b5', 'i1', 'i2', 'i3', 'i4', 'i5', 'n1', 'n2', 'n4', 'n5', 'g1', 'g2', 'g3', 'g4', 'g5', 'o1', 'o2', 'o3', 'o4', 'o5']);
     }
 
     static function getCountCtnByRoom($room)

@@ -26,6 +26,19 @@ class BingoPrizeCtns extends Model
         'updated_at'
     ];
 
+    protected $appends = ['prize_type_description'];
+
+    public const PRIZE_TYPES = [
+        'FLHE' => 'Cartón Lleno',
+        'SONG' => 'Canto',
+        'SRL' => 'Serial'
+    ];
+
+    public function getPrizeTypeDescriptionAttribute()
+    {
+        return self::PRIZE_TYPES[$this->prize_type] ?? '';
+    }
+
     public function Room()
     {
         return $this->belongsTo(BingoRoom::class, 'room');
@@ -71,11 +84,6 @@ class BingoPrizeCtns extends Model
         return $this->hasMany(BingoPrizeCtnsPayment::class, 'prize_ctn', 'id');
     }
 
-    public function Prize()
-    {
-        return $this->belongsTo(GamePrizes::class, 'prize_type');
-    }
-
     public static function getById($ctnId, $fields = ['*'])
     {
         return self::select($fields)->where('ctn', $ctnId)->first();
@@ -88,11 +96,9 @@ class BingoPrizeCtns extends Model
         return self::where(['room' => $room, 'prize_type' => $prizeType])->exists();
     }
 
-    public static function existsPrizeCtn($ctnId, $prizeType = null)
+    public static function existsPrizeCtn($ctnId, $round)
     {
-        return self::where('ctn', $ctnId)
-            ->when($prizeType, fn($query) => $query->where('prize_type', $prizeType))
-            ->exists();
+        return self::where('ctn', $ctnId)->where('round', $round)->exists();
     }
 
     public static function getValueById($ctnId, $value)

@@ -32,7 +32,7 @@
                     <span class="ml-1">Última Ficha:</span>
                     <img class="ml-1 mb-1" id="last-win-chip">
                 </div>
-                <div id="cont-ctn-award-winning" data-status="false">
+                <div id="cont-ctn-award-winning">
                     <div class="card">
                         <div class="card-header py-1">
                             <h6 class="card-title d-inline m-0">Cartón Ganador</h6>
@@ -42,97 +42,27 @@
                         </div>
                         <div class="card-body">
                             <div class="card container-view-carton">
-                                <div class="section-letter">
-                                    <div class="number-box-letter"><b>B</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip0" class="number-box-number"></span>
+                                @php
+                                    $columns = ['B' => 1, 'I' => 1, 'N' => 1, 'G' => 1, 'O' => 1];
+                                @endphp
+                                @foreach ($columns as $letter => $_)
+                                    <div class="section-letter">
+                                        <div class="number-box-letter"><b>{{ $letter }}</b></div>
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            @if ($letter === 'N' && $i === 3)
+                                                <div class="number-box-view-ctn">
+                                                    <img class="img-fluid img-logo-ctn"
+                                                        src="{{ asset($customerLogo ?? 'img/rke.png') }}">
+                                                </div>
+                                            @else
+                                                <div class="number-box-view-ctn">
+                                                    <span id="box-{{ $letter }}{{ $i }}"
+                                                        class="number-box-number"></span>
+                                                </div>
+                                            @endif
+                                        @endfor
                                     </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip1" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip2" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip3" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip4" class="number-box-number"></span>
-                                    </div>
-                                </div>
-                                <div class="section-letter">
-                                    <div class="number-box-letter"><b>I</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip5" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip6" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip7" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip8" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip9" class="number-box-number"></span>
-                                    </div>
-                                </div>
-                                <div class="section-letter">
-                                    <div class="number-box-letter"><b>N</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip10" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn" class="number-box-number">
-                                        <span id="ctn-vchip11"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <img class="img-fluid img-logo-ctn"
-                                            src="{{ isset($customerLogo) ? asset($customerLogo) : asset('img/rke.png') }}">
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip12" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip13" class="number-box-number"></span>
-                                    </div>
-                                </div>
-                                <div class="section-letter">
-                                    <div class="box number-box-letter"><b>G</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip14" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip15" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip16" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip17" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip18" class="number-box-number"></span>
-                                    </div>
-                                </div>
-                                <div class="section-letter">
-                                    <div class="number-box-letter"><b>O</b></div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip19" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip20" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip21" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip22" class="number-box-number"></span>
-                                    </div>
-                                    <div class="number-box-view-ctn">
-                                        <span id="ctn-vchip23" class="number-box-number"></span>
-                                    </div>
-                                </div>
+                                @endforeach
                             </div>
                         </div>
                         <div class="card-footer text-muted py-1">
@@ -143,18 +73,7 @@
                         </div>
                     </div>
                 </div>
-                <b>Cartón Lleno: <small>(<span id="full-house-value"></span>% del Bote)</small></b>
-                <div class="row mb-1" id="full-house-winners"></div>
-                @if ($room->Config->play_types)
-                    <div id="cont-bingo-plays" class="hide-elem">
-                        <b>Cantos: <small>(<span id="bingo-plays-value"></span>% del Bote)</small></b>
-                        <div class="row" id="bingo-plays-winners"></div>
-                    </div>
-                @endif
-                <div id="cont-serials" class="hide-elem">
-                    <b>Seriales: <small>(<span id="serial-value"></span>% del Bote)</small></b>
-                    <div class="row" id="serials-winners"></div>
-                </div>
+                <div id="container-prize-ctns"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary leave-room">

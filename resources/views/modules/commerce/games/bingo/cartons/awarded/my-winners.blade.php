@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', $title)
 
 @section('content')
@@ -31,7 +31,7 @@
     @include('includes.games.bingo.layout.modal-other-bingo-rooms-pending-payments')
 @endsection
 @section('scripts')
-    @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/rke/payment-confirm-button.js', 'resources/js/games/bingo/includes/prize-ctns-pending-payments.js'])
+    @vite(['resources/js/helpers/switch-payment-method.js', 'resources/js/helpers/payment-confirm-button.js', 'resources/js/games/bingo/includes/prize-ctns-pending-payments.js'])
     <script>
         const name = '{{ $name }}';
 

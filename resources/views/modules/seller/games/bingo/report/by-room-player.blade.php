@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>PlayRKE - Reporte de Ventas</title>
 @section('content')
     <div class="row">

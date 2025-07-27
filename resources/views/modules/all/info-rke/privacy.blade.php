@@ -1,4 +1,4 @@
-@extends ('layouts.app_rke')
+@extends ('layouts.layout-online')
 @section('title', 'Política de Privacidad')
 @section('content')
     <div class="col-12">

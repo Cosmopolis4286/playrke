@@ -20,9 +20,15 @@ class GamePrizes extends Model
         return self::where('game', $gameID)->where('description', $description)->value($value);
     }
 
-    public static function getAllGamePrize($game)
+    public static function getValueByCode($game, $code, $value = 'id')
     {
         $gameID = Games::getValueByName($game);
-        return self::where('game', $gameID)->pluck('code', 'id');
+        return self::where('game', $gameID)->where('code', $code)->value($value);
+    }
+
+    public static function pluckGamePrizes($game, $value, $index = 'id')
+    {
+        $gameID = Games::getValueByName($game);
+        return self::where('game', $gameID)->pluck($value, $index);
     }
 }

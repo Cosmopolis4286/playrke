@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', $title)
 @section('content')
     <div class="col-12">
@@ -92,7 +92,7 @@
 @endsection
 
 @section('scripts')
-    @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/rke/payment-confirm-button.js'])
+    @vite(['resources/js/helpers/switch-payment-method.js', 'resources/js/helpers/payment-confirm-button.js'])
     <script>
         const name = '{{ $name }}';
         const coin = '{{ encrypt($coin) }}';

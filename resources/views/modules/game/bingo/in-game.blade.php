@@ -13,36 +13,39 @@
     <div class="col-md-11 col-lg-7 col-xl-8 m-auto">
         @include('includes.games.bingo.layout.container-last-chips')
         @include('includes.games.bingo.layout.container-bingo-info')
+
         @if ($room->status > 2)
             @include('includes.games.bingo.layout.container-history-chips')
         @endif
+
         <div class="container mt-1">
-            @if (!empty($cartons))
-                @include('includes.games.bingo.layout.cartons')
-            @endif
-            <input type="hidden" id="random" value="{{ $random }}">
+            <x-games.bingo.in-game.cartons :cartons="$cartons ?? []" :customerLogo="$customerLogo ?? null" />
         </div>
+
         @if ($room->status == 2)
             @include('includes.games.bingo.layout.modal-info-draw')
-        @elseif($room->status > 2)
+        @elseif ($room->status > 2)
             @include('includes.games.bingo.layout.modal-info-winners')
             @include('includes.games.bingo.layout.sounds')
+
             @if ($room->Config->play_types)
-                @include('includes.games.bingo.layout.modal-bingo-plays')
+                @include('includes.games.bingo.layout.modal-bingo-patterns')
             @endif
         @endif
+
         @include('includes.games.bingo.layout.modal-bingo-rules')
     </div>
 @endsection
 
 @section('scripts')
     <script src="{{ asset('js/crypto-js.min.js') }}"></script>
-    @vite('resources/js/rke/time-functions.js')
+    @vite('resources/js/helpers/time-functions.js')
 
     <script>
         const preRoute = '{{ asset('') }}';
         const logo = @json($customerLogo ?? 'img/rke.png');
         const encrypted = @json($room->encrypted);
+        const allCartons = @json($cartons);
         const roomStatus = @json($room->status);
         const coinSym = @json($coinSym);
         const chpLast = @json($vanDraw);
@@ -65,10 +68,11 @@
             let gameStartTime = @json($startTime);
             let amount = ctnPrice;
         </script>
-        @vite(['resources/js/rke/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'])
+        @vite(['resources/js/helpers/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'])
     @endif
     @if ($room->status > 2)
         <script>
+            const prizePoolType = @json($prizePoolType);
             const roundNum = @json($round);
             const numRounds = parseInt(@json($room->Config->rounds));
             const startTime = @json($startTime);
@@ -85,9 +89,9 @@
             soundNext.muted = true;
             soundWin.muted = true;
         </script>
-        @vite(['resources/js/rke/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
+        @vite(['resources/js/helpers/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
         @if ($room->Config->play_types)
-            @vite('resources/js/games/bingo/includes/handle-bingo-plays.js')
+            @vite('resources/js/games/bingo/includes/handle-bingo-patterns.js')
         @endif
     @endif
 @endsection

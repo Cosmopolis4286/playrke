@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', $title)
 @section('content')
     <div class="col-12">
@@ -85,7 +85,7 @@
     @include('includes.form-other-options')
 @endsection
 @section('scripts')
-    @vite('resources/js/rke/get-uuid.js')
+    @vite('resources/js/helpers/get-uuid.js')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
         if (@json(Session::has('message-passw'))) {

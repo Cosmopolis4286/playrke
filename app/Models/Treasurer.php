@@ -13,7 +13,7 @@ class Treasurer extends Model
     'coin',
     'phone',
     'user',
-    'other_user_id',
+    'code_uuid',
     'status'
   ];
 

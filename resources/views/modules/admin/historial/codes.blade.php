@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>Códigos PlayRKE - Canjeados</title>
 @section('fnd-content')
     <div class="content-wrapper">

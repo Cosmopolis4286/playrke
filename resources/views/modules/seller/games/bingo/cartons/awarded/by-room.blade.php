@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', $title)
 @section('content')
     <div class="col-12">
@@ -40,7 +40,7 @@
                                             </td>
                                             <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
                                             <td>{{ $coinData->iso_code }} {{ $win->amount }}</td>
-                                            <td>{{ $win->Prize->description }}</td>
+                                            <td>{{ $win->prize_type_description }}</td>
                                             <td>
                                                 @if ($win->status == null)
                                                     <span class="badge bg-dark">Pendiente</span>
@@ -56,7 +56,7 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group" role="group" aria-label="Acciones">
-                                                    @if ($win->status == null)
+                                                    @if ($win->status === 'WT')
                                                         <button type="button"
                                                             class="btn btn-danger btn-sm notify-ctn-payment"
                                                             title="Notificar Pago" data-coin_sym="{{ $win->Coin->symbol }}"

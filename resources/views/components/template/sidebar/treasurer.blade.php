@@ -1,0 +1,68 @@
+@php
+    $countryCode = strtolower(session('countryCode'));
+@endphp
+
+<x-template.sidebar :creatorTypePrefix="$creatorTypePrefix" userType="Tesorero">
+    {{-- Slot de navegación específica para Tesorero --}}
+    <li class="nav-item has-treeview">
+        <a href="{{ route('directory.index', ['countryCode' => strtolower(session('countryCode'))]) }}" title="Directorio"
+            class="nav-link  {{ !Route::is('directory.index') ?: 'active' }}">
+            <i class="nav-icon fas fa-university"></i>
+            <p>Directorio</p>
+        </a>
+    </li>
+    <li class="nav-item has-treeview">
+        <a href="{{ route('exchange-rate.index', ['creatorType' => 'commerce']) }}" title="Tasa de Cambio"
+            class="nav-link  {{ !Route::is('exchange-rate.index') ?: 'active' }}">
+            <i class="nav-icon fa-solid fa-circle-dollar-to-slot"></i>
+            <p>Conversión</p>
+        </a>
+    </li>
+    <li class="nav-item has-treeview">
+        <a href="{{ route('commerce.sellers') }}" title="Mis Vendedores"
+            class="nav-link {{ !Route::is('commerce.sellers') ?: 'active' }}">
+            <i class="nav-icon fa-solid fa-comments-dollar"></i>
+            <p>Vendedores</p>
+        </a>
+    </li>
+
+    <li class="nav-item has-treeview">
+        <a href="#"
+            class="nav-link {{ !Route::is('bingo.all-rooms', 'bingo.ctnsAwarded', 'bingo.ctnsSold', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom', 'bingo.configuration', 'bingo.bingoPatterns') ?: 'active' }} ">
+            <i class="nav-icon fa-solid fa-hat-wizard"></i>
+            <p>Bingo
+                <i class="right fas fa-angle-left"></i>
+            </p>
+        </a>
+        <ul class="nav nav-treeview">
+            <li class="nav-item">
+                <a href="{{ route('bingo.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => 'commerce']) }}"
+                    title="Salas Bingo" class="nav-link {{ !Route::is('bingo.all-rooms') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Salas</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('bingo.ctnsAwarded', ['type' => 'private', 'dateFilter' => 'today']) }}"
+                    title="Ganadores" class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Ganadores</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('bingo.ctnsSold') }}" title="Cartones Vendidos"
+                    class="nav-link {{ !Route::is('bingo.ctnsSold') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Cartones</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('bingo.reportSalesRooms') }}" title="Reporte de Ventas"
+                    class="nav-link {{ !Route::is('bingo.reportSalesRooms', 'bingo.reportSalesByRoom') ?: 'active' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Reporte de Ventas</p>
+                </a>
+            </li>
+        </ul>
+    </li>
+</x-template.sidebar>

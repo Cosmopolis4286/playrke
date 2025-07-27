@@ -265,20 +265,19 @@ body {
 
 #cont-game-mode-opcs {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    width: auto;
     height: 100%;
-    gap: 8%;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 7%;
 }
 
 #container-round {
-    width: 100%;
+    width: auto;
     color: var(--white);
-    padding-top: 0.5%;
-    padding-left: 8%;
-    padding-right: 8%;
+    padding: 0 1.75vmin;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -294,20 +293,15 @@ body {
 }
 
 #text-game-mode {
-    width: auto;
-    height: auto;
-    color: white;
-    font-weight: bold;
-    border-radius: 5px;
-    background: linear-gradient(to bottom, #f00034, rgb(145, 0, 0));
     text-align: center;
-    font-size: clamp(11.75px, 1.12vw, 1.35vw);
-    word-break: break-word;
-    overflow-wrap: break-word;
-    overflow: hidden;
+    border-radius: 5px;
+    padding: 0 1.85vmin;
+    background: linear-gradient(to bottom, #f00034, rgb(145, 0, 0));
+    color: var(--white);
+    width: 100%;
+    min-height: 1.5em;
+    font-size: clamp(10px, 1.3vw, 16px);
 }
-
-#container-btn-options {}
 
 /*Seccion Carrusel*/
 #container-history-chips {
@@ -489,22 +483,11 @@ body {
 }
 
 .number-box-number {
-    width: 100%;
-    height: 100%;
-    padding-top: 3px;
+    z-index: 20;
     color: var(--gray-900);
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-.img-logo-ctn {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    max-width: 72.5%;
-    max-height: 72.5%;
 }
 
 .number-box-circle {
@@ -514,13 +497,18 @@ body {
     transform: translate(-50%, -50%);
     height: 80%;
     width: 80%;
-    z-index: 999;
-    padding-top: 1.75px;
-    color: var(--white);
+    z-index: 10;
     border: 2px solid #cf1002d5;
     background: linear-gradient(to bottom, #d60f26, rgb(177, 1, 60));
-    display: flex;
-    justify-content: center;
-    align-items: center;
     border-radius: 50%;
+    pointer-events: none;
+}
+
+.img-logo-ctn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 72.5%;
+    max-height: 72.5%;
 }

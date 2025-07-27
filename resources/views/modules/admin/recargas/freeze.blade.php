@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>PlayRKE - Congelar Saldo</title>
 @section('fnd-content')
     <div class="content-wrapper">

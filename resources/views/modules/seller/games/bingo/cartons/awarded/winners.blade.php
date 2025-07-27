@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 @section('title', $title)
 @section('content')
     <div class="col-12">
@@ -42,9 +42,9 @@
                                             <td>{{ $win->PlayerLink->Country->name }}</td>
                                             <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
                                             <td>{{ $coinData->iso_code }} {{ $win->amount }}</td>
-                                            <td>{{ $win->Prize->description }}</td>
+                                            <td>{{ $win->prize_type_description }}</td>
                                             <td class="align-middle">
-                                                @if ($win->status == null)
+                                                @if ($win->status === 'WT')
                                                     <span class="badge bg-secondary">Pendiente</span>
                                                 @elseif($win->status === 'CS')
                                                     <a href="{{ route('image.show-image-payment-prize-ctns', ['filename' => $win->Payments[0]->payment_proof]) }}"
@@ -119,7 +119,7 @@
     ])
 @endsection
 @section('scripts')
-    @vite('resources/js/rke/payment-confirm-button.js')
+    @vite('resources/js/helpers/payment-confirm-button.js')
     <script>
         const name = '{{ $name }}';
 

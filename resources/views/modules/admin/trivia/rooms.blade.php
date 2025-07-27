@@ -1,4 +1,4 @@
-@extends('layouts.app_rke')
+@extends('layouts.layout-online')
 <title>
     Trivias - PlayRKE</title>
 @section('fnd-content')
