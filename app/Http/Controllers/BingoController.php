@@ -1053,7 +1053,7 @@ class BingoController extends Controller
                     ]
                 ];
 
-                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => $view, 'coin' => encrypt($coin)]);
+                $gameRoomRoute =  route('bingo.game-rooms-commerce', ['roomType' => $view, 'coin' => encrypt($coin)]);
 
                 $moreViewData = [
                     'uuidCode' => Commerce::getValueById($creatorID, 'code_uuid'),
@@ -1082,7 +1082,7 @@ class BingoController extends Controller
                     ]
                 ];
 
-                $GMRoute =  route(
+                $gameRoomRoute =  route(
                     'bingo.game-rooms-customer',
                     [
                         'customer' => $customer->customer_id,
@@ -1140,7 +1140,7 @@ class BingoController extends Controller
             'bingoPatterns' => $bingoPatterns,
             'timeZone' => $timeZone,
             'rooms' => $rooms,
-            'GMRoute' => $GMRoute,
+            'gameRoomRoute' => $gameRoomRoute,
             'activeRooms' => $rooms->whereIn('status', [2, 3])->count(),
             'typesPrizePool' => PrizePoolType::all(),
             'gameModes' => GameModes::all()
@@ -2488,7 +2488,7 @@ class BingoController extends Controller
 
                 $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
 
-                $GMRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'private', 'coin' => encrypt($commerce->coin)]);
+                $gameRoomRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'private', 'coin' => encrypt($commerce->coin)]);
 
                 if ($creatorID == 1) $roomType = Room::getRoomTypes();
 
@@ -2500,7 +2500,7 @@ class BingoController extends Controller
                 $customer = Customer::getById($creatorID, ['user', 'customer_id', 'token']);
                 $token = $customer->token;
 
-                $GMRoute =  route(
+                $gameRoomRoute =  route(
                     'bingo.game-rooms-customer',
                     ['customer' => $customer->customer_id, 'user' => 'available-rooms']
                 );
@@ -2548,7 +2548,7 @@ class BingoController extends Controller
             'timeZone' => $timeZone,
             'rooms' => $automaticRooms,
             'activeRooms' => $activeRooms,
-            'GMRoute' => $GMRoute,
+            'gameRoomRoute' => $gameRoomRoute,
             'roomType' => $roomType ?? [],
             'typesPrizePool' => PrizePoolType::all(),
             'gameModes' => GameModes::all()
@@ -3827,12 +3827,13 @@ class BingoController extends Controller
         return response()->json(['message' => 'Número llamado enviado al canal']);
     }
 
-    public function form($creator, $coin, $roomType)
+    public function form($roomId = '')
     {
         $data = [
             'round' => 5,
             'numbers' => [12, 23, 34, 45, 56],
         ];
+
         return view('modules.game.bingo.form.index', compact('data'));
     }
 }

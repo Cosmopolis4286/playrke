@@ -26,8 +26,9 @@
                                 <img style="max-height: 68px" src="{{ asset("storage/game/bingo/$imageBingoRules") }}"
                                     alt="Game Image">
                             @else
-                                <div class="alert alert-primary">
-                                    <h6 class="alert-heading"><strong>¡Atención, no hay una imagen cargada!</strong></h6>
+                                <div class="alert alert-primary p-3">
+                                    <h6 class="alert-heading m-0"><strong>¡Atención, no hay una imagen cargada!</strong>
+                                    </h6>
                                 </div>
                             @endif
                         </div>

@@ -1,4 +1,31 @@
-@props(['view', 'name' => null, 'creator' => null, 'rooms' => null, 'activeRooms' => null, 'GMRoute' => null])
+@props(['view', 'name' => null, 'creator' => null, 'rooms' => null, 'activeRooms' => null, 'gameRoomRoute' => null])
+
+@php
+    $isCustomer = $creator['type'] === 'customer';
+    $routes = [
+        'PRIVATE' => [
+            'class' => 'btn-secondary',
+            'icon' => 'fa-solid fa-rotate',
+            'text' => 'Auto',
+            'roomType' => 'automatic-rooms',
+        ],
+        'OTHER-PUBLIC' => [
+            'class' => 'btn-secondary',
+            'icon' => 'fa-solid fas fa-globe',
+            'text' => 'Públicas',
+            'roomType' => 'public-rooms',
+        ],
+    ];
+
+    $defaultRoute = [
+        'class' => 'btn-primary',
+        'icon' => 'fa-solid fa-gamepad',
+        'text' => 'Otras Salas',
+        'roomType' => 'other-public-rooms',
+    ];
+
+    $routeData = $routes[$view] ?? $defaultRoute;
+@endphp
 
 <div class="d-flex justify-content-between align-items-center">
     <div class="btn-group">
@@ -18,55 +45,21 @@
                 <i class="fas fa-cogs"></i> Manual
             </a>
         @else
-            @php
-                $buttons = [
-                    'PRIVATE' => [
-                        'class' => 'btn-secondary',
-                        'icon' => 'fa-rotate',
-                        'text' => 'Auto',
-                        'roomType' => 'automatic-rooms',
-                    ],
-                    'OTHER-PUBLIC' => [
-                        'class' => 'btn-secondary',
-                        'icon' => 'fas fa-globe',
-                        'text' => 'Publicas',
-                        'roomType' => 'public-rooms',
-                    ],
-                ];
-
-                $default = [
-                    'class' => 'btn-primary',
-                    'icon' => 'fa-gamepad',
-                    'text' => 'Otras Salas',
-                    'roomType' => 'other-public-rooms',
-                ];
-
-                $data = $buttons[$view] ?? $default;
-            @endphp
-
-            <a class="btn btn-sm {{ $data['class'] }}"
-                href="{{ route('bingo.all-rooms', ['roomType' => $data['roomType'], 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
-                <i class="fa-solid {{ $data['icon'] }}"></i> {{ $data['text'] }}
+            <a class="btn btn-sm {{ $routeData['class'] }}"
+                href="{{ route('bingo.all-rooms', ['roomType' => $routeData['roomType'], 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                <i class="{{ $routeData['icon'] }}"></i> {{ $routeData['text'] }}
             </a>
 
-            @if ($creator['type'] !== 'customer')
-                @if ($view === 'PRIVATE')
-                    @php
-                        $title = 'Publicas';
-                        $icon = 'fas fa-globe';
-                        $roomType = 'public-rooms';
-                    @endphp
-                @else
-                    @php
-                        $title = 'Privadas';
-                        $icon = 'fa-solid fa-shield-halved';
-                        $roomType = 'private-rooms';
-                    @endphp
-                @endif
+            @if (!$isCustomer)
+                @php
+                    $altTitle = $view === 'PRIVATE' ? 'Públicas' : 'Privadas';
+                    $altIcon = $view === 'PRIVATE' ? 'fas fa-globe' : 'fa-solid fa-shield-halved';
+                    $altRoomType = $view === 'PRIVATE' ? 'public-rooms' : 'private-rooms';
+                @endphp
 
                 <a class="btn btn-sm btn-secondary"
-                    href="{{ route('bingo.all-rooms', ['roomType' => $roomType, 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
-                    <i class="{{ $icon }}"></i> {{ $title }}
+                    href="{{ route('bingo.all-rooms', ['roomType' => $altRoomType, 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                    <i class="{{ $altIcon }}"></i> {{ $altTitle }}
                 </a>
             @else
                 <button id="btn-game-id" class="btn btn-sm btn-dark">
@@ -81,10 +74,10 @@
             <i class="fa-solid fa-bolt"></i> Ejecutar Job
         </button>
     @elseif($view === 'PRIVATE')
-        <a href="{{ $activeRooms ? $GMRoute : '#' }}"
+        <a href="{{ $activeRooms ? $gameRoomRoute : '#' }}"
             class="btn btn-sm btn-primary {{ $activeRooms ? '' : 'disabled' }}"
             target="{{ $activeRooms ? '_blank' : '_self' }}">
-            <i class="fas fa-eye"></i> Ver salas
+            <i class="fas fa-eye"></i> Ver Salas
         </a>
     @endif
 </div>

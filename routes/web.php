@@ -29,11 +29,12 @@ use App\Http\Controllers\TreasurerController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Tighten\Ziggy\Ziggy;
 
 require __DIR__ . '/auth.php';
 
 Route::get('/ziggy/routes', function () {
-    return response()->json(app(\Tightenco\Ziggy\Ziggy::class)->toArray());
+    return response()->json(new Ziggy);
 });
 
 Route::get('/', function () {
@@ -299,7 +300,7 @@ Route::group(['prefix' => 'bingo-patterns', 'as' => 'bingo-patterns.'], function
 });
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
-    Route::get('form', [BingoController::class, 'form'])->name('form');
+    Route::get('form/{roomId?}', [BingoController::class, 'form'])->name('form');
     Route::post('room/{roomId}/call-number', [BingoController::class, 'callNumber'])->name('call-number');
     Route::get('showGameInfo', [BingoController::class, 'showGameInfo'])->name('showGameInfo');
     Route::get('configuration/patterns/{userToken?}', [BingoController::class, 'bingoPatterns'])->name('bingoPatterns');
@@ -357,7 +358,7 @@ Route::get('bingo/{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoControll
 Route::get('bingoplay/player/{player}/{room?}', [BingoController::class, 'inGame'])->name('bingo.in-game');
 
 Route::get('bingo/k3yg4m3/play-rke', function () {
-    $key = session('r4m60nk3y');  
+    $key = session('r4m60nk3y');
     return response()->json(['key' => $key]);
 })->name('bingo.k3yg4m3');
 

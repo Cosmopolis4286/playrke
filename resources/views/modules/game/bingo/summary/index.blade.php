@@ -6,11 +6,13 @@
             <x-shared.card-header :title="$title" :subtitle="$subtitle" :btnCardHeader="['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear']" />
             <div class="card-body">
                 <x-shared.coin-tabs :coins="$coins" :selectedCoin="$coin" :routeWithCoin="$routeWithCoin" />
-                {{-- <x-games.bingo.shared.button-group :view="$view" /> --}}
+                <x-games.bingo.shared.button-group view="PRIVATE" name="btn-ver-salas" :creator="$creator" :rooms="$rooms"
+                    :activeRooms="$activeRooms" :gameRoomRoute="$gameRoomRoute" />
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
-                        <x-games.bingo.tables.table-info-bingo-rooms :rooms="$rooms" :creator="$creator" :coinSym="$coinSym"
-                            :coin="$coin" :uuidCode="$uuidCode" :exchangeRate="$exchangeRate" :view="$view" :name="$name" />
+                        <x-games.bingo.tables.table-info-bingo-rooms :rooms="$rooms" :creator="$creator"
+                            :coinSym="$coinSym" :coin="$coin" :uuidCode="$uuidCode" :exchangeRate="$exchangeRate" :view="$view"
+                            :name="$name" />
                     </div>
                 </div>
             </div>
