@@ -4,7 +4,9 @@
 
 <body
     class="d-flex flex-column min-vh-100 hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
+
     <x-shared.app-loader />
+
     <div id="app-wrapper" class="flex-grow-1 d-none">
         <x-template.navbar />
         <x-template.sidebar.sidebar-selector />
@@ -19,8 +21,16 @@
         <x-template.footer />
         <x-modals.change-password />
     </div>
+
+    <noscript>
+        <div class="alert alert-danger text-center mt-5">
+            JavaScript debe estar habilitado para usar esta aplicación.
+        </div>
+    </noscript>
+
     @vite(['resources/js/app.js', 'resources/js/helpers/functions.ts'])
     <x-template.scripts />
+    @stack('scripts')
 </body>
 
 </html>

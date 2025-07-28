@@ -1,3 +1,4 @@
+// resources/js/show-app.js
 /**
  * Controla la visibilidad del contenido principal y loader.
  * Se expone globalmente la función vueAppIsReady para que Vue llame

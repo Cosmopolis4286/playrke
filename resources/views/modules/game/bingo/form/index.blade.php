@@ -1,14 +1,8 @@
 @extends('layouts.layout-online')
 
-@section('title', 'BingoPlay-Form')
+@section('title', 'Form')
 
 @vite('resources/js/games/bingo/bingo-view-loader.js')
-<script>
-    window.currentBingoView = 'Form';
-    window.bingoProps = {
-        data: @json($data)
-    };
-</script>
 
 @section('content')
     <div id="app" v-cloak></div>
@@ -18,3 +12,12 @@
         }
     </style>
 @endsection
+
+@push('scripts')
+    <script>
+        window.currentBingoView = 'Form';
+        window.bingoProps = {
+            data: @json($data)
+        };
+    </script>
+@endpush
