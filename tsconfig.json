@@ -14,7 +14,8 @@
     ],
     "types": [
       "node",
-      "dom"
+      "dom",
+      "jquery"
     ]
   },
   "include": [

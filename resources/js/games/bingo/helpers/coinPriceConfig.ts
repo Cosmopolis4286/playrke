@@ -1,4 +1,4 @@
-import { showToast } from '../../../helpers/toast-notify';
+import { showToast } from '../../../helpers/toastNotify';
 
 let coinsCtnPrice = false;
 
