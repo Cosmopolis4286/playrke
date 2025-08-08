@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Game\Bingo;
+namespace App\Services\Games\Bingo;
 
 use App\Models\{BingoCtnPrice, BingoCtnPriceDrafts, BingoCtns, BingoDraws, BingoPrizeCtns, BingoRoom, BingoRounds, BingoRoundsDrafts, User};
-use App\Traits\BingoTrait;
+use App\Traits\Games\BingoTrait;
 use Illuminate\Support\Facades\Log;
 
 class HandleBingoRooms
@@ -28,26 +28,26 @@ class HandleBingoRooms
             return;
         }
 
-        $roomID = $room->id;
+        $roomId = $room->id;
         $status = 1; // Status 1: Borrador
-        $existsCtns = BingoCtns::getCountCtnByRoom($roomID);
+        $existsCtns = BingoCtns::getCountCtnByRoom($roomId);
 
         if ($existsCtns) {
-            $winChip = BingoDraws::getWinningChip($roomID) ?? $this->handleDraw($roomID);
+            $winChip = BingoDraws::getWinningChip($roomId) ?? $this->handleDraw($roomId);
 
             if (isset($winChip['Error'])) {
-                Log::info($winChip['Error'] . ": Sala [ID => $roomID]");
+                Log::info($winChip['Error'] . ": Sala [ID => $roomId]");
                 return;
             }
 
             $status = ($winChip->time <= time()) ? 4 : 3;
 
-            BingoRoom::where('id', $roomID)->update(['status' => $status]);
-            $this->determineRoundsStatus($roomID, $status);
-            $this->registerCtnPrices($roomID);
+            BingoRoom::where('id', $roomId)->update(['status' => $status]);
+            $this->determineRoundsStatus($roomId, $status);
+            $this->registerCtnPrices($roomId);
         }
 
-        BingoRoom::where('id', $roomID)->update(['status' => $status]);
+        BingoRoom::where('id', $roomId)->update(['status' => $status]);
     }
 
     public function handleFinishedRooms($creatorUser = false): void
@@ -92,16 +92,16 @@ class HandleBingoRooms
         }
     }
 
-    private function determineRoundsStatus(int $roomID, int $roomStatus): void
+    private function determineRoundsStatus(int $roomId, int $roomStatus): void
     {
         date_default_timezone_set(config('app.timezone'));
 
         if ($roomStatus === 3) {
-            $this->associateRounds($roomID);
+            $this->associateRounds($roomId);
         }
 
         // Obtener todas las rondas pendientes (no completadas) de la sala
-        $rounds = BingoRounds::where('room', $roomID)
+        $rounds = BingoRounds::where('room', $roomId)
             ->where('status', '<>', 'COMPLETED')
             ->orderByDesc('id')->get(['id', 'round']);
 
@@ -110,7 +110,7 @@ class HandleBingoRooms
         }
 
         // Mapear tiempos de los draws por ronda
-        $drawTimes = BingoDraws::where('room', $roomID)
+        $drawTimes = BingoDraws::where('room', $roomId)
             ->whereIn('round', $rounds->pluck('round'))
             ->where('status', 3)->pluck('time', 'round');
 
@@ -120,7 +120,7 @@ class HandleBingoRooms
 
             if ($drawTime && $drawTime <= time()) {
                 // Completar cualquier otra ronda que esté en progreso
-                BingoRounds::where('room', $roomID)
+                BingoRounds::where('room', $roomId)
                     ->where('id', '!=', $round->id)
                     ->where('status', 'IN PROGRESS')
                     ->update(['status' => 'COMPLETED']);
@@ -138,14 +138,14 @@ class HandleBingoRooms
     /**
      * Asocia las rondas a una sala.
      */
-    private function associateRounds($roomID)
+    private function associateRounds($roomId)
     {
         try {
-            $rounds = BingoRounds::where('room', $roomID)->exists();
+            $rounds = BingoRounds::where('room', $roomId)->exists();
 
             if ($rounds) return true;
 
-            $bingoRounds = BingoRoundsDrafts::getByRoom($roomID, [
+            $bingoRounds = BingoRoundsDrafts::getByRoom($roomId, [
                 'rounds',
                 'prize_types',
                 'play_types',
@@ -153,11 +153,11 @@ class HandleBingoRooms
             ]);
 
             if (!$bingoRounds) {
-                throw new \Exception("No draft data found for bingo ID {$roomID}");
+                throw new \Exception("No draft data found for bingo ID {$roomId}");
             }
 
             BingoRounds::create([
-                'room' => $roomID,
+                'room' => $roomId,
                 'rounds' => $bingoRounds->rounds,
                 'prize_types' => $bingoRounds->prize_types,
                 'play_types' => $bingoRounds->play_types,
@@ -173,10 +173,10 @@ class HandleBingoRooms
         }
     }
 
-    private function registerCtnPrices(int $roomID)
+    private function registerCtnPrices(int $roomId)
     {
         try {
-            $bingoCtnPrice = BingoCtnPriceDrafts::getByRoom($roomID, ['creator_user', 'coins', 'ctn_prices', 'status']);
+            $bingoCtnPrice = BingoCtnPriceDrafts::getByRoom($roomId, ['creator_user', 'coins', 'ctn_prices', 'status']);
 
             if (!$bingoCtnPrice) {
                 return false;
@@ -191,7 +191,7 @@ class HandleBingoRooms
 
             foreach ($coins as $index => $coin) {
                 BingoCtnPrice::updateOrCreate(
-                    ['room' => $roomID, 'coin' => $coin],
+                    ['room' => $roomId, 'coin' => $coin],
                     [
                         'creator_user' => $bingoCtnPrice->creator_user,
                         'ctn_price' => $prices[$index],
@@ -204,7 +204,7 @@ class HandleBingoRooms
             return true;
         } catch (\Exception $e) {
             Log::error('Error en registerCtnPrices: ' . $e->getMessage(), [
-                'roomID' => $roomID,
+                'roomID' => $roomId,
                 'creatorUser' => $bingoCtnPrice->creator_user,
                 'trace' => $e->getTraceAsString(),
             ]);

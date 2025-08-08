@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Traits;
+namespace App\Traits\Games;
 
+// Models
 use App\Models\BingoCreator;
 use App\Models\BingoCreatorSales;
 use App\Models\SellerRoomLimits;
@@ -31,8 +32,16 @@ use App\Models\Seller;
 use App\Models\User;
 use App\Models\UserType;
 use App\Models\Wallet;
-use App\Services\Customer\HandleTransactions;
-use App\Services\Game\Bingo\HandleBingoRooms;
+
+// Services
+use App\Services\Games\Bingo\HandleBingoRooms;
+use App\Services\Users\Customer\HandleTransactions;
+
+// Traits
+use App\Traits\Users\PlayerLinkTrait;
+use App\Traits\Users\UserValTrait;
+
+// Otros
 use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +50,7 @@ use Illuminate\Support\Facades\Log;
 
 trait BingoTrait
 {
-    use UserVal, GameTrait, RouteRKE, PlayerLinkTrait, SeamlessWallet;
+    use GameTrait, PlayerLinkTrait, SeamlessWallet, UserValTrait;
 
     private function encryptDraw($room)
     {
@@ -375,9 +384,13 @@ trait BingoTrait
                         if (!isset($flatGroupChipIndex[$chip])) {
                             $flatGroupChipIndex[$chip] = [];
                         }
+
                         // Combina y elimina duplicados
-                        $flatGroupChipIndex[$chip] = array_unique(array_merge($flatGroupChipIndex[$chip], $cartonIds));
-                        dd($flatGroupChipIndex[$chip]);
+                        // Forzar que siempre sea un array
+                        $flatGroupChipIndex[$chip] = array_unique(array_merge(
+                            $flatGroupChipIndex[$chip],
+                            (array) $cartonIds
+                        ));
                     }
                 }
 
@@ -428,61 +441,86 @@ trait BingoTrait
         return null;
     }
 
+    /**
+     * Procesa las fichas ganadoras para cada ronda en una sala de Bingo.
+     * Marca la ficha ganadora como "ganadora" y actualiza la información de la ronda.
+     *
+     * Si no hay jugadores o falta información esencial, la transacción se cancela.
+     *
+     * @param int $roomId ID de la sala
+     * @return array|string|null Devuelve la primera ficha ganadora o un mensaje de error
+     */
     public function chipWin($roomId)
     {
         DB::beginTransaction();
 
         try {
-
             // Verificar si hay jugadores en la sala
             if (!BingoRoomUser::where('room', $roomId)->exists()) {
+                // No hay jugadores: marcar sala como "abierta" y limpiar tiempos de fichas
                 BingoRoom::where('id', $roomId)->update(['status' => 1]);
                 BingoDraws::where('room', $roomId)->update(['time' => 0]);
-                DB::commit();
 
+                DB::commit(); // Confirmar cambios antes de salir
                 return ['Error' => 'No hay jugadores en la sala'];
             }
 
+            // Obtener cantidad de rondas y tipos de juego asociados a cada una
             $roundsCount = (int) BingoRoomConfig::getValueByRoom($roomId, 'rounds');
             $roundPlayTypes = BingoRounds::where('room', $roomId)->pluck('play_type', 'round');
 
             $firstChipDraw = null;
 
+            // Recorrer todas las rondas
             for ($round = 1; $round <= $roundsCount; $round++) {
-
                 $playType = $roundPlayTypes[$round] ?? null;
 
-                if (!$playType) continue;
+                // Si no hay tipo de juego para esta ronda, abortar
+                if (!$playType) {
+                    DB::rollBack();
+                    return ['Error' => "No se encontró un tipo de juego para la ronda #{$round}"];
+                }
 
-                // Obtiene la última ficha que provocó al menos una coincidencia ganadora
+                // Obtener la última ficha que provocó una coincidencia ganadora
                 $winningChip = $this->getLastWinningChip($roomId, $round, $playType);
 
+                // Obtener información de la ficha ganadora
                 $chipDraw = BingoDraws::select('id', 'time', 'chip', 'status')
-                    ->where('room', $roomId)->where('round', $round)
-                    ->where('chip', $winningChip)->first();
+                    ->where('room', $roomId)
+                    ->where('round', $round)
+                    ->where('chip', $winningChip)
+                    ->first();
 
-                if ($chipDraw) {
+                // Validar que se haya encontrado una ficha
+                if (!$chipDraw) {
+                    DB::rollBack();
+                    return ['Error' => "No se encontró la ficha ganadora para la ronda #{$round}"];
+                }
 
-                    $chipDraw->update(['status' => 3]);
+                // Marcar la ficha como "ganadora"
+                $chipDraw->update(['status' => 3]);
 
-                    BingoRounds::where('room', $roomId)
-                        ->where('round', $round)
-                        ->update([
-                            'start_time' => $chipDraw->time,
-                            'last_chip' => $chipDraw->chip,
-                        ]);
+                // Actualizar información de la ronda
+                BingoRounds::where('room', $roomId)
+                    ->where('round', $round)
+                    ->update([
+                        'start_time' => $chipDraw->time,
+                        'last_chip' => $chipDraw->chip,
+                    ]);
 
-                    if ($round === 1) {
-                        $firstChipDraw = $chipDraw;
-                    }
+                // Guardar la primera ficha ganadora
+                if ($round === 1) {
+                    $firstChipDraw = $chipDraw;
                 }
             }
 
+            // Registrar tasa de cambio del juego
             $this->insertGameExchangeRate($roomId, 'BINGO');
 
-            DB::commit();
+            DB::commit(); // Confirmar todos los cambios
             return $firstChipDraw;
         } catch (\Exception $e) {
+            // Si ocurre cualquier error, revertir la transacción
             DB::rollBack();
             Log::error("Error al procesar chipWin para sala {$roomId}: {$e->getMessage()}");
             return null;
@@ -491,11 +529,11 @@ trait BingoTrait
 
     public function getInfoWinners($data, $roomUser)
     {
-        $roomID = BingoRoom::getValueByEncrypted($data['room'], 'id');
+        $roomId = BingoRoom::getValueByEncrypted($data['room'], 'id');
 
-        $this->handleWinners($roomID);
+        $this->handleWinners($roomId);
 
-        $winners = $this->getWinners('ALL', $roomID, $data['coin'], $roomUser);
+        $winners = $this->getWinners('ALL', $roomId, $data['coin'], $roomUser);
 
         return $winners;
     }
@@ -513,7 +551,7 @@ trait BingoTrait
     }
 
     // Función para obtener detalles de la sala
-    private function getRoomDetails($roomID)
+    private function getRoomDetails($roomId)
     {
         return BingoRoom::with('Config:room,game_mode')->select(
             'id',
@@ -525,17 +563,17 @@ trait BingoTrait
             'seller_commn',
             'prize_pool',
             'full_house_prize',
-        )->where('status', 2)->where('id', $roomID)->first();
+        )->where('status', 2)->where('id', $roomId)->first();
     }
 
     // Función para calcular la comisión del vendedor
-    private function calculateSellerCommission($seller, $saleAmount, $roomID)
+    private function calculateSellerCommission($seller, $saleAmount, $roomId)
     {
         if (!$seller) return 0;
 
-        $commnSeller = SellerRoomLimits::getGameRoomValueBySeller('BINGO', $seller, $roomID, 'commn') ?? Seller::getValueById($seller, 'commn');
+        $commnSeller = SellerRoomLimits::getGameRoomValueBySeller('BINGO', $seller, $roomId, 'commn') ?? Seller::getValueById($seller, 'commn');
         // Registar la comision del vendedor para la sala de jeugo
-        SellerRoomLimits::firstOrCreate(['game' => 1, 'room' => $roomID, 'seller' => $seller], ['commn' => $commnSeller]);
+        SellerRoomLimits::firstOrCreate(['game' => 1, 'room' => $roomId, 'seller' => $seller], ['commn' => $commnSeller]);
 
         $commnSeller = ($saleAmount * $commnSeller) / 100;
 
@@ -553,7 +591,7 @@ trait BingoTrait
         }
 
         $creatorUser = $arrCtn['creator']['userId'];
-        $roomID = $arrCtn['room'];
+        $roomId = $arrCtn['room'];
         $coin = $arrCtn['coin'];
 
         $currentTime = now();
@@ -565,7 +603,7 @@ trait BingoTrait
                 'seller' => $seller,
                 'player_user' => $arrCtn['playerUser'] ?? null,
                 'room_user' => $arrCtn['roomUser'],
-                'room' => $roomID,
+                'room' => $roomId,
                 'ctns' => $arrCtn['numOfCtns'],
                 'coin' => $coin,
                 'ctn_price' => $arrCtn['ctnPrice'],
@@ -578,7 +616,7 @@ trait BingoTrait
             ]);
 
             // Actualizar monto de venta total por monedas
-            BingoCreatorSales::updateOrCreateSale($roomID, $creatorUser, $coin, $saleAmount, $sellerCommn);
+            BingoCreatorSales::updateOrCreateSale($roomId, $creatorUser, $coin, $saleAmount, $sellerCommn);
 
             return $BingoCtnsLotID;
         } catch (Exception $e) {
@@ -796,9 +834,9 @@ trait BingoTrait
     {
         app(HandleBingoRooms::class)->checkRoomClosure();
 
-        $roomID = $arrCtn['room'];
+        $roomId = $arrCtn['room'];
 
-        $room = $this->getRoomDetails($roomID);
+        $room = $this->getRoomDetails($roomId);
 
         if (!$room) return ['Error' => 'Sala no disponible'];
 
@@ -827,7 +865,7 @@ trait BingoTrait
 
             if ($gameMode != 1 && ($creator['type'] === 'commerce' || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor
-                $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $roomID);
+                $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $roomId);
             }
 
             // Actualizar acumulado y comisiones de la sala
@@ -866,19 +904,19 @@ trait BingoTrait
             $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
 
             //Registrar nueva moneda en juego de ser necesario
-            if (!CoinGameRoom::existsCoinGameRoom($coin, $roomID, 'BINGO', $gameMode)) {
-                CoinGameRoom::createNewCoinInRoom($game, $roomID, $coin);
+            if (!CoinGameRoom::existsCoinGameRoom($coin, $roomId, 'BINGO', $gameMode)) {
+                CoinGameRoom::createNewCoinInRoom($game, $roomId, $coin);
             }
 
             // Si la sala es de un cliente
             if ($creator['type'] === 'customer') {
                 // Registrar transacción (se consulta nuvamente el saldo del juagdor)
-                $roomID = BingoRoom::getValueById($roomID, 'code_uuid') ?? $this->getCodeUUID('BingoRoom');
+                $roomId = BingoRoom::getValueById($roomId, 'code_uuid') ?? $this->getCodeUUID('BingoRoom');
 
                 $transactionBet = $this->handleTransactionByBET(
                     $game,
                     $creator['id'],
-                    $roomID,
+                    $roomId,
                     $playerUser,
                     $coin,
                     $saleAmount
@@ -891,7 +929,7 @@ trait BingoTrait
 
             // Generar un nuevo sorteo si aplica
             if (isset($arrCtn['ctnWin'])) {
-                $this->handleDraw($roomID, $roomUser);
+                $this->handleDraw($roomId, $roomUser);
             }
 
             return $roomUser;
@@ -901,9 +939,9 @@ trait BingoTrait
         }
     }
 
-    public function convertPrizeValue($roomID, $coin, $value)
+    public function convertPrizeValue($roomId, $coin, $value)
     {
-        $room = BingoRoom::getById($roomID, ['creator_user', 'prize_pool']);
+        $room = BingoRoom::getById($roomId, ['creator_user', 'prize_pool']);
 
         $creatorUser = $room->creator_user;
         $userCreator = User::getCreatorUser($creatorUser, false, true);
@@ -912,10 +950,10 @@ trait BingoTrait
 
         $data = ['coin' => $coin, 'value' => $value, 'creator' => $creator];
 
-        return $this->convertValueByGame('BINGO', $roomID, $data);
+        return $this->convertValueByGame('BINGO', $roomId, $data);
     }
 
-    private function registerPrizeCtn($roomID, $round, $cartons, $pattern, $USDValue)
+    private function registerPrizeCtn($roomId, $round, $cartons, $pattern, $USDValue)
     {
         if ($pattern !== 'SRL') $pattern = $pattern == 1 ? 'FLHE' : 'SONG';
 
@@ -929,7 +967,7 @@ trait BingoTrait
                 $roomUser = $ctn->room_user;
 
                 // Verificar y obtener el tipo de cambio
-                $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $ctn->coin) ?? 1;
+                $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomId, $ctn->coin) ?? 1;
 
                 // Multiplicamos por el exchangeRate
                 $convertedAmount = $USDValue * $exchangeRate;
@@ -940,7 +978,7 @@ trait BingoTrait
 
                 $record = [
                     'active' => 'N',
-                    'room' => $roomID,
+                    'room' => $roomId,
                     'round' => $round,
                     'creator_user' => $ctn->creator_user,
                     'seller' => $ctn->seller,
@@ -971,17 +1009,17 @@ trait BingoTrait
             if ($playersToUpdate && $recordsToInsert) {
 
                 // Actualizar el estado del jugador 
-                BingoRoomUser::where('room', $roomID)->where('winner', '0')
+                BingoRoomUser::where('room', $roomId)->where('winner', '0')
                     ->whereIn('id', $playersToUpdate)->update(['winner' => '1']);
 
                 //Insertar los registros de una sola vez
                 BingoPrizeCtns::insert($recordsToInsert);
 
-                $roomType = BingoRoom::getValueById($roomID, 'room_type');
+                $roomType = BingoRoom::getValueById($roomId, 'room_type');
 
                 if ($roomType === 'PB') {
                     // Manejar los pagos pendientes de los BingoRoomCreators
-                    $this->handlePublicRoomPendingPayments($roomID);
+                    $this->handlePublicRoomPendingPayments($roomId);
                 }
             }
 
@@ -994,20 +1032,20 @@ trait BingoTrait
         }
     }
 
-    private function handlePublicRoomPendingPayments($roomID)
+    private function handlePublicRoomPendingPayments($roomId)
     {
         // Manejador de pagos pendientes de los BingoRoomCreators
-        $bingoCreators = BingoCreator::where('room', $roomID)->count();
+        $bingoCreators = BingoCreator::where('room', $roomId)->count();
 
         if ($bingoCreators === 1) return;
 
         $recordsToInsert = [];
 
-        $bingoCreatorSales = BingoCreatorSales::where('room', $roomID)->get();
+        $bingoCreatorSales = BingoCreatorSales::where('room', $roomId)->get();
 
         try {
         } catch (Exception $e) {
-            Log::error('Error al insertar los registros de pagos pendientes para la sala {$roomID}:' . $e->getMessage());
+            Log::error('Error al insertar los registros de pagos pendientes para la sala {$roomId}:' . $e->getMessage());
         }
     }
 
@@ -1027,10 +1065,10 @@ trait BingoTrait
         return $coin;
     }
 
-    public function getWinnersData($prizeType, $roomID, $roomUser = null)
+    public function getWinnersData($prizeType, $roomId, $roomUser = null)
     {
         $room = BingoRoom::select('creator_user')
-            ->where('id', $roomID)
+            ->where('id', $roomId)
             ->where('status', '>=', 3)
             ->first();
 
@@ -1038,9 +1076,9 @@ trait BingoTrait
             return ['Error' => 'Sala no disponible'];
         }
 
-        $round = BingoRounds::getValueByRoundInProgress($roomID, 'round');
+        $round = BingoRounds::getValueByRoundInProgress($roomId, 'round');
 
-        $query = BingoPrizeCtns::where('room', $roomID)->where('round', '<=', $round);
+        $query = BingoPrizeCtns::where('room', $roomId)->where('round', '<=', $round);
 
         // Si se especifica un tipo de premio (que no sea 'ALL')
         if ($prizeType !== 'ALL') {
@@ -1063,7 +1101,7 @@ trait BingoTrait
 
         return [
             'prizeCtns' => $winners,
-            'room' => $roomID,
+            'room' => $roomId,
             'winPlayer' => $winPlayer,
         ];
     }
@@ -1143,7 +1181,7 @@ trait BingoTrait
         return $winnersByRound;
     }
 
-    private function findWinners($roomID, $roundID, array $chipsDraw)
+    private function findWinners($roomId, $roundID, array $chipsDraw)
     {
         $playType = BingoRounds::getValueById($roundID, 'play_type');
 
@@ -1155,7 +1193,7 @@ trait BingoTrait
         $columns = array_unique(array_merge(['id', 'room_user'], $patternColumns));
         $winners = collect();
 
-        BingoCtns::where('room', $roomID)
+        BingoCtns::where('room', $roomId)
             ->select($columns)
             ->chunk(100, function ($ctns) use ($patternColumns, $chipsDraw, &$winners) {
                 foreach ($ctns as $ctn) {
@@ -1179,19 +1217,19 @@ trait BingoTrait
         return $winners;
     }
 
-    public function handleWinners($roomID)
+    public function handleWinners($roomId)
     {
         $room = BingoRoom::with('Config:room,serials_pct')
             ->select('id', 'creator_user', 'prize_pool', 'serial_prize', 'players')
-            ->findOrFail($roomID);
+            ->findOrFail($roomId);
 
         // Validar si ya hay ganadores 
-        if (BingoRoomUser::getWinnersCountByRoom($roomID)) return false;
+        if (BingoRoomUser::getWinnersCountByRoom($roomId)) return false;
 
         $prizePool = $room->prize_pool;
         $serialsPct = $room->Config->serials_pct;
         $applySerialPrize = false;
-        $rounds = BingoRounds::where('room', $roomID)->get();
+        $rounds = BingoRounds::where('room', $roomId)->get();
         $roundsCount = $rounds->count();
 
         foreach ($rounds as $roundItem) {
@@ -1208,18 +1246,18 @@ trait BingoTrait
 
             $roundPrizeValue = round($roundPrizeValue, 2);
 
-            $lastChip = BingoDraws::where('room', $roomID)
+            $lastChip = BingoDraws::where('room', $roomId)
                 ->where('round', $roundNumber)
                 ->where('status', 3)
                 ->orderByDesc('id')
                 ->first();
 
             if (!$lastChip) {
-                Log::warning("No hay ficha final para la ronda $roundNumber en la sala $roomID");
+                Log::warning("No hay ficha final para la ronda $roundNumber en la sala $roomId");
                 continue;
             }
 
-            $chipsDraw = BingoDraws::where('room', $roomID)
+            $chipsDraw = BingoDraws::where('room', $roomId)
                 ->where('round', $roundNumber)
                 ->where('id', '<=', $lastChip->id)
                 ->pluck('chip')
@@ -1232,14 +1270,14 @@ trait BingoTrait
                 continue;
             }
 
-            $winners = $this->findWinners($roomID, $roundItem->id, $chipsDraw);
+            $winners = $this->findWinners($roomId, $roundItem->id, $chipsDraw);
 
             if ($winners->isEmpty()) {
-                Log::info("Sin ganadores en la ronda $roundNumber de la sala $roomID");
+                Log::info("Sin ganadores en la ronda $roundNumber de la sala $roomId");
                 continue;
             }
 
-            $ctnsJackpot = BingoCtns::where('room', $roomID)
+            $ctnsJackpot = BingoCtns::where('room', $roomId)
                 ->whereIn('id', $winners->values())
                 ->get(['id', 'creator_user', 'seller', 'room_user', 'coin', 'lot']);
 
@@ -1250,7 +1288,7 @@ trait BingoTrait
                 $jackpotPrizePerCtn = round($roundPrizeValue / max(1, $ctnsJackpot->count()), 3);
 
                 $register = $this->registerPrizeCtn(
-                    $roomID,
+                    $roomId,
                     $roundNumber,
                     $ctnsJackpot,
                     $roundItem->play_type,
@@ -1264,7 +1302,7 @@ trait BingoTrait
                 if ($applySerialPrize) {
                     $serialPrize = round($serialPrizeValue, 3);
                     $serialResult = $this->handleSerialWinners(
-                        $roomID,
+                        $roomId,
                         $roundNumber,
                         $serialPrize,
                         $winners->values()
@@ -1282,7 +1320,7 @@ trait BingoTrait
                 DB::commit();
             } catch (Exception $e) {
                 DB::rollBack();
-                Log::error("Error en handleWinners (Room $roomID - Round $roundNumber): " . $e->getMessage());
+                Log::error("Error en handleWinners (Room $roomId - Round $roundNumber): " . $e->getMessage());
                 return response()->json(['error' => 'Error al procesar ganadores.'], 500);
             }
         }
@@ -1298,9 +1336,9 @@ trait BingoTrait
         return true;
     }
 
-    public function getWinners(string $prizeType, int $roomID, int $coin, ?int $roomUser = null)
+    public function getWinners(string $prizeType, int $roomId, int $coin, ?int $roomUser = null)
     {
-        $data = $this->getWinnersData($prizeType, $roomID, $roomUser);
+        $data = $this->getWinnersData($prizeType, $roomId, $roomUser);
 
         // Si existe algun error
         if (isset($data['Error'])) return $data['Error'];
@@ -1311,27 +1349,27 @@ trait BingoTrait
         return $this->getArrayWinnersData($data);
     }
 
-    public function handleSerialWinners($roomID, $round, $serialPrize, $roomUserIds)
+    public function handleSerialWinners($roomId, $round, $serialPrize, $roomUserIds)
     {
         try {
             // Obtener Seriales Ganadores
-            $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomID, 'SERIAL');
+            $getWinners = BingoPrizeCtns::getWinnersCountByPrizeType($roomId, 'SERIAL');
 
             if ($getWinners) return false;
 
             // Obtener la última ficha ganadora
-            $lastChip = BingoDraws::where('room', $roomID)->where('status', 3)
+            $lastChip = BingoDraws::where('room', $roomId)->where('status', 3)
                 ->where('round', $round)->value('id');
 
             // Fichas que han salido antes del jackpot
             $chipsDraw = array_flip(
-                BingoDraws::where('room', $roomID)
+                BingoDraws::where('room', $roomId)
                     ->where('id', '<', $lastChip)
                     ->where('round', $round)
                     ->pluck('chip')->toArray()
             );
 
-            $bingoConfig = BingoRoomConfig::getByRoom($roomID, ['serials_pct', 'num_serials']);
+            $bingoConfig = BingoRoomConfig::getByRoom($roomId, ['serials_pct', 'num_serials']);
 
             $serialsPct = $bingoConfig->serials_pct / 100;
             $countSerials = $bingoConfig->num_serials;
@@ -1345,7 +1383,7 @@ trait BingoTrait
 
             do {
                 // Tomar 100 cartones aleatorios que no pertenezcan a los ganadores previos
-                $batch = BingoCtns::where('room', $roomID)
+                $batch = BingoCtns::where('room', $roomId)
                     ->whereNotIn('room_user', $roomUserIds)
                     ->inRandomOrder()
                     ->forPage($page, $batchSize)
@@ -1416,17 +1454,17 @@ trait BingoTrait
                 $gameID = Games::getValueByName('BINGO');
 
                 // Obtener las monedas activas en la sala
-                $coins = CoinGameRoom::getCoinsByRoom($gameID, $roomID);
+                $coins = CoinGameRoom::getCoinsByRoom($gameID, $roomId);
 
                 // Preparar los datos para insertar
-                $dataJackpots = $coins->map(function ($coin) use ($roomID, $gameID, $serialsPct, $timestamp) {
+                $dataJackpots = $coins->map(function ($coin) use ($roomId, $gameID, $serialsPct, $timestamp) {
 
-                    $prizePoolAmount = BingoCreatorSales::getPrizePoolAmountByRoomAndCoin($roomID, $coin);
+                    $prizePoolAmount = BingoCreatorSales::getPrizePoolAmountByRoomAndCoin($roomId, $coin);
                     $amount = round($prizePoolAmount * $serialsPct, 3);
 
                     return [
                         'game' => $gameID,
-                        'room' => $roomID,
+                        'room' => $roomId,
                         'coin' => $coin,
                         'amount' => $amount,
                         'created_at' => $timestamp,
@@ -1439,19 +1477,19 @@ trait BingoTrait
                     GameRoomJackpot::insert($dataJackpots);
                 }
 
-                Log::info("No hubo ganadores de seriales en la Sala de Bingo {$roomID}. El porcentaje se registró al jackpot acumulado.");
+                Log::info("No hubo ganadores de seriales en la Sala de Bingo {$roomId}. El porcentaje se registró al jackpot acumulado.");
                 return true;
             }
 
             // Obtener la información final de los cartones ganadores
             $ctnsSerials = BingoCtns::whereIn('id', $serialCtns)
-                ->where('room', $roomID)
+                ->where('room', $roomId)
                 ->get(['id', 'seller', 'creator_user', 'room_user', 'coin', 'lot']);
 
             // Repartir el premio entre los ganadores
             $winnerJackpotPrize = $serialPrize / count($serialCtns);
 
-            $this->registerPrizeCtn($roomID, $round, $ctnsSerials, 'SRL', $winnerJackpotPrize);
+            $this->registerPrizeCtn($roomId, $round, $ctnsSerials, 'SRL', $winnerJackpotPrize);
 
             return true;
         } catch (Exception $e) {
@@ -1491,7 +1529,7 @@ trait BingoTrait
 
         $prizeCtn = BingoPrizeCtns::getById($ctnId, ['room', 'round', 'prize_type']);
 
-        $roomID = $prizeCtn->room;
+        $roomId = $prizeCtn->room;
         $round = $prizeCtn->round;
         $prizeType = $prizeCtn->prize_type;
 
@@ -1502,15 +1540,15 @@ trait BingoTrait
         $carton = $ctn->only($boxes);
 
         if ($prizeType === 'SONG') {
-            $bingoPattern = BingoRounds::getValueByRoom($roomID, $round, 'play_type');
+            $bingoPattern = BingoRounds::getValueByRoom($roomId, $round, 'play_type');
             $checkBoxes = BingoPatterns::getColumnsBoxesById($bingoPattern);
 
             // Verificar las checkBoxes con respeto al sorteo (draw) de la ronda 
-            $lastId = BingoDraws::where('room', $roomID)->where('round', $round)
+            $lastId = BingoDraws::where('room', $roomId)->where('round', $round)
                 ->where('status', 3)->orderByDesc('id')->value('id');
 
             $chipDraw = $lastId
-                ? BingoDraws::where('room', $roomID)->where('round', $round)
+                ? BingoDraws::where('room', $roomId)->where('round', $round)
                 ->where('id', '<=', $lastId)->pluck('chip')->toArray()
                 : [];
 

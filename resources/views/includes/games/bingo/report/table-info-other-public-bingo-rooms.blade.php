@@ -21,18 +21,18 @@
             @endphp
             @foreach ($rooms as $room)
                 @php
-                    $roomID = $room->encrypted;
+                    $roomId = $room->encrypted;
 
                     if ($creator['type'] === 'customer') {
                         $roomRoute = route('bingo.out-game-customer', [
                             'customer' => $creator['id'],
-                            'room' => $roomID,
+                            'room' => $roomId,
                             'coin' => encrypt($coin),
                         ]);
                     } else {
                         $roomRoute = route('bingo.out-game', [
                             'uuidCode' => $uuidCode,
-                            'room' => $roomID,
+                            'room' => $roomId,
                             'coin' => encrypt($coin),
                         ]);
                     }

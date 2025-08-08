@@ -43,8 +43,8 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a href="{{ route('bingo.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => 'commerce']) }}"
-                    class="nav-link {{ Route::is('bingo.all-rooms') ? 'active' : '' }}">
+                <a href="{{ route('bingo.handleGameRoomSummary', ['roomType' => 'private-rooms', 'creatorType' => 'commerce']) }}"
+                    class="nav-link {{ Route::is('bingo.handleGameRoomSummary') ? 'active' : '' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Salas</p>
                 </a>

@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Services\Game\Bingo\AutoGenerateBingoRooms;
+use App\Services\Games\Bingo\AutoGenerateBingoRooms;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

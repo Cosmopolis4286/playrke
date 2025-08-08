@@ -10,7 +10,7 @@ use App\Models\User;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-use App\Traits\EncryptRKE;
+use App\Traits\Helpers\EncryptTrait;
 use App\Traits\SeamlessWallet;
 use App\Traits\UserVal;
 use Carbon\Carbon;
@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Storage;
 
 class CustomerController extends Controller
 {
-    use EncryptRKE, UserVal, SeamlessWallet;
+    use EncryptTrait, UserVal, SeamlessWallet;
 
     private function validateRequest($request, $type = 1, $id = '')
     {

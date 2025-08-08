@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Services\Game\Bingo;
+namespace App\Services\Games\Bingo;
 
 use App\Models\{BingoCreator, BingoCtnPrice, BingoCtnPriceDrafts, BingoRoom, BingoRoomAutomatic, BingoRoomConfig, BingoRounds, BingoRoundsDrafts, GameConfig};
-use App\Traits\EncryptRKE;
+use App\Traits\Helpers\EncryptTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class AutoGenerateBingoRooms
 {
-    use EncryptRKE;
+    use EncryptTrait;
 
     public function createBingoRooms($creator = '')
     {
@@ -60,18 +60,18 @@ class AutoGenerateBingoRooms
                     ? tap($existingRoom)->update($roomData)
                     : BingoRoom::create($roomData);
 
-                $roomID = $currentRoom->id;
+                $roomId = $currentRoom->id;
                 $automaticBingoID = $room->id;
 
                 // Configurar la sala
-                $this->configureRoom($roomID, $room, $roomDate);
+                $this->configureRoom($roomId, $room, $roomDate);
 
                 // Asociar precios de monedas a la sala
-                $this->associateCtnPrices($automaticBingoID, $roomID, $creatorUser);
+                $this->associateCtnPrices($automaticBingoID, $roomId, $creatorUser);
 
                 if ($room->rounds > 1 && $room->rounds_pct) {
                     // Asociar rondas a la sala
-                    $this->associateRounds($automaticBingoID, $roomID);
+                    $this->associateRounds($automaticBingoID, $roomId);
                 }
             }
 
@@ -107,14 +107,14 @@ class AutoGenerateBingoRooms
     /**
      * Configura una sala con sus detalles.
      */
-    private function configureRoom($roomID, $dataRoom, $roomDate)
+    private function configureRoom($roomId, $dataRoom, $roomDate)
     {
         $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
 
         $unixDate = Carbon::createFromFormat('Y-m-d H:i', "{$roomDate} {$dataRoom->time}")->timestamp;
 
         BingoRoomConfig::updateOrCreate(
-            ['room' => $roomID],
+            ['room' => $roomId],
             [
                 'creation' => 'A',
                 'creator_user' => $dataRoom->creator_user,
@@ -138,7 +138,7 @@ class AutoGenerateBingoRooms
         );
 
         $bingoCreatorID = BingoCreator::updateOrCreate(
-            ['room' => $roomID],
+            ['room' => $roomId],
             [
                 'creator_user' => $dataRoom->creator_user,
                 'creator_type' => $dataRoom->creator_type,
@@ -155,7 +155,7 @@ class AutoGenerateBingoRooms
     /**
      * Asocia las rondas a una sala.
      */
-    private function associateRounds($automaticBingoID, $roomID)
+    private function associateRounds($automaticBingoID, $roomId)
     {
         try {
             $bingoRounds = BingoRoundsDrafts::getByAutomaticRoom($automaticBingoID, [
@@ -170,7 +170,7 @@ class AutoGenerateBingoRooms
             }
 
             BingoRounds::create([
-                'room' => $roomID,
+                'room' => $roomId,
                 'rounds' => $bingoRounds->rounds,
                 'prize_types' => $bingoRounds->prize_types,
                 'play_types' => $bingoRounds->play_types,
@@ -189,7 +189,7 @@ class AutoGenerateBingoRooms
     /**
      * Asocia los precios de monedas (ctn) a una sala.
      */
-    private function associateCtnPrices($automaticBingoID, $roomID)
+    private function associateCtnPrices($automaticBingoID, $roomId)
     {
         try {
             $bingoCtnPrice = BingoCtnPriceDrafts::getByAutomaticRoom($automaticBingoID, ['creator_user', 'coins', 'ctn_prices']);
@@ -207,7 +207,7 @@ class AutoGenerateBingoRooms
 
             foreach ($coins as $index => $coin) {
                 BingoCtnPrice::updateOrCreate(
-                    ['room' => $roomID, 'coin' => $coin],
+                    ['room' => $roomId, 'coin' => $coin],
                     [
                         'creator_user' => $bingoCtnPrice->creator_user,
                         'ctn_price' => $prices[$index],
@@ -221,7 +221,7 @@ class AutoGenerateBingoRooms
         } catch (\Exception $e) {
             Log::error('Error en associateCtnPrices: ' . $e->getMessage(), [
                 'automaticBingoID' => $automaticBingoID,
-                'roomID' => $roomID,
+                'roomID' => $roomId,
                 'creatorUser' => $bingoCtnPrice->creator_user,
                 'trace' => $e->getTraceAsString(),
             ]);

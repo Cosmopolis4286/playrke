@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\UserType;
-use App\Traits\CustomerTrait;
+use App\Traits\Users\CustomerTrait;
 use App\Traits\UserVal;
 
 class IframeController extends Controller
@@ -25,7 +25,7 @@ class IframeController extends Controller
             [
                 'title' => 'Salas de Juego CRUD',
                 'route' => route(
-                    'bingo.all-rooms',
+                    'bingo.handleGameRoomSummary',
                     [
                         'roomType' => 'private-rooms',
                         'creatorType' => 'customer',

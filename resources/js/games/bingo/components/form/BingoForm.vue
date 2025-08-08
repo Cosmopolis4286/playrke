@@ -368,6 +368,8 @@ const props = defineProps({
   creator: { type: Object, required: true },
 });
 
+console.log(props.timeZone);
+
 // Fecha mínima hoy en formato YYYY-MM-DD (ajustado a zona horaria)
 const minDate = computed(() =>
   dayjs().tz(props.timeZone.name).format("YYYY-MM-DD")

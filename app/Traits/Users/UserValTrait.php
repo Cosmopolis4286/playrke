@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits;
+namespace App\Traits\Users;
 
 use App\Models\Coin;
 use App\Models\Commerce;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-trait UserVal
+trait UserValTrait
 {
     public function user(array $fields = ['*'])
     {

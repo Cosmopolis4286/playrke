@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Traits\EncryptRKE;
+use App\Traits\Helpers\EncryptTrait;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +14,7 @@ use App\Models\PhoneNumbers;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-use App\Traits\Filters;
+use App\Traits\Helpers\Filters;
 use App\Traits\RouteRKE;
 use App\Traits\UserVal;
 use Carbon\Carbon;
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Validator;
 
 class TreasurerController extends Controller
 {
-    use EncryptRKE, UserVal, RouteRKE, Filters;
+    use EncryptTrait, UserVal, RouteRKE, Filters;
 
     private function validateRequest($request, $type = 1, $id = '')
     {

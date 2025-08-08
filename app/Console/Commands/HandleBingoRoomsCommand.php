@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Game\Bingo\HandleBingoRooms;
-use App\Services\RKE\HandleCommands;
+use App\Services\Games\Bingo\HandleBingoRooms;
+use App\Services\Helpers\HandleCommands;
 use Illuminate\Console\Command;
 use Throwable;
 

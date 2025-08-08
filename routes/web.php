@@ -300,7 +300,7 @@ Route::group(['prefix' => 'bingo-patterns', 'as' => 'bingo-patterns.'], function
 });
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
-    Route::get('form/{roomId?}', [BingoController::class, 'form'])->name('form');
+    Route::get('form/{roomId?}', [BingoController::class, 'handleForm'])->name('handleForm');
     Route::post('room/{roomId}/call-number', [BingoController::class, 'callNumber'])->name('call-number');
     Route::get('showGameInfo', [BingoController::class, 'showGameInfo'])->name('showGameInfo');
     Route::get('configuration/patterns/{userToken?}', [BingoController::class, 'bingoPatterns'])->name('bingoPatterns');
@@ -352,7 +352,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
 
 Route::get('bingo/view-ctn/{ctnId}', [BingoController::class, 'viewCtn'])->name('bingo.viewCtn');
 // Salas de Juego BINGO 
-Route::get('bingo/{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoController::class, 'allRooms'])->name('bingo.all-rooms');
+Route::get('bingo/{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoController::class, 'handleGameRoomSummary'])->name('bingo.handleGameRoomSummary');
 // URL de Compra CUSTOMERS
 //Route::get('{customer}/{user}/{coin?}', [BingoController::class, 'gamesRoomsCustomer'])->name('bingo.game-rooms-customer');
 Route::get('bingoplay/player/{player}/{room?}', [BingoController::class, 'inGame'])->name('bingo.in-game');

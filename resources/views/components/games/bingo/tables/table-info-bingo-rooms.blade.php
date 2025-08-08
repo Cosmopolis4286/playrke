@@ -25,18 +25,18 @@
         <tbody>
             @foreach ($rooms as $room)
                 @php
-                    $roomID = $room->encrypted;
+                    $roomId = $room->encrypted;
 
                     $roomRoute =
                         $creator['type'] === 'customer'
                             ? route('bingo.out-game-customer', [
                                 'customer' => $creator['id'],
-                                'room' => $roomID,
+                                'room' => $roomId,
                                 'coin' => encrypt($coinSym),
                             ])
                             : route('bingo.out-game', [
                                 'uuidCode' => $uuidCode,
-                                'room' => $roomID,
+                                'room' => $roomId,
                                 'coin' => encrypt($coin),
                             ]);
 

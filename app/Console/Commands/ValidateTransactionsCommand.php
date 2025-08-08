@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Customer\HandleTransactions;
-use App\Services\RKE\HandleCommands;
+use App\Services\Users\Customer\HandleTransactions;
+use App\Services\Helpers\HandleCommands;
 use Illuminate\Console\Command;
 use Throwable;
 

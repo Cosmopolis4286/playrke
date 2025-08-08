@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services\Game\Bingo;
+namespace App\Services\Games\Bingo;
 
 use App\Models\Customer;
 use App\Models\BingoPrizeCtns;
 use App\Models\BingoRoom;
-use App\Services\Customer\HandleTransactions;
+use App\Services\Users\Customer\HandleTransactions;
 use App\Traits\SeamlessWallet;
 use Illuminate\Support\Facades\DB;
 use Exception;

@@ -12,7 +12,7 @@ use App\Models\Games;
 use App\Models\OtherTreasurers;
 use App\Models\TimeZone;
 use App\Models\Treasurer;
-use App\Traits\EncryptRKE;
+use App\Traits\Helpers\EncryptTrait;
 use App\Traits\UserVal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Log;
 class AdminController extends Controller
 {
     use UserVal;
-    use EncryptRKE;
+    use EncryptTrait;
 
     public function commerces()
     {

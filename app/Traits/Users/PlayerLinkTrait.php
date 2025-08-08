@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Traits;
+namespace App\Traits\Users;
 
 use App\Models\Games;
 use App\Models\PlayerLink;
 use App\Models\UserPurchaseCodes;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
 
 trait PlayerLinkTrait
 {

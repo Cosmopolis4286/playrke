@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Customer;
+namespace App\Services\Users\Customer;
 
 use App\Models\Transactions;
 use App\Traits\SeamlessWallet;

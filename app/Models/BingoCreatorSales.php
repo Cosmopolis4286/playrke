@@ -69,9 +69,9 @@ class BingoCreatorSales extends Model
         return self::where('room', $room)->where('coin', $coin)->sum('prize_pool_amount');
     }
 
-    public static function updateOrCreateSale($roomID, $creatorUser, $coin, $amount, $sellerCommn)
+    public static function updateOrCreateSale($roomId, $creatorUser, $coin, $amount, $sellerCommn)
     {
-        $roomConfig = BingoRoomConfig::getByRoom($roomID, ['rke_commn', 'room_commn']);
+        $roomConfig = BingoRoomConfig::getByRoom($roomId, ['rke_commn', 'room_commn']);
 
         $rkeCommn =  round($amount * ($roomConfig->rke_commn / 100), 3);
         $roomCommn = round($amount * ($roomConfig->room_commn / 100), 3);
@@ -79,7 +79,7 @@ class BingoCreatorSales extends Model
         $prizePool = round(($amount - $rkeCommn - $roomCommn - $sellerCommn), 3);
 
         $sale = self::firstOrCreate(
-            ['room' => $roomID, 'creator_user' => $creatorUser, 'coin' => $coin],
+            ['room' => $roomId, 'creator_user' => $creatorUser, 'coin' => $coin],
             [
                 'sale_amount' => $amount,
                 'rke_commn' => $rkeCommn,

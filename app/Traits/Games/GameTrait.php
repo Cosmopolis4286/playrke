@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits;
+namespace App\Traits\Games;
 
 use App\Models\BingoCreator;
 use App\Models\BingoRoom;
@@ -88,12 +88,12 @@ trait GameTrait
         return Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", $timeZone)->timestamp;
     }
 
-    public function convertValueByGame($game, $roomID, $data, $type = 'string')
+    public function convertValueByGame($game, $roomId, $data, $type = 'string')
     {
         // Obtener estatus de la sala de juego
         switch ($game) {
             case 'BINGO':
-                $room = BingoRoom::getById($roomID, ['room_type', 'status']);
+                $room = BingoRoom::getById($roomId, ['room_type', 'status']);
                 break;
             default:
                 break;
@@ -111,9 +111,9 @@ trait GameTrait
             $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
 
             if ($room->room_type === 'PB') { // Sala pública
-                $creatorExchangeRate = CommerceExchangeRate::whereIn('commerce', function ($query) use ($roomID) {
+                $creatorExchangeRate = CommerceExchangeRate::whereIn('commerce', function ($query) use ($roomId) {
                     $query->select('creator_id')->from('bingo_creator')
-                        ->where('creator_type', 3)->where('room', $roomID);
+                        ->where('creator_type', 3)->where('room', $roomId);
                 })->where('status', 1)->where('coin', $coin)->avg('exchange_rate');
             }
         } else {
@@ -123,7 +123,7 @@ trait GameTrait
         // Definir Tasa de Cambio de la sala de acuerdo al estatus
         $exchangeRate = ($room->status == 2)
             ? $creatorExchangeRate
-            : GameExchangeRate::getGameExchangeRateValue('BINGO', $roomID, $coin);
+            : GameExchangeRate::getGameExchangeRateValue('BINGO', $roomId, $coin);
 
         // Definir valor final o monto
         $amount = $data['value'] * ($exchangeRate ?? 1);

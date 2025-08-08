@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits;
+namespace App\Traits\Games;
 
 use App\Models\Customer;
 use App\Models\CustomerGames;
@@ -257,17 +257,17 @@ trait SeamlessWallet
     }
 
     // Funcion para manejar una transaccion tipo "BET"
-    private function handleTransactionByBET(array $game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount)
+    private function handleTransactionByBET(array $game, $customer, $roomId, $playerUser, $coin, $totalSaleAmount)
     {
         try {
             // Manejo de transacciones en un closure
-            DB::transaction(function () use ($game, $customer, $roomID, $playerUser, $coin, $totalSaleAmount) {
+            DB::transaction(function () use ($game, $customer, $roomId, $playerUser, $coin, $totalSaleAmount) {
                 // Registrar la transacción
                 $transaction = $this->registerTransaction(
                     $game,
                     $customer,
                     $playerUser,
-                    $roomID,
+                    $roomId,
                     'BET',
                     $coin,
                     $totalSaleAmount

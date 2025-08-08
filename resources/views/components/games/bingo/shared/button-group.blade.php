@@ -34,19 +34,19 @@
                 <i class="fa-solid fa-list-check"></i> Ver Salas
             </button>
         @else
-            <a href="{{ route('bingo.form') }}" class="btn btn-sm btn-success">
+            <a href="{{ route('bingo.handleForm') }}" class="btn btn-sm btn-success">
                 <i class="fas fa-plus"></i> Crear
             </a>
         @endif
 
         @if ($view === 'AUTO')
             <a class="btn btn-sm btn-secondary"
-                href="{{ route('bingo.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                href="{{ route('bingo.handleGameRoomSummary', ['roomType' => 'private-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                 <i class="fas fa-cogs"></i> Manual
             </a>
         @else
             <a class="btn btn-sm {{ $routeData['class'] }}"
-                href="{{ route('bingo.all-rooms', ['roomType' => $routeData['roomType'], 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                href="{{ route('bingo.handleGameRoomSummary', ['roomType' => $routeData['roomType'], 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                 <i class="{{ $routeData['icon'] }}"></i> {{ $routeData['text'] }}
             </a>
 
@@ -58,7 +58,7 @@
                 @endphp
 
                 <a class="btn btn-sm btn-secondary"
-                    href="{{ route('bingo.all-rooms', ['roomType' => $altRoomType, 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                    href="{{ route('bingo.handleGameRoomSummary', ['roomType' => $altRoomType, 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                     <i class="{{ $altIcon }}"></i> {{ $altTitle }}
                 </a>
             @else

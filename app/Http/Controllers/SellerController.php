@@ -9,8 +9,8 @@ use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\DocumentType;
 use App\Traits\RouteRKE;
-use App\Traits\EncryptRKE;
-use App\Traits\BingoTrait;
+use App\Traits\Helpers\EncryptTrait;
+use App\Traits\Games\BingoTrait;
 use App\Traits\PlayerLinkTrait;
 use App\Traits\UserVal;
 use Illuminate\Http\Request;
@@ -28,9 +28,9 @@ use App\Models\SellerCountriesCoins;
 use App\Models\User;
 use App\Models\UserType;
 use App\Models\Wallet;
-use App\Services\Game\Bingo\HandleBingoRooms;
-use App\Services\RKE\HandleExchangeRates;
-use App\Traits\Filters;
+use App\Services\Games\Bingo\HandleBingoRooms;
+use App\Services\Helpers\HandleExchangeRates;
+use App\Traits\Helpers\Filters;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -42,7 +42,7 @@ use Illuminate\Support\Facades\Validator;
 
 class SellerController extends Controller
 {
-    use EncryptRKE, BingoTrait, PlayerLinkTrait, RouteRKE, UserVal, Filters;
+    use EncryptTrait, BingoTrait, PlayerLinkTrait, RouteRKE, UserVal, Filters;
 
     private function validateRequest($request, $type = 1, $id = '')
     {
@@ -353,7 +353,7 @@ class SellerController extends Controller
         ]);
     }
 
-    public function getAvailableCountriesBySeller($roomID)
+    public function getAvailableCountriesBySeller($roomId)
     {
         $seller = $this->seller(['id', 'commerce']);
         $creatorUser = Commerce::getValueById($seller->commerce, 'user');
@@ -364,7 +364,7 @@ class SellerController extends Controller
 
         // Obtenemos el campo allowed_coins (json o null) y lo forzamos a array
         $allowedCoinsRoom = BingoCreator::where('creator_user', $creatorUser)
-            ->where('room', $roomID)->value('allowed_coins');
+            ->where('room', $roomId)->value('allowed_coins');
 
         $allowedCoinsRoom = is_array($allowedCoinsRoom) ? $allowedCoinsRoom : [];
 
@@ -388,11 +388,11 @@ class SellerController extends Controller
         return ['countries' => $countries, 'USDT' => $USDT];
     }
 
-    public function getCtnPrice($roomID)
+    public function getCtnPrice($roomId)
     {
         $room = BingoRoom::with('Config:room,prize_pool_type,ctn_price')
             ->select('id', 'encrypted', 'prize_pool')
-            ->where('encrypted', $roomID)->first();
+            ->where('encrypted', $roomId)->first();
 
         if (!$room) {
             return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
@@ -427,17 +427,17 @@ class SellerController extends Controller
         // Obtener tasa de cambio
         $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin->id);
 
-        $roomID = BingoRoom::getValueByEncrypted($room, 'id');
+        $roomId = BingoRoom::getValueByEncrypted($room, 'id');
         $creator = ['type' => 'commerce', 'id' => $commerce];
 
         $setPrice = false;
         $value = $exchangeRate;
 
         //Obtener $bingoCreatorID
-        $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomID, 'id');
+        $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomId, 'id');
 
         // Intentar obtener el precio configurado
-        $ctnPrice = BingoCtnPrice::getValueCtnPrice($roomID, $coin->id, $bingoCreatorID);
+        $ctnPrice = BingoCtnPrice::getValueCtnPrice($roomId, $coin->id, $bingoCreatorID);
 
         if ($ctnPrice) {
             $setPrice = true;

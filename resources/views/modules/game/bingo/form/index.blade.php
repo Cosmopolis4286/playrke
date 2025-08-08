@@ -1,10 +1,11 @@
 @extends('layouts.layout-online')
 
-@section('title', 'Form')
+@section('title', 'Bingo Formulario')
 
 @vite('resources/js/games/bingo/bingo-view-loader.js')
 
 @section('content')
+<div>{{$data}}</div>
     <div id="app" v-cloak></div>
     <style>
         [v-cloak] {

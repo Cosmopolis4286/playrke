@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits;
+namespace App\Traits\Helpers;
 
 use App\Models\User;
 use Carbon\Carbon;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-trait EncryptRKE
+trait EncryptTrait
 {
     public function generateUniqueCode($model, $size = 14)
     {

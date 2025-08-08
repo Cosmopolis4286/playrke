@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Traits\EncryptRKE;
+use App\Traits\Helpers\EncryptTrait;
 use App\Models\User;
 use App\Models\Coin;
 use App\Models\Seller;
@@ -23,8 +23,8 @@ use App\Models\TimeZone;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-use App\Traits\BingoTrait;
-use App\Traits\Filters;
+use App\Traits\Games\BingoTrait;
+use App\Traits\Helpers\Filters;
 use App\Traits\RouteRKE;
 use App\Traits\UserVal;
 use Carbon\Carbon;
@@ -36,7 +36,7 @@ use Illuminate\Support\Facades\Validator;
 
 class CommerceController extends Controller
 {
-    use EncryptRKE, UserVal, RouteRKE, BingoTrait, Filters;
+    use EncryptTrait, UserVal, RouteRKE, BingoTrait, Filters;
 
     private function validateRequest($request, $type = 1, $id = '')
     {

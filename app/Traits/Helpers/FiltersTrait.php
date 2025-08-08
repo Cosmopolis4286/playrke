@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Traits;
+namespace App\Traits\Helpers;
 
 use App\Models\TimeZone;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
-trait Filters
+trait FiltersTrait
 {
     private function getTimeZone()
     {

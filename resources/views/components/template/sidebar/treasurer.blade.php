@@ -28,7 +28,7 @@
 
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('bingo.all-rooms', 'bingo.ctnsAwarded', 'bingo.ctnsSold', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom', 'bingo.configuration', 'bingo.bingoPatterns') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('bingo.handleGameRoomSummary', 'bingo.ctnsAwarded', 'bingo.ctnsSold', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom', 'bingo.configuration', 'bingo.bingoPatterns') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>
@@ -36,8 +36,8 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a href="{{ route('bingo.all-rooms', ['roomType' => 'private-rooms', 'creatorType' => 'commerce']) }}"
-                    title="Salas Bingo" class="nav-link {{ !Route::is('bingo.all-rooms') ?: 'active' }}">
+                <a href="{{ route('bingo.handleGameRoomSummary', ['roomType' => 'private-rooms', 'creatorType' => 'commerce']) }}"
+                    title="Salas Bingo" class="nav-link {{ !Route::is('bingo.handleGameRoomSummary') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Salas</p>
                 </a>
