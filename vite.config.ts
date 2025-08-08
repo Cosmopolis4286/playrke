@@ -2,60 +2,57 @@ import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
 import vueJsx from '@vitejs/plugin-vue-jsx';
-import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator';
-import { visualizer } from 'rollup-plugin-visualizer';
 import fs from 'fs';
 import path from 'path';
 
-// Archivos CSS globales
+import obfuscatorPluginRaw from 'vite-plugin-javascript-obfuscator';
+const obfuscatorPlugin = obfuscatorPluginRaw as unknown as (options: any) => any; import { visualizer } from 'rollup-plugin-visualizer';
+
+
+// ---------------------------------------------
+// Archivos CSS globales que siempre se incluyen
+// ---------------------------------------------
 const cssFiles = [
     'resources/css/rke/styles.css',
-    'resources/css/rke/auth-pages.css',
-    'resources/css/games/bingo/bingo-game-rooms.css',
-    'resources/css/games/bingo/bingo-in-game.css',
-    'resources/css/games/bingo/bingo-handle-patterns.css',
 ];
 
-// Archivos JS globales
+// ---------------------------------------------
+// Archivos JS/TS globales que siempre se incluyen
+// ---------------------------------------------
 const globalJsFiles = [
     'resources/js/app.js',
-    'resources/js/helpers/toast-notify.ts',
-    'resources/js/helpers/register.js',
-    'resources/js/helpers/crypt.js',
-    'resources/js/helpers/get-uuid.js',
-    'resources/js/helpers/functions.ts',
-    'resources/js/helpers/time-functions.js',
-    'resources/js/helpers/format-daQte-time-unix.js',
-    'resources/js/helpers/switch-payment-method.js',
-    'resources/js/helpers/payment-confirm-button.js',
+    'resources/js/helpers/global.ts',
+    'resources/js/helpers/loader.ts',
 ];
 
-// Función para detectar bundles helpers y main por juego
+// ---------------------------------------------
+// Detecta helpers y mains dinámicamente por juego
+// ---------------------------------------------
 function getGameBundles() {
     const gamesPath = path.resolve(__dirname, 'resources/js/games');
     const helpers: string[] = [];
     const mains: string[] = [];
 
-    if (fs.existsSync(gamesPath)) {
-        const games = fs.readdirSync(gamesPath, { withFileTypes: true })
-            .filter(dirent => dirent.isDirectory())
-            .map(dirent => dirent.name);
+    if (!fs.existsSync(gamesPath)) return { helpers, mains };
 
-        for (const game of games) {
-            const basePath = path.join(gamesPath, game);
+    const games = fs.readdirSync(gamesPath, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => dirent.name);
 
-            // Helper (TS o JS)
-            const helperTs = path.join(basePath, `${game}.ts`);
-            const helperJs = path.join(basePath, `${game}.js`);
-            if (fs.existsSync(helperTs)) helpers.push(`resources/js/games/${game}/${game}.ts`);
-            else if (fs.existsSync(helperJs)) helpers.push(`resources/js/games/${game}/${game}.js`);
+    for (const game of games) {
+        const basePath = path.join(gamesPath, game);
 
-            // Main (TS o JS)
-            const mainTs = path.join(basePath, `${game}-main.ts`);
-            const mainJs = path.join(basePath, `${game}-main.js`);
-            if (fs.existsSync(mainTs)) mains.push(`resources/js/games/${game}/${game}-main.ts`);
-            else if (fs.existsSync(mainJs)) mains.push(`resources/js/games/${game}/${game}-main.js`);
-        }
+        // Helper TS o JS
+        const helperTs = path.join(basePath, `${game}.ts`);
+        const helperJs = path.join(basePath, `${game}.js`);
+        if (fs.existsSync(helperTs)) helpers.push(`resources/js/games/${game}/${game}.ts`);
+        else if (fs.existsSync(helperJs)) helpers.push(`resources/js/games/${game}/${game}.js`);
+
+        // Main TS o JS
+        const mainTs = path.join(basePath, `${game}-main.ts`);
+        const mainJs = path.join(basePath, `${game}-main.js`);
+        if (fs.existsSync(mainTs)) mains.push(`resources/js/games/${game}/${game}-main.ts`);
+        else if (fs.existsSync(mainJs)) mains.push(`resources/js/games/${game}/${game}-main.js`);
     }
 
     return { helpers, mains };
@@ -63,8 +60,12 @@ function getGameBundles() {
 
 const { helpers: gameHelpers, mains: gameMains } = getGameBundles();
 
+// Inputs completos para Vite
 const inputs = [...cssFiles, ...globalJsFiles, ...gameHelpers, ...gameMains];
 
+// ---------------------------------------------
+// Exportar configuración Vite
+// ---------------------------------------------
 export default defineConfig(({ mode }) => {
     const isProduction = mode === 'production';
 
@@ -72,12 +73,13 @@ export default defineConfig(({ mode }) => {
         plugins: [
             laravel({
                 input: inputs,
-                refresh: true,
+                refresh: true, // HMR para Blade y Vue
             }),
-            vue(),
-            vueJsx(),
+            vue(),    // Plugin Vue 3
+            vueJsx(), // Soporte JSX en Vue
             ...(isProduction
                 ? [
+                    // Ofuscador para proteger JS en producción
                     obfuscatorPlugin({
                         include: ['resources/js/**/*.ts', 'resources/js/**/*.tsx', 'resources/js/**/*.js'],
                         exclude: [/node_modules/],
@@ -90,6 +92,7 @@ export default defineConfig(({ mode }) => {
                             selfDefending: true,
                         },
                     }),
+                    // Visualizador del bundle para análisis
                     visualizer({
                         filename: './build-stats.html',
                         open: true,
@@ -99,11 +102,13 @@ export default defineConfig(({ mode }) => {
                 ]
                 : []),
         ],
+
         build: {
-            sourcemap: !isProduction,
-            minify: isProduction,
+            sourcemap: !isProduction, // Sourcemap solo en dev
+            minify: isProduction,     // Minificar solo en producción
             rollupOptions: {
                 output: {
+                    // División de chunks por juego y carpeta 'rke'
                     manualChunks(id) {
                         if (id.includes('resources/js/games/')) {
                             const match = id.match(/resources\/js\/games\/([^\/]+)\//);
@@ -118,12 +123,14 @@ export default defineConfig(({ mode }) => {
                 },
             },
         },
+
         resolve: {
             alias: {
                 '@': path.resolve(__dirname, 'resources/js'),
                 vue: 'vue/dist/vue.esm-bundler.js',
             },
         },
+
         server: {
             host: '127.0.0.1',
             port: 5173,

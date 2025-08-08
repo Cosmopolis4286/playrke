@@ -28,7 +28,7 @@
         </div>
     </noscript>
 
-    @vite(['resources/js/app.js', 'resources/js/helpers/functions.ts'])
+    @vite(['resources/js/app.js'])
     <x-template.scripts />
     @stack('scripts')
 </body>

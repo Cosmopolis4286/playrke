@@ -1,7 +1,7 @@
 @props([
     'loadJquery' => true,
     'loadBootstrap' => true,
-    'loadDataTables' => true,
+    'loadDataTables' => false,
     'loadPlugins' => true,
     'customJsFiles' => [],
 ])
@@ -37,68 +37,29 @@
     <script src="{{ asset('template/dist/js/adminlte.js') }}"></script>
 @endif
 
-<!-- 🧠 Inicialización -->
-<script>
-    $(function() {
-        // Mensaje de sesión
-        @if (Session::has('message'))
-            const message = {!! json_encode(Session::get('message')) !!};
-            const icon = {!! json_encode(Session::get('type') ?? 'success') !!};
-            showToast(`<div style="font-size: 15px;">${message}</div>`, icon);
-        @endif
+@if (Session::has('message'))
+    <script type="module">
+        import {
+            showSessionToast
+        } from '/resources/js/helpers/global.js';
 
-        // DataTables si hay tabla
-        @if ($loadDataTables)
-            if ($('.table.dataTable').length) {
-                $('.table.dataTable').DataTable({
-                    ordering: true,
-                    order: [],
-                    language: {
-                        url: "{{ asset('css/DataTables/es-ES.json') }}"
-                    },
-                    columnDefs: [{
-                        targets: '_all',
-                        className: 'text-left'
-                    }]
-                });
-            }
-        @endif
-    });
+        const message = {!! json_encode(Session::get('message')) !!};
+        const icon = {!! json_encode(Session::get('type') ?? 'success') !!};
 
-    // 🧩 Eventos globales
-    $(document).on('click', '#change-password', function() {
-        $('#modal-change-password').modal('show');
-    });
+        showSessionToast(message, icon);
+    </script>
+@endif
 
-    $(document).on('click', "#btn-confirm-new-pwd[data-type='change_pwd']", function() {
-        submitForm('change-password', ['current_password', 'new_password']);
-    });
+@if ($loadDataTables)
+    <script type="module">
+        import {
+            loadDataTable
+        } from '/resources/js/helpers/global.js';
 
-    $(document).on('dragstart', 'img', function(evt) {
-        evt.preventDefault();
-    });
-
-    // 🔒 Logout con fetch y CSRF
-    document.querySelectorAll('.logout-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            fetch("{{ route('logout') }}", {
-                    method: "POST",
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        window.location.href = '{{ route('login') }}';
-                    } else {
-                        alert('Error al cerrar sesión');
-                    }
-                })
-                .catch(err => console.error('Error:', err));
-        });
-    });
-</script>
+        // Pasa la url del idioma para DataTables
+        loadDataTable('/css/DataTables/es-ES.json');
+    </script>
+@endif
 
 <!-- 🎯 Archivos JS personalizados (Vite) -->
 @foreach ($customJsFiles as $jsFile)
