@@ -78,7 +78,6 @@
         'name' => 'copy-passw',
         'title' => 'Contraseña Tesorero',
     ])
-    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
@@ -310,7 +309,6 @@
                     'Deseas cambiar el status de este tesorero',
                     'question',
                     'Sí, cambiar',
-                    '#form-other-options',
                     route(`${name}.change-status`, {
                         id: encryptedId
                     })
@@ -321,7 +319,6 @@
                     'Generar nueva contraseña a este tesorero',
                     'info',
                     'Sí, generar',
-                    '#form-other-options',
                     route(`${name}.change-passw`, {
                         id: encryptedId
                     })

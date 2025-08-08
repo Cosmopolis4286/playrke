@@ -99,7 +99,6 @@
         'name' => $name,
         'dataForm' => view('modules.all.exchange-rate.form', ['creator' => $creator])->render(),
     ])
-    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/just-validate/dist/just-validate.production.min.js"></script>
@@ -164,7 +163,6 @@
                     'Cambiar el status de esta Tasa de Cambio',
                     'question',
                     'Sí, cambiar',
-                    '#form-other-options',
                     route(`${name}.change-status`, {
                         id: encryptedId
                     })

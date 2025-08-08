@@ -63,7 +63,6 @@
         'size' => 'md',
         'dataForm' => view('modules.all.rewards.form', ['creator' => $creator])->render(),
     ])
-    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script>
@@ -115,7 +114,6 @@
                     'Cambiar el status del item',
                     'question',
                     'Sí, cambiar',
-                    '#form-other-options',
                     route(`${name}.change-status`, {
                         id: encryptedId
                     })

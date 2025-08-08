@@ -83,13 +83,12 @@
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
-        'dataForm' => view('modules.commerce.sellers.form', ['countriesCommerce' => $countriesCommerce])->render(),
+        'dataForm' => view('modules.seller.form.body', ['countriesCommerce' => $countriesCommerce])->render(),
     ])
     @include('includes.modal-copy-info', [
         'name' => 'copy-passw',
         'title' => 'Contraseña Vendedor',
     ])
-    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
@@ -242,7 +241,6 @@
                     'Deseas cambiar el status de este vendedor',
                     'question',
                     'Sí, cambiar',
-                    '#form-other-options',
                     route(`${name}.change-status`, {
                         id: encryptedId
                     })
@@ -253,7 +251,6 @@
                     'Generar nueva contraseña a este vendedor',
                     'info',
                     'Sí, generar',
-                    '#form-other-options',
                     route(`${name}.change-passw`, {
                         id: encryptedId
                     })

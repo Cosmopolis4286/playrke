@@ -82,7 +82,6 @@
         'name' => 'copy-passw',
         'title' => 'Contraseña Cliente',
     ])
-    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     @vite('resources/js/helpers/get-uuid.js')
@@ -199,7 +198,6 @@
                     'Deseas cambiar el status de este cliente',
                     'question',
                     'Sí, cambiar',
-                    '#form-other-options',
                     route(`${name}.change-status`, {
                         id: encryptedId
                     })
@@ -210,7 +208,6 @@
                     'Generar nueva contraseña a este cliente',
                     'info',
                     'Sí, generar',
-                    '#form-other-options',
                     route(`${name}.change-passw`, {
                         id: encryptedId
                     })

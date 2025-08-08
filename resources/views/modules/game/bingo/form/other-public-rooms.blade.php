@@ -20,7 +20,6 @@
         'dataForm' => view('modules.game.bingo.form.body-other-public-rooms', ['creator' => $creator])->render(),
     ])
     @include('includes.games.bingo.layout.modal-other-bingo-rooms')
-    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script>
@@ -133,7 +132,6 @@
                     'Quieres participar en esta sala',
                     'info',
                     'Sí, participar',
-                    '#form-other-options',
                     route(`${name}.participateInPublicRoom`, {
                         id: encryptedId
                     })
@@ -144,7 +142,6 @@
                     'Quieres salir de esta sala',
                     'info',
                     'Sí, salir',
-                    '#form-other-options',
                     route(`${name}.participateInPublicRoom`, {
                         id: encryptedId,
                         getOut: true

@@ -57,7 +57,6 @@
         'name' => $name,
         'dataForm' => view('modules.all.directory.ve.form')->render(),
     ])
-    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>

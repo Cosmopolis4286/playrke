@@ -2,11 +2,17 @@
 
 namespace App\Traits\Games;
 
+// Models
 use App\Models\Customer;
 use App\Models\CustomerGames;
 use App\Models\CustomerUser;
 use App\Models\Games;
 use App\Models\Transactions;
+
+// Traits
+use App\Traits\Users\CustomerTrait;
+
+// Otros
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\DB;

@@ -1,14 +1,17 @@
 <?php
 
 namespace App\Http\Controllers;
-
+// Models
 use App\Models\Coin;
 use App\Models\CommerceExchangeRate;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
 use App\Models\ExchangeRate;
+// Services
 use App\Services\Helpers\HandleExchangeRates;
-use App\Traits\UserVal;
+// Traits
+use App\Traits\Users\UserValTrait;
+// Otros
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +20,7 @@ use Illuminate\Support\Facades\Session;
 
 class ExchangeRateController extends Controller
 {
-    use UserVal;
+    use UserValTrait;
 
     public function index($creatorType, $creatorID = '')
     {

@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Traits\Helpers\EncryptTrait;
+use App\Http\Controllers\Controller;
+
+// Models
 use App\Models\User;
 use App\Models\Coin;
 use App\Models\Seller;
 use App\Models\BingoCtns;
 use App\Models\BingoCtnsLot;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use App\Http\Controllers\Controller;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
-use App\Models\CommerceGamePermission;
 use App\Models\Country;
 use App\Models\Games;
 use App\Models\PhoneNumbers;
@@ -23,20 +21,26 @@ use App\Models\TimeZone;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
+
+// Traits
 use App\Traits\Games\BingoTrait;
-use App\Traits\Helpers\Filters;
-use App\Traits\RouteRKE;
-use App\Traits\UserVal;
+use App\Traits\Helpers\EncryptTrait;
+use App\Traits\Helpers\FiltersTrait;
+use App\Traits\Users\UserValTrait;
+
+// Otros
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class CommerceController extends Controller
 {
-    use EncryptTrait, UserVal, RouteRKE, BingoTrait, Filters;
+    use BingoTrait, FiltersTrait, EncryptTrait, UserValTrait;
 
     private function validateRequest($request, $type = 1, $id = '')
     {
@@ -363,7 +367,7 @@ class CommerceController extends Controller
         $games = Games::getAvailableGames();
 
         return view(
-            'modules.commerce.sellers.index',
+            'modules.seller.form.index',
             compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce', 'games')
         );
     }
@@ -387,7 +391,7 @@ class CommerceController extends Controller
         $games = Games::getAvailableGames();
 
         return view(
-            'modules.commerce.sellers.index',
+            'modules.seller.form.index',
             compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce', 'games')
         );
     }

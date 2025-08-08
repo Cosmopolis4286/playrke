@@ -24,7 +24,6 @@
             'automaticRoom' => true,
         ])->render(),
     ])
-    @include('includes.form-other-options')
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
@@ -198,7 +197,6 @@
                     'Actualizar el status de esta configuración',
                     'info',
                     'Sí, actualizar',
-                    '#form-other-options',
                     route(`${name}.automatic-room.change-status`, {
                         id: encryptedId
                     })
@@ -209,7 +207,6 @@
                     'Deseas copiar esta configuración',
                     'question',
                     'Sí, copiar',
-                    '#form-other-options',
                     route(`${name}.automatic-room.copy`, {
                         id: encryptedId
                     })

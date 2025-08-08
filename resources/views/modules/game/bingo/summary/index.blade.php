@@ -27,7 +27,6 @@
             'timeZone' => $timeZone,
         ])->render(),
     ])
-    @include('includes.form-other-options')
     @if ($creator['type'] === 'customer' && $view === 'PRIVATE')
         @include('includes.modal-form', [
             'modalTitle' => 'ID del Juego - API',
@@ -245,7 +244,6 @@
                     'Auto-Generar esta sala',
                     'question',
                     'Sí, auto-generar',
-                    '#form-other-options',
                     route(`${name}.change-replay`, {
                         id: encryptedId
                     })
@@ -256,7 +254,6 @@
                     'Se publicará esta sala al público',
                     'info',
                     'Sí, publicarla',
-                    '#form-other-options',
                     route(`${name}.publish`, {
                         id: encryptedId
                     })
@@ -267,7 +264,6 @@
                     'El prize_pool de esta sala será reembolsado',
                     'warning',
                     'Sí, reembolsar',
-                    '#form-other-options',
                     route(`${name}.refund`, {
                         id: encryptedId
                     })
@@ -278,7 +274,6 @@
                     'Deseas copiar la información de esta sala',
                     'question',
                     'Sí, copiar',
-                    '#form-other-options',
                     route(`${name}.copy`, {
                         id: encryptedId
                     })
@@ -289,7 +284,6 @@
                     'Deseas cambiar el status de esta sala',
                     'question',
                     'Sí, cambiar',
-                    '#form-other-options',
                     route(`${name}.change-status`, {
                         id: encryptedId
                     })

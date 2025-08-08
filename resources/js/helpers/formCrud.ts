@@ -59,7 +59,6 @@ export function formCRUD(
                 'El registro será eliminado definitivamente',
                 'info',
                 'Sí, eliminar',
-                '#form-other-options',
                 window.route(`${name}.delete`, encryptedId)
             );
             break;
@@ -115,6 +114,10 @@ export function handleFormCRUDEvents(
     });
 }
 
+// Manejar otherCases
+export function handleOtherCases(route: string) {
+
+}
 
 // Validar y enviar formulario
 export function submitForm(formName: string, requiredFields: string[] = []): void {

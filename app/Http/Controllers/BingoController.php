@@ -3884,6 +3884,11 @@ class BingoController extends Controller
 
     public function handleForm($roomType, $roomId)
     {
+        // Validar tipo de sala
+        if (!$this->roomTypeService->isValid($roomType)) {
+            return redirect()->back();
+        }
+
         $timeZoneID = User::getValueById($creatorUser, 'time_zone');
         $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 

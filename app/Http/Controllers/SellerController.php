@@ -8,11 +8,8 @@ use App\Models\BingoCtnsLot;
 use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\DocumentType;
-use App\Traits\RouteRKE;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Games\BingoTrait;
-use App\Traits\PlayerLinkTrait;
-use App\Traits\UserVal;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
@@ -30,7 +27,9 @@ use App\Models\UserType;
 use App\Models\Wallet;
 use App\Services\Games\Bingo\HandleBingoRooms;
 use App\Services\Helpers\HandleExchangeRates;
-use App\Traits\Helpers\Filters;
+use App\Traits\Helpers\FiltersTrait;
+use App\Traits\Users\PlayerLinkTrait;
+use App\Traits\Users\UserValTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -42,7 +41,7 @@ use Illuminate\Support\Facades\Validator;
 
 class SellerController extends Controller
 {
-    use EncryptTrait, BingoTrait, PlayerLinkTrait, RouteRKE, UserVal, Filters;
+    use EncryptTrait, BingoTrait, PlayerLinkTrait,  UserValTrait, FiltersTrait;
 
     private function validateRequest($request, $type = 1, $id = '')
     {

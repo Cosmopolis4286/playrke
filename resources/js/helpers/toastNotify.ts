@@ -1,4 +1,5 @@
 import Swal, { SweetAlertIcon } from 'sweetalert2';
+import { handleOtherCases } from './formCrud';
 
 const Toast = Swal.mixin({
     toast: true,
@@ -20,16 +21,8 @@ export function showToastOptionBtns(
     text: string,
     icon: SweetAlertIcon,
     confirmButtonText: string,
-    formSelector: string,
-    routeTemplate: string
+    route: string
 ): void {
-    const form = document.querySelector<HTMLFormElement>(formSelector);
-
-    if (!form) {
-        showToast('El formulario no está definido', 'warning');
-        return;
-    }
-
     Swal.fire({
         title: '¿Confirmas esta acción?',
         text,
@@ -42,8 +35,7 @@ export function showToastOptionBtns(
         reverseButtons: true,
     }).then((result) => {
         if (result.isConfirmed) {
-            form.action = routeTemplate;
-            form.submit();
+            handleOtherCases(route);
         } else if (result.isDismissed) {
             Swal.fire('Los cambios no se guardaron', '', 'info');
         }

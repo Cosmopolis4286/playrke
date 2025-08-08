@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Traits\UserVal;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Models\TriviaMulti;
-use App\Models\User;
+
+// Models
 use App\Models\UserType;
 use App\Models\Wallet;
+
+// Traits
+use App\Traits\Users\UserValTrait;
+
+// Otros
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
 {
-    use UserVal;
+    use UserValTrait;
 
     public function index()
     {
@@ -48,65 +52,5 @@ class HomeController extends Controller
     public function getBalance()
     {
         return Wallet::where('user', Auth::id())->sum('balance');
-    }
-
-    public function balanceUSDT($userID)
-    {
-        return Wallet::where('user', Auth::id())->sum('usdt');
-    }
-
-    public function count_GRsD()
-    {
-        return DB::table("triv_multi")->where('status', 1)->count();
-    }
-
-    public function count_GRsBr()
-    {
-        return DB::table("triv_multi")->where('status', 0)->count();
-    }
-
-    public function balance_tBs()
-    {
-        return Wallet::where('coin', 2)->sum('balance');
-    }
-
-    public  function balance_tUSDT()
-    {
-        return Wallet::sum('usdt');
-    }
-
-    public  function balance_inGBs($id)
-    {
-        return TriviaMulti::where('status', 1)->where('coin', $id)->sum('bote');
-    }
-
-    public  function balance_inGUSDT()
-    {
-        return DB::table("triv_multi")->where('status', 1)->where('coin', 1)->sum('bote');
-    }
-
-    public  function depositsBs()
-    {
-        return DB::table("transactions_ves")->where('tipo', 1)->where('status', 0)->count();
-    }
-
-    public  function retirosBs()
-    {
-        return DB::table("transactions_ves")->where('tipo', 2)->where('status', 0)->count();
-    }
-
-    public function depositsBPay()
-    {
-        return DB::table("transactions_bpay")->where('tipo', 1)->where('status', 1)->count();
-    }
-
-    public function retirosBPay()
-    {
-        return DB::table("transactions_bpay")->where('tipo', 2)->where('status', 1)->count();
-    }
-
-    public function counuser_type()
-    {
-        return User::where('user_type', 1)->count();
     }
 }

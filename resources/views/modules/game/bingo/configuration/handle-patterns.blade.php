@@ -47,7 +47,6 @@
             </div>
         </div>
         @include('includes.games.bingo.layout.modal-bingo-patterns')
-        @include('includes.form-other-options')
     </div>
 @endsection
 @section('scripts')
@@ -81,7 +80,6 @@
                     'Deseas cambiar el status de este registro',
                     'question',
                     'Sí, cambiar',
-                    '#form-other-options',
                     route(`${name}.handler`, {
                         id: encryptedId,
                         action: 'status'
