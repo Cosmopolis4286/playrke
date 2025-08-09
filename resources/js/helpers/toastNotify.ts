@@ -1,5 +1,5 @@
 import Swal, { SweetAlertIcon } from 'sweetalert2';
-import { handleOtherCases } from './formCrud';
+import { handleOtherCases } from './formCrud.js';
 
 const Toast = Swal.mixin({
     toast: true,

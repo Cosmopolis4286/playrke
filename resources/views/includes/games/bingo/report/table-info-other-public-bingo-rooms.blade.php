@@ -98,7 +98,7 @@
                         <div class="btn-group" role="group">
                             @if ($room->status == 2)
                                 <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
-                                    data-type="2" data-id="{{ encrypt($room->id) }}">
+                                    data-action="edit" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
                                 @if (!count($room->CtnsLot))

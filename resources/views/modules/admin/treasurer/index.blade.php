@@ -8,7 +8,7 @@
                 @include('includes.treasurer.tabs')
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
+                        <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create">
                             <i class="fas fa-plus-square mr-1"></i>Añadir
                         </button>
                         <div class="table-responsive mt-3">

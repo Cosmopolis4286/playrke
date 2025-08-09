@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
+                <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create"><i
                         class="fas fa-plus-square"></i> Añadir</button>
                 <div class="table-responsive mt-2">
                     <table class="table table-striped table-bordered my-2 w-100">
@@ -35,7 +35,7 @@
                                         <div class="btn-group btn-group-toggle">
                                             @if ($item->status == 1)
                                                 <button class="btn btn-sm btn-primary btn-{{ $name }}"
-                                                    data-type="2" data-id="{{ encrypt($item->id) }}"
+                                                    data-action="edit" data-id="{{ encrypt($item->id) }}"
                                                     title="Editar Tasa de Cambio">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
@@ -44,7 +44,7 @@
                                                 data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
                                                 <i class="fa-solid fa-repeat"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-danger btn-{{ $name }}" data-type="3"
+                                            <button class="btn btn-sm btn-danger btn-{{ $name }}" data-action="delete"
                                                 data-id="{{ encrypt($item->id) }}" title="Eliminar">
                                                 <i class="fa-solid fa-trash-can"></i>
                                             </button>

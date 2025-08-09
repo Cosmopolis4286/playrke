@@ -6,7 +6,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 <button id="btn-{{ $name }}-insert" class="btn btn-sm btn-primary btn-{{ $name }}"
-                    type="button" data-type="1">
+                    type="button" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>Vendedor
                 </button>
                 <div class="table-responsive mt-3">
@@ -80,6 +80,8 @@
             </div>
         </div>
     </div>
+    <input type="hidden" id="module-file" value="{{ $moduleFile ?? '' }}">
+    <input type="hidden" id="route-url" value="{{ $name }}">
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
@@ -91,171 +93,25 @@
     ])
 @endsection
 @section('scripts')
-    <script src="{{ asset('js/select2.min.js') }}"></script>
-    <script>
-        if (@json(Session::has('message-passw'))) {
-            const newPassw = {!! json_encode(Session::get('message-passw')) !!};
-            $("#info-to-copy").val(newPassw);
-            setTimeout(function() {
-                $("#modal-copy-passw").modal('show');
-            }, 3000);
-        }
-
-        $(document).on("click", "#btn-copy", function() {
-            copyInfo('Contraseña Copiada');
-        });
-
-        $(function() {
-            $('.select2').each(function() {
-                $(this).select2({
-                    theme: 'bootstrap4',
-                    width: 'style',
-                    placeholder: $(this).attr('placeholder'),
-                    allowClear: Boolean($(this).data('allow-clear')),
-                });
-            });
-        });
-
-        $(document).on("input", "#commission", function() {
-            validateInput(this, 3, 35);
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            $('[data-toggle="popover"]').popover({
-                html: true
-            });
-        });
-
-        $(document).on('click', '.popover-dismiss', function() {
-            $(this).popover('toggle');
-        });
-
-        $("#phone").mask("00000000000");
-
-        const name = '<?php echo $name; ?>';
-        const arrCountries = JSON.parse('<?php echo $countriesCommerce; ?>');
-        const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
-        const coins = JSON.parse('<?php echo $coinsCommerce; ?>');
-        const country = $("#country");
-        const timeZone = $("#time-zone");
-        const coin = $("#coin");
-        const coinText = $("#coin-text");
-        const otherCoins = $("#other-coins");
-        const allowedGames = $("#allowed-games");
-        const arrGames = @json($games);
-        let update = false;
-
-        if (@json(Session::has('msg-error'))) {
-            const error = {!! json_encode(Session::get('msg-error')) !!};
-
-            // Asignar elem basado en el valor de error
-            let elem = error == 1 ? $(`#btn-${name}-insert`) :
-                (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
-
-            formCRUD(elem, name, 'Vendedor');
-        }
-
-        $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Vendedor', otherCasesMap)
-        });
-
-        country.on("change", function() {
-            const selectedCountry = country.val(); // Obtener el valor seleccionado del país
-
-            if (selectedCountry) {
-                $.each(coins, function(index, item) {
-                    if (item.country == selectedCountry) {
-                        coinText.val(`(${item.symbol}) ${item.short_name}`);
-                        coin.val(item.id);
-                    }
-                });
-                if (coins.length > 1 && !update) insertOtherCoins();
-            } else {
-                coinText.val('');
-                coin.val('');
-                $("#cont-other-coins").addClass('hide-elem');
-            }
-        });
-
-        function insertOtherCoins(selectedCoins = []) {
-            otherCoins.empty();
-            $.each(coins, function(index, item) {
-                if (item.id != coin.val()) {
-                    const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
-                    otherCoins.append(
-                        `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
-                    );
-                }
-            });
-            $("#cont-other-coins").removeClass('hide-elem');
-        }
-
-        function insertInfo(type, data = '') {
-            update = false;
-            $('#username, #email').attr('readonly', false);
-
-            if (type == 1) {
-                country.html(`<option value="" disabled selected>Seleccionar:</option>`);
-                timeZone.html(`<option value="" disabled selected>Seleccionar Zona:</option>`);
-            }
-
-            $.each(arrCountries, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.seller.country) ? 'selected' : '';
-                country.append(
-                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
-            });
-
-            $.each(arrTimeZones, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.user.time_zone) ? 'selected' : '';
-                timeZone.append(
-                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
-            });
-
-            if (type == 2) {
-                let seller = data.seller;
-                let otherCoins = data.other_coins;
-                let user = data.user;
-
-                $('#name').val(seller.name);
-                $('#phone').val(seller.phone);
-                $('#commission').val(seller.commn);
-                update = true;
-                country.trigger('change');
-                insertOtherCoins(otherCoins)
-
-                $("#username").val(user.username);
-                $("#email").val(user.email);
-                $('#username, #email').attr('readonly', true);
-            }
-
-            $(`#modal-${name}`).modal('show');
-        }
-
-        $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'phone', 'commission', 'country', 'time-zone', 'coin', 'username', 'email']);
-        });
-
-        const otherCasesMap = {
-            4: function(encryptedId) {
-                showToastOptionBtns(
-                    'Deseas cambiar el status de este vendedor',
-                    'question',
-                    'Sí, cambiar',
-                    route(`${name}.change-status`, {
-                        id: encryptedId
-                    })
-                );
-            },
-            5: function(encryptedId) {
-                showToastOptionBtns(
-                    'Generar nueva contraseña a este vendedor',
-                    'info',
-                    'Sí, generar',
-                    route(`${name}.change-passw`, {
-                        id: encryptedId
-                    })
-                );
-            },
-        };
+    <script id="app-data" type="application/json">
+        {!! json_encode([
+            'countriesCommerce' => $countriesCommerce,
+            'timeZones' => $timeZones,
+            'coinsCommerce' => $coinsCommerce,
+        ]) !!}
     </script>
+    <script id="session-data" type="application/json">
+        {
+            "hasMessagePassw": @json(Session::has('message-passw')),
+            "messagePassw": @json(Session::get('message-passw'))
+        }
+    </script>
+    <script id="session-error-data" type="application/json">
+        {
+            "hasMsgError": @json(Session::has('msg-error')),
+            "msgError": @json(Session::get('msg-error')),
+            "encryptedId": @json(Session::get('encryptedId'))
+        }
+    </script>
+    @vite(['resources/js/helpers/formCrud', 'resources/js/views/modules/seller/form/sellerForm'])
 @endsection

@@ -6,39 +6,40 @@
     'customJsFiles' => [],
 ])
 
-<!-- 📦 jQuery y Validaciones -->
+{{-- 📦 jQuery y Validaciones --}}
 @if ($loadJquery)
-    <script src="{{ asset('js/jquery-3.5.1.min.js') }}"></script>
-    <script src="{{ asset('js/jquery.validate.min.js') }}"></script>
-    <script src="{{ asset('js/jquery.validate.unobtrusive.min.js') }}"></script>
-    <script src="{{ asset('js/just-validate.production.min.js') }}"></script>
-    <script src="{{ asset('js/jquery.inputmask.min.js') }}"></script>
-    <script src="{{ asset('js/jquery.mask.min.js') }}"></script>
+    <script src="{{ asset('js/jquery-3.5.1.min.js') }}" defer></script>
+    <script src="{{ asset('js/jquery.validate.min.js') }}" defer></script>
+    <script src="{{ asset('js/jquery.validate.unobtrusive.min.js') }}" defer></script>
+    <script src="{{ asset('js/just-validate.production.min.js') }}" defer></script>
+    <script src="{{ asset('js/jquery.inputmask.min.js') }}" defer></script>
+    <script src="{{ asset('js/jquery.mask.min.js') }}" defer></script>
 @endif
 
-<!-- 🚀 Bootstrap -->
+{{-- 🚀 Bootstrap --}}
 @if ($loadBootstrap)
-    <script src="{{ asset('js/Bootstrap/popper.min.js') }}"></script>
-    <script src="{{ asset('js/Bootstrap/bootstrap.min.js') }}"></script>
+    {{-- Carga popper antes que bootstrap --}}
+    <script src="{{ asset('js/Bootstrap/popper.min.js') }}" defer></script>
+    <script src="{{ asset('js/Bootstrap/bootstrap.min.js') }}" defer></script>
 @endif
 
-<!-- 📊 DataTables -->
+{{-- 📊 DataTables --}}
 @if ($loadDataTables)
-    <script src="{{ asset('js/DataTables/dataTables.js') }}"></script>
-    <script src="{{ asset('js/DataTables/dataTables.bootstrap4.js') }}"></script>
-    <script src="{{ asset('js/DataTables/dataTables.responsive.js') }}"></script>
-    <script src="{{ asset('js/DataTables/responsive.bootstrap4.js') }}"></script>
+    <script src="{{ asset('js/DataTables/dataTables.js') }}" defer></script>
+    <script src="{{ asset('js/DataTables/dataTables.bootstrap4.js') }}" defer></script>
+    <script src="{{ asset('js/DataTables/dataTables.responsive.js') }}" defer></script>
+    <script src="{{ asset('js/DataTables/responsive.bootstrap4.js') }}" defer></script>
 @endif
 
-<!-- 🔌 Plugins -->
+{{-- 🔌 Plugins --}}
 @if ($loadPlugins)
-    <script src="{{ asset('js/sweetalert2.all.min.js') }}"></script>
-    <script src="{{ asset('template/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
-    <script src="{{ asset('template/dist/js/adminlte.js') }}"></script>
+    <script src="{{ asset('js/sweetalert2.all.min.js') }}" defer></script>
+    <script src="{{ asset('template/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}" defer></script>
+    <script src="{{ asset('template/dist/js/adminlte.js') }}" defer></script>
 @endif
 
 @if (Session::has('message'))
-    <script type="module">
+    <script type="module" defer>
         import {
             showSessionToast
         } from '/resources/js/helpers/global.js';
@@ -51,7 +52,7 @@
 @endif
 
 @if ($loadDataTables)
-    <script type="module">
+    <script type="module" defer>
         import {
             loadDataTable
         } from '/resources/js/helpers/global.js';
@@ -61,7 +62,7 @@
     </script>
 @endif
 
-<!-- 🎯 Archivos JS personalizados (Vite) -->
+{{-- 🎯 Archivos JS personalizados (Vite) --}}
 @foreach ($customJsFiles as $jsFile)
     @vite($jsFile)
 @endforeach

@@ -37,7 +37,7 @@
                     </td>
                     <td class="align-middle">
                         <div class="btn-group" role="group" aria-label="Acciones">
-                            <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary" data-type="2"
+                            <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary" data-action="edit"
                                 data-id="{{ encrypt($room->id) }}">
                                 <i class="fa-solid fa-pen-to-square"></i> </button>
                             <button class="btn-{{ $name }} btn btn-sm btn-secondary" data-type="4"
@@ -45,7 +45,7 @@
                                 <i class="fa-solid fa-repeat"></i>
                             </button>
                             @if ($room->status == 0)
-                                <button class="btn-{{ $name }} btn btn-sm bg-danger" data-type="3"
+                                <button class="btn-{{ $name }} btn btn-sm bg-danger" data-action="delete"
                                     data-id="{{ encrypt($room->id) }}" title="Eliminar">
                                     <i class="fa-solid fa-trash-can"></i></button>
                             @endif

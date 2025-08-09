@@ -1,8 +1,8 @@
 import $ from 'jquery';
 import 'datatables.net-bs4';
 import { SweetAlertIcon } from 'sweetalert2';
-import { showToast } from './toastNotify';
-import { submitForm } from './formCrud';
+import { showToast } from './toastNotify.js';
+import { submitForm } from './formCrud.js';
 
 export function showSessionToast(message: string, icon: SweetAlertIcon): void {
     if (message) {

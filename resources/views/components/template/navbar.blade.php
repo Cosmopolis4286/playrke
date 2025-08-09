@@ -56,7 +56,7 @@
                 id="userDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                 aria-label="Opciones de usuario">
                 <img class="mr-1 user-img rounded-circle"
-                    src="{{ $user->foto ? asset('imgSystem/imgUsers/' . $user->foto) : asset('imgSystem/imgUsers/rke.png') }}"
+                    src="{{ $user->foto ? asset('img/users/' . $user->foto) : asset('img/fav.ico') }}"
                     alt="Foto de usuario {{ $user->username }}">
                 <span class="user-text-nav">{{ $user->username }}</span>
             </button>

@@ -9,7 +9,7 @@
                     'countries' => $countries,
                     'countryCode' => $countryCode,
                 ])
-                <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1">
+                <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>{{ $paymentType }}</button>
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">

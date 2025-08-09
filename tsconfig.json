@@ -15,7 +15,8 @@
     "types": [
       "node",
       "dom",
-      "jquery"
+      "jquery",
+      "select2",
     ]
   },
   "include": [

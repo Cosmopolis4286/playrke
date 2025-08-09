@@ -30,7 +30,7 @@
                                     <td class="align-middle">
                                         <div class="btn-group" role="group">
                                             <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
-                                                data-type="2" data-id="{{ encrypt($item->id) }}">
+                                                data-action="edit" data-id="{{ encrypt($item->id) }}">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </button>
                                             <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="4"

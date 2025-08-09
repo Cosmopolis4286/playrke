@@ -6,7 +6,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 @if (!empty($coins) || $creator['type'] === 'customer')
-                    <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-type="1"><i
+                    <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                 @endif
                 <div class="table-responsive mt-2">
@@ -58,7 +58,7 @@
                                         <div class="btn-group btn-group-toggle">
                                             @if ($item->status == 1)
                                                 <button class="btn btn-sm btn-primary btn-{{ $name }}"
-                                                    data-type="2" data-id="{{ encrypt($item->id) }}"
+                                                    data-action="edit" data-id="{{ encrypt($item->id) }}"
                                                     title="Editar Tasa de Cambio">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
@@ -69,7 +69,7 @@
                                             </button>
                                             @if ((Auth::user() && Auth::user()->user_type == 1) || $creator['type'] === 'customer')
                                                 <button class="btn btn-sm btn-danger btn-{{ $name }}"
-                                                    data-type="3" data-id="{{ encrypt($item->id) }}" title="Eliminar">
+                                                    data-action="delete" data-id="{{ encrypt($item->id) }}" title="Eliminar">
                                                     <i class="fa-solid fa-trash-can"></i>
                                                 </button>
                                             @endif
