@@ -197,7 +197,7 @@
                     'Actualizar el status de esta configuración',
                     'info',
                     'Sí, actualizar',
-                    route(`${name}.automatic-room.change-status`, {
+                    route(`${name}.automatic-room.changeStatus`, {
                         id: encryptedId
                     })
                 );

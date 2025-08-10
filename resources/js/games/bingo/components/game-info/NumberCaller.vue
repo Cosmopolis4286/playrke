@@ -29,7 +29,7 @@ const props = defineProps({
     },
 })
 
-const emit = defineEmits(['call-number'])
+const emit = defineEmits(['callNumber'])
 
 const localInput = ref('')
 
@@ -64,7 +64,7 @@ const isNumberCalled = computed(() => {
 
 function tryCallNumber() {
     if (!isValidNumber.value || isNumberCalled.value) return
-    emit('call-number', Number(localInput.value))
+    emit('callNumber', Number(localInput.value))
     localInput.value = ''
 }
 </script>

@@ -81,7 +81,7 @@
         </div>
     </div>
     <input type="hidden" id="module-file" value="seller/form/sellerForm.ts">
-    <input type="hidden" id="route-url" value="{{ $name }}">
+    <input type="hidden" id="elem-id" value="{{ $name }}">
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',

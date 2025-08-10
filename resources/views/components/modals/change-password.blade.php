@@ -10,7 +10,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="form-change-password" action="{{ route('profile.change-password', Auth::id()) }}" method="POST">
+            <form id="form-change-password" action="{{ route('profile.changePassword', Auth::id()) }}" method="POST">
                 @csrf @method('PATCH')
                 <div class="modal-body">
                     <div class="form-group">

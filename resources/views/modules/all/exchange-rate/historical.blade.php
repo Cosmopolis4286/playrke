@@ -85,7 +85,7 @@
     </div>
     @include('includes.modal-form', [
         'name' => $name,
-        'dataForm' => view('modules.all.exchange-rate.form', ['creator' => $creator])->render(),
+        'dataForm' => view('modules.all.exchangeRate.form', ['creator' => $creator])->render(),
     ])
 @endsection
 @section('scripts')
@@ -142,7 +142,7 @@
                     'Cambiar el status de esta Tasa de Cambio',
                     'question',
                     'Sí, cambiar',
-                    route(`${name}.change-status`, {
+                    route(`${name}.changeStatus`, {
                         id: encryptedId
                     })
                 );
@@ -169,7 +169,7 @@
         } else {
             function getLastValueByCoin(coin) {
                 $.getJSON({
-                    url: route('exchange-rate.getLastValueByCoin', coin),
+                    url: route('exchangeRate.getLastValueByCoin', coin),
                     data: {
                         '_token': $("#5K3_70K").val()
                     },

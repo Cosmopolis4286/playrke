@@ -29,13 +29,8 @@ use App\Http\Controllers\TreasurerController;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
-use Tighten\Ziggy\Ziggy;
 
 require __DIR__ . '/auth.php';
-
-Route::get('/ziggy/routes', function () {
-    return response()->json(new Ziggy);
-});
 
 Route::get('/', function () {
     $register = Settings::getStatus('REGISTER');
@@ -52,7 +47,7 @@ Route::get('get/info/{page}', function ($page) {
 Route::group(['middleware' => ['auth'], 'prefix' => 'profile', 'as' => 'profile.'], function () {
     Route::get('', [ProfileController::class, 'index'])->name('index');
     Route::put('{id}', [ProfileController::class, 'update'])->name('update');
-    Route::patch('change-password/{id}', [ProfileController::class, 'changePassword'])->name('change-password');
+    Route::patch('changePassword/{id}', [ProfileController::class, 'changePassword'])->name('changePassword');
 });
 
 Route::get('dashboard', [HomeController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
@@ -112,12 +107,12 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment', 'as' => 'payment.
 });
 
 // Tasa de Cambio/ExhangeRate
-Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function () {
+Route::group(['prefix' => 'exchange-rate', 'as' => 'exchangeRate.'], function () {
     Route::post('create', [ExchangeRateController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [ExchangeRateController::class, 'getInfo'])->where('id', '.*')->name('getInfo');
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
     Route::put('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
-    Route::put('change-status/{id}', [ExchangeRateController::class, 'changeStatus'])->name('change-status');
+    Route::put('changeStatus/{id}', [ExchangeRateController::class, 'changeStatus'])->name('changeStatus');
     Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
     Route::get('historical/{coin?}/{creatorType}/{creatorID}', [ExchangeRateController::class, 'historical'])->name('historical');
     Route::get('getExchangeRates', [ExchangeRateController::class, 'getExchangeRates'])->name('getExchangeRates');
@@ -147,15 +142,15 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-treasurer', 
     Route::get('getInfo/{id}', [TreasurerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [TreasurerController::class, 'update'])->name('update');
     Route::put('delete/{id}', [TreasurerController::class, 'delete'])->name('delete');
-    Route::put('change-status/{id}', [TreasurerController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [TreasurerController::class, 'changePassword'])->name('change-passw');
+    Route::put('changeStatus/{id}', [TreasurerController::class, 'changeStatus'])->name('changeStatus');
+    Route::put('changePassw/{id}', [TreasurerController::class, 'changePassword'])->name('changePassw');
 });
 
 Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-other-treasurers', 'as' => 'admin-other-treasurers.'], function () {
     Route::get('getInfo/{id}', [OtherTreasurersController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [OtherTreasurersController::class, 'update'])->name('update');
     Route::put('delete/{id}', [OtherTreasurersController::class, 'delete'])->name('delete');
-    Route::put('change-status/{id}', [OtherTreasurersController::class, 'changeStatus'])->name('change-status');
+    Route::put('changeStatus/{id}', [OtherTreasurersController::class, 'changeStatus'])->name('changeStatus');
 });
 
 //Cliente
@@ -171,8 +166,8 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', '
     Route::get('getInfo/{id}', [CustomerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CustomerController::class, 'update'])->name('update');
     Route::put('delete/{id}', [CustomerController::class, 'delete'])->name('delete');
-    Route::put('change-status/{id}', [CustomerController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [CustomerController::class, 'changePassword'])->name('change-passw');
+    Route::put('changeStatus/{id}', [CustomerController::class, 'changeStatus'])->name('changeStatus');
+    Route::put('changePassw/{id}', [CustomerController::class, 'changePassword'])->name('changePassw');
 });
 
 //Comercio/Comercializadora/Banca
@@ -192,8 +187,8 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-commerce', '
     Route::get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
     Route::put('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
-    Route::put('change-status/{id}', [CommerceController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [CommerceController::class, 'changePassword'])->name('change-passw');
+    Route::put('changeStatus/{id}', [CommerceController::class, 'changeStatus'])->name('changeStatus');
+    Route::put('changePassw/{id}', [CommerceController::class, 'changePassword'])->name('changePassw');
 });
 
 // Seller Options 
@@ -202,8 +197,8 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'seller', 'as' =
     Route::get('getInfo/{id}', [SellerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [SellerController::class, 'update'])->name('update');
     Route::put('delete/{id}', [SellerController::class, 'delete'])->name('delete');
-    Route::put('change-status/{id}', [SellerController::class, 'changeStatus'])->name('change-status');
-    Route::put('change-passw/{id}', [SellerController::class, 'changePassword'])->name('change-passw');
+    Route::put('changeStatus/{id}', [SellerController::class, 'changeStatus'])->name('changeStatus');
+    Route::put('changePassw/{id}', [SellerController::class, 'changePassword'])->name('changePassw');
 });
 
 //Vendedor/Agencia/Taquilla
@@ -226,7 +221,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'rewards', 'as' 
     Route::get('getInfo/{id}', [RewardsController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [RewardsController::class, 'update'])->name('update');
     Route::put('delete/{id}', [RewardsController::class, 'delete'])->name('delete');
-    Route::put('change-status/{id}', [RewardsController::class, 'changeStatus'])->name('change-status');
+    Route::put('changeStatus/{id}', [RewardsController::class, 'changeStatus'])->name('changeStatus');
 });
 
 Route::group(['middleware' => ['auth'], 'prefix' => 'report', 'as' => 'report.'], function () {
@@ -301,7 +296,7 @@ Route::group(['prefix' => 'bingo-patterns', 'as' => 'bingo-patterns.'], function
 
 Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('form/{roomId?}', [BingoController::class, 'handleForm'])->name('handleForm');
-    Route::post('room/{roomId}/call-number', [BingoController::class, 'callNumber'])->name('call-number');
+    Route::post('room/{roomId}/callNumber', [BingoController::class, 'callNumber'])->name('callNumber');
     Route::get('showGameInfo', [BingoController::class, 'showGameInfo'])->name('showGameInfo');
     Route::get('configuration/patterns/{userToken?}', [BingoController::class, 'bingoPatterns'])->name('bingoPatterns');
     Route::get('configuration/{userToken?}', [BingoController::class, 'configuration'])->name('configuration');
@@ -311,7 +306,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('getInfoPublicRoom', [BingoController::class, 'getInfoPublicRoom'])->name('getInfoPublicRoom');
     Route::get('getInfoPublicRoomPendingPayments', [BingoController::class, 'getInfoPublicRoomPendingPayments'])->name('getInfoPublicRoomPendingPayments');
     Route::get('getRoundsConfig/{room}/{type}', [BingoController::class, 'getRoundsConfig'])->name('getRoundsConfig');
-    Route::get('getDateTimeRooms/{creatorUser}/{player}', [BingoController::class, 'getDateTimeRooms'])->name('get-datetime-rooms');
+    Route::get('getDateTimeRooms/{creatorUser}/{player}', [BingoController::class, 'getDateTimeRooms'])->name('getDatetimeRooms');
     Route::get('getCtnPriceForCoin/{creation}/{creatorType}/{creatorID}/{room?}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
 
     Route::put('participate/public-room/{id?}/{getOut?}', [BingoController::class, 'participateInPublicRoom'])->name('participateInPublicRoom');
@@ -332,7 +327,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
     Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');
-    Route::put('status/{id}', [BingoController::class, 'changeStatus'])->name('change-status');
+    Route::put('status/{id}', [BingoController::class, 'changeStatus'])->name('changeStatus');
     Route::put('replay/{id}', [BingoController::class, 'replay'])->name('replay');
     Route::put('publish/{id}', [BingoController::class, 'publish'])->name('publish');
     Route::put('refund/{id}', [BingoController::class, 'refund'])->name('refund');
@@ -341,10 +336,10 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::post('test/regenerate-draw', [BingoController::class, 'regenerateDraw'])->name('test.regenerateDraw');
 
     Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
-        ->middleware(['auth', 'admin'])->name('game-rooms-admin');
+        ->middleware(['auth', 'admin'])->name('gameRoomsAdmin');
 
     Route::get('{roomType}/game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
-        ->middleware(['auth', 'commerce'])->name('game-rooms-commerce');
+        ->middleware(['auth', 'commerce'])->name('gameRoomsCommerce');
 
     Route::post('actWn', [BingoController::class, 'actWn'])->middleware(['auth', 'admin'])->name('actWn');
 });
@@ -368,7 +363,7 @@ Route::group(['prefix' => 'bingo-automatic-room', 'as' => 'bingo-automatic-room.
     Route::get('automatic-room/getInfo/{id}', [BingoController::class, 'getInfoAutomaticRoom'])->name('getInfo');
     Route::post('automatic-room/create', [BingoController::class, 'createAutomaticRoom'])->name('create');
     Route::put('automatic-room/update/{id}', [BingoController::class, 'updateAutomaticRoom'])->name('update');
-    Route::put('automatic-room/change-status/{id}', [BingoController::class, 'changeStatusAutomaticRoom'])->name('change-status');
+    Route::put('automatic-room/changeStatus/{id}', [BingoController::class, 'changeStatusAutomaticRoom'])->name('changeStatus');
     Route::put('automatic-room/delete/{id}', [BingoController::class, 'deleteAutomaticRoom'])->name('delete');
     Route::put('automatic-room/copy/{id}', [BingoController::class, 'copyAutomaticRoom'])->name('copy');
     Route::get('automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorID}', [BingoController::class, 'executeGenerateBingoRoomsJob'])->name('executeGenerateBingoRoomsJob');

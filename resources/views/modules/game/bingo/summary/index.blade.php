@@ -284,7 +284,7 @@
                     'Deseas cambiar el status de esta sala',
                     'question',
                     'Sí, cambiar',
-                    route(`${name}.change-status`, {
+                    route(`${name}.changeStatus`, {
                         id: encryptedId
                     })
                 );

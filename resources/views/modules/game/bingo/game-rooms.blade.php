@@ -20,7 +20,7 @@
             <div id="container-text-game-rooms">
                 <span id="text-game-rooms">SALAS DE JUEGO</span>
                 {{-- <a class="mt-n1 badge badge-primary"
-                    href="{{ route('bingo.game-rooms-commerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
+                    href="{{ route('bingo.gameRoomsCommerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
                     Cambiar a <b>{{ $coinSym }}</b>
                 </a> --}}
             </div>
@@ -133,7 +133,7 @@
         });
 
         function getDateTimeRooms() {
-            $.getJSON(route('bingo.get-datetime-rooms', {
+            $.getJSON(route('bingo.getDatetimeRooms', {
                     creatorUser,
                     player
                 }), {

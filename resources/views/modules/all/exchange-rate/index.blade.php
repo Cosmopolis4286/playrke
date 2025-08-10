@@ -9,7 +9,7 @@
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                     <button type="button" disabled id="btn-historical" class="btn btn-sm btn-primary" data-block="1"
-                        data-url-template="{{ route('exchange-rate.historical', ['coin' => ':coin', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                        data-url-template="{{ route('exchangeRate.historical', ['coin' => ':coin', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                         <i class="fa-solid fa-money-bill-trend-up"></i> Histórico</button>
                     <button type="button" id="btn-update-exchange-rates" class="btn btn-sm btn-secondary">
                         <i class="fa-solid fa-rotate"></i> Actualizar</button>
@@ -97,7 +97,7 @@
     </div>
     @include('includes.modal-form', [
         'name' => $name,
-        'dataForm' => view('modules.all.exchange-rate.form', ['creator' => $creator])->render(),
+        'dataForm' => view('modules.all.exchangeRate.form', ['creator' => $creator])->render(),
     ])
 @endsection
 @section('scripts')
@@ -163,7 +163,7 @@
                     'Cambiar el status de esta Tasa de Cambio',
                     'question',
                     'Sí, cambiar',
-                    route(`${name}.change-status`, {
+                    route(`${name}.changeStatus`, {
                         id: encryptedId
                     })
                 );
@@ -190,7 +190,7 @@
         } else {
             function getLastValueByCoin(coin) {
                 $.getJSON({
-                    url: route('exchange-rate.getLastValueByCoin', coin),
+                    url: route('exchangeRate.getLastValueByCoin', coin),
                     data: {
                         '_token': $("#5K3_70K").val()
                     },
@@ -262,7 +262,7 @@
 
         $(document).on("click", "#btn-update-exchange-rates", function() {
             $.getJSON({
-                url: route('exchange-rate.getExchangeRates'),
+                url: route('exchangeRate.getExchangeRates'),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },

@@ -143,7 +143,7 @@
                     'Deseas cambiar el status de este tesorero',
                     'question',
                     'Sí, cambiar',
-                    route(`${name}.change-status`, {
+                    route(`${name}.changeStatus`, {
                         id: encryptedId
                     })
                 );

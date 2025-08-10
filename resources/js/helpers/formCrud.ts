@@ -1,42 +1,79 @@
+// formCrud.ts
 import { ajaxStart } from './loader.js';
 import { copyInfo } from './copyInfo.js';
-import { route } from '@/app.js';
 import { showToast, showToastOptionBtns } from './toastNotify.js';
 
 // ========================
 // Variables globales
 // ========================
 
-/** Módulo dinámico cargado según el formulario actual */
+/** 
+ * Módulo cargado dinámicamente según el formulario actual.
+ * Contendrá funciones y datos específicos del módulo.
+ */
 let module: any = null;
 
-/** Acciones personalizadas mapeadas desde el módulo dinámico */
-export let otherCasesMap: Record<string, (encryptedId: string) => void> = {};
+/**
+ * Función `route` para generar URLs según nombre y parámetros.
+ * Inicialmente es un stub que avisa que no está definida.
+ * Se sobrescribe tras la carga dinámica del módulo.
+ */
+let route: (name: string, params?: Record<string, string | number>) => string = () => {
+    console.warn('Función route no definida todavía');
+    return '';
+};
 
-/** Campos requeridos para validación antes de enviar formulario */
-export let requiredFields: string[] = [];
+/**
+ * Mapeo de acciones personalizadas a funciones que reciben un ID cifrado.
+ * Se llena tras la carga dinámica del módulo.
+ */
+let otherCasesMap: Record<string, (encryptedId: string) => void> = {};
 
-/** Nombre del archivo de módulo dinámico (sin extensión) */
+/**
+ * Lista de campos requeridos para validar antes de enviar formularios.
+ * Se establece tras importar el módulo dinámico.
+ */
+let requiredFields: string[] = [];
+
+/**
+ * Identificador dinámico del elemento actual.
+ * Se asigna o actualiza tras importar el módulo dinámico.
+ */
+let elemId: string = '';
+
+/**
+ * Nombre del archivo del módulo dinámico a cargar (sin extensión).
+ * Se obtiene desde un input hidden en el DOM, para saber qué módulo cargar.
+ */
 const moduleFile = (document.getElementById('module-file') as HTMLInputElement)?.value ?? '';
 
-/** Nombre base de la ruta usado en Ziggy */
-const routeURL = (document.getElementById('route-url') as HTMLInputElement)?.value ?? '';
-
-/** ID cifrado global, usado en operaciones edit/delete y otras personalizadas */
+/**
+ * ID cifrado global que se usa en operaciones como editar, eliminar,
+ * o para acciones personalizadas, asignado dinámicamente según contexto.
+ */
 let encryptId = '';
 
 // ========================
-// Carga dinámica de módulo
+// Carga dinámica del módulo
 // ========================
 
 if (moduleFile) {
     import(`../views/modules/${moduleFile}`)
         .then((mod) => {
+            // Guardamos el módulo importado para uso posterior
             module = mod;
+
+            // Extraemos y asignamos variables exportadas, con fallback a valores por defecto
+            elemId = mod.elemId;
             otherCasesMap = mod.otherCasesMap ?? {};
             requiredFields = mod.requiredFields ?? [];
+            route = mod.route;
+
+            console.log(`Módulo dinámico '${moduleFile}' cargado correctamente.`);
         })
-        .catch((err) => console.error('Error al importar módulo dinámico:', err));
+        .catch((err) => {
+            console.error(`Error al importar el módulo dinámico '${moduleFile}':`, err);
+        });
 }
 
 // ========================
@@ -76,16 +113,14 @@ export async function formCRUD(
         }
     }
 
-    await window.ziggyPreloadPromise;
-
     switch (action) {
         case 'create':
-            prepareForm(form, `${routeURL}.create`, `Registrar ${title}`);
+            prepareForm(form, 'create', `Registrar ${title}`);
             insertInfo('create');
             break;
 
         case 'edit':
-            prepareForm(form, `${routeURL}.update`, `Editar ${title}`, 'PUT');
+            prepareForm(form, 'update', `Editar ${title}`, 'PUT');
             await getInfo();
             break;
 
@@ -94,7 +129,7 @@ export async function formCRUD(
                 'El registro será eliminado definitivamente',
                 'info',
                 'Sí, eliminar',
-                route(`${routeURL}.delete`, { id: encryptId })
+                route('delete', { id: encryptId })
             );
             break;
 
@@ -169,7 +204,7 @@ export function insertInfo(action: string, data: any = ''): void {
 export async function getInfo(): Promise<void> {
     try {
         if (!encryptId) throw new Error('ID cifrado no definido para getInfo');
-        const url = route(`${routeURL}.getInfo`, { id: encryptId });
+        const url = route('getInfo', { id: encryptId });
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
@@ -192,10 +227,6 @@ function resetForm(form: HTMLFormElement): void {
     });
 }
 
-/**
- * Configura la acción, método y título del formulario/modal.
- * Espera a que las rutas estén precargadas antes de usar `route()`.
- */
 function prepareForm(
     form: HTMLFormElement,
     routeName: string,
@@ -238,14 +269,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = event.target as HTMLElement | null;
         if (!target) return;
 
-        if (target.closest(`.btn-${routeURL}`)) {
-            formCRUD(target, routeURL, 'Vendedor').catch((e) =>
+        if (target.closest(`.btn-${elemId}`)) {
+            formCRUD(target, elemId, 'Vendedor').catch((e) =>
                 console.error('Error en formCRUD:', e)
             );
         }
 
         if (target.closest('#btn-confirm')) {
-            submitForm(routeURL, requiredFields);
+            submitForm(elemId, requiredFields);
         }
 
         if (target.closest('#btn-copy')) {

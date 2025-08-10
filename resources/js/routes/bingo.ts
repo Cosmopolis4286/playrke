@@ -5,7 +5,7 @@ export const bingoRoutes = {
   form: (): string => '/bingo/form',
 
   callNumber: (roomId: string | number): string =>
-    `/bingo/room/${encodeURIComponent(roomId.toString())}/call-number`,
+    `/bingo/room/${encodeURIComponent(roomId.toString())}/callNumber`,
 
   showGameInfo: (): string => '/bingo/showGameInfo',
 

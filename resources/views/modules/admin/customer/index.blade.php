@@ -198,7 +198,7 @@
                     'Deseas cambiar el status de este cliente',
                     'question',
                     'Sí, cambiar',
-                    route(`${name}.change-status`, {
+                    route(`${name}.changeStatus`, {
                         id: encryptedId
                     })
                 );
@@ -208,7 +208,7 @@
                     'Generar nueva contraseña a este cliente',
                     'info',
                     'Sí, generar',
-                    route(`${name}.change-passw`, {
+                    route(`${name}.changePassw`, {
                         id: encryptedId
                     })
                 );

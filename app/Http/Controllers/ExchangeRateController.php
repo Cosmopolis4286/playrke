@@ -86,7 +86,7 @@ class ExchangeRateController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return view('modules.all.exchange-rate.index')->with($viewData);
+        return view('modules.all.exchangeRate.index')->with($viewData);
     }
 
     public function create(Request $request)
@@ -375,7 +375,7 @@ class ExchangeRateController extends Controller
             'exchangeRate' => $exchangeRate
         ];
 
-        return view('modules.all.exchange-rate.historical')->with($viewData);
+        return view('modules.all.exchangeRate.historical')->with($viewData);
     }
 
     public function getExchangeRates($checkUpdate = false)

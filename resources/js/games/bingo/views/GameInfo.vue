@@ -22,7 +22,7 @@
           <!-- Componente que permite llamar números -->
           <NumberCaller
             :calledNumbers="numbers"
-            @call-number="callNumberFromInput"
+            @callNumber="callNumberFromInput"
           />
         </div>
       </div>
@@ -125,7 +125,7 @@ watch(
 
 async function callNumberFromInput(number) {
   try {
-    const res = await axios.post(route("bingo.call-number", roomId.value), {
+    const res = await axios.post(route("bingo.callNumber", roomId.value), {
       number,
     });
     console.log("✅ Número enviado con éxito:", res.data);

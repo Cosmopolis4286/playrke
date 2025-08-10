@@ -1,88 +1,129 @@
-const formulario = document.getElementById('form_rg');
-const inputs = document.querySelectorAll('#form_rg input');
+import { Notyf } from 'notyf';
 
-const expresiones = {
-    username: /^[a-zA-Z0-9\_\-]{4,16}$/, // Letras, números, guion y guion bajo
-    password: /^.{8,12}$/, // 8 a 12 caracteres
+// Referencias DOM
+const form = document.getElementById('form_rg') as HTMLFormElement | null;
+const inputs = form ? form.querySelectorAll<HTMLInputElement>('input') : [];
+
+// Expresiones regulares para validación
+const regexPatterns = {
+    username: /^[a-zA-Z0-9_-]{4,16}$/, // Letras, números, guion y guion bajo
+    password: /^.{8,12}$/,              // 8 a 12 caracteres
     email: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
-}
+};
 
-const campos = {
+// Estado de validación de campos
+const fieldsValid: Record<string, boolean> = {
     username: false,
     email: false,
     password: false,
-}
+};
 
-const validarFormulario = (e) => {
-    switch (e.target.name) {
-        case "username":
-            validarCampo(expresiones.username, e.target, 'username');
-            break;
-        case "password":
-            validarCampo(expresiones.password, e.target, 'password');
-            break;
-        case "email":
-            validarCampo(expresiones.email, e.target, 'email');
-            break;
-    }
-}
+/**
+ * Validate a specific field against its regex pattern
+ * @param pattern - RegExp to test
+ * @param input - HTMLInputElement to validate
+ * @param fieldName - Name of the field for UI updates
+ */
+function validateField(pattern: RegExp, input: HTMLInputElement, fieldName: string) {
+    const group = document.getElementById(`grupo__${fieldName}`);
+    const errorMsg = group?.querySelector<HTMLElement>('.formulario__input-error');
 
-const validarCampo = (expresion, input, campo) => {
-    const grupo = document.getElementById(`grupo__${campo}`);
-    const errorMsg = grupo.querySelector('.formulario__input-error');
-    
-    if (expresion.test(input.value)) {
-        grupo.classList.remove('formulario__grupo-incorrecto');
-        grupo.classList.add('formulario__grupo-correcto');
+    if (!group || !errorMsg) return;
+
+    if (pattern.test(input.value)) {
+        group.classList.remove('formulario__grupo-incorrecto');
+        group.classList.add('formulario__grupo-correcto');
         errorMsg.classList.remove('formulario__input-error-activo');
-        campos[campo] = true;
+        fieldsValid[fieldName] = true;
     } else {
-        grupo.classList.add('formulario__grupo-incorrecto');
-        grupo.classList.remove('formulario__grupo-correcto');
+        group.classList.add('formulario__grupo-incorrecto');
+        group.classList.remove('formulario__grupo-correcto');
         errorMsg.classList.add('formulario__input-error-activo');
-        campos[campo] = false;
+        fieldsValid[fieldName] = false;
     }
 }
 
-inputs.forEach((input) => {
-    console.log(input);
-    input.addEventListener('input', validarFormulario);
-});
-
-// Esconder el mensaje de error al iniciar
-$("#no_pass").hide();
-
-$("#btn-register").click(function (e) {
-    e.preventDefault();
-    
-    const politicas = document.getElementById('politicas');
-    
-    if (campos.username && campos.email && campos.password && politicas.checked) {
-        if ($("#password").val() === $("#password2").val()) {
-            $("#no_pass").hide();
-            $("#loader-btn-register").show();
-            $('#form-register').submit();
-            $("#btn-register").attr('disabled', true);
-        } else {
-            $("#no_pass").show();
-        }
-    } else {
-        mostrarError('Toda la información es requerida');
+/**
+ * Event handler to validate input based on input's name attribute
+ * @param event - InputEvent from the input field
+ */
+function handleInputValidation(event: Event) {
+    const target = event.target as HTMLInputElement;
+    switch (target.name) {
+        case 'username':
+            validateField(regexPatterns.username, target, 'username');
+            break;
+        case 'password':
+            validateField(regexPatterns.password, target, 'password');
+            break;
+        case 'email':
+            validateField(regexPatterns.email, target, 'email');
+            break;
     }
-});
+}
 
-// Función para mostrar errores
-function mostrarError(mensaje) {
-    if ($(".notyf__toast").is(':empty')) {
+/**
+ * Show an error notification using Notyf or fallback alert
+ * @param message - Text message to show
+ */
+function showError(message: string) {
+    try {
         const notyf = new Notyf();
         notyf.error({
-            message: `<span style="font-size:13px;">${mensaje}</span>`,
+            message: `<span style="font-size:13px;">${message}</span>`,
             duration: 3450,
             ripple: true,
-            position: {
-                x: 'center',
-                y: 'bottom',
-            }
+            position: { x: 'center', y: 'bottom' },
         });
+    } catch {
+        alert(message);
     }
+}
+
+/**
+ * Validate form on submit: check all fields and terms acceptance,
+ * check if passwords match, and submit or show error accordingly.
+ */
+function handleFormSubmit(event: Event) {
+    event.preventDefault();
+
+    const policiesCheckbox = document.getElementById('politicas') as HTMLInputElement | null;
+    if (!policiesCheckbox) {
+        showError('Policies checkbox not found.');
+        return;
+    }
+
+    // Validate all fields and policies checkbox
+    if (fieldsValid.username && fieldsValid.email && fieldsValid.password && policiesCheckbox.checked) {
+        const password = form?.querySelector<HTMLInputElement>('#password')?.value;
+        const password2 = form?.querySelector<HTMLInputElement>('#password2')?.value;
+
+        if (password === password2) {
+            // Hide password mismatch message
+            document.getElementById('no_pass')?.classList.add('hidden');
+
+            // Show loader button (assumes it exists)
+            document.getElementById('loader-btn-register')?.classList.remove('hidden');
+
+            // Disable submit button
+            const submitBtn = document.getElementById('btn-register') as HTMLButtonElement | null;
+            if (submitBtn) submitBtn.disabled = true;
+
+            // Submit the form
+            form?.submit();
+        } else {
+            document.getElementById('no_pass')?.classList.remove('hidden');
+        }
+    } else {
+        showError('All information is required and terms must be accepted.');
+    }
+}
+
+// Attach event listeners if form exists
+if (form) {
+    inputs.forEach((input) => input.addEventListener('input', handleInputValidation));
+    document.getElementById('btn-register')?.addEventListener('click', handleFormSubmit);
+
+    // Hide the password mismatch message on start
+    document.getElementById('no_pass')?.classList.add('hidden');
 }

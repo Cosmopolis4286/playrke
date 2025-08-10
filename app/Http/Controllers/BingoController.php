@@ -1071,7 +1071,7 @@ class BingoController extends Controller
                     ]
                 ];
 
-                $gameRoomRoute =  route('bingo.game-rooms-commerce', ['roomType' => $view, 'coin' => encrypt($coin)]);
+                $gameRoomRoute =  route('bingo.gameRoomsCommerce', ['roomType' => $view, 'coin' => encrypt($coin)]);
 
                 $moreViewData = [
                     'uuidCode' => Commerce::getValueById($creatorID, 'code_uuid'),
@@ -2543,7 +2543,7 @@ class BingoController extends Controller
 
                 $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
 
-                $gameRoomRoute =  route('bingo.game-rooms-commerce', ['roomType' => 'private', 'coin' => encrypt($commerce->coin)]);
+                $gameRoomRoute =  route('bingo.gameRoomsCommerce', ['roomType' => 'private', 'coin' => encrypt($commerce->coin)]);
 
                 if ($creatorID == 1) $roomType = Room::getRoomTypes();
 

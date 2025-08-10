@@ -309,7 +309,7 @@
                     'Deseas cambiar el status de este tesorero',
                     'question',
                     'Sí, cambiar',
-                    route(`${name}.change-status`, {
+                    route(`${name}.changeStatus`, {
                         id: encryptedId
                     })
                 );
@@ -319,7 +319,7 @@
                     'Generar nueva contraseña a este tesorero',
                     'info',
                     'Sí, generar',
-                    route(`${name}.change-passw`, {
+                    route(`${name}.changePassw`, {
                         id: encryptedId
                     })
                 );

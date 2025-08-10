@@ -1,16 +1,11 @@
-import { route } from '@/app.js'; // Importamos funciones para manejar rutas Ziggy
+// sellerForm.ts
+import { formCRUD } from '@/helpers/formCrud.js';
+import { route } from '@/routes/sellerRoutes.js';
 import { showToastOptionBtns } from '../../../../helpers/toastNotify.js';
 import { validateInput } from '../../../../helpers/validateInput.js';
 
-// Usar listener para esperar que las rutas estén cargadas
-window.addEventListener('ziggyReady', () => { }, { once: true });
-
-// ==========================
-//   Configuración inicial
-// ==========================
-
-// URL base para rutas de este módulo
-const routeURL = (document.getElementById('route-url') as HTMLInputElement)?.value ?? '';
+// Exports
+export { route };
 
 // Datos globales pasados desde PHP
 const appDataScript = document.getElementById('app-data');
@@ -33,6 +28,13 @@ const arrTimeZones = appData.timeZones;
 const coins = appData.coinsCommerce;
 
 // Elementos clave del DOM
+export const elemId = (document.getElementById('elem-id') as HTMLInputElement).value ?? 'seller';
+const usernameInput = document.getElementById('username') as HTMLInputElement;
+const emailInput = document.getElementById('email') as HTMLInputElement;
+const countrySelect = document.getElementById('country')! as HTMLSelectElement;
+const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement;
+const modal = document.getElementById(`modal-${elemId}`)!;
+
 const coin = document.getElementById('coin') as HTMLSelectElement | null;
 const coinText = document.getElementById('coin-text') as HTMLElement | null;
 const country = document.getElementById('country') as HTMLSelectElement | null;
@@ -62,7 +64,7 @@ export const otherCasesMap: Record<string, (encryptedId: string) => void> = {
             '¿Deseas cambiar el status de este vendedor?',
             'question',
             'Sí, cambiar',
-            route(`${routeURL}.change-status`, { id: encryptedId })
+            route('changeStatus', { id: encryptedId })
         );
     },
     '5': (encryptedId) => {
@@ -70,7 +72,7 @@ export const otherCasesMap: Record<string, (encryptedId: string) => void> = {
             'Generar nueva contraseña a este vendedor',
             'info',
             'Sí, generar',
-            route(`${routeURL}.change-passw`, { id: encryptedId })
+            route('changePassw', { id: encryptedId })
         );
     },
 };
@@ -102,12 +104,6 @@ function insertOtherCoins(selectedCoins: number[] = []): void {
  * Inserta información en el formulario del modal según la acción (crear o editar)
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
-    const usernameInput = document.getElementById('username') as HTMLInputElement;
-    const emailInput = document.getElementById('email') as HTMLInputElement;
-    const countrySelect = country;
-    const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement;
-    const modal = document.getElementById(`modal-${routeURL}`);
-
     const elements = { usernameInput, emailInput, countrySelect, timeZoneSelect, modal };
     const missing = Object.entries(elements)
         .filter(([_, el]) => !el)
@@ -190,9 +186,9 @@ if (country && coin && coinText) {
     });
 }
 
-// ==========================
-//   Inicialización DOM
-// ==========================
+// ========================
+// Listeners globales
+// ========================
 
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof $ === 'function') {
@@ -209,6 +205,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    document.addEventListener('click', (event: MouseEvent) => {
+        const target = event.target as HTMLElement | null;
+        if (!target) return;
+
+        if (target.closest(`.btn-${elemId}`)) {
+            formCRUD(target, elemId, 'Vendedor').catch((e) =>
+                console.error('Error en formCRUD:', e)
+            );
+        }
+    });
 
     document.addEventListener('input', (event) => {
         const input = event.target as HTMLInputElement;
