@@ -9,7 +9,7 @@
                     <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                     <button type="button" disabled id="btn-historical" class="btn btn-sm btn-primary" data-block="1"
-                        data-url-template="{{ route('exchangeRate.historical', ['coin' => ':coin', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                        data-url-template="{{ route('exchange-rate.historical', ['coin' => ':coin', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
                         <i class="fa-solid fa-money-bill-trend-up"></i> Histórico</button>
                     <button type="button" id="btn-update-exchange-rates" class="btn btn-sm btn-secondary">
                         <i class="fa-solid fa-rotate"></i> Actualizar</button>
@@ -97,7 +97,7 @@
     </div>
     @include('includes.modal-form', [
         'name' => $name,
-        'dataForm' => view('modules.all.exchangeRate.form', ['creator' => $creator])->render(),
+        'dataForm' => view('modules.all.exchange-rate.form', ['creator' => $creator])->render(),
     ])
 @endsection
 @section('scripts')
@@ -122,7 +122,7 @@
         function setTextExchangeRate() {
             const selectedCoin = coin.find("option:selected");
             const coinSymbol = selectedCoin.length ? selectedCoin.text() : coinName;
-            const rateValue = parseFloat(exchangeRate.val());
+            const rateValue = parseFloat(exchange-rate.val());
 
             if (coin.val() && rateValue > 0) {
                 $("#text-exchange-rate").text(`${rateValue} ${coinSymbol}`);
@@ -138,7 +138,7 @@
             setTextExchangeRate();
         });
 
-        exchangeRate.on('input', function() {
+        exchange-rate.on('input', function() {
             let currentValue = parseFloat($(this).val());
             if (currentValue < exchangeRateMin) {
                 $(this).val(exchangeRateMin);
@@ -154,7 +154,7 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, [coin.attr('id'), exchangeRate.attr('id')]);
+            submitForm(name, [coin.attr('id'), exchange-rate.attr('id')]);
         });
 
         const otherCasesMap = {
@@ -190,7 +190,7 @@
         } else {
             function getLastValueByCoin(coin) {
                 $.getJSON({
-                    url: route('exchangeRate.getLastValueByCoin', coin),
+                    url: route('exchange-rate.getLastValueByCoin', coin),
                     data: {
                         '_token': $("#5K3_70K").val()
                     },
@@ -201,7 +201,7 @@
                             exchangeRateMax = (coinValue + 3).toFixed(2);
                             exchangeRateMin = (coinValue - 2).toFixed(2);
                         }
-                        if (!update) exchangeRate.val(coinValue);
+                        if (!update) exchange-rate.val(coinValue);
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         // Manejar errores aquí si es necesario
@@ -232,7 +232,7 @@
                     coinName = `${currentCoin.long_name} (${currentCoin.symbol})`;
                 }
 
-                exchangeRate.val(data.exchange_rate);
+                exchange-rate.val(data.exchange_rate);
 
                 $("#coin").trigger('change');
                 $("#alert-exchange-rate").removeClass('hide-elem');
@@ -262,7 +262,7 @@
 
         $(document).on("click", "#btn-update-exchange-rates", function() {
             $.getJSON({
-                url: route('exchangeRate.getExchangeRates'),
+                url: route('exchange-rate.getExchangeRates'),
                 data: {
                     '_token': $("#5K3_70K").val()
                 },

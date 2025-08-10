@@ -40,7 +40,7 @@
                     <div class="card-header" title="CommerceExchangeRate de Cambio">
                         <h4 class="my-n2" align="center">CommerceExchangeRate Dólar RKE</h4>
                     </div>
-                    <form action="{{ route('CommerceExchangeRate.store') }}" method="POST">
+                    <form action="{{ route('Commerceexchange-rate.store') }}" method="POST">
                         <input type="hidden" name="_token" value="{{ csrf_token() }}">
                         <div class="card-body">
                             <div class="info-box-content">

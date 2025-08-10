@@ -1,16 +1,18 @@
 // ======================================================
 // Archivo: resources/js/routes/bingoRoutes.ts
 // Descripción: Rutas del módulo bingoRoutes
-// Fecha de actualización (GMT): 2025-08-10T04:48:16Z
+// Fecha de actualización (GMT): 2025-08-10T14:33:52Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
+
+import { route as baseRoute } from './helper.js';
 
 export const bingoRoutes = {
     "handleForm": "/bingo/form/{roomId?}",
     "callNumber": "/bingo/room/{roomId}/callNumber",
     "showGameInfo": "/bingo/showGameInfo",
-    "bingoPatterns": "/bingo/configuration/patterns/{userToken?}",
     "configuration": "/bingo/configuration/{userToken?}",
+    "bingoPatterns": "/bingo/configuration/patterns/{userToken?}",
     "getInfo": "/bingo/getInfo/{id}/{starTime?}",
     "getInfoByEncrypt": "/bingo/getInfoByEncrypt/{id}/{creatorUser}/{coin}",
     "getInfoPublicRoom": "/bingo/getInfoPublicRoom",
@@ -45,22 +47,11 @@ export const bingoRoutes = {
 } as const;
 
 /**
- * Obtiene la URL para la ruta dada con parámetros opcionales.
- * @param name Nombre de la ruta (clave del objeto)
- * @param params Parámetros para reemplazar en la URL (por ejemplo {id})
- * @returns URL con parámetros reemplazados
+ * Retorna la URL de la ruta especificada usando las rutas del módulo.
  */
 export function route<K extends keyof typeof bingoRoutes>(
     name: K,
     params?: Record<string, string | number>
 ): string {
-    let url = bingoRoutes[name] as string;
-
-    if (params) {
-        for (const [key, value] of Object.entries(params)) {
-            url = url.replace(new RegExp('\{' + key + '\}', 'g'), String(value));
-        }
-    }
-
-    return url;
+    return baseRoute(bingoRoutes, name, params);
 }

@@ -42,3 +42,30 @@ export function buildRoute<
 
     return url;
 }
+
+/**
+ * Obtiene la URL para la ruta dada con parámetros opcionales.
+ *
+ * @param routes Objeto de rutas (clave → URL con o sin placeholders).
+ * @param name Nombre de la ruta (clave del objeto).
+ * @param params Parámetros para reemplazar en la URL (por ejemplo {id}).
+ * @returns URL con parámetros reemplazados.
+ */
+export function route<T extends Record<string, string>>(
+    routes: T,
+    name: keyof T,
+    params?: Record<string, string | number>
+): string {
+    let url = routes[name] as string;
+
+    if (params) {
+        for (const [key, value] of Object.entries(params)) {
+            url = url.replace(
+                new RegExp(`{${key}}`, 'g'),
+                encodeURIComponent(String(value))
+            );
+        }
+    }
+
+    return url;
+}

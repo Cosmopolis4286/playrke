@@ -21,16 +21,19 @@ class GenerateTsRoutesByModule extends Command
             'admin',
             'bingo',
             'commerce',
-            'exchangeRate',
+            'customer',
+            'exchange-rate',
             'info',
             'report',
             'rewards',
+            'pagomovil',
             'pix',
             'seller'
         ];
 
         foreach ($modules as $prefix) {
-            $varName = $prefix . 'Routes'; // construye nombre variable/archivo
+            // Construye nombre variable/archivo
+            $varName = $this->kebabToCamelCase($prefix) . 'Routes';
 
             // Filtra rutas que empiecen con el prefijo o sean exactamente igual al prefijo
             $filtered = $routes
@@ -53,6 +56,20 @@ class GenerateTsRoutesByModule extends Command
         }
     }
 
+    /**
+     * Convierte un string en formato kebab-case (con guiones) a camelCase.
+     *
+     * Ejemplo:
+     *   'exchange-rate' => 'exchangeRate'
+     *   'some-module-name' => 'someModuleName'
+     *
+     * @param string $string Cadena en kebab-case.
+     * @return string Cadena convertida a camelCase.
+     */
+    protected function kebabToCamelCase(string $string): string
+    {
+        return lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $string))));
+    }
 
     /**
      * Determina si la URI inicia con el prefijo dado o es exactamente igual.
@@ -99,27 +116,18 @@ class GenerateTsRoutesByModule extends Command
         // Generado automáticamente con make:ts-routes-modules
         // ======================================================
 
+        import { route as baseRoute } from './helper.js';
+
         export const {$varName} = {$json} as const;
 
         /**
-         * Obtiene la URL para la ruta dada con parámetros opcionales.
-         * @param name Nombre de la ruta (clave del objeto)
-         * @param params Parámetros para reemplazar en la URL (por ejemplo {id})
-         * @returns URL con parámetros reemplazados
+         * Retorna la URL de la ruta especificada usando las rutas del módulo.
          */
         export function route<K extends keyof typeof {$varName}>(
             name: K,
             params?: Record<string, string | number>
         ): string {
-            let url = {$varName}[name] as string;
-
-            if (params) {
-                for (const [key, value] of Object.entries(params)) {
-                    url = url.replace(new RegExp('\\{' + key + '\\}', 'g'), String(value));
-                }
-            }
-
-            return url;
+            return baseRoute({$varName}, name, params);
         }
         TS;
     }
