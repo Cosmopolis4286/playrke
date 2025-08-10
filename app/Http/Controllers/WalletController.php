@@ -15,9 +15,9 @@ use App\Models\Transactions_VES;
 use App\Models\Transactions_CLP;
 use App\Models\DP_Block;
 use App\Models\RT_Block;
-use App\Models\SaldoCongelado;
-use App\Models\Transbank;
+use App\Traits\Users\UserValTrait;
 use App\Traits\UserVal;
+
 use Illuminate\Http\Request;
 use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +25,7 @@ use Carbon\Carbon;
 
 class WalletController extends Controller
 {
-    use UserVal;
+    use UserValTrait;
     // public function index()
     // {
     //     $user = auth()->user()->id;

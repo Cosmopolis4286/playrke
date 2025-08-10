@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\BinanceAccounts;
-use App\Traits\UserVal;
+use App\Traits\Users\UserValTrait;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class BinanceController extends Controller
 {
-    use UserVal;
+    use UserValTrait;
 
     public function index()
     {

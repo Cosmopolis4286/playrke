@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+
 use App\Models\OtherTreasurers;
-use App\Traits\UserVal;
+
+use App\Traits\Users\UserValTrait;
+
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class OtherTreasurersController extends Controller
 {
-    use UserVal;
+    use UserValTrait;
 
     public function getInfo($id) // Obtener Info 
     {

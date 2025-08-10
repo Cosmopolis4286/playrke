@@ -8,7 +8,8 @@
 
 {{-- 📦 jQuery y Validaciones --}}
 @if ($loadJquery)
-    <script src="{{ asset('js/jquery-3.5.1.min.js') }}" defer></script>
+    {{-- jQuery SIN defer para que Bootstrap 4 lo tenga disponible inmediatamente --}}
+    <script src="{{ asset('js/jquery-3.5.1.min.js') }}"></script>
     <script src="{{ asset('js/jquery.validate.min.js') }}" defer></script>
     <script src="{{ asset('js/jquery.validate.unobtrusive.min.js') }}" defer></script>
     <script src="{{ asset('js/just-validate.production.min.js') }}" defer></script>
@@ -18,9 +19,9 @@
 
 {{-- 🚀 Bootstrap --}}
 @if ($loadBootstrap)
-    {{-- Carga popper antes que bootstrap --}}
-    <script src="{{ asset('js/Bootstrap/popper.min.js') }}" defer></script>
-    <script src="{{ asset('js/Bootstrap/bootstrap.min.js') }}" defer></script>
+    {{-- Popper y Bootstrap SIN defer para inicializar popovers, tooltips, modals, etc. antes de tu código --}}
+    <script src="{{ asset('js/Bootstrap/popper.min.js') }}"></script>
+    <script src="{{ asset('js/Bootstrap/bootstrap.min.js') }}"></script>
 @endif
 
 {{-- 📊 DataTables --}}
@@ -38,6 +39,7 @@
     <script src="{{ asset('template/dist/js/adminlte.js') }}" defer></script>
 @endif
 
+{{-- 🔔 Mensaje de sesión --}}
 @if (Session::has('message'))
     <script type="module" defer>
         import {
@@ -51,13 +53,12 @@
     </script>
 @endif
 
+{{-- ⚙️ Inicialización de DataTables --}}
 @if ($loadDataTables)
     <script type="module" defer>
         import {
             loadDataTable
         } from '/resources/js/helpers/global.js';
-
-        // Pasa la url del idioma para DataTables
         loadDataTable('/css/DataTables/es-ES.json');
     </script>
 @endif

@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
+// Models
 use App\Models\Customer;
 use App\Models\UserType;
+// Traits
 use App\Traits\Users\CustomerTrait;
-use App\Traits\UserVal;
+use App\Traits\Users\UserValTrait;
 
 class IframeController extends Controller
 {
-    use UserVal, CustomerTrait;
+    use UserValTrait, CustomerTrait;
 
     public function index()
     {

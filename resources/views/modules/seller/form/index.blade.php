@@ -3,7 +3,7 @@
 @section('content')
     <div class="col-12">
         <div class="card">
-            @include('includes.card-header')
+            <x-shared.card-header :title="$title" />
             <div class="card-body">
                 <button id="btn-{{ $name }}-insert" class="btn btn-sm btn-primary btn-{{ $name }}"
                     type="button" data-action="create">
@@ -80,19 +80,20 @@
             </div>
         </div>
     </div>
-    <input type="hidden" id="module-file" value="{{ $moduleFile ?? '' }}">
+    <input type="hidden" id="module-file" value="seller/form/sellerForm.ts">
     <input type="hidden" id="route-url" value="{{ $name }}">
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
         'dataForm' => view('modules.seller.form.body', ['countriesCommerce' => $countriesCommerce])->render(),
     ])
-    @include('includes.modal-copy-info', [
-        'name' => 'copy-passw',
-        'title' => 'Contraseña Vendedor',
-    ])
+    @if (Session::has('message'))
+        <x-modals.copy-info name="copy-passw" title="Contraseña Vendedor" :value="Session::get('message')" />
+    @endif
 @endsection
 @section('scripts')
+    <script src="{{ asset('js/select2.min.js') }}"></script>
+
     <script id="app-data" type="application/json">
         {!! json_encode([
             'countriesCommerce' => $countriesCommerce,
@@ -102,15 +103,9 @@
     </script>
     <script id="session-data" type="application/json">
         {
-            "hasMessagePassw": @json(Session::has('message-passw')),
-            "messagePassw": @json(Session::get('message-passw'))
-        }
-    </script>
-    <script id="session-error-data" type="application/json">
-        {
-            "hasMsgError": @json(Session::has('msg-error')),
-            "msgError": @json(Session::get('msg-error')),
-            "encryptedId": @json(Session::get('encryptedId'))
+            "message": @json(Session::has('message')),
+            "passw": @json(Session::get('passw'))
+            "error": @json(Session::get('error')),
         }
     </script>
     @vite(['resources/js/helpers/formCrud', 'resources/js/views/modules/seller/form/sellerForm'])

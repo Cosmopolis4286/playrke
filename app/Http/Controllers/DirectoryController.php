@@ -12,11 +12,11 @@ use App\Models\PagoMovil;
 use App\Models\PaymentMethodsCOL;
 use App\Models\Pix;
 use App\Models\UserType;
-use App\Traits\UserVal;
+use App\Traits\Users\UserValTrait;
 
 class DirectoryController extends Controller
 {
-    use UserVal;
+    use UserValTrait;
 
     public function index($countryCode)
     {

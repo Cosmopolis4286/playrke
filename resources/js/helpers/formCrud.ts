@@ -1,40 +1,53 @@
 import { ajaxStart } from './loader.js';
 import { copyInfo } from './copyInfo.js';
-import { route } from 'ziggy-js';
+import { route } from '@/app.js';
 import { showToast, showToastOptionBtns } from './toastNotify.js';
 
-// Variables para almacenar los datos del módulo dinámico
+// ========================
+// Variables globales
+// ========================
+
+/** Módulo dinámico cargado según el formulario actual */
 let module: any = null;
+
+/** Acciones personalizadas mapeadas desde el módulo dinámico */
 export let otherCasesMap: Record<string, (encryptedId: string) => void> = {};
+
+/** Campos requeridos para validación antes de enviar formulario */
 export let requiredFields: string[] = [];
 
-// Obtener nombre del módulo a cargar desde input oculto en el DOM
-const moduleFile = (document.getElementById('module-file') as HTMLInputElement | null)?.value ?? '';
+/** Nombre del archivo de módulo dinámico (sin extensión) */
+const moduleFile = (document.getElementById('module-file') as HTMLInputElement)?.value ?? '';
 
-// Importar módulo dinámicamente solo una vez al cargar el script
+/** Nombre base de la ruta usado en Ziggy */
+const routeURL = (document.getElementById('route-url') as HTMLInputElement)?.value ?? '';
+
+/** ID cifrado global, usado en operaciones edit/delete y otras personalizadas */
+let encryptId = '';
+
+// ========================
+// Carga dinámica de módulo
+// ========================
+
 if (moduleFile) {
-    import(`./${moduleFile}.js`)
-        .then(mod => {
+    import(`../views/modules/${moduleFile}`)
+        .then((mod) => {
             module = mod;
             otherCasesMap = mod.otherCasesMap ?? {};
             requiredFields = mod.requiredFields ?? [];
         })
-        .catch(err => {
-            console.error('Error al importar módulo dinámico:', err);
-        });
+        .catch((err) => console.error('Error al importar módulo dinámico:', err));
 }
 
-// Obtener URL base para rutas desde el DOM
-const routeURL = (document.getElementById('route-url') as HTMLInputElement | null)?.value ?? '';
-
-// Variable global para id cifrado, se usa en varias funciones
-let encryptId: string = '';
+// ========================
+// Funciones principales
+// ========================
 
 /**
- * Función principal para manejar formularios CRUD.
- * @param elem - HTMLElement o array con [acción, id cifrado]
- * @param name - nombre base para formularios y modales
- * @param title - título para mostrar en modal
+ * Controla el flujo CRUD principal (create, edit, delete o casos especiales).
+ * @param elem - Elemento HTML que dispara la acción o arreglo con [acción, id cifrado]
+ * @param name - Nombre base del formulario/modal
+ * @param title - Título descriptivo para mostrar en modal
  */
 export async function formCRUD(
     elem: HTMLElement | [string, string],
@@ -42,49 +55,37 @@ export async function formCRUD(
     title: string
 ): Promise<void> {
     const modalLabel = document.getElementById(`modal-${name}-label`);
-    const form = document.getElementById(`form-${name}`) as HTMLFormElement;
+    const form = document.getElementById(`form-${name}`) as HTMLFormElement | null;
 
-    if (!form || !modalLabel) return;
-
-    form.reset();
-    form.querySelectorAll('select:not(.not-empty)').forEach(select => {
-        (select as HTMLSelectElement).innerHTML = '';
-    });
-
-    let action: string;
-
-    if (Array.isArray(elem)) {
-        [action, encryptId] = elem;
-    } else if (elem instanceof HTMLElement) {
-        const data = elem.dataset;
-        action = data.action || '';
-        if (action === 'edit' || action === 'delete') {
-            encryptId = data.id || '';
-        }
-    } else {
-        console.error('elem no es un HTMLElement ni un array válido');
+    if (!form || !modalLabel) {
+        console.warn(`Formulario o modal no encontrado para: ${name}`);
         return;
     }
 
+    resetForm(form);
+
+    let action = '';
+
+    // Determinar acción y encryptId
+    if (Array.isArray(elem)) {
+        [action, encryptId] = elem;
+    } else if (elem instanceof HTMLElement) {
+        action = elem.dataset.action ?? '';
+        if (['edit', 'delete'].includes(action)) {
+            encryptId = elem.dataset.id ?? '';
+        }
+    }
+
+    await window.ziggyPreloadPromise;
+
     switch (action) {
         case 'create':
-            modalLabel.textContent = `Registrar ${title}`;
-            form.setAttribute('action', route(`${routeURL}.create`));
-            form.querySelectorAll('input[name="_method"]').forEach(i => i.remove());
+            prepareForm(form, `${routeURL}.create`, `Registrar ${title}`);
             insertInfo('create');
             break;
 
         case 'edit':
-            modalLabel.textContent = `Editar ${title}`;
-            form.setAttribute('action', route(`${routeURL}.update`, encryptId));
-            form.querySelectorAll('input[name="_method"]').forEach(i => i.remove());
-
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = '_method';
-            hiddenInput.value = 'PUT';
-
-            form.appendChild(hiddenInput);
+            prepareForm(form, `${routeURL}.update`, `Editar ${title}`, 'PUT');
             await getInfo();
             break;
 
@@ -93,7 +94,7 @@ export async function formCRUD(
                 'El registro será eliminado definitivamente',
                 'info',
                 'Sí, eliminar',
-                route(`${routeURL}.delete`, encryptId)
+                route(`${routeURL}.delete`, { id: encryptId })
             );
             break;
 
@@ -104,32 +105,39 @@ export async function formCRUD(
 }
 
 /**
- * Ejecuta función especial si la acción está definida en otherCasesMap.
- * @param action - clave de la acción a ejecutar
+ * Ejecuta la acción personalizada registrada en otherCasesMap.
  */
 export function handleOtherCases(action: string): void {
-    otherCasesMap[action]?.(encryptId)
-        ?? console.error(`Acción no reconocida: ${action}`);
+    if (otherCasesMap[action]) {
+        otherCasesMap[action](encryptId);
+    } else {
+        console.error(`Acción no reconocida: ${action}`);
+    }
 }
 
 /**
- * Valida campos requeridos y envía el formulario si todo está OK.
- * @param formName - nombre base del formulario
- * @param fields - array opcional de campos requeridos, si no se pasan se infieren del DOM
+ * Valida campos requeridos y envía el formulario.
  */
 export function submitForm(formName: string, fields: string[] = []): void {
-    const form = document.getElementById(`form-${formName}`) as HTMLFormElement;
-    if (!form) return;
+    const form = document.getElementById(`form-${formName}`) as HTMLFormElement | null;
+    if (!form) {
+        console.warn(`Formulario no encontrado para submit: ${formName}`);
+        return;
+    }
 
+    // Detectar campos requeridos si no se pasan manualmente
     if (fields.length === 0) {
-        // Infiero campos required si no se pasan explícitamente
-        fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[required], select[required]'))
-            .map(el => el.id)
+        fields = Array.from(
+            form.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+                'input[required], select[required]'
+            )
+        )
+            .map((el) => el.id)
             .filter(Boolean);
     }
 
-    const invalidFields = fields.filter(id => {
-        const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
+    const invalidFields = fields.filter((id) => {
+        const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
         return !el?.value;
     });
 
@@ -143,29 +151,27 @@ export function submitForm(formName: string, fields: string[] = []): void {
 }
 
 /**
- * Llama a la función insertInfo del módulo cargado dinámicamente.
- * @param action - tipo de acción, como 'create' o 'edit'
- * @param data - datos opcionales para cargar en el formulario
+ * Inserta datos en el formulario usando la función insertInfo del módulo dinámico.
  */
 export function insertInfo(action: string, data: any = ''): void {
-    if (module && typeof module.insertInfo === 'function') {
+    if (module?.insertInfo instanceof Function) {
         module.insertInfo(action, data);
     } else {
-        console.error(`La función insertInfo no existe o el módulo '${moduleFile}' no está cargado aún.`);
+        console.error(
+            `La función insertInfo no existe o el módulo '${moduleFile}' no está cargado aún.`
+        );
     }
 }
 
 /**
- * Obtiene la información para editar y la carga en el formulario.
+ * Obtiene información desde el backend y la carga en el formulario (modo edición).
  */
 export async function getInfo(): Promise<void> {
     try {
-        const url = route(`${routeURL}.getInfo`, encryptId);
-        const response = await fetch(url, { method: 'GET' });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!encryptId) throw new Error('ID cifrado no definido para getInfo');
+        const url = route(`${routeURL}.getInfo`, { id: encryptId });
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const data = await response.json();
         insertInfo('edit', data);
@@ -174,35 +180,81 @@ export async function getInfo(): Promise<void> {
     }
 }
 
-// Ejecutar cuando el DOM esté completamente cargado
+// ========================
+// Funciones auxiliares
+// ========================
+
+/** Limpia el formulario y campos de select que no tengan la clase `.not-empty` */
+function resetForm(form: HTMLFormElement): void {
+    form.reset();
+    form.querySelectorAll('select:not(.not-empty)').forEach((select) => {
+        (select as HTMLSelectElement).innerHTML = '';
+    });
+}
+
+/**
+ * Configura la acción, método y título del formulario/modal.
+ * Espera a que las rutas estén precargadas antes de usar `route()`.
+ */
+function prepareForm(
+    form: HTMLFormElement,
+    routeName: string,
+    modalTitle: string,
+    method: string = ''
+): void {
+    const modalLabel = document.querySelector(`#${form.id.replace('form', 'modal')}-label`);
+    if (modalLabel) modalLabel.textContent = modalTitle;
+
+    try {
+        if (method) {
+            // Para rutas con método PUT (update, delete, etc.) pasa el parámetro id en objeto
+            form.setAttribute('action', route(routeName, { id: encryptId }));
+        } else {
+            // Para create u otras rutas sin parámetro
+            form.setAttribute('action', route(routeName));
+        }
+    } catch (e) {
+        console.error(`Error generando ruta para ${routeName}:`, e);
+    }
+
+    // Elimina inputs hidden _method anteriores
+    form.querySelectorAll('input[name="_method"]').forEach((i) => i.remove());
+
+    if (method) {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = '_method';
+        hiddenInput.value = method;
+        form.appendChild(hiddenInput);
+    }
+}
+
+// ========================
+// Listeners globales
+// ========================
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Escuchar eventos click en todo el documento
     document.addEventListener('click', (event: MouseEvent) => {
         const target = event.target as HTMLElement | null;
         if (!target) return;
 
-        // Manejar botón con clase `.btn-{routeURL}`
         if (target.closest(`.btn-${routeURL}`)) {
-            formCRUD(target, routeURL, 'Vendedor');
+            formCRUD(target, routeURL, 'Vendedor').catch((e) =>
+                console.error('Error en formCRUD:', e)
+            );
         }
 
-        // Manejar botón confirmar formulario
         if (target.closest('#btn-confirm')) {
             submitForm(routeURL, requiredFields);
         }
 
-        // Manejar botón para copiar información
         if (target.closest('#btn-copy')) {
             copyInfo('Contraseña Copiada');
         }
 
-        // Manejar toggle de popover en elementos con clase `.popover-dismiss`
         if (target.closest('.popover-dismiss')) {
+            // Bootstrap 4 popover requiere jQuery
             $(target).popover('toggle');
         }
     });
-
-    // Escuchar eventos input en todo el documento para validación en tiempo real
-    // document.addEventListener('input', (event: Event) => {
-    // });
 });

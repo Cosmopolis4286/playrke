@@ -42,11 +42,12 @@
     "dependencies": {
         "@popperjs/core": "^2.11.8",
         "@vitejs/plugin-vue": "^5.2.4",
-        "bootstrap": "^5.3.7",
+        "bootstrap": "^4.6.2",
         "crypto-js": "^4.2.0",
         "datatables.net-bs4": "^2.3.2",
         "dayjs": "^1.11.13",
         "jquery-mask-plugin": "^1.14.16",
+        "popper.js": "^1.16.1",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "select2": "^4.1.0-rc.0",

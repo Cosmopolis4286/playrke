@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "Node16",
-    "moduleResolution": "node16", 
-    "strict": true,
-    "esModuleInterop": true,
-    "allowJs": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
+    "target": "ESNext", // Código moderno
+    "module": "Node16", // Resolver módulos como Node 16
+    "moduleResolution": "node16", // Resolución de módulos igual a Node 16
+    "strict": true, // Más seguridad con tipos estrictos
+    "esModuleInterop": true, // Para importar módulos CommonJS
+    "allowJs": true, // Permite importar archivos JS
+    "resolveJsonModule": true, // Importar archivos JSON
+    "isolatedModules": true, // Para compatibilidad con transpilers
     "lib": [
       "DOM",
       "ESNext"
@@ -16,8 +16,15 @@
       "node",
       "dom",
       "jquery",
-      "select2",
-    ]
+      "select2"
+    ],
+    // **Aquí agregamos baseUrl y paths para alias @**
+    "baseUrl": ".", // Raíz del proyecto para resolver paths
+    "paths": {
+      "@/*": [
+        "resources/js/*"
+      ] // Alias @ apunta a resources/js
+    }
   },
   "include": [
     "resources/js",

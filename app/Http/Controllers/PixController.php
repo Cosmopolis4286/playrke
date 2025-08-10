@@ -3,18 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+
 use App\Models\Banks_BRA;
-use Illuminate\Http\Request;
 use App\Models\Pix;
-use App\Traits\UserVal;
+
+use App\Traits\Users\UserValTrait;
+
 use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PixController extends Controller
 {
-    use UserVal;
+    use UserValTrait;
 
     public function index()
     {

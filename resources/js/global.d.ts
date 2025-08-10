@@ -1,7 +1,9 @@
-export { }; // Esto hace que el archivo sea un módulo y evite conflictos globales
+export {}; // Convierte este archivo en módulo para que declare global funcione
 
 declare global {
-    interface Window {
-        route: (name: string, params?: any) => string;
-    }
+  interface Window {
+    ziggyPreloadPromise?: Promise<any>;
+    ziggyReady?: boolean;
+    route?: (name: string, params?: any) => string;
+  }
 }

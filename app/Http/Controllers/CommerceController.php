@@ -348,28 +348,54 @@ class CommerceController extends Controller
         return redirect()->back();
     }
 
+    /**
+     * Muestra el listado y formulario de vendedores asociados al comercio del usuario autenticado.
+     *
+     * @return \Illuminate\View\View
+     */
     public function sellers()
     {
+        // Datos básicos para la vista
         $title = 'Mis Vendedores';
         $name = 'seller';
-        $commerce = $this->commerce()->id;
 
-        $sellers = Seller::with(['Country', 'CountriesCoins.Coin'])->where('commerce', $commerce)->get();
+        // Obtener el ID del comercio del usuario autenticado
+        $commerceId = $this->commerce()->id;
 
+        // Cargar vendedores con relaciones necesarias (evitando consultas N+1)
+        $sellers = Seller::with(['Country', 'CountriesCoins.Coin'])
+            ->where('commerce', $commerceId)->get();
+
+        // Obtener países disponibles para el usuario
         $countries = $this->getAvailableCountries(Auth::id());
         $countriesCommerce = Country::getCountries($countries, ['id', 'name']);
 
+        // Obtener monedas disponibles para el usuario
         $coins = $this->getAvailableCoins(Auth::id());
-        $coinsCommerce = Coin::getCoinsById($coins, ['id', 'symbol', 'short_name', 'long_name', 'country']);
+        $coinsCommerce = Coin::getCoinsById($coins, [
+            'id',
+            'symbol',
+            'short_name',
+            'long_name',
+            'country'
+        ]);
 
+        // Zonas horarias activas
         $timeZones = TimeZone::select('id', 'name', 'country')->where('status', 1)->get();
 
+        // Juegos disponibles
         $games = Games::getAvailableGames();
 
-        return view(
-            'modules.seller.form.index',
-            compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce', 'games')
-        );
+        // Retornar vista con todos los datos
+        return view('modules.seller.form.index', compact(
+            'title',
+            'name',
+            'sellers',
+            'timeZones',
+            'countriesCommerce',
+            'coinsCommerce',
+            'games'
+        ));
     }
 
     public function rewards()

@@ -2,19 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Http\Controllers\Controller;
-use Intervention\Image\Facades\Image;
-use App\Http\Requests\validationPerfil;
+
+// Models
 use App\Models\DocumentType;
-use App\Traits\UserVal;
+use App\Models\User;
+
+// Traits
+use App\Traits\Users\UserValTrait;
+
+// Otros
+use Intervention\Image\Facades\Image;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
-    use UserVal;
+    use UserValTrait;
 
     public function index()
     {
@@ -25,7 +30,7 @@ class ProfileController extends Controller
         return view('modules.all.profile.index', compact('title', 'user', 'document'));
     }
 
-    public function update(validationPerfil $request, $id)
+    public function update($request, $id)
     {
         $user = User::findOrFail($id);
 

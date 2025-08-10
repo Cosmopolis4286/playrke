@@ -14,9 +14,8 @@ use App\Models\PhoneNumbers;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-use App\Traits\Helpers\Filters;
-use App\Traits\RouteRKE;
-use App\Traits\UserVal;
+use App\Traits\Helpers\FiltersTrait;
+use App\Traits\Users\UserValTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +24,7 @@ use Illuminate\Support\Facades\Validator;
 
 class TreasurerController extends Controller
 {
-    use EncryptTrait, UserVal, RouteRKE, Filters;
+    use EncryptTrait, UserValTrait, FiltersTrait;
 
     private function validateRequest($request, $type = 1, $id = '')
     {

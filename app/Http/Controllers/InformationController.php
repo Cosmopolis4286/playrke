@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+
+// Models
 use App\Models\User;
-use App\Traits\UserVal;
+// Traits
+use App\Traits\Users\UserValTrait;
 use Illuminate\Support\Facades\Auth;
 
 class InformationController extends Controller
 {
-    use UserVal;
+    use UserValTrait;
 
     public function terms()
     {
