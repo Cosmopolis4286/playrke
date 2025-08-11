@@ -1,6 +1,7 @@
-@extends('layouts.layout-online')
-@section('title', $title)
-@section('content')
+{{-- resources/views/seller/form/index.blade.php --}}
+
+<x-layouts.layout-online :title="$title" :loadSelect2="true">
+    {{-- Contenido principal --}}
     <div class="col-12">
         <div class="card">
             <x-shared.card-header :title="$title" />
@@ -9,13 +10,14 @@
                     type="button" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>Vendedor
                 </button>
+
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">
                         <thead>
                             <tr>
                                 <th>Nombre</th>
-                                <th>Telefono</th>
-                                <th>Pais</th>
+                                <th>Teléfono</th>
+                                <th>País</th>
                                 <th>Moneda</th>
                                 <th>%Comn</th>
                                 <th>Status</th>
@@ -34,10 +36,11 @@
                                             <a tabindex="0" class="badge btn-sm btn-primary" role="button"
                                                 data-toggle="popover" data-trigger="focus" title="Otras Monedas"
                                                 data-content="
-                                                @foreach ($seller->CountriesCoins as $item) 
-                                                    @if ($item->coin != $seller->coin)
-                                                    <span>{{ $item->Coin->long_name }} ({{ $item->Coin->symbol }})</span><br> 
-                                                    @endif @endforeach">
+                                                    @foreach ($seller->CountriesCoins as $item)
+                                                        @if ($item->coin != $seller->coin)
+                                                            <span>{{ $item->Coin->long_name }} ({{ $item->Coin->symbol }})</span><br>
+                                                        @endif @endforeach
+                                                ">
                                                 <i class="fa-solid fa-coins mr-1"></i>Ver
                                             </a>
                                         @endif
@@ -80,33 +83,41 @@
             </div>
         </div>
     </div>
-    <input type="hidden" id="module-file" value="seller/form/sellerForm.ts">
-    <input type="hidden" id="elem-id" value="{{ $name }}">
+
+    <input type="hidden" id="module-file" value="seller/form/sellerForm.ts" />
+    <input type="hidden" id="elem-id" value="{{ $name }}" />
+
     @include('includes.modal-form', [
         'name' => $name,
         'size' => 'md',
         'dataForm' => view('modules.seller.form.body', ['countriesCommerce' => $countriesCommerce])->render(),
     ])
+
     @if (Session::has('message'))
         <x-modals.copy-info name="copy-passw" title="Contraseña Vendedor" :value="Session::get('message')" />
     @endif
-@endsection
-@section('scripts')
-    <script src="{{ asset('js/select2.min.js') }}"></script>
 
-    <script id="app-data" type="application/json">
-        {!! json_encode([
-            'countriesCommerce' => $countriesCommerce,
-            'timeZones' => $timeZones,
-            'coinsCommerce' => $coinsCommerce,
-        ]) !!}
-    </script>
-    <script id="session-data" type="application/json">
-        {
-            "message": @json(Session::has('message')),
-            "passw": @json(Session::get('passw'))
-            "error": @json(Session::get('error')),
-        }
-    </script>
-    @vite(['resources/js/helpers/formCrud', 'resources/js/views/modules/seller/form/sellerForm'])
-@endsection
+    {{-- Scripts específicos de esta vista --}}
+    @push('stack-scripts')
+        {{-- Datos globales --}}
+        <script id="app-data" type="application/json">
+            {!! json_encode([
+                'countriesCommerce' => $countriesCommerce,
+                'timeZones'         => $timeZones,
+                'coinsCommerce'     => $coinsCommerce,
+            ]) !!}
+        </script>
+
+        {{-- Datos de sesión --}}
+        <script id="session-data" type="application/json">
+            {!! json_encode([
+                'message' => Session::has('message'),
+                'passw'   => Session::get('passw'),
+                'error'   => Session::get('error'),
+            ]) !!}
+        </script>
+
+        {{-- Carga principal del CRUD --}}
+        @vite('resources/js/helpers/formCrud.ts')
+    @endpush
+</x-layout-online>

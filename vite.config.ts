@@ -6,8 +6,8 @@ import fs from 'fs';
 import path from 'path';
 
 import obfuscatorPluginRaw from 'vite-plugin-javascript-obfuscator';
-const obfuscatorPlugin = obfuscatorPluginRaw as unknown as (options: any) => any; import { visualizer } from 'rollup-plugin-visualizer';
-
+const obfuscatorPlugin = obfuscatorPluginRaw as unknown as (options: any) => any;
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // ---------------------------------------------
 // Archivos CSS globales que siempre se incluyen
@@ -17,51 +17,39 @@ const cssFiles = [
 ];
 
 // ---------------------------------------------
-// Archivos JS/TS globales que siempre se incluyen
+// Función recursiva para recoger todos .ts y .js en resources/js y subcarpetas
 // ---------------------------------------------
-const globalJsFiles = [
-    'resources/js/app.js',
-    'resources/js/helpers/global.ts',
-    'resources/js/helpers/loader.ts',
-];
+function getAllJsTsFiles(dir: string, baseDir: string = dir): string[] {
+    let results: string[] = [];
 
-// ---------------------------------------------
-// Detecta helpers y mains dinámicamente por juego
-// ---------------------------------------------
-function getGameBundles() {
-    const gamesPath = path.resolve(__dirname, 'resources/js/games');
-    const helpers: string[] = [];
-    const mains: string[] = [];
+    if (!fs.existsSync(dir)) return results;
 
-    if (!fs.existsSync(gamesPath)) return { helpers, mains };
+    const list = fs.readdirSync(dir, { withFileTypes: true });
 
-    const games = fs.readdirSync(gamesPath, { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory())
-        .map(dirent => dirent.name);
+    for (const file of list) {
+        const fullPath = path.join(dir, file.name);
 
-    for (const game of games) {
-        const basePath = path.join(gamesPath, game);
-
-        // Helper TS o JS
-        const helperTs = path.join(basePath, `${game}.ts`);
-        const helperJs = path.join(basePath, `${game}.js`);
-        if (fs.existsSync(helperTs)) helpers.push(`resources/js/games/${game}/${game}.ts`);
-        else if (fs.existsSync(helperJs)) helpers.push(`resources/js/games/${game}/${game}.js`);
-
-        // Main TS o JS
-        const mainTs = path.join(basePath, `${game}-main.ts`);
-        const mainJs = path.join(basePath, `${game}-main.js`);
-        if (fs.existsSync(mainTs)) mains.push(`resources/js/games/${game}/${game}-main.ts`);
-        else if (fs.existsSync(mainJs)) mains.push(`resources/js/games/${game}/${game}-main.js`);
+        if (file.isDirectory()) {
+            results = results.concat(getAllJsTsFiles(fullPath, baseDir));
+        } else if (file.isFile() && (file.name.endsWith('.js') || file.name.endsWith('.ts'))) {
+            // Convertir a ruta relativa desde baseDir y con separadores Unix
+            const relativePath = path.relative(baseDir, fullPath).split(path.sep).join('/');
+            results.push(`resources/js/${relativePath}`);
+        }
     }
 
-    return { helpers, mains };
+    return results;
 }
 
-const { helpers: gameHelpers, mains: gameMains } = getGameBundles();
+// ---------------------------------------------
+// Recoge todos los archivos JS/TS bajo resources/js
+// ---------------------------------------------
+const allJsTsFiles = getAllJsTsFiles(path.resolve(__dirname, 'resources/js'));
 
-// Inputs completos para Vite
-const inputs = [...cssFiles, ...globalJsFiles, ...gameHelpers, ...gameMains];
+// ---------------------------------------------
+// Inputs completos para Vite: CSS + todos JS/TS
+// ---------------------------------------------
+const inputs = [...cssFiles, ...allJsTsFiles];
 
 // ---------------------------------------------
 // Exportar configuración Vite
@@ -79,20 +67,20 @@ export default defineConfig(({ mode }) => {
             vueJsx(), // Soporte JSX en Vue
             ...(isProduction
                 ? [
-                    // Ofuscador para proteger JS en producción
+                    // Ofuscador para proteger todos los JS y TS en resources/js (recursivamente)
                     obfuscatorPlugin({
-                        include: ['resources/js/**/*.ts', 'resources/js/**/*.tsx', 'resources/js/**/*.js'],
+                        include: ['resources/js/**/*.ts', 'resources/js/**/*.js'],
                         exclude: [/node_modules/],
                         apply: 'build',
                         options: {
                             identifierNamesGenerator: 'mangled',
-                            reservedStrings: ['route', 'Ziggy'],
+                            reservedStrings: ['route', 'Ziggy'], // Palabras clave sin ofuscar
                             compact: true,
                             debugProtection: true,
                             selfDefending: true,
                         },
                     }),
-                    // Visualizador del bundle para análisis
+                    // Visualizador del bundle para análisis (abrir después de build)
                     visualizer({
                         filename: './build-stats.html',
                         open: true,

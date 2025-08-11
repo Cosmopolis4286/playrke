@@ -45,8 +45,8 @@
         @enderror
     </div>
     <div class="form-group col-sm-6">
-        <label for="coin">Moneda*</label>
-        <input type="text" id="coin-text" class="form-control" disabled>
+        <label for="coin-text">Moneda*</label>
+        <div id="coin-text" class="form-control"></div>
         <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}">
     </div>
     <div id="cont-other-coins" class="form-group col-sm hide-elem">

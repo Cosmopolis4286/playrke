@@ -57,23 +57,30 @@ let encryptId = '';
 // Carga dinámica del módulo
 // ========================
 
-if (moduleFile) {
-    import(`../views/modules/${moduleFile}`)
-        .then((mod) => {
-            // Guardamos el módulo importado para uso posterior
-            module = mod;
+// Mapea todos los archivos .ts dentro de views/modules y subcarpetas
+const modules = import.meta.glob('../views/modules/**/*.ts');
 
-            // Extraemos y asignamos variables exportadas, con fallback a valores por defecto
-            elemId = mod.elemId;
-            otherCasesMap = mod.otherCasesMap ?? {};
-            requiredFields = mod.requiredFields ?? [];
-            route = mod.route;
+// Si moduleFile es 'seller/form/sellerForm.ts' o sin extensión, elimina la extensión para buscar clave correcta
+const key = `../views/modules/${moduleFile}`.replace(/\.ts$/, '.ts');
 
-            console.log(`Módulo dinámico '${moduleFile}' cargado correctamente.`);
-        })
-        .catch((err) => {
-            console.error(`Error al importar el módulo dinámico '${moduleFile}':`, err);
-        });
+// Verifica que el módulo existe
+if (modules[key]) {
+    modules[key]().then((mod) => {
+        // Aquí ya tienes el módulo importado
+        module = mod;
+
+        // Tu lógica para asignar variables exportadas
+        elemId = mod.elemId;
+        otherCasesMap = mod.otherCasesMap ?? {};
+        requiredFields = mod.requiredFields ?? [];
+        route = mod.route;
+
+        // console.log(`Módulo dinámico '${moduleFile}' cargado correctamente.`);
+    }).catch(err => {
+        console.error(`Error al importar el módulo dinámico '${moduleFile}':`, err);
+    });
+} else {
+    console.error(`Módulo '${key}' no encontrado en import.meta.glob`);
 }
 
 // ========================
@@ -265,15 +272,30 @@ function prepareForm(
 // ========================
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Verificar que jQuery esté disponible
+    if (typeof $ === 'function') {
+        // Solo inicializar Select2 si existen elementos con clase 'select2'
+        const $select2Elements = $('.select2');
+
+        if ($select2Elements.length) {
+            $select2Elements.select2({
+                theme: 'bootstrap4',
+                width: 'style',
+                placeholder() {
+                    // Obtener el placeholder del atributo o devolver cadena vacía
+                    return $(this).attr('placeholder') || '';
+                },
+                allowClear() {
+                    // Obtener si permite limpiar el select basado en data-attribute
+                    return Boolean($(this).data('allow-clear'));
+                }
+            });
+        }
+    }
+    // Manejar eventos click 
     document.addEventListener('click', (event: MouseEvent) => {
         const target = event.target as HTMLElement | null;
         if (!target) return;
-
-        if (target.closest(`.btn-${elemId}`)) {
-            formCRUD(target, elemId, 'Vendedor').catch((e) =>
-                console.error('Error en formCRUD:', e)
-            );
-        }
 
         if (target.closest('#btn-confirm')) {
             submitForm(elemId, requiredFields);
