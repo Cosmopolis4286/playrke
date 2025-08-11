@@ -1,8 +1,8 @@
 // sellerForm.ts
 import { formCRUD } from '@/helpers/formCrud.js';
 import { route } from '@/routes/sellerRoutes.js';
-import { showToastOptionBtns } from '../../../../helpers/toastNotify.js';
-import { validateInput } from '../../../../helpers/validateInput.js';
+import { showToastOptionBtns } from '@/helpers/toastNotify.js';
+import { validateInput } from '@/helpers/validateInput.js';
 
 // Exports
 export { route };
@@ -189,8 +189,11 @@ if (country && coin && coinText) {
 // ========================
 // Listeners globales
 // ========================
+let listenersAttached = false;
 
-document.addEventListener('DOMContentLoaded', () => {
+export function initListeners(): void {
+    if (listenersAttached) return;
+    listenersAttached = true;
     // Verificar que jQuery esté disponible
     if (typeof $ === 'function') {
         // Aplicar máscara solo si existe el input con id 'phone'
@@ -199,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             $phone.mask('00000000000');
         }
     }
+
     // Manejar eventos click para botones con clase dinámica btn-<elemId>
     document.addEventListener('click', (event: MouseEvent) => {
         const target = event.target as HTMLElement | null;
@@ -206,7 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Verificar si el elemento clickeado o alguno de sus padres tiene clase btn-<elemId>
         if (target.closest(`.btn-${elemId}`)) {
-            // Ejecutar función formCRUD y manejar posible error
             formCRUD(target, elemId, 'Vendedor').catch(e =>
                 console.error('Error en formCRUD:', e)
             );
@@ -217,8 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('input', (event) => {
         const input = event.target as HTMLInputElement;
         if (input.id === 'commission') {
-            // Validar input, permitiendo valores con hasta 3 enteros y 35 decimales (según lógica)
             validateInput(input, true, 3, 35);
         }
     });
-});
+}

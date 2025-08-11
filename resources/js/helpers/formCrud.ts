@@ -2,6 +2,7 @@
 import { ajaxStart } from './loader.js';
 import { copyInfo } from './copyInfo.js';
 import { showToast, showToastOptionBtns } from './toastNotify.js';
+import { onDOMReady } from '@/utils/domReady.js';
 
 // ========================
 // Variables globales
@@ -74,6 +75,11 @@ if (modules[key]) {
         otherCasesMap = mod.otherCasesMap ?? {};
         requiredFields = mod.requiredFields ?? [];
         route = mod.route;
+
+        // Si el módulo tiene un initListeners, lo ejecutamos cuando el DOM esté listo
+        if (typeof mod.initListeners === 'function') {
+            onDOMReady(mod.initListeners);
+        }
 
         // console.log(`Módulo dinámico '${moduleFile}' cargado correctamente.`);
     }).catch(err => {
@@ -270,6 +276,9 @@ function prepareForm(
 // ========================
 // Listeners globales
 // ========================
+
+let lastFocusedElement: HTMLElement | null = null;
+
 
 document.addEventListener('DOMContentLoaded', () => {
     // Verificar que jQuery esté disponible
