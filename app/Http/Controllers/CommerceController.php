@@ -357,7 +357,7 @@ class CommerceController extends Controller
     {
         // Datos básicos para la vista
         $title = 'Mis Vendedores';
-        $name = 'seller';
+        $viewId = 'seller';
 
         // Obtener el ID del comercio del usuario autenticado
         $commerceId = $this->commerce()->id;
@@ -388,20 +388,20 @@ class CommerceController extends Controller
 
         // Retornar vista con todos los datos
         return view('modules.seller.form.index', compact(
-            'title',
-            'name',
+            'games',
             'sellers',
             'timeZones',
-            'countriesCommerce',
+            'title',
+            'viewId',
             'coinsCommerce',
-            'games'
+            'countriesCommerce',
         ));
     }
 
     public function rewards()
     {
         $title = 'Mis Vendedores';
-        $name = 'seller';
+        $viewId = 'seller';
         $commerce = $this->commerce()->id;
 
         $sellers = Seller::with(['Country', 'CountriesCoins.Coin'])->where('commerce', $commerce)->get();

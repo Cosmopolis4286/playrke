@@ -1,4 +1,4 @@
-import mountApp from './bingo-main.js';
+import mountApp from '../../../../helpers/vueMain.js';
 
 const views = {
     Form: () => import('./views/Form.vue'),

@@ -50,13 +50,13 @@ class DirectoryController extends Controller
         $countries = Country::getCountriesById($this->getAvailableCountries($userID));
 
         $paymentType = null;
-        $name = null;
+        $viewId  = null;
         $additionalData = [];
 
         switch ($isoCode3) {
             case 'USDT':
                 $paymentType = 'Registro';
-                $name = 'binance';
+                $viewId  = 'binance';
                 $additionalData = [
                     'accounts' => BinanceAccounts::where('user', $userID)->get(),
                     'accountTypes' => BinanceAccounts::getAccountTypes()
@@ -65,7 +65,7 @@ class DirectoryController extends Controller
 
             case 'BRA': // Brasil
                 $paymentType = 'Pix';
-                $name = 'pix';
+                $viewId  = 'pix';
                 $additionalData = [
                     'pixs' => Pix::where('user', $userID)->get(),
                     'pixKeys' => Pix::getPixKeys()
@@ -74,7 +74,7 @@ class DirectoryController extends Controller
 
             case 'COL': // Colombia
                 $paymentType = 'Registro';
-                $name = 'payment-method-col';
+                $viewId  = 'payment-method-col';
                 $additionalData = [
                     'paymentMethods' => PaymentMethodsCOL::where('user', $userID)->get(),
                     'arrPaymentMethod' => ['B' => 'Bancolombia', 'D' => 'Daviplata', 'N' => 'Nequi']
@@ -83,7 +83,7 @@ class DirectoryController extends Controller
 
             case 'VEN': // Venezuela
                 $paymentType = 'Pago Movil';
-                $name = 'pagomovil';
+                $viewId  = 'pagomovil';
                 $additionalData = [
                     'pagomovils' => PagoMovil::with('Bank')->where('user', $userID)->get(),
                     'documentType' => DocumentType::getDocumentTypeByCountry($country->id),
@@ -104,7 +104,7 @@ class DirectoryController extends Controller
         $viewPath = "modules.all.directory.$countryCode.index";
 
         return view($viewPath, array_merge(
-            compact('title', 'countryCode', 'countries', 'paymentType', 'name'),
+            compact('countries', 'countryCode', 'paymentType', 'viewId', 'title'),
             $additionalData
         ));
     }
