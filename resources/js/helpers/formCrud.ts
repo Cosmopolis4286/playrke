@@ -8,12 +8,13 @@ import { onDOMReady } from '@/utils/domReady.js';
 // Definición de la interfaz del módulo dinámico
 // --------------------------------------
 interface ModuleType {
-    viewId: string;
+    formTitleSuffix: string;
     otherCasesMap?: Record<string, (encryptedId: string) => void>;
     requiredFields?: string[];
-    route: (name: string, params?: Record<string, string | number>) => string;
+    viewId: string;
     initListeners?: () => void;
     insertInfo?: (action: string, data?: any) => void;
+    route: (name: string, params?: Record<string, string | number>) => string;
 }
 
 // ========================
@@ -25,16 +26,6 @@ interface ModuleType {
  * Contendrá funciones y datos específicos del módulo.
  */
 let module: ModuleType | null = null;
-
-/**
- * Función `route` para generar URLs según nombre y parámetros.
- * Inicialmente es un stub que avisa que no está definida.
- * Se sobrescribe tras la carga dinámica del módulo.
- */
-let route: (name: string, params?: Record<string, string | number>) => string = () => {
-    console.warn('Función route no definida todavía');
-    return '';
-};
 
 /**
  * Mapeo de acciones personalizadas a funciones que reciben un ID cifrado.
@@ -49,10 +40,26 @@ let otherCasesMap: Record<string, (encryptedId: string) => void> = {};
 let requiredFields: string[] = [];
 
 /**
- * Identificador dinámico del elemento actual.
+ * Identificador dinámico del sufijo del form.
+ * Se asigna o actualiza tras importar el módulo dinámico.
+ */
+let formTitleSuffix: string = '';
+
+/**
+ * Identificador dinámico del view/route actual.
  * Se asigna o actualiza tras importar el módulo dinámico.
  */
 let viewId: string = '';
+
+/**
+ * Función `route` para generar URLs según nombre y parámetros.
+ * Inicialmente es un stub que avisa que no está definida.
+ * Se sobrescribe tras la carga dinámica del módulo.
+ */
+let route: (name: string, params?: Record<string, string | number>) => string = () => {
+    console.warn('Función route no definida todavía');
+    return '';
+};
 
 /**
  * Nombre del archivo del módulo dinámico a cargar (sin extensión).
@@ -84,6 +91,7 @@ if (modules[key]) {
         module = typedMod; // Aquí ya esta el módulo importado
 
         // Lógica para asignar variables exportadas
+        formTitleSuffix = typedMod.formTitleSuffix;
         viewId = typedMod.viewId;
         otherCasesMap = typedMod.otherCasesMap ?? {};
         requiredFields = typedMod.requiredFields ?? [];
@@ -106,40 +114,32 @@ if (modules[key]) {
 
 /**
  * Controla el flujo CRUD principal (create, edit, delete o casos especiales).
- * @param elem - Elemento HTML que dispara la acción o arreglo con [acción, id cifrado]
- * @param name - Nombre base del formulario/modal
- * @param title - Título descriptivo para mostrar en modal
+ * @param action - Elemento HTML que dispara la acción o arreglo con [acción, id cifrado]
+ * @param id - Título descriptivo para mostrar en modal
  */
-export async function formCRUD(
-    elem: HTMLElement,
-    name: string,
-    title: string
-): Promise<void> {
-    const modalLabel = document.getElementById(`modal-${name}-label`);
-    const form = document.getElementById(`form-${name}`) as HTMLFormElement | null;
+export async function formCRUD(action: string, id: string): Promise<void> {
+    const modalLabel = document.getElementById(`modal-${viewId}-label`);
+    const form = document.getElementById(`form-${viewId}`) as HTMLFormElement | null;
 
     if (!form || !modalLabel) {
-        console.warn(`Formulario o modal no encontrado para: ${name}`);
+        console.warn(`Formulario o modal no encontrado para: ${viewId}`);
         return;
     }
 
     resetForm(form);
 
-    console.log(elem.dataset.action)
-
-    // Definir acción y encryptId 
-    const action = elem.dataset.action ?? '';
-    encryptId = action !== 'create' ? (elem.dataset.id ?? '') : '';
+    // Definir encryptId 
+    encryptId = id ?? '';
 
     switch (action) {
         case 'create':
             insertInfo('create');
-            prepareForm(form, 'create', `Registrar ${title}`, 'POST');
+            prepareForm(form, 'create', 'Registrar', 'POST');
             break;
 
         case 'edit':
             await getInfo();
-            prepareForm(form, 'update', `Editar ${title}`, 'PUT', encryptId);
+            prepareForm(form, 'update', 'Editar', 'PUT', encryptId);
             break;
 
         case 'delete':
@@ -171,10 +171,10 @@ export function handleOtherCases(action: string): void {
 /**
  * Valida campos requeridos y envía el formulario.
  */
-export function submitForm(formName: string, fields: string[] = []): void {
-    const form = document.getElementById(`form-${formName}`) as HTMLFormElement | null;
+export function submitForm(fields: string[] = []): void {
+    const form = document.getElementById(`form-${formTitleSuffix}`) as HTMLFormElement | null;
     if (!form) {
-        console.warn(`Formulario no encontrado para submit: ${formName}`);
+        console.warn(`Formulario no encontrado para submit: ${formTitleSuffix}`);
         return;
     }
 
@@ -268,7 +268,7 @@ function prepareForm(
     const methodUpper = method.toUpperCase();
     // Actualiza el texto del label del modal asociado (se asume convención 'form' -> 'modal')
     const modalLabel = document.querySelector(`#${form.id.replace('form', 'modal')}-label`);
-    if (modalLabel) modalLabel.textContent = modalTitle;
+    if (modalLabel) modalLabel.textContent = `${modalTitle} ${formTitleSuffix}`;
 
     try {
         const methodRequiresId = ['PUT', 'PATCH', 'DELETE'].includes(methodUpper);
@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!target) return;
 
         if (target.closest('#btn-confirm')) {
-            submitForm(viewId, requiredFields);
+            submitForm(requiredFields);
         }
 
         if (target.closest('#btn-copy')) {

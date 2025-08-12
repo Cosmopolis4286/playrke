@@ -26,9 +26,11 @@ interface Coin { id: number; symbol: string; long_name: string; short_name: stri
 const arrCountries = appData.countriesCommerce;
 const arrTimeZones = appData.timeZones;
 const coins = appData.coinsCommerce;
+'Vendedor'
+// Constantes
+export const formTitleSuffix = 'Vendedor';
+export const viewId = (document.getElementById('view-id') as HTMLInputElement).value ?? 'seller';
 
-// Elementos clave del DOM
-export const viewId = (document.getElementById('elem-id') as HTMLInputElement).value ?? 'seller';
 const usernameInput = document.getElementById('username') as HTMLInputElement;
 const emailInput = document.getElementById('email') as HTMLInputElement;
 const countrySelect = document.getElementById('country')! as HTMLSelectElement;
@@ -210,7 +212,7 @@ export function initListeners(): void {
 
         // Verificar si el elemento clickeado o alguno de sus padres tiene clase btn-<viewId>
         if (target.closest(`.btn-${viewId}`)) {
-            formCRUD(target, viewId, 'Vendedor').catch(e =>
+            formCRUD(target, viewId).catch(e =>
                 console.error('Error en formCRUD:', e)
             );
         }
