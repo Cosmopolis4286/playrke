@@ -113,13 +113,12 @@ if (modules[key]) {
 // ========================
 
 /**
- * Controla el flujo CRUD principal (create, edit, delete o casos especiales).
- * @param action - Elemento HTML que dispara la acción o arreglo con [acción, id cifrado]
- * @param id - Título descriptivo para mostrar en modal
+ * Gestiona el flujo principal de acciones CRUD (crear, editar, eliminar o especiales).
+ * @param element - Elemento HTML que dispara la acción.
  */
-export async function formCRUD(action: string, id: string): Promise<void> {
+export async function formCRUD(elem: HTMLElement): Promise<void> {
     const modalLabel = document.getElementById(`modal-${viewId}-label`);
-    const form = document.getElementById(`form-${viewId}`) as HTMLFormElement | null;
+    const form = document.querySelector<HTMLFormElement>(`#form-${viewId}`);
 
     if (!form || !modalLabel) {
         console.warn(`Formulario o modal no encontrado para: ${viewId}`);
@@ -128,8 +127,11 @@ export async function formCRUD(action: string, id: string): Promise<void> {
 
     resetForm(form);
 
-    // Definir encryptId 
-    encryptId = id ?? '';
+    // Definir action
+    const action = elem.dataset.action ?? '';
+
+    // Definir encryptId
+    encryptId = document.getElementById(`elem-${viewId}`)?.dataset.id ?? '';
 
     switch (action) {
         case 'create':
@@ -319,9 +321,6 @@ function prepareForm(
 // ========================
 // Listeners globales
 // ========================
-
-let lastFocusedElement: HTMLElement | null = null;
-
 
 document.addEventListener('DOMContentLoaded', () => {
     // Verificar que jQuery esté disponible

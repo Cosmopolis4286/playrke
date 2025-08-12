@@ -1,5 +1,6 @@
 // sellerForm.ts
 import { formCRUD } from '@/helpers/formCrud.js';
+import { insertOtherCoins } from '@/helpers/insertOtherCoins.js';
 import { route } from '@/routes/sellerRoutes.js';
 import { showToastOptionBtns } from '@/helpers/toastNotify.js';
 import { validateInput } from '@/helpers/validateInput.js';
@@ -40,7 +41,6 @@ const modal = document.getElementById(`modal-${viewId}`)!;
 const coin = document.getElementById('coin') as HTMLSelectElement | null;
 const coinText = document.getElementById('coin-text') as HTMLElement | null;
 const country = document.getElementById('country') as HTMLSelectElement | null;
-const otherCoins = document.getElementById('other-coins') as HTMLSelectElement | null;
 const contOtherCoins = document.getElementById('cont-other-coins');
 
 // Flag de estado
@@ -80,29 +80,6 @@ export const otherCasesMap: Record<string, (encryptedId: string) => void> = {
 };
 
 /**
- * Inserta las monedas alternativas en el select correspondiente.
- * Excluye la moneda principal seleccionada.
- */
-function insertOtherCoins(selectedCoins: number[] = []): void {
-    if (!otherCoins) return;
-
-    otherCoins.innerHTML = '';
-    const mainCoinId = coin ? Number(coin.value) : null;
-
-    coins.forEach(item => {
-        if (item.id === mainCoinId) return;
-
-        const option = document.createElement('option');
-        option.value = String(item.id);
-        option.textContent = `(${item.symbol}) ${item.long_name}`;
-        if (selectedCoins.includes(item.id)) option.selected = true;
-        otherCoins.appendChild(option);
-    });
-
-    if (contOtherCoins) contOtherCoins.classList.remove('hide-elem');
-}
-
-/**
  * Inserta información en el formulario del modal según la acción (crear o editar)
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
@@ -138,15 +115,17 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
         timeZoneSelect.appendChild(option);
     });
 
+    console.log(`action`, action);
+
     // Si es edición, rellenar datos
     if (action === 'edit' && data) {
-        const { seller, user, other_coins: otherCoinsSelected = [] } = data;
-        (document.getElementById('viewId') as HTMLInputElement).value = seller.name || '';
+        const { seller, user, otherCoins } = data;
+        (document.getElementById('name') as HTMLInputElement).value = seller.name || '';
         (document.getElementById('phone') as HTMLInputElement).value = seller.phone || '';
         (document.getElementById('commission') as HTMLInputElement).value = seller.commission || '';
 
         countrySelect.dispatchEvent(new Event('change'));
-        insertOtherCoins(otherCoinsSelected);
+        insertOtherCoins(otherCoins);
 
         usernameInput.value = user.username || '';
         emailInput.value = user.email || '';
@@ -166,27 +145,6 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 //   Eventos del formulario
 // ==========================
 
-if (country && coin && coinText) {
-    country.addEventListener('change', () => {
-        const selectedCountry = Number(country.value);
-        const matchingCoin = coins.find(c => c.country === selectedCountry);
-
-        if (matchingCoin) {
-            coinText.textContent = `(${matchingCoin.symbol}) ${matchingCoin.short_name}`;
-            coin.value = String(matchingCoin.id);
-        }
-
-        if (coins.length > 1 && !update) {
-            insertOtherCoins();
-        }
-
-        if (!selectedCountry) {
-            coinText.textContent = '';
-            coin.value = '';
-            contOtherCoins?.classList.add('hide-elem');
-        }
-    });
-}
 
 // ========================
 // Listeners globales
@@ -206,23 +164,20 @@ export function initListeners(): void {
     }
 
     // Manejar eventos click para botones con clase dinámica btn-<viewId>
-    document.addEventListener('click', (event: MouseEvent) => {
-        const target = event.target as HTMLElement | null;
-        if (!target) return;
+    document.addEventListener('click', ({ target }) => {
+        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${viewId}`);
+        if (!element) return;
 
-        // Verificar si el elemento clickeado o alguno de sus padres tiene clase btn-<viewId>
-        if (target.closest(`.btn-${viewId}`)) {
-            formCRUD(target, viewId).catch(e =>
-                console.error('Error en formCRUD:', e)
-            );
-        }
+        // Ejecutar formCRUD con el data-action del elemento encontrado
+        formCRUD(element).catch(e =>
+            console.error('Error en formCRUD:', e)
+        );
     });
 
     // Validar input con id 'commission' en cada cambio de valor
-    document.addEventListener('input', (event) => {
-        const input = event.target as HTMLInputElement;
-        if (input.id === 'commission') {
-            validateInput(input, true, 3, 35);
+    document.addEventListener('input', ({ target }) => {
+        if (target instanceof HTMLInputElement && target.id === 'commission') {
+            validateInput(target, true, 3, 35);
         }
     });
 }

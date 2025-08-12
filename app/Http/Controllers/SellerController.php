@@ -203,20 +203,44 @@ class SellerController extends Controller
         return redirect()->back();
     }
 
-    public function getInfo($id)
+    /**
+     * Obtiene la información detallada de un vendedor a partir de un ID encriptado.
+     *
+     * Este método:
+     *  - Desencripta el ID recibido.
+     *  - Recupera datos del vendedor, usuario asociado y monedas disponibles.
+     *  - Retorna la información en formato JSON.
+     *
+     * @param string $encryptedId ID encriptado del vendedor.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con la información del vendedor.
+     */
+    public function getInfo(string $encryptedId): \Illuminate\Http\JsonResponse
     {
-        $id = decrypt($id);
+        try {
+            // Desencriptar el ID recibido
+            $id = decrypt($encryptedId);
+        } catch (\Throwable $e) {
+            // Si el ID es inválido o no se puede desencriptar, retornar error controlado
+            return response()->json([
+                'error' => 'ID inválido o corrupto',
+                'message' => $e->getMessage()
+            ], 400);
+        }
 
+        // Obtener datos del vendedor
         $seller = Seller::getById($id, ['name', 'commerce', 'commn', 'country', 'phone']);
+
+        // Obtener monedas adicionales disponibles para el vendedor
         $otherCoins = SellerCountriesCoins::getAvailableCoins($id);
-        $user = User::getById(Seller::getValueById($id, 'user'), ['username', 'email', 'seller']);
 
-        $data = [
-            'seller' => $seller,
-            'user' => $user,
-            'other_coins' => $otherCoins
-        ];
+        // Obtener datos del usuario asociado al vendedor
+        $userId = Seller::getValueById($id, 'user');
+        $user = User::getById($userId, ['username', 'email']);
 
+        // Preparar respuesta estructurada
+        $data = ['seller' => $seller, 'user' => $user, 'otherCoins' => $otherCoins];
+
+        // Retornar datos en formato JSON
         return response()->json($data);
     }
 

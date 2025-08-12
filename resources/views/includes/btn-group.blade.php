@@ -1,5 +1,5 @@
 {{-- resources/views/includes/btn-group.blade.php --}}
-<div class="btn-group" role="group" aria-label="Basic example" data-id="{{ $dataId }}">
+<div id="elem-{{ $viewId }}" class="btn-group" role="group" aria-label="Basic example" data-id="{{ $dataId }}">
     @foreach ($buttons as $btn)
         <button type="button" class="btn btn-sm {{ $btn->color }} btn-{{ $viewId }}"
             data-action="{{ $btn->action }}">
