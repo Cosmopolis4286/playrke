@@ -8,7 +8,6 @@
             <div class="col-md-4" style="margin:0 auto;">
                 <div class="card bg-rke">
                     <div class="card-header" id="headingOne" style="">
-                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
                         <div class="sub_ti-tle">
                             <a href="{{ route('trivia.index') }}" title="Regresar"
                                 style="position:relative;top:-1px;font-size:18px;">
@@ -18,7 +17,6 @@
                         </div>
                     </div>
                     <form action="{{ route('trivia.store_sound') }}" method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
                         <div class="card-body mb-n4">
                             <div class="mb-4 col-12" style="margin-bottom:16px;">
                                 Pista Track

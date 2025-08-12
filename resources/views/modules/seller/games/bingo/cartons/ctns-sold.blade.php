@@ -47,7 +47,7 @@
                                             <td>
                                                 @if ($ctn->status == 0)
                                                     <button type="button"
-                                                        class="btn btn-danger btn-sm btn-{{ $name }}"
+                                                        class="btn btn-danger btn-sm btn-{{ $viewId }}"
                                                         title="Notificar Pago" data-room="{{ $ctn->Room->encrypted }}"
                                                         data-idlote="{{ $ctn->id }}"
                                                         data-amount="{{ number_format($ctn->sale_amount, 2) }}">
@@ -81,7 +81,7 @@
                     </div>
                 </div>
                 @include('includes.modal-payment-info', [
-                    'name' => $name,
+                    'viewId' => $viewId,
                     'title' => 'Notificar Pago',
                     'formId' => 'ctn-payment',
                     'formRoute' => route('seller.ctnsLotPayment'),
@@ -94,7 +94,7 @@
 @section('scripts')
     @vite(['resources/js/helpers/switch-payment-method.js', 'resources/js/helpers/payment-confirm-button.js'])
     <script>
-        const name = '{{ $name }}';
+        const name = '{{ $viewId }}';
         const coin = '{{ encrypt($coin) }}';
         const coinName = '{{ $coinData->short_name }}';
         const allPendingCtnSale = '{{ $allPendingCtnSale }}';
@@ -103,9 +103,7 @@
         let amountSent;
 
         function getPaymentCommerceDetails() {
-            $.getJSON(route('seller.getPaymentCommerceDetails', coin), {
-                    '_token': "{{ csrf_token() }}"
-                })
+            $.getJSON(route('seller.getPaymentCommerceDetails', coin))
                 .done(data => {
                     if (data.error) {
                         showToast(data.error, 'info');

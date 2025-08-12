@@ -71,7 +71,6 @@
                 @if (Count($BPay) == 0)
                     <div class="modal-body mb-n3">
                         <form action="{{ route('wallet.storeBPay') }}" method="POST" id="form_bpay">
-                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
                             <input type="text" class="form-control" placeholder="Ingrese su Pay ID" id="pay_id"
                                 name="pay_id">
                             <span data-valmsg-for="pay_id" data-valmsg-replace="true"

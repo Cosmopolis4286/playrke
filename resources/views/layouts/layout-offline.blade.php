@@ -13,14 +13,14 @@
         @yield('content')
     </main>
 
-    @if (empty($withoutAppJS))
-        @vite('resources/js/app.js')
-    @endif
-
     @if (empty($withoutScripts))
         <x-template.scripts />
     @else
         @yield('scripts')
+    @endif
+
+    @if (empty($withoutAppJS))
+        @vite('resources/js/app.js')
     @endif
 </body>
 

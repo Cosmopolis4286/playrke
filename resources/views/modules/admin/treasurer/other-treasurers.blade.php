@@ -28,21 +28,21 @@
                                             <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                             <td>
                                                 @include('includes.btn-group', [
-                                                    'name' => $name,
+                                                    'viewId' => $viewId,
                                                     'dataId' => encrypt($item->id),
                                                     'buttons' => [
                                                         (object) [
-                                                            'dataType' => '2',
+                                                            'action' => 'edit',
                                                             'color' => 'btn-primary',
                                                             'icon' => 'fas fa-edit',
                                                         ],
                                                         (object) [
-                                                            'dataType' => '3',
+                                                            'action' => 'delete',
                                                             'color' => 'btn-danger',
                                                             'icon' => 'fa-solid fa-trash-can',
                                                         ],
                                                         (object) [
-                                                            'dataType' => '4',
+                                                            'action' => '4',
                                                             'color' => 'btn-secondary',
                                                             'icon' => 'fa-solid fa-repeat',
                                                         ],
@@ -60,12 +60,12 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'name' => $name,
+        'viewId' => $viewId,
         'size' => 'md',
         'dataForm' => view('modules.admin.treasurer.other-treasurers-form')->render(),
     ])
     @include('includes.modal-copy-info', [
-        'name' => 'copy-passw',
+        'viewId' => 'copy-passw',
         'title' => 'Contraseña Tesorero',
     ])
 @endsection
@@ -91,7 +91,7 @@
             $(this).popover('toggle');
         });
 
-        const name = '<?php echo $name; ?>';
+        const name = '<?php echo $viewId; ?>';
         const coins = JSON.parse('<?php echo $coins; ?>');
         const otherCoins = $("#other-coins");
         const games = $("#games");

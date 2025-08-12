@@ -1,4 +1,4 @@
-@props(['rooms', 'creator', 'coinSym', 'coin', 'uuidCode', 'exchangeRate', 'view', 'name'])
+@props(['rooms', 'creator', 'coinSym', 'coin', 'uuidCode', 'exchangeRate', 'view', 'viewId'])
 
 @php
     use Carbon\Carbon;
@@ -114,26 +114,26 @@
                             @endif
 
                             @if ($room->status <= 2)
-                                <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
+                                <button title="Editar" class="btn-{{ $viewId }} btn btn-sm btn-primary"
                                     data-action="edit" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
 
                                 @if ($room->status == 1)
-                                    <button class="btn-{{ $name }} btn btn-sm btn-success"
+                                    <button class="btn-{{ $viewId }} btn btn-sm btn-success"
                                         @if ($room->Config->unix_date) data-type="5" @else data-block="1" disabled @endif
                                         data-id="{{ encrypt($room->id) }}" title="Publicar">
                                         <i class="fa-solid fa-circle-up"></i>
                                     </button>
                                 @elseif ($room->status == 2 && $room->prize_pool == 0)
-                                    <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="8"
+                                    <button class="btn-{{ $viewId }} btn btn-sm btn-dark" data-type="8"
                                         data-id="{{ encrypt($room->id) }}" title="Cambiar Status">
                                         <i class="fa-solid fa-rotate"></i>
                                     </button>
                                 @endif
                             @endif
 
-                            <button class="btn-{{ $name }} btn btn-sm bg-navy" data-type="7"
+                            <button class="btn-{{ $viewId }} btn btn-sm bg-navy" data-type="7"
                                 data-id="{{ encrypt($room->id) }}" title="Copiar">
                                 <i class="fa-solid fa-copy"></i>
                             </button>

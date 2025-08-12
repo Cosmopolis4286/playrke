@@ -1,22 +1,16 @@
-// Importación de configuración Axios para peticiones HTTP
+// Importa la configuración personalizada de Axios para manejar peticiones HTTP
 import './axios';
 
-// // Importamos funciones para manejar rutas Ziggy
-// import { preloadZiggyRoutes, route } from './ziggy-wrapper.js';
+// Importa la función showToast para mostrar notificaciones tipo toast
+import { showToast } from '@/helpers/toastNotify.ts';
 
-// Importamos el archivo que inicializa otras funcionalidades de la app
+// Importa el script principal de la aplicación (inicialización, listeners, etc.)
 import './show-app';
 
-// window.route = route;
-// window.ziggyReady = false;
-
-// // Guardamos la promesa globalmente para que otros módulos puedan esperarla
-// window.ziggyPreloadPromise = preloadZiggyRoutes();
-
-// window.ziggyPreloadPromise.then(() => {
-//     window.ziggyReady = true;
-//     window.dispatchEvent(new Event('ziggyReady'));
-// });
-
-// // Exportamos estas funciones para que otros módulos puedan usarlas
-// export { route };
+// Verifica si Laravel pasó errores al frontend mediante la variable global
+// Si existen errores, los muestra uno por uno como notificaciones de error
+if (window.LaravelErrors && window.LaravelErrors.length > 0) {
+    window.LaravelErrors.forEach((msg) => {
+        showToast(msg, 'error');
+    });
+}

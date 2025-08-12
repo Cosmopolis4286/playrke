@@ -1,10 +1,10 @@
 {{-- resources/views/includes/modal-form.blade.php --}}
-<div class="modal fade" id="modal-{{ $name }}" tabindex="-1" role="dialog"
-    aria-labelledby="modal-{{ $name }}-label" data-backdrop="static" data-keyboard="false">
+<div class="modal fade" id="modal-{{ $viewId }}" tabindex="-1" role="dialog"
+    aria-labelledby="modal-{{ $viewId }}-label" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-{{ $size ?? 'sm' }}" role="document" {!! $style ?? '' !!}>
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modal-{{ $name }}-label">
+                <h5 class="modal-title" id="modal-{{ $viewId }}-label">
                     @isset($modalTitle)
                         {{ $modalTitle }}
                     @endisset
@@ -13,13 +13,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="form-{{ $name }}"
-                @isset($action) action="{{ $action }}" @endisset method="POST"
-                enctype="multipart/form-data">
-                @csrf
-                @isset($PUT)
-                    @method('PUT')
-                @endisset
+            <form id="form-{{ $viewId }}">
                 <div class="modal-body">{!! $dataForm !!}</div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>

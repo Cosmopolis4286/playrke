@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create">
+                <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>Añadir</button>
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">
@@ -33,31 +33,31 @@
                                     </td>
                                     <td>
                                         @include('includes.btn-group', [
-                                            'name' => $name,
+                                            'viewId' => $viewId,
                                             'dataId' => encrypt($item->id),
                                             'buttons' => array_filter([
                                                 $item->status != 3
                                                     ? (object) [
-                                                        'dataType' => '2',
+                                                        'action' => 'edit',
                                                         'color' => 'btn-primary',
                                                         'icon' => 'fas fa-edit',
                                                     ]
                                                     : null,
                                                 $item->status != 3
                                                     ? (object) [
-                                                        'dataType' => '3',
+                                                        'action' => 'delete',
                                                         'color' => 'btn-danger',
                                                         'icon' => 'fa-solid fa-trash-can',
                                                     ]
                                                     : null,
                                                 (object) [
-                                                    'dataType' => '4',
+                                                    'action' => '4',
                                                     'color' => 'btn-secondary',
                                                     'icon' => 'fa-solid fa-repeat',
                                                 ],
                                                 $item->status != 3
                                                     ? (object) [
-                                                        'dataType' => '5',
+                                                        'action' => '5',
                                                         'color' => 'bg-navy',
                                                         'icon' => 'fa-solid fa-lock',
                                                     ]
@@ -74,12 +74,12 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'name' => $name,
+        'viewId' => $viewId,
         'size' => 'md',
         'dataForm' => view('modules.admin.customer.form')->render(),
     ])
     @include('includes.modal-copy-info', [
-        'name' => 'copy-passw',
+        'viewId' => 'copy-passw',
         'title' => 'Contraseña Cliente',
     ])
 @endsection
@@ -124,7 +124,7 @@
 
         $("#phone").mask("00000000000");
 
-        const name = '<?php echo $name; ?>';
+        const name = '<?php echo $viewId; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
         const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const country = $("#country");
@@ -187,7 +187,7 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['name', 'email', 'username', 'customer-id',
+            submitForm(name, ['viewId', 'email', 'username', 'customer-id',
                 'country', 'time-zone', 'api-route', 'customer-key'
             ]);
         });

@@ -23,7 +23,7 @@
         </div>
     </div>
     @include('includes.modal-payment-info', [
-        'name' => $name,
+        'viewId' => $viewId,
         'title' => 'Notificar Pago',
         'formId' => 'ctn-payment',
         'formRoute' => route('bingo.notifyPaymentPrizeWinningCtn'),
@@ -33,7 +33,7 @@
 @section('scripts')
     @vite(['resources/js/helpers/switch-payment-method.js', 'resources/js/helpers/payment-confirm-button.js', 'resources/js/games/bingo/includes/prize-ctns-pending-payments.js'])
     <script>
-        const name = '{{ $name }}';
+        const name = '{{ $viewId }}';
 
         $(document).on("click", ".notify-ctn-payment", function() {
             const data = $(this).data();

@@ -6,7 +6,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 @if (!empty($coins) || $creator['type'] === 'customer')
-                    <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create"><i
+                    <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-action="create"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                     <button type="button" disabled id="btn-historical" class="btn btn-sm btn-primary" data-block="1"
                         data-url-template="{{ route('exchange-rate.historical', ['coin' => ':coin', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
@@ -66,21 +66,21 @@
                                     <td>
                                         <div class="btn-group btn-group-toggle">
                                             @if ($item->status === 'ACTIVE' || $item->exchange_rate == 0)
-                                                <button class="btn btn-sm btn-primary btn-{{ $name }}"
+                                                <button class="btn btn-sm btn-primary btn-{{ $viewId }}"
                                                     data-action="edit" data-id="{{ encrypt($item->id) }}"
                                                     title="Editar Tasa de Cambio">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                             @endif
                                             @if ($item->exchange_rate > 0)
-                                                <button class="btn btn-sm btn-secondary btn-{{ $name }}"
+                                                <button class="btn btn-sm btn-secondary btn-{{ $viewId }}"
                                                     data-type="4" data-id="{{ encrypt($item->id) }}"
                                                     title="Cambiar Status">
                                                     <i class="fa-solid fa-repeat"></i>
                                                 </button>
                                             @endif
                                             @if ((Auth::user() && Auth::user()->user_type == 1) || $creator['type'] === 'customer')
-                                                <button class="btn btn-sm btn-danger btn-{{ $name }}"
+                                                <button class="btn btn-sm btn-danger btn-{{ $viewId }}"
                                                     data-action="delete" data-id="{{ encrypt($item->id) }}" title="Eliminar">
                                                     <i class="fa-solid fa-trash-can"></i>
                                                 </button>
@@ -96,14 +96,14 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'name' => $name,
+        'viewId' => $viewId,
         'dataForm' => view('modules.all.exchange-rate.form', ['creator' => $creator])->render(),
     ])
 @endsection
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/just-validate/dist/just-validate.production.min.js"></script>
     <script>
-        const name = '{{ $name }}';
+        const name = '{{ $viewId }}';
         const creatorType = @json($creator['type'] ?? '');
         const exchangeRate = $("#exchange-rate");
         const arrCoins = @json($coins) ?? [];
@@ -191,9 +191,6 @@
             function getLastValueByCoin(coin) {
                 $.getJSON({
                     url: route('exchange-rate.getLastValueByCoin', coin),
-                    data: {
-                        '_token': $("#5K3_70K").val()
-                    },
                     success: function(data) {
                         const coinValue = parseFloat(data.toFixed(2));
                         // Calcular los valores de máximo y mínimo
@@ -263,9 +260,6 @@
         $(document).on("click", "#btn-update-exchange-rates", function() {
             $.getJSON({
                 url: route('exchange-rate.getExchangeRates'),
-                data: {
-                    '_token': $("#5K3_70K").val()
-                },
                 success: function(res) {
                     showToast(res.message, res.type);
                     if (res.type === 'success') {

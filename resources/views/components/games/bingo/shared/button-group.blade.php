@@ -1,4 +1,4 @@
-@props(['view', 'name' => null, 'creator' => null, 'rooms' => null, 'activeRooms' => null, 'gameRoomRoute' => null])
+@props(['view', 'viewId' => null, 'creator' => null, 'rooms' => null, 'activeRooms' => null, 'gameRoomRoute' => null])
 
 @php
     $isCustomer = $creator['type'] === 'customer';
@@ -30,7 +30,7 @@
 <div class="d-flex justify-content-between align-items-center">
     <div class="btn-group">
         @if ($view === 'OTHER-PUBLIC')
-            <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="4">
+            <button type="button" class="btn btn-sm btn-success btn-{{ $viewId }}" data-type="4">
                 <i class="fa-solid fa-list-check"></i> Ver Salas
             </button>
         @else

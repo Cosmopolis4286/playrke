@@ -12,14 +12,14 @@
                     <div class="tab-pane fade show active">
                         <x-games.bingo.tables.table-info-bingo-rooms :rooms="$rooms" :creator="$creator"
                             :coinSym="$coinSym" :coin="$coin" :uuidCode="$uuidCode" :exchangeRate="$exchangeRate" :view="$view"
-                            :name="$name" />
+                            :name="$viewId" />
                     </div>
                 </div>
             </div>
         </div>
     </div>
     @include('includes.modal-form', [
-        'name' => $name,
+        'viewId' => $viewId,
         'size' => 'lg',
         'style' => 'style="max-width: 625px;"',
         'dataForm' => view('modules.game.bingo.form.body', [
@@ -30,7 +30,7 @@
     @if ($creator['type'] === 'customer' && $view === 'PRIVATE')
         @include('includes.modal-form', [
             'modalTitle' => 'ID del Juego - API',
-            'name' => 'customer-games',
+            'viewId' => 'customer-games',
             'size' => 'sm',
             'PUT' => true,
             'action' => route('games.handleCustomerGames', ['id' => $customerGameID->id ?? null]),
@@ -46,7 +46,7 @@
     {{-- @vite(['resources/js/helpers/functions.ts', 'resources/js/games/bingo/form.js', 'resources/js/games/bingo/helpers/coinPriceConfig.ts', 'resources/js/games/bingo/rounds-config.js']) --}}
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        const name = @json($name);
+        const name = @json($viewId);
         const creation = 'M';
         const roomType = @json($roomType);
         const creatorType = @json($creator['type'] ?? '');

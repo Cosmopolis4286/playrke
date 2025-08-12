@@ -16,7 +16,7 @@
     </div>
     <div class="form-group col-sm-12 col-md-6 new-treasurer">
         <label for="name">Nombre*</label>
-        <input type="text" id="name" name="name" class="form-control" required value="{{ old('name') }}">
+        <input type="text" id="name" name="name" class="form-control" required value="{{ old('viewId') }}">
     </div>
     <div class="form-group col-sm-6 new-treasurer">
         <label for="email">Email*</label>

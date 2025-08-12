@@ -1,3 +1,4 @@
+// global.d.ts
 export { }; // Hace este archivo un módulo
 
 declare global {

@@ -6,7 +6,7 @@
         <div class="card">
             <x-shared.card-header :title="$title" />
             <div class="card-body">
-                <button id="btn-{{ $name }}-insert" class="btn btn-sm btn-primary btn-{{ $name }}"
+                <button id="btn-{{ $viewId }}-insert" class="btn btn-sm btn-primary btn-{{ $viewId }}"
                     type="button" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>Vendedor
                 </button>
@@ -49,26 +49,26 @@
                                     <td>{{ $seller->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                     <td>
                                         @include('includes.btn-group', [
-                                            'name' => $name,
+                                            'viewId' => $viewId,
                                             'dataId' => encrypt($seller->id),
                                             'buttons' => [
                                                 (object) [
-                                                    'dataType' => '2',
+                                                    'action' => 'edit',
                                                     'color' => 'btn-primary',
                                                     'icon' => 'fas fa-edit',
                                                 ],
                                                 (object) [
-                                                    'dataType' => '3',
+                                                    'action' => 'delete',
                                                     'color' => 'btn-danger',
                                                     'icon' => 'fa-solid fa-trash-can',
                                                 ],
                                                 (object) [
-                                                    'dataType' => '4',
+                                                    'action' => '4',
                                                     'color' => 'btn-secondary',
                                                     'icon' => 'fa-solid fa-repeat',
                                                 ],
                                                 (object) [
-                                                    'dataType' => '5',
+                                                    'action' => '5',
                                                     'color' => 'bg-navy',
                                                     'icon' => 'fa-solid fa-lock',
                                                 ],
@@ -85,10 +85,10 @@
     </div>
 
     <input type="hidden" id="module-file" value="seller/form/sellerForm.ts" />
-    <input type="hidden" id="elem-id" value="{{ $name }}" />
+    <input type="hidden" id="view-id" value="{{ $viewId }}" />
 
     @include('includes.modal-form', [
-        'name' => $name,
+        'viewId' => $viewId,
         'size' => 'md',
         'dataForm' => view('modules.seller.form.body', ['countriesCommerce' => $countriesCommerce])->render(),
     ])
@@ -107,17 +107,7 @@
                 'coinsCommerce'     => $coinsCommerce,
             ]) !!}
         </script>
-
-        {{-- Datos de sesión --}}
-        <script id="session-data" type="application/json">
-            {!! json_encode([
-                'message' => Session::has('message'),
-                'passw'   => Session::get('passw'),
-                'error'   => Session::get('error'),
-            ]) !!}
-        </script>
-
         {{-- Carga principal del CRUD --}}
         @vite('resources/js/helpers/formCrud.ts')
     @endpush
-</x-layout-online>
+    </x-layout-online>

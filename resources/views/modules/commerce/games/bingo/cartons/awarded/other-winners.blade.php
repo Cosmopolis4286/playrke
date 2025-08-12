@@ -21,7 +21,7 @@
         </div>
     </div>
     @include('includes.modal-payment-info', [
-        'name' => $name,
+        'viewId' => $viewId,
         'title' => 'Notificar Pago',
         'formId' => 'ctn-payment',
         'formRoute' => route('bingo.notifyPaymentPrizeWinningCtn'),

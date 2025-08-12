@@ -7,6 +7,11 @@
     'customJsFiles' => [],
 ])
 
+{{-- Inyectar errores Laravel para JS --}}
+<script>
+    window.LaravelErrors = @json($errors->all());
+</script>
+
 {{-- 📦 jQuery y Validaciones --}}
 @if ($loadJquery)
     {{-- jQuery sin defer para que esté disponible inmediatamente --}}

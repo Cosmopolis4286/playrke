@@ -9,7 +9,7 @@
                     'countries' => $countries,
                     'countryCode' => $countryCode,
                 ])
-                <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create">
+                <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>{{ $paymentType }}</button>
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">
@@ -27,16 +27,16 @@
                                     <td>{{ $item->data_value }}</td>
                                     <td>
                                         @include('includes.btn-group', [
-                                            'name' => $name,
+                                            'viewId' => $viewId,
                                             'dataId' => encrypt($item->id),
                                             'buttons' => [
                                                 (object) [
-                                                    'dataType' => '2',
+                                                    'action' => 'edit',
                                                     'color' => 'btn-primary',
                                                     'icon' => 'fas fa-edit',
                                                 ],
                                                 (object) [
-                                                    'dataType' => '3',
+                                                    'action' => 'delete',
                                                     'color' => 'btn-danger',
                                                     'icon' => 'fa-solid fa-trash-can',
                                                 ],
@@ -52,14 +52,14 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'name' => $name,
+        'viewId' => $viewId,
         'dataForm' => view('modules.all.directory.usdt.form')->render(),
     ])
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        const name = '{{ $name }}';
+        const name = '{{ $viewId }}';
         const accountTypes = @json($accountTypes);
 
         $(document).on("click", `.btn-${name}`, function() {

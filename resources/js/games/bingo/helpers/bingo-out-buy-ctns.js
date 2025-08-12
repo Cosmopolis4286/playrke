@@ -5,11 +5,9 @@ let ctnPriceSale = ctnPrice;
 let numCtns = $("#num-ctns").val() ?? 1;
 let available = true;
 
-const tokenValue = $("#5K3_70K").val();
-
 window.onfocus = function () {
     const url = route('bingo.getInfo', { id: encrypted, starTime: true });
-    $.getJSON(url, { _token: tokenValue })
+    $.getJSON(url)
         .done((response) => {
             timeServ = response;
         })
@@ -38,7 +36,7 @@ function setAmount() {
 function getCommerceDetails(coinSale) {
     if (!available) return;
     const url = route('commerce.getPaymentCommerceDetails', { commerce: creatorID, coin: coinSale });
-    $.getJSON(url, { _token: tokenValue })
+    $.getJSON(url)
         .done((response) => {
             const { commerce, paymentDetails, exchangeRate } = response;
 

@@ -62,9 +62,6 @@
         function getUserId() {
             $.getJSON({
                 url: route('customer.getUserId', userToken: userToken.val()),
-                data: {
-                    '_token': $("#5K3_70K").val()
-                },
                 success: function(res) {
                     // Limpia clases previas
                     containerMessage.removeClass('alert-danger alert-success');
@@ -105,9 +102,6 @@
                 url: route('customer.getUserBalance', userToken: userToken.val()),
                 type: 'GET',
                 dataType: 'json',
-                data: {
-                    '_token': $("#5K3_70K").val()
-                },
                 success: function(res) {
                     // Limpia clases previas
                     containerMessage.removeClass('alert-danger alert-success');
@@ -139,9 +133,6 @@
                     userToken: userToken.val(),
                     balance
                 }),
-                data: {
-                    '_token': $("#5K3_70K").val()
-                },
                 success: function(res) {
                     showToast(res.message, res.type);
                 },
@@ -154,9 +145,6 @@
         function getRouteGameRoom() {
             $.getJSON({
                 url: route('customer.increaseBalance', userToken: userToken.val()),
-                data: {
-                    '_token': $("#5K3_70K").val()
-                },
                 success: function(res) {
                     if (res.route) {
                         window.open(res.route, '_blank');

@@ -308,9 +308,7 @@ async function getGameData() {
     if (endWin != 0) return;
 
     try {
-        const data = await $.getJSON(route('bingo.getChips', encrypted), {
-            _token: $("#5K3_70K").val()
-        });
+        const data = await $.getJSON(route('bingo.getChips', encrypted));
 
         allChips = data.allChips;
         timeServ = Number(data.timeServ);
@@ -567,9 +565,6 @@ $(document).on("click", ".cont-win-img", function () {
     $.get({
         url: route('bingo.viewCtn', ctnID),
         dataType: 'json',
-        data: {
-            '_token': $("#5K3_70K").val()
-        },
         beforeSend: function () {
             getViewCtn = true;
         },

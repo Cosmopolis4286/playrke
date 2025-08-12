@@ -8,7 +8,7 @@
         <div class="card">
             @include('includes.card-header', ['subtitle' => 'Patrones/Cantos'])
             <div class="card-body">
-                <button type="button" class="btn btn-sm btn-success btn-{{ $name }}" data-type="4">
+                <button type="button" class="btn btn-sm btn-success btn-{{ $viewId }}" data-type="4">
                     <i class="fas fa-plus-square"></i> Crear
                 </button>
                 <div class="table-responsive mt-2">
@@ -29,11 +29,11 @@
                                     <td>{{ $item->status == 0 ? 'Inactivo' : 'Activo' }}</td>
                                     <td class="align-middle">
                                         <div class="btn-group" role="group">
-                                            <button title="Editar" class="btn-{{ $name }} btn btn-sm btn-primary"
+                                            <button title="Editar" class="btn-{{ $viewId }} btn btn-sm btn-primary"
                                                 data-action="edit" data-id="{{ encrypt($item->id) }}">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </button>
-                                            <button class="btn-{{ $name }} btn btn-sm btn-dark" data-type="4"
+                                            <button class="btn-{{ $viewId }} btn btn-sm btn-dark" data-type="4"
                                                 data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
                                                 <i class="fa-solid fa-rotate"></i>
                                             </button>
@@ -52,7 +52,7 @@
 @section('scripts')
     @vite('resources/js/games/bingo/includes/handle-bingo-patterns.js')
     <script>
-        const name = @json($name);
+        const name = @json($viewId);
         const form = $(`#form-${name}`);
         let namePattern = $('#name-pattern');
         let bingoBoxes = [];

@@ -4,6 +4,18 @@ import { copyInfo } from './copyInfo.js';
 import { showToast, showToastOptionBtns } from './toastNotify.js';
 import { onDOMReady } from '@/utils/domReady.js';
 
+// --------------------------------------
+// Definición de la interfaz del módulo dinámico
+// --------------------------------------
+interface ModuleType {
+    viewId: string;
+    otherCasesMap?: Record<string, (encryptedId: string) => void>;
+    requiredFields?: string[];
+    route: (name: string, params?: Record<string, string | number>) => string;
+    initListeners?: () => void;
+    insertInfo?: (action: string, data?: any) => void;
+}
+
 // ========================
 // Variables globales
 // ========================
@@ -12,7 +24,7 @@ import { onDOMReady } from '@/utils/domReady.js';
  * Módulo cargado dinámicamente según el formulario actual.
  * Contendrá funciones y datos específicos del módulo.
  */
-let module: any = null;
+let module: ModuleType | null = null;
 
 /**
  * Función `route` para generar URLs según nombre y parámetros.
@@ -40,7 +52,7 @@ let requiredFields: string[] = [];
  * Identificador dinámico del elemento actual.
  * Se asigna o actualiza tras importar el módulo dinámico.
  */
-let elemId: string = '';
+let viewId: string = '';
 
 /**
  * Nombre del archivo del módulo dinámico a cargar (sin extensión).
@@ -67,21 +79,20 @@ const key = `../views/modules/${moduleFile}`.replace(/\.ts$/, '.ts');
 // Verifica que el módulo existe
 if (modules[key]) {
     modules[key]().then((mod) => {
-        // Aquí ya tienes el módulo importado
-        module = mod;
+        const typedMod = mod as ModuleType;
 
-        // Tu lógica para asignar variables exportadas
-        elemId = mod.elemId;
-        otherCasesMap = mod.otherCasesMap ?? {};
-        requiredFields = mod.requiredFields ?? [];
-        route = mod.route;
+        module = typedMod; // Aquí ya esta el módulo importado
+
+        // Lógica para asignar variables exportadas
+        viewId = typedMod.viewId;
+        otherCasesMap = typedMod.otherCasesMap ?? {};
+        requiredFields = typedMod.requiredFields ?? [];
+        route = typedMod.route;
 
         // Si el módulo tiene un initListeners, lo ejecutamos cuando el DOM esté listo
-        if (typeof mod.initListeners === 'function') {
-            onDOMReady(mod.initListeners);
+        if (typeof typedMod.initListeners === 'function') {
+            onDOMReady(typedMod.initListeners);
         }
-
-        // console.log(`Módulo dinámico '${moduleFile}' cargado correctamente.`);
     }).catch(err => {
         console.error(`Error al importar el módulo dinámico '${moduleFile}':`, err);
     });
@@ -100,7 +111,7 @@ if (modules[key]) {
  * @param title - Título descriptivo para mostrar en modal
  */
 export async function formCRUD(
-    elem: HTMLElement | [string, string],
+    elem: HTMLElement,
     name: string,
     title: string
 ): Promise<void> {
@@ -114,27 +125,21 @@ export async function formCRUD(
 
     resetForm(form);
 
-    let action = '';
+    console.log(elem.dataset.action)
 
-    // Determinar acción y encryptId
-    if (Array.isArray(elem)) {
-        [action, encryptId] = elem;
-    } else if (elem instanceof HTMLElement) {
-        action = elem.dataset.action ?? '';
-        if (['edit', 'delete'].includes(action)) {
-            encryptId = elem.dataset.id ?? '';
-        }
-    }
+    // Definir acción y encryptId 
+    const action = elem.dataset.action ?? '';
+    encryptId = action !== 'create' ? (elem.dataset.id ?? '') : '';
 
     switch (action) {
         case 'create':
-            prepareForm(form, 'create', `Registrar ${title}`);
             insertInfo('create');
+            prepareForm(form, 'create', `Registrar ${title}`, 'POST');
             break;
 
         case 'edit':
-            prepareForm(form, 'update', `Editar ${title}`, 'PUT');
             await getInfo();
+            prepareForm(form, 'update', `Editar ${title}`, 'PUT', encryptId);
             break;
 
         case 'delete':
@@ -240,36 +245,74 @@ function resetForm(form: HTMLFormElement): void {
     });
 }
 
+/**
+ * Prepara un formulario para su uso en un modal, configurando:
+ * - El título del modal relacionado.
+ * - La URL de acción del formulario con la ruta y parámetros adecuados.
+ * - El método HTTP del formulario (POST, PUT, PATCH, DELETE).
+ * - Inserta dinámicamente un input oculto `_method` para métodos que no son GET o POST.
+ * 
+ * @param form Elemento HTMLFormElement que se prepara.
+ * @param routeName Clave de la ruta para generar la URL.
+ * @param modalTitle Texto para actualizar el título del modal.
+ * @param method Método HTTP para enviar el formulario. Por defecto 'POST'.
+ * @param id Parámetro opcional para rutas que requieren un identificador (editar, eliminar).
+ */
 function prepareForm(
     form: HTMLFormElement,
     routeName: string,
     modalTitle: string,
-    method: string = ''
+    method: string = 'POST',
+    id?: string
 ): void {
+    const methodUpper = method.toUpperCase();
+    // Actualiza el texto del label del modal asociado (se asume convención 'form' -> 'modal')
     const modalLabel = document.querySelector(`#${form.id.replace('form', 'modal')}-label`);
     if (modalLabel) modalLabel.textContent = modalTitle;
 
     try {
-        if (method) {
-            // Para rutas con método PUT (update, delete, etc.) pasa el parámetro id en objeto
-            form.setAttribute('action', route(routeName, { id: encryptId }));
-        } else {
-            // Para create u otras rutas sin parámetro
-            form.setAttribute('action', route(routeName));
-        }
-    } catch (e) {
-        console.error(`Error generando ruta para ${routeName}:`, e);
+        const methodRequiresId = ['PUT', 'PATCH', 'DELETE'].includes(methodUpper);
+
+        // Generar URL con o sin parámetro id según método
+        const actionUrl = methodRequiresId
+            ? (id ? route(routeName, { id }) : (() => { throw new Error(`El parámetro 'id' es obligatorio para método ${methodUpper}`); })())
+            : route(routeName);
+
+        // Establecer la URL de acción del formulario
+        form.setAttribute('action', actionUrl);
+
+        // Establecer el método HTTP del formulario (GET, POST, etc.)
+        form.method = methodUpper;
+    } catch (error) {
+        console.error(`Error generando la ruta para '${routeName}':`, error);
+        return;
     }
 
-    // Elimina inputs hidden _method anteriores
-    form.querySelectorAll('input[name="_method"]').forEach((i) => i.remove());
+    // Eliminar cualquier input oculto previo para el método HTTP para evitar duplicados
+    form.querySelectorAll('input[name="_method"]').forEach(input => input.remove());
 
-    if (method) {
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = '_method';
-        hiddenInput.value = method;
-        form.appendChild(hiddenInput);
+    // Insertar input oculto _method solo si el método es distinto de GET o POST,
+    // necesario para simular métodos PUT, PATCH o DELETE en formularios HTML
+    if (methodUpper !== 'POST' && methodUpper !== 'GET') {
+        const hiddenMethodInput = document.createElement('input');
+        hiddenMethodInput.type = 'hidden';
+        hiddenMethodInput.name = '_method';
+        hiddenMethodInput.value = methodUpper;
+        form.appendChild(hiddenMethodInput);
+    }
+
+    // Insertar token CSRF si no existe
+    if (!form.querySelector('input[name="_token"]')) {
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null;
+        if (tokenMeta?.content) {
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '_token';
+            tokenInput.value = tokenMeta.content;
+            form.appendChild(tokenInput);
+        } else {
+            console.warn('Token CSRF no encontrado en meta.');
+        }
     }
 }
 
@@ -307,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!target) return;
 
         if (target.closest('#btn-confirm')) {
-            submitForm(elemId, requiredFields);
+            submitForm(viewId, requiredFields);
         }
 
         if (target.closest('#btn-copy')) {

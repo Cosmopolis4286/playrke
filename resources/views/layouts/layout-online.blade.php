@@ -42,11 +42,11 @@
         </div>
     </noscript>
 
-    {{-- Scripts compilados con Vite --}}
-    @vite(['resources/js/app.js'])
-
     {{-- Scripts adicionales y dependencias --}}
     <x-template.scripts />
+
+    {{-- Scripts compilados con Vite --}}
+    @vite(['resources/js/app.js'])
 
     {{-- Pila para scripts específicos de cada vista --}}
     @stack('stack-scripts')

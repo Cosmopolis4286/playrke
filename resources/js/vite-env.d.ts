@@ -1,4 +1,12 @@
+/// <reference types="vite/client" />
+
+import type { ImportGlobFunction } from 'vite';
+
+interface ImportMetaEnv {
+    readonly VITE_APP_URL: string;
+}
 
 interface ImportMeta {
-    readonly glob: (pattern: string) => Record<string, () => Promise<any>>;
+    readonly env: ImportMetaEnv;
+    readonly glob: ImportGlobFunction;
 }

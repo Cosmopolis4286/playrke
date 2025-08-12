@@ -28,12 +28,12 @@ const arrTimeZones = appData.timeZones;
 const coins = appData.coinsCommerce;
 
 // Elementos clave del DOM
-export const elemId = (document.getElementById('elem-id') as HTMLInputElement).value ?? 'seller';
+export const viewId = (document.getElementById('elem-id') as HTMLInputElement).value ?? 'seller';
 const usernameInput = document.getElementById('username') as HTMLInputElement;
 const emailInput = document.getElementById('email') as HTMLInputElement;
 const countrySelect = document.getElementById('country')! as HTMLSelectElement;
 const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement;
-const modal = document.getElementById(`modal-${elemId}`)!;
+const modal = document.getElementById(`modal-${viewId}`)!;
 
 const coin = document.getElementById('coin') as HTMLSelectElement | null;
 const coinText = document.getElementById('coin-text') as HTMLElement | null;
@@ -52,7 +52,7 @@ let update = false;
  * Lista de campos requeridos para validación de formularios
  */
 export const requiredFields: string[] = [
-    'name', 'phone', 'commission', 'country', 'time-zone', 'coin', 'username', 'email'
+    'viewId', 'phone', 'commission', 'country', 'time-zone', 'coin', 'username', 'email'
 ];
 
 /**
@@ -139,7 +139,7 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
     // Si es edición, rellenar datos
     if (action === 'edit' && data) {
         const { seller, user, other_coins: otherCoinsSelected = [] } = data;
-        (document.getElementById('name') as HTMLInputElement).value = seller.name || '';
+        (document.getElementById('viewId') as HTMLInputElement).value = seller.name || '';
         (document.getElementById('phone') as HTMLInputElement).value = seller.phone || '';
         (document.getElementById('commission') as HTMLInputElement).value = seller.commission || '';
 
@@ -203,14 +203,14 @@ export function initListeners(): void {
         }
     }
 
-    // Manejar eventos click para botones con clase dinámica btn-<elemId>
+    // Manejar eventos click para botones con clase dinámica btn-<viewId>
     document.addEventListener('click', (event: MouseEvent) => {
         const target = event.target as HTMLElement | null;
         if (!target) return;
 
-        // Verificar si el elemento clickeado o alguno de sus padres tiene clase btn-<elemId>
-        if (target.closest(`.btn-${elemId}`)) {
-            formCRUD(target, elemId, 'Vendedor').catch(e =>
+        // Verificar si el elemento clickeado o alguno de sus padres tiene clase btn-<viewId>
+        if (target.closest(`.btn-${viewId}`)) {
+            formCRUD(target, viewId, 'Vendedor').catch(e =>
                 console.error('Error en formCRUD:', e)
             );
         }

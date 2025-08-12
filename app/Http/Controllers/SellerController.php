@@ -43,9 +43,16 @@ class SellerController extends Controller
 {
     use EncryptTrait, BingoTrait, PlayerLinkTrait,  UserValTrait, FiltersTrait;
 
-    private function validateRequest($request, $type = 1, $id = '')
+    /**
+     * Valida la solicitud para crear o actualizar un vendedor (Seller).
+     *
+     * @param \Illuminate\Http\Request $request Objeto request con los datos a validar.
+     * @param bool $isUpdate Indica si la validación es para actualización (true) o creación (false).
+     * @param string|null $encryptedId ID cifrado del vendedor para validaciones únicas en actualización.
+     * @return \Illuminate\Contracts\Validation\Validator Validador con el resultado.
+     */
+    private function validateRequest($request, bool $isUpdate = false, ?string $encryptedId = null)
     {
-        // Definir reglas de validación.
         $rules = [
             'username' => ['required', 'string', 'max:20', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
@@ -58,15 +65,13 @@ class SellerController extends Controller
             'other_coins.*' => ['exists:coins,id'],
         ];
 
-        // Ajustar reglas de validación si es una actualización.
-        if ($type == 2) {
-            $seller = Seller::findOrFail(decrypt($id));
+        if ($isUpdate && $encryptedId) {
+            $seller = Seller::findOrFail(decrypt($encryptedId));
             $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $seller->user];
             $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $seller->user];
             $rules['phone'] = ['required', 'string', 'max:20', 'unique:sellers,phone,' . $seller->id];
         }
 
-        // Definir mensajes de error personalizados.
         $messages = [
             'username.unique' => 'Nombre de usuario no disponible.',
             'email.unique' => 'Este correo ya está registrado.',
@@ -74,22 +79,27 @@ class SellerController extends Controller
             'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
         ];
 
-        // Crear el validador.
-        $validator = Validator::make($request->all(), $rules, $messages);
-
-        // Si la validación falla.
-        if ($validator->fails()) {
-            Session::flash('msg-error', $type);
-            if ($type > 1) Session::flash('encryptedId', decrypt($id));
-
-            return $validator; // Devuelve el validador en caso de falla
-        }
-
-        return $validator; // Devuelve el validador en caso de éxito
+        return Validator::make($request->all(), $rules, $messages);
     }
 
+    /**
+     * Crea un nuevo registro de Seller junto con su usuario, wallet, teléfono y monedas asociadas.
+     *
+     * Flujo:
+     *  - Verifica permisos del usuario.
+     *  - Valida la solicitud.
+     *  - Genera y encripta la nueva contraseña.
+     *  - Crea el usuario, wallet, teléfono y seller.
+     *  - Registra moneda principal y otras monedas si existen.
+     *  - Maneja transacciones para asegurar consistencia.
+     *  - Loguea éxito o error y redirige con mensajes flash.
+     *
+     * @param Request $request Datos enviados desde el formulario.
+     * @return RedirectResponse Redirige con mensajes de éxito o error.
+     */
     public function create(Request $request)
     {
+        // Verificar permiso basado en tipo de usuario
         if (!in_array($this->user(['user_type'])->user_type, [2, 3])) {
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
         }
@@ -97,17 +107,20 @@ class SellerController extends Controller
         DB::beginTransaction();
 
         try {
-            // Validar la solicitud usando la función validateRequest
+            // Validar la solicitud y retornar errores si falla
             $validator = $this->validateRequest($request);
+
             if ($validator->fails()) {
                 return redirect()->back()->withErrors($validator)->withInput();
             }
 
+            // Generar y encriptar la nueva contraseña
             $newPassw = $this->valEncrypt();
 
+            // Crear el usuario nuevo
             $newUser = User::create([
                 'username' => $request->username,
-                'user_type' => UserType::getValueByPrefix('seller', 'id'), // Vendedor
+                'user_type' => UserType::getValueByPrefix('seller', 'id'),
                 'email' => $request->email,
                 'password' => Hash::make($newPassw),
                 'country' => $request->country,
@@ -116,57 +129,74 @@ class SellerController extends Controller
                 'referral_code' => User::getUniqueReferralCode(),
             ])->id;
 
-            // Crear un nuevo Wallet para el usuario
-            Wallet::create(['coin' => $request->coin, 'user' => $newUser]);
+            // Crear Wallet asociado al usuario
+            Wallet::create([
+                'coin' => $request->coin,
+                'user' => $newUser,
+            ]);
 
-            $phoneNumber = $request->phone;
+            // Registrar número telefónico del usuario
             PhoneNumbers::create([
                 'user' => $newUser,
                 'country' => $request->country,
-                'phone_number' => $phoneNumber
+                'phone_number' => $request->phone,
             ]);
 
+            // Crear el registro Seller asociado
             $seller = Seller::create([
                 'name' => $request->name,
-                'phone' => $phoneNumber,
+                'phone' => $request->phone,
                 'coin' => $request->coin,
                 'country' => $request->country,
                 'commerce' => Commerce::getValueByUserId(Auth::id(), 'id'),
                 'commn' => $request->commission,
                 'status' => 1,
-                'user' => $newUser
+                'user' => $newUser,
             ]);
 
-            // Registar moneda Principal
+            // Registrar moneda principal para Seller
             SellerCountriesCoins::create([
                 'seller' => $seller->id,
                 'country' => $seller->country,
                 'coin' => $seller->coin,
                 'level' => '1',
                 'creator_user' => $newUser,
-                'status' => 1
+                'status' => 1,
             ]);
 
-            $creatorUser = [
-                'model' => 'Seller',
-                'id' => $seller->id,
-                'userId' => $newUser
-            ];
-
-            $otherCoins = $request->other_coins;
-
-            if ($otherCoins) {
-                // Insertar otras monedas
-                $this->insertOtherCoins($creatorUser, $otherCoins);
+            // Insertar monedas adicionales si hay
+            if ($request->other_coins) {
+                $this->insertOtherCoins(
+                    [
+                        'model' => 'Seller',
+                        'id' => $seller->id,
+                        'userId' => $newUser,
+                    ],
+                    $request->other_coins
+                );
             }
 
             DB::commit();
 
+            // Log de éxito con info relevante
+            Log::info("Seller creado exitosamente", [
+                'seller_id' => $seller->id,
+                'user_id' => $newUser,
+                'username' => $request->username,
+                'email' => $request->email,
+            ]);
+
+            // Mensajes flash para feedback en UI
             Session::flash('message', 'Registro exitoso');
             Session::flash('message-passw', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear Seller: ' . $e->getMessage());
+
+            // Log detallado del error
+            Log::error('Error al crear Seller: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+            ]);
+
             return redirect()->back()->withErrors(['error' => 'Error al procesar la solicitud']);
         }
 

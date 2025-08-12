@@ -8,7 +8,7 @@
                 @include('includes.treasurer.tabs')
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        <button type="button" class="btn-{{ $name }} btn btn-sm btn-success" data-action="create">
+                        <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-action="create">
                             <i class="fas fa-plus-square mr-1"></i>Añadir
                         </button>
                         <div class="table-responsive mt-3">
@@ -33,26 +33,26 @@
                                             <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                             <td>
                                                 @include('includes.btn-group', [
-                                                    'name' => $name,
+                                                    'viewId' => $viewId,
                                                     'dataId' => encrypt($item->id),
                                                     'buttons' => [
                                                         (object) [
-                                                            'dataType' => '2',
+                                                            'action' => 'edit',
                                                             'color' => 'btn-primary',
                                                             'icon' => 'fas fa-edit',
                                                         ],
                                                         (object) [
-                                                            'dataType' => '3',
+                                                            'action' => 'delete',
                                                             'color' => 'btn-danger',
                                                             'icon' => 'fa-solid fa-trash-can',
                                                         ],
                                                         (object) [
-                                                            'dataType' => '4',
+                                                            'action' => '4',
                                                             'color' => 'btn-secondary',
                                                             'icon' => 'fa-solid fa-repeat',
                                                         ],
                                                         (object) [
-                                                            'dataType' => '5',
+                                                            'action' => '5',
                                                             'color' => 'bg-navy',
                                                             'icon' => 'fa-solid fa-lock',
                                                         ],
@@ -70,12 +70,12 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'name' => $name,
+        'viewId' => $viewId,
         'size' => 'md',
         'dataForm' => view('modules.admin.treasurer.form')->render(),
     ])
     @include('includes.modal-copy-info', [
-        'name' => 'copy-passw',
+        'viewId' => 'copy-passw',
         'title' => 'Contraseña Tesorero',
     ])
 @endsection
@@ -115,7 +115,7 @@
 
         $("#phone").mask("00000000000");
 
-        const name = '<?php echo $name; ?>';
+        const name = '<?php echo $viewId; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
         const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const coins = JSON.parse('<?php echo $coins; ?>');
@@ -235,7 +235,7 @@
 
         $(document).on("click", "#btn-confirm", function() {
             if (!$('#select-user-to-promote').val()) {
-                submitForm(name, ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
+                submitForm(name, ['viewId', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
             } else {
                 submitForm(name, ['select-user-role', 'select-user-to-promote', 'other-coins'])
             }
@@ -262,9 +262,6 @@
                     userRole,
                     exclude: 'OtherTreasurers'
                 }),
-                data: {
-                    '_token': $("#5K3_70K").val()
-                },
                 success: function(data) {
                     if (data.length) {
                         insertUsers(data, text);

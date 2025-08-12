@@ -15,7 +15,7 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'name' => $name,
+        'viewId' => $viewId,
         'size' => 'md',
         'dataForm' => view('modules.game.bingo.form.body-other-public-rooms', ['creator' => $creator])->render(),
     ])
@@ -23,7 +23,7 @@
 @endsection
 @section('scripts')
     <script>
-        const name = @json($name);
+        const name = @json($viewId);
         const creation = 'M';
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
