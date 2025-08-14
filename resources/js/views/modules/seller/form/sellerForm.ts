@@ -111,7 +111,7 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
         (document.getElementById('name') as HTMLInputElement).value = seller.name || '';
         (document.getElementById('phone') as HTMLInputElement).value = seller.phone || '';
-        (document.getElementById('commission') as HTMLInputElement).value = seller.commission || '';
+        (document.getElementById('commission') as HTMLInputElement).value = seller.commn || '';
 
         usernameInput.value = user.username || '';
         emailInput.value = user.email || '';
