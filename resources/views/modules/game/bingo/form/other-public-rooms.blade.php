@@ -128,7 +128,7 @@
         const otherCasesMap = {
             4: getInfoPublicRoom,
             5: (encryptedId) => {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Quieres participar en esta sala',
                     'info',
                     'Sí, participar',
@@ -138,7 +138,7 @@
                 );
             },
             6: (encryptedId) => {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Quieres salir de esta sala',
                     'info',
                     'Sí, salir',

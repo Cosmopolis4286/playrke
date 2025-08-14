@@ -110,7 +110,7 @@
 
         const otherCasesMap = {
             4: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Cambiar el status del item',
                     'question',
                     'Sí, cambiar',

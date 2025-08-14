@@ -194,7 +194,7 @@
 
         const otherCasesMap = {
             4: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Deseas cambiar el status de este cliente',
                     'question',
                     'Sí, cambiar',
@@ -204,7 +204,7 @@
                 );
             },
             5: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Generar nueva contraseña a este cliente',
                     'info',
                     'Sí, generar',

@@ -76,7 +76,7 @@
                 $(`#modal-${name}`).modal('show');
             },
             5: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Deseas cambiar el status de este registro',
                     'question',
                     'Sí, cambiar',

@@ -17,11 +17,11 @@ export function showToast(text: string, icon: SweetAlertIcon): void {
     Toast.fire({ icon, title: text });
 }
 
-export function showToastOptionBtns(
+export function showToastConfirmAction(
+    action: string,
     text: string,
     icon: SweetAlertIcon,
-    confirmButtonText: string,
-    route: string
+    confirmButtonText: string
 ): void {
     Swal.fire({
         title: '¿Confirmas esta acción?',
@@ -35,7 +35,7 @@ export function showToastOptionBtns(
         reverseButtons: true,
     }).then((result) => {
         if (result.isConfirmed) {
-            handleOtherCases(route);
+            handleOtherCases(action);
         } else if (result.isDismissed) {
             Swal.fire('Los cambios no se guardaron', '', 'info');
         }
@@ -46,6 +46,6 @@ export function showToastOptionBtns(
 declare global {
     interface Window {
         showToast: typeof showToast;
-        showToastOptionBtns: typeof showToastOptionBtns;
+        showToastConfirmAction: typeof showToastConfirmAction;
     }
 }

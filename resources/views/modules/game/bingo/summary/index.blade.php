@@ -240,7 +240,7 @@
 
         const otherCasesMap = {
             4: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Auto-Generar esta sala',
                     'question',
                     'Sí, auto-generar',
@@ -250,7 +250,7 @@
                 );
             },
             5: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Se publicará esta sala al público',
                     'info',
                     'Sí, publicarla',
@@ -260,7 +260,7 @@
                 );
             },
             6: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'El prize_pool de esta sala será reembolsado',
                     'warning',
                     'Sí, reembolsar',
@@ -270,7 +270,7 @@
                 );
             },
             7: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Deseas copiar la información de esta sala',
                     'question',
                     'Sí, copiar',
@@ -280,7 +280,7 @@
                 );
             },
             8: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Deseas cambiar el status de esta sala',
                     'question',
                     'Sí, cambiar',

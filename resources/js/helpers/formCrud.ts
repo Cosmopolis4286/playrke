@@ -1,7 +1,7 @@
 // formCrud.ts
 import { ajaxStart } from './loader.js';
 import { copyInfo } from './copyInfo.js';
-import { showToast, showToastOptionBtns } from './toastNotify.js';
+import { showToast, showToastConfirmAction } from './toastNotify.js';
 import { onDOMReady } from '@/utils/domReady.js';
 
 // --------------------------------------
@@ -62,50 +62,52 @@ let route: (name: string, params?: Record<string, string | number>) => string = 
 };
 
 /**
- * Nombre del archivo del módulo dinámico a cargar (sin extensión).
- * Se obtiene desde un input hidden en el DOM, para saber qué módulo cargar.
- */
-const moduleFile = (document.getElementById('module-file') as HTMLInputElement)?.value ?? '';
-
-/**
  * ID cifrado global que se usa en operaciones como editar, eliminar,
  * o para acciones personalizadas, asignado dinámicamente según contexto.
  */
 let encryptId = '';
 
+/**
+ * Nombre del archivo del módulo dinámico a cargar (sin extensión).
+ * Se obtiene desde un input hidden en el DOM, para saber qué módulo cargar.
+ */
+const moduleFile = (document.getElementById('module-file') as HTMLInputElement)?.value ?? '';
+
 // ========================
 // Carga dinámica del módulo
 // ========================
 
-// Mapea todos los archivos .ts dentro de views/modules y subcarpetas
-const modules = import.meta.glob('../views/modules/**/*.ts');
+if (moduleFile) {
+    // Mapea todos los archivos .ts dentro de views/modules y subcarpetas
+    const modules = import.meta.glob('../views/modules/**/*.ts');
 
-// Si moduleFile es 'seller/form/sellerForm.ts' o sin extensión, elimina la extensión para buscar clave correcta
-const key = `../views/modules/${moduleFile}`.replace(/\.ts$/, '.ts');
+    // Si moduleFile es 'seller/form/sellerForm.ts' o sin extensión, elimina la extensión para buscar clave correcta
+    const key = `../views/modules/${moduleFile}`.replace(/\.ts$/, '.ts');
 
-// Verifica que el módulo existe
-if (modules[key]) {
-    modules[key]().then((mod) => {
-        const typedMod = mod as ModuleType;
+    // Verifica que el módulo existe
+    if (modules[key]) {
+        modules[key]().then((mod) => {
+            const typedMod = mod as ModuleType;
 
-        module = typedMod; // Aquí ya esta el módulo importado
+            module = typedMod; // Aquí ya esta el módulo importado
 
-        // Lógica para asignar variables exportadas
-        formTitleSuffix = typedMod.formTitleSuffix;
-        viewId = typedMod.viewId;
-        otherCasesMap = typedMod.otherCasesMap ?? {};
-        requiredFields = typedMod.requiredFields ?? [];
-        route = typedMod.route;
+            // Lógica para asignar variables exportadas
+            formTitleSuffix = typedMod.formTitleSuffix;
+            viewId = typedMod.viewId;
+            otherCasesMap = typedMod.otherCasesMap ?? {};
+            requiredFields = typedMod.requiredFields ?? [];
+            route = typedMod.route;
 
-        // Si el módulo tiene un initListeners, lo ejecutamos cuando el DOM esté listo
-        if (typeof typedMod.initListeners === 'function') {
-            onDOMReady(typedMod.initListeners);
-        }
-    }).catch(err => {
-        console.error(`Error al importar el módulo dinámico '${moduleFile}':`, err);
-    });
-} else {
-    console.error(`Módulo '${key}' no encontrado en import.meta.glob`);
+            // Si el módulo tiene un initListeners, lo ejecutamos cuando el DOM esté listo
+            if (typeof typedMod.initListeners === 'function') {
+                onDOMReady(typedMod.initListeners);
+            }
+        }).catch(err => {
+            console.error(`Error al importar el módulo dinámico '${moduleFile}':`, err);
+        });
+    } else {
+        console.error(`Módulo '${key}' no encontrado en import.meta.glob`);
+    }
 }
 
 // ========================
@@ -133,6 +135,8 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
     // Definir encryptId
     encryptId = document.getElementById(`elem-${viewId}`)?.dataset.id ?? '';
 
+    console.log('action', action);
+
     switch (action) {
         case 'create':
             insertInfo('create');
@@ -145,11 +149,11 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
             break;
 
         case 'delete':
-            showToastOptionBtns(
+            showToastConfirmAction(
+                action,
                 'El registro será eliminado definitivamente',
-                'info',
-                'Sí, eliminar',
-                route('delete', { id: encryptId })
+                'warning',
+                'Sí, eliminar'
             );
             break;
 
@@ -163,7 +167,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
  * Ejecuta la acción personalizada registrada en otherCasesMap.
  */
 export function handleOtherCases(action: string): void {
-    if (otherCasesMap[action]) {
+    if (otherCasesMap[action] ) {
         otherCasesMap[action](encryptId);
     } else {
         console.error(`Acción no reconocida: ${action}`);
@@ -173,10 +177,10 @@ export function handleOtherCases(action: string): void {
 /**
  * Valida campos requeridos y envía el formulario.
  */
-export function submitForm(fields: string[] = []): void {
-    const form = document.getElementById(`form-${formTitleSuffix}`) as HTMLFormElement | null;
+export function submitForm(formSuffix: string, fields: string[] = []): void {
+    const form = document.getElementById(`form-${formSuffix}`) as HTMLFormElement | null;
     if (!form) {
-        console.warn(`Formulario no encontrado para submit: ${formTitleSuffix}`);
+        console.warn(`Formulario no encontrado para submit: ${formSuffix}`);
         return;
     }
 
@@ -349,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!target) return;
 
         if (target.closest('#btn-confirm')) {
-            submitForm(requiredFields);
+            submitForm(viewId, requiredFields);
         }
 
         if (target.closest('#btn-copy')) {

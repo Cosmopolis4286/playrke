@@ -4,13 +4,7 @@
     'loadDataTables' => false,
     'loadPlugins' => true,
     'loadSelect2' => false,
-    'customJsFiles' => [],
 ])
-
-{{-- Inyectar errores Laravel para JS --}}
-<script>
-    window.LaravelErrors = @json($errors->all());
-</script>
 
 {{-- 📦 jQuery y Validaciones --}}
 @if ($loadJquery)
@@ -54,29 +48,30 @@
     <script src="{{ asset('template/dist/js/adminlte.js') }}"></script>
 @endif
 
-{{-- 🔔 Mensajes de sesión (comentados, activar si se requiere) --}}
-@if (Session::has('message'))
-    {{-- <script type="module" defer>
-        import { showSessionToast } from '/resources/js/helpers/global.js';
+@php
+    $laravelErrors = $errors->all();
+    $message = Session::pull('message');
+@endphp
 
-        const message = {!! json_encode(Session::get('message')) !!};
-        const icon = {!! json_encode(Session::get('type') ?? 'success') !!};
-
-        showSessionToast(message, icon);
-    </script> --}}
+{{-- 🔔 Mensajes de sesión --}}
+@if ($message)
+    <script>
+        window.Session = @json(
+            ['message' => $message, 'type' => Session::pull('type', 'success')],
+            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+    </script>
 @endif
 
-{{-- ⚙️ Inicialización de DataTables (comentado, activar si se requiere) --}}
-@if ($loadDataTables)
-    {{-- <script type="module" defer>
-        import { loadDataTable } from '/resources/js/helpers/global.js';
-        loadDataTable('/css/DataTables/es-ES.json');
-    </script> --}}
-@endif
+@if (!empty($laravelErrors) || !empty($loadDataTables))
+    <script>
+        @if (!empty($laravelErrors))
+            window.LaravelErrors = @json($laravelErrors, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+        @endif
 
-{{-- 🎯 Archivos JS personalizados (Vite) --}}
-@foreach ($customJsFiles as $jsFile)
-    @vite($jsFile)
-@endforeach
+        @if (!empty($loadDataTables))
+            window.loadDataTables = true;
+        @endif
+    </script>
+@endif
 
 @yield('scripts')

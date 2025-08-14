@@ -138,7 +138,7 @@
 
         const otherCasesMap = {
             4: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Cambiar el status de esta Tasa de Cambio',
                     'question',
                     'Sí, cambiar',

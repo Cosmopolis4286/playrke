@@ -3,7 +3,7 @@
 // ==========================
 import { formCRUD } from '@/helpers/formCrud.js';
 import { insertOtherCoins } from '@/helpers/insertOtherCoins.js';
-import { showToastOptionBtns } from '@/helpers/toastNotify.js';
+import { showToastConfirmAction } from '@/helpers/toastNotify.js';
 import { validateInput } from '@/helpers/validateInput.js';
 import { route } from '@/routes/sellerRoutes.js';
 import { initAllSelects } from '@/utils/initAllSelects.js';
@@ -40,13 +40,13 @@ export const requiredFields: string[] = [
 //   Casos especiales para acciones personalizadas
 // ==========================
 export const otherCasesMap: Record<string, (encryptedId: string) => void> = {
-    '4': (encryptedId) => showToastOptionBtns(
+    '4': (encryptedId) => showToastConfirmAction(
         '¿Deseas cambiar el status de este vendedor?',
         'question',
         'Sí, cambiar',
         route('changeStatus', { id: encryptedId })
     ),
-    '5': (encryptedId) => showToastOptionBtns(
+    '5': (encryptedId) => showToastConfirmAction(
         'Generar nueva contraseña a este vendedor',
         'info',
         'Sí, generar',

@@ -93,8 +93,8 @@
         'dataForm' => view('modules.seller.form.body')->render(),
     ])
 
-    @if (Session::has('message'))
-        <x-modals.copy-info name="copy-passw" title="Contraseña Vendedor" :value="Session::get('message')" />
+    @if (Session::has('pawss'))
+        <x-modals.copy-info name="copy-passw" title="Contraseña Vendedor" :value="Session::get('pawss')" />
     @endif
 
     {{-- Scripts específicos de esta vista --}}

@@ -193,7 +193,7 @@
 
         const otherCasesMap = {
             4: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Actualizar el status de esta configuración',
                     'info',
                     'Sí, actualizar',
@@ -203,7 +203,7 @@
                 );
             },
             7: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Deseas copiar esta configuración',
                     'question',
                     'Sí, copiar',

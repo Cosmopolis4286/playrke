@@ -139,7 +139,7 @@
 
         const otherCasesMap = {
             4: function(encryptedId) {
-                showToastOptionBtns(
+                showToastConfirmAction(
                     'Deseas cambiar el status de este tesorero',
                     'question',
                     'Sí, cambiar',
