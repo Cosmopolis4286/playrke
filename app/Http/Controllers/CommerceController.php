@@ -367,18 +367,12 @@ class CommerceController extends Controller
             ->where('commerce', $commerceId)->get();
 
         // Obtener países disponibles para el usuario
-        $countries = $this->getAvailableCountries(Auth::id());
-        $countriesCommerce = Country::getCountries($countries, ['id', 'name']);
+        $avaliableCountries = $this->getAvailableCountries(Auth::id());
+        $countries = Country::getCountries($avaliableCountries, ['id', 'name']);
 
         // Obtener monedas disponibles para el usuario
-        $coins = $this->getAvailableCoins(Auth::id());
-        $coinsCommerce = Coin::getCoinsById($coins, [
-            'id',
-            'symbol',
-            'short_name',
-            'long_name',
-            'country'
-        ]);
+        $avaliableCoins = $this->getAvailableCoins(Auth::id());
+        $coins = Coin::getCoinsById($avaliableCoins, ['id', 'symbol', 'short_name', 'long_name', 'country']);
 
         // Zonas horarias activas
         $timeZones = TimeZone::select('id', 'name', 'country')->where('status', 1)->get();
@@ -387,38 +381,9 @@ class CommerceController extends Controller
         $games = Games::getAvailableGames();
 
         // Retornar vista con todos los datos
-        return view('modules.seller.form.index', compact(
-            'games',
-            'sellers',
-            'timeZones',
-            'title',
-            'viewId',
-            'coinsCommerce',
-            'countriesCommerce',
-        ));
-    }
-
-    public function rewards()
-    {
-        $title = 'Mis Vendedores';
-        $viewId = 'seller';
-        $commerce = $this->commerce()->id;
-
-        $sellers = Seller::with(['Country', 'CountriesCoins.Coin'])->where('commerce', $commerce)->get();
-
-        $countries = $this->getAvailableCountries(Auth::id());
-        $countriesCommerce = Country::getCountries($countries, ['id', 'name']);
-
-        $coins = $this->getAvailableCoins(Auth::id());
-        $coinsCommerce = Coin::getCoinsById($coins, ['id', 'symbol', 'short_name', 'long_name', 'country']);
-
-        $timeZones = TimeZone::select('id', 'name', 'country')->where('status', 1)->get();
-
-        $games = Games::getAvailableGames();
-
         return view(
             'modules.seller.form.index',
-            compact('title', 'name', 'sellers', 'timeZones', 'countriesCommerce', 'coinsCommerce', 'games')
+            compact('coins', 'countries', 'games', 'sellers', 'timeZones', 'title', 'viewId')
         );
     }
 

@@ -90,7 +90,7 @@
     @include('includes.modal-form', [
         'viewId' => $viewId,
         'size' => 'md',
-        'dataForm' => view('modules.seller.form.body', ['countriesCommerce' => $countriesCommerce])->render(),
+        'dataForm' => view('modules.seller.form.body')->render(),
     ])
 
     @if (Session::has('message'))
@@ -99,13 +99,12 @@
 
     {{-- Scripts específicos de esta vista --}}
     @push('stack-scripts')
-        {{-- Datos globales --}}
-        <script id="app-data" type="application/json">
-            {!! json_encode([
-                'countriesCommerce' => $countriesCommerce,
-                'timeZones'         => $timeZones,
-                'coinsCommerce'     => $coinsCommerce,
-            ]) !!}
+        <script>
+            window.appData = {
+                coins: @json($coins),
+                countries: @json($countries),
+                timeZones: @json($timeZones)
+            };
         </script>
         {{-- Carga principal del CRUD --}}
         @vite('resources/js/helpers/formCrud.ts')

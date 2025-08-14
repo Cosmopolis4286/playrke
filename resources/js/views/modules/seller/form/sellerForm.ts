@@ -1,140 +1,123 @@
-// sellerForm.ts
+// ==========================
+//   Imports
+// ==========================
 import { formCRUD } from '@/helpers/formCrud.js';
 import { insertOtherCoins } from '@/helpers/insertOtherCoins.js';
-import { route } from '@/routes/sellerRoutes.js';
 import { showToastOptionBtns } from '@/helpers/toastNotify.js';
 import { validateInput } from '@/helpers/validateInput.js';
+import { route } from '@/routes/sellerRoutes.js';
+import { initAllSelects } from '@/utils/initAllSelects.js';
 
-// Exports
+// Re-exportar route para que otros módulos puedan usarla directamente
 export { route };
 
-// Datos globales pasados desde PHP
-const appDataScript = document.getElementById('app-data');
-if (!appDataScript) throw new Error('No se encontró el script con datos de la app');
-
-const appData = JSON.parse(appDataScript.textContent ?? '{}') as {
-    countriesCommerce: Country[];
-    timeZones: TimeZone[];
-    coinsCommerce: Coin[];
-};
-
-// Tipos de datos
-interface Country { id: number; name: string; }
-interface TimeZone { id: number; name: string; }
-interface Coin { id: number; symbol: string; long_name: string; short_name: string; country: number; }
-
-// Datos procesados
-const arrCountries = appData.countriesCommerce;
-const arrTimeZones = appData.timeZones;
-const coins = appData.coinsCommerce;
-'Vendedor'
-// Constantes
+// ==========================
+//   Constantes globales
+// ==========================
 export const formTitleSuffix = 'Vendedor';
-export const viewId = (document.getElementById('view-id') as HTMLInputElement).value ?? 'seller';
-
-const usernameInput = document.getElementById('username') as HTMLInputElement;
-const emailInput = document.getElementById('email') as HTMLInputElement;
-const countrySelect = document.getElementById('country')! as HTMLSelectElement;
-const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement;
+export const viewId = (document.getElementById('view-id') as HTMLInputElement)?.value ?? 'seller';
 const modal = document.getElementById(`modal-${viewId}`)!;
 
-const coin = document.getElementById('coin') as HTMLSelectElement | null;
-const coinText = document.getElementById('coin-text') as HTMLElement | null;
-const country = document.getElementById('country') as HTMLSelectElement | null;
-const contOtherCoins = document.getElementById('cont-other-coins');
-
-// Flag de estado
-let update = false;
+// ==========================
+//   Referencias a elementos del formulario
+// ==========================
+const usernameInput = document.getElementById('username') as HTMLInputElement | null;
+const emailInput = document.getElementById('email') as HTMLInputElement | null;
 
 // ==========================
-//   Funciones auxiliares
+//   Flag de estado
 // ==========================
+let listenersAttached = false;
 
-/**
- * Lista de campos requeridos para validación de formularios
- */
+// ==========================
+//   Campos requeridos
+// ==========================
 export const requiredFields: string[] = [
     'viewId', 'phone', 'commission', 'country', 'time-zone', 'coin', 'username', 'email'
 ];
 
-/**
- * Casos especiales para acciones personalizadas con vendedores
- */
+// ==========================
+//   Casos especiales para acciones personalizadas
+// ==========================
 export const otherCasesMap: Record<string, (encryptedId: string) => void> = {
-    '4': (encryptedId) => {
-        showToastOptionBtns(
-            '¿Deseas cambiar el status de este vendedor?',
-            'question',
-            'Sí, cambiar',
-            route('changeStatus', { id: encryptedId })
-        );
-    },
-    '5': (encryptedId) => {
-        showToastOptionBtns(
-            'Generar nueva contraseña a este vendedor',
-            'info',
-            'Sí, generar',
-            route('changePassw', { id: encryptedId })
-        );
-    },
+    '4': (encryptedId) => showToastOptionBtns(
+        '¿Deseas cambiar el status de este vendedor?',
+        'question',
+        'Sí, cambiar',
+        route('changeStatus', { id: encryptedId })
+    ),
+    '5': (encryptedId) => showToastOptionBtns(
+        'Generar nueva contraseña a este vendedor',
+        'info',
+        'Sí, generar',
+        route('changePassw', { id: encryptedId })
+    ),
 };
 
+// ==========================
+//   Función: insertInfo
+// ==========================
 /**
  * Inserta información en el formulario del modal según la acción (crear o editar)
+ *
+ * Esta función:
+ * 1. Verifica que los elementos DOM requeridos existan.
+ * 2. Resetea inputs editables (username, email).
+ * 3. Inicializa automáticamente todos los selects dinámicos usando `initAllSelects`.
+ * 4. En modo edición, rellena los campos del formulario con los datos proporcionados.
+ * 5. Muestra el modal con Bootstrap 4.
+ *
+ * @param action - 'create' o 'edit'
+ * @param data - Objeto con los datos a precargar en modo edición
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
-    const elements = { usernameInput, emailInput, countrySelect, timeZoneSelect, modal };
-    const missing = Object.entries(elements)
-        .filter(([_, el]) => !el)
-        .map(([name]) => name);
-
-    if (missing.length) {
-        console.error('Elementos DOM requeridos no encontrados:', missing.join(', '));
+    if (!usernameInput || !emailInput || !modal) {
+        console.error('Elementos DOM requeridos no encontrados');
         return;
     }
 
-    // Reset estado de edición
+    // Reset inputs editables
     usernameInput.readOnly = false;
     emailInput.readOnly = false;
+    usernameInput.value = '';
+    emailInput.value = '';
 
-    // Limpiar selects si es creación
+    // Limpiar otros inputs si es creación
     if (action === 'create') {
-        countrySelect.innerHTML = `<option value="" disabled selected>Seleccionar:</option>`;
-        timeZoneSelect.innerHTML = `<option value="" disabled selected>Seleccionar Zona:</option>`;
+        (document.getElementById('name') as HTMLInputElement).value = '';
+        (document.getElementById('phone') as HTMLInputElement).value = '';
+        (document.getElementById('commission') as HTMLInputElement).value = '3.00';
     }
 
-    // Poblar países
-    arrCountries.forEach(item => {
-        const option = new Option(item.name, String(item.id), false, action === 'edit' && data?.seller?.country === item.id);
-        countrySelect.appendChild(option);
-    });
-
-    // Poblar zonas horarias
-    arrTimeZones.forEach(item => {
-        const option = new Option(item.name, String(item.id), false, action === 'edit' && data?.user?.time_zone === item.id);
-        timeZoneSelect.appendChild(option);
-    });
-
-    console.log(`action`, action);
-
-    // Si es edición, rellenar datos
+    // Preselección de valores para selects dinámicos
+    const selectedValues: Record<string, string | number> = {};
     if (action === 'edit' && data) {
-        const { seller, user, otherCoins } = data;
+        selectedValues['country'] = data?.seller?.country ?? '';
+        selectedValues['time-zone'] = data?.user?.time_zone ?? '';
+        // Se pueden agregar más selects dinámicos aquí
+    }
+
+    // Inicializa todos los selects dinámicos automáticamente
+    initAllSelects(selectedValues);
+
+    // Insertar otras monedas si es edición
+    if (action === 'edit' && data?.otherCoins) {
+        insertOtherCoins(data.otherCoins);
+    }
+
+    // Rellenar campos en modo edición
+    if (action === 'edit' && data) {
+        const { seller, user } = data;
+
         (document.getElementById('name') as HTMLInputElement).value = seller.name || '';
         (document.getElementById('phone') as HTMLInputElement).value = seller.phone || '';
         (document.getElementById('commission') as HTMLInputElement).value = seller.commission || '';
 
-        countrySelect.dispatchEvent(new Event('change'));
-        insertOtherCoins(otherCoins);
-
         usernameInput.value = user.username || '';
         emailInput.value = user.email || '';
+
         usernameInput.readOnly = true;
         emailInput.readOnly = true;
-
-        update = true;
-    } else {
-        update = false;
     }
 
     // Mostrar modal con Bootstrap 4
@@ -142,39 +125,33 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 }
 
 // ==========================
-//   Eventos del formulario
+//   Función: initListeners
 // ==========================
-
-
-// ========================
-// Listeners globales
-// ========================
-let listenersAttached = false;
-
+/**
+ * Inicializa los listeners globales del formulario:
+ * - Máscara de teléfono
+ * - Eventos click para botones dinámicos
+ * - Validación de input de comisión
+ */
 export function initListeners(): void {
     if (listenersAttached) return;
     listenersAttached = true;
-    // Verificar que jQuery esté disponible
+
+    // Máscara para teléfono usando jQuery Mask
     if (typeof $ === 'function') {
-        // Aplicar máscara solo si existe el input con id 'phone'
         const $phone = $('#phone');
-        if ($phone.length) {
-            $phone.mask('00000000000');
-        }
+        if ($phone.length) $phone.mask('00000000000');
     }
 
-    // Manejar eventos click para botones con clase dinámica btn-<viewId>
+    // Click en botones dinámicos btn-<viewId>
     document.addEventListener('click', ({ target }) => {
         const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${viewId}`);
         if (!element) return;
 
-        // Ejecutar formCRUD con el data-action del elemento encontrado
-        formCRUD(element).catch(e =>
-            console.error('Error en formCRUD:', e)
-        );
+        formCRUD(element).catch(e => console.error('Error en formCRUD:', e));
     });
 
-    // Validar input con id 'commission' en cada cambio de valor
+    // Validación de input 'commission'
     document.addEventListener('input', ({ target }) => {
         if (target instanceof HTMLInputElement && target.id === 'commission') {
             validateInput(target, true, 3, 35);
