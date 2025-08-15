@@ -1,16 +1,20 @@
 import axios from 'axios';
 
-// Buscar el token CSRF en el meta tag del head
-const token = document.head.querySelector('meta[name="csrf-token"]');
+// Obtener token CSRF desde meta tag
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-if (token?.content) {
-    // Setear token CSRF en las cabeceras comunes de axios
-    axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+if (csrfToken) {
+    // Configurar cabeceras por defecto
+    axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
 } else {
-    console.error('⚠️ CSRF token no encontrado en meta. Añade <meta name="csrf-token" content="{{ csrf_token() }}"> en tu layout.');
+    console.warn(
+        '⚠️ CSRF token no encontrado. Asegúrate de incluir: ' +
+        '<meta name="csrf-token" content="{{ csrf_token() }}"> en tu layout.'
+    );
 }
 
-// Exponer axios globalmente para usar en consola o scripts sin importarlo
-window.axios = axios;
+// Configuración adicional de axios (opcional)
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+axios.defaults.timeout = 10000; // Evita que llamadas cuelguen indefinidamente
 
 export default axios;

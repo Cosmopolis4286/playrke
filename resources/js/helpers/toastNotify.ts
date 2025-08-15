@@ -1,5 +1,4 @@
 import Swal, { SweetAlertIcon } from 'sweetalert2';
-import { handleOtherCases } from './formCrud.js';
 
 const Toast = Swal.mixin({
     toast: true,
@@ -17,13 +16,19 @@ export function showToast(text: string, icon: SweetAlertIcon): void {
     Toast.fire({ icon, title: text });
 }
 
-export function showToastConfirmAction(
-    action: string,
+/**
+ * Muestra un SweetAlert de confirmación.
+ * @param text Texto del mensaje
+ * @param icon Tipo de ícono (info, question, warning, etc.)
+ * @param confirmButtonText Texto del botón de confirmación
+ * @returns Promise<boolean> indicando si el usuario confirmó
+ */
+export async function showToastConfirmAction(
     text: string,
     icon: SweetAlertIcon,
     confirmButtonText: string
-): void {
-    Swal.fire({
+): Promise<boolean> {
+    const result = await Swal.fire({
         title: '¿Confirmas esta acción?',
         text,
         icon,
@@ -33,19 +38,7 @@ export function showToastConfirmAction(
         confirmButtonText,
         cancelButtonText: 'Cancelar',
         reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            handleOtherCases(action);
-        } else if (result.isDismissed) {
-            Swal.fire('Los cambios no se guardaron', '', 'info');
-        }
     });
-}
 
-// Opcional: si quieres exponerlas globalmente en window:
-declare global {
-    interface Window {
-        showToast: typeof showToast;
-        showToastConfirmAction: typeof showToastConfirmAction;
-    }
+    return result.isConfirmed;
 }

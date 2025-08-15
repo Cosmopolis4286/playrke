@@ -3,7 +3,7 @@
 // ==========================
 import { formCRUD } from '@/helpers/formCrud.js';
 import { insertOtherCoins } from '@/helpers/insertOtherCoins.js';
-import { showToastConfirmAction } from '@/helpers/toastNotify.js';
+import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput.js';
 import { route } from '@/routes/sellerRoutes.js';
 import { initAllSelects } from '@/utils/initAllSelects.js';
@@ -37,21 +37,29 @@ export const requiredFields: string[] = [
 ];
 
 // ==========================
-//   Casos especiales para acciones personalizadas
+//   Mapeo de acciones personalizadas
 // ==========================
-export const otherCasesMap: Record<string, (encryptedId: string) => void> = {
-    '4': (encryptedId) => showToastConfirmAction(
-        '¿Deseas cambiar el status de este vendedor?',
-        'question',
-        'Sí, cambiar',
-        route('changeStatus', { id: encryptedId })
-    ),
-    '5': (encryptedId) => showToastConfirmAction(
-        'Generar nueva contraseña a este vendedor',
-        'info',
-        'Sí, generar',
-        route('changePassw', { id: encryptedId })
-    ),
+export const otherCasesMap: Record<string, {
+    routeName: string;             // Nombre de la ruta backend
+    text: string;                  // Texto a mostrar en el modal de confirmación
+    icon: SweetAlertIcon;          // Icono de SweetAlert
+    confirmButtonText: string;     // Texto del botón de confirmación
+    method?: 'PUT' | 'DELETE';     // Método HTTP, opcional, por defecto PUT
+}> = {
+    '4': {  // Cambiar status de un vendedor
+        routeName: 'changeStatus',
+        text: '¿Deseas cambiar el status de este vendedor?',
+        icon: 'question',
+        confirmButtonText: 'Sí, cambiar',
+        method: 'PUT',
+    },
+    '5': {  // Generar nueva contraseña
+        routeName: 'changePassw',
+        text: 'Generar nueva contraseña a este vendedor',
+        icon: 'info',
+        confirmButtonText: 'Sí, generar',
+        method: 'PUT',
+    },
 };
 
 // ==========================

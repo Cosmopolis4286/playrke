@@ -1,15 +1,17 @@
 // formCrud.ts
+import axios from '../axios.js';
 import { ajaxStart } from './loader.js';
 import { copyInfo } from './copyInfo.js';
 import { showToast, showToastConfirmAction } from './toastNotify.js';
-import { onDOMReady } from '@/utils/domReady.js';
+import { onDOMReady } from '../utils/domReady.js';
+import Swal, { SweetAlertIcon } from 'sweetalert2';
 
 // --------------------------------------
 // Definición de la interfaz del módulo dinámico
 // --------------------------------------
 interface ModuleType {
     formTitleSuffix: string;
-    otherCasesMap?: Record<string, (encryptedId: string) => void>;
+    otherCasesMap?: Record<string, OtherCase>;
     requiredFields?: string[];
     viewId: string;
     initListeners?: () => void;
@@ -17,60 +19,31 @@ interface ModuleType {
     route: (name: string, params?: Record<string, string | number>) => string;
 }
 
+/**
+ * Tipo de cada acción personalizada que se puede ejecutar.
+ */
+export interface OtherCase {
+    routeName: string;               // Nombre de la ruta backend
+    text: string;                    // Texto para mostrar en el modal
+    icon: SweetAlertIcon;            // Icono para SweetAlert
+    confirmButtonText: string;       // Texto del botón de confirmación
+    method?: 'PUT' | 'DELETE';       // Método HTTP (por defecto PUT)
+}
+
 // ========================
 // Variables globales
 // ========================
 
-/** 
- * Módulo cargado dinámicamente según el formulario actual.
- * Contendrá funciones y datos específicos del módulo.
- */
 let module: ModuleType | null = null;
-
-/**
- * Mapeo de acciones personalizadas a funciones que reciben un ID cifrado.
- * Se llena tras la carga dinámica del módulo.
- */
-let otherCasesMap: Record<string, (encryptedId: string) => void> = {};
-
-/**
- * Lista de campos requeridos para validar antes de enviar formularios.
- * Se establece tras importar el módulo dinámico.
- */
+let otherCasesMap: Record<string, OtherCase> = {};
 let requiredFields: string[] = [];
-
-/**
- * Identificador dinámico del sufijo del form.
- * Se asigna o actualiza tras importar el módulo dinámico.
- */
 let formTitleSuffix: string = '';
-
-/**
- * Identificador dinámico del view/route actual.
- * Se asigna o actualiza tras importar el módulo dinámico.
- */
 let viewId: string = '';
-
-/**
- * Función `route` para generar URLs según nombre y parámetros.
- * Inicialmente es un stub que avisa que no está definida.
- * Se sobrescribe tras la carga dinámica del módulo.
- */
 let route: (name: string, params?: Record<string, string | number>) => string = () => {
     console.warn('Función route no definida todavía');
     return '';
 };
-
-/**
- * ID cifrado global que se usa en operaciones como editar, eliminar,
- * o para acciones personalizadas, asignado dinámicamente según contexto.
- */
 let encryptId = '';
-
-/**
- * Nombre del archivo del módulo dinámico a cargar (sin extensión).
- * Se obtiene desde un input hidden en el DOM, para saber qué módulo cargar.
- */
 const moduleFile = (document.getElementById('module-file') as HTMLInputElement)?.value ?? '';
 
 // ========================
@@ -78,27 +51,20 @@ const moduleFile = (document.getElementById('module-file') as HTMLInputElement)?
 // ========================
 
 if (moduleFile) {
-    // Mapea todos los archivos .ts dentro de views/modules y subcarpetas
     const modules = import.meta.glob('../views/modules/**/*.ts');
-
-    // Si moduleFile es 'seller/form/sellerForm.ts' o sin extensión, elimina la extensión para buscar clave correcta
     const key = `../views/modules/${moduleFile}`.replace(/\.ts$/, '.ts');
 
-    // Verifica que el módulo existe
     if (modules[key]) {
         modules[key]().then((mod) => {
             const typedMod = mod as ModuleType;
+            module = typedMod;
 
-            module = typedMod; // Aquí ya esta el módulo importado
-
-            // Lógica para asignar variables exportadas
             formTitleSuffix = typedMod.formTitleSuffix;
             viewId = typedMod.viewId;
             otherCasesMap = typedMod.otherCasesMap ?? {};
             requiredFields = typedMod.requiredFields ?? [];
             route = typedMod.route;
 
-            // Si el módulo tiene un initListeners, lo ejecutamos cuando el DOM esté listo
             if (typeof typedMod.initListeners === 'function') {
                 onDOMReady(typedMod.initListeners);
             }
@@ -129,13 +95,8 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
 
     resetForm(form);
 
-    // Definir action
     const action = elem.dataset.action ?? '';
-
-    // Definir encryptId
     encryptId = document.getElementById(`elem-${viewId}`)?.dataset.id ?? '';
-
-    console.log('action', action);
 
     switch (action) {
         case 'create':
@@ -149,33 +110,65 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
             break;
 
         case 'delete':
-            showToastConfirmAction(
-                action,
-                'El registro será eliminado definitivamente',
-                'warning',
-                'Sí, eliminar'
-            );
+            await handleOtherCases('delete');
             break;
 
         default:
-            handleOtherCases(action);
+            await handleOtherCases(action);
             break;
     }
 }
 
 /**
  * Ejecuta la acción personalizada registrada en otherCasesMap.
+ * Solo ejecuta la petición PUT o DELETE si el usuario confirma la acción.
+ * @param action Clave de la acción a ejecutar
  */
-export function handleOtherCases(action: string): void {
-    if (otherCasesMap[action] ) {
-        otherCasesMap[action](encryptId);
-    } else {
+export async function handleOtherCases(action: string): Promise<void> {
+    const globalDelete: OtherCase = {
+        routeName: 'deleteVendor',
+        text: 'El registro será eliminado definitivamente',
+        icon: 'warning',
+        confirmButtonText: 'Sí, eliminar',
+        method: 'DELETE',
+    };
+
+    const caseData: OtherCase | undefined =
+        action === 'delete' ? globalDelete : otherCasesMap[action];
+
+    if (!caseData) {
         console.error(`Acción no reconocida: ${action}`);
+        return;
+    }
+
+    try {
+        const confirmed = await showToastConfirmAction(
+            caseData.text,
+            caseData.icon,
+            caseData.confirmButtonText
+        );
+
+        if (!confirmed) {
+            Swal.fire('Los cambios no se guardaron', '', 'info');
+            return;
+        }
+
+        const url = route(caseData.routeName, { id: encryptId });
+
+        const response = caseData.method === 'DELETE'
+            ? await axios.delete(url)
+            : await axios.put(url);
+
+        console.log('Acción registrada correctamente:', response.data);
+    } catch (error) {
+        console.error('Error al registrar la acción:', error);
     }
 }
 
 /**
  * Valida campos requeridos y envía el formulario.
+ * @param formSuffix Sufijo del ID del form
+ * @param fields Lista de campos requeridos (opcional)
  */
 export function submitForm(formSuffix: string, fields: string[] = []): void {
     const form = document.getElementById(`form-${formSuffix}`) as HTMLFormElement | null;
@@ -225,17 +218,20 @@ export function insertInfo(action: string, data: any = ''): void {
 /**
  * Obtiene información desde el backend y la carga en el formulario (modo edición).
  */
-export async function getInfo(): Promise<void> {
+async function getInfo(): Promise<void> {
     try {
         if (!encryptId) throw new Error('ID cifrado no definido para getInfo');
-        const url = route('getInfo', { id: encryptId });
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-        const data = await response.json();
-        insertInfo('edit', data);
-    } catch (error) {
-        console.error('Error al obtener información:', error);
+        // Construir URL usando la función route
+        const url = route('getInfo', { id: encryptId });
+
+        // Petición GET con Axios
+        const response = await axios.get(url);
+
+        // Insertar datos en el formulario usando insertInfo
+        insertInfo('edit', response.data);
+    } catch (error: any) {
+        console.error('Error al obtener información:', error?.response?.data || error.message);
     }
 }
 
@@ -243,7 +239,6 @@ export async function getInfo(): Promise<void> {
 // Funciones auxiliares
 // ========================
 
-/** Limpia el formulario y campos de select que no tengan la clase `.not-empty` */
 function resetForm(form: HTMLFormElement): void {
     form.reset();
     form.querySelectorAll('select:not(.not-empty)').forEach((select) => {
@@ -251,19 +246,6 @@ function resetForm(form: HTMLFormElement): void {
     });
 }
 
-/**
- * Prepara un formulario para su uso en un modal, configurando:
- * - El título del modal relacionado.
- * - La URL de acción del formulario con la ruta y parámetros adecuados.
- * - El método HTTP del formulario (POST, PUT, PATCH, DELETE).
- * - Inserta dinámicamente un input oculto `_method` para métodos que no son GET o POST.
- * 
- * @param form Elemento HTMLFormElement que se prepara.
- * @param routeName Clave de la ruta para generar la URL.
- * @param modalTitle Texto para actualizar el título del modal.
- * @param method Método HTTP para enviar el formulario. Por defecto 'POST'.
- * @param id Parámetro opcional para rutas que requieren un identificador (editar, eliminar).
- */
 function prepareForm(
     form: HTMLFormElement,
     routeName: string,
@@ -272,33 +254,24 @@ function prepareForm(
     id?: string
 ): void {
     const methodUpper = method.toUpperCase();
-    // Actualiza el texto del label del modal asociado (se asume convención 'form' -> 'modal')
     const modalLabel = document.querySelector(`#${form.id.replace('form', 'modal')}-label`);
     if (modalLabel) modalLabel.textContent = `${modalTitle} ${formTitleSuffix}`;
 
     try {
         const methodRequiresId = ['PUT', 'PATCH', 'DELETE'].includes(methodUpper);
-
-        // Generar URL con o sin parámetro id según método
         const actionUrl = methodRequiresId
             ? (id ? route(routeName, { id }) : (() => { throw new Error(`El parámetro 'id' es obligatorio para método ${methodUpper}`); })())
             : route(routeName);
 
-        // Establecer la URL de acción del formulario
         form.setAttribute('action', actionUrl);
-
-        // Establecer el método HTTP del formulario (GET, POST, etc.)
         form.method = methodUpper;
     } catch (error) {
         console.error(`Error generando la ruta para '${routeName}':`, error);
         return;
     }
 
-    // Eliminar cualquier input oculto previo para el método HTTP para evitar duplicados
     form.querySelectorAll('input[name="_method"]').forEach(input => input.remove());
 
-    // Insertar input oculto _method solo si el método es distinto de GET o POST,
-    // necesario para simular métodos PUT, PATCH o DELETE en formularios HTML
     if (methodUpper !== 'POST' && methodUpper !== 'GET') {
         const hiddenMethodInput = document.createElement('input');
         hiddenMethodInput.type = 'hidden';
@@ -307,7 +280,6 @@ function prepareForm(
         form.appendChild(hiddenMethodInput);
     }
 
-    // Insertar token CSRF si no existe
     if (!form.querySelector('input[name="_token"]')) {
         const tokenMeta = document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null;
         if (tokenMeta?.content) {
@@ -327,42 +299,24 @@ function prepareForm(
 // ========================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar que jQuery esté disponible
     if (typeof $ === 'function') {
-        // Solo inicializar Select2 si existen elementos con clase 'select2'
         const $select2Elements = $('.select2');
-
         if ($select2Elements.length) {
             $select2Elements.select2({
                 theme: 'bootstrap4',
                 width: 'style',
-                placeholder() {
-                    // Obtener el placeholder del atributo o devolver cadena vacía
-                    return $(this).attr('placeholder') || '';
-                },
-                allowClear() {
-                    // Obtener si permite limpiar el select basado en data-attribute
-                    return Boolean($(this).data('allow-clear'));
-                }
+                placeholder() { return $(this).attr('placeholder') || ''; },
+                allowClear() { return Boolean($(this).data('allow-clear')); }
             });
         }
     }
-    // Manejar eventos click 
+
     document.addEventListener('click', (event: MouseEvent) => {
         const target = event.target as HTMLElement | null;
         if (!target) return;
 
-        if (target.closest('#btn-confirm')) {
-            submitForm(viewId, requiredFields);
-        }
-
-        if (target.closest('#btn-copy')) {
-            copyInfo('Contraseña Copiada');
-        }
-
-        if (target.closest('.popover-dismiss')) {
-            // Bootstrap 4 popover requiere jQuery
-            $(target).popover('toggle');
-        }
+        if (target.closest('#btn-confirm')) submitForm(viewId, requiredFields);
+        if (target.closest('#btn-copy')) copyInfo('Contraseña Copiada');
+        if (target.closest('.popover-dismiss')) $(target).popover('toggle');
     });
 });

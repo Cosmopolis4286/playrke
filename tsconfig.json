@@ -1,33 +1,41 @@
 {
   "compilerOptions": {
-    "target": "ESNext", // Código moderno
-    "module": "Node16", // Resolver módulos como Node 16
-    "moduleResolution": "node16", // Resolución de módulos igual a Node 16
-    "strict": true, // Más seguridad con tipos estrictos
-    "esModuleInterop": true, // Para importar módulos CommonJS
-    "allowJs": true, // Permite importar archivos JS
-    "resolveJsonModule": true, // Importar archivos JSON
-    "isolatedModules": true, // Para compatibilidad con transpilers
+    // Permitir analizar y validar archivos .js además de .ts
+    "allowJs": true,
+    // Revisar errores también en archivos .js (útil si usas JSDoc para tipos)
+    "checkJs": true,
+    // Permitir imports por default de módulos CommonJS sin error
+    "esModuleInterop": true,
+    // Usar módulos ES modernos
+    "module": "esnext",
+    // Generar código moderno compatible con navegadores actuales
+    "target": "esnext",
+    // Resolver imports como Node.js (busca en node_modules, index.js, etc.)
+    "moduleResolution": "node",
+    // Incluir tipados para el DOM y todas las APIs modernas de JavaScript
     "lib": [
-      "DOM",
-      "ESNext"
-    ],
-    "types": [
-      "node",
       "dom",
-      "jquery",
-      "select2"
+      "esnext"
     ],
-    // **Aquí agregamos baseUrl y paths para alias @**
-    "baseUrl": ".", // Raíz del proyecto para resolver paths
+    // No verificar tipados internos de librerías externas (acelera el build)
+    "skipLibCheck": true,
+    // Desactivar chequeo estricto de tipos (puedes poner true si quieres máxima seguridad)
+    "strict": false,
+    // No emitir archivos compilados; solo verificar tipos (Vite se encarga de compilar)
+    "noEmit": true,
+    // **Alias @ configurado para apuntar a resources/js**
+    "baseUrl": "./resources/js",
     "paths": {
-      "@/*": [
-        "resources/js/*"
-      ] // Alias @ apunta a resources/js
+      "@/*": ["*"]
     }
   },
+  // Archivos y carpetas que TypeScript debe analizar
   "include": [
-    "resources/js",
-    "vite.config.ts"
+    "resources/js/**/*"
+  ],
+  // Carpetas que TypeScript debe ignorar
+  "exclude": [
+    "node_modules",
+    "public"
   ]
 }

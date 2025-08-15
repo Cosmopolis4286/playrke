@@ -1,6 +1,11 @@
-// Importa la configuración personalizada de Axios para manejar peticiones HTTP
-import './axios.js';
-// Importa el script del loader de la aplicación 
+/**
+ * Punto de entrada principal
+ * - Loader de la aplicación
+ * - Módulos globales y helpers que siempre se usan
+ */
+
+// Loader o inicialización de UI
 import './show-app.js';
-// Importa el modulo global de la aplicación (inicialización, listeners, etc.)
-import './helpers/global.ts'
+
+// Módulos y funciones globales (eventos, inicialización, utilidades)
+import './helpers/global.ts';
