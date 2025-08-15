@@ -132,7 +132,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', '
     Route::post('create', [CustomerController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [CustomerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CustomerController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [CustomerController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [CustomerController::class, 'delete'])->name('delete');
     Route::put('changePassw/{id}', [CustomerController::class, 'changePassword'])->name('changePassw');
     Route::put('changeStatus/{id}', [CustomerController::class, 'changeStatus'])->name('changeStatus');
 });
@@ -142,7 +142,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-treasurer', 
     Route::post('create', [TreasurerController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [TreasurerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [TreasurerController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [TreasurerController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [TreasurerController::class, 'delete'])->name('delete');
     Route::put('changePassw/{id}', [TreasurerController::class, 'changePassword'])->name('changePassw');
     Route::put('changeStatus/{id}', [TreasurerController::class, 'changeStatus'])->name('changeStatus');
 });
@@ -151,7 +151,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-treasurer', 
 Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-other-treasurers', 'as' => 'admin-other-treasurers.'], function () {
     Route::get('getInfo/{id}', [OtherTreasurersController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [OtherTreasurersController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [OtherTreasurersController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [OtherTreasurersController::class, 'delete'])->name('delete');
     Route::put('changeStatus/{id}', [OtherTreasurersController::class, 'changeStatus'])->name('changeStatus');
 });
 
@@ -186,7 +186,7 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
     Route::get('getExchangeRates', [ExchangeRateController::class, 'getExchangeRates'])->name('getExchangeRates');
     Route::get('getInfo/{id}', [ExchangeRateController::class, 'getInfo'])->where('id', '.*')->name('getInfo');
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
     Route::put('changeStatus/{id}', [ExchangeRateController::class, 'changeStatus'])->name('changeStatus');
     Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
     Route::get('historical/{coin?}/{creatorType}/{creatorID}', [ExchangeRateController::class, 'historical'])->name('historical');
@@ -231,7 +231,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-commerce', '
     Route::post('create', [CommerceController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
     Route::put('changePassw/{id}', [CommerceController::class, 'changePassword'])->name('changePassw');
     Route::put('changeStatus/{id}', [CommerceController::class, 'changeStatus'])->name('changeStatus');
 });
@@ -242,7 +242,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'seller', 'as' =
     Route::post('create', [SellerController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [SellerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [SellerController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [SellerController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [SellerController::class, 'delete'])->name('delete');
     Route::put('changePassw/{id}', [SellerController::class, 'changePassword'])->name('changePassw');
     Route::put('changeStatus/{id}', [SellerController::class, 'changeStatus'])->name('changeStatus');
 });
@@ -269,7 +269,7 @@ Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'rewards', 'as' 
     Route::post('create', [RewardsController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [RewardsController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [RewardsController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [RewardsController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [RewardsController::class, 'delete'])->name('delete');
     Route::put('changeStatus/{id}', [RewardsController::class, 'changeStatus'])->name('changeStatus');
 });
 
@@ -284,7 +284,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'pagomovil', 'as' => 'pagomo
     Route::get('', [PagoMovilController::class, 'index'])->name('index');
     Route::post('create', [PagoMovilController::class, 'create'])->name('create');
     Route::put('update/{id}', [PagoMovilController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [PagoMovilController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [PagoMovilController::class, 'delete'])->name('delete');
     Route::get('getInfo/{id}', [PagoMovilController::class, 'getInfo'])->name('getInfo');
 });
 
@@ -293,7 +293,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'pix', 'as' => 'pix.'], func
     Route::get('', [PixController::class, 'index'])->name('index');
     Route::post('create', [PixController::class, 'create'])->name('create');
     Route::put('update/{id}', [PixController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [PixController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [PixController::class, 'delete'])->name('delete');
     Route::get('getInfo/{id}', [PixController::class, 'getInfo'])->name('getInfo');
     Route::get('get/banks', [PixController::class, 'getBanks'])->name('getBanks');
 });
@@ -302,7 +302,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'pix', 'as' => 'pix.'], func
 Route::group(['middleware' => ['auth'], 'prefix' => 'payment-method-col', 'as' => 'payment-method-col.'], function () {
     Route::post('create', [PaymentMethodsCOLController::class, 'create'])->name('create');
     Route::put('update/{id}', [PaymentMethodsCOLController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [PaymentMethodsCOLController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [PaymentMethodsCOLController::class, 'delete'])->name('delete');
     Route::get('getInfo/{id}', [PaymentMethodsCOLController::class, 'getInfo'])->name('getInfo');
 });
 
@@ -310,7 +310,7 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment-method-col', 'as' =
 Route::group(['middleware' => ['auth'], 'prefix' => 'binance', 'as' => 'binance.'], function () {
     Route::post('create', [BinanceController::class, 'create'])->name('create');
     Route::put('update/{id}', [BinanceController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [BinanceController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [BinanceController::class, 'delete'])->name('delete');
     Route::get('getInfo/{id}', [BinanceController::class, 'getInfo'])->name('getInfo');
 });
 
@@ -399,7 +399,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     // CRUD Bingo
     Route::post('create', [BingoController::class, 'create'])->name('create');
     Route::put('update/{id}', [BingoController::class, 'update'])->name('update');
-    Route::put('delete/{id}', [BingoController::class, 'delete'])->name('delete');
+    Route::delete('delete/{id}', [BingoController::class, 'delete'])->name('delete');
     Route::put('status/{id}', [BingoController::class, 'changeStatus'])->name('changeStatus');
     Route::put('replay/{id}', [BingoController::class, 'replay'])->name('replay');
     Route::put('publish/{id}', [BingoController::class, 'publish'])->name('publish');
