@@ -126,7 +126,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
  */
 export async function handleOtherCases(action: string): Promise<void> {
     const globalDelete: OtherCase = {
-        routeName: 'deleteVendor',
+        routeName: 'delete',
         text: 'El registro será eliminado definitivamente',
         icon: 'warning',
         confirmButtonText: 'Sí, eliminar',
