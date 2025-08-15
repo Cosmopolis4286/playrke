@@ -27,7 +27,6 @@
         }
     </style>
 @endonce
-
 <aside class="main-sidebar sidebar-dark-primary elevation-3" role="complementary" aria-label="Sidebar principal">
     <a href="{{ url('/dashboard') }}" class="menu-image-play cold" aria-label="Ir al dashboard">
         <img src="{{ asset('img/stam.png') }}" alt="Logo PlayRKE" class="brand-image">
@@ -49,10 +48,8 @@
                         <p>Tablero</p>
                     </a>
                 </li>
-
                 {{-- Slot: contenido personalizado según el usuario --}}
                 {{ $slot }}
-
                 {{-- Extras comunes --}}
                 <li class="nav-item has-treeview">
                     <a href="#" class="{{ Route::is('info.help-center') ? 'nav-link active' : 'nav-link' }}">
@@ -80,6 +77,7 @@
                     $infoRoutes = ['info.terms', 'info.about', 'info.privacy'];
                     $isInfoActive = Route::is($infoRoutes);
                 @endphp
+
                 <li class="nav-item has-treeview">
                     <a href="#" class="{{ $isInfoActive ? 'nav-link active' : 'nav-link' }}">
                         <i class="nav-icon fas fa-book"></i>

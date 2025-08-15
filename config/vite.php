@@ -13,7 +13,7 @@ return [
     */
 
     'entrypoints' => [
-        'resources/js/app.js',
+        'resources/js/app.ts',
         'resources/css/app.css',
     ],
 

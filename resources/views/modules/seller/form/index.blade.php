@@ -83,26 +83,21 @@
             </div>
         </div>
     </div>
-
-    <input type="hidden" id="module-file" value="seller/form/sellerForm.ts" />
-    <input type="hidden" id="view-id" value="{{ $viewId }}" />
-
     @include('includes.modal-form', [
         'viewId' => $viewId,
         'size' => 'md',
         'dataForm' => view('modules.seller.form.body')->render(),
     ])
-
     @if (Session::has('pawss'))
         <x-modals.copy-info name="copy-passw" title="Contraseña Vendedor" :value="Session::get('pawss')" />
     @endif
-
     {{-- Scripts específicos de esta vista --}}
     @push('stack-scripts')
         <script>
             window.appData = {
                 coins: @json($coins),
                 countries: @json($countries),
+                moduleFile: 'seller/form/sellerForm.ts',
                 timeZones: @json($timeZones)
             };
         </script>

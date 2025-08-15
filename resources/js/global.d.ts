@@ -3,8 +3,8 @@ export { }; // Hace este archivo un módulo
 
 declare global {
   interface Window {
-    ziggyPreloadPromise?: Promise<any>;
-    ziggyReady?: boolean;
+    vueAppIsReady: () => void;
+    _vueMounted?: boolean;
     route?: (name: string, params?: any) => string;
 
     getGMTOffset: () => string;

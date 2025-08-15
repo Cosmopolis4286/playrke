@@ -49,7 +49,7 @@
     </noscript>
 
     {{-- Scripts compilados con Vite --}}
-    @vite(['resources/js/app.js'])
+    @vite(['resources/js/app.ts'])
 
     {{-- Scripts adicionales y dependencias --}}
     <x-template.scripts :loadSelect2="$loadSelect2" />

@@ -1,6 +1,6 @@
 // resources/js/games/bingo/bingo.main.js
 import { createApp } from 'vue';
-import '@/show-app'; // Se asegura de ejecutar el control visual
+import '@/mounApp'; // Se asegura de ejecutar el control visual
 
 export default function mountApp(Component, props = {}) {
   const app = createApp(Component, props);

@@ -5,6 +5,7 @@ import { copyInfo } from './copyInfo.js';
 import { showToast, showToastConfirmAction } from './toastNotify.js';
 import { onDOMReady } from '../utils/domReady.js';
 import Swal, { SweetAlertIcon } from 'sweetalert2';
+import { moduleFile } from '@/data/index.js';
 
 // --------------------------------------
 // Definición de la interfaz del módulo dinámico
@@ -43,8 +44,6 @@ let route: (name: string, params?: Record<string, string | number>) => string = 
     console.warn('Función route no definida todavía');
     return '';
 };
-let encryptId = '';
-const moduleFile = (document.getElementById('module-file') as HTMLInputElement)?.value ?? '';
 
 // ========================
 // Carga dinámica del módulo
@@ -96,7 +95,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
     resetForm(form);
 
     const action = elem.dataset.action ?? '';
-    encryptId = document.getElementById(`elem-${viewId}`)?.dataset.id ?? '';
+    const encryptId = document.getElementById(`elem-${viewId}`)?.dataset.id ?? '';
 
     switch (action) {
         case 'create':
@@ -105,16 +104,16 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
             break;
 
         case 'edit':
-            await getInfo();
+            await getInfo(encryptId);
             prepareForm(form, 'update', 'Editar', 'PUT', encryptId);
             break;
 
         case 'delete':
-            await handleOtherCases('delete');
+            await handleOtherCases('delete', encryptId);
             break;
 
         default:
-            await handleOtherCases(action);
+            await handleOtherCases(action, encryptId);
             break;
     }
 }
@@ -124,7 +123,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
  * Solo ejecuta la petición PUT o DELETE si el usuario confirma la acción.
  * @param action Clave de la acción a ejecutar
  */
-export async function handleOtherCases(action: string): Promise<void> {
+export async function handleOtherCases(action: string, encryptId: string): Promise<void> {
     const globalDelete: OtherCase = {
         routeName: 'delete',
         text: 'El registro será eliminado definitivamente',
@@ -218,7 +217,7 @@ export function insertInfo(action: string, data: any = ''): void {
 /**
  * Obtiene información desde el backend y la carga en el formulario (modo edición).
  */
-async function getInfo(): Promise<void> {
+async function getInfo(encryptId: string): Promise<void> {
     try {
         if (!encryptId) throw new Error('ID cifrado no definido para getInfo');
 

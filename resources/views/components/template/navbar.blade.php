@@ -4,27 +4,10 @@
     $user = auth()->user();
 @endphp
 
-<style>
-    .nav-bar-bg {
-        background-image: linear-gradient(180deg, #060324 0, #030023 50%, #000022 100%);
-    }
-
-    .user-img {
-        max-width: 25px;
-    }
-
-    .user-text-nav {
-        color: #00eef7;
-        font-size: 13px;
-        font-weight: 400;
-    }
-</style>
-
-<nav class="main-header navbar navbar-expand nav-bar-bg justify-content-between">
-    <!-- Left side (Menú) -->
+<nav class="main-header navbar navbar-expand navbar-bg justify-content-between">
     <ul class="navbar-nav d-flex justify-content-center align-items-center">
         <li class="nav-item ml-n2 mr-1" title="Menú">
-            <a class="nav-link link_nav" data-widget="pushmenu" href="#" role="button" aria-label="Menú">
+            <a class="nav-link" data-widget="pushmenu" href="#" role="button" aria-label="Menú">
                 <i class="fas fa-bars"></i>
             </a>
         </li>
@@ -48,8 +31,6 @@
             </a>
         </li>
     </ul>
-
-    <!-- Right side (Usuario y opciones) -->
     <ul class="navbar-nav">
         <li class="nav-item dropdown" title="Opciones">
             <button class="btn btn-sm btn-outline-primary dropdown-toggle d-flex align-items-center" type="button"
@@ -58,7 +39,7 @@
                 <img class="mr-1 user-img rounded-circle"
                     src="{{ $user->foto ? asset('img/users/' . $user->foto) : asset('img/fav.ico') }}"
                     alt="Foto de usuario {{ $user->username }}">
-                <span class="user-text-nav">{{ $user->username }}</span>
+                <span class="user-text-navbar">{{ $user->username }}</span>
             </button>
             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown" style="font-size: 13px">
                 <button id="change-password" class="dropdown-item" type="button" data-type="change_pwd">

@@ -20,7 +20,7 @@
     @endif
 
     @if (empty($withoutAppJS))
-        @vite('resources/js/app.js')
+        @vite('resources/js/app.ts')
     @endif
 </body>
 

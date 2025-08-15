@@ -5,12 +5,10 @@
     'loadPlugins' => true,
     'loadSelect2' => false,
 ])
-
 {{-- 📦 jQuery y Validaciones --}}
 @if ($loadJquery)
     {{-- jQuery sin defer para que esté disponible inmediatamente --}}
     <script src="{{ asset('js/jquery-3.7.1.min.js') }}"></script>
-
     {{-- Plugins de validación y máscaras, sin defer para carga inmediata --}}
     <script src="{{ asset('js/jquery.validate.min.js') }}"></script>
     <script src="{{ asset('js/jquery.validate.unobtrusive.min.js') }}"></script>
@@ -18,19 +16,16 @@
     <script src="{{ asset('js/jquery.inputmask.min.js') }}"></script>
     <script src="{{ asset('js/jquery.mask.min.js') }}"></script>
 @endif
-
 {{-- 🎨 Select2 solo si se requiere --}}
 @if ($loadSelect2)
     <script src="{{ asset('js/select2.min.js') }}"></script>
 @endif
-
 {{-- 🚀 Bootstrap --}}
 @if ($loadBootstrap)
     {{-- Popper y Bootstrap sin defer para inicializar componentes UI antes de tu código --}}
     <script src="{{ asset('js/Bootstrap/popper.min.js') }}"></script>
     <script src="{{ asset('js/Bootstrap/bootstrap.min.js') }}"></script>
 @endif
-
 {{-- 📊 DataTables --}}
 @if ($loadDataTables)
     {{-- Scripts DataTables sin defer para inicialización inmediata --}}
@@ -39,7 +34,6 @@
     <script src="{{ asset('js/DataTables/dataTables.responsive.js') }}"></script>
     <script src="{{ asset('js/DataTables/responsive.bootstrap4.js') }}"></script>
 @endif
-
 {{-- 🔌 Plugins adicionales --}}
 @if ($loadPlugins)
     {{-- Plugins como SweetAlert, overlayScrollbars y AdminLTE --}}

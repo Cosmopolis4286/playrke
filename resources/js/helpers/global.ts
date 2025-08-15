@@ -1,3 +1,4 @@
+// resources/js/helpers/global.ts
 import $ from 'jquery';
 import 'datatables.net-bs4';
 import { SweetAlertIcon } from 'sweetalert2';
@@ -5,9 +6,9 @@ import { showToast } from './toastNotify.js';
 import { submitForm } from './formCrud.js';
 
 /**
- * 📢 Muestra un toast con el mensaje de sesión
- * @param message Texto del mensaje
- * @param icon Tipo de ícono (SweetAlertIcon)
+ * 📢 Muestra un toast con el mensaje de sesión si existe.
+ * @param message - Texto del mensaje
+ * @param icon - Tipo de ícono (SweetAlertIcon)
  */
 export function showSessionToast(message: string, icon: SweetAlertIcon): void {
     if (message?.trim()) {
@@ -16,8 +17,8 @@ export function showSessionToast(message: string, icon: SweetAlertIcon): void {
 }
 
 /**
- * 📊 Inicializa DataTables en tablas con clase .dataTable
- * @param languageUrl URL del archivo de idioma de DataTables
+ * 📊 Inicializa DataTables en tablas con clase `.dataTable`.
+ * @param languageUrl - URL del archivo de idioma de DataTables
  */
 export function loadDataTable(languageUrl: string): void {
     const $table = $('table.dataTable');
@@ -32,16 +33,15 @@ export function loadDataTable(languageUrl: string): void {
 }
 
 /**
- * 🌐 Configura eventos globales de la aplicación
+ * 🌐 Configura eventos globales de la aplicación:
  * - Manejo de modales (cambio de contraseña)
  * - Prevención de arrastre de imágenes
  * - Logout con CSRF token
- * - Inicializa popovers
+ * - Inicializa popovers si existen
+ * - Soluciona error de `aria-hidden` en modales Bootstrap 4
  */
 export function setupGlobalEvents(): void {
-    /**
-     * 🖱 Delegación de eventos de click
-     */
+    // 🖱 Delegación de eventos de click
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
 
@@ -58,18 +58,14 @@ export function setupGlobalEvents(): void {
         }
     });
 
-    /**
-     * 🖼 Evitar arrastre accidental de imágenes
-     */
+    // 🖼 Evitar arrastre accidental de imágenes
     document.addEventListener('dragstart', (event) => {
         if ((event.target as HTMLElement)?.tagName === 'IMG') {
             event.preventDefault();
         }
     });
 
-    /**
-     * 🚪 Logout con CSRF token dinámico
-     */
+    // 🚪 Logout con CSRF token dinámico
     document.querySelectorAll<HTMLButtonElement>('.logout-btn').forEach((button) => {
         button.addEventListener('click', () => {
             const { logoutUrl = '/logout', loginRedirectUrl = '/login', csrfToken = '' } = window as any;
@@ -90,45 +86,46 @@ export function setupGlobalEvents(): void {
                 })
                 .catch((error) => console.error('Error en logout:', error));
         });
-    });
-
-    /**
-     * 💬 Inicializar popovers si existen
-     */
-    if ($('.popover').length > 0 && typeof ($ as any).fn?.popover === 'function') {
-        $('.popover').popover();
-    }
+    });    
 }
 
 /**
- * 🚀 Inicializa la aplicación cuando el DOM esté listo
+ * 🚀 Inicializa la aplicación globalmente
  * - Configura eventos globales
  * - Muestra mensaje de sesión si existe
  * - Muestra errores de Laravel si existen
  * - Inicializa DataTables si está habilitado
  */
-document.addEventListener('DOMContentLoaded', () => {
-    // 1️⃣ Inicializar eventos globales
+export function initGlobal(): void {
     setupGlobalEvents();
 
-    // 2️⃣ Mostrar mensaje de sesión
+    // Mostrar mensaje de sesión
     if (window.Session?.message) {
         showSessionToast(window.Session.message, window.Session.type || 'success');
     }
 
-    // 3️⃣ Mostrar errores de Laravel
+    // Mostrar errores de Laravel
     if (Array.isArray(window.LaravelErrors) && window.LaravelErrors.length > 0) {
         window.LaravelErrors.forEach((msg: string) => {
             showToast(msg, 'error');
         });
     }
 
-    // 4️⃣ Inicializar DataTables si está habilitado
+    // Inicializar DataTables si está habilitado
     if (window.loadDataTables) {
-        const languageUrl = '/lang/datatables/es.json'; // ⚠️ Cambiar por tu ruta real de idioma
+        const languageUrl = '/lang/datatables/es.json'; // ⚠️ Cambiar por ruta real
         loadDataTable(languageUrl);
     }
-});
+}
+
+/**
+ * 📅 Ejecuta initGlobal automáticamente según el estado del DOM
+ */
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGlobal);
+} else {
+    initGlobal(); // Ya está listo, ejecuta directamente
+}
 
 /**
  * 🛡 Tipos globales para TypeScript

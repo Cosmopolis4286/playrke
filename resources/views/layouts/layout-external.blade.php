@@ -50,37 +50,14 @@
     </main>
 
     <script src="https://www.google.com/recaptcha/api.js"></script>
-    <script src="{{ asset('js/jquery-3.6.4.min.js') }}"></script>
+    <script src="{{ asset('js/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ asset('js/Bootstrap/popper.min.js') }}"></script>
     <script src="{{ asset('js/Bootstrap/bootstrap.min.js') }}"></script>
     <script src="{{ asset('js/notyf.min.js') }}"></script>
-
-    <script>
-        $(document).on('dragstart', 'img', function(evt) {
-            evt.preventDefault();
-        });
-
-        $(document).ready(function() {
-            $(".info-user-rke").click(function() {
-                const info = $(this).data('val');
-                $.ajax({
-                    url: `{{ route('info-rke', ['page' => ':1']) }}`.replace(':1', info),
-                    method: 'GET',
-                    headers: {
-                        'X-CSRF-TOKEN': $("#5K3_70K").val()
-                    },
-                    success: function(response) {
-                        $(".modal-body").html(response);
-                        $("#app-info").modal("show");
-                    },
-                    error: function() {
-                        console.log("No se pudo cargar el contenido.");
-                    }
-                });
-            });
-        });
-    </script>
-    @yield ('scripts')
+    {{-- Scripts específicos de esta vista --}}
+    @push('stack-scripts')
+        @vite('resources/js/helpers/userInfoModule.ts')
+    @endpush
 </body>
 
 </html>

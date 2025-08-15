@@ -4,7 +4,7 @@ body {
   font-family: 'Poppins', sans-serif !important;
 }
 
-.hide-elem{
+.hide-elem {
   display: none !important;
 }
 
@@ -23,8 +23,8 @@ body {
   border-radius: 50%;
   background: #25b09b;
   --_m:
-      conic-gradient(#0000 10%, #000),
-      linear-gradient(#000 0 0) content-box;
+    conic-gradient(#0000 10%, #000),
+    linear-gradient(#000 0 0) content-box;
   -webkit-mask: var(--_m);
   mask: var(--_m);
   -webkit-mask-composite: source-out;
@@ -34,7 +34,7 @@ body {
 
 @keyframes l3 {
   to {
-      transform: rotate(1turn)
+    transform: rotate(1turn)
   }
 }
 
@@ -124,6 +124,20 @@ body::-webkit-scrollbar-thumb {
 
 .grid-dashboard a:hover {
   color: #4f7fff;
+}
+
+.navbar-bg {
+  background-image: linear-gradient(180deg, #060324 0, #030023 50%, #000022 100%);
+}
+
+.user-img {
+  max-width: 25px;
+}
+
+.user-text-navbar {
+  color: #00eef7;
+  font-size: 13px;
+  font-weight: 400;
 }
 
 /*!
@@ -411,9 +425,9 @@ button,
 [type=button],
 [type=reset],
 [type=submit] {
-  -webkit-appearance: button; 
-  -moz-appearance: button;   
-  appearance: button;       
+  -webkit-appearance: button;
+  -moz-appearance: button;
+  appearance: button;
 }
 
 button:not(:disabled),
@@ -472,9 +486,9 @@ progress {
 
 [type=search] {
   outline-offset: -2px;
-  -webkit-appearance: none;  
-  -moz-appearance: none;     
-  appearance: none;          
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 [type=search]::-webkit-search-decoration {

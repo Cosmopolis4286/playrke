@@ -1,3 +1,4 @@
+// resources/js/app.ts
 /**
  * Punto de entrada principal
  * - Loader de la aplicación
@@ -5,7 +6,7 @@
  */
 
 // Loader o inicialización de UI
-import './show-app.js';
+import './mounApp.ts';
 
 // Módulos y funciones globales (eventos, inicialización, utilidades)
 import './helpers/global.ts';
