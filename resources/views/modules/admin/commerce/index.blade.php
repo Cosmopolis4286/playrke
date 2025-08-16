@@ -1,12 +1,12 @@
-@extends('layouts.layout-online')
-@section('title', $title)
-@section('content')
+<x-layouts.layout-online :title="$title" :loadSelect2="true">
     <div class="col-12">
         <div class="card">
-            @include('includes.card-header')
+            <x-shared.card-header :title="$title" />
             <div class="card-body">
-                <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-type="1">
-                    <i class="fas fa-plus-square mr-1"></i>Añadir</button>
+                <button id="btn-{{ $viewId }}-insert" class="btn btn-sm btn-primary btn-{{ $viewId }}"
+                    type="button" data-action="create">
+                    <i class="fas fa-plus-square mr-1"></i>Comercio
+                </button>
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">
                         <thead>
@@ -28,32 +28,7 @@
                                     <td>{{ $item->User->email }}</td>
                                     <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                     <td>
-                                        @include('includes.btn-group', [
-                                            'viewId' => $viewId,
-                                            'dataId' => encrypt($item->id),
-                                            'buttons' => [
-                                                (object) [
-                                                    'action' => 'edit',
-                                                    'color' => 'btn-primary',
-                                                    'icon' => 'fas fa-edit',
-                                                ],
-                                                (object) [
-                                                    'action' => 'delete',
-                                                    'color' => 'btn-danger',
-                                                    'icon' => 'fa-solid fa-trash-can',
-                                                ],
-                                                (object) [
-                                                    'action' => '4',
-                                                    'color' => 'btn-secondary',
-                                                    'icon' => 'fa-solid fa-repeat',
-                                                ],
-                                                (object) [
-                                                    'action' => '5',
-                                                    'color' => 'bg-navy',
-                                                    'icon' => 'fa-solid fa-lock',
-                                                ],
-                                            ],
-                                        ])
+                                        <x-btn-group :btnGroupId="$viewId" :dataId="encrypt($item->id)" :buttons="$item->extraButtons" />
                                     </td>
                                 </tr>
                             @endforeach
@@ -63,186 +38,19 @@
             </div>
         </div>
     </div>
-    @include('includes.modal-form', [
-        'viewId' => $viewId,
-        'size' => 'md',
-        'dataForm' => view('modules.admin.commerce.form')->render(),
-    ])
-    @include('includes.modal-copy-info', [
-        'viewId' => 'copy-passw',
-        'title' => 'Contraseña Comercio',
-    ])
-@endsection
-@section('scripts')
-    <script src="{{ asset('js/select2.min.js') }}"></script>
-    <script>
-        if (@json(Session::has('message-passw'))) {
-            const newPassw = {!! json_encode(Session::get('message-passw')) !!};
-            $("#info-to-copy").val(newPassw);
-            setTimeout(function() {
-                $("#modal-copy-passw").modal('show');
-            }, 3000);
-        }
-
-        $(document).on("click", "#btn-copy", function() {
-            copyInfo('Contraseña Copiada');
-        });
-
-        $(function() {
-            $('.select2').each(function() {
-                $(this).select2({
-                    theme: 'bootstrap4',
-                    width: 'style',
-                    placeholder: $(this).attr('placeholder'),
-                    allowClear: Boolean($(this).data('allow-clear')),
-                });
-            });
-        });
-
-        $(function() {
-            $('[data-toggle="popover"]').popover()
-        })
-
-        $(document).on('click', '.popover-dismiss', function() {
-            $(this).popover('toggle');
-        });
-
-        $("#phone").mask("00000000000");
-
-        const name = '<?php echo $viewId; ?>';
-        const arrCountries = JSON.parse('<?php echo $countries; ?>');
-        const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
-        const coins = JSON.parse('<?php echo $coins; ?>');
-        const country = $("#country");
-        const timeZone = $("#time-zone");
-        const coin = $("#coin");
-        const coinText = $("#coin-text");
-        const otherCoins = $("#other-coins");
-        const allowedGames = $("#allowed-games");
-        const arrGames = @json($games);
-        let update = false;
-
-        if (@json(Session::has('msg-error'))) {
-            const error = {!! json_encode(Session::get('msg-error')) !!};
-
-            // Asignar elem basado en el valor de error
-            let elem = error == 1 ? $(`#btn-${name}-insert`) :
-                (error == 2 ? [2, {!! json_encode(Session::get('encryptedId')) !!}] : null);
-
-            formCRUD(elem, name, 'Comercio');
-        }
-
-        $(document).on("click", `.btn-${name}`, function() {
-            formCRUD($(this), name, 'Comercio', otherCasesMap)
-        });
-
-        country.on("change", function() {
-            const selectedCountry = country.val(); // Obtener el valor seleccionado del país
-
-            if (selectedCountry) {
-                $.each(coins, function(index, item) {
-                    if (item.country == selectedCountry) {
-                        coinText.val(`(${item.symbol}) ${item.short_name}`);
-                        coin.val(item.id);
-                    }
-                });
-                if (coins.length > 1 && !update) insertOtherCoins();
-            } else {
-                coinText.val('');
-                coin.val('');
-                $("#cont-other-coins").addClass('hide-elem');
-            }
-        });
-
-        function insertOtherCoins(selectedCoins = []) {
-            otherCoins.empty();
-            $.each(coins, function(index, item) {
-                if (item.id != coin.val()) {
-                    const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
-                    otherCoins.append(
-                        `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
-                    );
-                }
-            });
-            $("#cont-other-coins").removeClass('hide-elem');
-        }
-
-        function insertGames(selectedGames = '') {
-            allowedGames.empty();
-            $.each(arrGames, function(index, item) {
-                const isSelected = selectedGames.includes(item.id) ? 'selected' : '';
-                allowedGames.append(`<option value="${item.id}" ${isSelected}>${item.name}</option>`);
-            });
-        }
-
-        function insertInfo(type, data = '') {
-            update = false;
-            $('#username, #email').attr('readonly', false);
-
-            if (type == 1) {
-                country.html(`<option value="" disabled selected>Seleccionar País:</option>`);
-                timeZone.html(`<option value="" disabled selected>Seleccionar Zona:</option>`);
-            }
-
-            $.each(arrCountries, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.commerce.country) ? 'selected' : '';
-                country.append(
-                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
-            });
-
-            $.each(arrTimeZones, function(index, item) {
-                const isSelected = (type == 2 && item.id == data.user.time_zone) ? 'selected' : '';
-                timeZone.append(
-                    `<option value="${item.id}" ${isSelected}>${item.name}</option>`);
-            });
-
-            if (type == 2) {
-                const commerce = data.commerce;
-                const otherCoins = data.other_coins;
-                const user = data.user;
-
-                $('#name').val(commerce.name);
-                $('#phone').val(commerce.phone);
-                $('#code-rke').val(commerce.code_rke);
-                update = true;
-                country.trigger('change');
-                insertOtherCoins(otherCoins)
-
-                $("#username").val(user.username);
-                $("#email").val(user.email);
-                $('#username, #email').attr('readonly', true);
-            }
-
-            insertGames();
-
-            $(`#modal-${name}`).modal('show');
-        }
-
-        $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['viewId', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
-        });
-
-        const otherCasesMap = {
-            4: function(encryptedId) {
-                showToastConfirmAction(
-                    'Deseas cambiar el status de este comercio',
-                    'question',
-                    'Sí, cambiar',
-                    route(`${name}.changeStatus`, {
-                        id: encryptedId
-                    })
-                );
-            },
-            5: function(encryptedId) {
-                showToastConfirmAction(
-                    'Generar nueva contraseña a este comercio',
-                    'info',
-                    'Sí, generar',
-                    route(`${name}.changePassw`, {
-                        id: encryptedId
-                    })
-                );
-            },
-        };
-    </script>
-@endsection
+    <x-shared.modal :id="$viewId" :formView="'modules.admin.commerce.form'" title="Crear Comercio" />
+    {{-- @if (Session::has('pawss'))
+        <x-modals.copy-info name="copy-passw" title="Contraseña Vendedor" :value="Session::get('pawss')" />
+    @endif --}}
+    @push('stack-scripts')
+        <script>
+            window.appData = {
+                coins: @json($coins),
+                countries: @json($countries),
+                moduleFile: 'commerce/form/commerceForm.ts',
+                timeZones: @json($timeZones)
+            };
+        </script>
+        @vite('resources/js/helpers/formCrud.ts')
+    @endpush
+    </x-layout-online>

@@ -31,7 +31,7 @@ class AdminController extends Controller
 
         return view('modules/admin/commerce/index')->with([
             'title' => 'Comercializadoras',
-            'name' => 'admin-commerce',
+            'viewId' => 'admin-commerce',
             'commerces' => $commerces,
             'countries' => $countries,
             'timeZones' => $timeZones,
