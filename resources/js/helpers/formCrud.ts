@@ -1,5 +1,5 @@
 // formCrud.ts
-import axios from '../axios.js';
+import axios from '@/axios';
 import { ajaxStart } from './loader.js';
 import { copyInfo } from './copyInfo.js';
 import { showToast, showToastConfirmAction } from './toastNotify.js';

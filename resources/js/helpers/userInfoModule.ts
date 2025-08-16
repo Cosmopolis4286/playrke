@@ -5,7 +5,7 @@
  * @module userInfoModule
  */
 
-import axios from "axios.ts";
+import axios from "@/axios";
 
 /**
  * Inicializa los eventos para mostrar la información de un usuario en un modal.

@@ -33,8 +33,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 
-import axios from '@/axios.js';  
-import { route } from '@/ziggy-routes.js'; 
+import axios from '@/axios';  
 import echo from "@/echo.js";
 
 import BingoBoard from "../components/game-info/BingoBoard.vue";
