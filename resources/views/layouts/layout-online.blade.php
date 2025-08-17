@@ -17,14 +17,14 @@
         {{-- Contenido principal --}}
         <main class="content-wrapper">
             <div class="content-header">
-                <div class="container-fluid">@yield('content')</div>
+                <div class="container-fluid">
+                    @yield('content')
+                </div>
             </div>
         </main>
         {{-- Pie de página --}}
         <x-template.footer />
-        {{-- Modal cambio de contraseña --}}
-        <x-modals.change-password />
-    </div> 
+    </div>
     {{-- Scripts adicionales y dependencias --}}
     <x-template.scripts />
     {{-- Scripts compilados con Vite --}}

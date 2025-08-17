@@ -22,6 +22,7 @@
     @if (empty($withoutAppJS))
         @vite('resources/js/app.ts')
     @endif
+    @stack('stack-scripts')
 </body>
 
 </html>
