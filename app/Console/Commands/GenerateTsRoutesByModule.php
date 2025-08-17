@@ -19,16 +19,31 @@ class GenerateTsRoutesByModule extends Command
         // Define módulos solo con prefijos
         $modules = [
             'admin',
+
+            'binance',
             'bingo',
+            'bingo-automatic-room',
+            'bingocash',
+            'bingo-patterns',
             'commerce',
             'customer',
+            'customer',
+            'directory',
             'exchange-rate',
+            'games',
+            'iframe',
+            'image',
             'info',
             'report',
             'rewards',
+            'other-treasurers',
             'pagomovil',
+            'payment',
+            'payment-method-col',
             'pix',
-            'seller'
+            'profile',
+            'seller',
+            'treasurer'
         ];
 
         foreach ($modules as $prefix) {

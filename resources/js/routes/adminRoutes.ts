@@ -1,7 +1,7 @@
 // ======================================================
 // Archivo: resources/js/routes/adminRoutes.ts
 // Descripción: Rutas del módulo adminRoutes
-// Fecha de actualización (GMT): 2025-08-10T14:33:52Z
+// Fecha de actualización (GMT): 2025-08-17T20:34:38Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 

@@ -1,13 +1,19 @@
 // ======================================================
 // Archivo: resources/js/routes/customerRoutes.ts
 // Descripción: Rutas del módulo customerRoutes
-// Fecha de actualización (GMT): 2025-08-10T14:33:52Z
+// Fecha de actualización (GMT): 2025-08-17T20:34:38Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
 import { route as baseRoute } from './helper.js';
 
 export const customerRoutes = {
+    "create": "/customer/create",
+    "getInfo": "/customer/getInfo/{id}",
+    "update": "/customer/update/{id}",
+    "delete": "/customer/delete/{id}",
+    "changePassw": "/customer/changePassw/{id}",
+    "changeStatus": "/customer/changeStatus/{id}",
     "getUserBalance": "/customer/getUserBalance/{userToken}",
     "getUserId": "/customer/getUserId/{userToken}",
     "increaseBalance": "/customer/increaseBalance/{userToken}/{balance?}"

@@ -1,14 +1,19 @@
 // ======================================================
 // Archivo: resources/js/routes/commerceRoutes.ts
 // Descripción: Rutas del módulo commerceRoutes
-// Fecha de actualización (GMT): 2025-08-10T14:33:52Z
+// Fecha de actualización (GMT): 2025-08-17T20:34:38Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
 import { route as baseRoute } from './helper.js';
 
 export const commerceRoutes = {
-    "getPaymentTreasurerDetails": "/commerce/getPaymentTreasurerDetails/{treasurer}/{coin}",
+    "create": "/commerce/create",
+    "getInfo": "/commerce/getInfo/{id}",
+    "update": "/commerce/update/{id}",
+    "delete": "/commerce/delete/{id}",
+    "changePassw": "/commerce/changePassw/{id}",
+    "changeStatus": "/commerce/changeStatus/{id}",
     "getPaymentCommerceDetails": "/commerce/getPaymentCommerceDetails/{commerce}/{coin}",
     "rewards": "/commerce/rewards",
     "sellers": "/commerce/sellers",

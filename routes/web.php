@@ -23,11 +23,8 @@ use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\RewardsController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\TreasurerController;
-use App\Http\Controllers\WalletController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Session;
 use App\Models\Settings;
 
 require __DIR__ . '/auth.php';
@@ -46,44 +43,32 @@ Route::get('get/info/{page}', function ($page) {
     abort(404);
 })->name('info-rke');
 
-// Rutas para gestión de mensajes flash (limpieza)
-Route::post('/clear-flash-messages', function (Request $request) {
-    $messageKeys = $request->input('message_keys', []);
-    foreach ($messageKeys as $messageKey) {
-        if (Session::has($messageKey)) {
-            Session::forget($messageKey);
-        }
-    }
-    return response()->json(['status' => 'success']);
-})->name('clear.flash.messages');
-
 // Ruta para obtener la cookie 'referral'
 Route::get('cookie', function () {
     return Cookie::get('referral');
 })->middleware('auth');
 
-/*=============================================
-=          RUTAS CON MIDDLEWARE AUTH           =
-=============================================*/
+// Dashboard con verificación adicional
+Route::get('dashboard', [HomeController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+
+// Obtención hora servidor con zona horaria opcional
+Route::get('get/RKETIMESERV/{timeZone?}', [InformationController::class, 'getTimeServer'])->name('info.getTimeServer')->middleware('auth');
 
 // Perfil del usuario
-Route::group(['middleware' => ['auth'], 'prefix' => 'profile', 'as' => 'profile.'], function () {
+Route::group(['middleware' => 'auth', 'prefix' => 'profile', 'as' => 'profile.'], function () {
     Route::get('', [ProfileController::class, 'index'])->name('index');
     Route::put('{id}', [ProfileController::class, 'update'])->name('update');
     Route::patch('changePassword/{id}', [ProfileController::class, 'changePassword'])->name('changePassword');
 });
 
-// Dashboard con verificación adicional
-Route::get('dashboard', [HomeController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
-
 // Rutas de referidos
-Route::group(['middleware' => ['auth'], 'prefix' => 'referidos', 'as' => 'refe.'], function () {
+Route::group(['middleware' => 'auth', 'prefix' => 'referidos', 'as' => 'refe.'], function () {
     Route::get('{referralCode}', [ReferralController::class, 'index'])->name('index');
     Route::get('r/{referralCode}', [ReferralController::class, 'link'])->name('referral.link');
 });
 
 // Información y contenido estático protegido
-Route::group(['middleware' => ['auth'], 'prefix' => 'info', 'as' => 'info.'], function () {
+Route::group(['middleware' => 'auth', 'prefix' => 'info', 'as' => 'info.'], function () {
     Route::get('terms', [InformationController::class, 'terms'])->name('terms');
     Route::get('about', [InformationController::class, 'about'])->name('about');
     Route::get('privacy', [InformationController::class, 'privacy'])->name('privacy');
@@ -108,13 +93,7 @@ Route::group(['middleware' => 'auth', 'prefix' => 'directory', 'as' => 'director
     Route::get('{countryCode}', [DirectoryController::class, 'index'])->name('index');
 });
 
-// Obtención hora servidor con zona horaria opcional
-Route::get('get/RKETIMESERV/{timeZone?}', [InformationController::class, 'getTimeServer'])->name('info.getTimeServer')->middleware('auth');
-
-/*=============================================
-=          RUTAS ADMIN CON MIDDLEWARE          =
-=============================================*/
-
+// Rutas solo para administradores
 Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin', 'as' => 'admin.'], function () {
     Route::get('customers', [AdminController::class, 'customers'])->name('customers');
     Route::get('commerces', [AdminController::class, 'commerces'])->name('commerces');
@@ -123,12 +102,11 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin', 'as' => 'a
     Route::get('subsidiaries', [AdminController::class, 'subsidiaries'])->name('subsidiaries');
     Route::get('treasurers', [AdminController::class, 'treasurers'])->name('treasurers');
     Route::get('users', [AdminController::class, 'users'])->name('users');
-
     Route::get('get-user-info/{userRole}/{exclude?}', [AdminController::class, 'getUserInfo'])->name('getUserInfo');
 });
 
 // Administración clientes (Admin + Auth)
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', 'as' => 'admin-customer.'], function () {
+Route::group(['middleware' => 'admin', 'prefix' => 'customer', 'as' => 'customer.'], function () {
     Route::post('create', [CustomerController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [CustomerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CustomerController::class, 'update'])->name('update');
@@ -138,49 +116,39 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-customer', '
 });
 
 // Administración Tesorero (Admin + Auth)
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-treasurer', 'as' => 'admin-treasurer.'], function () {
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'treasurer', 'as' => 'treasurer.'], function () {
     Route::post('create', [TreasurerController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [TreasurerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [TreasurerController::class, 'update'])->name('update');
     Route::delete('delete/{id}', [TreasurerController::class, 'delete'])->name('delete');
     Route::put('changePassw/{id}', [TreasurerController::class, 'changePassword'])->name('changePassw');
     Route::put('changeStatus/{id}', [TreasurerController::class, 'changeStatus'])->name('changeStatus');
+
+    Route::get('getPaymentTreasurerDetails/{treasurer}/{coin}', [TreasurerController::class, 'getPaymentTreasurerDetails'])
+        ->withoutMiddleware(['admin']);
 });
 
 // Administración otros tesoreros (Admin + Auth)
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-other-treasurers', 'as' => 'admin-other-treasurers.'], function () {
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'other-treasurers', 'as' => 'other-treasurers.'], function () {
     Route::get('getInfo/{id}', [OtherTreasurersController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [OtherTreasurersController::class, 'update'])->name('update');
     Route::delete('delete/{id}', [OtherTreasurersController::class, 'delete'])->name('delete');
     Route::put('changeStatus/{id}', [OtherTreasurersController::class, 'changeStatus'])->name('changeStatus');
 });
 
-/*=============================================
-=          RUTAS CLIENTE CON MIDDLEWARE        =
-=============================================*/
-
+// Rustas Clientes
 Route::group(['middleware' => ['auth', 'customer'], 'prefix' => 'customer', 'as' => 'customer.'], function () {
     Route::get('getUserBalance/{userToken}', [CustomerController::class, 'getUserBalance'])->name('getUserBalance');
     Route::get('getUserId/{userToken}', [CustomerController::class, 'getUserId'])->name('getUserId');
     Route::get('increaseBalance/{userToken}/{balance?}', [CustomerController::class, 'increaseBalance'])->name('increaseBalance');
 });
 
-/*=============================================
-=          RUTAS DE PAGO Y MÉTODOS             =
-=============================================*/
-
 // Rutas relacionadas con pagos y comprobantes
-Route::group(['middleware' => ['auth'], 'prefix' => 'payment', 'as' => 'payment.'], function () {
+Route::group(['middleware' => 'auth', 'prefix' => 'payment', 'as' => 'payment.'], function () {
     Route::get('proof/{fileName}', [PaymentController::class, 'showPaymentProof'])->name('proof');
 });
 
-// Rutas específicas de métodos de pago (si tienes más en PaymentMethodsCOLController o PagoMovilController, agrupar aquí)
-// No estaban definidas rutas específicas en tu ejemplo para estos controladores, pero puedes agregarlas en este grupo.
-
-/*=============================================
-=          RUTAS DE TASA DE CAMBIO             =
-=============================================*/
-
+// Rutas Tasas de cambios
 Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function () {
     Route::post('create', [ExchangeRateController::class, 'create'])->name('create');
     Route::get('getExchangeRates', [ExchangeRateController::class, 'getExchangeRates'])->name('getExchangeRates');
@@ -193,47 +161,39 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
     Route::get('{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
 });
 
-/*=============================================
-=          RUTAS TESORERO CON MIDDLEWARE       =
-=============================================*/
-
-Route::group(['middleware' => ['auth', 'treasurer'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
-    // Esta ruta es accesible sin middleware auth y treasurer (se sobrescribe)
-    Route::get('getPaymentTreasurerDetails/{treasurer}/{coin}', [TreasurerController::class, 'getPaymentTreasurerDetails'])
-        ->withoutMiddleware(['auth', 'treasurer'])
-        ->name('getPaymentTreasurerDetails');
-});
-
-/*=============================================
-=          RUTAS ADMINISTRACIÓN DE COMERCIO    =
-=============================================*/
-
-// Comercio / Comercializadora / Banca
-Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
-    // Detalles de pago para comercio (sin middleware de auth y commerce)
-    Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])
-        ->withoutMiddleware(['auth', 'commerce'])->name('getPaymentCommerceDetails');
-
-    // Listados
-    Route::get('rewards', [CommerceController::class, 'rewards'])->name('rewards');
-    Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
-
-    // Información específica
-    Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
-    Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
-
-    // Pago lote de cartones bingo
-    Route::put('bingo/carton-lot/payment', [CommerceController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
-});
-
-// Opciones de Comercio para ADMIN
-Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'admin-commerce', 'as' => 'admin-commerce.'], function () {
+// RUTAS ADMINISTRACIÓN DE COMERCIO 
+Route::group(['middleware' => 'admin', 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
     Route::post('create', [CommerceController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
     Route::delete('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
     Route::put('changePassw/{id}', [CommerceController::class, 'changePassword'])->name('changePassw');
     Route::put('changeStatus/{id}', [CommerceController::class, 'changeStatus'])->name('changeStatus');
+});
+
+// Comercio / Comercializadora / Banca
+Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
+    /*=============================================
+    =          RUTAS ADMINISTRACIÓN DE COMERCIO    =
+    =============================================*/
+    Route::middleware('admin')->post('create', [CommerceController::class, 'create'])->name('create');
+    Route::middleware('admin')->get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
+    Route::delete('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
+    Route::put('changePassw/{id}', [CommerceController::class, 'changePassword'])->name('changePassw');
+    Route::put('changeStatus/{id}', [CommerceController::class, 'changeStatus'])->name('changeStatus');
+    /*=============================================*/
+    // Detalles de pago para comercio (sin middleware de auth y commerce)
+    Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])
+        ->withoutMiddleware(['auth', 'commerce'])->name('getPaymentCommerceDetails');
+    // Listados
+    Route::get('rewards', [CommerceController::class, 'rewards'])->name('rewards');
+    Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
+    // Información específica
+    Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
+    Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
+    // Pago lote de cartones bingo
+    Route::put('bingo/carton-lot/payment', [CommerceController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
 });
 
 // Opciones para Seller - admin y comercio
@@ -307,50 +267,15 @@ Route::group(['middleware' => ['auth'], 'prefix' => 'payment-method-col', 'as' =
 });
 
 // Binance - middleware auth
-Route::group(['middleware' => ['auth'], 'prefix' => 'binance', 'as' => 'binance.'], function () {
+Route::group(['middleware' => 'auth', 'prefix' => 'binance', 'as' => 'binance.'], function () {
     Route::post('create', [BinanceController::class, 'create'])->name('create');
     Route::put('update/{id}', [BinanceController::class, 'update'])->name('update');
     Route::delete('delete/{id}', [BinanceController::class, 'delete'])->name('delete');
     Route::get('getInfo/{id}', [BinanceController::class, 'getInfo'])->name('getInfo');
 });
 
-// Billetera (Wallet) - middleware auth
-Route::group(['middleware' => ['auth'], 'prefix' => 'wallet', 'as' => 'wallet.'], function () {
-    Route::get('', [WalletController::class, 'index'])->name('index');
-
-    // Depósitos
-    Route::get('deposit/bpay', [WalletController::class, 'createBPay'])->name('createBPay');
-    Route::post('storeBPay', [WalletController::class, 'storeBPay'])->name('storeBPay');
-    Route::get('deposit/blockchain', [WalletController::class, 'createBlock'])->name('createBlock');
-    Route::post('storeBlock', [WalletController::class, 'storeBlock'])->name('storeBlock');
-    Route::get('deposit/pagomovil', [WalletController::class, 'createPM'])->name('createPM');
-    Route::post('storePM_T', [WalletController::class, 'storePM_T'])->name('storePM_T');
-    Route::get('?transk_id={$id}{$id2}', [WalletController::class, 'createTransWebPay'])->name('createTransWebPay');
-
-    // Retiros
-    Route::get('withdrawal/bpay', [WalletController::class, 'retiroBPay'])->name('retiroBPay');
-    Route::post('rtBPay', [WalletController::class, 'rtBPay'])->name('rtBPay');
-    Route::get('withdrawal/blockchain', [WalletController::class, 'retiroBlock'])->name('retiroBlock');
-    Route::post('retiroBlock', [WalletController::class, 's_retiroBlock'])->name('s_retiroBlock');
-    Route::get('withdrawal/pagomovil', [WalletController::class, 'rt_PM'])->name('rt_PM');
-    Route::post('run_rt_PM', [WalletController::class, 'run_rt_PM'])->name('run_rt_PM');
-
-    // Transferencias
-    Route::post('transferUser', [WalletController::class, 'transferUser'])->name('transferUser');
-    Route::get('transfer/coins', [WalletController::class, 'transfer_coins'])->name('transfer_coins');
-    Route::get('transfer/usdt', [WalletController::class, 'transfer_usdt'])->name('transfer_usdt');
-
-    // Trivias y débito
-    Route::get('triv_multi/{id}/{id2}', [WalletController::class, 'debit_triv_multi'])->name('debit_triv_multi');
-    Route::post('triv_indv', [WalletController::class, 'debit_triv_indv'])->name('debit_triv_indv');
-    Route::post('triv_pvp', [WalletController::class, 'debit_triv_pvp'])->name('debit_triv_pvp');
-
-    // Otros
-    Route::get('Wallet/dbusdt/{id}/{id2}', [WalletController::class, 'dbusdt'])->name('dbusdt');
-});
-
 // Juegos - middleware auth (excepto el handler que tiene sin auth)
-Route::group(['middleware' => ['auth'], 'prefix' => 'games', 'as' => 'games.'], function () {
+Route::group(['middleware' => 'auth', 'prefix' => 'games', 'as' => 'games.'], function () {
     Route::put('handleCustomerGames/{id?}', [GameController::class, 'handleCustomerGames'])
         ->name('handleCustomerGames')->withoutMiddleware(['auth']);
 });
@@ -445,7 +370,7 @@ Route::get('bingo/k3yg4m3/play-rke', function () {
 })->name('bingo.k3yg4m3');
 
 // Salas Automáticas Bingo
-Route::group(['prefix' => 'bingo-automatic-room', 'as' => 'bingo-automatic-room.'], function () {
+Route::group(['middleware' => 'auth', 'prefix' => 'bingo-automatic-room', 'as' => 'bingo-automatic-room.'], function () {
     Route::get('automatic-room/getInfo/{id}', [BingoController::class, 'getInfoAutomaticRoom'])->name('getInfo');
     Route::post('automatic-room/create', [BingoController::class, 'createAutomaticRoom'])->name('create');
     Route::put('automatic-room/update/{id}', [BingoController::class, 'updateAutomaticRoom'])->name('update');
@@ -454,7 +379,3 @@ Route::group(['prefix' => 'bingo-automatic-room', 'as' => 'bingo-automatic-room.
     Route::put('automatic-room/copy/{id}', [BingoController::class, 'copyAutomaticRoom'])->name('copy');
     Route::get('automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorID}', [BingoController::class, 'executeGenerateBingoRoomsJob'])->name('executeGenerateBingoRoomsJob');
 });
-
-/*=============================================
-=               FIN DE RUTAS                   =
-=============================================*/

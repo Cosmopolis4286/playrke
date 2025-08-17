@@ -46,7 +46,7 @@
                 </div>
             </div>
         </div>
-        <x-modals.app-info />
+        <x-shared.modal :id="$viewId" :formView="'modules.admin.commerce.form'" title="Crear Comercio" />
     </main>
 
     <script src="https://www.google.com/recaptcha/api.js"></script>
