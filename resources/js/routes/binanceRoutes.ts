@@ -1,7 +1,7 @@
 // ======================================================
 // Archivo: resources/js/routes/binanceRoutes.ts
 // Descripción: Rutas del módulo binanceRoutes
-// Fecha de actualización (GMT): 2025-08-17T20:34:38Z
+// Fecha de actualización (GMT): 2025-08-17T21:00:19Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 

@@ -23,6 +23,7 @@ use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\RewardsController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\TreasurerController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Route;
 use App\Models\Settings;
@@ -41,7 +42,7 @@ Route::get('get/info/{page}', function ($page) {
         return view("includes.info.$page");
     }
     abort(404);
-})->name('info-rke');
+})->name('info');
 
 // Ruta para obtener la cookie 'referral'
 Route::get('cookie', function () {
@@ -378,4 +379,9 @@ Route::group(['middleware' => 'auth', 'prefix' => 'bingo-automatic-room', 'as' =
     Route::put('automatic-room/delete/{id}', [BingoController::class, 'deleteAutomaticRoom'])->name('delete');
     Route::put('automatic-room/copy/{id}', [BingoController::class, 'copyAutomaticRoom'])->name('copy');
     Route::get('automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorID}', [BingoController::class, 'executeGenerateBingoRoomsJob'])->name('executeGenerateBingoRoomsJob');
+});
+
+// Billetera (Wallet) - middleware auth
+Route::group(['middleware' => 'auth', 'prefix' => 'wallet', 'as' => 'wallet.'], function () {
+    Route::get('', [WalletController::class, 'index'])->name('index');
 });

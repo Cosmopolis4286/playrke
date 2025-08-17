@@ -16,23 +16,23 @@ class InformationController extends Controller
 
     public function terms()
     {
-        return view('modules.all.info-rke.terms');
+        return view('modules.shared.info.terms');
     }
 
     public function about()
     {
-        return view('modules.all.info-rke.about');
+        return view('modules.shared.info.about');
     }
 
     public function privacy()
     {
-        return view('modules.all.info-rke.privacy');
+        return view('modules.shared.info.privacy');
     }
 
     public function helpCenter()
     {
         return view(
-            'modules.all.info-rke.help-center',
+            'modules.shared.info.help-center',
             with(['title' => 'Centro de Ayuda'])
         );
     }
@@ -43,7 +43,7 @@ class InformationController extends Controller
 
         if ($creatorType != 1) return redirect()->back();
 
-        return view('modules.all.info-rke.power-of-knowledge');
+        return view('modules.shared.info.power-of-knowledge');
     }
 
     public function getTimeServer($timeZone = 'America/Caracas')

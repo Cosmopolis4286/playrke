@@ -104,4 +104,4 @@
         {{-- Carga principal del CRUD --}}
         @vite('resources/js/helpers/formCrud.ts')
     @endpush
-    </x-layout-online>
+</x-layout-online>

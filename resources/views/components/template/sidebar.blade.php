@@ -51,7 +51,7 @@
                 {{-- Slot: contenido personalizado según el usuario --}}
                 {{ $slot }}
                 {{-- Extras comunes --}}
-                <li class="nav-item has-treeview">
+                {{-- <li class="nav-item has-treeview">
                     <a href="#" class="{{ Route::is('info.help-center') ? 'nav-link active' : 'nav-link' }}">
                         <i class="nav-icon fas fa-question-circle"></i>
                         <p>Ayuda <i class="right fas fa-angle-left"></i></p>
@@ -71,7 +71,7 @@
                             </a>
                         </li>
                     </ul>
-                </li>
+                </li> --}}
 
                 @php
                     $infoRoutes = ['info.terms', 'info.about', 'info.privacy'];

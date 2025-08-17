@@ -36,7 +36,7 @@ export function initUserInfoModal(): void {
                 return;
             }
 
-            const url = `{{ route('info-rke', ['page' => ':1']) }}`.replace(":1", info);
+            const url = `{{ route('info', ['page' => ':1']) }}`.replace(":1", info);
 
             axios.get(url)
                 .then(response => {

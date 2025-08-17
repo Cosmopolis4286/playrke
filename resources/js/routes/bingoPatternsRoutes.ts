@@ -1,7 +1,7 @@
 // ======================================================
 // Archivo: resources/js/routes/bingoPatternsRoutes.ts
 // Descripción: Rutas del módulo bingoPatternsRoutes
-// Fecha de actualización (GMT): 2025-08-17T20:34:38Z
+// Fecha de actualización (GMT): 2025-08-17T21:00:20Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 

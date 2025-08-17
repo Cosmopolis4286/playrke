@@ -13,7 +13,7 @@
     <link rel="icon" href="{{ asset('img/fav.ico') }}" sizes="192x192">
     <link rel="stylesheet" href="{{ asset('css/notyf.min.css') }}">
     <link rel="stylesheet" href="{{ asset('template/plugins/fontawesome/css/all.min.css') }}">
-    @vite(['resources/css/shared/styles.css', 'resources/css/rke/auth-pages.css'])
+    @vite(['resources/css/shared/styles.css', 'resources/css/shared/auth-pages.css'])
     <title>PlayRKE - @yield('title')</title>
 </head>
 
@@ -46,15 +46,13 @@
                 </div>
             </div>
         </div>
-        <x-shared.modal :id="$viewId" :formView="'modules.admin.commerce.form'" title="Crear Comercio" />
+        <x-modal id="app-info" title="PlayRKE © {{ date('Y') }}" />
     </main>
-
     <script src="https://www.google.com/recaptcha/api.js"></script>
     <script src="{{ asset('js/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ asset('js/Bootstrap/popper.min.js') }}"></script>
     <script src="{{ asset('js/Bootstrap/bootstrap.min.js') }}"></script>
     <script src="{{ asset('js/notyf.min.js') }}"></script>
-    {{-- Scripts específicos de esta vista --}}
     @push('stack-scripts')
         @vite('resources/js/helpers/userInfoModule.ts')
     @endpush

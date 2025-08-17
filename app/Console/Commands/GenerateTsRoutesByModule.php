@@ -43,7 +43,8 @@ class GenerateTsRoutesByModule extends Command
             'pix',
             'profile',
             'seller',
-            'treasurer'
+            'treasurer',
+            'wallet'
         ];
 
         foreach ($modules as $prefix) {
