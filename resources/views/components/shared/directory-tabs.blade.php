@@ -1,4 +1,3 @@
-{{-- resources/views/includes/directory-tabs.blade.php --}}
 <ul class="nav nav-tabs mt-n2 mb-3" id="myTab" role="tablist">
     <li class="nav-item">
         <a class="nav-link @if ($countryCode == 'usdt') active @endif" id="1USDT-tab"
