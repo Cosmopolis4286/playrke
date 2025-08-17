@@ -1,7 +1,6 @@
 @props([
-    'title' => 'Mi Aplicación',
+    'title' => 'Tablero',
     'loadSelect2' => false,
-    // Puedes agregar más props para controlar scripts, estilos, etc.
 ])
 
 <!DOCTYPE html>

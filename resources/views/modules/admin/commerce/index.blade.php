@@ -38,10 +38,10 @@
             </div>
         </div>
     </div>
-    <x-shared.modal :id="$viewId" :formView="'modules.admin.commerce.form'" title="Crear Comercio" />
-    {{-- @if (Session::has('pawss'))
-        <x-modals.copy-info name="copy-passw" title="Contraseña Vendedor" :value="Session::get('pawss')" />
-    @endif --}}
+    <x-shared.modal :id="$viewId" :formView="'modules.admin.commerce.form'" />
+    @if (Session::has('pawss'))
+        <x-shared.modal title="Contraseña Vendedor" :value="Session::get('pawss')" />
+    @endif
     @push('stack-scripts')
         <script>
             window.appData = {
