@@ -12,7 +12,7 @@
             </a>
         </li>
         <li class="nav-item" title="Monedero">
-            <a href="{{ route('wallet.index') }}" title="Monedero" class="d-flex align-items-center">
+            <a href="#" title="Monedero" class="d-flex align-items-center">
                 @if (isset($USDT))
                     <img src="{{ asset('imgSystem/tether.svg') }}" alt="PlayRKE" class="mb-1 brand-image"
                         style="max-height:13.5px;">

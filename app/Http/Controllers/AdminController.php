@@ -29,9 +29,9 @@ class AdminController extends Controller
         $coins = Coin::getByIdForStatus(['=', 1]);
         $timeZones = TimeZone::where('status', 1)->get();
 
-        return view('modules/admin/commerce/index')->with([
+        return view('modules.admin.commerce.index')->with([
             'title' => 'Comercializadoras',
-            'viewId' => 'admin-commerce',
+            'viewId' => 'commerce',
             'commerces' => $commerces,
             'countries' => $countries,
             'timeZones' => $timeZones,

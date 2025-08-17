@@ -1,9 +1,9 @@
 // formCrud.ts
 import axios from '@/axios';
-import { ajaxStart } from './loader.js';
-import { copyInfo } from './copyInfo.js';
-import { showToast, showToastConfirmAction } from './toastNotify.js';
-import { onDOMReady } from '../utils/domReady.js';
+import { ajaxStart } from './loader';
+import { copyInfo } from './copyInfo';
+import { showToast, showToastConfirmAction } from './toastNotify';
+import { onDOMReady } from '@/utils/domReady';
 import Swal, { SweetAlertIcon } from 'sweetalert2';
 import { moduleFile } from '@/data/index.js';
 

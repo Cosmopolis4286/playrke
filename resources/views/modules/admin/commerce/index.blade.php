@@ -40,7 +40,7 @@
     </div>
     <x-shared.modal :id="$viewId" :formView="'modules.admin.commerce.form'" />
     @if (Session::has('pawss'))
-        <x-shared.modal title="Contraseña Vendedor" :value="Session::get('pawss')" />
+        <x-shared.modal title="Contraseña Comercio" :value="Session::get('pawss')" />
     @endif
     @push('stack-scripts')
         <script>
@@ -53,4 +53,4 @@
         </script>
         @vite('resources/js/helpers/formCrud.ts')
     @endpush
-    </x-layout-online>
+</x-layout-online>

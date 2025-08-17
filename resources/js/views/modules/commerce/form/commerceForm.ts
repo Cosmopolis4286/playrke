@@ -1,12 +1,12 @@
 // ==========================
 //   Imports
 // ==========================
-import { formCRUD } from '@/helpers/formCrud.js';
-import { insertOtherCoins } from '@/helpers/insertOtherCoins.js';
+import { formCRUD } from '@/helpers/formCrud';
+import { insertOtherCoins } from '@/helpers/insertOtherCoins';
 import { SweetAlertIcon } from 'sweetalert2';
-import { validateInput } from '@/helpers/validateInput.js';
-import { route } from '@/routes/sellerRoutes.js';
-import { initAllSelects } from '@/utils/initAllSelects.js';
+import { validateInput } from '@/helpers/validateInput';
+import { route } from '@/routes/commerceRoutes';
+import { initAllSelects } from '@/utils/initAllSelects';
 
 // Re-exportar route para que otros módulos puedan usarla directamente
 export { route };
@@ -14,8 +14,8 @@ export { route };
 // ==========================
 //   Constantes globales
 // ==========================
-export const formTitleSuffix = 'Vendedor';
-export const viewId = (document.getElementById('view-id') as HTMLInputElement)?.value ?? 'seller';
+export const formTitleSuffix = 'Comercio';
+export const viewId = 'commerce';
 const modal = document.getElementById(`modal-${viewId}`)!;
 
 // ==========================

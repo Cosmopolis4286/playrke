@@ -83,13 +83,9 @@
             </div>
         </div>
     </div>
-    @include('includes.modal-form', [
-        'viewId' => $viewId,
-        'size' => 'md',
-        'dataForm' => view('modules.seller.form.body')->render(),
-    ])
+    <x-shared.modal :id="$viewId" :formView="'modules.seller.form.body'" />
     @if (Session::has('pawss'))
-        <x-modals.copy-info name="copy-passw" title="Contraseña Vendedor" :value="Session::get('pawss')" />
+        <x-shared.modal title="Contraseña Vendedor" :value="Session::get('pawss')" />
     @endif
     {{-- Scripts específicos de esta vista --}}
     @push('stack-scripts')
@@ -104,4 +100,4 @@
         {{-- Carga principal del CRUD --}}
         @vite('resources/js/helpers/formCrud.ts')
     @endpush
-</x-layout-online>
+    </x-layout-online>

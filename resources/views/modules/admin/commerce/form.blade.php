@@ -1,4 +1,4 @@
-<form action="">
+<form id="form-commerce">
     <div class="row">
         <div class="form-group col-sm-12 col-md-6">
             <label for="name">Nombre*</label>
