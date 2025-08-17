@@ -1,68 +1,43 @@
 <form id="form-commerce">
     <div class="row">
-        <div class="form-group col-sm-12 col-md-6">
-            <label for="name">Nombre*</label>
-            <input type="text" id="name" name="name" class="form-control" required value="{{ old('name') }}">
-        </div>
-        <div class="form-group col-sm-6">
-            <label for="email">Email*</label>
-            <input type="email" id="email" name="email"
-                class="form-control @error('email') is-invalid @enderror" required value="{{ old('email') }}">
-            @error('email')
-                <span class="invalid-feedback">{{ $message }}</span>
-            @enderror
-        </div>
-        <div class="form-group col-sm-6">
-            <label for="username">Username*</label>
-            <input type="text" id="username" name="username" minlength="5" maxlength="20"
-                class="form-control @error('username') is-invalid @enderror" required value="{{ old('username') }}">
-            @error('username')
-                <span class="invalid-feedback">{{ $message }}</span>
-            @enderror
-        </div>
-        <div class="form-group col-sm-6">
-            <label for="code-rke">Código RKE*</label>
-            <input type="text" id="code-rke" name="code_rke" minlength="4" maxlength="15"
-                class="form-control @error('code_rke') is-invalid @enderror" required value="{{ old('code_rke') }}">
-            @error('code_rke')
-                <span class="invalid-feedback">{{ $message }}</span>
-            @enderror
-        </div>
-        <div class="form-group col-sm-6">
-            <label for="country">País*</label>
-            <select id="country" name="country" class="form-control" required></select>
-        </div>
-        <div class="form-group col-sm-6">
-            <label for="time-zone">Zona Horaria*</label>
-            <select id="time-zone" name="time_zone" class="form-control" required></select>
-        </div>
-        <div class="form-group col-sm-6">
-            <label for="phone">Teléfono*</label>
-            <input type="text" id="phone" name="phone"
-                class="form-control @error('phone') is-invalid @enderror" required value="{{ old('username') }}"
-                placeholder="Ingresa el número" required value="{{ old('phone') }}">
-            @error('phone')
-                <span class="invalid-feedback">
-                    <small>{{ $message }}</small>
-                </span>
-            @enderror
-        </div>
-        <div class="form-group col-sm-6">
+        <!-- Nombre -->
+        <x-form.input label="Nombre" name="name" required col="col-sm-12 col-md-6" />
+
+        <!-- Email -->
+        <x-form.input label="Email" name="email" type="email" required col="col-sm-6" />
+
+        <!-- Username -->
+        <x-form.input label="Username" name="username" minlength="5" maxlength="20" required col="col-sm-6" />
+
+        <!-- Código RKE -->
+        <x-form.input label="Código RKE" name="code_rke" minlength="4" maxlength="15" required col="col-sm-6" />
+
+        <!-- País -->
+        <x-form.select label="País" name="country" required placeholder="Seleccionar país" data-source="countries"
+            data-value="id" data-label="name" col="col-sm-6" />
+
+        <!-- Zona Horaria -->
+        <x-form.select label="Zona Horaria" id="time-zone" name="time_zone" required
+            placeholder="Seleccionar zona horaria" data-source="timeZones" data-value="id" data-label="name"
+            col="col-sm-6" />
+
+        <!-- Teléfono -->
+        <x-form.input label="Teléfono" name="phone" required placeholder="Ingresa el número" col="col-sm-6" />
+
+        <!-- Moneda principal -->
+        <div id="container-coin" class="form-group col-sm-6 d-none">
             <label for="coin">Moneda*</label>
-            <input type="text" id="coin-text" class="form-control" disabled />
-            <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}" />
+            <div id="coin-text" class="form-control"></div>
+            <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}">
         </div>
-        <div id="cont-other-coins" class="form-group col-sm-6 hide-elem">
-            <label for="other-coins">Otras Monedas:</label>
-            <select multiple id="other-coins" name="other_coins[]" placeholder="Seleccionar Monedas"
-                data-allow-clear="1" class="select2 form-control">
-            </select>
-        </div>
-        <div class="form-group col-sm-6">
-            <label for="allowed-games">Juegos Permitidos:</label>
-            <select multiple id="allowed-games" name="allowed_games[]" placeholder="Seleccionar Juegos"
-                data-allow-clear="1" class="select2 form-control">
-            </select>
-        </div>
+
+        <!-- Otras Monedas -->
+        <x-form.select containerId="other-coins" label="Otras Monedas" id="other-coins" name="other_coins" multiple
+            select2 placeholder="Seleccionar otras monedas" data-source="coins" data-value="id" data-label="long_name"
+            col="col-sm-6" />
+
+        <!-- Juegos Permitidos -->
+        <x-form.select label="Juegos Permitidos" id="allowed-games" name="allowed_games" multiple select2
+            placeholder="Seleccionar juegos" data-source="games" data-value="id" data-label="name" col="col-sm-6" />
     </div>
 </form>

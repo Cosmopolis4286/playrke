@@ -32,9 +32,8 @@ let listenersAttached = false;
 // ==========================
 //   Campos requeridos
 // ==========================
-export const requiredFields: string[] = [
-    'viewId', 'phone', 'commission', 'country', 'time-zone', 'coin', 'username', 'email'
-];
+export const requiredFields: string[] =
+    ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email'];
 
 // ==========================
 //   Mapeo de acciones personalizadas
@@ -46,16 +45,16 @@ export const otherCasesMap: Record<string, {
     confirmButtonText: string;     // Texto del botón de confirmación
     method?: 'PUT' | 'DELETE';     // Método HTTP, opcional, por defecto PUT
 }> = {
-    '4': {  // Cambiar status de un vendedor
+    '4': {  // Cambiar status de un comercio
         routeName: 'changeStatus',
-        text: '¿Deseas cambiar el status de este vendedor?',
+        text: '¿Deseas cambiar el status de este comercio?',
         icon: 'question',
         confirmButtonText: 'Sí, cambiar',
         method: 'PUT',
     },
     '5': {  // Generar nueva contraseña
         routeName: 'changePassw',
-        text: 'Generar nueva contraseña a este vendedor',
+        text: 'Generar nueva contraseña a este comercio',
         icon: 'info',
         confirmButtonText: 'Sí, generar',
         method: 'PUT',
@@ -94,13 +93,12 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
     if (action === 'create') {
         (document.getElementById('name') as HTMLInputElement).value = '';
         (document.getElementById('phone') as HTMLInputElement).value = '';
-        (document.getElementById('commission') as HTMLInputElement).value = '3.00';
     }
 
     // Preselección de valores para selects dinámicos
     const selectedValues: Record<string, string | number> = {};
     if (action === 'edit' && data) {
-        selectedValues['country'] = data?.seller?.country ?? '';
+        selectedValues['country'] = data?.commerce?.country ?? '';
         selectedValues['time-zone'] = data?.user?.time_zone ?? '';
         // Se pueden agregar más selects dinámicos aquí
     }
@@ -115,17 +113,18 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
     // Rellenar campos en modo edición
     if (action === 'edit' && data) {
-        const { seller, user } = data;
+        const { commerce, user } = data;
 
-        (document.getElementById('name') as HTMLInputElement).value = seller.name || '';
-        (document.getElementById('phone') as HTMLInputElement).value = seller.phone || '';
-        (document.getElementById('commission') as HTMLInputElement).value = seller.commn || '';
+        (document.getElementById('name') as HTMLInputElement).value = commerce.name || '';
+        (document.getElementById('phone') as HTMLInputElement).value = commerce.phone || '';
+        (document.getElementById('code-rke') as HTMLInputElement).value = commerce.commn || '';
 
         usernameInput.value = user.username || '';
         emailInput.value = user.email || '';
 
         usernameInput.readOnly = true;
         emailInput.readOnly = true;
+
     }
 
     // Mostrar modal con Bootstrap 4

@@ -1,5 +1,5 @@
-import { coins, arrCountries, arrTimeZones } from '@/data/index.js';
-import { Coin, Country, TimeZone } from '@/types/dataModels.js';
+import { coins, countries, games, timeZones } from '@/data/index';
+import { Coin, Country, Game, TimeZone } from '@/types/dataModels';
 
 /**
  * Tipado de datasets disponibles en window.appData
@@ -7,17 +7,14 @@ import { Coin, Country, TimeZone } from '@/types/dataModels.js';
 type DatasetMap = {
     coins: Coin[];
     countries: Country[];
+    games: Game[];
     timeZones: TimeZone[];
 };
 
 /**
  * Mapeo de datasets importados desde index.ts
  */
-const datasets: DatasetMap = {
-    coins,
-    countries: arrCountries,
-    timeZones: arrTimeZones
-};
+const datasets: DatasetMap = { coins, countries, games, timeZones };
 
 /**
  * Inicializa todos los <select> que tengan el atributo `data-source`.

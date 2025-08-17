@@ -1,7 +1,7 @@
 // resources/js/types/dataModels.ts
 
 /**
- * 💰 Información de una moneda
+ * Información de una moneda
  */
 export interface Coin {
     id: number;
@@ -12,16 +12,24 @@ export interface Coin {
 }
 
 /**
- * 🌍 Información de un país
+ * Información de un país
  */
 export interface Country {
     id: number;
     name: string;
     iso_code: string; // Código ISO, ej: "BR"
 }
+/**
+ * Información básica de un juego
+ */
+export interface Game {
+    readonly id: number;       // Identificador único del juego (ej: 1 para Bingo)
+    readonly name: string;     // Nombre descriptivo del juego (ej: "Brasília Time")
+    readonly status: number;   // Estado actual del juego (ej: 0=inactivo, 1=activo)
+}
 
 /**
- * ⏰ Información de zona horaria
+ * Información de zona horaria
  */
 export interface TimeZone {
     id: string;      // Ej: "America/Sao_Paulo"
@@ -30,11 +38,12 @@ export interface TimeZone {
 }
 
 /**
- * 📦 Información global de la app
+ * Información global de la app
  */
 export interface AppData {
     coins: Coin[];
     countries: Country[];
+    games: Game[];
     moduleFile: string;
     timeZones: TimeZone[];
 }

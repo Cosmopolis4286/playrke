@@ -1,5 +1,5 @@
 // resources/js/data/index.ts
-import { AppData, Coin, Country, TimeZone } from '../types/dataModels.js';
+import { AppData, Coin, Country, Game, TimeZone } from '../types/dataModels.js';
 
 // ⚠️ Verificamos que la variable global exista
 if (!window.hasOwnProperty('appData')) {
@@ -38,6 +38,7 @@ function validateString(name: string, value: string | undefined): string {
 
 // Exportamos arrays y valores tipados, validados
 export const coins: Coin[] = validateArray('coins', appData.coins);
-export const arrCountries: Country[] = validateArray('countries', appData.countries);
+export const countries: Country[] = validateArray('countries', appData.countries);
+export const games: Game[] = validateArray('countries', appData.games);
 export const moduleFile: string = validateString('moduleFile', appData.moduleFile);
-export const arrTimeZones: TimeZone[] = validateArray('timeZones', appData.timeZones);
+export const timeZones: TimeZone[] = validateArray('timeZones', appData.timeZones);

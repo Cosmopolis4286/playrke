@@ -47,10 +47,11 @@
             window.appData = {
                 coins: @json($coins),
                 countries: @json($countries),
+                games: @json($games),
                 moduleFile: 'commerce/form/commerceForm.ts',
                 timeZones: @json($timeZones)
             };
         </script>
         @vite('resources/js/helpers/formCrud.ts')
     @endpush
-</x-layout-online>
+    </x-layout-online>

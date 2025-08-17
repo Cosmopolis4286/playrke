@@ -1,68 +1,31 @@
-<form action="form-seller">
+<form id="form-seller">
     <div class="row">
         <!-- Nombre -->
-        <div class="form-group col-sm-12 col-md-6">
-            <label for="name">Nombre*</label>
-            <input type="text" id="name" name="name" class="form-control" required value="{{ old('viewId') }}">
-        </div>
+        <x-form.input label="Nombre" name="name" required col="col-sm-12 col-md-6" value="{{ old('name') }}" />
 
         <!-- Email -->
-        <div class="form-group col-sm-6">
-            <label for="email">Email*</label>
-            <input type="email" id="email" name="email"
-                class="form-control @error('email') is-invalid @enderror" required value="{{ old('email') }}">
-            @error('email')
-                <span class="invalid-feedback">{{ $message }}</span>
-            @enderror
-        </div>
+        <x-form.input label="Email" name="email" type="email" required col="col-sm-6" />
 
         <!-- Username -->
-        <div class="form-group col-sm-5">
-            <label for="username">Username*</label>
-            <input type="text" id="username" name="username" minlength="5" maxlength="20"
-                class="form-control @error('username') is-invalid @enderror" required value="{{ old('username') }}">
-            @error('username')
-                <span class="invalid-feedback">{{ $message }}</span>
-            @enderror
-        </div>
+        <x-form.input label="Username" name="username" minlength="5" maxlength="20" required col="col-sm-5" />
 
         <!-- Comisión -->
-        <div class="form-group col-sm-6 col-md-3">
-            <label for="commission">%Comisión*</label>
-            <div class="input-group">
-                <input type="number" id="commission" name="commission" class="form-control" placeholder="%Com" required
-                    value="{{ old('commission', '3.00') }}" step="0.25" min="3.00" max="35">
-            </div>
-        </div>
+        <x-form.input label="%Comisión" name="commission" type="number" placeholder="%Com" required step="0.25"
+            min="3.00" max="35" value="{{ old('commission', '3.00') }}" col="col-sm-6 col-md-3" />
 
         <!-- País -->
-        <div class="form-group col-sm-4">
-            <label for="country">País*</label>
-            <select id="country" name="country" class="form-control" required data-source="countries" data-value="id"
-                data-label="name" data-placeholder="Seleccionar país">
-            </select>
-        </div>
+        <x-form.select label="País" name="country" required placeholder="Seleccionar país" data-source="countries"
+            data-value="id" data-label="name" col="col-sm-4" />
 
         <!-- Zona Horaria -->
-        <div id="container-time-zone" class="form-group col-sm-6 d-none">
-            <label for="time-zone">Zona Horaria*</label>
-            <select id="time-zone" name="time_zone" class="form-control" required data-source="timeZones"
-                data-value="id" data-label="name" data-placeholder="Seleccionar zona horaria">
-            </select>
-        </div>
+        <x-form.select label="Zona Horaria" id="time-zone" name="time_zone" required
+            placeholder="Seleccionar zona horaria" data-source="timeZones" data-value="id" data-label="name"
+            col="col-sm-6 d-none" id="container-time-zone" />
 
         <!-- Teléfono -->
-        <div class="form-group col-sm-6">
-            <label for="phone">Teléfono*</label>
-            <input type="text" id="phone" name="phone"
-                class="form-control @error('phone') is-invalid @enderror" required value="{{ old('phone') }}"
-                placeholder="Ingresa el número">
-            @error('phone')
-                <span class="invalid-feedback"><small>{{ $message }}</small></span>
-            @enderror
-        </div>
+        <x-form.input label="Teléfono" name="phone" required placeholder="Ingresa el número" col="col-sm-6" />
 
-        <!-- Moneda -->
+        <!-- Moneda principal -->
         <div id="container-coin" class="form-group col-sm-6 d-none">
             <label for="coin">Moneda*</label>
             <div id="coin-text" class="form-control"></div>
@@ -70,20 +33,12 @@
         </div>
 
         <!-- Otras Monedas -->
-        <div id="container-other-coins" class="form-group col-sm d-none">
-            <label for="other-coins">Otras Monedas:</label>
-            <select multiple id="other-coins" name="other_coins[]" placeholder="Seleccionar Monedas"
-                data-allow-clear="1" class="select2 form-control" data-source="coins" data-value="id"
-                data-label="long_name" data-placeholder="Seleccionar otras monedas">
-            </select>
-        </div>
+        <x-form.select containerId="other-coins" label="Otras Monedas" id="other-coins" name="other_coins" multiple
+            select2 placeholder="Seleccionar otras monedas" data-source="coins" data-value="id" data-label="long_name"
+            col="col-sm d-none" />
 
         <!-- Juegos Permitidos -->
-        <div class="form-group col-sm-6">
-            <label for="allowed-games">Juegos Permitidos:</label>
-            <select multiple id="allowed-games" name="allowed_games[]" placeholder="Seleccionar Juegos"
-                data-allow-clear="1" class="select2 form-control">
-            </select>
-        </div>
+        <x-form.select label="Juegos Permitidos" id="allowed-games" name="allowed_games" multiple select2
+            placeholder="Seleccionar juegos" data-source="games" data-value="id" data-label="name" col="col-sm-6" />
     </div>
 </form>

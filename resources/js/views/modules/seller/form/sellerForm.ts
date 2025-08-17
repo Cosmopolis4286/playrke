@@ -32,9 +32,8 @@ let listenersAttached = false;
 // ==========================
 //   Campos requeridos
 // ==========================
-export const requiredFields: string[] = [
-    'viewId', 'phone', 'commission', 'country', 'time-zone', 'coin', 'username', 'email'
-];
+export const requiredFields: string[] =
+    ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email'];
 
 // ==========================
 //   Mapeo de acciones personalizadas
