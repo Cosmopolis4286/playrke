@@ -6,6 +6,7 @@ import { showToast, showToastConfirmAction } from './toastNotify';
 import { onDOMReady } from '@/utils/domReady';
 import Swal, { SweetAlertIcon } from 'sweetalert2';
 import { moduleFile } from '@/data/index.js';
+import { toggleModal } from './modals';
 
 // --------------------------------------
 // Definición de la interfaz del módulo dinámico
@@ -100,7 +101,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
     switch (action) {
         case 'create':
             insertInfo('create');
-            prepareForm(form, 'create', 'Registrar', 'POST');
+            //prepareForm(form, 'create', 'Registrar', 'POST');
             break;
 
         case 'edit':

@@ -28,7 +28,7 @@
                                     <td>{{ $item->User->email }}</td>
                                     <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                     <td>
-                                        <x-btn-group :btnGroupId="$viewId" :dataId="encrypt($item->id)" :buttons="$item->extraButtons" />
+                                        <x-shared.btn-group :btnGroupId="$viewId" :dataId="encrypt($item->id)" :buttons="[]" />
                                     </td>
                                 </tr>
                             @endforeach
@@ -38,7 +38,6 @@
             </div>
         </div>
     </div>
-    <x-shared.modal :id="$viewId" :formView="'modules.admin.commerce.form'" />
     @if (Session::has('pawss'))
         <x-shared.modal title="Contraseña Comercio" :value="Session::get('pawss')" />
     @endif

@@ -1,12 +1,23 @@
-// resources/js/app.ts
-/**
- * Punto de entrada principal
- * - Loader de la aplicación
- * - Módulos globales y helpers que siempre se usan
- */
+// ==========================
+// Importar Alpine.js y arrancarlo
+// ==========================
+import Alpine from 'alpinejs';
 
-// Loader o inicialización de UI
+// Hacemos que Alpine sea accesible globalmente desde window
+(window as any).Alpine = Alpine;
+
+// Iniciamos Alpine para que todos los atributos x-data, x-show, x-on, etc., funcionen
+Alpine.start();
+
+// ==========================
+// Loader o inicialización de la UI
+// ==========================
 import './mounApp.ts';
+// Aquí puedes inicializar loaders, animaciones de entrada, estados iniciales de la app, etc.
 
-// Módulos y funciones globales (eventos, inicialización, utilidades)
+// ==========================
+// Módulos y funciones globales
+// ==========================
 import './helpers/global.ts';
+// Funciones y helpers que deben estar siempre disponibles en toda la app
+// Por ejemplo: listeners globales, utilidades, interceptores de eventos, etc.
