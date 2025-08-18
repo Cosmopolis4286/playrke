@@ -54,10 +54,10 @@
                 coins: @json($coins),
                 countries: @json($countries),
                 games: @json($games),
-                moduleFile: 'commerce/form/commerceForm.ts',
+                moduleFile: 'views/modules/commerce/form/commerceForm',
                 timeZones: @json($timeZones)
             };
         </script>
-        @vite('resources/js/helpers/formCrud.ts')
+        {{-- @vite('resources/js/helpers/form/formCrud.ts') --}}
     @endpush
     </x-layout-online>

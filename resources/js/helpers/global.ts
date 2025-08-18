@@ -1,139 +1,93 @@
 // resources/js/helpers/global.ts
-import $ from 'jquery';
-import 'datatables.net-bs4';
 import { SweetAlertIcon } from 'sweetalert2';
-import { showToast } from './toastNotify.js';
-import { submitForm } from './form/formCrud.js';
+import { showToast } from './toastNotify';
+import { loadDataTable } from './dataTables';
+import { initChangePassw } from './user/changePassw';
+import { initLogout } from './user/logout';
+
+// ==========================
+// Funciones
+// ==========================
 
 /**
- * 📢 Muestra un toast con el mensaje de sesión si existe.
- * @param message - Texto del mensaje
- * @param icon - Tipo de ícono (SweetAlertIcon)
+ * Muestra un toast con el mensaje de sesión si existe.
  */
-export function showSessionToast(message: string, icon: SweetAlertIcon): void {
-    if (message?.trim()) {
+export function showSessionToast(message: string, icon: SweetAlertIcon = 'success'): void {
+    if (!message?.trim()) return;
+
+    try {
         showToast(`<div style="font-size: 15px;">${message}</div>`, icon);
+        console.log('✅ Toast de sesión mostrado');
+    } catch (err) {
+        console.error('❌ Error mostrando toast de sesión:', err);
     }
 }
 
 /**
- * 📊 Inicializa DataTables en tablas con clase `.dataTable`.
- * @param languageUrl - URL del archivo de idioma de DataTables
- */
-export function loadDataTable(languageUrl: string): void {
-    const $table = $('table.dataTable');
-    if (!$table.length || typeof ($ as any).fn?.DataTable !== 'function') return;
-
-    $table.DataTable({
-        ordering: true,
-        order: [],
-        language: { url: languageUrl },
-        columnDefs: [{ targets: '_all', className: 'text-left' }],
-    });
-}
-
-/**
- * 🌐 Configura eventos globales de la aplicación:
- * - Manejo de modales (cambio de contraseña)
- * - Prevención de arrastre de imágenes
- * - Logout con CSRF token
- * - Inicializa popovers si existen
- * - Soluciona error de `aria-hidden` en modales Bootstrap 4
+ * Configura eventos globales de la aplicación
  */
 export function setupGlobalEvents(): void {
-    // 🖱 Delegación de eventos de click
-    document.addEventListener('click', (event) => {
-        const target = event.target as HTMLElement;
-
-        // Abrir modal de cambio de contraseña
-        if (target?.id === 'change-password') {
-            $('#modal-change-password').modal('show');
-            return;
-        }
-
-        // Confirmar cambio de contraseña
-        if (target?.matches("#btn-confirm-new-pwd[data-type='change_pwd']")) {
-            submitForm('change-password', ['current_password', 'new_password']);
-            return;
-        }
-    });
-
-    // 🖼 Evitar arrastre accidental de imágenes
-    document.addEventListener('dragstart', (event) => {
-        if ((event.target as HTMLElement)?.tagName === 'IMG') {
-            event.preventDefault();
-        }
-    });
-
-    // 🚪 Logout con CSRF token dinámico
-    document.querySelectorAll<HTMLButtonElement>('.logout-btn').forEach((button) => {
-        button.addEventListener('click', () => {
-            const { logoutUrl = '/logout', loginRedirectUrl = '/login', csrfToken = '' } = window as any;
-
-            fetch(logoutUrl, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Content-Type': 'application/json',
-                },
-            })
-                .then((response) => {
-                    if (response.ok) {
-                        window.location.href = loginRedirectUrl;
-                    } else {
-                        alert('Error al cerrar sesión');
-                    }
-                })
-                .catch((error) => console.error('Error en logout:', error));
+    try {
+        document.addEventListener('dragstart', (event) => {
+            if ((event.target as HTMLElement)?.tagName === 'IMG') {
+                event.preventDefault();
+            }
         });
-    });    
+        initLogout();
+        console.log('✅ Eventos globales configurados');
+    } catch (err) {
+        console.error('❌ Error configurando eventos globales:', err);
+    }
 }
 
 /**
- * 🚀 Inicializa la aplicación globalmente
- * - Configura eventos globales
- * - Muestra mensaje de sesión si existe
- * - Muestra errores de Laravel si existen
- * - Inicializa DataTables si está habilitado
+ * Inicializa la aplicación globalmente
  */
 export function initGlobal(): void {
-    setupGlobalEvents();
+    try {
+        setupGlobalEvents();
+        initChangePassw();
+        console.log('✅ initChangePassw ejecutado');
 
-    // Mostrar mensaje de sesión
-    if (window.Session?.message) {
-        showSessionToast(window.Session.message, window.Session.type || 'success');
-    }
+        // Mensaje de sesión
+        if (window.Session?.message) {
+            showSessionToast(window.Session.message, window.Session.type || 'success');
+        }
 
-    // Mostrar errores de Laravel
-    if (Array.isArray(window.LaravelErrors) && window.LaravelErrors.length > 0) {
-        window.LaravelErrors.forEach((msg: string) => {
-            showToast(msg, 'error');
-        });
-    }
+        // Errores de Laravel
+        if (Array.isArray(window.LaravelErrors)) {
+            window.LaravelErrors.forEach((msg) => {
+                try {
+                    showToast(msg, 'error');
+                } catch (err) {
+                    console.error('❌ Error mostrando toast de error:', err);
+                }
+            });
+            if (window.LaravelErrors.length > 0) console.log('✅ LaravelErrors mostrados');
+        }
 
-    // Inicializar DataTables si está habilitado
-    if (window.loadDataTables) {
-        const languageUrl = '/lang/datatables/es.json'; // ⚠️ Cambiar por ruta real
-        loadDataTable(languageUrl);
+        // Inicializar DataTables solo si hay tablas y está habilitado
+        const tables = document.querySelectorAll('table.data-table');
+        if (window.loadDataTables && tables.length > 0) {
+            try {
+                const languageUrl = '/lang/datatables/es.json';
+                loadDataTable(languageUrl);
+                console.log(`✅ DataTables inicializadas (${tables.length} tablas)`);
+            } catch (err) {
+                console.error('❌ Error inicializando DataTables:', err);
+            }
+        }
+    } catch (err) {
+        console.error('❌ Error en initGlobal:', err);
     }
 }
 
 /**
- * 📅 Ejecuta initGlobal automáticamente según el estado del DOM
+ * Inicialización segura con valores por defecto
  */
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initGlobal);
-} else {
-    initGlobal(); // Ya está listo, ejecuta directamente
-}
-
-/**
- * 🛡 Tipos globales para TypeScript
- */
-declare global {
-    interface Window {
-        Session?: { message: string; type: SweetAlertIcon };
-        LaravelErrors?: string[];
-        loadDataTables?: boolean;
-    }
+export function initGlobalSafe(): void {
+    if (typeof window.loadDataTables === 'undefined') window.loadDataTables = false;
+    if (!window.Session) window.Session = { message: '', type: 'success' };
+    if (!Array.isArray(window.LaravelErrors)) window.LaravelErrors = [];
+    initGlobal();
 }

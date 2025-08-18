@@ -1,23 +1,32 @@
+// resources/js/app.ts
+
 // ==========================
-// Importar Alpine.js y arrancarlo
+// Importar Alpine.js
 // ==========================
 import Alpine from 'alpinejs';
+import { loadModule } from '@/helpers/module/loadModule';
 
-// Hacemos que Alpine sea accesible globalmente desde window
-(window as any).Alpine = Alpine;
-
-// Iniciamos Alpine para que todos los atributos x-data, x-show, x-on, etc., funcionen
-Alpine.start();
-
-// ==========================
-// Loader o inicialización de la UI
-// ==========================
-import './mounApp.ts';
-// Aquí puedes inicializar loaders, animaciones de entrada, estados iniciales de la app, etc.
+try {
+    (window as any).Alpine = Alpine;
+    Alpine.start();
+    console.log('✅ Alpine.js iniciado correctamente');
+} catch (err) {
+    console.error('❌ Error al inicializar Alpine.js:', err);
+}
 
 // ==========================
-// Módulos y funciones globales
+// Inicialización asincrónica de módulos
 // ==========================
-import './helpers/global.ts';
-// Funciones y helpers que deben estar siempre disponibles en toda la app
-// Por ejemplo: listeners globales, utilidades, interceptores de eventos, etc.
+(async () => {
+    try {
+        console.log('🚀 Iniciando carga de módulos con loadModule');
+
+        // Módulos helpers conocidos
+        await loadModule('helpers/mounApp'); // Control de loader y wrapper
+        await loadModule('helpers/global', 'initGlobalSafe'); // Inicialización global segura
+
+        console.log('🟢 Todos los módulos cargados correctamente con loadModule');
+    } catch (err) {
+        console.error('❌ Error en la carga asincrónica de módulos:', err);
+    }
+})();

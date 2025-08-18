@@ -1,11 +1,12 @@
 // formCrud.ts
 import axios from '@/axios';
-import { ajaxStart } from '../loader';
-import { copyInfo } from '../copyInfo';
-import { showToast, showToastConfirmAction } from '../toastNotify';
-import { moduleFile } from '@/data/index.js';
-import { loadModule } from '../modal/loadModal';
-import type { ModuleType, OtherCase } from './formTypes';
+import { ajaxStart } from '@/helpers/loader';
+import { copyInfo } from '@/helpers/copyInfo';
+import { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
+import { moduleFile } from '@/data/index';
+import { loadModule } from '@/helpers/module/loadModule';
+import type { ModuleType, OtherCase } from '@/helpers/module/moduleTypes';
+
 // ========================
 // Variables globales
 // ========================
@@ -27,9 +28,9 @@ let route: (name: string, params?: Record<string, string | number>) => string = 
 let modal: HTMLDivElement | null = null;
 
 if (moduleFile) {
-    await loadModule(moduleFile.trim());
+    await loadModule(moduleFile);
     // Definir modal dinámico después de cargar el módulo
-    const modal = document.getElementById(`modal-${viewId}`) as HTMLDivElement | null;
+    modal = document.getElementById(`modal-${viewId}`) as HTMLDivElement | null;
     if (!modal) console.warn(`Modal con id 'modal-${viewId}' no encontrado`);
 }
 
