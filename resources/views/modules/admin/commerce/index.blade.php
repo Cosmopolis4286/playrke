@@ -26,7 +26,13 @@
                                     <td>{{ $item->Country->name }}</td>
                                     <td>{{ $item->phone }}</td>
                                     <td>{{ $item->User->email }}</td>
-                                    <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
+                                    <td>
+                                        @if ($item->status == 1)
+                                            <span class="badge bg-success">Activo</span>
+                                        @else
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <x-shared.btn-group :btnGroupId="$viewId" :dataId="encrypt($item->id)" :buttons="[]" />
                                     </td>
@@ -38,6 +44,7 @@
             </div>
         </div>
     </div>
+    <x-shared.modal :id="$viewId" :formView="'modules.admin.commerce.form'" />
     @if (Session::has('pawss'))
         <x-shared.modal title="Contraseña Comercio" :value="Session::get('pawss')" />
     @endif

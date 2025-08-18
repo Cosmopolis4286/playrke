@@ -3,7 +3,7 @@ import $ from 'jquery';
 import 'datatables.net-bs4';
 import { SweetAlertIcon } from 'sweetalert2';
 import { showToast } from './toastNotify.js';
-import { submitForm } from './formCrud.js';
+import { submitForm } from './form/formCrud.js';
 
 /**
  * 📢 Muestra un toast con el mensaje de sesión si existe.

@@ -1,37 +1,11 @@
 // formCrud.ts
 import axios from '@/axios';
-import { ajaxStart } from './loader';
-import { copyInfo } from './copyInfo';
-import { showToast, showToastConfirmAction } from './toastNotify';
-import { onDOMReady } from '@/utils/domReady';
-import Swal, { SweetAlertIcon } from 'sweetalert2';
+import { ajaxStart } from '../loader';
+import { copyInfo } from '../copyInfo';
+import { showToast, showToastConfirmAction } from '../toastNotify';
 import { moduleFile } from '@/data/index.js';
-import { toggleModal } from './modals';
-
-// --------------------------------------
-// Definición de la interfaz del módulo dinámico
-// --------------------------------------
-interface ModuleType {
-    formTitleSuffix: string;
-    otherCasesMap?: Record<string, OtherCase>;
-    requiredFields?: string[];
-    viewId: string;
-    initListeners?: () => void;
-    insertInfo?: (action: string, data?: any) => void;
-    route: (name: string, params?: Record<string, string | number>) => string;
-}
-
-/**
- * Tipo de cada acción personalizada que se puede ejecutar.
- */
-export interface OtherCase {
-    routeName: string;               // Nombre de la ruta backend
-    text: string;                    // Texto para mostrar en el modal
-    icon: SweetAlertIcon;            // Icono para SweetAlert
-    confirmButtonText: string;       // Texto del botón de confirmación
-    method?: 'PUT' | 'DELETE';       // Método HTTP (por defecto PUT)
-}
-
+import { loadModule } from '../modal/loadModal';
+import type { ModuleType, OtherCase } from './formTypes';
 // ========================
 // Variables globales
 // ========================
@@ -50,30 +24,13 @@ let route: (name: string, params?: Record<string, string | number>) => string = 
 // Carga dinámica del módulo
 // ========================
 
+let modal: HTMLDivElement | null = null;
+
 if (moduleFile) {
-    const modules = import.meta.glob('../views/modules/**/*.ts');
-    const key = `../views/modules/${moduleFile}`.replace(/\.ts$/, '.ts');
-
-    if (modules[key]) {
-        modules[key]().then((mod) => {
-            const typedMod = mod as ModuleType;
-            module = typedMod;
-
-            formTitleSuffix = typedMod.formTitleSuffix;
-            viewId = typedMod.viewId;
-            otherCasesMap = typedMod.otherCasesMap ?? {};
-            requiredFields = typedMod.requiredFields ?? [];
-            route = typedMod.route;
-
-            if (typeof typedMod.initListeners === 'function') {
-                onDOMReady(typedMod.initListeners);
-            }
-        }).catch(err => {
-            console.error(`Error al importar el módulo dinámico '${moduleFile}':`, err);
-        });
-    } else {
-        console.error(`Módulo '${key}' no encontrado en import.meta.glob`);
-    }
+    await loadModule(moduleFile.trim());
+    // Definir modal dinámico después de cargar el módulo
+    const modal = document.getElementById(`modal-${viewId}`) as HTMLDivElement | null;
+    if (!modal) console.warn(`Modal con id 'modal-${viewId}' no encontrado`);
 }
 
 // ========================
@@ -85,10 +42,9 @@ if (moduleFile) {
  * @param element - Elemento HTML que dispara la acción.
  */
 export async function formCRUD(elem: HTMLElement): Promise<void> {
-    const modalLabel = document.getElementById(`modal-${viewId}-label`);
     const form = document.querySelector<HTMLFormElement>(`#form-${viewId}`);
 
-    if (!form || !modalLabel) {
+    if (!modal) {
         console.warn(`Formulario o modal no encontrado para: ${viewId}`);
         return;
     }
@@ -101,7 +57,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
     switch (action) {
         case 'create':
             insertInfo('create');
-            //prepareForm(form, 'create', 'Registrar', 'POST');
+            prepareForm(form, 'create', 'Registrar', 'POST');
             break;
 
         case 'edit':
@@ -149,7 +105,7 @@ export async function handleOtherCases(action: string, encryptId: string): Promi
         );
 
         if (!confirmed) {
-            Swal.fire('Los cambios no se guardaron', '', 'info');
+            showToast('Los cambios no se guardaron', 'info');
             return;
         }
 
@@ -208,6 +164,8 @@ export function submitForm(formSuffix: string, fields: string[] = []): void {
 export function insertInfo(action: string, data: any = ''): void {
     if (module?.insertInfo instanceof Function) {
         module.insertInfo(action, data);
+        // Mostrar modal con Bootstrap 4
+        $(modal).modal('show');
     } else {
         console.error(
             `La función insertInfo no existe o el módulo '${moduleFile}' no está cargado aún.`

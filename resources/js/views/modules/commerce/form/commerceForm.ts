@@ -1,7 +1,7 @@
 // ==========================
 //   Imports
 // ==========================
-import { formCRUD } from '@/helpers/formCrud';
+import { formCRUD } from '@/helpers/form/formCrud';
 import { insertOtherCoins } from '@/helpers/insertOtherCoins';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
@@ -16,43 +16,32 @@ export { route };
 // ==========================
 export const formTitleSuffix = 'Comercio';
 export const viewId = 'commerce';
-const modal = document.getElementById(`modal-${viewId}`)!;
-
-// ==========================
-//   Referencias a elementos del formulario
-// ==========================
-const usernameInput = document.getElementById('username') as HTMLInputElement | null;
-const emailInput = document.getElementById('email') as HTMLInputElement | null;
-
-// ==========================
-//   Flag de estado
-// ==========================
-let listenersAttached = false;
 
 // ==========================
 //   Campos requeridos
 // ==========================
-export const requiredFields: string[] =
-    ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email'];
+export const requiredFields: string[] = [
+    'name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email'
+];
 
 // ==========================
 //   Mapeo de acciones personalizadas
 // ==========================
 export const otherCasesMap: Record<string, {
-    routeName: string;             // Nombre de la ruta backend
-    text: string;                  // Texto a mostrar en el modal de confirmación
-    icon: SweetAlertIcon;          // Icono de SweetAlert
-    confirmButtonText: string;     // Texto del botón de confirmación
-    method?: 'PUT' | 'DELETE';     // Método HTTP, opcional, por defecto PUT
+    routeName: string;
+    text: string;
+    icon: SweetAlertIcon;
+    confirmButtonText: string;
+    method?: 'PUT' | 'DELETE';
 }> = {
-    '4': {  // Cambiar status de un comercio
+    '4': {
         routeName: 'changeStatus',
         text: '¿Deseas cambiar el status de este comercio?',
         icon: 'question',
         confirmButtonText: 'Sí, cambiar',
         method: 'PUT',
     },
-    '5': {  // Generar nueva contraseña
+    '5': {
         routeName: 'changePassw',
         text: 'Generar nueva contraseña a este comercio',
         icon: 'info',
@@ -78,6 +67,10 @@ export const otherCasesMap: Record<string, {
  * @param data - Objeto con los datos a precargar en modo edición
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
+    const modal = document.getElementById(`modal-${viewId}`)!;
+    const usernameInput = document.getElementById('username') as HTMLInputElement | null;
+    const emailInput = document.getElementById('email') as HTMLInputElement | null;
+
     if (!usernameInput || !emailInput || !modal) {
         console.error('Elementos DOM requeridos no encontrados');
         return;
@@ -124,7 +117,6 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
         usernameInput.readOnly = true;
         emailInput.readOnly = true;
-
     }
 
     // Mostrar modal con Bootstrap 4
@@ -140,9 +132,13 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
  * - Eventos click para botones dinámicos
  * - Validación de input de comisión
  */
+let listenersAttached = false;
 export function initListeners(): void {
     if (listenersAttached) return;
     listenersAttached = true;
+
+    const modal = document.getElementById(`modal-${viewId}`);
+    if (!modal) return;
 
     // Máscara para teléfono usando jQuery Mask
     if (typeof $ === 'function') {

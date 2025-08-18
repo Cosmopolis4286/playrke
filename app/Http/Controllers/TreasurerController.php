@@ -180,7 +180,7 @@ class TreasurerController extends Controller
 
             // Mensajes flash con tiempo de expiración personalizado
             Session::flash('message', 'Registro exitoso');
-            Session::flash('message-passw', $newPassw);
+            Session::flash('pawss', $newPassw);
             return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();

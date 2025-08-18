@@ -82,8 +82,8 @@
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        if (@json(Session::has('message-passw'))) {
-            const newPassw = {!! json_encode(Session::get('message-passw')) !!};
+        if (@json(Session::has('pawss'))) {
+            const newPassw = {!! json_encode(Session::get('pawss')) !!};
             $("#info-to-copy").val(newPassw);
             setTimeout(function() {
                 $("#modal-copy-passw").modal('show');

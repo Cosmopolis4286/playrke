@@ -188,7 +188,7 @@ class SellerController extends Controller
 
             // Mensajes flash para feedback en UI
             Session::flash('message', 'Registro exitoso');
-            Session::flash('message-passw', $newPassw);
+            Session::flash('pawss', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -356,7 +356,7 @@ class SellerController extends Controller
         User::where('id', $seller->user)->update(['password' => Hash::make($newPassw)]);
 
         Session::flash('message', 'La nueva contraseña del vendedor es: ' . ' <b>' . $newPassw . '</b>');
-        Session::flash('message-passw', $newPassw);
+        Session::flash('pawss', $newPassw);
         return redirect()->back();
     }
 

@@ -1,7 +1,7 @@
 // ==========================
 //   Imports
 // ==========================
-import { formCRUD } from '@/helpers/formCrud';
+import { formCRUD } from '@/helpers/form/formCrud';
 import { insertOtherCoins } from '@/helpers/insertOtherCoins';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
@@ -16,7 +16,6 @@ export { route };
 // ==========================
 export const formTitleSuffix = 'Vendedor';
 export const viewId = 'seller';
-const modal = document.getElementById(`modal-${viewId}`)!;
 
 // ==========================
 //   Referencias a elementos del formulario
@@ -126,10 +125,7 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
         usernameInput.readOnly = true;
         emailInput.readOnly = true;
     }
-
-    // Mostrar modal con Bootstrap 4
-    $(modal).modal('show');
-}
+  }
 
 // ==========================
 //   Función: initListeners

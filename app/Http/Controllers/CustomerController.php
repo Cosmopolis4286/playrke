@@ -195,7 +195,7 @@ class CustomerController extends Controller
 
             // Mensajes flash con tiempo de expiración personalizado
             Session::flash('message', "Registro exitoso");
-            Session::flash('message-passw', $newPassw);
+            Session::flash('pawss', $newPassw);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al crear Customer: ' . $e->getMessage());
@@ -354,7 +354,7 @@ class CustomerController extends Controller
         if (isset($res['PWD'])) {
             $password = $res['PWD'];
             Session::flash('message', "La nueva contraseña del Cliente es: <b>$password</b>");
-            Session::flash('message-passw', $password);
+            Session::flash('pawss', $password);
         } else {
             Session::flash('msg-error', 'Ha ocurrido un error: ' . $res['Error']);
         }

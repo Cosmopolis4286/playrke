@@ -1,7 +1,7 @@
 // ==========================
 //   Imports
 // ==========================
-import { formCRUD } from '@/helpers/formCrud';
+import { formCRUD } from '@/helpers/form/formCrud';
 import { insertOtherCoins } from '@/helpers/insertOtherCoins';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
