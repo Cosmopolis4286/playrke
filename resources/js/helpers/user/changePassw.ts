@@ -1,5 +1,5 @@
 // resources/js/helpers/user/changePassw.ts
-import { submitForm } from '@/helpers/form/formCrud';
+import { submitForm } from "../form/formCrudCore";
 
 /**
  * Inicializa el módulo de cambio de contraseña:
@@ -23,11 +23,4 @@ export function initChangePassw(): void {
             return;
         }
     });
-}
-
-// Ejecutar automáticamente si DOM ya está listo o agregar listener
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initChangePassw);
-} else {
-    initChangePassw();
 }

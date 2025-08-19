@@ -1,4 +1,4 @@
-import { coins } from '@/data/index.js'; // Ahora arrCoins viene de AppData
+import { coins } from '@/data/index'; // Ahora arrCoins viene de AppData
 
 // ==========================
 //   Elementos del DOM

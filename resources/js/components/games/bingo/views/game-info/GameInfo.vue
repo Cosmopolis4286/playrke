@@ -33,8 +33,8 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 
-import axios from '@/axios';  
-import echo from "@/echo.js";
+import axios from '@/plugins/axios';  
+import echo from "@/plugins/echo.js";
 
 import BingoBoard from "../components/game-info/BingoBoard.vue";
 import NumberCaller from "../components/game-info/NumberCaller.vue";

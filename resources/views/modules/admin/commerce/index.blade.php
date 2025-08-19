@@ -58,6 +58,6 @@
                 timeZones: @json($timeZones)
             };
         </script>
-        {{-- @vite('resources/js/helpers/form/formCrud.ts') --}}
+        {{-- @vite('resources/js/helpers/form/formCrudInit.ts') --}}
     @endpush
     </x-layout-online>
