@@ -1,7 +1,5 @@
-// ==========================
-//   Imports
-// ==========================
-import { formCRUD } from '@/helpers/form/formCrud';
+// commerceForm.ts
+import { formCRUD } from '@/helpers/form/formCrudInit';
 import { insertOtherCoins } from '@/helpers/insertOtherCoins';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
@@ -12,20 +10,17 @@ import { initAllSelects } from '@/utils/initAllSelects';
 export { route };
 
 // ==========================
-//   Constantes globales
+// Constantes globales
 // ==========================
 export const formTitleSuffix = 'Comercio';
 export const viewId = 'commerce';
 
-// ==========================
-//   Campos requeridos
-// ==========================
 export const requiredFields: string[] = [
     'name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email'
 ];
 
 // ==========================
-//   Mapeo de acciones personalizadas
+// Mapeo de acciones personalizadas
 // ==========================
 export const otherCasesMap: Record<string, {
     routeName: string;
@@ -51,88 +46,73 @@ export const otherCasesMap: Record<string, {
 };
 
 // ==========================
-//   Función: insertInfo
+// Función: insertInfo
 // ==========================
 /**
- * Inserta información en el formulario del modal según la acción (crear o editar)
+ * Inserta información en el formulario del modal según la acción.
  *
- * Esta función:
- * 1. Verifica que los elementos DOM requeridos existan.
- * 2. Resetea inputs editables (username, email).
- * 3. Inicializa automáticamente todos los selects dinámicos usando `initAllSelects`.
- * 4. En modo edición, rellena los campos del formulario con los datos proporcionados.
- * 5. Muestra el modal con Bootstrap 4.
- *
- * @param action - 'create' o 'edit'
- * @param data - Objeto con los datos a precargar en modo edición
+ * @param action - 'create' | 'edit'
+ * @param data - Datos para precargar en modo edición
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
-    const modal = document.getElementById(`modal-${viewId}`)!;
+    const modal = document.getElementById(`modal-${viewId}`);
+    if (!modal) return console.error('Modal no encontrado');
+
     const usernameInput = document.getElementById('username') as HTMLInputElement | null;
     const emailInput = document.getElementById('email') as HTMLInputElement | null;
+    if (!usernameInput || !emailInput) return console.error('Inputs username/email no encontrados');
 
-    if (!usernameInput || !emailInput || !modal) {
-        console.error('Elementos DOM requeridos no encontrados');
-        return;
-    }
-
-    // Reset inputs editables
+    // Reset de inputs editables
     usernameInput.readOnly = false;
     emailInput.readOnly = false;
     usernameInput.value = '';
     emailInput.value = '';
 
-    // Limpiar otros inputs si es creación
     if (action === 'create') {
-        (document.getElementById('name') as HTMLInputElement).value = '';
-        (document.getElementById('phone') as HTMLInputElement).value = '';
+        ['name', 'phone'].forEach(id => {
+            const input = document.getElementById(id) as HTMLInputElement | null;
+            if (input) input.value = '';
+        });
     }
 
-    // Preselección de valores para selects dinámicos
+    // Valores preseleccionados para selects dinámicos
     const selectedValues: Record<string, string | number> = {};
     if (action === 'edit' && data) {
         selectedValues['country'] = data?.commerce?.country ?? '';
         selectedValues['time-zone'] = data?.user?.time_zone ?? '';
-        // Se pueden agregar más selects dinámicos aquí
     }
 
-    // Inicializa todos los selects dinámicos automáticamente
     initAllSelects(selectedValues);
 
-    // Insertar otras monedas si es edición
-    if (action === 'edit' && data?.otherCoins) {
-        insertOtherCoins(data.otherCoins);
-    }
+    // Insertar monedas adicionales
+    if (action === 'edit' && data?.otherCoins) insertOtherCoins(data.otherCoins);
 
-    // Rellenar campos en modo edición
+    // Rellenar campos en edición
     if (action === 'edit' && data) {
         const { commerce, user } = data;
+        ['name', 'phone', 'code-rke'].forEach(id => {
+            const input = document.getElementById(id) as HTMLInputElement | null;
+            if (input) input.value = commerce[id as keyof typeof commerce] ?? '';
+        });
 
-        (document.getElementById('name') as HTMLInputElement).value = commerce.name || '';
-        (document.getElementById('phone') as HTMLInputElement).value = commerce.phone || '';
-        (document.getElementById('code-rke') as HTMLInputElement).value = commerce.commn || '';
-
-        usernameInput.value = user.username || '';
-        emailInput.value = user.email || '';
-
+        usernameInput.value = user.username ?? '';
+        emailInput.value = user.email ?? '';
         usernameInput.readOnly = true;
         emailInput.readOnly = true;
     }
 
-    // Mostrar modal con Bootstrap 4
+    // Mostrar modal
     $(modal).modal('show');
 }
 
 // ==========================
-//   Función: initListeners
+// Función: initListeners
 // ==========================
-/**
- * Inicializa los listeners globales del formulario:
- * - Máscara de teléfono
- * - Eventos click para botones dinámicos
- * - Validación de input de comisión
- */
 let listenersAttached = false;
+
+/**
+ * Inicializa listeners globales del formulario
+ */
 export function initListeners(): void {
     if (listenersAttached) return;
     listenersAttached = true;
@@ -140,17 +120,16 @@ export function initListeners(): void {
     const modal = document.getElementById(`modal-${viewId}`);
     if (!modal) return;
 
-    // Máscara para teléfono usando jQuery Mask
+    // Máscara de teléfono
     if (typeof $ === 'function') {
         const $phone = $('#phone');
         if ($phone.length) $phone.mask('00000000000');
     }
 
-    // Click en botones dinámicos btn-<viewId>
+    // Click en botones dinámicos del formulario
     document.addEventListener('click', ({ target }) => {
         const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${viewId}`);
         if (!element) return;
-
         formCRUD(element).catch(e => console.error('Error en formCRUD:', e));
     });
 

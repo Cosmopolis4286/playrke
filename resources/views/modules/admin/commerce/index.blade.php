@@ -7,6 +7,7 @@
                     type="button" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>Comercio
                 </button>
+
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">
                         <thead>
@@ -44,20 +45,26 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal principal --}}
     <x-shared.modal :id="$viewId" :formView="'modules.admin.commerce.form'" />
+
+    {{-- Modal condicional por sesión --}}
     @if (Session::has('pawss'))
         <x-shared.modal title="Contraseña Comercio" :value="Session::get('pawss')" />
     @endif
-    @push('stack-scripts')
-        <script>
-            window.appData = {
-                coins: @json($coins),
-                countries: @json($countries),
-                games: @json($games),
-                moduleFile: 'views/modules/commerce/form/commerceForm',
-                timeZones: @json($timeZones)
-            };
-        </script>
-        {{-- @vite('resources/js/helpers/form/formCrudInit.ts') --}}
-    @endpush
-    </x-layout-online>
+
+    @once
+        @push('stack-scripts')
+            <script type="module">
+                window.appData = {
+                    coins: @json($coins),
+                    countries: @json($countries),
+                    games: @json($games),
+                    moduleFile: 'views/modules/commerce/form/commerceForm.ts',
+                    timeZones: @json($timeZones)
+                };
+            </script>
+        @endpush
+    @endonce
+</x-layouts.layout-online>

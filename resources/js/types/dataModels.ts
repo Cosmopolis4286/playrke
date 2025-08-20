@@ -38,12 +38,13 @@ export interface TimeZone {
 }
 
 /**
- * Información global de la app
+ * Información global de la app (dinámica)
  */
 export interface AppData {
-    coins: Coin[];
-    countries: Country[];
-    games: Game[];
-    moduleFile: string;
-    timeZones: TimeZone[];
+    coins?: Coin[];
+    countries?: Country[];
+    games?: Game[];
+    moduleFile?: string;
+    timeZones?: TimeZone[];
+    [key: string]: any; // permite propiedades adicionales dinámicas
 }

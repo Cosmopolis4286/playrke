@@ -1,67 +1,188 @@
-import { copyInfo } from '@/utils/copyInfo';
-import { moduleFile } from '@/data/index';
-import { loadModule } from '@/helpers/module/loadModule';
-import type { ModuleType, OtherCase } from '@/helpers/module/types/moduleFormTypes';
-import { submitForm } from './formCrudCore';
-
-let module: ModuleType | null = null;
-export let otherCasesMap: Record<string, OtherCase> = {};
-let requiredFields: string[] = [];
-let formTitleSuffix: string = '';
-let viewId: string = '';
-export let route: (name: string, params?: Record<string, string | number>) => string = () => {
-    console.warn('Función route no definida todavía');
-    return '';
-};
-
-let modal: HTMLDivElement | null = null;
+// formCrudInit.ts
+import axios from '@/plugins/axios';
+import { ajaxStart } from '@/utils/loader';
+import { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
+import type { OtherCase } from '@/helpers/module/types/moduleFormTypes';
+import { formCrudExports } from './formCrudLoadModule';
 
 /**
- * Inicializa todo el sistema CRUD dinámico (módulo, modal y listeners).
+ * Llama insertInfo si existe y muestra el modal
  */
-export async function initFormCrud(): Promise<void> {
-    if (moduleFile) {
-        // await loadModule(moduleFile);
-        modal = document.getElementById(`modal-${viewId}`) as HTMLDivElement | null;
-        if (!modal) console.warn(`Modal con id 'modal-${viewId}' no encontrado`);
-    }
+function safeInsertInfo(action: string, data?: any) {
+    const insertFn = formCrudExports.insertInfo;
+    const modalEl = formCrudExports.modal;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof $ === 'function') {
-            const $select2Elements = $('.select2');
-            if ($select2Elements.length) {
-                $select2Elements.select2({
-                    theme: 'bootstrap4',
-                    width: 'style',
-                    placeholder() { return $(this).attr('placeholder') || ''; },
-                    allowClear() { return Boolean($(this).data('allow-clear')); }
-                });
-            }
-        }
-
-        document.addEventListener('click', (event: MouseEvent) => {
-            const target = event.target as HTMLElement | null;
-            if (!target) return;
-
-            if (target.closest('#btn-confirm')) submitForm(viewId, requiredFields);
-            if (target.closest('#btn-copy')) copyInfo('Contraseña Copiada');
-            if (target.closest('.popover-dismiss')) $(target).popover('toggle');
-        });
-    });
-}
-
-/**
- * Inserta datos en el formulario usando la función insertInfo del módulo dinámico.
- */
-export function insertInfo(action: string, data: any = ''): void {
-    if (module?.insertInfo instanceof Function) {
-        module.insertInfo(action, data);
-        if (modal) $(modal).modal('show');
+    if (typeof insertFn === 'function') {
+        insertFn(action, data);
+        if (modalEl) $(modalEl).modal('show');
     } else {
         console.error(
-            `La función insertInfo no existe o el módulo '${moduleFile}' no está cargado aún.`
+            `La función insertInfo no existe o el módulo '${formCrudExports.moduleFile}' no está cargado aún.`
         );
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => { initFormCrud() });
+/**
+ * Ejecuta el flujo principal de acciones CRUD
+ */
+export async function formCRUD(elem: HTMLElement): Promise<void> {
+    const viewId = formCrudExports.viewId;
+    const modalEl = formCrudExports.modal;
+    const routeFn = formCrudExports.route;
+
+    if (!modalEl) return console.warn(`Modal no encontrado para: ${viewId}`);
+
+    const form = document.querySelector<HTMLFormElement>(`#form-${viewId}`);
+    if (form) resetForm(form);
+
+    const action = elem.dataset.action ?? '';
+    const encryptId = document.getElementById(`elem-${viewId}`)?.dataset.id ?? '';
+
+    switch (action) {
+        case 'create':
+            safeInsertInfo('create');
+            form && prepareForm(form, 'create', 'Registrar', 'POST', undefined, formCrudExports.formTitleSuffix, routeFn);
+            break;
+        case 'edit':
+            await getInfo(encryptId);
+            form && prepareForm(form, 'update', 'Editar', 'PUT', encryptId, formCrudExports.formTitleSuffix, routeFn);
+            break;
+        case 'delete':
+            await handleOtherCases('delete', encryptId);
+            break;
+        default:
+            await handleOtherCases(action, encryptId);
+            break;
+    }
+}
+
+/**
+ * Ejecuta acciones personalizadas de otherCasesMap
+ */
+async function handleOtherCases(action: string, encryptId: string) {
+    const viewId = formCrudExports.viewId;
+    const otherCases = formCrudExports.otherCasesMap;
+    const routeFn = formCrudExports.route;
+
+    const globalDelete: OtherCase = {
+        routeName: 'delete',
+        text: 'El registro será eliminado definitivamente',
+        icon: 'warning',
+        confirmButtonText: 'Sí, eliminar',
+        method: 'DELETE',
+    };
+
+    const caseData: OtherCase | undefined = action === 'delete' ? globalDelete : otherCases[action];
+    if (!caseData) return console.error(`Acción no reconocida: ${action}`);
+
+    try {
+        const confirmed = await showToastConfirmAction(caseData.text, caseData.icon, caseData.confirmButtonText);
+        if (!confirmed) return showToast('Los cambios no se guardaron', 'info');
+
+        const url = routeFn?.(caseData.routeName, { id: encryptId }) ?? '';
+        await axios.request({
+            method: (caseData.method ?? 'PUT').toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch',
+            url,
+        });
+
+        console.log(`Acción '${action}' registrada correctamente para ${viewId}`);
+    } catch (error: any) {
+        console.error(`Error al registrar la acción '${action}':`, error?.response?.data || error.message);
+    }
+}
+
+/**
+ * Obtiene datos desde el backend para editar
+ */
+async function getInfo(encryptId: string) {
+    if (!encryptId) return console.error('ID cifrado no definido para getInfo');
+
+    const routeFn = formCrudExports.route;
+
+    try {
+        const url = routeFn?.('getInfo', { id: encryptId }) ?? '';
+        const { data } = await axios.get(url);
+        safeInsertInfo('edit', data);
+    } catch (error: any) {
+        console.error('Error al obtener información:', error?.response?.data || error.message);
+    }
+}
+
+/**
+ * Valida campos requeridos y envía el formulario
+ */
+export function submitForm(formSuffix: string, fields: string[] = []) {
+    const form = document.getElementById(`form-${formSuffix}`) as HTMLFormElement | null;
+    if (!form) return console.warn(`Formulario no encontrado para submit: ${formSuffix}`);
+
+    if (!fields.length) {
+        fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[required], select[required]'))
+            .map(el => el.id)
+            .filter(Boolean);
+    }
+
+    const missing = fields.some(id => !(document.getElementById(id) as HTMLInputElement | HTMLSelectElement)?.value);
+    if (missing) return showToast('Todos los campos son requeridos', 'warning');
+
+    ajaxStart();
+    form.submit();
+}
+
+/**
+ * Resetea un formulario y limpia selects con data-reset="true"
+ */
+export function resetForm(form: HTMLFormElement) {
+    form.reset();
+    form.querySelectorAll<HTMLSelectElement>('select[data-reset="true"]').forEach(select => select.innerHTML = '');
+}
+
+/**
+ * Configura el formulario antes de enviarlo
+ */
+export function prepareForm(
+    form: HTMLFormElement,
+    routeName: string,
+    modalTitle: string,
+    method: string = 'POST',
+    id?: string,
+    suffix: string = '',
+    routeFn: (name: string, params?: Record<string, string | number>) => string = () => ''
+) {
+    const methodUpper = method.toUpperCase();
+    const modalLabel = document.querySelector(`#${form.id.replace('form', 'modal')}-label`);
+    if (modalLabel) modalLabel.textContent = `${modalTitle} ${suffix}`;
+
+    try {
+        const actionUrl = ['PUT', 'PATCH', 'DELETE'].includes(methodUpper)
+            ? (id ? routeFn(routeName, { id }) : (() => { throw new Error(`'id' requerido para ${methodUpper}`); })())
+            : routeFn(routeName);
+
+        form.action = actionUrl;
+        form.method = methodUpper;
+    } catch (error) {
+        console.error(`Error generando la ruta para '${routeName}':`, error);
+    }
+
+    // Limpiar métodos anteriores
+    form.querySelectorAll('input[name="_method"]').forEach(input => input.remove());
+
+    if (!['POST', 'GET'].includes(methodUpper)) {
+        const hiddenMethod = document.createElement('input');
+        hiddenMethod.type = 'hidden';
+        hiddenMethod.name = '_method';
+        hiddenMethod.value = methodUpper;
+        form.appendChild(hiddenMethod);
+    }
+
+    // CSRF token
+    if (!form.querySelector('input[name="_token"]')) {
+        const tokenMeta = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]');
+        if (tokenMeta?.content) {
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '_token';
+            tokenInput.value = tokenMeta.content;
+            form.appendChild(tokenInput);
+        } else console.warn('Token CSRF no encontrado en meta.');
+    }
+}

@@ -1,25 +1,7 @@
-import { SweetAlertIcon } from 'sweetalert2';
 import { showToast } from './toastNotify';
 import { loadDataTable } from './dataTables';
 import { initChangePassw } from './user/changePassw';
 import { initLogout } from './user/logout';
-
-/**
- * Muestra un toast con el mensaje de sesión si existe.
- */
-export function showSessionToast(
-    message: string,
-    icon: SweetAlertIcon = 'success'
-): void {
-    if (!message?.trim()) return;
-
-    try {
-        showToast(`<div style="font-size: 15px;">${message}</div>`, icon);
-        console.log('✅ Toast de sesión mostrado');
-    } catch (err) {
-        console.error('❌ Error mostrando toast de sesión:', err);
-    }
-}
 
 /**
  * Muestra los mensajes de error provenientes de Laravel.
@@ -75,7 +57,7 @@ export function initGlobal(): void {
 
         // Mensaje de sesión
         if (window.Session?.message) {
-            showSessionToast(window.Session.message, window.Session.type || 'success');
+            showToast(window.Session.message, window.Session.type || 'success');
         }
 
         // Errores de Laravel

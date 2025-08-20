@@ -1,0 +1,84 @@
+import { moduleFile } from '@/data/index';
+import { loadModule } from '@/helpers/module/loadModule';
+import type { ModuleType, OtherCase } from '@/helpers/module/types/moduleFormTypes';
+import { submitForm } from './formCrudInit';
+import { copyInfo } from '@/utils/copyInfo';
+
+let _formTitleSuffix = '';
+let _insertInfo: (action: string, data?: any) => void = () => { };
+let _modal: HTMLDivElement | null = null;
+let _module: ModuleType | null = null;
+let _otherCasesMap: Record<string, OtherCase> = {};
+let _requiredFields: string[] = [];
+let _route: (name: string, params?: Record<string, string | number>) => string = () => '';
+let _viewId = '';
+
+// Export seguro del módulo
+export const formCrudExports = {
+    get formTitleSuffix() { return _formTitleSuffix; },
+    get insertInfo() { return _insertInfo; },
+    get modal() { return _modal; },
+    get otherCasesMap() { return _otherCasesMap; },
+    get requiredFields() { return _requiredFields; },
+    get route() { return _route; },
+    get viewId() { return _viewId; },
+    moduleFile,
+};
+
+/**
+ * Inicializa el módulo CRUD dinámico solo si no está cargado aún
+ */
+export async function initFormCrud(): Promise<void> {
+    if (!moduleFile) return;
+    if (_module) return; // Evita doble carga
+
+    _module = await loadModule<ModuleType>(moduleFile);
+
+    _viewId = _module.viewId;
+    _formTitleSuffix = _module.formTitleSuffix;
+    _insertInfo = _module.insertInfo ?? (() => { });
+    _otherCasesMap = _module.otherCasesMap ?? {};
+    _requiredFields = _module.requiredFields ?? [];
+    _route = _module.route ?? (() => '');
+
+    _modal = document.getElementById(`modal-${_viewId}`) as HTMLDivElement | null;
+    if (!_modal) console.warn(`Modal con id 'modal-${_viewId}' no encontrado`);
+
+    setupListeners();
+}
+
+function setupListeners(): void {
+    const initSelect2 = () => {
+        if (typeof $ !== 'function') return;
+        const $els = $('.select2');
+        if ($els.length) {
+            $els.select2({
+                theme: 'bootstrap4',
+                width: 'style',
+                placeholder() { return $(this).attr('placeholder') || ''; },
+                allowClear() { return Boolean($(this).data('allow-clear')); }
+            });
+        }
+    };
+
+    const initClickListeners = () => {
+        document.addEventListener('click', (e) => {
+            const target = e.target as HTMLElement;
+            if (!target) return;
+
+            if (target.closest('#btn-confirm')) submitForm(_viewId, _requiredFields);
+            if (target.closest('#btn-copy')) copyInfo('Contraseña Copiada');
+            if (target.closest('.popover-dismiss')) $(target).popover('toggle');
+        });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            initSelect2();
+            initClickListeners();
+        });
+    } else {
+        initSelect2();
+        initClickListeners();
+    }
+}

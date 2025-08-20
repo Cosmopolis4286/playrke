@@ -1,8 +1,11 @@
 // global.d.ts
-export { }; // Hace este archivo un módulo
+import type { AppData } from '@/data/index';
+
+export {};
 
 declare global {
   interface Window {
+    appData: AppData;
     vueAppIsReady: () => void;
     _vueMounted?: boolean;
     route?: (name: string, params?: any) => string;
