@@ -1,11 +1,12 @@
-import { moduleFile } from '@/data/index';
+// resources/js/helpers/form/formCrudLoadModule.ts
+import { getModuleFile } from '@/data/index';
 import { loadModule } from '@/helpers/module/loadModule';
 import type { ModuleType, OtherCase } from '@/helpers/module/types/moduleFormTypes';
 import { submitForm } from './formCrudInit';
 import { copyInfo } from '@/utils/copyInfo';
 
 let _formTitleSuffix = '';
-let _insertInfo: (action: string, data?: any) => void = () => { };
+let _insertInfo: (action: string, data?: any) => void = () => {};
 let _modal: HTMLDivElement | null = null;
 let _module: ModuleType | null = null;
 let _otherCasesMap: Record<string, OtherCase> = {};
@@ -13,7 +14,7 @@ let _requiredFields: string[] = [];
 let _route: (name: string, params?: Record<string, string | number>) => string = () => '';
 let _viewId = '';
 
-// Export seguro del módulo
+// Export seguro del módulo con getters dinámicos
 export const formCrudExports = {
     get formTitleSuffix() { return _formTitleSuffix; },
     get insertInfo() { return _insertInfo; },
@@ -22,21 +23,22 @@ export const formCrudExports = {
     get requiredFields() { return _requiredFields; },
     get route() { return _route; },
     get viewId() { return _viewId; },
-    moduleFile,
+    get moduleFile() { return getModuleFile(); } // ✅ dinámico
 };
 
 /**
  * Inicializa el módulo CRUD dinámico solo si no está cargado aún
  */
 export async function initFormCrud(): Promise<void> {
-    if (!moduleFile) return;
-    if (_module) return; // Evita doble carga
+    const moduleFile = getModuleFile(); // ✅ obtener valor dinámico
+    if (!moduleFile) return;            // si no existe, salir
+    if (_module) return;                // evita doble carga
 
     _module = await loadModule<ModuleType>(moduleFile);
 
     _viewId = _module.viewId;
     _formTitleSuffix = _module.formTitleSuffix;
-    _insertInfo = _module.insertInfo ?? (() => { });
+    _insertInfo = _module.insertInfo ?? (() => {});
     _otherCasesMap = _module.otherCasesMap ?? {};
     _requiredFields = _module.requiredFields ?? [];
     _route = _module.route ?? (() => '');

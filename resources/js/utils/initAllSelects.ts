@@ -1,8 +1,8 @@
-import { coins, countries, games, timeZones } from '@/data/index';
-import { Coin, Country, Game, TimeZone } from '@/types/dataModels';
+import type { Coin, Country, Game, TimeZone } from '@/types/dataModels';
+import { getCoins, getCountries, getGames, getTimeZones } from '@/data/index';
 
 /**
- * Tipado de datasets disponibles en window.appData
+ * Tipado de datasets disponibles en appData
  */
 type DatasetMap = {
     coins: Coin[];
@@ -11,17 +11,23 @@ type DatasetMap = {
     timeZones: TimeZone[];
 };
 
-/**
- * Mapeo de datasets importados desde index.ts
- */
-const datasets: DatasetMap = { coins, countries, games, timeZones };
+/** Funciones para obtener datasets dinámicamente */
+const datasetGetters: Record<keyof DatasetMap, () => any[]> = {
+    coins: getCoins,
+    countries: getCountries,
+    games: getGames,
+    timeZones: getTimeZones,
+};
 
 /**
  * Inicializa todos los <select> que tengan el atributo `data-source`.
  *
- * Recorre cada select, determina su dataset según `data-source`, limpia el contenido,
- * agrega un placeholder si existe, ordena las opciones por label y marca la opción
- * seleccionada si se proporciona en `selectedValues`.
+ * - Determina el dataset según `data-source`.
+ * - Limpia el contenido del select.
+ * - Agrega placeholder si existe.
+ * - Ordena las opciones por label.
+ * - Marca opción seleccionada según `selectedValues`.
+ * - Permite deshabilitar opciones con `disableFn`.
  *
  * Validaciones adicionales:
  * - Verifica que el dataset exista y tenga elementos.
@@ -31,69 +37,57 @@ const datasets: DatasetMap = { coins, countries, games, timeZones };
  * @param selectedValues - Opcional: objeto { [selectId]: valorPreseleccionado }
  * @param disableFn - Opcional: función para deshabilitar opciones. Recibe (selectId, item) => boolean
  */
-export function initAllSelects<
-    T extends keyof DatasetMap
->(
+export function initAllSelects<T extends keyof DatasetMap>(
     selectedValues?: Partial<Record<string, string | number>>,
     disableFn?: (selectId: string, item: DatasetMap[T][number]) => boolean
-) {
+): void {
     document.querySelectorAll<HTMLSelectElement>('select[data-source]').forEach(select => {
         const sourceKey = select.dataset.source as keyof DatasetMap;
-        const dataset = datasets[sourceKey];
+        const dataset = datasetGetters[sourceKey]?.() ?? [];
 
-        if (!dataset || dataset.length === 0) {
+        if (!dataset.length) {
             console.warn(`Dataset '${sourceKey}' no existe o está vacío para el select #${select.id}.`);
             return;
         }
 
         const valueKey = select.dataset.value as keyof typeof dataset[number];
         const labelKey = select.dataset.label as keyof typeof dataset[number];
-        const placeholder = select.dataset.placeholder;
 
         if (!valueKey || !labelKey) {
             console.warn(`Select #${select.id} requiere atributos 'data-value' y 'data-label'.`);
             return;
         }
 
-        // Limpiar select
+        // Limpiar y agregar placeholder
         select.innerHTML = '';
-
-        // Placeholder
-        if (placeholder) {
-            const placeholderOption = new Option(placeholder, '', true, false);
-            placeholderOption.disabled = true;
-            select.appendChild(placeholderOption);
+        if (select.dataset.placeholder) {
+            const ph = new Option(select.dataset.placeholder, '', true, false);
+            ph.disabled = true;
+            select.appendChild(ph);
         }
 
-        // Ordenar dataset por label
-        const sortedData = [...dataset].sort((a, b) => {
-            const aLabel = a[labelKey];
-            const bLabel = b[labelKey];
+        // Agregar opciones ordenadas
+        [...dataset]
+            .sort((a, b) => String(a[labelKey]).localeCompare(String(b[labelKey]), 'es', { sensitivity: 'base' }))
+            .forEach(item => {
+                const value = item[valueKey];
+                const label = item[labelKey];
 
-            return String(aLabel).localeCompare(String(bLabel), 'es', { sensitivity: 'base' });
-        });
+                if (value === undefined || label === undefined) {
+                    console.warn(`Item del dataset '${sourceKey}' no tiene '${String(valueKey)}' o '${String(labelKey)}'.`);
+                    return;
+                }
 
-        // Agregar opciones
-        sortedData.forEach(item => {
-            const value = item[valueKey];
-            const label = item[labelKey];
+                const option = new Option(
+                    String(label),
+                    String(value),
+                    false,
+                    selectedValues?.[select.id] === value
+                );
 
-            // Validación de existencia de la propiedad
-            if (value === undefined || label === undefined) {
-                console.warn(`Item del dataset '${sourceKey}' no tiene '${String(valueKey)}' o '${String(labelKey)}'.`);
-                return;
-            }
+                if (disableFn?.(select.id, item)) option.disabled = true;
 
-            const isSelected = selectedValues?.[select.id] !== undefined &&
-                item[valueKey] === selectedValues[select.id];
-
-            const option = new Option(String(label), String(value), false, isSelected);
-
-            if (disableFn?.(select.id, item)) {
-                option.disabled = true;
-            }
-
-            select.appendChild(option);
-        });
+                select.appendChild(option);
+            });
     });
 }

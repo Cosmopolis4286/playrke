@@ -2,44 +2,35 @@
 import Alpine from 'alpinejs';
 import { loadModule } from '@/helpers/module/loadModule';
 import { initFormCrud } from '@/helpers/form/formCrudLoadModule';
-import { initAppData } from '@/data/index';
+import { initAppData, getModuleFile } from '@/data/index';
 
 // --------------------------
-// Inicializar Alpine
+// Inicializar Alpine inmediatamente
 // --------------------------
 (window as any).Alpine = Alpine;
 Alpine.start();
 console.log('✅ Alpine.js iniciado correctamente');
 
 // --------------------------
-// Inicialización de AppData
-// --------------------------
-initAppData();
-
-// --------------------------
-// Espera a que el DOM esté listo y appData exista
+// Ejecutar resto de lógica cuando el DOM esté listo
 // --------------------------
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        console.log('🚀 Iniciando carga de módulos con loadModule');
+        // Inicializar appData
+        await initAppData();
+        console.log('🚀 appData inicializado');
 
-        const appData = (window as any).appData;
-        if (!appData) {
-            throw new Error('❌ window.appData no está definido. Asegúrate de declararlo en Blade antes de cargar los scripts.');
-        }
-
-        console.log('appData', appData);
-
-        // Cargar helpers globales
-        await loadModule('helpers/mounApp');              // Loader y wrapper
-        await loadModule('helpers/global', 'initGlobalSafe'); // Inicialización global segura
+        // Cargar helpers globales en secuencia
+        await loadModule('./helpers/mounApp.ts');                   // Loader y wrapper
+        await loadModule('./helpers/global.ts', 'initGlobalSafe');  // Inicialización global segura
 
         // Inicializar módulo principal dinámico si existe
-        if (appData.moduleFile) {
-            await initFormCrud(); // Carga el módulo y asigna propiedades a formCrudExports
-            console.log(`🟢 Módulo principal "${appData.moduleFile}" cargado correctamente`);
+        const moduleFile = getModuleFile();
+        if (moduleFile) {
+            await initFormCrud(); 
+            console.log(`🟢 Módulo principal "${moduleFile}" cargado correctamente`);
         } else {
-            console.warn('⚠️ moduleFile no definido en window.appData');
+            console.warn('⚠️ moduleFile no definido en appData, se omite initFormCrud');
         }
 
         console.log('🟢 Todos los módulos cargados correctamente');

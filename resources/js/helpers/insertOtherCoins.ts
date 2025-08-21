@@ -1,4 +1,4 @@
-import { coins } from '@/data/index'; // Ahora arrCoins viene de AppData
+import { getCoins } from '@/data/index'; // Leer dinámicamente de AppData
 
 // ==========================
 //   Elementos del DOM
@@ -16,7 +16,7 @@ const otherCoins = document.getElementById('other-coins') as HTMLSelectElement |
 // ==========================
 /** Limpia el select de monedas alternativas */
 function clearOtherCoins(): void {
-    if (otherCoins) otherCoins.innerHTML = '';
+    otherCoins?.replaceChildren();
 }
 
 /**
@@ -28,39 +28,30 @@ function clearOtherCoins(): void {
  * @param selectedCoins - Array de IDs de monedas que deben estar preseleccionadas.
  */
 export function insertOtherCoins(selectedCoins: (number | string)[] = []): void {
-    // Si no existen los elementos DOM requeridos, salir de la función
     if (!otherCoins || !coin) return;
 
-    // Limpiar cualquier opción previa en el select de monedas alternativas
     clearOtherCoins();
 
-    // Obtener el ID de la moneda principal actualmente seleccionada
     const mainCoinId = Number(coin.value);
+    const arrCoins = getCoins();
 
-    // Filtrar monedas excluyendo la principal, ordenar por symbol y agregar al select
-    coins
-        .filter(c => c.id !== mainCoinId) // Excluir moneda principal
-        .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' })) // Ordenar alfabéticamente por símbolo
+    arrCoins
+        .filter(c => c.id !== mainCoinId)
+        .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' }))
         .forEach(({ id, symbol, long_name }) => {
-            const option = document.createElement('option'); // Crear opción del select
-            option.value = String(id);                        // Valor de la opción
-            option.textContent = `(${symbol}) ${long_name}`; // Texto visible en el select
-
-            // Marcar como seleccionada si el ID está en selectedCoins
+            const option = document.createElement('option');
+            option.value = String(id);
+            option.textContent = `(${symbol}) ${long_name}`;
             if (selectedCoins.includes(id)) option.selected = true;
-
-            // Agregar la opción al select
             otherCoins.appendChild(option);
         });
 
-    // Asegurarse de mostrar el contenedor de monedas alternativas
     containerOtherCoins?.classList.remove('d-none');
 }
 
 /** Actualiza la moneda principal y el texto según el país seleccionado */
 function updateMainCoinByCountry(selectedCountry: number): void {
-    const matchingCoin = coins.find(c => c.country === selectedCountry);
-
+    const matchingCoin = getCoins().find(c => c.country === selectedCountry);
     if (!matchingCoin || !coin || !coinText) return;
 
     coin.value = String(matchingCoin.id);
@@ -96,13 +87,9 @@ export function initCoinSelector(): void {
 
         updateMainCoinByCountry(selectedCountry);
 
-        if (coins.length > 1) {
-            insertOtherCoins();
-        }
+        if (getCoins().length > 1) insertOtherCoins();
     });
 }
-
-
 
 // Ejecutar inicialización automáticamente si existe el select de país
 initCoinSelector();
