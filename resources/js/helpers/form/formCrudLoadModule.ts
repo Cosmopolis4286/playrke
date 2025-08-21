@@ -50,20 +50,7 @@ export async function initFormCrud(): Promise<void> {
 }
 
 function setupListeners(): void {
-    const initSelect2 = () => {
-        if (typeof $ !== 'function') return;
-        const $els = $('.select2');
-        if ($els.length) {
-            $els.select2({
-                theme: 'bootstrap4',
-                width: 'style',
-                placeholder() { return $(this).attr('placeholder') || ''; },
-                allowClear() { return Boolean($(this).data('allow-clear')); }
-            });
-        }
-    };
-
-    const initClickListeners = () => {
+      const initClickListeners = () => {
         document.addEventListener('click', (e) => {
             const target = e.target as HTMLElement;
             if (!target) return;
@@ -76,11 +63,9 @@ function setupListeners(): void {
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            initSelect2();
             initClickListeners();
         });
     } else {
-        initSelect2();
         initClickListeners();
     }
 }

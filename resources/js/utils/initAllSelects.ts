@@ -21,18 +21,9 @@ const datasetGetters: Record<keyof DatasetMap, () => any[]> = {
 
 /**
  * Inicializa todos los <select> que tengan el atributo `data-source`.
- *
- * - Determina el dataset según `data-source`.
- * - Limpia el contenido del select.
- * - Agrega placeholder si existe.
- * - Ordena las opciones por label.
- * - Marca opción seleccionada según `selectedValues`.
- * - Permite deshabilitar opciones con `disableFn`.
- *
- * Validaciones adicionales:
- * - Verifica que el dataset exista y tenga elementos.
- * - Comprueba que `data-value` y `data-label` estén definidos en el select.
- * - Evita errores si un item del dataset no tiene la propiedad indicada.
+ * 
+ * Funciona tanto para selects nativos como para Select2.
+ * Permite placeholders dinámicos, selección inicial y deshabilitación condicional.
  *
  * @param selectedValues - Opcional: objeto { [selectId]: valorPreseleccionado }
  * @param disableFn - Opcional: función para deshabilitar opciones. Recibe (selectId, item) => boolean
@@ -41,6 +32,7 @@ export function initAllSelects<T extends keyof DatasetMap>(
     selectedValues?: Partial<Record<string, string | number>>,
     disableFn?: (selectId: string, item: DatasetMap[T][number]) => boolean
 ): void {
+    // Recorremos todos los selects con data-source
     document.querySelectorAll<HTMLSelectElement>('select[data-source]').forEach(select => {
         const sourceKey = select.dataset.source as keyof DatasetMap;
         const dataset = datasetGetters[sourceKey]?.() ?? [];
@@ -58,15 +50,15 @@ export function initAllSelects<T extends keyof DatasetMap>(
             return;
         }
 
-        // Limpiar y agregar placeholder
+        // Limpiar select y crear placeholder si existe
         select.innerHTML = '';
+        let placeholderOption: HTMLOptionElement | null = null;
         if (select.dataset.placeholder) {
-            const ph = new Option(select.dataset.placeholder, '', true, false);
-            ph.disabled = true;
-            select.appendChild(ph);
+            placeholderOption = new Option(select.dataset.placeholder, '', true, false);
+            select.appendChild(placeholderOption);
         }
 
-        // Agregar opciones ordenadas
+        // Agregar las opciones del dataset ordenadas por label
         [...dataset]
             .sort((a, b) => String(a[labelKey]).localeCompare(String(b[labelKey]), 'es', { sensitivity: 'base' }))
             .forEach(item => {
@@ -89,5 +81,29 @@ export function initAllSelects<T extends keyof DatasetMap>(
 
                 select.appendChild(option);
             });
+
+        // ⚡ Placeholder: deshabilitar si ya hay un valor seleccionado
+        if (selectedValues?.[select.id] && placeholderOption) {
+            placeholderOption.disabled = true;
+        } else if (placeholderOption) {
+            // ⚡ Si no hay valor preseleccionado, deshabilitar placeholder tras primer cambio
+            select.addEventListener('change', () => {
+                placeholderOption!.disabled = true;
+            }, { once: true });
+        }
+
+        // 🔹 Inicializar Select2 si corresponde
+        if (select.classList.contains('select2')) {
+            const placeholderText = '    ' + select.dataset.placeholder || '';
+            const allowClear = select.dataset.allowClear !== 'false'; // true por defecto
+
+            $(select).select2({
+                placeholder: placeholderText,
+                allowClear: allowClear,
+                theme: 'bootstrap4',
+                width: '100%',
+                multiple: select.multiple,
+            });
+        }
     });
 }

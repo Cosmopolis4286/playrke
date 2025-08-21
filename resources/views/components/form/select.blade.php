@@ -29,12 +29,15 @@
         @isset($dataValue) data-value="{{ $dataValue }}" @endisset
         @isset($dataLabel) data-label="{{ $dataLabel }}" @endisset
         @isset($placeholder) data-placeholder="{{ $placeholder }}" @endisset>
+
+        {{-- Placeholder para Select2 / nativo --}}
         @if ($placeholder)
             <option value="">{{ $placeholder }}</option>
         @endif
 
+        {{-- Opciones estáticas --}}
         @foreach ($options as $key => $labelOption)
-            <option value="{{ $key }}" @selected(old($name, $value) == $key)>{{ $labelOption }}</option>
+            <option value="{{ $key }}" @selected($multiple ? is_array(old($name, $value)) && in_array($key, old($name, $value)) : old($name, $value) == $key)>{{ $labelOption }}</option>
         @endforeach
     </select>
 
