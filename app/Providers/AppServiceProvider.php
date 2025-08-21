@@ -7,10 +7,8 @@ use App\Services\Games\Bingo\RoomTypeService;
 use App\Services\Helpers\RouteService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
-use App\View\Components\Modal;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,9 +28,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Registrar componente Blade
-        Blade::component('shared.modal', Modal::class);
-
         // Forzar HTTPS en producción
         if ($this->app->environment('production')) {
             URL::forceScheme('https');

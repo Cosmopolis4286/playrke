@@ -1,5 +1,6 @@
 // resources/js/app.ts
 import Alpine from 'alpinejs';
+import { tableSelection } from '@/alpine/tableSelection';
 import { loadModule } from '@/helpers/module/loadModule';
 import { initFormCrud } from '@/helpers/form/formCrudLoadModule';
 import { initAppData, getModuleFile } from '@/data/index';
@@ -7,9 +8,15 @@ import { initAppData, getModuleFile } from '@/data/index';
 // --------------------------
 // Inicializar Alpine inmediatamente
 // --------------------------
+
+// Registrar tableSelection dentro de Alpine
+Alpine.data('tableSelection', tableSelection);
+
+// Inicializar Alpine
 (window as any).Alpine = Alpine;
 Alpine.start();
-console.log('✅ Alpine.js iniciado correctamente');
+
+console.log('✅ Alpine.js iniciado con tableSelection disponible');
 
 // --------------------------
 // Ejecutar resto de lógica cuando el DOM esté listo

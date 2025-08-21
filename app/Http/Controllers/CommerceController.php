@@ -91,109 +91,135 @@ class CommerceController extends Controller
         return $validator; // Devuelve el validador en caso de éxito
     }
 
-    public function create(Request $request) /// Registar Comercializadoras
+    /**
+     * Crea una nueva Comercializadora (Commerce).
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function create(Request $request)
     {
-        if ($this->user(['user_type'])->user_type != 2) {
-            return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
+        // 🔒 Verificación de permisos
+        if ($this->user(['user_type'])->user_type !== 2) {
+            return redirect()->back()->withErrors([
+                'error' => 'No tienes permiso para realizar esta acción.'
+            ]);
         }
 
         $codeRKE = $request->code_rke;
-        $existsCodeRKE = Commerce::existsValue('code_rke', $codeRKE);
 
-        if ($existsCodeRKE) {
-            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
+        // 🔎 Validación de código duplicado
+        if (Commerce::existsValue('code_rke', $codeRKE)) {
+            return redirect()->back()->with([
+                'message' => 'El código RKE ya existe',
+                'type' => 'warning'
+            ]);
+        }
+
+        // 🔍 Validación inicial antes de iniciar transacción
+        $validator = $this->validateRequest($request);
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
         DB::beginTransaction();
 
         try {
-            // Validar la solicitud usando la función validateRequest
-            $validator = $this->validateRequest($request);
-            if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
-            }
-
             $newPassw = $this->valEncrypt();
+            $userTypeId = UserType::getValueByPrefix('commerce', 'id');
 
+            // 👤 Crear usuario
             $newUser = User::create([
-                'username' => $request->username,
-                'user_type' => UserType::getValueByPrefix('commerce', 'id'),
-                'email' => $request->email,
-                'password' => Hash::make($newPassw),
-                'country' => $request->country,
-                'time_zone' => $request->time_zone,
+                'username'          => $request->username,
+                'user_type'         => $userTypeId,
+                'email'             => $request->email,
+                'password'          => Hash::make($newPassw),
+                'country'           => $request->country,
+                'time_zone'         => $request->time_zone,
                 'email_verified_at' => Carbon::now(),
-                'referral_code' => User::getUniqueReferralCode(),
+                'referral_code'     => User::getUniqueReferralCode(),
             ])->id;
 
-            // Crear un nuevo Wallet para el usuario
-            Wallet::create(['coin' => $request->coin, 'user' => $newUser]);
+            // 💰 Wallet
+            Wallet::create([
+                'coin' => $request->coin,
+                'user' => $newUser
+            ]);
 
+            // 📞 Teléfono
             $phoneNumber = $request->phone;
             PhoneNumbers::create([
-                'user' => $newUser,
-                'country' => $request->country,
+                'user'         => $newUser,
+                'country'      => $request->country,
                 'phone_number' => $phoneNumber
             ]);
 
+            // 🏢 Commerce principal
             $commerce = Commerce::create([
-                'name' => $request->name,
-                'phone' => $phoneNumber,
-                'coin' => $request->coin,
-                'country' => $request->country,
-                'status' => 1,
-                'user' => $newUser,
-                'code_rke' => $this->replaceLettersWithNumbers($codeRKE),
+                'name'      => $request->name,
+                'phone'     => $phoneNumber,
+                'coin'      => $request->coin,
+                'country'   => $request->country,
+                'status'    => 1,
+                'user'      => $newUser,
+                'code_rke'  => $this->replaceLettersWithNumbers($codeRKE),
                 'code_uuid' => $this->getCodeUUID('Commerce')
             ]);
 
-            // Registar moneda Principal
+            // Moneda principal
             CommerceCountriesCoins::create([
-                'commerce' => $commerce->id,
-                'country' => $commerce->country,
-                'coin' => $commerce->coin,
-                'level' => '1',
+                'commerce'     => $commerce->id,
+                'country'      => $commerce->country,
+                'coin'         => $commerce->coin,
+                'level'        => '1',
                 'creator_user' => $newUser,
-                'status' => 1
+                'status'       => 1
             ]);
 
+            // Configuración de usuario creador
             $creatorUser = [
-                'model' => 'Commerce',
-                'id' => $commerce->id,
+                'model'  => 'Commerce',
+                'id'     => $commerce->id,
                 'userId' => $newUser
             ];
 
-            $otherCoins = $request->other_coins;
-            $allowedGames = $request->allowed_games;
-
-            if ($allowedGames) {
-                // Insertar juegos permitidos
-                $this->handleUserGamePermission($creatorUser, $allowedGames);
+            // Juegos permitidos
+            if ($request->allowed_games) {
+                $this->handleUserGamePermission($creatorUser, $request->allowed_games);
             }
 
-            if ($otherCoins) {
-                // Insertar otras monedas
-                $this->insertOtherCoins($creatorUser, $otherCoins);
+            // Otras monedas
+            if ($request->other_coins) {
+                $this->insertOtherCoins($creatorUser, $request->other_coins);
             }
 
             // Registrar Code UUID
             UUIDCodes::create([
-                'code_uuid' => $commerce->code_uuid,
-                'user' => $newUser,
-                'user_type' => UserType::getValueByPrefix('commerce', 'id'),
+                'code_uuid'  => $commerce->code_uuid,
+                'user'       => $newUser,
+                'user_type'  => $userTypeId,
             ]);
 
             DB::commit();
 
-            Session::flash('message', 'Registro exitoso');
-            Session::flash('pawss', $newPassw);
+            // ✅ Mensaje de éxito (y envío de contraseña generada)
+            return redirect()->back()->with([
+                'message' => 'Registro exitoso',
+                'type'    => 'success',
+                'passw'   => $newPassw
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear Commerce: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
-        }
+            Log::error('❌ Error al crear Commerce: ' . $e->getMessage());
 
-        return redirect()->back();
+            return redirect()->back()->withErrors([
+                'error' => 'Hubo un error al procesar la solicitud.'
+            ]);
+        }
     }
 
     public function getInfo($id) // Obtener Info Comercializadora

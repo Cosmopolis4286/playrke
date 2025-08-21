@@ -37,23 +37,6 @@ function initDataTables(): void {
 }
 
 /**
- * Limpia el foco cuando se cierra un modal de Bootstrap.
- * Evita el warning de aria-hidden + focus retenido.
- */
-function initModalFocusCleaner(): void {
-    $(document).on('hidden.bs.modal', '.modal', () => {
-        setTimeout(() => {
-            if (document.activeElement instanceof HTMLElement) {
-                document.activeElement.blur();
-                console.log('🔹 Foco quitado del botón que abrió el modal');
-            }
-        }, 10); // pequeño delay para esperar a Bootstrap
-    });
-
-    console.log('✅ initModalFocusCleaner activado');
-}
-
-/**
  * Inicializa la aplicación globalmente
  */
 export function initGlobal(): void {
@@ -73,7 +56,7 @@ export function initGlobal(): void {
         console.log('✅ initChangePassw ejecutado');
 
         // Mensaje de sesión
-        if (window.Session?.message) {
+        if (window.Session?.message?.trim()) {
             showToast(window.Session.message, window.Session.type || 'success');
         }
 
@@ -84,7 +67,6 @@ export function initGlobal(): void {
         initDataTables();
 
         // Limpieza de foco en modales
-        initModalFocusCleaner();
     } catch (err) {
         console.error('❌ Error en initGlobal:', err);
     }
