@@ -33,7 +33,7 @@ class Modal extends Component
         array $formData = []
     ) {
         $this->id = $id;
-        $this->title = $title ? strtoupper($title) : 'SIN TÍTULO';
+        $this->title = $title ?? 'SIN TÍTULO';
         $this->size = match ($size) {
             'big'   => 'lg',
             'small' => 'sm',

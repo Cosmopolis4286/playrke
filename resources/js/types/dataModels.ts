@@ -36,15 +36,3 @@ export interface TimeZone {
     name: string;    // Nombre descriptivo, ej: "Brasília Time"
     offset: string;  // Desfase respecto a UTC, ej: "-03:00"
 }
-
-/**
- * Información global de la app (dinámica)
- */
-export interface AppData {
-    coins?: Coin[];
-    countries?: Country[];
-    games?: Game[];
-    moduleFile?: string;
-    timeZones?: TimeZone[];
-    [key: string]: any; // permite propiedades adicionales dinámicas
-}

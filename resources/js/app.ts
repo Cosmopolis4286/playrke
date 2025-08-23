@@ -3,46 +3,52 @@ import Alpine from 'alpinejs';
 import { tableSelection } from '@/alpine/tableSelection';
 import { loadModule } from '@/helpers/module/loadModule';
 import { initFormCrud } from '@/helpers/form/formCrudLoadModule';
-import { initAppData, getAppDataProperty } from '@/data/index';
+import { initAppData, getAppDataProperty, getAppData } from '@/data/index';
 
 /**
  * --------------------------
  * Inicialización de Alpine.js
  * --------------------------
- * Registramos la función tableSelection como componente Alpine
- * para poder usar x-data="tableSelection()" en cualquier Blade
+ * Registramos el componente tableSelection y aseguramos que Alpine
+ * solo se inicie una vez
  */
-Alpine.data('tableSelection', tableSelection);
-
-// Inicializar Alpine de inmediato
-(window as any).Alpine = Alpine;
-Alpine.start();
-console.log('✅ Alpine.js iniciado con tableSelection disponible');
+function initAlpine() {
+    if (!(window as any).AlpineStarted) {
+        Alpine.data('tableSelection', tableSelection);
+        (window as any).Alpine = Alpine;
+        Alpine.start();
+        (window as any).AlpineStarted = true;
+        console.log('✅ Alpine.js iniciado con tableSelection disponible');
+    }
+}
 
 /**
  * --------------------------
- * Inicialización de appData y módulos
+ * Función bootstrap de la app
  * --------------------------
- * Ejecuta la carga de appData y módulos de manera segura
- * solo cuando el DOM esté completamente cargado.
- * Garantiza que el <script id="page-data"> se lea y elimine
- * antes de que cualquier módulo acceda a los datos.
  */
-document.addEventListener('DOMContentLoaded', async () => {
+async function bootstrapApp() {
     try {
-        // 🔹 Inicializar appData desde <script type="application/json" id="page-data">
-        // Esto lee el JSON y elimina inmediatamente el <script> del DOM
+        // 🔹 Inicializar appData desde <script id="page-data">
         await initAppData();
-        console.log('🚀 appData inicializado correctamente');
+        const _appData = getAppData();
+        console.log('🚀 appData inicializado y disponible:', _appData);
 
-        // 🔹 Cargar helpers globales en secuencia
-        await loadModule('./helpers/mounApp.ts');                   // Loader y wrapper general
-        await loadModule('./helpers/global.ts', 'initGlobalSafe');  // Inicialización global segura
+        // 🔹 Inicializar Alpine
+        initAlpine();
+
+        // 🔹 Cargar helpers globales en paralelo
+        await Promise.all([
+            loadModule('./helpers/mounApp.ts'),
+            loadModule('./helpers/global.ts', 'initGlobalSafe')
+        ]);
+        console.log('🟢 Helpers globales cargados');
 
         // 🔹 Inicializar módulo principal dinámico si existe en appData
         const moduleFile = getAppDataProperty<string>('moduleFile', '');
         if (moduleFile) {
-            await initFormCrud(); // Aquí tus constantes y funciones exportadas por el módulo se declaran
+            await loadModule(moduleFile); // importar el módulo dinámico
+            await initFormCrud();
             console.log(`🟢 Módulo principal "${moduleFile}" cargado correctamente`);
         } else {
             console.warn('⚠️ moduleFile no definido en appData, se omite initFormCrud');
@@ -50,6 +56,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         console.log('🟢 Todos los módulos cargados correctamente');
     } catch (err) {
-        console.error('❌ Error en la carga asincrónica de módulos:', err);
+        console.error('❌ Error en bootstrapApp:', err);
     }
-});
+}
+
+// Ejecutar bootstrap al DOMContentLoaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapApp, { once: true });
+} else {
+    bootstrapApp();
+}

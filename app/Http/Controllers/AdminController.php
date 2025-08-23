@@ -41,7 +41,7 @@ class AdminController extends Controller
                 'commerces' => $commerces,
                 'countries' => $countries,
                 'games' => $games,
-                'moduleFile' => 'views/modules/commerce/form/commerceForm.ts',
+                'moduleFile' => 'views/modules/admin/commerce/form/commerceForm.ts',
                 'timeZones' => $timeZones,
             ]
         ]);

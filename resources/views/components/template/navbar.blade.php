@@ -42,8 +42,9 @@
                 <span class="user-text-navbar">{{ $user->username }}</span>
             </button>
             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown" style="font-size: 13px">
-                <button id="change-password" class="dropdown-item" type="button" data-type="change_pwd">
-                    <i class="mr-1 fa-solid fa-lock"></i> Contraseña
+                <button id="change-password" class="dropdown-item" type="button">
+                    <i class="mr-1 fa-solid fa-lock"></i>
+                    Contraseña
                 </button>
                 <button type="button" class="dropdown-item logout-btn">
                     <i class="mr-1 nav-icon fas fa-sign-out-alt"></i> Cerrar sesión

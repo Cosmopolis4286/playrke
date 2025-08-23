@@ -1,39 +1,29 @@
-import type { Coin, Country, Game, TimeZone } from '@/types/dataModels';
-import { datasetKeys, createDatasetGetters } from '@/utils/dataset';
+// resources/js/utils/initSelects.ts
+import { createDatasetGetters } from '@/utils/dataset';
 
-/**
- * Tipado de datasets disponibles en appData
- */
-export type DatasetMap = {
-    coins: Coin[];
-    countries: Country[];
-    games: Game[];
-    timeZones: TimeZone[];
-};
-
-// ✅ Generar getters automáticamente en base al tipo DatasetMap
-export const datasetGetters = createDatasetGetters<DatasetMap>(datasetKeys<DatasetMap>());
+// Generar getters automáticamente desde appData
+const datasets = createDatasetGetters();
 
 /**
  * Inicializa todos los <select> que tengan el atributo `data-source`.
- * 
+ *
  * Funciona tanto para selects nativos como para Select2.
  * Permite placeholders dinámicos, selección inicial y deshabilitación condicional.
  *
  * @param selectedValues - Opcional: objeto { [selectId]: valorPreseleccionado }
  * @param disableFn - Opcional: función para deshabilitar opciones. Recibe (selectId, item) => boolean
  */
-export function initAllSelects<T extends keyof DatasetMap>(
+export function initAllSelects(
     selectedValues?: Partial<Record<string, string | number>>,
-    disableFn?: (selectId: string, item: DatasetMap[T][number]) => boolean
+    disableFn?: (selectId: string, item: any) => boolean
 ): void {
     // Recorremos todos los selects con data-source
     document.querySelectorAll<HTMLSelectElement>('select[data-source]').forEach(select => {
-        const sourceKey = select.dataset.source as keyof DatasetMap;
-        const dataset = datasetGetters[sourceKey]?.() ?? [];
+        const sourceKey = select.dataset.source as keyof typeof datasets;
+        const dataset = datasets[sourceKey]?.() ?? [];
 
         if (!dataset.length) {
-            console.warn(`Dataset '${sourceKey}' no existe o está vacío para el select #${select.id}.`);
+            console.warn(`⚠️ Dataset '${String(sourceKey)}' no existe o está vacío para el select #${select.id}.`);
             return;
         }
 
@@ -41,7 +31,7 @@ export function initAllSelects<T extends keyof DatasetMap>(
         const labelKey = select.dataset.label as keyof typeof dataset[number];
 
         if (!valueKey || !labelKey) {
-            console.warn(`Select #${select.id} requiere atributos 'data-value' y 'data-label'.`);
+            console.warn(`⚠️ Select #${select.id} requiere atributos 'data-value' y 'data-label'.`);
             return;
         }
 
@@ -53,7 +43,7 @@ export function initAllSelects<T extends keyof DatasetMap>(
             select.appendChild(placeholderOption);
         }
 
-        // Agregar las opciones del dataset ordenadas por label
+        // Agregar opciones del dataset ordenadas por label
         [...dataset]
             .sort((a, b) => String(a[labelKey]).localeCompare(String(b[labelKey]), 'es', { sensitivity: 'base' }))
             .forEach(item => {
@@ -61,7 +51,7 @@ export function initAllSelects<T extends keyof DatasetMap>(
                 const label = item[labelKey];
 
                 if (value === undefined || label === undefined) {
-                    console.warn(`Item del dataset '${sourceKey}' no tiene '${String(valueKey)}' o '${String(labelKey)}'.`);
+                    console.warn(`⚠️ Item del dataset '${String(sourceKey)}' no tiene '${String(valueKey)}' o '${String(labelKey)}'.`);
                     return;
                 }
 
@@ -81,7 +71,6 @@ export function initAllSelects<T extends keyof DatasetMap>(
         if (selectedValues?.[select.id] && placeholderOption) {
             placeholderOption.disabled = true;
         } else if (placeholderOption) {
-            // ⚡ Si no hay valor preseleccionado, deshabilitar placeholder tras primer cambio
             select.addEventListener('change', () => {
                 placeholderOption!.disabled = true;
             }, { once: true });
@@ -89,7 +78,7 @@ export function initAllSelects<T extends keyof DatasetMap>(
 
         // 🔹 Inicializar Select2 si corresponde
         if (select.classList.contains('select2')) {
-            const placeholderText = '    ' + select.dataset.placeholder || '';
+            const placeholderText = '    ' + (select.dataset.placeholder || '');
             const allowClear = select.dataset.allowClear !== 'false'; // true por defecto
 
             $(select).select2({

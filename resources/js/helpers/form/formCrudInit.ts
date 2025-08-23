@@ -9,7 +9,6 @@ import { formCrudExports } from './formCrudLoadModule';
  * Llama insertInfo si existe y muestra el modal
  */
 function safeInsertInfo(action: string, data?: any) {
-    alert();
     const insertFn = formCrudExports.insertInfo;
     const modalEl = formCrudExports.modal;
 
