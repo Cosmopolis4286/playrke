@@ -50,13 +50,13 @@ class DirectoryController extends Controller
         $countries = Country::getCountriesById($this->getAvailableCountries($userID));
 
         $paymentType = null;
-        $viewId  = null;
+        $moduleId  = null;
         $additionalData = [];
 
         switch ($isoCode3) {
             case 'USDT':
                 $paymentType = 'Registro';
-                $viewId  = 'binance';
+                $moduleId  = 'binance';
                 $additionalData = [
                     'accounts' => BinanceAccounts::where('user', $userID)->get(),
                     'accountTypes' => BinanceAccounts::getAccountTypes()
@@ -65,7 +65,7 @@ class DirectoryController extends Controller
 
             case 'BRA': // Brasil
                 $paymentType = 'Pix';
-                $viewId  = 'pix';
+                $moduleId  = 'pix';
                 $additionalData = [
                     'pixs' => Pix::where('user', $userID)->get(),
                     'pixKeys' => Pix::getPixKeys()
@@ -74,7 +74,7 @@ class DirectoryController extends Controller
 
             case 'COL': // Colombia
                 $paymentType = 'Registro';
-                $viewId  = 'payment-method-col';
+                $moduleId  = 'payment-method-col';
                 $additionalData = [
                     'paymentMethods' => PaymentMethodsCOL::where('user', $userID)->get(),
                     'arrPaymentMethod' => ['B' => 'Bancolombia', 'D' => 'Daviplata', 'N' => 'Nequi']
@@ -83,7 +83,7 @@ class DirectoryController extends Controller
 
             case 'VEN': // Venezuela
                 $paymentType = 'Pago Movil';
-                $viewId  = 'pagomovil';
+                $moduleId  = 'pagomovil';
                 $additionalData = [
                     'pagomovils' => PagoMovil::with('Bank')->where('user', $userID)->get(),
                     'documentType' => DocumentType::getDocumentTypeByCountry($country->id),
@@ -104,7 +104,7 @@ class DirectoryController extends Controller
         $viewPath = "modules.all.directory.$countryCode.index";
 
         return view($viewPath, array_merge(
-            compact('countries', 'countryCode', 'paymentType', 'viewId', 'title'),
+            compact('countries', 'countryCode', 'paymentType', 'moduleId', 'title'),
             $additionalData
         ));
     }

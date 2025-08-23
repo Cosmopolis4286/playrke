@@ -9,7 +9,7 @@
                     'countries' => $countries,
                     'countryCode' => $countryCode,
                 ])
-                <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-action="create">
+                <button type="button" class="btn-{{ $moduleId }} btn btn-sm btn-success" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>{{ $paymentType }}</button>
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">
@@ -31,7 +31,7 @@
                                     <td>{{ $item->document_number }}</td>
                                     <td>
                                         @include('includes.btn-group', [
-                                            'viewId' => $viewId,
+                                            'moduleId' => $moduleId,
                                             'dataId' => encrypt($item->id),
                                             'buttons' => [
                                                 (object) [
@@ -56,14 +56,14 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'viewId' => $viewId,
+        'moduleId' => $moduleId,
         'dataForm' => view('modules.all.directory.co.form')->render(),
     ])
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        const name = '{{ $viewId }}';
+        const name = '{{ $moduleId }}';
         const arrPaymentMethod = @json($arrPaymentMethod);
 
         $(document).on("click", `.btn-${name}`, function() {

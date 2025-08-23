@@ -6,7 +6,7 @@
         <div class="card">
             <x-shared.card-header :title="$title" />
             <div class="card-body">
-                <button id="btn-{{ $viewId }}-insert" class="btn btn-sm btn-primary btn-{{ $viewId }}"
+                <button id="btn-{{ $moduleId }}-insert" class="btn btn-sm btn-primary btn-{{ $moduleId }}"
                     type="button" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>Vendedor
                 </button>
@@ -49,7 +49,7 @@
                                     <td>{{ $seller->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                     <td>
                                         @include('includes.btn-group', [
-                                            'viewId' => $viewId,
+                                            'moduleId' => $moduleId,
                                             'dataId' => encrypt($seller->id),
                                             'buttons' => [
                                                 (object) [
@@ -83,7 +83,7 @@
             </div>
         </div>
     </div>
-    <x-shared.modal :id="$viewId" :formView="'modules.seller.form.body'" />
+    <x-shared.modal :id="$moduleId" :formView="'modules.seller.form.body'" />
     @if (Session::has('pawss'))
         <x-shared.modal title="Contraseña Vendedor" :value="Session::get('pawss')" />
     @endif

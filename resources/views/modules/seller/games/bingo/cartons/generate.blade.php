@@ -136,7 +136,7 @@
 
     </div>
     @include('includes.modal-copy-info', [
-        'viewId' => 'copy-link',
+        'moduleId' => 'copy-link',
         'title' => 'Link de Acceso Jugador',
     ])
 @endsection

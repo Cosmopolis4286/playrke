@@ -3346,7 +3346,7 @@ class BingoController extends Controller
         }
 
         $title = 'Cartones Vendidos';
-        $viewId = 'notify-payment-ctns-off';
+        $moduleId = 'notify-payment-ctns-off';
 
         $routeWithCoin = [
             'route' => 'bingo.ctnsSold',
@@ -3473,7 +3473,7 @@ class BingoController extends Controller
         app(HandleBingoRooms::class)->checkRoomClosure();
 
         $title = 'Ganadores';
-        $viewId = 'bingo-winners';
+        $moduleId = 'bingo-winners';
 
         $coin = $verifyCoin;
         $coinData = Coin::getById($coin, ['symbol', 'short_name', 'iso_code']);
@@ -3615,7 +3615,7 @@ class BingoController extends Controller
         app(HandleBingoRooms::class)->checkRoomClosure();
 
         $title = 'Reporte de Sala';
-        $viewId = 'bingo-winners';
+        $moduleId = 'bingo-winners';
         $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
 
         $coin = $verifyCoin;

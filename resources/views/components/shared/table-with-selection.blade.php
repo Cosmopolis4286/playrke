@@ -1,7 +1,7 @@
 {{-- resources/views/components/shared/table-with-selection.blade.php --}}
 @props([
     'title' => '',
-    'viewId' => '',
+    'moduleId' => '',
     'columns' => [],
     'rows' => collect(),
     'rowKeys' => [],
@@ -12,20 +12,14 @@
     <x-shared.card-header :title="$title" />
     <div class="card-body" x-data="tableSelection(@json($rows->pluck('id')))"
         @btn-action.window="(event) => {
-            /** 
-             * Maneja acción de botones
-             * event.detail[0] = action
-             * event.detail[1] = array de IDs seleccionados
-             */
             const action = event.detail[0];
             const ids = event.detail[1];
-            console.log('Ejecutar acción', action, 'sobre IDs', ids);
         }">
         {{-- Botones de acciones --}}
-        <x-shared.btn-group btn-group-id="{{ $viewId }}" context="{{ $context }}" :buttons="[]"
+        <x-shared.btn-group btn-group-id="{{ $moduleId }}" context="{{ $context }}" :buttons="[]"
             x-bind:data-id="selectedIds" />
         {{-- Tabla --}}
-        <div class="table-responsive mt-3">
+        <div class="table-responsive mt-2">
             <table class="table table-striped table-bordered my-2 w-100">
                 <thead>
                     <tr>

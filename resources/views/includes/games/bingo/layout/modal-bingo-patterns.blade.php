@@ -7,7 +7,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="form-{{ $viewId }}" action="{{ route('bingo-patterns.handler') }}" method="POST">
+            <form id="form-{{ $moduleId }}" action="{{ route('bingo-patterns.handler') }}" method="POST">
                 @csrf @method('PUT')
                 <div class="modal-body d-flex justify-content-center">
                     <div id="container-carton">

@@ -1,22 +1,18 @@
 <x-layouts.layout-online :title="$title" :loadSelect2="true">
-    <x-shared.table-with-selection 
-        title="Commerces" 
-        :rows="$commerces" 
-        :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']"
-        :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
-        view-id="commerce-btns"
-        context="commerce" 
-    />
+    {{-- Tabla de comercios --}}
+    {{-- <x-shared.table-with-selection :title="$title" :rows="$commerces" :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']" :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
+        module-id="commerce-form" context="commerce" /> --}}
+    {{-- Modal para formulario de comercio --}}
+    <x-shared.modal id="commerce-form" :form-view="'modules.admin.commerce.form'" />
+    {{-- Modal de contraseña (si aplica) --}}
+    @if (session('pawss'))
+        <x-shared.modal title="Contraseña Vendedor" :value="session('pawss')" />
+    @endif
+    {{-- Scripts globales solo una vez --}}
     @once
         @push('stack-scripts')
-            <script type="module">
-                window.appData = {
-                    coins: @json($coins),
-                    countries: @json($countries),
-                    games: @json($games),
-                    moduleFile: 'views/modules/commerce/form/commerceForm.ts',
-                    timeZones: @json($timeZones)
-                };
+            <script type="application/json" id="page-data">
+                {!! json_encode($pageData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
             </script>
         @endpush
     @endonce

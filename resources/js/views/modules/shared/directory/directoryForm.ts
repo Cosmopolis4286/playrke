@@ -15,8 +15,8 @@ export { route };
 //   Constantes globales
 // ==========================
 export const formTitleSuffix = 'Comercio';
-export const viewId = 'commerce';
-const modal = document.getElementById(`modal-${viewId}`)!;
+export const moduleId = 'commerce';
+const modal = document.getElementById(`modal-${moduleId}`)!;
 
 // ==========================
 //   Referencias a elementos del formulario
@@ -150,9 +150,9 @@ export function initListeners(): void {
         if ($phone.length) $phone.mask('00000000000');
     }
 
-    // Click en botones dinámicos btn-<viewId>
+    // Click en botones dinámicos btn-<moduleId>
     document.addEventListener('click', ({ target }) => {
-        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${viewId}`);
+        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${moduleId}`);
         if (!element) return;
 
         formCRUD(element).catch(e => console.error('Error en formCRUD:', e));

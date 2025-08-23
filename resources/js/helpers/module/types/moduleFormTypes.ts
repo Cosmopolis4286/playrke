@@ -18,7 +18,7 @@ export interface ModuleType {
     formTitleSuffix: string;
     otherCasesMap?: Record<string, OtherCase>;
     requiredFields?: string[];
-    viewId: string;
+    moduleId: string;
     initListeners?: () => void;
     insertInfo?: (action: string, data?: any) => void;
     route: (name: string, params?: Record<string, string | number>) => string;

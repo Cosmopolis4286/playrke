@@ -8,7 +8,7 @@
                 @include('includes.treasurer.tabs')
                 <div class="tab-content">
                     <div class="tab-pane fade show active">
-                        <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-action="create">
+                        <button type="button" class="btn-{{ $moduleId }} btn btn-sm btn-success" data-action="create">
                             <i class="fas fa-plus-square mr-1"></i>Añadir
                         </button>
                         <div class="table-responsive mt-3">
@@ -33,7 +33,7 @@
                                             <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                             <td>
                                                 @include('includes.btn-group', [
-                                                    'viewId' => $viewId,
+                                                    'moduleId' => $moduleId,
                                                     'dataId' => encrypt($item->id),
                                                     'buttons' => [
                                                         (object) [
@@ -70,12 +70,12 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'viewId' => $viewId,
+        'moduleId' => $moduleId,
         'size' => 'md',
         'dataForm' => view('modules.admin.treasurer.form')->render(),
     ])
     @include('includes.modal-copy-info', [
-        'viewId' => 'copy-passw',
+        'moduleId' => 'copy-passw',
         'title' => 'Contraseña Tesorero',
     ])
 @endsection
@@ -115,7 +115,7 @@
 
         $("#phone").mask("00000000000");
 
-        const name = '<?php echo $viewId; ?>';
+        const name = '<?php echo $moduleId; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
         const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const coins = JSON.parse('<?php echo $coins; ?>');
@@ -235,7 +235,7 @@
 
         $(document).on("click", "#btn-confirm", function() {
             if (!$('#select-user-to-promote').val()) {
-                submitForm(name, ['viewId', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
+                submitForm(name, ['moduleId', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
             } else {
                 submitForm(name, ['select-user-role', 'select-user-to-promote', 'other-coins'])
             }

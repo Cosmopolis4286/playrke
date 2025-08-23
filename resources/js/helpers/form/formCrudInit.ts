@@ -9,6 +9,7 @@ import { formCrudExports } from './formCrudLoadModule';
  * Llama insertInfo si existe y muestra el modal
  */
 function safeInsertInfo(action: string, data?: any) {
+    alert();
     const insertFn = formCrudExports.insertInfo;
     const modalEl = formCrudExports.modal;
 
@@ -26,17 +27,18 @@ function safeInsertInfo(action: string, data?: any) {
  * Ejecuta el flujo principal de acciones CRUD
  */
 export async function formCRUD(elem: HTMLElement): Promise<void> {
-    const viewId = formCrudExports.viewId;
+    const moduleId = formCrudExports.moduleId;
     const modalEl = formCrudExports.modal;
     const routeFn = formCrudExports.route;
 
-    if (!modalEl) return console.warn(`Modal no encontrado para: ${viewId}`);
+    if (!modalEl) return console.warn(`Modal no encontrado para: ${moduleId}`);
 
-    const form = document.querySelector<HTMLFormElement>(`#form-${viewId}`);
+    const form = document.querySelector<HTMLFormElement>(`#form-${moduleId}`);
     if (form) resetForm(form);
 
     const action = elem.dataset.action ?? '';
-    const encryptId = document.getElementById(`elem-${viewId}`)?.dataset.id ?? '';
+    const encryptId = document.getElementById(`elem-${moduleId}`)?.dataset.id ?? '';
+            alert();
 
     switch (action) {
         case 'create':
@@ -60,7 +62,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
  * Ejecuta acciones personalizadas de otherCasesMap
  */
 async function handleOtherCases(action: string, encryptId: string) {
-    const viewId = formCrudExports.viewId;
+    const moduleId = formCrudExports.moduleId;
     const otherCases = formCrudExports.otherCasesMap;
     const routeFn = formCrudExports.route;
 
@@ -85,7 +87,7 @@ async function handleOtherCases(action: string, encryptId: string) {
             url,
         });
 
-        console.log(`Acción '${action}' registrada correctamente para ${viewId}`);
+        console.log(`Acción '${action}' registrada correctamente para ${moduleId}`);
     } catch (error: any) {
         console.error(`Error al registrar la acción '${action}':`, error?.response?.data || error.message);
     }

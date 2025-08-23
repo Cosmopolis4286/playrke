@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-action="create">
+                <button type="button" class="btn-{{ $moduleId }} btn btn-sm btn-success" data-action="create">
                     <i class="fas fa-plus-square mr-1"></i>Añadir</button>
                 <div class="table-responsive mt-3">
                     <table class="table table-striped table-bordered my-2 w-100">
@@ -33,7 +33,7 @@
                                     </td>
                                     <td>
                                         @include('includes.btn-group', [
-                                            'viewId' => $viewId,
+                                            'moduleId' => $moduleId,
                                             'dataId' => encrypt($item->id),
                                             'buttons' => array_filter([
                                                 $item->status != 3
@@ -74,12 +74,12 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'viewId' => $viewId,
+        'moduleId' => $moduleId,
         'size' => 'md',
         'dataForm' => view('modules.admin.customer.form')->render(),
     ])
     @include('includes.modal-copy-info', [
-        'viewId' => 'copy-passw',
+        'moduleId' => 'copy-passw',
         'title' => 'Contraseña Cliente',
     ])
 @endsection
@@ -124,7 +124,7 @@
 
         $("#phone").mask("00000000000");
 
-        const name = '<?php echo $viewId; ?>';
+        const name = '<?php echo $moduleId; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
         const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
         const country = $("#country");
@@ -187,7 +187,7 @@
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['viewId', 'email', 'username', 'customer-id',
+            submitForm(name, ['moduleId', 'email', 'username', 'customer-id',
                 'country', 'time-zone', 'api-route', 'customer-key'
             ]);
         });

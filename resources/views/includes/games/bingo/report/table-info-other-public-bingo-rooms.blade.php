@@ -97,13 +97,13 @@
                     <td class="align-middle">
                         <div class="btn-group" role="group">
                             @if ($room->status == 2)
-                                <button title="Editar" class="btn-{{ $viewId }} btn btn-sm btn-primary"
+                                <button title="Editar" class="btn-{{ $moduleId }} btn btn-sm btn-primary"
                                     data-action="edit" data-id="{{ encrypt($room->id) }}">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
                                 @if (!count($room->CtnsLot))
                                     <button title="Salir de la sala"
-                                        class="btn-{{ $viewId }} btn btn-sm btn-danger" data-type="6"
+                                        class="btn-{{ $moduleId }} btn btn-sm btn-danger" data-type="6"
                                         data-id="{{ encrypt($room->id) }}">
                                         <i class="fa-solid fa-right-from-bracket"></i>
                                     </button>

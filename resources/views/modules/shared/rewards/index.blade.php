@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-action="create"><i
+                <button type="button" class="btn-{{ $moduleId }} btn btn-sm btn-success" data-action="create"><i
                         class="fas fa-plus-square"></i> Añadir</button>
                 <div class="table-responsive mt-2">
                     <table class="table table-striped table-bordered my-2 w-100">
@@ -34,17 +34,17 @@
                                     <td>
                                         <div class="btn-group btn-group-toggle">
                                             @if ($item->status == 1)
-                                                <button class="btn btn-sm btn-primary btn-{{ $viewId }}"
+                                                <button class="btn btn-sm btn-primary btn-{{ $moduleId }}"
                                                     data-action="edit" data-id="{{ encrypt($item->id) }}"
                                                     title="Editar Tasa de Cambio">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                             @endif
-                                            <button class="btn btn-sm btn-secondary btn-{{ $viewId }}" data-type="4"
+                                            <button class="btn btn-sm btn-secondary btn-{{ $moduleId }}" data-type="4"
                                                 data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
                                                 <i class="fa-solid fa-repeat"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-danger btn-{{ $viewId }}" data-action="delete"
+                                            <button class="btn btn-sm btn-danger btn-{{ $moduleId }}" data-action="delete"
                                                 data-id="{{ encrypt($item->id) }}" title="Eliminar">
                                                 <i class="fa-solid fa-trash-can"></i>
                                             </button>
@@ -59,14 +59,14 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'viewId' => $viewId,
+        'moduleId' => $moduleId,
         'size' => 'md',
         'dataForm' => view('modules.all.rewards.form', ['creator' => $creator])->render(),
     ])
 @endsection
 @section('scripts')
     <script>
-        const name = '{{ $viewId }}';
+        const name = '{{ $moduleId }}';
         const rewardTypes = @json($rewardTypes);
 
         $(document).on("click", `.btn-${name}`, function() {
@@ -105,7 +105,7 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['reward-type', 'viewId', 'num-items', 'price', 'description']);
+            submitForm(name, ['reward-type', 'moduleId', 'num-items', 'price', 'description']);
         });
 
         const otherCasesMap = {

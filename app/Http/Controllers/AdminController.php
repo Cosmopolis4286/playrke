@@ -21,22 +21,28 @@ class AdminController extends Controller
 {
     use UserValTrait, EncryptTrait;
 
+    /**
+     * Obtiene la vista de comercializadoras con datos relacionados.
+     *
+     * @return \Illuminate\View\View
+     */
     public function commerces()
     {
-        $commerces = Commerce::with(['Country:id,name', 'User:id,email'])->get();
-
-        $countries = Country::getAllAvailableCountries();
         $coins = Coin::getByIdForStatus(['=', 1]);
+        $commerces = Commerce::with(['Country:id,name', 'User:id,email'])->get();
+        $countries = Country::getAllAvailableCountries();
+        $games = Games::getAvailableGames();
         $timeZones = TimeZone::where('status', 1)->get();
 
-        return view('modules.admin.commerce.index')->with([
+        return view('modules.admin.commerce.index', [
             'title' => 'Comercializadoras',
-            'viewId' => 'commerce',
-            'commerces' => $commerces,
-            'countries' => $countries,
-            'timeZones' => $timeZones,
-            'coins' => $coins,
-            'games' => Games::getAvailableGames()
+            'pageData' => [
+                'coins' => $coins,
+                'commerces' => $commerces,
+                'countries' => $countries,
+                'games' => $games,
+                'timeZones' => $timeZones,
+            ]
         ]);
     }
 

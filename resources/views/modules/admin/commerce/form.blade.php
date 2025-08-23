@@ -1,4 +1,4 @@
-<form id="form-commerce">
+<form id="commerce-form">
     <div class="row">
         <!-- Nombre -->
         <x-form.input label="Nombre" name="name" required col="col-sm-12 col-md-6" />

@@ -18,8 +18,8 @@ class TableWithSelection extends Component
     /** @var string Título del card */
     public string $title;
 
-    /** @var string Identificador único del view (usado en BtnGroup) */
-    public string $viewId;
+    /** @var string Identificador único del modulo (usado en BtnGroup) */
+    public string $moduleId;
 
     /** @var array Columnas de la tabla */
     public array $columns;
@@ -37,7 +37,7 @@ class TableWithSelection extends Component
      * Constructor del componente
      *
      * @param string $title Título del card
-     * @param string $viewId Identificador del view
+     * @param string $moduleId Identificador del view
      * @param array $columns Columnas de la tabla
      * @param Collection|null $rows Filas de la tabla
      * @param array $rowKeys Llaves para extraer valores de cada fila
@@ -45,14 +45,14 @@ class TableWithSelection extends Component
      */
     public function __construct(
         string $title = '',
-        string $viewId = '',
+        string $moduleId = '',
         array $columns = [],
         ?Collection $rows = null,
         array $rowKeys = [],
         string $context = ''
     ) {
         $this->title = $title;
-        $this->viewId = $viewId;
+        $this->moduleId = $moduleId;
         $this->columns = $columns;
         $this->rows = $rows ?? collect();
         $this->rowKeys = $rowKeys;

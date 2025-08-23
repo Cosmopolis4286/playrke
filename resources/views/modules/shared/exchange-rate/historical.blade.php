@@ -6,7 +6,7 @@
             @include('includes.card-header')
             <div class="card-body">
                 @if (!empty($coins) || $creator['type'] === 'customer')
-                    <button type="button" class="btn-{{ $viewId }} btn btn-sm btn-success" data-action="create"><i
+                    <button type="button" class="btn-{{ $moduleId }} btn btn-sm btn-success" data-action="create"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                 @endif
                 <div class="table-responsive mt-2">
@@ -57,18 +57,18 @@
                                     <td>
                                         <div class="btn-group btn-group-toggle">
                                             @if ($item->status == 1)
-                                                <button class="btn btn-sm btn-primary btn-{{ $viewId }}"
+                                                <button class="btn btn-sm btn-primary btn-{{ $moduleId }}"
                                                     data-action="edit" data-id="{{ encrypt($item->id) }}"
                                                     title="Editar Tasa de Cambio">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                             @endif
-                                            <button class="btn btn-sm btn-secondary btn-{{ $viewId }}" data-type="4"
+                                            <button class="btn btn-sm btn-secondary btn-{{ $moduleId }}" data-type="4"
                                                 data-id="{{ encrypt($item->id) }}" title="Cambiar Status">
                                                 <i class="fa-solid fa-repeat"></i>
                                             </button>
                                             @if ((Auth::user() && Auth::user()->user_type == 1) || $creator['type'] === 'customer')
-                                                <button class="btn btn-sm btn-danger btn-{{ $viewId }}"
+                                                <button class="btn btn-sm btn-danger btn-{{ $moduleId }}"
                                                     data-action="delete" data-id="{{ encrypt($item->id) }}" title="Eliminar">
                                                     <i class="fa-solid fa-trash-can"></i>
                                                 </button>
@@ -84,14 +84,14 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'viewId' => $viewId,
+        'moduleId' => $moduleId,
         'dataForm' => view('modules.all.exchange-rate.form', ['creator' => $creator])->render(),
     ])
 @endsection
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/just-validate/dist/just-validate.production.min.js"></script>
     <script>
-        const name = '{{ $viewId }}';
+        const name = '{{ $moduleId }}';
         const creatorType = @json($creator['type'] ?? '');
         const exchangeRate = $("#exchange-rate");
         const arrCoins = @json($coins) ?? [];

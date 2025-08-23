@@ -15,7 +15,7 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'viewId' => $viewId,
+        'moduleId' => $moduleId,
         'size' => 'lg',
         'style' => 'style="max-width: 625px;"',
         'dataForm' => view('modules.game.bingo.form.body', [
@@ -28,7 +28,7 @@
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
     <script>
-        const name = @json($viewId);
+        const name = @json($moduleId);
         const creation = 'A';
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');

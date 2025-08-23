@@ -112,7 +112,7 @@ declare module '@fullcalendar/core/types/input-types' {
         month?: string;
         week?: string;
         day?: string;
-        [viewId: string]: string | undefined;
+        [moduleId: string]: string | undefined;
     }
     export interface EventSegment {
         event: EventApi;
@@ -430,7 +430,7 @@ declare module '@fullcalendar/core/types/input-types' {
     export interface OptionsInput extends OptionsInputBase {
         buttonText?: ButtonTextCompoundInput;
         views?: {
-            [viewId: string]: ViewOptionsInput;
+            [moduleId: string]: ViewOptionsInput;
         };
         plugins?: (PluginDef | string)[];
     }

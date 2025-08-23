@@ -382,7 +382,7 @@ class CommerceController extends Controller
     {
         // Datos básicos para la vista
         $title = 'Mis Vendedores';
-        $viewId = 'seller';
+        $moduleId = 'seller';
 
         // Obtener el ID del comercio del usuario autenticado
         $commerceId = $this->commerce()->id;
@@ -408,7 +408,7 @@ class CommerceController extends Controller
         // Retornar vista con todos los datos
         return view(
             'modules.seller.form.index',
-            compact('coins', 'countries', 'games', 'sellers', 'timeZones', 'title', 'viewId')
+            compact('coins', 'countries', 'games', 'sellers', 'timeZones', 'title', 'moduleId')
         );
     }
 

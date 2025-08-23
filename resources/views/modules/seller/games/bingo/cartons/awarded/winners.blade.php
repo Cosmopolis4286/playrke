@@ -112,7 +112,7 @@
         </div>
     </div>
     @include('includes.modal-payment-info', [
-        'viewId' => $viewId,
+        'moduleId' => $moduleId,
         'title' => 'Notificar Pago',
         'formId' => 'ctn-payment',
         'formRoute' => route('bingo.notifyPaymentPrizeWinningCtn'),
@@ -121,7 +121,7 @@
 @section('scripts')
     @vite('resources/js/helpers/payment-confirm-button.js')
     <script>
-        const name = '{{ $viewId }}';
+        const name = '{{ $moduleId }}';
 
         $(document).on("click", ".notify-ctn-payment", function() {
             const data = $(this).data();

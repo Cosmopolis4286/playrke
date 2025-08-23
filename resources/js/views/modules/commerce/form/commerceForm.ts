@@ -13,11 +13,9 @@ export { route };
 // Constantes globales
 // ==========================
 export const formTitleSuffix = 'Comercio';
-export const viewId = 'commerce';
+export const moduleId = 'commerce-form';
 
-export const requiredFields: string[] = [
-    'name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email'
-];
+export const requiredFields: string[] = ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email'];
 
 // ==========================
 // Mapeo de acciones personalizadas
@@ -55,7 +53,7 @@ export const otherCasesMap: Record<string, {
  * @param data - Datos para precargar en modo edición
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
-    const modal = document.getElementById(`modal-${viewId}`);
+    const modal = document.getElementById(`modal-${moduleId}`);
     if (!modal) return console.error('Modal no encontrado');
 
     const usernameInput = document.getElementById('username') as HTMLInputElement | null;
@@ -117,7 +115,7 @@ export function initListeners(): void {
     if (listenersAttached) return;
     listenersAttached = true;
 
-    const modal = document.getElementById(`modal-${viewId}`);
+    const modal = document.getElementById(`modal-${moduleId}`);
     if (!modal) return;
 
     // Máscara de teléfono
@@ -128,7 +126,9 @@ export function initListeners(): void {
 
     // Click en botones dinámicos del formulario
     document.addEventListener('click', ({ target }) => {
-        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${viewId}`);
+        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${moduleId}`);
+            console.log('element', element)
+
         if (!element) return;
         formCRUD(element).catch(e => console.error('Error en formCRUD:', e));
     });

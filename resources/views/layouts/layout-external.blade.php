@@ -46,7 +46,7 @@
                 </div>
             </div>
         </div>
-        <x-modal id="app-info" title="PlayRKE © {{ date('Y') }}" />
+        {{-- <x-modal id="app-info" title="PlayRKE © {{ date('Y') }}" /> --}}
     </main>
     <script src="https://www.google.com/recaptcha/api.js"></script>
     <script src="{{ asset('js/jquery-3.7.1.min.js') }}"></script>

@@ -28,7 +28,7 @@
                                             <td>{{ $item->status == 1 ? 'Activo' : 'Inactivo' }}</td>
                                             <td>
                                                 @include('includes.btn-group', [
-                                                    'viewId' => $viewId,
+                                                    'moduleId' => $moduleId,
                                                     'dataId' => encrypt($item->id),
                                                     'buttons' => [
                                                         (object) [
@@ -60,12 +60,12 @@
         </div>
     </div>
     @include('includes.modal-form', [
-        'viewId' => $viewId,
+        'moduleId' => $moduleId,
         'size' => 'md',
         'dataForm' => view('modules.admin.treasurer.other-treasurers-form')->render(),
     ])
     @include('includes.modal-copy-info', [
-        'viewId' => 'copy-passw',
+        'moduleId' => 'copy-passw',
         'title' => 'Contraseña Tesorero',
     ])
 @endsection
@@ -91,7 +91,7 @@
             $(this).popover('toggle');
         });
 
-        const name = '<?php echo $viewId; ?>';
+        const name = '<?php echo $moduleId; ?>';
         const coins = JSON.parse('<?php echo $coins; ?>');
         const otherCoins = $("#other-coins");
         const games = $("#games");
