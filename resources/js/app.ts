@@ -22,6 +22,15 @@ function initAlpine() {
     }
 }
 
+// Variable interna para almacenar appData
+let _appData: Record<string, any> = {};
+
+// Getter seguro para obtener appData en cualquier momento
+export function getAppDataSync(): Record<string, any> {
+    console.log
+    return _appData;
+}
+
 /**
  * --------------------------
  * Función bootstrap de la app
@@ -31,7 +40,7 @@ async function bootstrapApp() {
     try {
         // 🔹 Inicializar appData desde <script id="page-data">
         await initAppData();
-        const _appData = getAppData();
+        _appData = getAppData();
         console.log('🚀 appData inicializado y disponible:', _appData);
 
         // 🔹 Inicializar Alpine
