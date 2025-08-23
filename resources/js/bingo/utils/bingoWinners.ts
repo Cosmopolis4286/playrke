@@ -1,4 +1,4 @@
-import { GameInfo } from './types';
+import { GameInfo } from '../types/bingoTypes';
 
 export function showWinners(arrInfo: GameInfo, numRound: number, coinSym: string, logo: string) {
     const round = arrInfo.rounds[numRound];

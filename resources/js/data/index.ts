@@ -3,6 +3,7 @@ import { getJsonData } from '@/utils/getJsonData';
 
 let _appData: Record<string, unknown> = {};
 let _initialized = false;
+let _initPromise: Promise<void> | null = null;
 
 /**
  * Inicializa appData dinámico desde <script id="page-data">.
@@ -10,29 +11,28 @@ let _initialized = false;
  */
 export async function initAppData(): Promise<void> {
     if (_initialized) return;
-    _initialized = true;
+    if (_initPromise) return _initPromise;
 
-    if (document.readyState === 'loading') {
-        await new Promise<void>((resolve) =>
-            document.addEventListener('DOMContentLoaded', () => resolve(), { once: true })
-        );
-    }
+    _initPromise = (async () => {
+        if (document.readyState === 'loading') {
+            await new Promise<void>((resolve) =>
+                document.addEventListener('DOMContentLoaded', () => resolve(), { once: true })
+            );
+        }
 
-    // Obtener datos del script JSON
-    const data = getJsonData<Record<string, unknown>>('page-data') ?? {};
+        const data = getJsonData<Record<string, unknown>>('page-data') ?? {};
 
-    if (typeof data !== 'object' || data === null) {
-        console.warn('⚠️ appData no es un objeto válido. Se inicializa vacío.');
-        _appData = {};
-    } else {
-        _appData = data;
-    }
+        if (typeof data !== 'object' || data === null) {
+            console.warn('⚠️ appData no es un objeto válido. Se inicializa vacío.');
+            _appData = {};
+        } else {
+            _appData = data;
+        }
 
-    // Eliminar el script del DOM para evitar accesos accidentales
-    const scriptEl = document.getElementById('page-data');
-    if (scriptEl) {
-        scriptEl.remove();
-    }
+        _initialized = true;
+    })();
+
+    return _initPromise;
 }
 
 /**

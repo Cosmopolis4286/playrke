@@ -1,18 +1,16 @@
-// global.d.ts
+// resources/js/types/global.d.ts
 import type { AppData } from '@/data/index';
 
-export {};
+export { };
 
 declare global {
   interface Window {
+    Session?: { message: string; type: SweetAlertIcon };
+    LaravelErrors?: string[];
+    loadDataTables?: boolean;
     appData: AppData;
     vueAppIsReady: () => void;
     _vueMounted?: boolean;
     route?: (name: string, params?: any) => string;
-
-    getGMTOffset: () => string;
-    formatUnixTimestamp: (unixTimestamp: number | string, showSeconds?: boolean) => string | undefined;
-    displayFormattedDateTime: (unixTimestamp: number) => void;
-    displayFormattedDateTimeFromStrings: (date: string, time: string) => void;
   }
 }

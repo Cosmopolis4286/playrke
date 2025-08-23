@@ -3,9 +3,7 @@
   <div class="game-info">
     <div class="container">
       <div class="row">
-        <div
-          class="col-12 my-2 d-flex flex-column justify-content-center align-items-center"
-        >
+        <div class="col-12 my-2 d-flex flex-column justify-content-center align-items-center">
           <h1>Ronda {{ data.round }}</h1>
           <div v-if="currentNumber !== null" class="called-number">
             <strong>Último número llamado:</strong> {{ currentNumber }}
@@ -13,17 +11,11 @@
         </div>
 
         <!-- Componente que muestra el tablero visual de números -->
-        <BingoBoard
-          :calledNumbers="numbers"
-          :currentNumber="currentNumber"
-        />
+        <BingoBoard :calledNumbers="numbers" :currentNumber="currentNumber" />
 
         <div class="col-12 d-flex justify-content-center">
           <!-- Componente que permite llamar números -->
-          <NumberCaller
-            :calledNumbers="numbers"
-            @callNumber="callNumberFromInput"
-          />
+          <NumberCaller :calledNumbers="numbers" @callNumber="callNumberFromInput" />
         </div>
       </div>
     </div>
@@ -33,11 +25,11 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 
-import axios from '@/plugins/axios';  
+import axios from '@/plugins/axios';
 import echo from "@/plugins/echo.js";
 
-import BingoBoard from "../components/game-info/BingoBoard.vue";
-import NumberCaller from "../components/game-info/NumberCaller.vue";
+import BingoBoard from "@/bingo/views/game-info/BingoBoard.vue";
+import NumberCaller from "@/bingo/views/game-info/NumberCaller.vue";
 
 const props = defineProps({
   data: {

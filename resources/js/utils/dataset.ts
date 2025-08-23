@@ -1,6 +1,6 @@
 // resources/js/utils/datasetUtils.ts
 import { getAppDataProperty } from '@/data/index';
-import { getAppDataSync } from '@/app';
+import { waitForAppData } from '@/app';
 
 /**
  * Extrae las keys de un tipo de mapa de datasets.
@@ -23,7 +23,7 @@ export function createDatasetGetters<T extends Record<string, any[]>>(datasetMap
     // Si no se pasa un datasetMap → se arma desde el appData
     const keys = datasetMap
         ? (Object.keys(datasetMap) as (keyof T)[])
-        : (Object.keys(getAppDataSync()) as (keyof T)[]);
+        : (Object.keys(waitForAppData()) as (keyof T)[]);
 
     return keys.reduce((acc, key) => {
         acc[key] = () => {

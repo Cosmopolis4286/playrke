@@ -1,6 +1,6 @@
-import { resizeChips, renderChipsView } from './chips';
-import { initSound } from './sound';
-import { debounce } from './utils';
+import { resizeChips, renderChipsView } from '../utils/bingoChips';
+import { initSound } from '../utils/bingoSounds';
+import { debounce } from '../utils/bingoUtils';
 
 const preRoute = '/'; // ajustar según tu proyecto
 

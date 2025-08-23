@@ -1,5 +1,5 @@
-import { allChips, renderChipsView } from './chips';
-import { soundNext, actSound } from './sound';
+import { allChips, renderChipsView } from './bingoChips';
+import { soundNext, actSound } from './bingoSounds';
 
 export let endWin = 0;
 

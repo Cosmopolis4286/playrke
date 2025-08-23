@@ -1,27 +1,29 @@
 // resources/js/utils/getJsonData.ts
 
 /**
- * Obtiene datos JSON de un <script type="application/json"> por ID y luego lo elimina del DOM.
+ * Obtiene datos JSON de un <script type="application/json"> por ID
+ * y luego lo elimina del DOM.
  * @param id - ID del elemento <script>
  * @returns Objeto tipado o null si no existe o hay error
  */
-// resources/js/utils/getJsonData.ts
-export function getJsonData<T>(id: string): T | null {
+export function getJsonData<T extends object>(id: string): T | null {
     const el = document.getElementById(id);
     if (!el) {
-        console.warn(`Elemento con ID "${id}" no encontrado.`);
+        if (process.env.NODE_ENV !== 'production') {
+            console.warn(`Elemento con ID "${id}" no encontrado.`);
+        }
         return null;
     }
 
+    const raw = el.textContent?.trim();
+    if (!raw) return null;
+
     try {
-        const data = JSON.parse(el.textContent || '{}') as T;
-        return data;
+        return JSON.parse(raw) as T;
     } catch (e) {
         console.error(`Error parseando datos de "${id}":`, e);
         return null;
     } finally {
-        // 🔹 Eliminar siempre el script después de intentar parsearlo
-        el.parentNode?.removeChild(el);
+        el.remove(); // 🔹 Limpieza centralizada aquí
     }
 }
-

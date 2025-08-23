@@ -26,10 +26,10 @@
 </template>
 
 <script setup>
-import CardHeader from '../components/utils/CardHeader.vue'
-import CoinTabs from '../components/utils/CoinTabs.vue'
-import BtnGroup from '../components/utils/BtnGroup.vue'
-import TableRooms from '../components/summary/TableRooms.vue'
+import CardHeader from '@/components/utils/CardHeader.vue'
+import CoinTabs from '@/components/utils/CoinTabs.vue'
+import BtnGroup from '@/components/utils/BtnGroup.vue'
+import TableRooms from '@/components/summary/TableRooms.vue'
 import { computed } from 'vue'
 
 // Props recibidos

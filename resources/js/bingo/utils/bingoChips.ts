@@ -1,4 +1,4 @@
-import { createElement, animate } from './utils';
+import { createElement, animate } from './bingoUtils';
 
 export let allChips: number[] = [];
 export let posChip: number[] = [0];
