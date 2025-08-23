@@ -1,11 +1,11 @@
 // resources/js/data/index.ts
-import type { AppData, Coin, Country, Game, TimeZone } from '../types/dataModels.js';
+import { getJsonData } from '@/utils/getJsonData';
 
-let _appData: AppData = {} as AppData;
+let _appData: Record<string, any> = {};
 
 /**
- * Inicializa appData dinámico desde window.appData.
- * Espera al DOM si aún no está cargado.
+ * Inicializa appData dinámico desde <script id="page-data">.
+ * Espera al DOM si aún no está listo.
  */
 export async function initAppData(): Promise<void> {
     if (document.readyState === 'loading') {
@@ -14,19 +14,32 @@ export async function initAppData(): Promise<void> {
         });
     }
 
-    _appData = (window as any).appData ?? {} as AppData;
+    // 🔹 Obtener datos del script JSON y eliminarlo del DOM por seguridad
+    const data = getJsonData<Record<string, any>>('page-data');
+    _appData = data ?? {};
+
+    console.log(_appData);
+
+    if (!_appData || typeof _appData !== 'object') {
+        console.warn('⚠️ appData inicializado pero no es un objeto válido. Se usará objeto vacío.');
+        _appData = {};
+    }
 }
 
 /**
- * Devuelve appData seguro
+ * Devuelve appData completo
+ * @returns Record<string, any>
  */
-export const getAppData = (): AppData => _appData;
+export const getAppData = (): Record<string, any> => _appData;
 
 /**
- * Getters seguros para cada propiedad dinámica
+ * Getter genérico para cualquier propiedad dinámica de appData
+ * @template T
+ * @param key - Nombre de la propiedad en appData
+ * @param defaultValue - Valor por defecto si no existe
+ * @returns Valor tipado de la propiedad o defaultValue
  */
-export const getCoins = (): Coin[] => getAppData().coins ?? [];
-export const getCountries = (): Country[] => getAppData().countries ?? [];
-export const getGames = (): Game[] => getAppData().games ?? [];
-export const getTimeZones = (): TimeZone[] => getAppData().timeZones ?? [];
-export const getModuleFile = (): string => getAppData().moduleFile ?? '';
+export function getAppDataProperty<T = any>(key: string, defaultValue: T = null): T {
+    if (!_appData || typeof _appData !== 'object') return defaultValue;
+    return (_appData[key] ?? defaultValue) as T;
+}

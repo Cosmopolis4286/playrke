@@ -1,4 +1,10 @@
-import { getCoins } from '@/data/index'; // Leer dinámicamente de AppData
+import { getAppDataProperty } from '@/data/index'; // Leer dinámicamente de AppData
+import { Coin } from '@/types/dataModels';
+
+// ==========================
+//   Constantes
+// ==========================
+const arrCoins = getAppDataProperty<Coin[]>('coins', []);
 
 // ==========================
 //   Elementos del DOM
@@ -33,7 +39,6 @@ export function insertOtherCoins(selectedCoins: (number | string)[] = []): void 
     clearOtherCoins();
 
     const mainCoinId = Number(coin.value);
-    const arrCoins = getCoins();
 
     arrCoins
         .filter(c => c.id !== mainCoinId)
@@ -51,7 +56,7 @@ export function insertOtherCoins(selectedCoins: (number | string)[] = []): void 
 
 /** Actualiza la moneda principal y el texto según el país seleccionado */
 function updateMainCoinByCountry(selectedCountry: number): void {
-    const matchingCoin = getCoins().find(c => c.country === selectedCountry);
+    const matchingCoin = arrCoins.find(c => c.country === selectedCountry);
     if (!matchingCoin || !coin || !coinText) return;
 
     coin.value = String(matchingCoin.id);
@@ -87,7 +92,7 @@ export function initCoinSelector(): void {
 
         updateMainCoinByCountry(selectedCountry);
 
-        if (getCoins().length > 1) insertOtherCoins();
+        if (arrCoins.length > 1) insertOtherCoins();
     });
 }
 

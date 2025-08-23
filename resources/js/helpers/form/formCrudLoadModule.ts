@@ -1,5 +1,5 @@
 // resources/js/helpers/form/formCrudLoadModule.ts
-import { getModuleFile } from '@/data/index';
+import { getAppDataProperty } from '@/data/index';
 import { loadModule } from '@/helpers/module/loadModule';
 import type { ModuleType, OtherCase } from '@/helpers/module/types/moduleFormTypes';
 import { submitForm } from './formCrudInit';
@@ -15,7 +15,9 @@ let _requiredFields: string[] = [];
 let _route: (name: string, params?: Record<string, string | number>) => string = () => '';
 let _moduleId = '';
 
-// Export seguro del módulo con getters dinámicos
+/**
+ * Export seguro del módulo con getters dinámicos
+ */
 export const formCrudExports = {
     get formTitleSuffix() { return _formTitleSuffix; },
     get insertInfo() { return _insertInfo; },
@@ -24,21 +26,25 @@ export const formCrudExports = {
     get requiredFields() { return _requiredFields; },
     get route() { return _route; },
     get moduleId() { return _moduleId; },
-    get moduleFile() { return getModuleFile(); } //
+    get moduleFile() { return getAppDataProperty<string>('moduleFile', ''); }
 };
 
 /**
  * Inicializa el módulo CRUD dinámico solo si no está cargado aún
  */
 export async function initFormCrud(): Promise<void> {
-    const moduleFile = getModuleFile(); // ✅ obtener valor dinámico
-    if (!moduleFile) return;            // si no existe, salir
-    if (_module) return;                // evita doble carga
+    const moduleFile = getAppDataProperty<string>('moduleFile', '');
+    if (!moduleFile) {
+        console.warn('⚠️ moduleFile no definido en appData. Se omite initFormCrud.');
+        return;
+    }
+
+    if (_module) return; // evita doble carga
 
     _module = await loadModule<ModuleType>(moduleFile);
 
     _moduleId = _module.moduleId;
-    _formTitleSuffix = _module.formTitleSuffix;
+    _formTitleSuffix = _module.formTitleSuffix ?? '';
     _insertInfo = _module.insertInfo ?? (() => { });
     _otherCasesMap = _module.otherCasesMap ?? {};
     _requiredFields = _module.requiredFields ?? [];
@@ -50,6 +56,9 @@ export async function initFormCrud(): Promise<void> {
     setupListeners();
 }
 
+/**
+ * Configura listeners de click para botones dentro del módulo CRUD
+ */
 function setupListeners(): void {
     const initClickListeners = () => {
         document.addEventListener('click', (e) => {
@@ -61,6 +70,7 @@ function setupListeners(): void {
             if (target.closest('.popover-dismiss')) $(target).popover('toggle');
         });
     };
-    // Inicializa los listeners de clicks al cargar el DOM
+
+    // Ejecuta cuando el DOM esté listo
     onDOMReady(initClickListeners);
 }

@@ -17,7 +17,7 @@ use Illuminate\View\Component;
  */
 class BtnGroup extends Component
 {
-    /** Identificador único del grupo de botones, usado como clase CSS */
+    /** Identificador único del grupo de botones */
     public string $btnGroupId;
 
     /** Valor asignado al atributo `data-id` en HTML (puede ser número o array de ids) */
@@ -69,26 +69,26 @@ class BtnGroup extends Component
     {
         return [
             (object)[
-                'action'    => 'create',
-                'color'     => 'btn-success',
-                'disabled'  => false,
-                'icon'      => 'fas fa-plus-square',
-                'title'     => 'Crear',
+                'action' => 'create',
+                'color' => 'btn-success',
+                'disabled' => false,
+                'icon' => 'fas fa-plus-square',
+                'title' => 'Crear',
                 'titleIcon' => 'Crear'
             ],
             (object)[
-                'action'    => 'edit',
-                'color'     => 'btn-primary',
-                'disabled'  => true,
-                'icon'      => 'fas fa-edit',
-                'title'     => 'Editar',
+                'action' => 'edit',
+                'color' => 'btn-primary',
+                'disabled' => true,
+                'icon' => 'fas fa-edit',
+                'title' => 'Editar',
             ],
             (object)[
-                'action'    => 'delete',
-                'color'     => 'btn-danger',
-                'disabled'  => true,
-                'icon'      => 'fa fa-trash',
-                'title'     => 'Eliminar',
+                'action' => 'delete',
+                'color' => 'btn-danger',
+                'disabled' => true,
+                'icon' => 'fa fa-trash',
+                'title' => 'Eliminar',
             ],
         ];
     }
@@ -109,12 +109,12 @@ class BtnGroup extends Component
         }
 
         return (object)[
-            'action'    => $btn->action ?? '',
-            'color'     => $btn->color ?? 'btn-secondary',
-            'icon'      => $btn->icon ?? 'fa fa-circle',
-            'title'     => $btn->title ?? 'Opción',
+            'action' => $btn->action ?? '',
+            'color' => $btn->color ?? 'btn-secondary',
+            'icon' => $btn->icon ?? 'fa fa-circle',
+            'title' => $btn->title ?? 'Opción',
             'titleIcon' => $btn->titleIcon ?? null,
-            'disabled'  => $btn->disabled ?? false,
+            'disabled' => $btn->disabled ?? false,
         ];
     }
 

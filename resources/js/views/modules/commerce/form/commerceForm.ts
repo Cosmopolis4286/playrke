@@ -127,7 +127,7 @@ export function initListeners(): void {
     // Click en botones dinámicos del formulario
     document.addEventListener('click', ({ target }) => {
         const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${moduleId}`);
-            console.log('element', element)
+        console.log('element', element)
 
         if (!element) return;
         formCRUD(element).catch(e => console.error('Error en formCRUD:', e));

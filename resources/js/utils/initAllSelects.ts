@@ -1,23 +1,18 @@
 import type { Coin, Country, Game, TimeZone } from '@/types/dataModels';
-import { getCoins, getCountries, getGames, getTimeZones } from '@/data/index';
+import { datasetKeys, createDatasetGetters } from '@/utils/dataset';
 
 /**
  * Tipado de datasets disponibles en appData
  */
-type DatasetMap = {
+export type DatasetMap = {
     coins: Coin[];
     countries: Country[];
     games: Game[];
     timeZones: TimeZone[];
 };
 
-/** Funciones para obtener datasets dinámicamente */
-const datasetGetters: Record<keyof DatasetMap, () => any[]> = {
-    coins: getCoins,
-    countries: getCountries,
-    games: getGames,
-    timeZones: getTimeZones,
-};
+// ✅ Generar getters automáticamente en base al tipo DatasetMap
+export const datasetGetters = createDatasetGetters<DatasetMap>(datasetKeys<DatasetMap>());
 
 /**
  * Inicializa todos los <select> que tengan el atributo `data-source`.
