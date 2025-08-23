@@ -1,4 +1,11 @@
 // resources/js/utils/getJsonData.ts
+
+/**
+ * Obtiene datos JSON de un <script type="application/json"> por ID y luego lo elimina del DOM.
+ * @param id - ID del elemento <script>
+ * @returns Objeto tipado o null si no existe o hay error
+ */
+// resources/js/utils/getJsonData.ts
 export function getJsonData<T>(id: string): T | null {
     const el = document.getElementById(id);
     if (!el) {
@@ -7,17 +14,14 @@ export function getJsonData<T>(id: string): T | null {
     }
 
     try {
-        return JSON.parse(el.textContent || '{}') as T;
+        const data = JSON.parse(el.textContent || '{}') as T;
+        return data;
     } catch (e) {
         console.error(`Error parseando datos de "${id}":`, e);
         return null;
     } finally {
-        // 🔹 Usa Alpine para la eliminación, si existe
-        if (window.Alpine && typeof window.Alpine.mutateDom === "function") {
-            window.Alpine.mutateDom(() => el.remove());
-        } else {
-            // fallback normal si Alpine no está cargado
-            el.remove();
-        }
+        // 🔹 Eliminar siempre el script después de intentar parsearlo
+        el.parentNode?.removeChild(el);
     }
 }
+

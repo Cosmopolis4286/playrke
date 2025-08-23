@@ -18,11 +18,10 @@
     @else
         @yield('scripts')
     @endif
-
+    @stack('stack-scripts')
     @if (empty($withoutAppJS))
         @vite('resources/js/app.ts')
     @endif
-    @stack('stack-scripts')
 </body>
 
 </html>

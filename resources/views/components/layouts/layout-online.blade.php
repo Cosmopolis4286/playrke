@@ -29,10 +29,9 @@
     </div>
     {{-- Scripts adicionales y dependencias --}}
     <x-template.scripts :loadDataTables="$loadDataTables" :loadSelect2="$loadSelect2" />
-    {{-- Scripts compilados con Vite --}}
-    @vite(['resources/js/app.ts'])
     {{-- Pila para scripts específicos de cada vista --}}
     @stack('stack-scripts')
+    @vite(['resources/js/app.ts'])
 </body>
 
 </html>

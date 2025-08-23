@@ -1,32 +1,4 @@
 @props(['creatorTypePrefix' => null, 'userType' => ''])
-
-@once
-    <style>
-        aside.main-sidebar {
-            background-image: radial-gradient(circle at 50% -20.71%, #352e72 0, #181b50 25%, #02002f 50%, #000011 75%, #000000 100%);
-        }
-
-        .menu-image-play.cold .brand-image {
-            max-height: 50.7px;
-        }
-
-        .cont-user-type {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #020025;
-            letter-spacing: 0.8px;
-            padding-right: 5.5px;
-        }
-
-        .tx-user-type {
-            text-transform: uppercase;
-            font-size: 100%;
-            color: #e6e3e3;
-        }
-    </style>
-@endonce
 <aside class="main-sidebar sidebar-dark-primary elevation-3" role="complementary" aria-label="Sidebar principal">
     <a href="{{ url('/dashboard') }}" class="menu-image-play cold" aria-label="Ir al dashboard">
         <img src="{{ asset('img/stam.png') }}" alt="Logo PlayRKE" class="brand-image">

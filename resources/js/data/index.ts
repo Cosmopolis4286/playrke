@@ -18,7 +18,10 @@ export async function initAppData(): Promise<void> {
     const data = getJsonData<Record<string, any>>('page-data');
     _appData = data ?? {};
 
-    console.log(_appData);
+    // Verificación opcional
+    if (document.getElementById('page-data')) {
+        console.warn('El script page-data sigue en el DOM (probablemente duplicado)');
+    }
 
     if (!_appData || typeof _appData !== 'object') {
         console.warn('⚠️ appData inicializado pero no es un objeto válido. Se usará objeto vacío.');

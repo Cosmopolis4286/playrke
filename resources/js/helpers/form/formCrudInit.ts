@@ -38,7 +38,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
 
     const action = elem.dataset.action ?? '';
     const encryptId = document.getElementById(`elem-${moduleId}`)?.dataset.id ?? '';
-            alert();
+    console.log('formCrud');
 
     switch (action) {
         case 'create':
@@ -73,6 +73,8 @@ async function handleOtherCases(action: string, encryptId: string) {
         confirmButtonText: 'Sí, eliminar',
         method: 'DELETE',
     };
+
+    console.log('action', action);
 
     const caseData: OtherCase | undefined = action === 'delete' ? globalDelete : otherCases[action];
     if (!caseData) return console.error(`Acción no reconocida: ${action}`);
