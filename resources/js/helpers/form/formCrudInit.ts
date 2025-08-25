@@ -32,21 +32,25 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
 
     if (!modalEl) return console.warn(`Modal no encontrado para: ${moduleId}`);
 
-    const form = document.querySelector<HTMLFormElement>(`#form-${moduleId}`);
-    if (form) resetForm(form);
+    const form = document.querySelector<HTMLFormElement>(`#${moduleId}`);
+    if (!form) return console.warn(`Formulario '#${moduleId}' no encontrado`);
+
+    resetForm(form);
 
     const action = elem.dataset.action ?? '';
     const encryptId = document.getElementById(`elem-${moduleId}`)?.dataset.id ?? '';
-    console.log('formCrud');
+    console.log('moduleId', moduleId);
+
+    console.log('action', action)
 
     switch (action) {
         case 'create':
             safeInsertInfo('create');
-            form && prepareForm(form, 'create', 'Registrar', 'POST', undefined, formCrudExports.formTitleSuffix, routeFn);
+            prepareForm(form, 'create', 'Registrar', 'POST', undefined, formCrudExports.formTitleSuffix, routeFn);
             break;
         case 'edit':
             await getInfo(encryptId);
-            form && prepareForm(form, 'update', 'Editar', 'PUT', encryptId, formCrudExports.formTitleSuffix, routeFn);
+            prepareForm(form, 'update', 'Editar', 'PUT', encryptId, formCrudExports.formTitleSuffix, routeFn);
             break;
         case 'delete':
             await handleOtherCases('delete', encryptId);
@@ -151,8 +155,10 @@ export function prepareForm(
     suffix: string = '',
     routeFn: (name: string, params?: Record<string, string | number>) => string = () => ''
 ) {
+    const moduleId = formCrudExports.moduleId;
+
     const methodUpper = method.toUpperCase();
-    const modalLabel = document.querySelector(`#${form.id.replace('form', 'modal')}-label`);
+    const modalLabel = document.querySelector(`#modal-${moduleId}-label`);
     if (modalLabel) modalLabel.textContent = `${modalTitle} ${suffix}`;
 
     try {

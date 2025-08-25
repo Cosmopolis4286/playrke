@@ -19,7 +19,7 @@ import axios from "@/plugins/axios";
  * // Inicializar
  * initLogout();
  */
-export function initLogout(): void {
+export async function initLogout(): Promise<void> {
     document.querySelectorAll<HTMLButtonElement>('.logout-btn').forEach((button) => {
         button.addEventListener('click', async () => {
             const { logoutUrl = '/logout', loginRedirectUrl = '/login', csrfToken = '' } = window as any;

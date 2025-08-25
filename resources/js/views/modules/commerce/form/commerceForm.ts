@@ -80,6 +80,8 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
         selectedValues['time-zone'] = data?.user?.time_zone ?? '';
     }
 
+    console.log('selectedValues', selectedValues);
+
     initAllSelects(selectedValues);
 
     // Insertar monedas adicionales

@@ -1,17 +1,17 @@
 // resources/js/app.ts
+import '@/helpers/mounApp'; // 🔹 Primero: loader y wrapper
 import Alpine from 'alpinejs';
 import { tableSelection } from '@/alpine/tableSelection';
 import { loadModule } from '@/helpers/module/loadModule';
 import { initFormCrud } from '@/helpers/form/formCrudLoadModule';
 import { initAppData, getAppDataProperty, getAppData } from '@/data/index';
+import { initGlobalSafe } from '@/helpers/global';
 
 let _appData: Record<string, any> = {};
 let _bootstrapPromise: Promise<void> | null = null;
 
 /**
- * --------------------------
  * Inicialización de Alpine.js
- * --------------------------
  */
 function initAlpine() {
     if (!(window as any).AlpineStarted) {
@@ -24,14 +24,14 @@ function initAlpine() {
 }
 
 /**
- * Getter seguro y síncrono para appData
+ * Getter seguro para appData
  */
 export function getAppDataSync(): Record<string, any> {
     return _appData;
 }
 
 /**
- * Getter asíncrono para garantizar que appData ya está listo
+ * Garantiza que appData esté listo
  */
 export async function waitForAppData(): Promise<Record<string, any>> {
     if (_bootstrapPromise) {
@@ -41,31 +41,28 @@ export async function waitForAppData(): Promise<Record<string, any>> {
 }
 
 /**
- * --------------------------
- * Función bootstrap de la app
- * --------------------------
+ * Bootstrap principal de la app
  */
 async function bootstrapApp() {
-    if (_bootstrapPromise) return _bootstrapPromise; // 🔹 Garantizar que no se repita
+    if (_bootstrapPromise) return _bootstrapPromise;
 
     _bootstrapPromise = (async () => {
         try {
-            // 🔹 Inicializar appData desde <script id="page-data">
+            console.log('⏳ Iniciando bootstrapApp...');
+
+            // 🔹 Inicializar appData
             await initAppData();
             _appData = getAppData();
-            console.log('🚀 appData inicializado y disponible:', _appData);
+            console.log('🚀 appData inicializado:', _appData);
 
             // 🔹 Inicializar Alpine
             initAlpine();
 
-            // 🔹 Cargar helpers globales en paralelo
-            await Promise.all([
-                loadModule('./helpers/mounApp.ts'),
-                loadModule('./helpers/global.ts', 'initGlobalSafe')
-            ]);
+            // 🔹 Inicializar helpers globales
+            await initGlobalSafe();
             console.log('🟢 Helpers globales cargados');
 
-            // 🔹 Inicializar módulo principal dinámico si existe en appData
+            // 🔹 Cargar módulo principal dinámico si existe
             const moduleFile = getAppDataProperty<string>('moduleFile', '');
             if (moduleFile) {
                 await loadModule(moduleFile);
@@ -84,9 +81,18 @@ async function bootstrapApp() {
     return _bootstrapPromise;
 }
 
-// Ejecutar bootstrap una sola vez al cargar el DOM
+// Ejecutar bootstrapApp solo una vez al cargar el DOM
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootstrapApp, { once: true });
 } else {
     bootstrapApp();
+}
+
+// Mostrar app inmediatamente si Vue ya está listo
+if (document.readyState !== 'loading') {
+    (window as any).vueAppIsReady?.();
+} else {
+    document.addEventListener('DOMContentLoaded', () => {
+        (window as any).vueAppIsReady?.();
+    });
 }

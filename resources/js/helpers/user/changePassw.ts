@@ -6,7 +6,7 @@ import { submitForm } from "../form/formCrudInit";
  * - Abre modal
  * - Confirma cambio de contraseña
  */
-export function initChangePassw(): void {
+export async function initChangePassw(): Promise<void> {
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
 

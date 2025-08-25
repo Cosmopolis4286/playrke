@@ -13,4 +13,7 @@ declare global {
     _vueMounted?: boolean;
     route?: (name: string, params?: any) => string;
   }
+  interface HTMLElement {
+    inert?: boolean;
+  }
 }
