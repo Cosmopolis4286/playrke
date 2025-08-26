@@ -1,9 +1,10 @@
 {{-- resources/views/components/shared/btn-group.blade.php --}}
-@props(['buttons' => collect(), 'moduleId' => ''])
+@props(['buttons' => collect(), 'moduleId' => '', 'useModal' => false])
 
 <div class="btn-group" role="group" aria-label="Acciones">
     @foreach ($buttons as $btn)
-        <button type="button" class="btn btn-sm {{ $btn->color }} btn-{{ $btnGroupId }}"
+        <button type="button"
+            class="btn btn-sm {{ $btn->color }} btn-{{ $btnGroupId }} {{ $useModal ? 'btn-open-modal' : '' }}"
             data-action="{{ $btn->action }}" @if ($btn->disabled) disabled @endif
             x-bind:disabled="{{ $btn->disabled ? 'selected.length === 0' : 'false' }}"
             @click="$dispatch('btn-action', ['{{ $btn->action }}', selected])">

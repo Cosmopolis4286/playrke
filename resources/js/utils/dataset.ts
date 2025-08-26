@@ -1,6 +1,4 @@
-// resources/js/utils/datasetUtils.ts
-import { getAppDataProperty } from '@/data/index';
-import { waitForAppData } from '@/app';
+import { getAppDataProperty, getAppData, AppData } from '@/app';
 
 /**
  * Extrae las keys de un tipo de mapa de datasets.
@@ -20,18 +18,16 @@ export function datasetKeys<T extends Record<string, any[]>>() {
  * @returns Un objeto con funciones que devuelven arrays tipados.
  */
 export function createDatasetGetters<T extends Record<string, any[]>>(datasetMap?: T) {
-    // Si no se pasa un datasetMap → se arma desde el appData
-    const keys = datasetMap
-        ? (Object.keys(datasetMap) as (keyof T)[])
-        : (Object.keys(waitForAppData()) as (keyof T)[]);
+    // Si no se pasa un datasetMap → se arma desde el appData ya inicializado
+    const appData: AppData | T = datasetMap ?? getAppData();
+    const keys = Object.keys(appData) as (keyof T)[];
 
     return keys.reduce((acc, key) => {
         acc[key] = () => {
-            // Primero intentamos desde appData
+            // Obtener dataset desde appData
             const data = getAppDataProperty<unknown>(key as string, []);
-
             if (!Array.isArray(data)) {
-                console.warn(`⚠️ La propiedad "${String(key)}" en appData no es un array. Se devuelve array vacío.`);
+                console.warn(`⚠️ La propiedad "${String(key)}" en appData no es un array. Devuelvo [].`);
                 return [] as T[typeof key];
             }
             return data as T[typeof key];

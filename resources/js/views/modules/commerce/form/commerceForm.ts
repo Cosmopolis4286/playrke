@@ -80,8 +80,6 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
         selectedValues['time-zone'] = data?.user?.time_zone ?? '';
     }
 
-    console.log('selectedValues', selectedValues);
-
     initAllSelects(selectedValues);
 
     // Insertar monedas adicionales
@@ -129,7 +127,6 @@ export function initListeners(): void {
     // Click en botones dinámicos del formulario
     document.addEventListener('click', ({ target }) => {
         const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${moduleId}`);
-        console.log('element', element)
 
         if (!element) return;
         formCRUD(element).catch(e => console.error('Error en formCRUD:', e));

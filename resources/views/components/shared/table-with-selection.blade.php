@@ -13,7 +13,8 @@
     <div class="card-body" x-data="tableSelection(@json($rows->pluck('id')))"
         @btn-action.window="(event) => { const action = event.detail[0]; const ids = event.detail[1];}">
         {{-- Botones de acciones --}}
-        <x-shared.btn-group :btn-group-id="$moduleId" :buttons="[]" :context="$context" x-bind:data-id="selectedIds" />
+        <x-shared.btn-group useModal="true" :btn-group-id="$moduleId" :buttons="[]" :context="$context"
+            x-bind:data-id="selectedIds" />
         {{-- Tabla --}}
         <div class="table-responsive mt-2">
             <table class="table table-striped table-bordered my-2 w-100">

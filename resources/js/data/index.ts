@@ -1,7 +1,16 @@
-// resources/js/data/index.ts
 import { getJsonData } from '@/utils/getJsonData';
 
-let _appData: Record<string, unknown> = {};
+/**
+ * Interfaz global de appData
+ * ⚠️ Ajusta las claves según lo que realmente usas
+ */
+export interface AppData {
+  moduleFile?: string;
+  enableFormCrud?: boolean;
+  [key: string]: unknown;
+}
+
+let _appData: AppData = {};
 let _initialized = false;
 let _initPromise: Promise<void> | null = null;
 
@@ -10,41 +19,40 @@ let _initPromise: Promise<void> | null = null;
  * Garantiza que solo se ejecute una vez.
  */
 export async function initAppData(): Promise<void> {
-    if (_initialized) return;
-    if (_initPromise) return _initPromise;
+  if (_initialized) return;
+  if (_initPromise) return _initPromise;
 
-    _initPromise = (async () => {
-        if (document.readyState === 'loading') {
-            await new Promise<void>((resolve) =>
-                document.addEventListener('DOMContentLoaded', () => resolve(), { once: true })
-            );
-        }
+  _initPromise = (async () => {
+    if (document.readyState === 'loading') {
+      await new Promise<void>((resolve) =>
+        document.addEventListener('DOMContentLoaded', () => resolve(), { once: true })
+      );
+    }
 
-        const data = getJsonData<Record<string, unknown>>('page-data') ?? {};
+    const data = getJsonData<AppData>('page-data') ?? {};
 
-        if (typeof data !== 'object' || data === null) {
-            console.warn('⚠️ appData no es un objeto válido. Se inicializa vacío.');
-            _appData = {};
-        } else {
-            _appData = data;
-        }
+    if (typeof data !== 'object' || data === null) {
+      console.warn('⚠️ appData no es un objeto válido. Se inicializa vacío.');
+      _appData = {};
+    } else {
+      _appData = Object.freeze({ ...data });
+    }
 
-        _initialized = true;
-    })();
+    _initialized = true;
+  })();
 
-    return _initPromise;
+  return _initPromise;
 }
 
 /**
  * Devuelve appData completo (solo lectura).
  */
-export const getAppData = (): Readonly<Record<string, unknown>> => _appData;
+export const getAppData = (): Readonly<AppData> => _appData;
 
 /**
  * Devuelve una propiedad tipada de appData.
- * @param key - Nombre de la propiedad en appData
- * @param defaultValue - Valor por defecto si no existe
  */
-export function getAppDataProperty<T>(key: string, defaultValue: T): T {
-    return (key in _appData ? (_appData[key] as T) : defaultValue);
+export function getAppDataProperty<T>(key: keyof AppData, defaultValue: T): T {
+  const value = _appData[key];
+  return (value === undefined || value === null) ? defaultValue : (value as T);
 }

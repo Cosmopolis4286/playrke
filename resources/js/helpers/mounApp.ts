@@ -2,8 +2,9 @@
 
 /**
  * Controla la visibilidad del contenido principal y el loader.
- * - `vueAppIsReady` se expone globalmente para que Vue llame al montarse.
- * - Si Vue no llama, se muestra el contenido tras 'DOMContentLoaded' o 'load'.
+ * - Si Vue llama a `vueAppIsReady`, se marca como montado.
+ * - Si no hay Vue, se usará el evento `load` del navegador.
+ * - Solo se quita el loader cuando el DOM y recursos cargaron.
  */
 
 (() => {
@@ -11,51 +12,47 @@
   const wrapperId = 'app-wrapper';
 
   let vueMounted = false;
+  let domLoaded = false;
 
   /**
-   * Muestra el contenido principal y elimina el loader.
+   * Muestra el contenido principal y elimina el loader si ambas condiciones se cumplen.
    */
-  const showApp = (): void => {
-    const loader = document.getElementById(loaderId);
-    const wrapper = document.getElementById(wrapperId);
+  const tryShowApp = (): void => {
+    if ((vueMounted || !window.hasOwnProperty("vueAppIsReady")) && domLoaded) {
+      const loader = document.getElementById(loaderId);
+      const wrapper = document.getElementById(wrapperId);
 
-    if (loader) loader.remove();
-    if (wrapper) wrapper.classList.remove('d-none');
-  };
+      if (loader) loader.remove();
+      if (wrapper) wrapper.classList.remove('d-none');
 
-  /**
-   * Marca la app como lista. Evita llamadas repetidas.
-   */
-  const markAppReady = (): void => {
-    if (!vueMounted) {
-      vueMounted = true;
-      showApp();
-      console.log('✅ Vue App montada y contenido mostrado');
+      console.log('✅ App mostrada (DOM cargado' + (vueMounted ? ' + Vue montado' : ' sin Vue') + ')');
     }
   };
 
   /**
-   * Exponer globalmente para que Vue llame al montarse.
+   * Marca que Vue ya montó.
    */
+  const markAppReady = (): void => {
+    vueMounted = true;
+    tryShowApp();
+  };
+
+  // Exponer globalmente para Vue (opcional)
   (window as any).vueAppIsReady = markAppReady;
 
   /**
-   * Fallback: mostrar la app si Vue no se monta.
+   * Detectar cuando el DOM y recursos terminaron de cargar.
    */
-  const fallbackShow = () => {
-    if (!vueMounted) {
-      showApp();
-      console.log('⚠️ Vue no se montó, mostrando contenido tras fallback');
-    }
+  const onDomReady = () => {
+    domLoaded = true;
+    tryShowApp();
   };
 
-  // Usar DOMContentLoaded para fallback temprano
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fallbackShow, { once: true });
+  if (document.readyState === 'complete') {
+    // Ya terminó de cargar todo
+    onDomReady();
   } else {
-    fallbackShow();
+    // Esperar a que termine de cargar todos los recursos
+    window.addEventListener('load', onDomReady, { once: true });
   }
-
-  // Extra: fallback definitivo por si hay recursos tardíos
-  window.addEventListener('load', fallbackShow);
 })();

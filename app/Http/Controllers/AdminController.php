@@ -40,6 +40,7 @@ class AdminController extends Controller
                 'coins' => $coins,
                 'commerces' => $commerces,
                 'countries' => $countries,
+                'enableFormCrud' => true,
                 'games' => $games,
                 'moduleFile' => 'views/modules/commerce/form/commerceForm.ts',
                 'timeZones' => $timeZones,
