@@ -68,11 +68,16 @@ export async function initGlobal(): Promise<void> {
         await initChangePassw();
         console.log('✅ initChangePassw ejecutado');
 
-        // 🔹 Mostrar mensajes de sesión Laravel
+         // 🔹 Mostrar mensajes flash de sesión (solo Session.message)
         if (window.Session?.message?.trim()) {
             showToast(window.Session.message, window.Session.type || 'success');
         }
 
+        // 🔹 Mostrar solo errores de validación de formularios
+        if (window.LaravelErrors?.length) {
+            await showLaravelMessages(window.LaravelErrors);
+        }
+        
         // 🔹 Mostrar errores Laravel
         await showLaravelMessages(window.LaravelErrors);
 

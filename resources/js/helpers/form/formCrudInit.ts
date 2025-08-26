@@ -113,9 +113,9 @@ async function getInfo(encryptId: string) {
 /**
  * Valida campos requeridos y envía el formulario
  */
-export function submitForm(formSuffix: string, fields: string[] = []) {
-    const form = document.getElementById(`form-${formSuffix}`) as HTMLFormElement | null;
-    if (!form) return console.warn(`Formulario no encontrado para submit: ${formSuffix}`);
+export function submitForm(formId: string, fields: string[] = []) {
+    const form = document.getElementById(formId) as HTMLFormElement | null;
+    if (!form) return console.warn(`Formulario no encontrado para submit: ${formId}`);
 
     if (!fields.length) {
         fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[required], select[required]'))

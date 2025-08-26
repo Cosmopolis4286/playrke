@@ -5,7 +5,7 @@ let lastFocusedButton: HTMLElement | null = null;
 /**
  * Inicializa foco y accesibilidad en modales Bootstrap
  */
-export function initModalFocus(): void {
+export async function initModalFocus(): Promise<void> {
 
     // 1️⃣ Delegación: botón que abre cualquier modal
     $(document).on('click', '.btn-open-modal', function () {

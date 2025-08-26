@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-
+use App\Http\Requests\CommerceRequest;
 // Models
 use App\Models\User;
 use App\Models\Coin;
@@ -41,56 +41,6 @@ use Illuminate\Support\Facades\Hash;
 class CommerceController extends Controller
 {
     use BingoTrait, FiltersTrait, EncryptTrait, UserValTrait;
-
-    private function validateRequest($request, $type = 1, $id = '')
-    {
-        // Si es tipo 2, encuentra al usuario usando el ID descifrado.
-        if ($type == 2) {
-            $commerce = Commerce::findOrFail(decrypt($id));
-        }
-
-        // Definir reglas de validación.
-        $rules = [
-            'username' => ['required', 'string', 'max:20', 'unique:users,username'],
-            'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
-            'country' => ['required', 'numeric', 'exists:countries,id'],
-            'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
-            'coin' => ['required', 'numeric', 'exists:coins,id'],
-            'name' => ['required', 'string'],
-            'phone' => ['required', 'string', 'max:20', 'unique:commerces,phone'],
-            'other_coins.*' => ['exists:coins,id'],
-        ];
-
-        // Ajustar reglas de validación si es una actualización.
-        if ($type == 2) {
-            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $commerce->user];
-            $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $commerce->user];
-            $rules['phone'] = ['required', 'string', 'max:20', 'unique:commerces,phone,' . $commerce->id];
-        }
-
-        // Definir mensajes de error personalizados.
-        $messages = [
-            'username.unique' => 'Nombre de usuario no disponible.',
-            'email.unique' => 'Este correo ya está registrado.',
-            'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
-            'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
-        ];
-
-        // Crear el validador.
-        $validator = Validator::make($request->all(), $rules, $messages);
-
-        // Si la validación falla.
-        if ($validator->fails()) {
-            Session::flash('msg-error', $type);
-            if ($type > 1) {
-                Session::flash('encryptedId', $id);
-            }
-            return $validator; // Devuelve el validador en caso de falla
-        }
-
-        return $validator; // Devuelve el validador en caso de éxito
-    }
-
     /**
      * Crea una nueva Comercializadora (Commerce).
      *
@@ -99,32 +49,10 @@ class CommerceController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function create(Request $request)
+
+    public function create(CommerceRequest $request)
     {
-        // 🔒 Verificación de permisos
-        if ($this->user(['user_type'])->user_type !== 2) {
-            return redirect()->back()->withErrors([
-                'error' => 'No tienes permiso para realizar esta acción.'
-            ]);
-        }
-
-        $codeRKE = $request->code_rke;
-
-        // 🔎 Validación de código duplicado
-        if (Commerce::existsValue('code_rke', $codeRKE)) {
-            return redirect()->back()->with([
-                'message' => 'El código RKE ya existe',
-                'type' => 'warning'
-            ]);
-        }
-
-        // 🔍 Validación inicial antes de iniciar transacción
-        $validator = $this->validateRequest($request);
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
+        $validated = $request->validatedData();
 
         DB::beginTransaction();
 
@@ -166,7 +94,7 @@ class CommerceController extends Controller
                 'country'   => $request->country,
                 'status'    => 1,
                 'user'      => $newUser,
-                'code_rke'  => $this->replaceLettersWithNumbers($codeRKE),
+                'code_rke'  => $this->replaceLettersWithNumbers($request->code_rke),
                 'code_uuid' => $this->getCodeUUID('Commerce')
             ]);
 
