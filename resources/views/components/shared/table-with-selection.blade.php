@@ -6,12 +6,12 @@
     'rows' => collect(),
     'rowKeys' => [],
     'context' => '',
+    'tableId' => 'default-table',
 ])
 
 <div class="card">
     <x-shared.card-header :title="$title" />
-    <div class="card-body" x-data="tableSelection(@json($rows->pluck('id')))"
-        @btn-action.window="(event) => { const action = event.detail[0]; const ids = event.detail[1];}">
+    <div class="card-body" x-data="tableSelection(@json($rows->pluck('id')), '{{ $tableId }}')" data-table-id="{{ $tableId }}">
         {{-- Botones de acciones --}}
         <x-shared.btn-group useModal="true" :btn-group-id="$moduleId" :buttons="[]" :context="$context"
             x-bind:data-id="selectedIds" />
@@ -45,4 +45,5 @@
             </table>
         </div>
     </div>
+
 </div>

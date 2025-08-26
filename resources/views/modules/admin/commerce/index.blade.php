@@ -3,7 +3,7 @@
     <x-shared.table-with-selection :title="$title" :rows="$pageData['commerces']" 
         :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']" 
         :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
-        module-id="commerce-form" context="commerce" 
+        module-id="commerce-form" context="commerce" table-id="commerce-table"
     />
     {{-- Modal para formulario de comercio --}}
     <x-shared.modal id="commerce-form" :form-view="'modules.admin.commerce.form'" />

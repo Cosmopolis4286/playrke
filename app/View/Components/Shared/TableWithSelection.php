@@ -18,7 +18,7 @@ class TableWithSelection extends Component
     /** @var string Título del card */
     public string $title;
 
-    /** @var string Identificador único del modulo (usado en BtnGroup) */
+    /** @var string Identificador único del módulo (usado en BtnGroup) */
     public string $moduleId;
 
     /** @var array Columnas de la tabla */
@@ -33,6 +33,9 @@ class TableWithSelection extends Component
     /** @var string Contexto para BtnGroup */
     public string $context;
 
+    /** @var string Identificador único de la tabla */
+    public string $tableId;
+
     /**
      * Constructor del componente
      *
@@ -42,6 +45,7 @@ class TableWithSelection extends Component
      * @param Collection|null $rows Filas de la tabla
      * @param array $rowKeys Llaves para extraer valores de cada fila
      * @param string $context Contexto para BtnGroup
+     * @param string $tableId Identificador único de la tabla (requerido para listener global)
      */
     public function __construct(
         string $title = '',
@@ -49,7 +53,8 @@ class TableWithSelection extends Component
         array $columns = [],
         ?Collection $rows = null,
         array $rowKeys = [],
-        string $context = ''
+        string $context = '',
+        string $tableId = ''
     ) {
         $this->title = $title;
         $this->moduleId = $moduleId;
@@ -57,6 +62,7 @@ class TableWithSelection extends Component
         $this->rows = $rows ?? collect();
         $this->rowKeys = $rowKeys;
         $this->context = $context;
+        $this->tableId = $tableId;
 
         $this->validateProps();
     }
@@ -65,6 +71,7 @@ class TableWithSelection extends Component
      * Valida los props del componente
      *
      * @return void
+     * @throws \InvalidArgumentException
      */
     protected function validateProps(): void
     {
@@ -74,6 +81,10 @@ class TableWithSelection extends Component
 
         if (empty($this->rowKeys)) {
             throw new \InvalidArgumentException('Se requiere al menos un rowKey para TableWithSelection.');
+        }
+
+        if (empty($this->tableId)) {
+            throw new \InvalidArgumentException('Se requiere un tableId único para TableWithSelection.');
         }
 
         if ($this->rows && !$this->rows instanceof Collection) {

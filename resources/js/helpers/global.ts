@@ -1,11 +1,14 @@
+// js/global/global.ts
+
 import { showToast } from './toastNotify';
 import { loadDataTable } from './dataTables';
 import { initChangePassw } from './user/changePassw';
 import { initLogout } from './user/logout';
 import { initModalFocus } from '@/helpers/modal/modals';
+import { initTableActions } from '@/alpine/tableSelection';
 
 /**
- * Bloquear arrastre de imágenes
+ * Inicializa el bloqueo de arrastre de imágenes
  * Previene que las imágenes sean arrastradas accidentalmente.
  */
 async function initDragStart(): Promise<void> {
@@ -17,8 +20,8 @@ async function initDragStart(): Promise<void> {
 }
 
 /**
- * Mostrar mensajes de Laravel
- * @param errors - Array de errores generados por Laravel
+ * Muestra los mensajes de error generados por Laravel
+ * @param errors Array de mensajes de error
  */
 async function showLaravelMessages(errors: string[] = []): Promise<void> {
     if (!errors.length) return;
@@ -35,7 +38,7 @@ async function showLaravelMessages(errors: string[] = []): Promise<void> {
 }
 
 /**
- * Inicializa DataTables si hay tablas en el DOM
+ * Inicializa DataTables en todas las tablas con clase .data-table
  */
 async function initDataTables(): Promise<void> {
     const tables = document.querySelectorAll('table.data-table');
@@ -68,21 +71,21 @@ export async function initGlobal(): Promise<void> {
         await initChangePassw();
         console.log('✅ initChangePassw ejecutado');
 
-         // 🔹 Mostrar mensajes flash de sesión (solo Session.message)
+        // 🔹 Mostrar mensajes flash de sesión
         if (window.Session?.message?.trim()) {
             showToast(window.Session.message, window.Session.type || 'success');
         }
 
-        // 🔹 Mostrar solo errores de validación de formularios
+        // 🔹 Mostrar errores de Laravel (validación)
         if (window.LaravelErrors?.length) {
             await showLaravelMessages(window.LaravelErrors);
         }
-        
-        // 🔹 Mostrar errores Laravel
-        await showLaravelMessages(window.LaravelErrors);
 
         // 🔹 Inicializar DataTables
         await initDataTables();
+
+        // 🔹 Inicializar listeners globales de selección de tablas
+        initTableActions();
 
         console.log('✅ initGlobal completado');
     } catch (err) {
@@ -94,6 +97,6 @@ export async function initGlobal(): Promise<void> {
  * Inicialización segura con valores por defecto
  */
 export async function initGlobalSafe(): Promise<void> {
-    console.log('initGlobalSafe');
+    console.log('initGlobalSafe iniciado');
     await initGlobal();
 }

@@ -5,6 +5,10 @@ import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
 import { route } from '@/routes/commerceRoutes';
 import { initAllSelects } from '@/utils/initAllSelects';
+import { getSelectedIds } from '@/alpine/tableSelectionListener';
+
+const ids = getSelectedIds('commerce-table');
+console.log('IDs seleccionados rápidamente:', ids);
 
 // Re-exportar route para que otros módulos puedan usarla directamente
 export { route };
