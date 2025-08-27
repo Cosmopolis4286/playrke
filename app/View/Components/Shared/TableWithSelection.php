@@ -4,48 +4,39 @@ namespace App\View\Components\Shared;
 
 use Illuminate\View\Component;
 use Illuminate\Support\Collection;
+use Vinkla\Hashids\Facades\Hashids;
 
 /**
- * Componente TableWithSelection
- *
- * Renderiza una tabla con selección de filas usando Alpine.js.
- * Incluye un BtnGroup que se habilita/deshabilita según selección.
- *
- * Compatible con Bootstrap 4.
+ * Componente de tabla con selección de filas.
+ * Genera IDs encriptados para cada fila usando Hashids y los expone a Alpine.js.
  */
 class TableWithSelection extends Component
 {
-    /** @var string Título del card */
     public string $title;
-
-    /** @var string Identificador único del módulo (usado en BtnGroup) */
     public string $moduleId;
-
-    /** @var array Columnas de la tabla */
     public array $columns;
-
-    /** @var Collection Filas de la tabla */
     public Collection $rows;
-
-    /** @var array Llaves de cada fila para extraer datos */
     public array $rowKeys;
-
-    /** @var string Contexto para BtnGroup */
     public string $context;
-
-    /** @var string Identificador único de la tabla */
     public string $tableId;
 
+    /** 
+     * @var string[] IDs encriptados para Alpine.js
+     */
+    public array $hashedIds;
+
     /**
-     * Constructor del componente
+     * Constructor del componente.
      *
-     * @param string $title Título del card
-     * @param string $moduleId Identificador del view
+     * @param string $title Título de la tabla
+     * @param string $moduleId ID del módulo (opcional)
      * @param array $columns Columnas de la tabla
      * @param Collection|null $rows Filas de la tabla
-     * @param array $rowKeys Llaves para extraer valores de cada fila
-     * @param string $context Contexto para BtnGroup
-     * @param string $tableId Identificador único de la tabla (requerido para listener global)
+     * @param array $rowKeys Campos clave de cada fila
+     * @param string $context Contexto adicional
+     * @param string $tableId ID único de la tabla para Alpine
+     *
+     * @throws \InvalidArgumentException
      */
     public function __construct(
         string $title = '',
@@ -65,12 +56,12 @@ class TableWithSelection extends Component
         $this->tableId = $tableId;
 
         $this->validateProps();
+        $this->generateHashedIds();
     }
 
     /**
-     * Valida los props del componente
+     * Valida las propiedades requeridas del componente.
      *
-     * @return void
      * @throws \InvalidArgumentException
      */
     protected function validateProps(): void
@@ -93,9 +84,23 @@ class TableWithSelection extends Component
     }
 
     /**
-     * Renderiza la vista del componente
+     * Genera IDs encriptados para todas las filas usando Hashids (Vinkla).
+     * Los IDs se guardan en $hashedIds para usarse en Alpine.js.
      *
-     * @return \Illuminate\View\View
+     * @return void
+     */
+    protected function generateHashedIds(): void
+    {
+        $this->hashedIds = $this->rows
+            ->pluck('id')
+            ->map(fn($id) => Hashids::connection('main')->encode($id))
+            ->toArray();
+    }
+
+    /**
+     * Renderiza la vista del componente.
+     *
+     * @return \Illuminate\View\View|string
      */
     public function render()
     {

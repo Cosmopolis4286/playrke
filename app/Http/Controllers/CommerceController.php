@@ -30,11 +30,11 @@ use App\Traits\Users\UserValTrait;
 
 // Otros
 use Carbon\Carbon;
+use Vinkla\Hashids\Facades\Hashids;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -150,23 +150,43 @@ class CommerceController extends Controller
         }
     }
 
-    public function getInfo($id) // Obtener Info Comercializadora
+    /**
+     * Obtener información de una comercializadora por su ID encriptado.
+     *
+     * Decodifica el ID usando Hashids, obtiene los datos de la comercializadora,
+     * monedas disponibles y datos del usuario relacionado.
+     *
+     * @param string $id ID de la comercializadora codificado con Hashids
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getInfo(string $id)
     {
-        $id = decrypt($id);
-        $commerce = Commerce::getById($id, ['name', 'country', 'coin', 'phone', 'code_rke']);
-        $otherCoins = CommerceCountriesCoins::getAvailableCoins($id);
-        $user = User::getById(Commerce::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
+        // Decodifica el ID usando Hashids
+        $decoded = Hashids::decode($id);
 
-        $data = [
-            'commerce' => $commerce,
-            'user' => $user,
-            'other_coins' => $otherCoins
-        ];
+        // Verificamos que haya un valor decodificado
+        if (empty($decoded)) {
+            return response()->json(['error' => 'ID inválido'], 404);
+        }
+
+        $idDecoded = $decoded[0];
+
+        // Obtenemos la información de la comercializadora
+        $commerce = Commerce::getById($idDecoded, ['name', 'country', 'coin', 'phone', 'code_rke']);
+
+        // Obtenemos las monedas disponibles para la comercializadora
+        $otherCoins = CommerceCountriesCoins::getAvailableCoins($idDecoded);
+
+        // Obtenemos la información del usuario asociado
+        $userId = Commerce::getValueById($idDecoded, 'user');
+        $user = User::getById($userId, ['username', 'email', 'time_zone']);
+
+        $data = ['commerce' => $commerce, 'user' => $user,  'other_coins' => $otherCoins];
 
         return response()->json($data);
     }
 
-    public function update(Request $request, $id) // Editar Comercializadora
+    public function update(CommerceRequest $request, $id) // Editar Comercializadora
     {
         if ($this->user(['user_type'])->user_type != 2) {
             return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
@@ -271,7 +291,6 @@ class CommerceController extends Controller
 
     public function delete($id)
     {
-        //Commerce::destroy(decrypt($request->id));
         Commerce::where('id', decrypt($id))->update(['status' => 3]);
         Session::flash('message', 'El Comercio fue eliminado');
         return redirect()->back();

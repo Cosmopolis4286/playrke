@@ -1,14 +1,11 @@
 // commerceForm.ts
 import { formCRUD } from '@/helpers/form/formCrudInit';
-import { insertOtherCoins } from '@/helpers/insertOtherCoins';
+import { insertOtherCoins } from '@/helpers/selects/insertOtherCoins';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
 import { route } from '@/routes/commerceRoutes';
-import { initAllSelects } from '@/utils/initAllSelects';
-import { getSelectedIds } from '@/alpine/tableSelectionListener';
-
-const ids = getSelectedIds('commerce-table');
-console.log('IDs seleccionados rápidamente:', ids);
+import { initAllSelects } from '@/helpers/selects/initAllSelects';
+import { fillFormFromObject } from '@/helpers/form/formHelpers';
 
 // Re-exportar route para que otros módulos puedan usarla directamente
 export { route };
@@ -62,46 +59,37 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
     const usernameInput = document.getElementById('username') as HTMLInputElement | null;
     const emailInput = document.getElementById('email') as HTMLInputElement | null;
+
     if (!usernameInput || !emailInput) return console.error('Inputs username/email no encontrados');
 
-    // Reset de inputs editables
-    usernameInput.readOnly = false;
-    emailInput.readOnly = false;
-    usernameInput.value = '';
-    emailInput.value = '';
-
-    if (action === 'create') {
-        ['name', 'phone'].forEach(id => {
-            const input = document.getElementById(id) as HTMLInputElement | null;
-            if (input) input.value = '';
-        });
-    }
+    const codeRKEInput = document.getElementById('code-rke') as HTMLInputElement | null;
 
     // Valores preseleccionados para selects dinámicos
     const selectedValues: Record<string, string | number> = {};
-    if (action === 'edit' && data) {
-        selectedValues['country'] = data?.commerce?.country ?? '';
-        selectedValues['time-zone'] = data?.user?.time_zone ?? '';
-    }
-
-    initAllSelects(selectedValues);
-
-    // Insertar monedas adicionales
-    if (action === 'edit' && data?.otherCoins) insertOtherCoins(data.otherCoins);
 
     // Rellenar campos en edición
     if (action === 'edit' && data) {
+        // Insertar monedas adicionales
+        if (data?.other_coins) insertOtherCoins(data.other_coins);
+        // Insertar juegos permitidos
+        if (data?.allowed_games) insertOtherCoins(data.allowed_games);
+
         const { commerce, user } = data;
-        ['name', 'phone', 'code-rke'].forEach(id => {
-            const input = document.getElementById(id) as HTMLInputElement | null;
-            if (input) input.value = commerce[id as keyof typeof commerce] ?? '';
-        });
+
+        fillFormFromObject(commerce);
 
         usernameInput.value = user.username ?? '';
         emailInput.value = user.email ?? '';
         usernameInput.readOnly = true;
         emailInput.readOnly = true;
+        codeRKEInput.readOnly = true;
+
+        selectedValues['country'] = data?.commerce?.country ?? '';
+        selectedValues['time-zone'] = data?.user?.time_zone ?? '';
     }
+
+    // Inicializar selects
+    initAllSelects(selectedValues);
 
     // Mostrar modal
     $(modal).modal('show');
@@ -129,11 +117,15 @@ export function initListeners(): void {
     }
 
     // Click en botones dinámicos del formulario
-    document.addEventListener('click', ({ target }) => {
+    document.addEventListener('click', async ({ target }) => {
         const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${moduleId}`);
 
         if (!element) return;
-        formCRUD(element).catch(e => console.error('Error en formCRUD:', e));
+        try {
+            await formCRUD(element);
+        } catch (e) {
+            console.error('Error en formCRUD:', e);
+        }
     });
 
     // Validación de input 'commission'

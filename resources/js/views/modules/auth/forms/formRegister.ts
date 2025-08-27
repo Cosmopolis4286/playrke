@@ -1,3 +1,4 @@
+// helpers/form/formRegister.ts
 import { Notyf } from 'notyf';
 
 // Referencias DOM

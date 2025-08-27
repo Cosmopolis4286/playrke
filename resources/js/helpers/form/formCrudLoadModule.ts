@@ -1,4 +1,4 @@
-// resources/js/helpers/form/formCrudLoadModule.ts
+// helpers/form/formCrudLoadModule.ts
 import { getAppDataProperty } from '@/data/index';
 import { loadModule } from '@/helpers/module/loadModule';
 import type { ModuleType, OtherCase } from '@/helpers/module/types/moduleFormTypes';

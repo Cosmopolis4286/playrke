@@ -6,15 +6,20 @@
     'rows' => collect(),
     'rowKeys' => [],
     'context' => '',
-    'tableId' => 'default-table',
+    'tableId' => '',
+    'hashedIds' => [], // Array de IDs encriptados
 ])
 
 <div class="card">
     <x-shared.card-header :title="$title" />
-    <div class="card-body" x-data="tableSelection(@json($rows->pluck('id')), '{{ $tableId }}')" data-table-id="{{ $tableId }}">
+
+    {{-- x-data recibe los IDs encriptados --}}
+    <div class="card-body" x-data='tableSelection(@json($hashedIds), "{{ $tableId }}")'
+        data-table-id="{{ $tableId }}">
         {{-- Botones de acciones --}}
         <x-shared.btn-group useModal="true" :btn-group-id="$moduleId" :buttons="[]" :context="$context"
             x-bind:data-id="selectedIds" />
+
         {{-- Tabla --}}
         <div class="table-responsive mt-2">
             <table class="table table-striped table-bordered my-2 w-100">
@@ -29,12 +34,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($rows as $item)
-                        <tr :class="selected.includes({{ $item->id }}) ? 'table-primary' : ''"
-                            @click="toggle({{ $item->id }})" style="cursor:pointer;">
+                    @foreach ($rows as $index => $item)
+                        {{-- Usamos $hashedIds[$index] para cada fila --}}
+                        @php $hashId = $hashedIds[$index] ?? $item->id; @endphp
+                        <tr :class="selected.includes('{{ $hashId }}') ? 'table-primary' : ''"
+                            @click="toggle('{{ $hashId }}')" style="cursor:pointer;">
                             <td class="text-center">
-                                <input type="checkbox" :checked="selected.includes({{ $item->id }})"
-                                    @click.stop="toggle({{ $item->id }})">
+                                <input type="checkbox" :checked="selected.includes('{{ $hashId }}')"
+                                    @click.stop="toggle('{{ $hashId }}')">
                             </td>
                             @foreach ($rowKeys as $key)
                                 <td>{!! $key === 'status_label' ? data_get($item, $key) : e(data_get($item, $key)) !!}</td>
@@ -45,5 +52,4 @@
             </table>
         </div>
     </div>
-
 </div>

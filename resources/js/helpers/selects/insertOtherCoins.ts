@@ -82,6 +82,8 @@ function resetCoinSelection(): void {
 export function initCoinSelector(): void {
     if (!country) return;
 
+    containerOtherCoins?.classList.add('d-none');
+
     country.addEventListener('change', () => {
         const selectedCountry = Number(country.value);
 

@@ -1,9 +1,18 @@
-// formCrudInit.ts
+// helpers/form/formCrudInit.ts
 import axios from '@/plugins/axios';
 import { ajaxStart } from '@/utils/loader';
 import { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
 import type { OtherCase } from '@/helpers/module/types/moduleFormTypes';
 import { formCrudExports } from './formCrudLoadModule';
+import { onTableSelectionUpdate, getSelectedIds } from '@/alpine/tableSelectionListener';
+
+// ID encriptado
+let encryptId = '';
+
+// Registrar callback (opcional, útil si quieres reaccionar en tiempo real)
+onTableSelectionUpdate('commerce-table', (selectedIds) => {
+    encryptId = selectedIds.length === 1 ? selectedIds[0] : '';
+});
 
 /**
  * Llama insertInfo si existe y muestra el modal
@@ -24,34 +33,57 @@ function safeInsertInfo(action: string, data?: any) {
 
 /**
  * Ejecuta el flujo principal de acciones CRUD
+ *
+ * @param {HTMLElement} elem - Elemento que contiene el atributo data-action
  */
 export async function formCRUD(elem: HTMLElement): Promise<void> {
-    const moduleId = formCrudExports.moduleId;
-    const modalEl = formCrudExports.modal;
-    const routeFn = formCrudExports.route;
+    type CrudAction = 'create' | 'edit' | 'delete' | string;
+    const action: CrudAction = elem.dataset.action ?? '';
 
-    if (!modalEl) return console.warn(`Modal no encontrado para: ${moduleId}`);
+    const { moduleId, modal, route, formTitleSuffix } = formCrudExports;
 
-    const form = document.querySelector<HTMLFormElement>(`#${moduleId}`);
-    if (!form) return console.warn(`Formulario '#${moduleId}' no encontrado`);
+    // Inicialización de formulario y modal (solo para create/edit)
+    const initForm = (): HTMLFormElement | null => {
+        if (!modal) {
+            console.warn(`Modal no encontrado para: ${moduleId}`);
+            return null;
+        }
 
-    resetForm(form);
+        const form = document.querySelector<HTMLFormElement>(`#${moduleId}`);
+        if (!form) {
+            console.warn(`Formulario '#${moduleId}' no encontrado`);
+            return null;
+        }
 
-    const action = elem.dataset.action ?? '';
-    const encryptId = document.getElementById(`elem-${moduleId}`)?.dataset.id ?? '';
+        resetForm(form);
+        return form;
+    };
 
     switch (action) {
-        case 'create':
+        case 'create': {
+            const form = initForm();
+            if (!form) return;
+
+            const modalTitle = `Registrar ${formTitleSuffix}`;
             safeInsertInfo('create');
-            prepareForm(form, 'create', 'Registrar', 'POST', undefined, formCrudExports.formTitleSuffix, routeFn);
+            prepareForm(form, 'create', modalTitle, 'POST', undefined, route);
             break;
-        case 'edit':
+        }
+
+        case 'edit': {
+            const form = initForm();
+            if (!form) return;
+
+            const modalTitle = `Editar ${formTitleSuffix}`;
             await getInfo(encryptId);
-            prepareForm(form, 'update', 'Editar', 'PUT', encryptId, formCrudExports.formTitleSuffix, routeFn);
+            prepareForm(form, 'update', modalTitle, 'PUT', encryptId, route);
             break;
+        }
+
         case 'delete':
             await handleOtherCases('delete', encryptId);
             break;
+
         default:
             await handleOtherCases(action, encryptId);
             break;
@@ -131,11 +163,26 @@ export function submitForm(formId: string, fields: string[] = []) {
 }
 
 /**
- * Resetea un formulario y limpia selects con data-reset="true"
+ * Resetea un formulario:
+ * - Hace reset del formulario completo.
+ * - Limpia los selects marcados con `data-reset="true"`.
+ * - Quita el atributo `readonly` a todos los inputs dentro del formulario.
+ *
+ * @param {HTMLFormElement} form - El formulario a resetear
  */
-export function resetForm(form: HTMLFormElement) {
+export function resetForm(form: HTMLFormElement): void {
+    // Resetea el formulario
     form.reset();
-    form.querySelectorAll<HTMLSelectElement>('select[data-reset="true"]').forEach(select => select.innerHTML = '');
+
+    // Limpia selects con data-reset="true"
+    form.querySelectorAll<HTMLSelectElement>('select[data-reset="true"]').forEach(select => {
+        select.innerHTML = '';
+    });
+
+    // Quita readonly a todos los inputs
+    form.querySelectorAll<HTMLInputElement>('input[readonly]').forEach(input => {
+        input.readOnly = false;
+    });
 }
 
 /**
@@ -147,14 +194,13 @@ export function prepareForm(
     modalTitle: string,
     method: string = 'POST',
     id?: string,
-    suffix: string = '',
     routeFn: (name: string, params?: Record<string, string | number>) => string = () => ''
 ) {
     const moduleId = formCrudExports.moduleId;
 
     const methodUpper = method.toUpperCase();
     const modalLabel = document.querySelector(`#modal-${moduleId}-label`);
-    if (modalLabel) modalLabel.textContent = `${modalTitle} ${suffix}`;
+    if (modalLabel) modalLabel.textContent = modalTitle;
 
     try {
         const actionUrl = ['PUT', 'PATCH', 'DELETE'].includes(methodUpper)

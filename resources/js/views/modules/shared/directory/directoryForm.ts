@@ -2,11 +2,11 @@
 //   Imports
 // ==========================
 import { formCRUD } from '@/helpers/form/formCrudInit';
-import { insertOtherCoins } from '@/helpers/insertOtherCoins';
+import { insertOtherCoins } from '@/helpers/selects/insertOtherCoins';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
 import { route } from '@/routes/commerceRoutes';
-import { initAllSelects } from '@/utils/initAllSelects';
+import { initAllSelects } from '@/helpers/selects/initAllSelects';
 
 // Re-exportar route para que otros módulos puedan usarla directamente
 export { route };

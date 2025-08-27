@@ -7,12 +7,12 @@ import { initAppData, getAppData, AppData } from '@/data/index';
 import { initGlobalSafe } from '@/helpers/global';
 
 let _bootstrapPromise: Promise<void> | null = null;
+let _logsShown = false; // 🔹 Nueva bandera para evitar logs repetidos
 
 /**
  * Reexportar AppData para que otros módulos lo usen desde app.ts
  */
 export type { AppData } from '@/data/index';
-
 export { getAppDataProperty, getAppData } from '@/data/index';
 
 /**
@@ -56,30 +56,31 @@ function notifyVueReady() {
  * Bootstrap principal de la app
  */
 async function bootstrapApp() {
-  if (_bootstrapPromise) return _bootstrapPromise;
+  if (_bootstrapPromise) {
+    if (!_logsShown) {
+      console.warn('⚠️ bootstrapApp ya estaba en ejecución o completado');
+      console.trace('🔍 Llamada duplicada de bootstrapApp detectada');
+      _logsShown = true;
+    }
+    return _bootstrapPromise;
+  }
 
   _bootstrapPromise = (async () => {
     try {
+      console.trace('🔍 Primera ejecución de bootstrapApp');
       console.log('⏳ Iniciando bootstrapApp...');
 
-      // 🔹 Inicializar appData
       await initAppData();
       const appData = getAppDataSync();
       console.log('🚀 appData inicializado:', appData);
 
-      // 🔹 Inicializar Alpine
       initAlpine();
-
-      // 🔹 Inicializar helpers globales
       await initGlobalSafe();
       console.log('🟢 Helpers globales cargados');
 
-      // 🔹 Cargar módulo principal dinámico si existe
       if (appData.moduleFile) {
         await loadModule(appData.moduleFile);
-        if (appData.enableFormCrud) {
-          await initFormCrud();
-        }
+        if (appData.enableFormCrud) await initFormCrud();
         console.log(`🟢 Módulo principal "${appData.moduleFile}" cargado correctamente`);
       } else {
         console.warn('⚠️ moduleFile no definido en appData, se omite initFormCrud');
@@ -94,11 +95,15 @@ async function bootstrapApp() {
   return _bootstrapPromise;
 }
 
-// Ejecutar bootstrapApp solo una vez al cargar el DOM
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootstrapApp, { once: true });
-  document.addEventListener('DOMContentLoaded', notifyVueReady, { once: true });
-} else {
-  bootstrapApp();
-  notifyVueReady();
+// 🔹 Ejecutar bootstrapApp de forma segura al cargar DOM
+if (!(window as any)._bootstrapAttached) {
+  (window as any)._bootstrapAttached = true;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapApp, { once: true });
+    document.addEventListener('DOMContentLoaded', notifyVueReady, { once: true });
+  } else {
+    bootstrapApp();
+    notifyVueReady();
+  }
 }
+

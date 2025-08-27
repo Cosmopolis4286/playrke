@@ -1,64 +1,111 @@
-// js/alpine/tableSelection.ts
+/**
+ * @file tableSelection.ts
+ * @description Componente Alpine.js para manejar la selección de filas en tablas.
+ * Siempre mantiene un array reactivo de IDs seleccionados.
+ * Permite toggle individual, toggle all y limpiar selección.
+ * Se integra fácilmente con tableSelectionListener.ts
+ */
 
-// Función para inicializar los btn-groups de todas las tablas
 import { onTableSelectionUpdate } from './tableSelectionListener';
 
-export function tableSelection(allIds: number[] = [], tableId: string = 'default') {
-    return {
-        selected: [] as number[],
-        allIds: allIds || [],
-        tableId: tableId,
+/**
+ * Componente Alpine para selección de filas en tablas.
+ * @param allIds - Array inicial de IDs de la tabla
+ * @param tableId - Identificador único de la tabla (requerido para listener)
+ */
+export function tableSelection(allIds: string[] = [], tableId: string = 'default') {
+  return {
+    /** IDs seleccionados actualmente (siempre array) */
+    selected: [] as string[],
 
-        get allSelected() {
-            return this.selected.length === this.allIds.length;
-        },
+    /** Todos los IDs disponibles de la tabla */
+    allIds: allIds || [],
 
-        toggle(id: number) {
-            if (this.selected.includes(id)) {
-                this.selected = this.selected.filter(i => i !== id);
-            } else {
-                this.selected.push(id);
-            }
-            this.emitSelectionUpdate();
-        },
+    /** Identificador de la tabla */
+    tableId,
 
-        toggleAll() {
-            this.selected = this.selected.length === this.allIds.length
-                ? []
-                : [...this.allIds];
-            this.emitSelectionUpdate();
-        },
+    /** Devuelve true si todos los IDs están seleccionados */
+    get allSelected() {
+      return this.selected.length === this.allIds.length;
+    },
 
-        clear() {
-            this.selected = [];
-            this.emitSelectionUpdate();
-        },
+    /**
+     * Devuelve un solo valor si hay uno, o el array si hay más de uno
+     * Ideal para contextos donde solo se necesita un ID
+     */
+    get selectedValue() {
+      if (this.selected.length === 1) return this.selected[0];
+      return [...this.selected];
+    },
 
-        get selectedIds() {
-            return this.selected;
-        },
+    /** Alterna la selección de un ID individual */
+    toggle(id: string) {
+      if (this.selected.includes(id)) {
+        this.selected = this.selected.filter(i => i !== id);
+      } else {
+        this.selected.push(id);
+      }
+      this.emitSelectionUpdate();
+    },
 
-        emitSelectionUpdate() {
-            window.dispatchEvent(new CustomEvent('table-selection-updated', {
-                detail: {
-                    tableId: this.tableId,
-                    selectedIds: this.selected
-                }
-            }));
-        }
-    };
+    /** Alterna la selección de todos los IDs */
+    toggleAll() {
+      this.selected = this.selected.length === this.allIds.length
+        ? []
+        : [...this.allIds];
+      this.emitSelectionUpdate();
+    },
+
+    /** Limpia la selección */
+    clear() {
+      this.selected = [];
+      this.emitSelectionUpdate();
+    },
+
+    /** Devuelve los IDs seleccionados (siempre array) */
+    get selectedIds() {
+      return [...this.selected];
+    },
+
+    /**
+     * Emite un evento global con los IDs seleccionados
+     * Convierte el array reactivo (Proxy) a un array plano
+     * Se puede conectar a tableSelectionListener para callbacks centralizados
+     */
+    emitSelectionUpdate: (() => {
+      let timeout: string;
+      const debounceTime = 50; // ms
+      return function () {
+        clearTimeout(timeout);
+        timeout = window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('table-selection-updated', {
+            detail: {
+              tableId: this.tableId,
+              selectedIds: [...this.selected],
+            },
+          }));
+        }, debounceTime);
+      };
+    })(),
+  };
 }
 
+/**
+ * Inicializa los btn-groups de todas las tablas en el DOM
+ * Escucha automáticamente los cambios de selección de cada tabla
+ */
 export function initTableActions() {
-    document.querySelectorAll<HTMLElement>('[data-table-id]').forEach(el => {
-        const tableId = el.dataset.tableId;
-        if (!tableId) return;
+  document.querySelectorAll<HTMLElement>('[data-table-id]').forEach(el => {
+    if (el.dataset.tableInit) return; // ya inicializado
+    el.dataset.tableInit = 'true';
 
-        onTableSelectionUpdate(tableId, (selectedIds) => {
-            console.log(`Tabla ${tableId} seleccionados:`, selectedIds);
+    const tableId = el.dataset.tableId;
+    if (!tableId) return;
 
-            const btnGroup = el.querySelector<HTMLElement>(`.btn-group[data-btn-group-id="${tableId}"]`);
-            if (btnGroup) btnGroup.dataset.id = selectedIds.join(',');
-        });
+    // Registrar callback para actualizar btn-group al cambiar selección
+    onTableSelectionUpdate(tableId, (selectedIds) => {
+      const btnGroup = el.querySelector<HTMLElement>(`.btn-group[data-btn-group-id="${tableId}"]`);
+      if (btnGroup) btnGroup.dataset.id = selectedIds.join(',');
     });
+  });
 }
