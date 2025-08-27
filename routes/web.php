@@ -3,7 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BinanceController;
 use App\Http\Controllers\BingoController;
-use App\Http\Controllers\CommerceController;
+use App\Http\Controllers\Commerce\CommerceController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\ExchangeRateController;

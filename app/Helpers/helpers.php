@@ -1,12 +1,7 @@
 <?php
-
-if (!function_exists('truncate')) {
-    /**
-     * Truncar un número sin redondear.
-     */
-    function truncate($number, $decimals = 2)
-    {
-        $factor = pow(10, $decimals);
-        return floor($number * $factor) / $factor;
-    }
-}
+// app/Helpers/helpers.php
+require_once __DIR__ . '/math.php';
+// require_once __DIR__ . '/string.php';
+// require_once __DIR__ . '/array.php';
+// require_once __DIR__ . '/date.php';
+// require_once __DIR__ . '/auth.php';

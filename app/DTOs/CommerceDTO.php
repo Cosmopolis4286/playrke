@@ -2,17 +2,14 @@
 
 namespace App\DTOs;
 
+use Illuminate\Foundation\Http\FormRequest;
+
 /**
  * Data Transfer Object para transportar la información de una Comercializadora (Commerce).
  *
- * ✅ Ventajas de esta versión:
- * - Más dinámica: recibe un array y lo asigna automáticamente.
- * - Evita modificar el constructor cada vez que agregues un nuevo campo.
- * - Mantiene typing y documentación clara.
- *
- * Ejemplo de uso:
- * $dto = CommerceDTO::fromArray($request->validated());
- * $array = $dto->toArray();
+ * - Convierte automáticamente claves snake_case en propiedades camelCase.
+ * - Ignora campos extra que no existan en el DTO.
+ * - Soporta instanciación desde arrays validados o FormRequest.
  */
 class CommerceDTO
 {
@@ -25,31 +22,33 @@ class CommerceDTO
     public readonly string $name;
     public readonly string $codeRke;
     public readonly int $userType;
+    /** @var array<int,string>|null */
     public readonly ?array $allowedGames;
+    /** @var array<int,string>|null */
     public readonly ?array $otherCoins;
 
     /**
-     * Constructor privado: se recomienda instanciar usando fromArray().
+     * Constructor privado: mapea snake_case -> camelCase.
+     * Ignora campos que no existen en la clase.
      *
-     * @param array $data Datos validados
+     * @param array<string,mixed> $data
      */
     private function __construct(array $data)
     {
-        $this->username     = $data['username'];
-        $this->email        = $data['email'];
-        $this->country      = $data['country'];
-        $this->timeZone     = $data['time_zone'];
-        $this->coin         = $data['coin'];
-        $this->phone        = $data['phone'];
-        $this->name         = $data['name'];
-        $this->codeRke      = $data['code_rke'];
-        $this->userType     = (int) $data['user_type'];
-        $this->allowedGames = $data['allowed_games'] ?? null;
-        $this->otherCoins   = $data['other_coins'] ?? null;
+        $props = array_keys(get_object_vars($this));
+
+        foreach ($data as $key => $value) {
+            $property = self::snakeToCamel($key);
+
+            if (in_array($property, $props, true)) {
+                // casteo especial
+                $this->$property = $property === 'userType' ? (int) $value : $value;
+            }
+        }
     }
 
     /**
-     * Crear una instancia de DTO desde un array validado.
+     * Crear DTO desde un array validado.
      *
      * @param array<string,mixed> $data
      * @return static
@@ -60,24 +59,43 @@ class CommerceDTO
     }
 
     /**
-     * Convertir DTO a array asociativo.
+     * Crear DTO desde un FormRequest validado.
      *
-     * @return array<string, mixed>
+     * @param FormRequest $request
+     * @return static
+     */
+    public static function fromRequest(FormRequest $request): self
+    {
+        return new self($request->validated());
+    }
+
+    /**
+     * Convertir DTO a array asociativo (camelCase -> snake_case).
+     *
+     * @return array<string,mixed>
      */
     public function toArray(): array
     {
-        return [
-            'username'      => $this->username,
-            'email'         => $this->email,
-            'country'       => $this->country,
-            'time_zone'     => $this->timeZone,
-            'coin'          => $this->coin,
-            'phone'         => $this->phone,
-            'name'          => $this->name,
-            'code_rke'      => $this->codeRke,
-            'user_type'     => $this->userType,
-            'allowed_games' => $this->allowedGames,
-            'other_coins'   => $this->otherCoins,
-        ];
+        $array = [];
+        foreach (get_object_vars($this) as $property => $value) {
+            $array[self::camelToSnake($property)] = $value;
+        }
+        return $array;
+    }
+
+    /**
+     * Convertir snake_case a camelCase.
+     */
+    private static function snakeToCamel(string $string): string
+    {
+        return lcfirst(str_replace('_', '', ucwords($string, '_')));
+    }
+
+    /**
+     * Convertir camelCase a snake_case.
+     */
+    private static function camelToSnake(string $string): string
+    {
+        return strtolower(preg_replace('/[A-Z]/', '_$0', $string));
     }
 }

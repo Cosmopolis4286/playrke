@@ -3,13 +3,15 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use App\Services\Auth\PermissionService;
+use App\DTOs\CommerceDTO;
 
 /**
- * Request para la validación de datos de un Commerce.
+ * Request para validar datos de una Comercializadora (Commerce).
  *
  * - Se usa tanto para creación como actualización.
  * - Determina dinámicamente las reglas según la acción.
+ * - Convierte los datos validados en un DTO para los Services.
  */
 class CommerceRequest extends FormRequest
 {
@@ -20,8 +22,8 @@ class CommerceRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Ajusta la condición según la lógica de permisos de tu aplicación
-        return Auth::user()?->user_type === 2;
+        // Solo permite usuarios con prefix "commerce"
+        return PermissionService::checkPrefix('commerce');
     }
 
     /**
@@ -34,27 +36,28 @@ class CommerceRequest extends FormRequest
         $commerceId = $this->getCommerceId();
 
         $rules = [
-            'coin' => ['required', 'numeric', 'exists:coins,id'],
-            'country' => ['required', 'numeric', 'exists:countries,id'],
-            'email' => ['required', 'string', 'email', 'max:40'],
-            'name' => ['required', 'string'],
+            'username'     => ['required', 'string', 'max:20'],
+            'email'        => ['required', 'string', 'email', 'max:40'],
+            'country'      => ['required', 'numeric', 'exists:countries,id'],
+            'time_zone'    => ['required', 'numeric', 'exists:time_zones,id'],
+            'coin'         => ['required', 'numeric', 'exists:coins,id'],
+            'phone'        => ['required', 'string', 'max:20'],
+            'name'         => ['required', 'string'],
+            'code_rke'     => ['required', 'string'],
             'other_coins.*' => ['exists:coins,id'],
-            'phone' => ['required', 'string', 'max:20'],
-            'username' => ['required', 'string', 'max:20'],
-            'time_zone.*' => ['numeric', 'exists:time_zones,id'],
         ];
 
-        // Reglas de unicidad dinámicas para actualización vs creación
+        // Reglas de unicidad dinámicas
         if ($this->isUpdate() && $commerceId) {
-            $rules['code_rke'][] = 'unique:commerces,code_rke,' . $commerceId;
-            $rules['email'][] = 'unique:users,email,' . $commerceId;
-            $rules['phone'][] = 'unique:commerces,phone,' . $commerceId;
             $rules['username'][] = 'unique:users,username,' . $commerceId;
+            $rules['email'][]    = 'unique:users,email,' . $commerceId;
+            $rules['phone'][]    = 'unique:commerces,phone,' . $commerceId;
+            $rules['code_rke'][] = 'unique:commerces,code_rke,' . $commerceId;
         } else {
-            $rules['code_rke'][] = 'unique:users,email';
-            $rules['email'][] = 'unique:users,email';
-            $rules['phone'][] = 'unique:commerces,phone';
             $rules['username'][] = 'unique:users,username';
+            $rules['email'][]    = 'unique:users,email';
+            $rules['phone'][]    = 'unique:commerces,phone';
+            $rules['code_rke'][] = 'unique:commerces,code_rke';
         }
 
         return $rules;
@@ -68,11 +71,12 @@ class CommerceRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.unique' => 'Este correo ya está registrado.',
-            'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
-            'phone.unique' => 'El número ' . $this->phone . ' ya está registrado.',
             'username.unique' => 'El nombre de usuario no está disponible.',
-            'time_zone.*.exists' => 'Uno o más de las otras zonas horarias seleccionados no existen en la base de datos.',
+            'email.unique'    => 'Este correo ya está registrado.',
+            'phone.unique'    => 'El número ' . $this->phone . ' ya está registrado.',
+            'code_rke.unique' => 'El código RKE ya existe.',
+            'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
+            'time_zone.exists' => 'La zona horaria seleccionada no existe.',
         ];
     }
 
@@ -82,11 +86,11 @@ class CommerceRequest extends FormRequest
      * Esto permite que el Service reciba un objeto estructurado
      * en lugar de arrays sin tipar.
      *
-     * @return \App\DTOs\CommerceDTO
+     * @return CommerceDTO
      */
-    public function toDTO()
+    public function toDTO(): CommerceDTO
     {
-        return new \App\DTOs\CommerceDTO($this->validated());
+        return CommerceDTO::fromArray($this->validated());
     }
 
     /**

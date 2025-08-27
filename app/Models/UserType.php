@@ -4,18 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo UserType
+ *
+ * Representa los tipos de usuario dentro del sistema (ej: admin, seller, customer, etc.)
+ *
+ * @property int         $id
+ * @property string      $description
+ * @property string      $prefix
+ * @property int         $status
+ */
 class UserType extends Model
 {
+    /** @var string */
     protected $table = "user_type";
+
+    /** @var array<int,string> */
     protected $fillable = ['id', 'description', 'prefix', 'status'];
-
-    public static function getValueById($id, $value)
-    {
-        return self::where('id', $id)->value($value);
-    }
-
-    public static function getValueByPrefix($prefix, $value = 'id')
-    {
-        return self::where('prefix', $prefix)->value($value);
-    }
 }
