@@ -2,437 +2,148 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\CommerceRequest;
-// Models
-use App\Models\User;
-use App\Models\Coin;
-use App\Models\Seller;
-use App\Models\BingoCtns;
-use App\Models\BingoCtnsLot;
-use App\Models\Commerce;
-use App\Models\CommerceCountriesCoins;
-use App\Models\CommerceExchangeRate;
-use App\Models\Country;
-use App\Models\Games;
-use App\Models\PhoneNumbers;
-use App\Models\SellerCountriesCoins;
-use App\Models\TimeZone;
-use App\Models\UserType;
-use App\Models\UUIDCodes;
-use App\Models\Wallet;
-
-// Traits
-use App\Traits\Games\BingoTrait;
-use App\Traits\Helpers\EncryptTrait;
-use App\Traits\Helpers\FiltersTrait;
-use App\Traits\Users\UserValTrait;
-
-// Otros
-use Carbon\Carbon;
-use Vinkla\Hashids\Facades\Hashids;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\DB;
+use App\Http\Requests\CommerceUpdateRequest;
+use App\Services\Commerce\CommerceService;
+use App\Services\Commerce\CommerceUpdateService;
+use App\Services\Commerce\CommerceDeleteService;
+use App\Services\Commerce\CommerceStatusService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Session;
 
+/**
+ * Controlador HTTP para la gestión de Comercios (Commerce).
+ *
+ * Este controlador solo maneja Requests y Responses HTTP,
+ * delegando toda la lógica de negocio a los Services.
+ */
 class CommerceController extends Controller
 {
-    use BingoTrait, FiltersTrait, EncryptTrait, UserValTrait;
     /**
-     * Crea una nueva Comercializadora (Commerce).
+     * Crear nueva Comercializadora (Commerce).
      *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\RedirectResponse
-     *
-     * @throws \Illuminate\Validation\ValidationException
+     * @param CommerceRequest  $request
+     * @param CommerceService  $service
+     * @return RedirectResponse
      */
-
-    public function create(CommerceRequest $request)
+    public function create(CommerceRequest $request, CommerceService $service): RedirectResponse
     {
-        $validated = $request->validatedData();
-
-        DB::beginTransaction();
-
         try {
-            $newPassw = $this->valEncrypt();
-            $userTypeId = UserType::getValueByPrefix('commerce', 'id');
+            $result = $service->create($request->toDTO());
 
-            // 👤 Crear usuario
-            $newUser = User::create([
-                'username'          => $request->username,
-                'user_type'         => $userTypeId,
-                'email'             => $request->email,
-                'password'          => Hash::make($newPassw),
-                'country'           => $request->country,
-                'time_zone'         => $request->time_zone,
-                'email_verified_at' => Carbon::now(),
-                'referral_code'     => User::getUniqueReferralCode(),
-            ])->id;
-
-            // 💰 Wallet
-            Wallet::create([
-                'coin' => $request->coin,
-                'user' => $newUser
-            ]);
-
-            // 📞 Teléfono
-            $phoneNumber = $request->phone;
-            PhoneNumbers::create([
-                'user'         => $newUser,
-                'country'      => $request->country,
-                'phone_number' => $phoneNumber
-            ]);
-
-            // 🏢 Commerce principal
-            $commerce = Commerce::create([
-                'name'      => $request->name,
-                'phone'     => $phoneNumber,
-                'coin'      => $request->coin,
-                'country'   => $request->country,
-                'status'    => 1,
-                'user'      => $newUser,
-                'code_rke'  => $this->replaceLettersWithNumbers($request->code_rke),
-                'code_uuid' => $this->getCodeUUID('Commerce')
-            ]);
-
-            // Moneda principal
-            CommerceCountriesCoins::create([
-                'commerce'     => $commerce->id,
-                'country'      => $commerce->country,
-                'coin'         => $commerce->coin,
-                'level'        => '1',
-                'creator_user' => $newUser,
-                'status'       => 1
-            ]);
-
-            // Configuración de usuario creador
-            $creatorUser = [
-                'model'  => 'Commerce',
-                'id'     => $commerce->id,
-                'userId' => $newUser
-            ];
-
-            // Juegos permitidos
-            if ($request->allowed_games) {
-                $this->handleUserGamePermission($creatorUser, $request->allowed_games);
-            }
-
-            // Otras monedas
-            if ($request->other_coins) {
-                $this->insertOtherCoins($creatorUser, $request->other_coins);
-            }
-
-            // Registrar Code UUID
-            UUIDCodes::create([
-                'code_uuid'  => $commerce->code_uuid,
-                'user'       => $newUser,
-                'user_type'  => $userTypeId,
-            ]);
-
-            DB::commit();
-
-            // ✅ Mensaje de éxito (y envío de contraseña generada)
             return redirect()->back()->with([
-                'message' => 'Registro exitoso',
+                'message' => '✅ Registro exitoso',
                 'type'    => 'success',
-                'passw'   => $newPassw
+                'passw'   => $result['password']
             ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Throwable $e) {
             Log::error('❌ Error al crear Commerce: ' . $e->getMessage());
 
-            return redirect()->back()->withErrors([
-                'error' => 'Hubo un error al procesar la solicitud.'
-            ]);
+            return back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
         }
     }
 
     /**
-     * Obtener información de una comercializadora por su ID encriptado.
+     * Actualizar información de una Comercializadora.
      *
-     * Decodifica el ID usando Hashids, obtiene los datos de la comercializadora,
-     * monedas disponibles y datos del usuario relacionado.
-     *
-     * @param string $id ID de la comercializadora codificado con Hashids
-     * @return \Illuminate\Http\JsonResponse
+     * @param CommerceUpdateRequest $request
+     * @param int                   $id
+     * @param CommerceUpdateService $service
+     * @return RedirectResponse
      */
-    public function getInfo(string $id)
+    public function update(CommerceUpdateRequest $request, int $id, CommerceUpdateService $service): RedirectResponse
     {
-        // Decodifica el ID usando Hashids
-        $decoded = Hashids::decode($id);
-
-        // Verificamos que haya un valor decodificado
-        if (empty($decoded)) {
-            return response()->json(['error' => 'ID inválido'], 404);
-        }
-
-        $idDecoded = $decoded[0];
-
-        // Obtenemos la información de la comercializadora
-        $commerce = Commerce::getById($idDecoded, ['name', 'country', 'coin', 'phone', 'code_rke']);
-
-        // Obtenemos las monedas disponibles para la comercializadora
-        $otherCoins = CommerceCountriesCoins::getAvailableCoins($idDecoded);
-
-        // Obtenemos la información del usuario asociado
-        $userId = Commerce::getValueById($idDecoded, 'user');
-        $user = User::getById($userId, ['username', 'email', 'time_zone']);
-
-        $data = ['commerce' => $commerce, 'user' => $user,  'other_coins' => $otherCoins];
-
-        return response()->json($data);
-    }
-
-    public function update(CommerceRequest $request, $id) // Editar Comercializadora
-    {
-        if ($this->user(['user_type'])->user_type != 2) {
-            return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
-        }
-
-        // Decryptar el ID y encontrar el vendedor
-        $commerce = Commerce::findOrFail(decrypt($id));
-
-        $codeRKE = $request->code_rke;
-
-        $existsCodeRKE = Commerce::where('code_rke', $codeRKE)
-            ->where('id', '<>', $commerce->id)->exists();
-
-        if ($existsCodeRKE) {
-            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
-        }
-
-        DB::beginTransaction();
-
         try {
+            $service->update($request->toDTO(), $id);
 
-            if ($commerce) {
-
-                $validator = $this->validateRequest($request, 2, $id);
-
-                if ($validator->fails()) {
-                    return redirect()->back()->withErrors($validator)->withInput();
-                }
-
-                $userID = $commerce->user;
-                $userTimeZone = User::getValueById($userID, 'time_zone');
-
-                if ($userTimeZone <> $request->time_zone) {
-                    User::where('id', $userID)->update(['time_zone' => $request->time_zone]);
-                }
-
-                // Verificar si la moneda principal ha cambiado
-                $coinChange = $commerce->coin !== $request->coin;
-
-                // Actualizar los campos del vendedor
-                $commerce->update([
-                    'name' => $request->name,
-                    'country' => $request->country,
-                    'coin' => $request->coin,
-                    'phone' => $request->phone,
-                    'code_rke' => $codeRKE
-                ]);
-
-                $phoneNumber = $request->phone;
-
-                if ($phoneNumber <> $commerce->phone) {
-                    PhoneNumbers::where('user', $commerce->user)->update([
-                        'country' => $request->country,
-                        'phone_number' => $phoneNumber
-                    ]);
-                }
-
-                if ($coinChange) {
-                    // Actualizar moneda Principal
-                    CommerceCountriesCoins::where('creator_user', $commerce->user)
-                        ->where('coin', $commerce->coin)
-                        ->update([
-                            'country' => $commerce->country,
-                            'coin' => $commerce->coin
-                        ]);
-                }
-
-                $creatorUser = [
-                    'model' => 'Commerce',
-                    'id' => $commerce->id,
-                    'userId' => $commerce->user
-                ];
-
-                $otherCoins = $request->other_coins;
-                $allowedGames = $request->allowed_games;
-
-                if ($allowedGames) {
-                    // Insertar juegos permitidos
-                    $this->handleUserGamePermission($creatorUser, $allowedGames);
-                }
-
-                if ($otherCoins) {
-                    // Insertar otras monedas
-                    $this->insertOtherCoins($creatorUser, $otherCoins);
-                }
-
-                DB::commit();
-
-                Session::flash('message', 'La información fue actualizada correctamente');
-            } else {
-                // Manejar caso donde no se encuentra el vendedor
-                Session::flash('error', 'No se encontró el vendedor');
-            }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            // Captura cualquier excepción lanzada durante el proceso de actualización
-            Session::flash('error', 'Hubo un problema al actualizar la información del vendedor: ' . $e->getMessage());
+            Session::flash('message', '✅ La información fue actualizada correctamente');
+        } catch (\Throwable $e) {
+            Log::error("❌ Error al actualizar Commerce [ID: $id]: " . $e->getMessage());
+            Session::flash('error', 'Hubo un error al actualizar el Comercio.');
         }
 
-        return redirect()->back();
-    }
-
-    public function delete($id)
-    {
-        Commerce::where('id', decrypt($id))->update(['status' => 3]);
-        Session::flash('message', 'El Comercio fue eliminado');
-        return redirect()->back();
-    }
-
-    public function changeStatus($id)
-    {
-        $id = decrypt($id);
-        $commerceStatus = (int)!Commerce::getValueById($id, 'status');
-        Commerce::where('id', $id)->update(['status' => $commerceStatus]);
-
-        Session::flash('message', 'Status actualizado');
-        return redirect()->back()->with('type', 'success');
-    }
-
-    public function changePassword($id)
-    {
-        $res = $this->handleChangePassword('Commerce', $id);
-
-        if (isset($res['PWD'])) {
-            $password = $res['PWD'];
-            Session::flash('message', "La nueva contraseña del Comercio es: <b>$password</b>");
-            Session::flash('pawss', $password);
-        } else {
-            Session::flash('msg-error', 'Ha ocurrido un error');
-        }
         return redirect()->back();
     }
 
     /**
-     * Muestra el listado y formulario de vendedores asociados al comercio del usuario autenticado.
+     * Eliminar una Comercializadora.
      *
-     * @return \Illuminate\View\View
+     * @param int                  $id
+     * @param CommerceDeleteService $service
+     * @return RedirectResponse
      */
-    public function sellers()
-    {
-        // Datos básicos para la vista
-        $title = 'Mis Vendedores';
-        $moduleId = 'seller';
-
-        // Obtener el ID del comercio del usuario autenticado
-        $commerceId = $this->commerce()->id;
-
-        // Cargar vendedores con relaciones necesarias (evitando consultas N+1)
-        $sellers = Seller::with(['Country', 'CountriesCoins.Coin'])
-            ->where('commerce', $commerceId)->get();
-
-        // Obtener países disponibles para el usuario
-        $avaliableCountries = $this->getAvailableCountries(Auth::id());
-        $countries = Country::getCountries($avaliableCountries, ['id', 'name']);
-
-        // Obtener monedas disponibles para el usuario
-        $avaliableCoins = $this->getAvailableCoins(Auth::id());
-        $coins = Coin::getCoinsById($avaliableCoins, ['id', 'symbol', 'short_name', 'long_name', 'country']);
-
-        // Zonas horarias activas
-        $timeZones = TimeZone::select('id', 'name', 'country')->where('status', 1)->get();
-
-        // Juegos disponibles
-        $games = Games::getAvailableGames();
-
-        // Retornar vista con todos los datos
-        return view(
-            'modules.seller.form.index',
-            compact('coins', 'countries', 'games', 'sellers', 'timeZones', 'title', 'moduleId')
-        );
-    }
-
-    public function getCoinByCountry($country, $seller)
-    {
-        $coin = Coin::getCoinByCountry($country);
-
-        $coinsSeller = SellerCountriesCoins::getCoinsByIdBySeller($seller);
-
-        $othersCoins = Coin::getCoinsById($coinsSeller);
-
-        return json_encode(array('coin' => $coin, 'othersCoins' => $othersCoins));
-    }
-
-    public function getSellerInfoByCtn($ctn) // Obtener informacion del Vendedor por un Carton Vendido
+    public function delete(int $id, CommerceDeleteService $service): RedirectResponse
     {
         try {
-            $ctnId = decrypt($ctn);
-            $ctn = BingoCtns::getById($ctnId, ['seller', 'coin']);
+            $service->delete($id);
 
-            $seller = Seller::getById($ctn->seller, ['name', 'phone', 'user']);
-            // Obtener detalles de pago del vendedor usando el ID del usuario autenticado y la moneda decriptada
-            $data = $this->getPaymentDetailsByUserId($seller->user, $ctn->coin);
+            Session::flash('message', '✅ Comercio eliminado correctamente');
+        } catch (\Throwable $e) {
+            Log::error("❌ Error al eliminar Commerce [ID: $id]: " . $e->getMessage());
+            Session::flash('error', 'No se pudo eliminar el Comercio.');
+        }
 
-            // Verificar si se obtuvieron datos y retornar una respuesta JSON adecuada
-            if ($data) {
-                return response()->json(['data' => $data, 'seller' => [$seller->name, $seller->phone]]);
-            } else {
-                Session::flash('msg-error', 'Datos de pago no encontrados');
-                return response()->json(['error' => 'Datos de pago no encontrados.'], 404);
-            }
-        } catch (\Exception $e) {
-            // Manejar cualquier excepción que ocurra y retornar un error del servidor
-            return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
+        return redirect()->back();
+    }
+
+    /**
+     * Cambiar el estado (activo/inactivo) de una Comercializadora.
+     *
+     * @param int                   $id
+     * @param CommerceStatusService $service
+     * @return RedirectResponse
+     */
+    public function changeStatus(int $id, CommerceStatusService $service): RedirectResponse
+    {
+        try {
+            $service->toggleStatus($id);
+
+            Session::flash('message', '✅ Estado actualizado correctamente');
+        } catch (\Throwable $e) {
+            Log::error("❌ Error al cambiar estado de Commerce [ID: $id]: " . $e->getMessage());
+            Session::flash('error', 'Hubo un error al cambiar el estado del Comercio.');
+        }
+
+        return redirect()->back();
+    }
+
+    /**
+     * Mostrar detalle de una Comercializadora.
+     *
+     * @param int              $id
+     * @param CommerceService  $service
+     * @return \Illuminate\View\View|RedirectResponse
+     */
+    public function show(int $id, CommerceService $service)
+    {
+        try {
+            $commerce = $service->getById($id);
+
+            return view('commerce.show', compact('commerce'));
+        } catch (\Throwable $e) {
+            Log::error("❌ Error al mostrar Commerce [ID: $id]: " . $e->getMessage());
+
+            return redirect()->back()->withErrors(['error' => 'No se pudo cargar la información del Comercio.']);
         }
     }
 
-    public function updateCommissionForAllSellers(Request $request)
+    /**
+     * Listar todas las Comercializadoras.
+     *
+     * @param CommerceService $service
+     * @return \Illuminate\View\View|RedirectResponse
+     */
+    public function index(CommerceService $service)
     {
-        Seller::where('commerce', $request->id_comm)->update(['com' => $request->commn]);
-    }
-
-    public function getPaymentCommerceDetails($commerce, $coin)
-    {
-        $commerceID = decrypt($commerce);
-        $coin = decrypt($coin);
-
-        $commerce = Commerce::getById($commerceID, ['name', 'user']);
-        // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda desencriptada
-        $paymentDetails = $this->getPaymentDetailsByUserId($commerce->user, $coin);
-
-        if (!$paymentDetails) {
-            return response()->json(['Error' => 'El comercio no ha cargado los datos bancarios']);
-        }
-
-        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerceID, $coin);
-        $commerce = $commerce->name;
-
-        return response()->json(compact('commerce', 'paymentDetails', 'exchangeRate'));
-    }
-
-    public function ctnsLotPayment(Request $request)
-    {
-        DB::beginTransaction();
-
         try {
-            $lot = decrypt($request->lot);
-            $lotCtn = BingoCtnsLot::where('id', $lot)->firstOrFail();
-            $lotCtn->update(['status' => 2]);
+            $commerces = $service->getAll();
 
-            DB::commit();
+            return view('commerce.index', compact('commerces'));
+        } catch (\Throwable $e) {
+            Log::error("❌ Error al listar Commerces: " . $e->getMessage());
 
-            return redirect()->back()->with('message', 'Pago confirmado con éxito');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al confirmar el pago: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Hubo un error al confirmar el pago.']);
+            return redirect()->back()->withErrors(['error' => 'No se pudo cargar la lista de Comercios.']);
         }
     }
 }

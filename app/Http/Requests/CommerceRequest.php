@@ -3,9 +3,14 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use App\Models\Commerce;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Request para la validación de datos de un Commerce.
+ *
+ * - Se usa tanto para creación como actualización.
+ * - Determina dinámicamente las reglas según la acción.
+ */
 class CommerceRequest extends FormRequest
 {
     /**
@@ -15,52 +20,41 @@ class CommerceRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Ajusta según tu lógica de permisos
+        // Ajusta la condición según la lógica de permisos de tu aplicación
         return Auth::user()?->user_type === 2;
     }
 
     /**
-     * Reglas de validación para creación o actualización.
+     * Reglas de validación dinámicas.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
-        $action = $this->route('id') ? 'update' : 'create'; // 'update' = actualización, 'create' = creación
-        $commerceId = $action === 'update' ? decrypt($this->route('id')) : null;
+        $commerceId = $this->getCommerceId();
 
         $rules = [
-            'username' => ['required', 'string', 'max:20'],
-            'email'    => ['required', 'string', 'email', 'max:40'],
-            'country'  => ['required', 'numeric', 'exists:countries,id'],
-            'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
-            'coin'     => ['required', 'numeric', 'exists:coins,id'],
-            'name'     => ['required', 'string'],
-            'phone'    => ['required', 'string', 'max:20'],
+            'coin' => ['required', 'numeric', 'exists:coins,id'],
+            'country' => ['required', 'numeric', 'exists:countries,id'],
+            'email' => ['required', 'string', 'email', 'max:40'],
+            'name' => ['required', 'string'],
             'other_coins.*' => ['exists:coins,id'],
-            'code_rke' => ['required', 'string', function ($attribute, $value, $fail) use ($commerceId) {
-                if ($commerceId) {
-                    $commerce = Commerce::find($commerceId);
-                    if (Commerce::existsValue('code_rke', $value) && $value !== $commerce->code_rke) {
-                        $fail('El código RKE ya existe.');
-                    }
-                } else {
-                    if (Commerce::existsValue('code_rke', $value)) {
-                        $fail('El código RKE ya existe.');
-                    }
-                }
-            }],
+            'phone' => ['required', 'string', 'max:20'],
+            'username' => ['required', 'string', 'max:20'],
+            'time_zone.*' => ['numeric', 'exists:time_zones,id'],
         ];
 
-        // Ajuste de reglas únicas para username, email y phone
-        if ($action === 'update' && $commerceId) {
+        // Reglas de unicidad dinámicas para actualización vs creación
+        if ($this->isUpdate() && $commerceId) {
+            $rules['code_rke'][] = 'unique:commerces,code_rke,' . $commerceId;
+            $rules['email'][] = 'unique:users,email,' . $commerceId;
+            $rules['phone'][] = 'unique:commerces,phone,' . $commerceId;
             $rules['username'][] = 'unique:users,username,' . $commerceId;
-            $rules['email'][]    = 'unique:users,email,' . $commerceId;
-            $rules['phone'][]    = 'unique:commerces,phone,' . $commerceId;
         } else {
+            $rules['code_rke'][] = 'unique:users,email';
+            $rules['email'][] = 'unique:users,email';
+            $rules['phone'][] = 'unique:commerces,phone';
             $rules['username'][] = 'unique:users,username';
-            $rules['email'][]    = 'unique:users,email';
-            $rules['phone'][]    = 'unique:commerces,phone';
         }
 
         return $rules;
@@ -69,25 +63,49 @@ class CommerceRequest extends FormRequest
     /**
      * Mensajes de error personalizados.
      *
-     * @return array
+     * @return array<string, string>
      */
     public function messages(): array
     {
         return [
-            'username.unique' => 'Nombre de usuario no disponible.',
-            'email.unique'    => 'Este correo ya está registrado.',
-            'phone.unique'    => 'Este celular (' . $this->phone . ') ya está registrado.',
+            'email.unique' => 'Este correo ya está registrado.',
             'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
+            'phone.unique' => 'El número ' . $this->phone . ' ya está registrado.',
+            'username.unique' => 'El nombre de usuario no está disponible.',
+            'time_zone.*.exists' => 'Uno o más de las otras zonas horarias seleccionados no existen en la base de datos.',
         ];
     }
 
     /**
-     * Devuelve solo los datos validados para crear o actualizar el commerce.
+     * Convierte los datos validados en un DTO (Data Transfer Object).
      *
-     * @return array
+     * Esto permite que el Service reciba un objeto estructurado
+     * en lugar de arrays sin tipar.
+     *
+     * @return \App\DTOs\CommerceDTO
      */
-    public function validatedData(): array
+    public function toDTO()
     {
-        return $this->validated();
+        return new \App\DTOs\CommerceDTO($this->validated());
+    }
+
+    /**
+     * Determina si la acción actual es una actualización.
+     *
+     * @return bool
+     */
+    private function isUpdate(): bool
+    {
+        return $this->route('id') !== null;
+    }
+
+    /**
+     * Obtiene el ID del comercio si la acción es "update".
+     *
+     * @return int|null
+     */
+    private function getCommerceId(): ?int
+    {
+        return $this->isUpdate() ? decrypt($this->route('id')) : null;
     }
 }
