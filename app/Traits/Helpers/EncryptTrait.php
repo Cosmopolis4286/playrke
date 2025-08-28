@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits\Encrypt;
+namespace App\Traits\Helpers;
 
 use Illuminate\Support\Str;
 

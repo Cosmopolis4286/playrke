@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Jobs;
+namespace App\Jobs\Games\Bingo;
 
 use App\Events\DrawNumberEvent;
 use App\Models\BingoDraws;
