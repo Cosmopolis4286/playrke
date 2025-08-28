@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo;
+namespace App\Services\Games\Room;
 
 class RoomTypeService
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Helpers;
+namespace App\Services\Commands;
 
 use App\Models\CommandLog;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Helpers;
+namespace App\Services;
 
 class RouteService
 {

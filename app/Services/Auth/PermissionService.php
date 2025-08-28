@@ -66,7 +66,7 @@ class PermissionService
             return false;
         }
 
-        $userPrefix = UserTypeRepository::getColumnById($user->user_type, 'prefix');
+        $userPrefix = UserTypeRepository::getValueById($user->user_type, 'prefix');
 
         return is_array($prefixes)
             ? in_array($userPrefix, $prefixes, true)

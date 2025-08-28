@@ -49,18 +49,18 @@ use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-
+use App\Repositories\User\UserRepository;
 // Services
 use App\Services\Games\Bingo\AutoGenerateBingoRooms;
 use App\Services\Games\Bingo\HandleBingoRooms;
-use App\Services\Games\Bingo\RoomTypeService;
-use App\Services\Helpers\RouteService;
+use App\Services\Games\Room\RoomTypeService;
+use App\Services\RouteService;
 use App\Services\Users\Customer\HandleTransactions;
 
 // Traits
 use App\Traits\Games\BingoTrait;
 use App\Traits\Games\GameTrait;
-use App\Traits\Helpers\EncryptTrait;
+use App\Traits\Encrypt\EncryptTrait;
 use App\Traits\Helpers\FiltersTrait;
 use App\Traits\Users\CustomerTrait;
 use App\Traits\Users\UserValTrait;
@@ -3889,11 +3889,11 @@ class BingoController extends Controller
             return redirect()->back();
         }
 
-        $timeZoneID = User::getValueById($creatorUser, 'time_zone');
-        $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
+        // $timeZoneID = UserRepository::getValueById($creatorUser, 'time_zone');
+        // $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $data = [
-            'timeZone' => $timeZone,
+            // 'timeZone' => $timeZone,
             'numbers' => [12, 23, 34, 45, 56],
         ];
 

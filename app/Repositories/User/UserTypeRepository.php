@@ -19,7 +19,7 @@ class UserTypeRepository
      * @param string $column Nombre de la columna a retornar
      * @return mixed
      */
-    public static function getColumnById(int $id, string $column): mixed
+    public static function getValueById(int $id, string $column): mixed
     {
         return UserType::where('id', $id)->value($column);
     }

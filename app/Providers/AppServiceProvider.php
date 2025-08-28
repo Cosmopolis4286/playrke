@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use App\Models\UserType;
-use App\Services\Games\Bingo\RoomTypeService;
-use App\Services\Helpers\RouteService;
+use App\Services\Games\Room\RoomTypeService;
+use App\Services\RouteService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
