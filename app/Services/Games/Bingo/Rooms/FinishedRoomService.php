@@ -4,14 +4,15 @@ namespace App\Services\Games\Bingo\Rooms;
 
 use App\Models\{BingoRoom, BingoPrizeCtns, User};
 use App\Services\Games\Bingo\Rounds\RoundsService;
-use App\Services\Games\Bingo\Cartons\PrizeCartonService;
+use App\Services\Games\Bingo\Cartons\Customer\CustomerCartonService;
 use Illuminate\Support\Facades\Log;
 use App\Enums\Games\Bingo\RoundStatus;
+use App\Enums\Games\GameStatus;
 
 class FinishedRoomService
 {
     private RoundsService $roundsService;
-    private PrizeCartonService $prizeCartonService;
+    private CustomerCartonService $customerCartonService;
     private WinnerService $winnerService;
 
     /**
@@ -19,11 +20,11 @@ class FinishedRoomService
      */
     public function __construct(
         RoundsService $roundsService,
-        PrizeCartonService $prizeCartonService,
+        CustomerCartonService $customerCartonService,
         WinnerService $winnerService
     ) {
         $this->roundsService = $roundsService;
-        $this->prizeCartonService = $prizeCartonService;
+        $this->customerCartonService = $customerCartonService;
         $this->winnerService = $winnerService;
     }
 
@@ -78,7 +79,7 @@ class FinishedRoomService
 
         match ($creator['type']) {
             'commerce' => BingoPrizeCtns::where('room', $room->id)->update(['active' => 'Y']),
-            'customer' => $this->prizeCartonService->handleCustomerPrizeCarton($room->creator_user),
+            'customer' => $this->customerCartonService->handleCustomerPrizeCarton($room->creator_user),
             default    => Log::warning("Tipo de creador desconocido en sala [ID => {$room->id}]"),
         };
     }
@@ -96,7 +97,7 @@ class FinishedRoomService
 
         if ($dataTime2Week <= time()) {
             BingoRoom::where('id', $room->id)->update([
-                'status' => RoundStatus::CLOSED->value, // ✅ guardamos valor string del enum
+                'status' => GameStatus::FINISHED->value, // ✅ guardamos valor string del enum
             ]);
         }
     }

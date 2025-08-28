@@ -3,8 +3,8 @@
 namespace App\Services\Games\Bingo\Rounds;
 
 use App\Models\{BingoRounds, BingoRoundsDrafts};
-use Illuminate\Support\Facades\Log;
 use App\Enums\Games\Bingo\RoundStatus;
+use Illuminate\Support\Facades\Log;
 
 class RoundsService
 {
