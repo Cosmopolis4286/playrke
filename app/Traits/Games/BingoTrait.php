@@ -174,7 +174,7 @@ trait BingoTrait
             try {
                 BingoDraws::insert($allDraws);
                 BingoRounds::insert($allRounds);
-                $bingoRoundDraft->update(['status' => 'COMPLETED']);
+                $bingoRoundDraft->update(['status' => 'FINISHED']);
                 DB::commit();
             } catch (\Throwable $e) {
                 DB::rollBack();

@@ -4,6 +4,7 @@ namespace App\Services\Games\Bingo\Rounds;
 
 use App\Models\{BingoRounds, BingoRoundsDrafts};
 use Illuminate\Support\Facades\Log;
+use App\Enums\Games\Bingo\RoundStatus;
 
 class RoundsService
 {
@@ -29,25 +30,27 @@ class RoundsService
             'prize_types'  => $draft->prize_types,
             'play_types'   => $draft->play_types,
             'prize_values' => $draft->prize_values,
-            'status'       => 'ACTIVE'
+            'status'       => RoundStatus::ACTIVE->value, // ✅ Guardamos el valor del enum
         ]);
 
-        $draft->update(['status' => 'COMPLETED']);
+        $draft->update(['status' => RoundStatus::FINISHED->value]); // ✅ Enum en draft
     }
 
     /**
      * Determina y actualiza el estado de las rondas de una sala.
      *
-     * @param int $roomId   ID de la sala.
-     * @param int $status   Estado a asignar.
+     * @param int $roomId        ID de la sala.
+     * @param RoundStatus $status Estado a asignar (enum).
      * @return void
      */
-    public function determineRoundsStatus(int $roomId, int $status): void
+    public function determineRoundsStatus(int $roomId, RoundStatus $status): void
     {
         try {
-            BingoRounds::where('room', $roomId)->update(['status' => $status]);
+            BingoRounds::where('room', $roomId)->update([
+                'status' => $status->value, // ✅ Usamos el valor del enum (string)
+            ]);
 
-            Log::info("Estado de rondas actualizado para sala [ID => {$roomId}] a [{$status}].");
+            Log::info("Estado de rondas actualizado para sala [ID => {$roomId}] a [{$status->value}].");
         } catch (\Throwable $e) {
             Log::error("Error al actualizar estado de rondas para sala [ID => {$roomId}]: " . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),

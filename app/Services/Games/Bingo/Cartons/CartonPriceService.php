@@ -30,6 +30,6 @@ class CartonPriceService
             );
         }
 
-        $draft->update(['status' => 'COMPLETED']);
+        $draft->update(['status' => 'FINISHED']);
     }
 }

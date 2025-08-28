@@ -20,7 +20,7 @@ return new class extends Migration
             $table->enum('prize_type', ['PCT', 'USD', 'OTHER']);
             $table->foreignId('play_type')->constrained('bingo_patterns');
             $table->double('prize_value')->nullable();
-            $table->enum('status', ['ACTIVE', 'IN PROGRESS', 'COMPLETED'])->default('ACTIVE');
+            $table->enum('status', ['ACTIVE', 'IN PROGRESS', 'FINISHED'])->default('ACTIVE');
             $table->timestamps();
         });
     }

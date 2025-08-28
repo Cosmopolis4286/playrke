@@ -35,7 +35,7 @@ class FinishedRoomService
     public function processFinishedRoom(BingoRoom $room): void
     {
         try {
-            // ✅ Determinar estado de rondas como FINALIZADO
+            // ✅ Determinar estado de rondas como FINALIZADO (usando enum)
             $this->roundsService->determineRoundsStatus($room->id, RoundStatus::FINISHED);
 
             // ✅ Procesar ganadores
@@ -55,6 +55,8 @@ class FinishedRoomService
 
     /**
      * Procesa ganadores de una sala.
+     *
+     * @param int $roomId
      */
     private function processWinners(int $roomId): void
     {
@@ -67,6 +69,8 @@ class FinishedRoomService
 
     /**
      * Procesa los premios según el tipo de creador.
+     *
+     * @param BingoRoom $room
      */
     private function processCreator(BingoRoom $room): void
     {
@@ -75,11 +79,14 @@ class FinishedRoomService
         match ($creator['type']) {
             'commerce' => BingoPrizeCtns::where('room', $room->id)->update(['active' => 'Y']),
             'customer' => $this->prizeCartonService->handleCustomerPrizeCarton($room->creator_user),
+            default    => Log::warning("Tipo de creador desconocido en sala [ID => {$room->id}]"),
         };
     }
 
     /**
      * Oculta la sala si ya pasaron 2 semanas desde su fecha.
+     *
+     * @param BingoRoom $room
      */
     private function checkAndHideRoom(BingoRoom $room): void
     {
@@ -88,7 +95,9 @@ class FinishedRoomService
         $dataTime2Week = strtotime("{$room->Config->date} {$room->Config->time}") + (2 * 7 * 24 * 60 * 60);
 
         if ($dataTime2Week <= time()) {
-            BingoRoom::where('id', $room->id)->update(['status' => RoundStatus::CLOSED->value]);
+            BingoRoom::where('id', $room->id)->update([
+                'status' => RoundStatus::CLOSED->value, // ✅ guardamos valor string del enum
+            ]);
         }
     }
 }

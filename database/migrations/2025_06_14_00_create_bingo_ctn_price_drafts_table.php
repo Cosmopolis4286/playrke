@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('creator_user')->constrained('users');
             $table->json('coins');
             $table->json('ctn_prices');
-            $table->enum('status', ['ACTIVE', 'COMPLETED'])->default('ACTIVE');
+            $table->enum('status', ['ACTIVE', 'FINISHED'])->default('ACTIVE');
             $table->timestamps();
         });
     }

@@ -11,11 +11,12 @@ return new class extends Migration
      *
      * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('game_status', function (Blueprint $table) {
             $table->id();
-            $table->string('description', 20);
+            $table->string('value', 30)->unique();       // Código único del estado (ej: ACTIVE, FINISHED)
+            $table->string('description', 100);          // Descripción legible del estado
             $table->timestamps();
         });
     }
@@ -25,7 +26,7 @@ return new class extends Migration
      *
      * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('game_status');
     }
