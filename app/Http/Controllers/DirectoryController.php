@@ -11,7 +11,7 @@ use App\Models\DocumentType;
 use App\Models\PagoMovil;
 use App\Models\PaymentMethodsCOL;
 use App\Models\Pix;
-use App\Models\UserType;
+use App\Repositories\User\UserTypeRepository;
 use App\Traits\Users\UserValTrait;
 
 class DirectoryController extends Controller
@@ -22,7 +22,7 @@ class DirectoryController extends Controller
     {
         $user = $this->user(['id', 'user_type']);
         $userID = $user->id;
-        $userType = UserType::getValueById($user->user_type, 'prefix');
+        $userType = UserTypeRepository::getValueById($user->user_type, 'prefix');
 
         if ($userType === 'customer') {
             return redirect()->back();

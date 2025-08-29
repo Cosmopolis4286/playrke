@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 // Models
 use App\Models\UserType;
 use App\Models\Wallet;
-
+use App\Repositories\User\UserTypeRepository;
 // Traits
 use App\Traits\Users\UserValTrait;
 
@@ -29,7 +29,7 @@ class HomeController extends Controller
             'balance' => $this->getBalance(),
         ];
 
-        $userType = UserType::getValueById($user->user_type, 'prefix');
+        $userType = UserTypeRepository::getValueById($user->user_type, 'prefix');
 
         // Configuración de datos adicionales para cada tipo de usuario
         $extraData = [

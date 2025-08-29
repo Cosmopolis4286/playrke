@@ -37,7 +37,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $country = Auth::user()->country;
-        $userType = UserType::getValueById(Auth::user()->user_type, 'prefix');
+        $userType = UserTypeRepository::getValueById(Auth::user()->user_type, 'prefix');
 
         $isoCode = Country::getValue($country, 'iso_code_2');
         $coin = encrypt(Coin::getValueByCountry($country, 'id'));

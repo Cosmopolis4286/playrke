@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 // Models
 use App\Models\Customer;
 use App\Models\UserType;
+use App\Repositories\User\UserTypeRepository;
 // Traits
 use App\Traits\Users\CustomerTrait;
 use App\Traits\Users\UserValTrait;
@@ -17,7 +18,7 @@ class IframeController extends Controller
     {
         $user = $this->user(['id', 'user_type']);
 
-        if (UserType::getValueById($user->user_type, 'prefix') !== 'customer') {
+        if (UserTypeRepository::getValueById($user->user_type, 'prefix') !== 'customer') {
             return redirect()->back();
         }
 
@@ -54,7 +55,7 @@ class IframeController extends Controller
     {
         $user = $this->user(['id', 'user_type']);
 
-        if (UserType::getValueById($user->user_type, 'prefix') !== 'customer') {
+        if (UserTypeRepository::getValueById($user->user_type, 'prefix') !== 'customer') {
             return redirect()->back();
         }
 

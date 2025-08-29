@@ -27,7 +27,7 @@ trait GameTrait
                 $gameMode = BingoRoomConfig::getValueByRoom($room, 'game_mode');
                 $gameCreator = BingoCreator::getByRoom($room, ['creator_type', 'creator_id']);
 
-                $creatortType = UserType::getValueById($gameCreator->creator_type, 'prefix');
+                $creatortType = UserTypeRepository::getValueById($gameCreator->creator_type, 'prefix');
                 $creatorID = $gameCreator->creator_id;
             }
 

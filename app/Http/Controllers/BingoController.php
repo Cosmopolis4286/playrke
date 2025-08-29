@@ -49,7 +49,7 @@ use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-use App\Repositories\User\UserRepository;
+use App\Repositories\User\UserTypeRepository;
 // Services
 use App\Services\Games\Bingo\AutoGenerateBingoRooms;
 use App\Services\Games\Bingo\HandleBingoRooms;
@@ -884,7 +884,7 @@ class BingoController extends Controller
         $creatorUser = $code->user;
 
         $creator = [
-            'type' => UserType::getValueById($code->user_type, 'prefix'),
+            'type' => UserTypeRepository::getValueById($code->user_type, 'prefix'),
             'id' => User::getCreatorUser($creatorUser),
             'userId' => $creatorUser
         ];
@@ -1791,7 +1791,7 @@ class BingoController extends Controller
         } else {
             $user = Auth::id();
             $userTypeID = User::getValueById($user, 'user_type');
-            $userType = UserType::getValueById($userTypeID, 'prefix');
+            $userType = UserTypeRepository::getValueById($userTypeID, 'prefix');
         }
 
         if (!in_array($userType, ['admin', 'commerce', 'customer'])) {
@@ -2051,7 +2051,7 @@ class BingoController extends Controller
         $creatorUserID = BingoRoom::getValueById($roomId, 'creator_user');
         $userType = User::getValueById($creatorUserID, 'user_type');
 
-        $creatorType = UserType::getValueById($userType, 'prefix');
+        $creatorType = UserTypeRepository::getValueById($userType, 'prefix');
 
         if ($creatorType === 'commerce') {
             $bingoCreator = BingoCreator::existsByRoomCreatorUser($roomId, $creatorUserID);
@@ -2194,7 +2194,7 @@ class BingoController extends Controller
         } else {
             $user = Auth::id();
             $userTypeID = User::getValueById($user, 'user_type');
-            $userType = UserType::getValueById($userTypeID, 'prefix');
+            $userType = UserTypeRepository::getValueById($userTypeID, 'prefix');
         }
 
         if (!in_array($userType, ['admin', 'commerce', 'customer'])) {

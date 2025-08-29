@@ -1326,7 +1326,7 @@ trait BingoTrait
         }
 
         // Validar transacciones si es customer
-        $userType = UserType::getValueById(User::getValueById($room->creator_user, 'user_type'), 'prefix');
+        $userType = UserTypeRepository::getValueById(User::getValueById($room->creator_user, 'user_type'), 'prefix');
 
         if ($userType === 'customer') {
             $customerId = Customer::getValueByUserId($room->creator_user, 'id');
