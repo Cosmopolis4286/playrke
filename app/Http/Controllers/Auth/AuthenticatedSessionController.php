@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\Coin;
-use App\Models\Country;
-use App\Models\Settings;
-use App\Models\UserType;
+use App\Models\{Coin, Country, Settings};
+use App\Repositories\User\UserTypeRepository;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

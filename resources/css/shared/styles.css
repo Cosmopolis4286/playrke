@@ -12446,7 +12446,12 @@ a.text-dark:focus {
   align-items: center
 }
 
-.foo_gradnt {
+.footer-app {
   /*Color Footer*/
   background-image: linear-gradient(180deg, #060324 0, #030023 50%, #000022 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  padding-bottom: 0.25%;
 }

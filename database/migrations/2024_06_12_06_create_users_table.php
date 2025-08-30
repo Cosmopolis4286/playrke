@@ -11,8 +11,9 @@ return new class extends Migration
      *
      * @return void
      */
-    public function up()
+    public function up(): void
     {
+        // Tabla principal de usuarios
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('username', 20)->unique();
@@ -32,13 +33,11 @@ return new class extends Migration
             $table->boolean('status')->default(1);
             $table->timestamps();
 
+            // Claves foráneas
             $table->foreign('user_type')->references('id')->on('user_type');
-            // Clave foránea para country
             $table->foreign('country')->references('id')->on('countries')->onDelete('cascade');
-            // Clave foránea para time_zone
             $table->foreign('time_zone')->references('id')->on('time_zones')->onDelete('restrict')->onUpdate('cascade');
-            // Clave foránea para referred_by
-            $table->foreign('referred_by')->references('id')->on('users')->onDelete('set null'); // Establecer en NULL si el usuario referido se elimina
+            $table->foreign('referred_by')->references('id')->on('users')->onDelete('set null');
         });
     }
 
@@ -47,8 +46,9 @@ return new class extends Migration
      *
      * @return void
      */
-    public function down()
+    public function down(): void
     {
+        // Eliminamos tabla users con sus claves foráneas
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['country']);
             $table->dropForeign(['time_zone']);

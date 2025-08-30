@@ -90,14 +90,10 @@
                 </li>
 
                 <li class="nav-item has-treeview">
-                    <a href="#" class="nav-link logout-btn">
+                    <a href="/logout" class="nav-link logout-btn">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
                         <p>Cerrar sesión</p>
                     </a>
-                </li>
-
-                <li class="mt-2 nav-item text-center">
-                    <div title="Versión 1.3.7" style="font-size:12.3px;"><b>V 1.3.7</b></div>
                 </li>
             </ul>
         </nav>

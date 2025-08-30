@@ -5,12 +5,13 @@ namespace App\Models;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 /**
  * Modelo User
  *
  * Representa a un usuario dentro del sistema, con soporte para relaciones
- * hacia otros modelos como Commerce, Seller, UserType, etc.
+ * hacia otros modelos como Commerce, Seller, UserType, etc., y empresas (multiempresa).
  *
  * @property int         $id
  * @property string      $username
@@ -34,10 +35,11 @@ use Illuminate\Notifications\Notifiable;
  * @property-read \App\Models\Country|null  $countryRelation
  * @property-read \App\Models\Commerce|null $commerce
  * @property-read \App\Models\Seller|null   $seller
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Company[] $companies
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable;
+    use Notifiable, HasRoles;
 
     protected $table = "users";
     protected $primaryKey = 'id';
@@ -135,6 +137,19 @@ class User extends Authenticatable implements MustVerifyEmail
     public function seller()
     {
         return $this->belongsTo(Seller::class, 'id', 'user');
+    }
+
+    /**
+     * Relación con las empresas a las que pertenece el usuario.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function companies()
+    {
+        // Con pivot role_id para indicar el rol del usuario dentro de la empresa
+        return $this->belongsToMany(Company::class)
+            ->withPivot('role_id') // opcional: rol específico por empresa
+            ->withTimestamps();
     }
 
     /* ========================
