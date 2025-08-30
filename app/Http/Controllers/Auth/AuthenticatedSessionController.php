@@ -7,21 +7,24 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\{Coin, Country, Settings};
 use App\Repositories\User\UserTypeRepository;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+
+use Inertia\Inertia;
+use Inertia\Response;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(): Response
     {
         $register = Settings::getStatus('REGISTER');
 
-        return view('auth.login', compact('register'));
+        return Inertia::render('Auth/Login', [
+            'register' => $register,
+        ]);
     }
 
     /**

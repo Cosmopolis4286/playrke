@@ -3,13 +3,11 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BinanceController;
 use App\Http\Controllers\BingoController;
-use App\Http\Controllers\Commerce\CommerceController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\GameController;
-use App\Http\Controllers\HomeController;
 use App\Http\Controllers\IframeController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\OtherTreasurersController;
@@ -24,36 +22,49 @@ use App\Http\Controllers\RewardsController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\TreasurerController;
 use App\Http\Controllers\WalletController;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Route;
-use App\Models\Settings;
+
+/*
+|--------------------------------------------------------------------------
+| Rutas de Autenticación
+|--------------------------------------------------------------------------
+| Breeze/Jetstream trae auth.php con todas las rutas de login, registro,
+| recuperación de contraseña, verificación de email, etc.
+*/
 
 require __DIR__ . '/auth.php';
 
-// Ruta raíz - Página de login con estado de registro
-Route::get('/', function () {
-    $register = Settings::getStatus('REGISTER');
-    return view('auth.login', compact('register'));
-});
+/*
+|--------------------------------------------------------------------------
+| Rutas Públicas
+|--------------------------------------------------------------------------
+*/
+require __DIR__ . '/modules/public.php';
 
-// Rutas públicas para páginas de información estática
-Route::get('get/info/{page}', function ($page) {
-    if (in_array($page, ['terms', 'about', 'privacy'])) {
-        return view("includes.info.$page");
-    }
-    abort(404);
-})->name('info');
+/*
+|--------------------------------------------------------------------------
+| Rutas Dashboard (requieren login)
+|--------------------------------------------------------------------------
+*/
+require __DIR__ . '/modules/dashboard.php';
 
-// Ruta para obtener la cookie 'referral'
-Route::get('cookie', function () {
-    return Cookie::get('referral');
-})->middleware('auth');
+/*
+|--------------------------------------------------------------------------
+| Rutas Comercio - Administración y Gestión
+|--------------------------------------------------------------------------
+*/
+require __DIR__ . '/modules/commerce.php';
 
-// Dashboard con verificación adicional
-Route::get('dashboard', [HomeController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+/*
+|--------------------------------------------------------------------------
+| Rutas Bingo (GAME) - Administración y Gestión
+|--------------------------------------------------------------------------
+*/
+// require __DIR__ . '/modules/bingo.php';
 
-// Obtención hora servidor con zona horaria opcional
-Route::get('get/RKETIMESERV/{timeZone?}', [InformationController::class, 'getTimeServer'])->name('info.getTimeServer')->middleware('auth');
+/////////////////////////////////////////////////////////////////////////
+
+
 
 // Perfil del usuario
 Route::group(['middleware' => 'auth', 'prefix' => 'profile', 'as' => 'profile.'], function () {
@@ -160,41 +171,6 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
     Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
     Route::get('historical/{coin?}/{creatorType}/{creatorID}', [ExchangeRateController::class, 'historical'])->name('historical');
     Route::get('{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
-});
-
-// RUTAS ADMINISTRACIÓN DE COMERCIO 
-Route::group(['middleware' => 'admin', 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
-    Route::post('create', [CommerceController::class, 'create'])->name('create');
-    Route::get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
-    Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
-    Route::delete('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
-    Route::put('changePassw/{id}', [CommerceController::class, 'changePassword'])->name('changePassw');
-    Route::put('changeStatus/{id}', [CommerceController::class, 'changeStatus'])->name('changeStatus');
-});
-
-// Comercio / Comercializadora / Banca
-Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'commerce', 'as' => 'commerce.'], function () {
-    /*=============================================
-    =          RUTAS ADMINISTRACIÓN DE COMERCIO    =
-    =============================================*/
-    Route::middleware('admin')->post('create', [CommerceController::class, 'create'])->name('create');
-    Route::middleware('admin')->get('getInfo/{id}', [CommerceController::class, 'getInfo'])->name('getInfo');
-    Route::put('update/{id}', [CommerceController::class, 'update'])->name('update');
-    Route::delete('delete/{id}', [CommerceController::class, 'delete'])->name('delete');
-    Route::put('changePassw/{id}', [CommerceController::class, 'changePassword'])->name('changePassw');
-    Route::put('changeStatus/{id}', [CommerceController::class, 'changeStatus'])->name('changeStatus');
-    /*=============================================*/
-    // Detalles de pago para comercio (sin middleware de auth y commerce)
-    Route::get('getPaymentCommerceDetails/{commerce}/{coin}', [CommerceController::class, 'getPaymentCommerceDetails'])
-        ->withoutMiddleware(['auth', 'commerce'])->name('getPaymentCommerceDetails');
-    // Listados
-    Route::get('rewards', [CommerceController::class, 'rewards'])->name('rewards');
-    Route::get('sellers', [CommerceController::class, 'sellers'])->name('sellers');
-    // Información específica
-    Route::get('seller/getCoinByCountry/{country}/{seller}', [CommerceController::class, 'getCoinByCountry'])->name('getCoinByCountry');
-    Route::get('seller/getSellerInfoByCtn/{ctnId}', [CommerceController::class, 'getSellerInfoByCtn'])->name('getSellerInfoByCtn');
-    // Pago lote de cartones bingo
-    Route::put('bingo/carton-lot/payment', [CommerceController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
 });
 
 // Opciones para Seller - admin y comercio
