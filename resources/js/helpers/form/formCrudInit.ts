@@ -4,7 +4,7 @@ import { ajaxStart } from '@/utils/loader';
 import { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
 import type { OtherCase } from '@/helpers/module/types/moduleFormTypes';
 import { formCrudExports } from './formCrudLoadModule';
-import { onTableSelectionUpdate, getSelectedIds } from '@/alpine/tableSelectionListener';
+import { onTableSelectionUpdate } from '@/alpine/tableSelectionListener';
 
 // ID encriptado
 let encryptId = '';

@@ -1,10 +1,10 @@
-// js/bingo/utils/bingoViewLoader.ts
+// js/modules/games/bingo/utils/bingoViewLoader.ts
 import mountApp from '@/helpers/vueMain.js';
 
 const views = {
-    Form: () => import('@/bingo/views/form/Form.vue'),
-    GameInfo: () => import('@/bingo/views/game-info/GameInfo.vue'),
-    Summary: () => import('@/bingo/views/summary/Summary.vue'),
+    Form: () => import('@/components/games/bingo/views/Form/Form.vue'),
+    GameInfo: () => import('@/components/games/bingo/views/GameInfo/GameInfo.vue'),
+    Summary: () => import('@/components/games/bingo/views/Summary/Summary.vue'),
 };
 
 // Obtener vista desde window (fallback: 'GameInfo')

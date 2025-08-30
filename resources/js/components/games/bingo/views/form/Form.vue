@@ -1,13 +1,9 @@
 <template>
-  <BingoForm
-    :timeZone="timeZone"
-    :automaticRoom="automaticRoom"
-    :creator="creator"
-  />
+  <BingoForm :timeZone="timeZone" :automaticRoom="automaticRoom" :creator="creator" />
 </template>
 
 <script setup>
-import BingoForm from "../components/form/BingoForm.vue";
+import BingoForm from "@/bingo/views/form/BingoForm.vue";
 </script>
 
 <style scoped>

@@ -52,7 +52,8 @@ use App\Models\Wallet;
 use App\Repositories\User\UserTypeRepository;
 // Services
 use App\Services\Games\Bingo\AutoGenerateBingoRooms;
-use App\Services\Games\Bingo\HandleBingoRooms;
+use App\Services\Games\Bingo\AutoGenerateBingoRoomsService;
+use App\Services\Games\Bingo\HandleBingoRoomsService;
 use App\Services\Games\Room\RoomTypeService;
 use App\Services\RouteService;
 use App\Services\Users\Customer\HandleTransactions;
@@ -130,7 +131,7 @@ class BingoController extends Controller
         }
 
         // Verificar Cierre de Salas
-        app(HandleBingoRooms::class)->checkRoomClosure();
+        app(HandleBingoRoomsService::class)->checkRoomClosure();
 
         $creatorUser = $creator['userId'];
 
@@ -721,7 +722,7 @@ class BingoController extends Controller
         }
 
         // Verificar Cierre de Sala
-        (new HandleBingoRooms())->checkRoomClosure($roomId);
+        (new HandleBingoRoomsService())->checkRoomClosure($roomId);
 
         $room = BingoRoom::with('Config:room,date,time,unix_date,prize_pool_type,rounds')
             ->select('id', 'status', 'encrypted')->where('id', $roomId)->first();
@@ -1043,7 +1044,7 @@ class BingoController extends Controller
 
     private function getGameRoomsInfo($creator, $coin, $roomType)
     {
-        //app(HandleBingoRooms::class)->checkRoomClosure();
+        //app(HandleBingoRoomsService::class)->checkRoomClosure();
 
         $view = $roomType === 'private-rooms' ? 'private' : 'public';
 
@@ -2530,7 +2531,7 @@ class BingoController extends Controller
     public function getAutomaticRoomsInfo($creator)
     {
         //  Lista (CRUD) de configuracion de Salas Automaticas
-        app(HandleBingoRooms::class)->checkRoomClosure();
+        app(HandleBingoRoomsService::class)->checkRoomClosure();
 
         $creatorType = $creator['type'];
         $creatorID = decrypt($creator['id']);
@@ -2660,7 +2661,7 @@ class BingoController extends Controller
 
     private function getOtherPublicRoomsInfo($coin)
     {
-        app(HandleBingoRooms::class)->checkRoomClosure();
+        app(HandleBingoRoomsService::class)->checkRoomClosure();
 
         $userData = $this->getUserData();
 
@@ -2967,7 +2968,7 @@ class BingoController extends Controller
 
         $creator = ['type' => $creatorType, 'id' => $creatorID];
 
-        $service = new AutoGenerateBingoRooms();
+        $service = new AutoGenerateBingoRoomsService();
         $response = $service->createBingoRooms($creator);
 
         if ($response) {
@@ -3470,7 +3471,7 @@ class BingoController extends Controller
             ]
         ];
 
-        app(HandleBingoRooms::class)->checkRoomClosure();
+        app(HandleBingoRoomsService::class)->checkRoomClosure();
 
         $title = 'Ganadores';
         $moduleId = 'bingo-winners';
@@ -3612,7 +3613,7 @@ class BingoController extends Controller
             ]
         ];
 
-        app(HandleBingoRooms::class)->checkRoomClosure();
+        app(HandleBingoRoomsService::class)->checkRoomClosure();
 
         $title = 'Reporte de Sala';
         $moduleId = 'bingo-winners';
