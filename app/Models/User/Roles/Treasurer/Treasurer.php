@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Treasurer;
 
+use App\Models\Countries\Country;
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 
 class Treasurer extends Model

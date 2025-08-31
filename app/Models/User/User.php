@@ -1,7 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User;
 
+use App\Models\Countries\Country;
+use App\Models\User\Roles\Commerce\Commerce;
+use App\Models\User\Roles\Company\Company;
+use App\Models\User\Roles\Role;
+use App\Models\User\Roles\Seller\Seller;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -150,7 +155,7 @@ class User extends Authenticatable implements MustVerifyEmail
         $entities = [];
         foreach ($this->roles as $role) {
             $entities[$role->prefix] = match ($role->prefix) {
-                'commerce' => $this->commerce,
+                'commerce_id' => $this->commerce,
                 'seller'   => $this->seller,
                 default    => null,
             };

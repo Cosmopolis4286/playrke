@@ -35,7 +35,7 @@ trait GameTrait
             $coinsInGameRoom = CoinGameRoom::getCoinsByRoom('BINGO', $room, $gameMode);
 
             // Obtener ExchangeRates (Tasas de Cambio)
-            if ($creatortType === 'commerce') {
+            if ($creatortType === 'commerce_id') {
                 $exchangeRates = CommerceExchangeRate::getAllExchangeRates($creatorID);
             } else if ($creatortType === 'customer') {
                 $exchangeRates = CustomerExchangeRate::getAllExchangeRates($creatorID);
@@ -107,11 +107,11 @@ trait GameTrait
         $creatorType = $data['creator']['type'];
 
         // Definir la tasa de cambio de acuerdo al $creator['type'] 
-        if (in_array($creatorType, ['RKE', 'commerce'])) {
+        if (in_array($creatorType, ['RKE', 'commerce_id'])) {
             $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $coin);
 
             if ($room->room_type === 'PB') { // Sala pública
-                $creatorExchangeRate = CommerceExchangeRate::whereIn('commerce', function ($query) use ($roomId) {
+                $creatorExchangeRate = CommerceExchangeRate::whereIn('commerce_id', function ($query) use ($roomId) {
                     $query->select('creator_id')->from('bingo_creator')
                         ->where('creator_type', 3)->where('room', $roomId);
                 })->where('status', 1)->where('coin', $coin)->avg('exchange_rate');

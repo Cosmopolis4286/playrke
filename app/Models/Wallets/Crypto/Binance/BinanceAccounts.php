@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Wallets\Crypto\Binance;
 
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 
 class BinanceAccounts extends Model

@@ -20,7 +20,7 @@ class RoleSeeder extends Seeder
     protected array $roles = [
         ['name' => 'Jugador',    'prefix' => 'player',     'description' => 'Jugador/Usuario del sistema',    'status' => 1],
         ['name' => 'Admin',      'prefix' => 'admin',      'description' => 'Administrador',         'status' => 1],
-        ['name' => 'Comercio',   'prefix' => 'commerce',   'description' => 'Comercio',              'status' => 1],
+        ['name' => 'Comercio',   'prefix' => 'commerce_id',   'description' => 'Comercio',              'status' => 1],
         ['name' => 'Sucursal',   'prefix' => 'subsidiary', 'description' => 'Sucursal de un comercio', 'status' => 1],
         ['name' => 'Vendedor',   'prefix' => 'seller',     'description' => 'Vendedor asociado',     'status' => 1],
         ['name' => 'Proveedor',  'prefix' => 'provider',   'description' => 'Proveedor del sistema', 'status' => 1],

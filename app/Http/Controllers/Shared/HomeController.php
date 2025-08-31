@@ -35,7 +35,7 @@ class HomeController extends Controller
         $extraData = [
             'user' => [],
             'admin' => [],
-            'commerce' => [],
+            'commerce_id' => [],
             'seller' => [],
             'seller' => []
         ];

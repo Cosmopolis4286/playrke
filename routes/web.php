@@ -174,7 +174,7 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
 });
 
 // Opciones para Seller - admin y comercio
-Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'seller', 'as' => 'seller.'], function () {
+Route::group(['middleware' => ['auth', 'commerce_id'], 'prefix' => 'seller', 'as' => 'seller.'], function () {
     // CRUD para Seller por comercio (ADMIN no especificado pero uso middleware commerce)
     Route::post('create', [SellerController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [SellerController::class, 'getInfo'])->name('getInfo');
@@ -201,7 +201,7 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
 });
 
 // Recompensas (Rewards) - middleware commerce
-Route::group(['middleware' => ['auth', 'commerce'], 'prefix' => 'rewards', 'as' => 'rewards.'], function () {
+Route::group(['middleware' => ['auth', 'commerce_id'], 'prefix' => 'rewards', 'as' => 'rewards.'], function () {
     Route::get('', [RewardsController::class, 'index'])->name('index');
     Route::post('create', [RewardsController::class, 'create'])->name('create');
     Route::get('getInfo/{id}', [RewardsController::class, 'getInfo'])->name('getInfo');
@@ -316,7 +316,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
         ->middleware(['auth', 'admin'])->name('gameRoomsAdmin');
 
     Route::get('{roomType}/game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
-        ->middleware(['auth', 'commerce'])->name('gameRoomsCommerce');
+        ->middleware(['auth', 'commerce_id'])->name('gameRoomsCommerce');
 
     Route::post('actWn', [BingoController::class, 'actWn'])->middleware(['auth', 'admin'])->name('actWn');
 });

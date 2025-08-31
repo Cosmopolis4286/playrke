@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Seller;
 
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Shared\Games;
 use Illuminate\Database\Eloquent\Model;
 
 class SellerRoomLimits extends Model
@@ -22,6 +24,6 @@ class SellerRoomLimits extends Model
     public static function getGameRoomValueBySeller($game, $room, $seller, $value)
     {
         $gameID = Games::getValueByName($game);
-        return self::where('game', $gameID)->where('room', $room)->where('seller', $seller)->value($value);
+        return self::where('game_id', $gameID)->where('room_id', $room)->where('seller_id', $seller)->value($value);
     }
 }

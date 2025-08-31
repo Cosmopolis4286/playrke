@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Shared;
 
+use App\Models\Countries\Country;
 use Illuminate\Database\Eloquent\Model;
 
 class DocumentType extends Model

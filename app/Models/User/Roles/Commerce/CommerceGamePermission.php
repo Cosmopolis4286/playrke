@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Commerce;
 
 use Illuminate\Database\Eloquent\Model;
 
 class CommerceGamePermission extends Model
 {
     protected $table = "commerce_game_permission";
-    protected $fillable = ['commerce', 'game', 'status'];
+    protected $fillable = ['commerce_id', 'game', 'status'];
 
     public function Commerce()
     {
-        return $this->belongsTo(Commerce::class, 'commerce');
+        return $this->belongsTo(Commerce::class, 'commerce_id');
     }
 
     public function Game()

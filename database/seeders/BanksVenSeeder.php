@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Banks\BankVenezuela;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
-class BanksVenSeeder extends Seeder
+class BanksVenezuelaSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -15,7 +15,7 @@ class BanksVenSeeder extends Seeder
     public function run()
     {
         // Insertar los datos en la tabla 'banks_ven'
-        DB::table('banks_ven')->insert([
+       BankVenezuela::insert([
             ['id' => 1, 'name' => 'Venezuela', 'code' => '0102'],
             ['id' => 2, 'name' => 'Venezolano de Crédito', 'code' => '0104'],
             ['id' => 3, 'name' => 'Mercantil', 'code' => '0105'],

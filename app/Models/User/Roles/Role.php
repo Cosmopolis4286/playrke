@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles;
 
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 

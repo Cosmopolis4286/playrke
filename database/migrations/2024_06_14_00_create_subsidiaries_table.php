@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('coin');
             $table->string('phone', 14);
             $table->double('commn');
-            $table->unsignedBigInteger('commerce')->nullable();
+            $table->unsignedBigInteger('commerce_id')->nullable();
             $table->unsignedBigInteger('user');
             $table->string('brand', 20)->nullable();
             $table->string('product', 30)->nullable();
@@ -31,7 +31,7 @@ return new class extends Migration
             // Foreign keys
             $table->foreign('country')->references('id')->on('countries');
             $table->foreign('coin')->references('id')->on('coins');
-            $table->foreign('commerce')->references('id')->on('commerces');
+            $table->foreign('commerce_id')->references('id')->on('commerces');
             $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
         });
     }

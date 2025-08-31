@@ -7,7 +7,7 @@ require_once app_path('Helpers/RouteHelper.php');
 
 mapControllerRoutes('bingo', 'bingo.', [
     [
-        'middleware' => ['auth', 'commerce', 'admin'],
+        'middleware' => ['auth', 'commerce_id', 'admin'],
         'controller' => BingoController::class,
         'routes' => [
             'create'        => ['method' => 'post',   'uri' => 'create'],
@@ -19,7 +19,7 @@ mapControllerRoutes('bingo', 'bingo.', [
         ],
     ],
     [
-        'middleware' => ['auth', 'commerce'],
+        'middleware' => ['auth', 'commerce_id'],
         'controller' => BingoController::class,
         'routes' => [
             'rewards'                => ['method' => 'get', 'uri' => 'rewards'],
@@ -36,5 +36,5 @@ Route::get(
     'commerce/getPaymentCommerceDetails/{commerce}/{coin}',
     [BingoController::class, 'getPaymentCommerceDetails']
 )
-    ->withoutMiddleware(['auth', 'commerce'])
+    ->withoutMiddleware(['auth', 'commerce_id'])
     ->name('commerce.getPaymentCommerceDetails');

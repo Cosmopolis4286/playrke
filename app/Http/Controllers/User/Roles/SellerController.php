@@ -148,7 +148,7 @@ class SellerController extends Controller
                 'phone' => $request->phone,
                 'coin' => $request->coin,
                 'country' => $request->country,
-                'commerce' => Commerce::getValueByUserId(Auth::id(), 'id'),
+                'commerce_id' => Commerce::getValueByUserId(Auth::id(), 'id'),
                 'commn' => $request->commission,
                 'status' => 1,
                 'user' => $newUser,
@@ -228,7 +228,7 @@ class SellerController extends Controller
         }
 
         // Obtener datos del vendedor
-        $seller = Seller::getById($id, ['name', 'commerce', 'commn', 'country', 'phone']);
+        $seller = Seller::getById($id, ['name', 'commerce_id', 'commn', 'country', 'phone']);
 
         // Obtener monedas adicionales disponibles para el vendedor
         $otherCoins = SellerCountriesCoins::getAvailableCoins($id);
@@ -364,7 +364,7 @@ class SellerController extends Controller
     {
         $documentType = DocumentType::where('country', 234)->get();
 
-        $seller = $this->seller(['commerce', 'country', 'commn', 'status']);
+        $seller = $this->seller(['commerce_id', 'country', 'commn', 'status']);
 
         $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
@@ -408,7 +408,7 @@ class SellerController extends Controller
 
     public function getAvailableCountriesBySeller($roomId)
     {
-        $seller = $this->seller(['id', 'commerce']);
+        $seller = $this->seller(['id', 'commerce_id']);
         $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
         // Obtenemos las monedas disponibles para el vendedor y el comercio
@@ -472,7 +472,7 @@ class SellerController extends Controller
         }
 
         // Obtener comercio asociado al usuario autenticado
-        $commerce = Seller::getValueByUserId(Auth::id(), 'commerce');
+        $commerce = Seller::getValueByUserId(Auth::id(), 'commerce_id');
         if (!$commerce) {
             return response()->json(['error' => 'Comercio no encontrado'], 404);
         }
@@ -481,7 +481,7 @@ class SellerController extends Controller
         $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin->id);
 
         $roomId = BingoRoom::getValueByEncrypted($room, 'id');
-        $creator = ['type' => 'commerce', 'id' => $commerce];
+        $creator = ['type' => 'commerce_id', 'id' => $commerce];
 
         $setPrice = false;
         $value = $exchangeRate;
@@ -536,7 +536,7 @@ class SellerController extends Controller
     public function getPaymentCommerceDetails($coin)
     {
         try {
-            $user = Commerce::getValueById($this->seller('commerce')->commerce, 'user');
+            $user = Commerce::getValueById($this->seller('commerce_id')->commerce, 'user');
 
             // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda decriptada
             $data = $this->getPaymentDetailsByUserId($user, decrypt($coin));

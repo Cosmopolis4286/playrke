@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('commerce_game_permissions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('commerce')->constrained('commerces')->onDelete('cascade');
+            $table->foreignId('commerce_id')->constrained('commerces')->onDelete('cascade');
             $table->foreignId('game')->constrained('games')->onDelete('cascade');
             $table->boolean('status')->default(false);
             $table->timestamps();

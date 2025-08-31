@@ -25,7 +25,7 @@ class GenerateTsRoutesByModule extends Command
             'bingo-automatic-room',
             'bingocash',
             'bingo-patterns',
-            'commerce',
+            'commerce_id',
             'customer',
             'customer',
             'directory',

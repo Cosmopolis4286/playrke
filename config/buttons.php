@@ -28,5 +28,5 @@ $defaultExtraButtons = [
 
 return [
     'seller' => $defaultExtraButtons,
-    'commerce' => $defaultExtraButtons,
+    'commerce_id' => $defaultExtraButtons,
 ];

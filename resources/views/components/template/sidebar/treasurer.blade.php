@@ -12,7 +12,7 @@
         </a>
     </li>
     <li class="nav-item has-treeview">
-        <a href="{{ route('exchange-rate.index', ['creatorType' => 'commerce']) }}" title="Tasa de Cambio"
+        <a href="{{ route('exchange-rate.index', ['creatorType' => 'commerce_id']) }}" title="Tasa de Cambio"
             class="nav-link  {{ !Route::is('exchange-rate.index') ?: 'active' }}">
             <i class="nav-icon fa-solid fa-circle-dollar-to-slot"></i>
             <p>Conversión</p>
@@ -36,7 +36,7 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a href="{{ route('bingo.handleGameRoomSummary', ['roomType' => 'private-rooms', 'creatorType' => 'commerce']) }}"
+                <a href="{{ route('bingo.handleGameRoomSummary', ['roomType' => 'private-rooms', 'creatorType' => 'commerce_id']) }}"
                     title="Salas Bingo" class="nav-link {{ !Route::is('bingo.handleGameRoomSummary') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Salas</p>

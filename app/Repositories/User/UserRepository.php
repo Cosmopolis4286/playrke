@@ -96,13 +96,13 @@ class UserRepository
      */
     public static function getEntities(int $userId): array
     {
-        $user = User::with(['roles', 'commerce', 'seller'])->find($userId);
+        $user = User::with(['roles', 'commerce_id', 'seller'])->find($userId);
         if (!$user) return [];
 
         $entities = [];
         foreach ($user->roles as $role) {
             $entities[$role->prefix] = match ($role->prefix) {
-                'commerce' => $user->commerce,
+                'commerce_id' => $user->commerce,
                 'seller'   => $user->seller,
                 default    => null,
             };

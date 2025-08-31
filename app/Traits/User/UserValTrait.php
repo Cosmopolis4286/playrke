@@ -70,7 +70,7 @@ trait UserValTrait
             case 'admin': // Admin
                 # code...
                 break;
-            case 'commerce': // Comercio
+            case 'commerce_id': // Comercio
                 $commerce = Commerce::getValueByUserId($user, 'id');
                 $countries = CommerceCountriesCoins::getAvailableCountries($commerce);
                 break;
@@ -100,7 +100,7 @@ trait UserValTrait
             case 'admin': // Admin
                 # code...
                 break;
-            case 'commerce': // Comercio
+            case 'commerce_id': // Comercio
                 $commerce = Commerce::getValueByUserId($user, 'id');
                 $coins = CommerceCountriesCoins::getAvailableCoins($commerce);
                 break;
@@ -134,7 +134,7 @@ trait UserValTrait
             };
         })->pluck('id')->all();
 
-        if (!in_array($user['type'], ['commerce', 'admin'])) return;
+        if (!in_array($user['type'], ['commerce_id', 'admin'])) return;
 
         DB::beginTransaction();
 
@@ -144,19 +144,19 @@ trait UserValTrait
 
             // Obtener los IDs más recientes de cada moneda (coin)
             $ids = CommerceExchangeRate::select(DB::raw('MAX(id) as id'))
-                ->where('commerce', $commerceID)
+                ->where('commerce_id', $commerceID)
                 ->whereNotIn('coin', $coinsWithoutDirectories)
                 ->groupBy('coin')
                 ->pluck('id');
 
-            CommerceExchangeRate::where('commerce', $commerceID)
+            CommerceExchangeRate::where('commerce_id', $commerceID)
                 ->whereIn('id', $ids)->where('exchange_rate', 0)
                 ->whereIn('status', ['ACTIVE', 'DIRECTORY'])
                 ->update(['status' => 'INACTIVE']);
 
             if ($coinsWithoutDirectories) {
                 // Marcar status 'DIRECTORY' en monedas sin directorio
-                CommerceExchangeRate::where('commerce', $commerceID)
+                CommerceExchangeRate::where('commerce_id', $commerceID)
                     ->whereIn('id', $ids)->where('exchange_rate', '>', 0)
                     ->whereIn('coin', $coinsWithoutDirectories)
                     ->where('status', '!=', 'DIRECTORY')
@@ -312,7 +312,7 @@ trait UserValTrait
         $userType = RoleRepository::getValueById($user->user_type, 'prefix');
 
         switch ($userType) {
-            case 'commerce':
+            case 'commerce_id':
                 $commerce = $this->commerce(['id', 'user']);
                 $userTypeId = $commerce->id;
                 break;

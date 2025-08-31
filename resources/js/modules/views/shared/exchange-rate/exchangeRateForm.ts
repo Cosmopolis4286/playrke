@@ -15,7 +15,7 @@ export { route };
 //   Constantes globales
 // ==========================
 export const formTitleSuffix = 'Comercio';
-export const moduleId = 'commerce';
+export const moduleId = 'commerce_id';
 const modal = document.getElementById(`modal-${moduleId}`)!;
 
 // ==========================

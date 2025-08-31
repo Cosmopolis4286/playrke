@@ -29,7 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Ejemplo de rutas modulares
     // Route::prefix('wallet')->group(base_path('routes/modules/api/wallet.php'));
-    // Route::prefix('commerce')->group(base_path('routes/modules/api/commerce.php'));
+    // Route::prefix('commerce_id')->group(base_path('routes/modules/api/commerce.php'));
 });
 
 // ===============================

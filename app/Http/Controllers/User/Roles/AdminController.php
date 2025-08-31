@@ -153,7 +153,7 @@ class AdminController extends Controller
         }
 
         // Si es comercio, obtiene la lista de comercios activos
-        if ($userRole === 'commerce') {
+        if ($userRole === 'commerce_id') {
             $query = Commerce::where('status', 1);
 
             if (!empty($creatorUserToExclude)) {

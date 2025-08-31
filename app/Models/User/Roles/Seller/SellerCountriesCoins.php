@@ -1,13 +1,15 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Seller;
 
+use App\Models\Coins\Coin;
+use App\Models\Countries\Country;
 use Illuminate\Database\Eloquent\Model;
 
 class SellerCountriesCoins extends Model
 {
     protected $table = "sellers_countries_coins";
-    protected $fillable = ['seller', 'country', 'coin', 'level', 'creator_user', 'status'];
+    protected $fillable = ['seller', 'country_id', 'coin_id', 'level', 'creator_user', 'status'];
 
     // Relación con el Pais 
     public function Country()

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Treasurer;
 
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 
 class OtherTreasurers extends Model

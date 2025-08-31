@@ -1,13 +1,16 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Seller;
 
+use App\Models\Coins\Coin;
+use App\Models\Countries\Country;
+use App\Models\User\Roles\Commerce\Commerce;
 use Illuminate\Database\Eloquent\Model;
 
 class Seller extends Model
 {
     protected $table = "sellers";
-    protected $fillable = ['name', 'country', 'coin', 'phone', 'commn', 'commerce', 'status', 'user'];
+    protected $fillable = ['name', 'country', 'coin', 'phone', 'commn', 'commerce_id', 'status', 'user'];
 
     // Relación con el país del vendedor
     public function Country()
@@ -41,7 +44,7 @@ class Seller extends Model
     // Relación con el comercio del vendedor
     public function Commerce()
     {
-        return $this->belongsTo(Commerce::class, 'commerce');
+        return $this->belongsTo(Commerce::class, 'commerce_id');
     }
 
     // Relación con los juegos de los jugadores

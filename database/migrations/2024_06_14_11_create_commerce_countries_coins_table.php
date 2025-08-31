@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('commerces_countries_coins', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('commerce')->constrained('commerces')->onDelete('cascade');
+            $table->foreignId('commerce_id')->constrained('commerces')->onDelete('cascade');
             $table->foreignId('country')->nullable()->constrained('countries');
             $table->foreignId('coin')->constrained('coins')->onDelete('cascade');
 

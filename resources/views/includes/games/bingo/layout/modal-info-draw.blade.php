@@ -96,7 +96,7 @@
                                     <b class="mr-1">Total:</b><span id="total-amount"></span>
                                 </div>
                             </div>
-                            @if ($creatorType === 'commerce')
+                            @if ($creatorType === 'commerce_id')
                                 <div class="form-group">
                                     <input type="text" class="form-control" id="purchase-code"
                                         placeholder="Código de Compra" required maxlength="8">

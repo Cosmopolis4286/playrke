@@ -78,7 +78,7 @@ class FinishedRoomService
         $creator = User::getCreatorUser($room->creator_user, false, true);
 
         match ($creator['type']) {
-            'commerce' => BingoPrizeCtns::where('room', $room->id)->update(['active' => 'Y']),
+            'commerce_id' => BingoPrizeCtns::where('room', $room->id)->update(['active' => 'Y']),
             'customer' => $this->customerCartonService->handleCustomerPrizeCarton($room->creator_user),
             default    => Log::warning("Tipo de creador desconocido en sala [ID => {$room->id}]"),
         };

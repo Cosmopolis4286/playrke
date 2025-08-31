@@ -1,17 +1,18 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Commerce;
 
+use App\Models\Countries\Country;
 use Illuminate\Database\Eloquent\Model;
 
 class CommerceCountriesCoins extends Model
 {
     protected $table = "commerces_countries_coins";
-    protected $fillable = ['commerce', 'country', 'coin', 'level', 'creator_user', 'status'];
+    protected $fillable = ['commerce_id', 'country', 'coin', 'level', 'creator_user', 'status'];
 
     public function Commerce()
     {
-        return $this->belongsTo(Commerce::class, 'commerce');
+        return $this->belongsTo(Commerce::class, 'commerce_id');
     }
 
     public function Country()
@@ -41,7 +42,7 @@ class CommerceCountriesCoins extends Model
 
     public static function getAvailableCoins($commerce, $exceptCoin = '')
     {
-        return self::select('coin')->where('commerce', $commerce)
+        return self::select('coin')->where('commerce_id', $commerce)
             ->where('status', 1)
             ->when($exceptCoin, function ($query, $exceptCoin) {
                 return $query->where('coin', '<>', $exceptCoin);
@@ -50,12 +51,12 @@ class CommerceCountriesCoins extends Model
 
     public static function getAllAvailableCountriesCoins($commerce, $fields = ['*'])
     {
-        return self::select($fields)->where('commerce', $commerce)->where('status', 1)->orderBy('country')->get();
+        return self::select($fields)->where('commerce_id', $commerce)->where('status', 1)->orderBy('country')->get();
     }
 
     public static function getAvailableCountries($commerce)
     {
-        return self::select('country')->where('commerce', $commerce)
+        return self::select('country')->where('commerce_id', $commerce)
             ->where('status', 1)->distinct()->pluck('country')->toArray();
     }
 }

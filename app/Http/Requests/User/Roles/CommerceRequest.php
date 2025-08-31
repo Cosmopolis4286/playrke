@@ -23,7 +23,7 @@ class CommerceRequest extends FormRequest
     public function authorize(): bool
     {
         // Solo permite usuarios con prefix "commerce"
-        return PermissionService::checkPrefix('commerce');
+        return PermissionService::checkPrefix('commerce_id');
     }
 
     /**

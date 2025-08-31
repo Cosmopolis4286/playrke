@@ -92,7 +92,7 @@ class DirectoryController extends Controller
                 break;
         }
 
-        if ($userType === 'commerce') {
+        if ($userType === 'commerce_id') {
             $commerce = Commerce::getValueByUserId($userID, 'id');
 
             $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce);

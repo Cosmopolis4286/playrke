@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Customer;
 
+use App\Models\Countries\Country;
 use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model

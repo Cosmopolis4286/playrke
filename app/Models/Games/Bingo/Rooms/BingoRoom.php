@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Bingo\Rooms;
 
 use Illuminate\Database\Eloquent\Model;
 
@@ -37,7 +37,7 @@ class BingoRoom extends Model
 
   public function Status()
   {
-    return $this->belongsTo(StatusGame::class, 'status');
+    return $this->belongsTo(GameStatus::class, 'status');
   }
 
   public function Config()

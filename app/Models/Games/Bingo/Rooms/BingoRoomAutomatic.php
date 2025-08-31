@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Bingo\Rooms;
 
 use Illuminate\Database\Eloquent\Model;
 

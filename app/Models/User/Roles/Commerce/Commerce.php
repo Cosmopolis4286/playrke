@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Commerce;
 
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -57,7 +58,7 @@ class Commerce extends Model
    */
   public function Sellers(): HasMany
   {
-    return $this->hasMany(Seller::class, 'commerce', 'id');
+    return $this->hasMany(Seller::class, 'commerce_id', 'id');
   }
 
   // ---------------------------

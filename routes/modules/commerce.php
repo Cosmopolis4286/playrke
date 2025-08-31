@@ -5,9 +5,9 @@ use Illuminate\Support\Facades\Route;
 
 require_once app_path('Helpers/RouteHelper.php');
 
-mapControllerRoutes('commerce', 'commerce.', [
+mapControllerRoutes('commerce_id', 'commerce.', [
     [
-        'middleware' => ['auth', 'commerce', 'admin'],
+        'middleware' => ['auth', 'commerce_id', 'admin'],
         'controller' => CommerceController::class,
         'routes' => [
             'create'        => ['method' => 'post',   'uri' => 'create'],
@@ -19,7 +19,7 @@ mapControllerRoutes('commerce', 'commerce.', [
         ],
     ],
     [
-        'middleware' => ['auth', 'commerce'],
+        'middleware' => ['auth', 'commerce_id'],
         'controller' => CommerceController::class,
         'routes' => [
             'rewards'                => ['method' => 'get', 'uri' => 'rewards'],
@@ -36,5 +36,5 @@ Route::get(
     'commerce/getPaymentCommerceDetails/{commerce}/{coin}',
     [CommerceController::class, 'getPaymentCommerceDetails']
 )
-    ->withoutMiddleware(['auth', 'commerce'])
+    ->withoutMiddleware(['auth', 'commerce_id'])
     ->name('commerce.getPaymentCommerceDetails');

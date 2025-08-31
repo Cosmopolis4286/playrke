@@ -358,7 +358,7 @@
 
                     if (elem.player) {
                         // Redirigir a la sala según el tipo de usuario
-                        const targetUrl = creator.type == 'commerce' ?
+                        const targetUrl = creator.type == 'commerce_id' ?
                             route('bingo.in-game', {
                                 player,
                                 room

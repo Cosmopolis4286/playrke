@@ -22,7 +22,7 @@ class CommerceService
      * Crear un nuevo comercio junto con usuario, wallet y configuraciones iniciales.
      *
      * @param array $data Datos validados del request
-     * @return array ['commerce' => Commerce, 'password' => string]
+     * @return array ['commerce_id' => Commerce, 'password' => string]
      * @throws \Throwable
      */
     public function create(array $data): array
@@ -48,7 +48,7 @@ class CommerceService
             // 🔑 Registrar Code UUID
             $this->createUUID($commerce->code_uuid, $user->id, $user->user_type);
 
-            return ['commerce' => $commerce, 'password' => $password];
+            return ['commerce_id' => $commerce, 'password' => $password];
         });
     }
 
@@ -102,7 +102,7 @@ class CommerceService
     private function createCommerceCountriesCoins(Commerce $commerce, int $userId): void
     {
         CommerceCountriesCoins::create([
-            'commerce'     => $commerce->id,
+            'commerce_id'     => $commerce->id,
             'country'      => $commerce->country,
             'coin'         => $commerce->coin,
             'level'        => '1',

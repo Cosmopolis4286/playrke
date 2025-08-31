@@ -8,27 +8,29 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('exchange_rates', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('coin');
-            $table->double('value')->default(1);
+            $table->foreignId('coin_id')
+                ->constrained('coins')
+                ->cascadeOnDelete();
+
+            // decimal es más seguro que double para valores monetarios
+            $table->decimal('value', 15, 8)->default(1);
+
             $table->timestamps();
 
-            $table->foreign('coin')->references('id')->on('coins')->onDelete('cascade');
+            // Índice compuesto por si consultas coin + value frecuentemente
+            $table->index(['coin_id', 'value']);
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('exchange_rates');
     }

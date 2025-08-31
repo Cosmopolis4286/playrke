@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Commerce;
 
+use App\Models\Coins\Coin;
 use Illuminate\Database\Eloquent\Model;
 
 class CommerceExchangeRate extends Model
 {
     protected $table = "commerces_exchange_rates";
-    protected $fillable = ['commerce', 'coin', 'exchange_rate', 'pct', 'status'];
+    protected $fillable = ['commerce_id', 'coin', 'exchange_rate', 'pct', 'status'];
 
     public function Coin()
     {
@@ -16,7 +17,7 @@ class CommerceExchangeRate extends Model
 
     public function Commerce()
     {
-        return $this->belongsTo(Commerce::class, 'commerce');
+        return $this->belongsTo(Commerce::class, 'commerce_id');
     }
 
     public static function getById($id, $fields = ['*'])
@@ -31,19 +32,19 @@ class CommerceExchangeRate extends Model
 
     public static function getAllExchangeRatesByCoin($commerce, $coin)
     {
-        return self::where('commerce', $commerce)->where('coin', $coin)
+        return self::where('commerce_id', $commerce)->where('coin', $coin)
             ->where('status', 'ACTIVE')->orderByDesc('id')->get(['coin', 'exchange_rate', 'pct']);
     }
 
     public static function getCommerceCoinValue($commerce, $coin, $value = 'exchange_rate')
     {
-        return self::where('commerce', $commerce)->where('coin', $coin)
+        return self::where('commerce_id', $commerce)->where('coin', $coin)
             ->where('status', 'ACTIVE')->orderByDesc('id')->value($value);
     }
 
     public static function getAllExchangeRates($commerce)
     {
-        return self::where('commerce', $commerce)->where('status', 'ACTIVE')
+        return self::where('commerce_id', $commerce)->where('status', 'ACTIVE')
             ->orderByDesc('id')->get(['coin', 'exchange_rate']);
     }
 
@@ -55,12 +56,12 @@ class CommerceExchangeRate extends Model
 
     public static function getAvailableExchangeRates($commerce)
     {
-        return self::where('commerce', $commerce)->where('status', '<>', 'OLD')->get();
+        return self::where('commerce_id', $commerce)->where('status', '<>', 'OLD')->get();
     }
 
     public static function getCoinsByCommerce($commerce, $status = 'ACTIVE')
     {
-        $query = self::select('coin')->where('commerce', $commerce);
+        $query = self::select('coin')->where('commerce_id', $commerce);
 
         if ($status) $query->where('status', $status);
 
@@ -69,7 +70,7 @@ class CommerceExchangeRate extends Model
 
     public static function updateOrCreateExchangeRate($commerce, $coin, $amount, $pct = '')
     {
-        $lastRate = self::where(['commerce' => $commerce, 'coin' => $coin])
+        $lastRate = self::where(['commerce_id' => $commerce, 'coin' => $coin])
             ->where('status', 'ACTIVE')->orderByDesc('id')->first();
 
         // Solo crear nuevo si no existe o si el valor cambió
@@ -85,7 +86,7 @@ class CommerceExchangeRate extends Model
 
             // Crear nueva tasa activa
             self::create([
-                'commerce' => $commerce,
+                'commerce_id' => $commerce,
                 'coin' => $coin,
                 'exchange_rate' => $amount,
                 'pct' => $pct,

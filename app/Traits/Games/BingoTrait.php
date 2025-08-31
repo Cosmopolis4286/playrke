@@ -863,7 +863,7 @@ trait BingoTrait
 
             $gameMode = $room->Config->game_mode;
 
-            if ($gameMode != 1 && ($creator['type'] === 'commerce' || $seller)) {
+            if ($gameMode != 1 && ($creator['type'] === 'commerce_id' || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor
                 $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $roomId);
             }
@@ -1055,7 +1055,7 @@ trait BingoTrait
             case 'customer':
                 $coin = CustomerUser::getValueById($playerID, 'coin');
                 break;
-            case 'commerce':
+            case 'commerce_id':
                 $coin = PlayerLink::getValueByRoomUser('BINGO', $playerID, 'coin');
                 break;
             default:

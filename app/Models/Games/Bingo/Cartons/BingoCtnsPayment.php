@@ -28,7 +28,7 @@ class BingoCtnsPayment extends Model
 
     public function Commerce()
     {
-        return $this->belongsTo(Commerce::class, 'commerce');
+        return $this->belongsTo(Commerce::class, 'commerce_id');
     }
 
     public function Seller()

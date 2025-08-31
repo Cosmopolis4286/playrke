@@ -107,7 +107,7 @@ class CommerceController extends Controller
     {
         return $this->handleService(function () use ($service, $id) {
             $commerce = $service->getById($id);
-            return view('commerce.show', compact('commerce'));
+            return view('commerce.show', compact('commerce_id'));
         }, "No se pudo cargar la información del Comercio [ID: $id].");
     }
 

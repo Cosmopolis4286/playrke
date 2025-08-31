@@ -46,7 +46,7 @@ class ExchangeRateController extends Controller
 
                 $exchangeRate = CustomerExchangeRate::getAvailableExchangeRates($creatorID);
                 break;
-            case 'commerce':
+            case 'commerce_id':
                 $commerce = $this->commerce(['id', 'user']);
 
                 $creatorID = $commerce->id;
@@ -59,7 +59,7 @@ class ExchangeRateController extends Controller
 
                 $coins = Coin::whereIn('id', $array)
                     ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($creatorID) {
-                        $query->where('commerce', $creatorID);
+                        $query->where('commerce_id', $creatorID);
                     })->get(['id', 'symbol', 'long_name']);
 
 
@@ -126,7 +126,7 @@ class ExchangeRateController extends Controller
                 $status = $this->getPaymentDetailsByUserId(Auth::id(), $coin) ? 1 : 2;
 
                 CommerceExchangeRate::create([
-                    'commerce' => $creatorID,
+                    'commerce_id' => $creatorID,
                     'coin' => $coin,
                     'exchange_rate' => $request->exchange_rate,
                     'status' => $status,
@@ -156,7 +156,7 @@ class ExchangeRateController extends Controller
             $newExchangeRate = $request->exchange_rate;
 
             switch ($data['creatorType']) {
-                case 'commerce':
+                case 'commerce_id':
                     // Buscar el ultimo registro de CommerceExchangeRate por su ID desencriptado
                     $dataExchangeRate = CommerceExchangeRate::findOrFail($exchangeRateID);
 
@@ -165,7 +165,7 @@ class ExchangeRateController extends Controller
                         : 0;
 
                     CommerceExchangeRate::create([
-                        'commerce' => $dataExchangeRate->commerce,
+                        'commerce_id' => $dataExchangeRate->commerce,
                         'coin' => $dataExchangeRate->coin,
                         'exchange_rate' => $newExchangeRate,
                         'pct' => $pct,
@@ -184,7 +184,7 @@ class ExchangeRateController extends Controller
                         : 0;
 
                     CustomerExchangeRate::create([
-                        'commerce' => $dataExchangeRate->commerce,
+                        'commerce_id' => $dataExchangeRate->commerce,
                         'coin' => $dataExchangeRate->coin,
                         'exchange_rate' => $newExchangeRate,
                         'pct' => $pct,
@@ -247,7 +247,7 @@ class ExchangeRateController extends Controller
         $exchangeRateID = decrypt($data['id']);
 
         switch ($data['type']) {
-            case 'commerce':
+            case 'commerce_id':
                 CommerceExchangeRate::where('id', $exchangeRateID)->update(['status' => 2]);
                 break;
             case 'customer':
@@ -270,7 +270,7 @@ class ExchangeRateController extends Controller
 
         try {
             switch ($data['creatorType']) {
-                case 'commerce':
+                case 'commerce_id':
                     // Obtener el estado del comercio
                     $exchangeStatus = CommerceExchangeRate::getValueById($exchangeRateID, 'status');
 
@@ -314,7 +314,7 @@ class ExchangeRateController extends Controller
         $exchangeRateID = decrypt($data['id']);
 
         switch ($creatorType) {
-            case 'commerce':
+            case 'commerce_id':
                 $info = CommerceExchangeRate::getById($exchangeRateID, ['coin', 'exchange_rate']);
                 break;
             case 'customer':
@@ -354,7 +354,7 @@ class ExchangeRateController extends Controller
 
                 $exchangeRate = CustomerExchangeRate::getAllExchangeRatesByCoin($creatorID, $coin);
                 break;
-            case 'commerce':
+            case 'commerce_id':
                 $creatorID = decrypt($creatorID);
                 $coin = decrypt($coin);
 

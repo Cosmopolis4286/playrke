@@ -32,7 +32,7 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('admin', fn($user) => $userTypeRepo->getValueById($user->user_type, 'prefix') === 'admin');
 
         // Gate para commerce (incluye admin si quieres jerarquía)
-        Gate::define('commerce', fn($user) => in_array($userTypeRepo->getValueById($user->user_type, 'prefix'), ['commerce', 'admin']));
+        Gate::define('commerce_id', fn($user) => in_array($userTypeRepo->getValueById($user->user_type, 'prefix'), ['commerce_id', 'admin']));
 
         // Puedes agregar más Gates aquí sin tocar el middleware
         // Ejemplo: Gate::define('manager', fn($user) => $userTypeRepo->getValueById($user->user_type, 'prefix') === 'manager');

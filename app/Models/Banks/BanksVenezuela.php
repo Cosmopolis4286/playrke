@@ -2,10 +2,11 @@
 
 namespace App\Models\Banks;
 
+use App\Models\Payments\Methods\Venezuela\PagoMovil;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class BankVenezuela extends Model
+class BanksVenezuela extends Model
 {
     protected $table = 'banks_venezuela';
 
