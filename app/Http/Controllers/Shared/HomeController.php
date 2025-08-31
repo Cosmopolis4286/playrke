@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 // Models
 use App\Models\Role;
 use App\Models\Wallet;
-use App\Repositories\User\RoleRepository;
+use App\Repositories\User\Roles\RoleRepository;
 // Traits
 use App\Traits\Users\UserValTrait;
 

@@ -49,9 +49,9 @@ class BingoPrizeCtns extends Model
         return $this->belongsTo(Seller::class, 'seller');
     }
 
-    public function PlayerLink()
+    public function ExternalPlayers()
     {
-        return $this->belongsTo(PlayerLink::class, 'room_user', 'room_user');
+        return $this->belongsTo(ExternalPlayers::class, 'room_user', 'room_user');
     }
 
     public function PlayerGame()

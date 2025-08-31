@@ -27,7 +27,7 @@ use App\Models\GameExchangeRate;
 use App\Models\GamePrizes;
 use App\Models\GameRoomJackpot;
 use App\Models\Games;
-use App\Models\PlayerLink;
+use App\Models\ExternalPlayers;
 use App\Models\Seller;
 use App\Models\User;
 use App\Models\Role;
@@ -38,7 +38,7 @@ use App\Services\Games\Bingo\HandleBingoRooms;
 use App\Services\Users\Customer\HandleTransactions;
 
 // Traits
-use App\Traits\Users\PlayerLinkTrait;
+use App\Traits\Users\ExternalPlayersTrait;
 use App\Traits\Users\UserValTrait;
 
 // Otros
@@ -50,7 +50,7 @@ use Illuminate\Support\Facades\Log;
 
 trait BingoTrait
 {
-    use GameTrait, PlayerLinkTrait, SeamlessWallet, UserValTrait;
+    use GameTrait, ExternalPlayersTrait, SeamlessWallet, UserValTrait;
 
     private function encryptDraw($room)
     {
@@ -1056,7 +1056,7 @@ trait BingoTrait
                 $coin = CustomerUser::getValueById($playerID, 'coin');
                 break;
             case 'commerce_id':
-                $coin = PlayerLink::getValueByRoomUser('BINGO', $playerID, 'coin');
+                $coin = ExternalPlayers::getValueByRoomUser('BINGO', $playerID, 'coin');
                 break;
             default:
                 break;
@@ -1520,7 +1520,7 @@ trait BingoTrait
             if ($ctn->player_user) {
                 $fullName = User::getValueById($ctn->player_user, 'username');
             } else {
-                $playerLink = PlayerLink::getByRoomUser('BINGO', $ctn->room_user, ['name', 'lastname']);
+                $playerLink = ExternalPlayers::getByRoomUser('BINGO', $ctn->room_user, ['name', 'lastname']);
                 $fullName = "$playerLink->name $playerLink->lastname";
             }
         } else {
@@ -1595,7 +1595,7 @@ trait BingoTrait
             'room' => $lotCtn->room,
             'creator_user' => $lotCtn->creator_user,
             'seller' => $lotCtn->seller,
-            'player_link' => PlayerLink::getValueByRoomUser('BINGO', $lotCtn->room_user, 'id'),
+            'player_link' => ExternalPlayers::getValueByRoomUser('BINGO', $lotCtn->room_user, 'id'),
             'lot' => $lotCtn->id,
             'coin' => $lotCtn->coin,
             'amount' => $lotCtn->sale_amount,
@@ -1613,7 +1613,7 @@ trait BingoTrait
                 'room' => $prizeCtn->room,
                 'creator_user' => $prizeCtn->creator_user,
                 'seller' => $prizeCtn->seller,
-                'player_link' => PlayerLink::getValueByRoomUser('BINGO', $prizeCtn->room_user, 'id'),
+                'player_link' => ExternalPlayers::getValueByRoomUser('BINGO', $prizeCtn->room_user, 'id'),
                 'user' => $user,
                 'prize_type' => $prizeCtn->prize_type,
                 'lot' => $prizeCtn->lot,

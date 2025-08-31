@@ -1,27 +1,23 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Shared;
 
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 
 class UUIDCodes extends Model
 {
     protected $table = "uuid_codes";
-    protected $fillable = ['code_uuid', 'user', 'user_type', 'status'];
+    protected $fillable = ['code_uuid', 'user_id', 'status'];
 
     public function User()
     {
-        return $this->belongsTo(User::class, 'user');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function UserType()
+    public static function getByUser($userId, $fields = ['*'])
     {
-        return $this->belongsTo(Role::class, 'user_type');
-    }
-
-    public static function getByUser($user, $fields = ['*'])
-    {
-        return self::select($fields)->where('user', $user)->first();
+        return self::select($fields)->where('user_id', $userId)->first();
     }
 
     public static function getByCode($codeUUID, $fields = ['*'])
@@ -29,9 +25,9 @@ class UUIDCodes extends Model
         return self::select($fields)->where('code_uuid', $codeUUID)->first();
     }
 
-    public static function getValueByUser($user, $value)
+    public static function getValueByUser($userId, $value)
     {
-        return self::where('user', $user)->value($value);
+        return self::where('user_id', $userId)->value($value);
     }
 
     public static function existsCode($code)

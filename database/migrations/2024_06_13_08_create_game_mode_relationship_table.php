@@ -7,30 +7,30 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
-     *
-     * @return void
+     * Ejecutar la migración: crear tabla 'game_mode_relationship'.
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('game_mode_relationship', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('game');
-            $table->unsignedBigInteger('mode');
-            $table->boolean('status')->default(0);
+            $table->id()->comment('ID de la relación entre juego y modo');
+            $table->unsignedBigInteger('game_id')->comment('ID del juego');
+            $table->unsignedBigInteger('game_mode_id')->comment('ID del modo de juego');
+            $table->boolean('status')->default(0)->comment('Estado activo/inactivo de la relación');
             $table->timestamps();
 
-            $table->foreign('game')->references('id')->on('games')->onUpdate('cascade');
-            $table->foreign('mode')->references('id')->on('game_modes')->onUpdate('cascade');
+            // Claves foráneas
+            $table->foreign('game_id')->references('id')->on('games')->onUpdate('cascade')->onDelete('cascade');
+            $table->foreign('game_mode_id')->references('id')->on('game_modes')->onUpdate('cascade')->onDelete('cascade');
+
+            // Índices para consultas más rápidas
+            $table->unique(['game_id', 'game_mode_id'], 'game_mode_unique');
         });
     }
 
     /**
-     * Reverse the migrations.
-     *
-     * @return void
+     * Revertir la migración: eliminar tabla 'game_mode_relationship'.
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('game_mode_relationship');
     }

@@ -4,7 +4,7 @@ namespace App\Services\Auth;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use App\Repositories\User\RoleRepository;
+use App\Repositories\User\Roles\RoleRepository;
 
 /**
  * Servicio centralizado para validar permisos de usuario.

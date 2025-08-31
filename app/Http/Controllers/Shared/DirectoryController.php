@@ -11,7 +11,7 @@ use App\Models\DocumentType;
 use App\Models\PagoMovil;
 use App\Models\PaymentMethodsCOL;
 use App\Models\Pix;
-use App\Repositories\User\RoleRepository;
+use App\Repositories\User\Roles\RoleRepository;
 use App\Traits\Users\UserValTrait;
 
 class DirectoryController extends Controller

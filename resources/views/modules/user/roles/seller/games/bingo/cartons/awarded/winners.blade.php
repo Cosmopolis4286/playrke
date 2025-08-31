@@ -37,9 +37,9 @@
                                                 </a>
                                             </td>
                                             <td>{{ $win->round }}</td>
-                                            <td>{{ $win->PlayerLink->name }}
-                                                {{ $win->PlayerLink->lastname }}</td>
-                                            <td>{{ $win->PlayerLink->Country->name }}</td>
+                                            <td>{{ $win->ExternalPlayers->name }}
+                                                {{ $win->ExternalPlayers->lastname }}</td>
+                                            <td>{{ $win->ExternalPlayers->Country->name }}</td>
                                             <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
                                             <td>{{ $coinData->iso_code }} {{ $win->amount }}</td>
                                             <td>{{ $win->prize_type_description }}</td>
@@ -68,7 +68,7 @@
                                                         </button>
                                                     @endif
                                                     <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                                        href="{{ route('bingo.in-game', ['player' => $win->PlayerLink->link]) }}">
+                                                        href="{{ route('bingo.in-game', ['player' => $win->ExternalPlayers->link]) }}">
                                                         <i class="fa-solid fa-eye"></i>
                                                     </a>
                                                 </div>

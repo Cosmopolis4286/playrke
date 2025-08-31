@@ -28,14 +28,14 @@
                                         <tr>
                                             <td>{{ $win->Seller->name ?? 'No Aplica' }}</td>
                                             <td>
-                                                @if ($win->PlayerLink)
-                                                    {{ $win->PlayerLink->name }}
-                                                    {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}
+                                                @if ($win->ExternalPlayers)
+                                                    {{ $win->ExternalPlayers->name }}
+                                                    {{ strtoupper(substr($win->ExternalPlayers->lastname, 0, 1)) }}
                                                 @endif
                                             </td>
                                             <td>
-                                                @if ($win->PlayerLink)
-                                                    {{ $win->PlayerLink->Country->name }}
+                                                @if ($win->ExternalPlayers)
+                                                    {{ $win->ExternalPlayers->Country->name }}
                                                 @endif
                                             </td>
                                             <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
@@ -65,9 +65,9 @@
                                                             <i class="fa-solid fa-bell"></i>
                                                         </button>
                                                     @endif
-                                                    @if ($win->PlayerLink)
+                                                    @if ($win->ExternalPlayers)
                                                         <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                                            href="{{ route('bingo.in-game', ['player' => $win->PlayerLink->link]) }}">
+                                                            href="{{ route('bingo.in-game', ['player' => $win->ExternalPlayers->link]) }}">
                                                             <i class="fa-solid fa-eye"></i>
                                                         </a>
                                                     @endif

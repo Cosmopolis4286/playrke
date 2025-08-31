@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\User;
+namespace App\Repositories\User\Roles;
 
-use App\Models\Role;
+use App\Models\User\Roles\Role;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

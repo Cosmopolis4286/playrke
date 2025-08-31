@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BingoRoom;
 use App\Models\BingoCtns;
 use App\Models\BingoCtnsLot;
-use App\Models\PlayerLink;
+use App\Models\ExternalPlayers;
 use App\Models\Seller;
 use App\Models\DocumentType;
 use App\Traits\Helpers\EncryptTrait;
@@ -28,7 +28,7 @@ use App\Models\Wallet;
 use App\Services\Games\Bingo\HandleBingoRooms;
 use App\Services\Helpers\HandleExchangeRates;
 use App\Traits\Helpers\FiltersTrait;
-use App\Traits\Users\PlayerLinkTrait;
+use App\Traits\Users\ExternalPlayersTrait;
 use App\Traits\Users\UserValTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +41,7 @@ use Illuminate\Support\Facades\Validator;
 
 class SellerController extends Controller
 {
-    use EncryptTrait, BingoTrait, PlayerLinkTrait,  UserValTrait, FiltersTrait;
+    use EncryptTrait, BingoTrait, ExternalPlayersTrait,  UserValTrait, FiltersTrait;
 
     /**
      * Valida la solicitud para crear o actualizar un vendedor (Seller).
@@ -512,7 +512,7 @@ class SellerController extends Controller
             case 'BINGO':
                 $room = BingoRoom::getByEncrypted($request->room, ['id', 'room_type']);
 
-                $player = PlayerLink::select('room_user', 'name', 'lastname', 'country', 'phone', 'link')
+                $player = ExternalPlayers::select('room_user', 'name', 'lastname', 'country', 'phone', 'link')
                     ->where('phone', $request->player_info)->where('game', 1)->where('room', $room->id)->first();
 
                 if (!$player)  return response()->json(['response' => false]);
@@ -557,7 +557,7 @@ class SellerController extends Controller
     {
         $ctnId = decrypt($ctnId);
         $roomUser = BingoPrizeCtns::getValueById($ctnId, 'room_user');
-        $player = PlayerLink::getByRoomUser('BINGO', $roomUser, ['name', 'lastname', 'phone']);
+        $player = ExternalPlayers::getByRoomUser('BINGO', $roomUser, ['name', 'lastname', 'phone']);
 
         return json_encode(array(
             'name' => $player->name,
@@ -568,7 +568,7 @@ class SellerController extends Controller
 
     public function getPlayerInfo($playerLink) // Obtención de la información jugador
     {
-        $player = PlayerLink::where('link', $playerLink)
+        $player = ExternalPlayers::where('link', $playerLink)
             ->select(['type_id', 'identification', 'phone'])->first();
         if ($player) return json_encode($player);
     }
@@ -636,7 +636,7 @@ class SellerController extends Controller
             foreach ($allPendingCtns as $ctn) {
 
                 $ctnPrice = $ctn->Lot->sale_amount / $ctn->Lot->ctns;
-                $playerLink = PlayerLink::getValueByRoomUser('BINGO', $ctn->room_user, 'id');
+                $playerLink = ExternalPlayers::getValueByRoomUser('BINGO', $ctn->room_user, 'id');
 
                 $paymentToInsert[] = [
                     'payment' => 'SC',

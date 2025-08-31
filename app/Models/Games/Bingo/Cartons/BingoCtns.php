@@ -1,7 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Bingo\Cartons;
 
+use App\Models\Coins\Coin;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\User\Roles\Player\External\ExternalPlayers;
+use App\Models\User\Roles\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;
 
 class BingoCtns extends Model
@@ -59,12 +63,12 @@ class BingoCtns extends Model
 
     public function Room()
     {
-        return $this->belongsTo(BingoRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
-    public function PlayerLink()
+    public function ExternalPlayers()
     {
-        return $this->belongsTo(PlayerLink::class, 'room_user', 'room_user');
+        return $this->belongsTo(ExternalPlayers::class, 'room_user', 'room_user');
     }
 
     public function Lot()

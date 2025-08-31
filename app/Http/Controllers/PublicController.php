@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Settings;
+use App\Models\Settings\Settings;
 use Inertia\Inertia;
 use Inertia\Response;
 

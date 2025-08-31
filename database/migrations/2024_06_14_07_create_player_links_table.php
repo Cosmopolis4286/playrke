@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('player_links', function (Blueprint $table) {
+        Schema::create('external_players', function (Blueprint $table) {
             $table->id();
             $table->string('link', 25)->unique(); // Asegura que no haya links repetidos
 
@@ -44,6 +44,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('player_links');
+        Schema::dropIfExists('external_players');
     }
 };

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 // Models
 use App\Models\Customer;
 use App\Models\Role;
-use App\Repositories\User\RoleRepository;
+use App\Repositories\User\Roles\RoleRepository;
 // Traits
 use App\Traits\Users\CustomerTrait;
 use App\Traits\Users\UserValTrait;

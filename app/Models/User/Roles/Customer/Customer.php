@@ -3,6 +3,7 @@
 namespace App\Models\User\Roles\Customer;
 
 use App\Models\Countries\Country;
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model

@@ -16,10 +16,9 @@ class DatabaseSeeder extends Seeder
         // Llamar a todos los seeders necesarios
         $this->call([
             AmericanTimeZonesTableSeeder::class,
-            UserTypeSeeder::class,
             CountriesSeeder::class,
             CoinsSeeder::class,
-            BanksVenSeeder::class,
+            BanksVenezuelaSeeder::class,
             DocumentTypeSeeder::class,
             GamesSeeder::class,
             GameModesSeeder::class,
@@ -29,7 +28,8 @@ class DatabaseSeeder extends Seeder
             GamePrizePoolTypeSeeder::class,
             BingoPatternsSeeder::class,
             SettingsSeeder::class,
-            UsersSeeder::class
+            UsersSeeder::class,
+            RoleSeeder::class
         ]);
     }
 }

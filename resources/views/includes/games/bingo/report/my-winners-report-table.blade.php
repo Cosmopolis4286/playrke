@@ -33,8 +33,8 @@
                         @endif
                     </td>
                     <td>
-                        @if ($win->PlayerLink)
-                            {{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}
+                        @if ($win->ExternalPlayers)
+                            {{ $win->ExternalPlayers->name }} {{ strtoupper(substr($win->ExternalPlayers->lastname, 0, 1)) }}
                         @endif
                     </td>
                     <td>{{ $win->Coin->iso_code }}&nbsp{{ $win->amount }}</td>
@@ -61,9 +61,9 @@
                                     <i class="fa-solid fa-bell"></i>
                                 </button>
                             @endif
-                            @if ($win->PlayerLink)
+                            @if ($win->ExternalPlayers)
                                 <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                    href="{{ route('bingo.in-game', ['player' => $win->PlayerLink->link]) }}">
+                                    href="{{ route('bingo.in-game', ['player' => $win->ExternalPlayers->link]) }}">
                                     <i class="fa-solid fa-eye"></i>
                                 </a>
                             @endif

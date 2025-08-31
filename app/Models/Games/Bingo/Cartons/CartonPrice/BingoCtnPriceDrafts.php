@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Bingo\Cartons\CartonPrice;
 
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Rooms\BingoRoomAutomatic;
 use Illuminate\Database\Eloquent\Model;
 
 class BingoCtnPriceDrafts extends Model

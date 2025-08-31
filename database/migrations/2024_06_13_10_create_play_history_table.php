@@ -7,26 +7,26 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Ejecutar la migración: crear tabla 'play_history'.
      */
     public function up(): void
     {
         Schema::create('play_history', function (Blueprint $table) {
-            $table->id();
-            $table->date('date');
-            $table->string('time', 10);
-            $table->foreignId('game')->constrained('games')->onDelete('cascade');
-            $table->integer('room');
-            $table->string('coin', 8);
-            $table->double('gain');
-            $table->string('action', 15);
-            $table->foreignId('user')->constrained('users')->onDelete('cascade');
+            $table->id()->comment('ID del historial de juego');
+            $table->date('date')->comment('Fecha del juego');
+            $table->time('time')->comment('Hora del juego');
+            $table->foreignId('game_id')->constrained('games')->onUpdate('cascade')->onDelete('cascade')->comment('Juego asociado');
+            $table->unsignedBigInteger('room_id')->comment('Sala o room asociada');
+            $table->string('coin', 8)->comment('Moneda utilizada');
+            $table->decimal('gain', 12, 2)->comment('Ganancia obtenida');
+            $table->string('action', 15)->comment('Acción realizada');
+            $table->foreignId('user_id')->constrained('users')->onUpdate('cascade')->onDelete('cascade')->comment('Usuario que jugó');
             $table->timestamps();
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Revertir la migración: eliminar tabla 'play_history'.
      */
     public function down(): void
     {

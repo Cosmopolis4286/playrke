@@ -1,58 +1,39 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Payments\Methods\Brasil;
 
+use App\Enums\Payments\Methods\Brasil\PixKeyType;
+use App\Models\Banks\BanksBrasil;
 use Illuminate\Database\Eloquent\Model;
 
 class Pix extends Model
 {
     protected $table = "pix";
-    protected $fillable = ['name', 'bank', 'pix_key', 'pix_key_value', 'user'];
-    protected $appends = ['chave_pix'];
 
-    public const TYPES = [
-        ['id' => 1, 'value' => 'CPF'],
-        ['id' => 2, 'value' => 'Celular'],
-        ['id' => 3, 'value' => 'Email'],
-        ['id' => 4, 'value' => 'Chave aleatória'],
-        ['id' => 5, 'value' => 'CPNJ']
+    protected $fillable = [
+        'name',
+        'bank_id',
+        'pix_key',
+        'pix_key_value',
+        'user_id'
     ];
 
-    public function Bank()
+    protected $appends = ['chave_pix'];
+
+    /**
+     * Relación: un Pix pertenece a un banco en Brasil.
+     */
+    public function bank()
     {
-        return $this->belongsTo(BanksBrasil::class, 'bank');
+        return $this->belongsTo(BanksBrasil::class, 'bank_id');
     }
 
-    public function getChavePixAttribute()
+    /**
+     * Accessor: devuelve el nombre de la clave PIX.
+     */
+    public function getChavePixAttribute(): string
     {
-        $pixKey = collect(self::TYPES)->firstWhere('id', $this->pix_key);
-        return $pixKey['value'] ?? 'Desconocido';
-    }
-
-    public static function getPixKeys($excludeId = null)
-    {
-        if ($excludeId) {
-            return array_filter(self::TYPES, function ($type) use ($excludeId) {
-                return $type['id'] !== $excludeId;
-            });
-        }
-
-        return self::TYPES;
-    }
-
-    public static function getById($id, $fields = ['*'])
-    {
-        return self::select($fields)->where('id', $id)->first();
-    }
-
-    public static function getValuePixKey($pixKey)
-    {
-        return self::where('pix_key_value', $pixKey)->first();
-    }
-
-    public static function existsPixKey($pixKey, $pixKeyVal, $user = false)
-    {
-        return self::where([['pix_key', $pixKey], ['pix_key_value', $pixKeyVal]])
-            ->when($user, fn($query) => $query->where('user', '<>', $user))->exists();
+        $type = PixKeyType::tryFrom($this->pix_key);
+        return $type?->label() ?? 'Desconocido';
     }
 }

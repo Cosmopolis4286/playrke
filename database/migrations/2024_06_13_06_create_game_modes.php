@@ -7,26 +7,22 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
-     *
-     * @return void
+     * Ejecutar la migración: crear tabla 'game_modes'.
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('game_modes', function (Blueprint $table) {
-            $table->id();
-            $table->string('description', 20);
-            $table->boolean('status')->default(0);
+            $table->id()->comment('ID del modo de juego');
+            $table->string('description', 50)->comment('Descripción del modo de juego');
+            $table->boolean('status')->default(1)->comment('Estado activo/inactivo');
             $table->timestamps();
         });
     }
 
     /**
-     * Reverse the migrations.
-     *
-     * @return void
+     * Revertir la migración: eliminar tabla 'game_modes'.
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('game_modes');
     }

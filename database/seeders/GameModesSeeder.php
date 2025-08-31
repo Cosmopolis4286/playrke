@@ -2,23 +2,25 @@
 
 namespace Database\Seeders;
 
+use App\Models\Games\Shared\GameMode\GameModes;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class GameModesSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Ejecuta el seeder para poblar los modos de juego.
      *
      * @return void
      */
-    public function run()
+    public function run(): void
     {
-        // Insertar los datos en la tabla 'game_modes'
-        DB::table('game_modes')->insert([
-            ['id' => 1, 'description' => 'Online', 'status' => 1],
-            ['id' => 2, 'description' => 'Offline', 'status' => 1],
-            ['id' => 3, 'description' => 'Mixto', 'status' => 1]
-        ]);
+        $gameModes = [
+            ['description' => 'Online', 'status' => 1],
+            ['description' => 'Offline', 'status' => 1],
+            ['description' => 'Mixto', 'status' => 1],
+        ];
+
+        // Inserta todos los registros de manera masiva
+        GameModes::insert($gameModes);
     }
 }

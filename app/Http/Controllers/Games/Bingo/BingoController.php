@@ -38,7 +38,7 @@ use App\Models\GameConfig;
 use App\Models\GameModes;
 use App\Models\GameRules;
 use App\Models\Games;
-use App\Models\PlayerLink;
+use App\Models\ExternalPlayers;
 use App\Models\PlayHistory;
 use App\Models\PrizePoolType;
 use App\Models\Room;
@@ -49,7 +49,7 @@ use App\Models\UserPurchaseCodes;
 use App\Models\Role;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-use App\Repositories\User\RoleRepository;
+use App\Repositories\User\Roles\RoleRepository;
 // Services
 use App\Services\Games\Bingo\AutoGenerateBingoRooms;
 use App\Services\Games\Bingo\AutoGenerateBingoRoomsService;
@@ -421,7 +421,7 @@ class BingoController extends Controller
         $data['playerName'] = $request->name ?? null;
         $data['playerLastName'] = $request->last_name ?? null;
 
-        $roomUser = PlayerLink::select('id', 'name', 'lastname', 'link')
+        $roomUser = ExternalPlayers::select('id', 'name', 'lastname', 'link')
             ->where('game', 1)->where('room', $data['room'])
             ->where(function ($query) use ($playerPhone) {
                 $query->where('phone', $playerPhone);
@@ -533,7 +533,7 @@ class BingoController extends Controller
                 // Usuario Fuera de Sesion
                 if (!isset($data['isLogin'])) {
                     if (!isset($data['roomUser'])) $data['roomUser'] = $cartonStore;
-                    $data = $this->handlePlayerLink($data);
+                    $data = $this->handleExternalPlayers($data);
                 }
             }
 
@@ -654,7 +654,7 @@ class BingoController extends Controller
 
                 if (isset($data['playerLink'])) {
 
-                    $playerLink = PlayerLink::getByLink($data['playerLink'], ['room', 'room_user', 'country']);
+                    $playerLink = ExternalPlayers::getByLink($data['playerLink'], ['room', 'room_user', 'country']);
 
                     if (!$playerLink) return ['error' => 'Sala no encontrada'];
 
@@ -828,7 +828,7 @@ class BingoController extends Controller
     public function inGame($player, $room = '')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        $player = PlayerLink::getByLink($player, ['room', 'creator_user', 'link', 'coin']);
+        $player = ExternalPlayers::getByLink($player, ['room', 'creator_user', 'link', 'coin']);
 
         if (!$player) abort(404); // Retorna un error 404 Not Found
 
@@ -934,7 +934,7 @@ class BingoController extends Controller
 
     private function hasPurchasedCartons($phone)
     {
-        PlayerLink::where('phone', $phone)->first();
+        ExternalPlayers::where('phone', $phone)->first();
         return true;
     }
 
@@ -2514,9 +2514,9 @@ class BingoController extends Controller
         $playerLink = $request->playerLink;
         $randomChip = $request->random_chip_count ?? 4;
 
-        if (PlayerLink::where('link', $playerLink)->exists()) {
+        if (ExternalPlayers::where('link', $playerLink)->exists()) {
 
-            $player = PlayerLink::getByLink($playerLink, ['room', 'room_user']);
+            $player = ExternalPlayers::getByLink($playerLink, ['room', 'room_user']);
 
             $roomUser = ['roomUser' => $player->room_user, 'randomChip' => $randomChip];
 
@@ -2524,7 +2524,7 @@ class BingoController extends Controller
 
             return redirect()->back()->with('message', 'Carton Ganador Generado');
         } else {
-            return redirect()->back()->with('message', 'El PlayerLink no existe');
+            return redirect()->back()->with('message', 'El ExternalPlayers no existe');
         }
     }
 
@@ -3285,7 +3285,7 @@ class BingoController extends Controller
 
                 $sellerId = $userData['id'];
 
-                $playersRoom = PlayerLink::with([
+                $playersRoom = ExternalPlayers::with([
                     'CtnsLot' => function ($query) use ($sellerId, $coin) {
                         $query->select('room', 'room_user', 'coin', 'ctns', 'sale_amount', 'seller_commn')
                             ->where('seller', $sellerId)->where('coin', $coin);
@@ -3388,8 +3388,8 @@ class BingoController extends Controller
                 $ctnsSoldQuery = BingoCtnsLot::with([
                     'Room:id,encrypted,room_type,status',
                     'Payment:id,lot,payment_proof',
-                    'PlayerLink:id,room_user,name,lastname,country',
-                    'PlayerLink.Country:id,name'
+                    'ExternalPlayers:id,room_user,name,lastname,country',
+                    'ExternalPlayers.Country:id,name'
                 ])->whereHas('Room', function ($query) {
                     $query->whereIn('status', [2, 3, 4]);
                 });
@@ -3501,7 +3501,7 @@ class BingoController extends Controller
                     'Room:id,encrypted,room_type',
                     'Room.Config:id,room,date,time',
                     'Payments:prize_ctn,payment_proof',
-                    'PlayerLink.Country:id,name',
+                    'ExternalPlayers.Country:id,name',
                     'Seller.Commerce:id,name',
                     'Seller' => function ($query) {
                         $query->select('id', 'name', 'commerce_id');
@@ -3538,7 +3538,7 @@ class BingoController extends Controller
                 $winnersQuery = BingoPrizeCtns::with([
                     'Payments:prize_ctn,payment_proof',
                     'Room:id,encrypted,room_type',
-                    'PlayerLink.Country:id,name',
+                    'ExternalPlayers.Country:id,name',
                 ])->whereHas('Room', function ($query) {
                     $query->where('status', 4);
                 });
@@ -3643,7 +3643,7 @@ class BingoController extends Controller
                 $winnersQuery = BingoPrizeCtns::with([
                     'Room:id,encrypted,room_type',
                     'Room.Config:id,room,date,time',
-                    'PlayerLink.Country',
+                    'ExternalPlayers.Country',
                     'Payments',
                     'Seller.Commerce:id,name',
                     'Seller' => function ($query) {
@@ -3666,7 +3666,7 @@ class BingoController extends Controller
 
                 $winnersQuery = BingoPrizeCtns::with([
                     'Payments:prize_ctn,payment_proof',
-                    'PlayerLink.Country:id,name',
+                    'ExternalPlayers.Country:id,name',
                 ])->whereHas('Room', function ($query) {
                     $query->whereColumn('id', 'bingo_prize_ctns.room')->where('status', 4);
                 });

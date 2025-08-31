@@ -1,20 +1,24 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Bingo\Cartons;
 
+use App\Models\Coins\Coin;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\User\Roles\Player\External\ExternalPlayers;
+use App\Models\User\Roles\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;
 
 class BingoCtnsLot extends Model
 {
     protected $table = "bingo_ctns_lot";
     protected $fillable = [
-        'room',
+        'room_id',
         'creator_user',
-        'seller',
+        'seller_id',
         'player_user',
         'room_user',
         'ctns',
-        'coin',
+        'coin_id',
         'ctn_price',
         'exchange_rate',
         'sale_amount',
@@ -25,7 +29,7 @@ class BingoCtnsLot extends Model
     // Relación con la sala
     public function Room()
     {
-        return $this->belongsTo(BingoRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
     // Relación con la configuracion de la sala
@@ -37,25 +41,25 @@ class BingoCtnsLot extends Model
     // Relación con la moneda
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Coin::class, 'coin_id');
     }
 
     // Relación con el enlace del jugador
-    public function PlayerLink()
+    public function ExternalPlayers()
     {
-        return $this->belongsTo(PlayerLink::class, 'room_user', 'room_user');
+        return $this->belongsTo(ExternalPlayers::class, 'room_user', 'room_user');
     }
 
     // Relación con los cartones
     public function Ctns()
     {
-        return $this->hasMany(BingoCtns::class, 'lot', 'id');
+        return $this->hasMany(BingoCtns::class, 'lot_id');
     }
 
     // Relación con el vendedor
     public function Seller()
     {
-        return $this->belongsTo(Seller::class, 'seller');
+        return $this->belongsTo(Seller::class, 'seller_id');
     }
 
     // Relación con la sala de venta del vendedor

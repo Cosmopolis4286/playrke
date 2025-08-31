@@ -4,31 +4,35 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateWalletsTable extends Migration
+return new class extends Migration
 {
-    public function up()
+    /**
+     * Ejecutar la migración: crear tabla 'wallets'.
+     */
+    public function up(): void
     {
         Schema::create('wallets', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user');
-            $table->unsignedBigInteger('coin'); // Cambio de 'coin' a 'coin'
-            $table->decimal('balance', 10, 2)->default(0.00);
-            $table->decimal('usdt', 10, 2)->default(0.00);
+            $table->id()->comment('ID de la wallet');
+            $table->foreignId('user_id')
+                  ->constrained('users')
+                  ->cascadeOnUpdate()
+                  ->restrictOnDelete()
+                  ->comment('ID del usuario dueño de la wallet');
+            $table->foreignId('coin_id')
+                  ->constrained('coins')
+                  ->cascadeOnUpdate()
+                  ->cascadeOnDelete()
+                  ->comment('ID de la moneda asociada');
+            $table->decimal('balance', 15, 2)->default(0.00)->comment('Balance en moneda local');
             $table->timestamps();
-
-            // Claves foráneas
-            $table->foreign('user')->references('id')->on('users')->onDelete('restrict');
-            $table->foreign('coin')->references('id')->on('coins')->onDelete('cascade');
         });
     }
 
-    public function down()
+    /**
+     * Revertir la migración: eliminar tabla 'wallets'.
+     */
+    public function down(): void
     {
-        Schema::table('wallets', function (Blueprint $table) {
-            // Eliminar claves foráneas
-            $table->dropForeign(['user']);
-            $table->dropForeign(['coin']);
-        });
         Schema::dropIfExists('wallets');
     }
-}
+};

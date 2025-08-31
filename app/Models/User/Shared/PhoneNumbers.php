@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Shared;
 
+use App\Models\Countries\Country;
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 
 class PhoneNumbers extends Model

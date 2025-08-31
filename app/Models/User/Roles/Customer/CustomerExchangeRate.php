@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Customer;
 
+use App\Models\User\Roles\Commerce\Commerce;
 use Illuminate\Database\Eloquent\Model;
 
 class CustomerExchangeRate extends Model

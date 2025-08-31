@@ -37,8 +37,8 @@
                                                     {{ $ctn->Room->encrypted }}
                                                 </a>
                                             </td>
-                                            <td>{{ $ctn->PlayerLink->name }} {{ $ctn->PlayerLink->lastname }}</td>
-                                            <td>{{ $ctn->PlayerLink->Country->name }}</td>
+                                            <td>{{ $ctn->ExternalPlayers->name }} {{ $ctn->ExternalPlayers->lastname }}</td>
+                                            <td>{{ $ctn->ExternalPlayers->Country->name }}</td>
                                             <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
                                             <td>{{ $ctn->ctns }}</td>
                                             <td>{{ $coinData->iso_code }} {{ $ctn->sale_amount }}</td>

@@ -3,7 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Wallet;
+use App\Models\Wallets\Wallet;
+use App\Repositories\Coins\CoinRepository;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -32,10 +33,10 @@ class UsersSeeder extends Seeder
         // Asignar rol Admin usando Spatie
         $user->assignRole('admin'); // Puedes usar el nombre del rol o la instancia Role
 
+        // Obtener $coinId
+        $coinId = CoinRepository::getValueByISOCode('VES', 'id');
+
         // Crear monedero asociado
-        Wallet::create([
-            'coin' => 3,
-            'user_id' => $user->id,
-        ]);
+        Wallet::create(['coin' => $coinId, 'user_id' => $user->id]);
     }
 }

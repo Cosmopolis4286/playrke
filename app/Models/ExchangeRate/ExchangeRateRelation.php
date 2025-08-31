@@ -1,32 +1,44 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\ExchangeRate;
 
+use App\Models\Coins\Coin;
+use App\Models\User\Roles\Commerce\Commerce;
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 
 class ExchangeRateRelation extends Model
 {
     protected $table = "exchange_rate_relation";
-    protected $fillable = ['coin', 'status', 'commerce_id', 'user'];
 
-    public function Coin()
+    protected $fillable = [
+        'coin_id',
+        'status',
+        'commerce_id',
+        'user_id'
+    ];
+
+    /**
+     * Relación: la relación pertenece a una moneda.
+     */
+    public function coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Coin::class, 'coin_id');
     }
 
-    public function Commerce()
+    /**
+     * Relación: la relación pertenece a un comercio.
+     */
+    public function commerce()
     {
         return $this->belongsTo(Commerce::class, 'commerce_id');
     }
 
-    public function User()
+    /**
+     * Relación: la relación pertenece a un usuario.
+     */
+    public function user()
     {
-        return $this->belongsTo(User::class, 'user');
-    }
-
-    public static function allowedCurrenciesByCommerce($user, $commerce)
-    {
-        return self::select('coin')->where('user', $user)
-            ->where('commerce_id', $commerce)->distinct()->pluck('coin')->toArray();
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

@@ -1,21 +1,27 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User\Roles\Player\External;
 
+use App\Models\Coins\Coin;
+use App\Models\Countries\Country;
+use App\Models\Games\Shared\Games;
+use App\Models\User\Roles\Commerce\Commerce;
+use App\Models\User\Roles\Seller\Seller;
+use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 
-class PlayerLink extends Model
+class ExternalPlayers extends Model
 {
-  protected $table = "player_links";
+  protected $table = "external_players";
   protected $fillable = [
-    'game',
-    'room',
+    'game_id',
+    'room_id',
     'creator_user',
-    'seller',
+    'seller_id',
     'room_user',
     'link',
-    'country',
-    'coin',
+    'country_id',
+    'coin_id',
     'name',
     'lastname',
     'identification',
@@ -25,7 +31,7 @@ class PlayerLink extends Model
 
   public function Game()
   {
-    return $this->belongsTo(Games::class, 'game');
+    return $this->belongsTo(Games::class, 'game_id');
   }
 
   public function CreatorUser()
@@ -40,12 +46,7 @@ class PlayerLink extends Model
 
   public function Coin()
   {
-    return $this->belongsTo(Coin::class, 'coin');
-  }
-
-  public function GameExchangeRate()
-  {
-    return $this->hasMany(GameExchangeRate::class, 'room', 'room');
+    return $this->belongsTo(Coin::class, 'coin_id');
   }
 
   public function Commerce()
@@ -55,7 +56,7 @@ class PlayerLink extends Model
 
   public function Seller()
   {
-    return $this->belongsTo(Seller::class, 'seller');
+    return $this->belongsTo(Seller::class, 'seller_id');
   }
 
   public function CtnsLot()

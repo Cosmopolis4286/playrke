@@ -25,9 +25,9 @@ class CommerceCountriesCoins extends Model
         return $this->belongsTo(Coin::class, 'coin');
     }
 
-    public function PlayerLink()
+    public function ExternalPlayers()
     {
-        return $this->hasMany(PlayerLink::class, 'creator_user', 'creator_user');
+        return $this->hasMany(ExternalPlayers::class, 'creator_user', 'creator_user');
     }
 
     public function CtnsLot()

@@ -26,7 +26,7 @@
                     <td>{{ $win->Room->room_type_description }}</td>
                     <td>{{ $win->round }}</td>
                     <td>{{ $win->Seller->Commerce->name }}</td>
-                    <td>{{ $win->PlayerLink->name }} {{ strtoupper(substr($win->PlayerLink->lastname, 0, 1)) }}</td>
+                    <td>{{ $win->ExternalPlayers->name }} {{ strtoupper(substr($win->ExternalPlayers->lastname, 0, 1)) }}</td>
                     <td>{{ $win->Coin->iso_code }} {{ $win->amount }}</td>
                     <td>{{ $win->prize_type_description }}</td>
                     <td>
@@ -41,7 +41,7 @@
                     <td>
                         <div class="btn-group" role="group" aria-label="Acciones">
                             <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                href="{{ route('bingo.in-game', ['player' => $win->PlayerLink->link]) }}">
+                                href="{{ route('bingo.in-game', ['player' => $win->ExternalPlayers->link]) }}">
                                 <i class="fa-solid fa-eye"></i>
                             </a>
                         </div>

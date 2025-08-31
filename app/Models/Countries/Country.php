@@ -2,50 +2,34 @@
 
 namespace App\Models\Countries;
 
+use App\Models\User\Roles\Player\External\ExternalPlayers;
+use App\Models\User\Roles\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;
 
 class Country extends Model
 {
     protected $table = "countries";
-    protected $fillable = ['name', 'iso_code_2', 'iso_code_3', 'status'];
 
-    public function Seller()
+    protected $fillable = [
+        'name',
+        'iso_code_2',
+        'iso_code_3',
+        'status'
+    ];
+
+    /**
+     * Relación: un país tiene muchos vendedores.
+     */
+    public function sellers()
     {
-        return $this->hasMany(Seller::class, 'id', 'country');
+        return $this->hasMany(Seller::class, 'country_id');
     }
 
-    public function Player()
+    /**
+     * Relación: un país tiene muchos jugadores externos.
+     */
+    public function externalPlayers()
     {
-        return $this->hasMany(PlayerLink::class, 'id', 'country');
-    }
-
-    public static function getById($id, $fields = ['*'])
-    {
-        return self::select($fields)->where('id', $id)->first();
-    }
-
-    public static function getCountriesById($arr, $fields = ['*'])
-    {
-        return self::select($fields)->whereIn('id', $arr)->get();
-    }
-
-    public static function getValue($id, $value)
-    {
-        return self::where('id', $id)->value($value);
-    }
-
-    public static function getAllAvailableCountries($fields = ['*'])
-    {
-        return self::select($fields)->where('status', 1)->get();
-    }
-
-    public static function getCountryByIsoCode($isoCode, $number = '2')
-    {
-        return self::where('iso_code_' . $number, strtoupper($isoCode))->first();
-    }
-
-    public static function getCountries($arr, $fields = ['*'])
-    {
-        return self::select($fields)->where('status', 1)->whereIn('id', $arr)->get();
+        return $this->hasMany(ExternalPlayers::class, 'country_id');
     }
 }
