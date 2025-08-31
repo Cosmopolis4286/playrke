@@ -4,7 +4,7 @@ namespace App\Services\Auth;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use App\Repositories\User\UserTypeRepository;
+use App\Repositories\User\RoleRepository;
 
 /**
  * Servicio centralizado para validar permisos de usuario.
@@ -66,7 +66,7 @@ class PermissionService
             return false;
         }
 
-        $userPrefix = UserTypeRepository::getValueById($user->user_type, 'prefix');
+        $userPrefix = RoleRepository::getValueById($user->user_type, 'prefix');
 
         return is_array($prefixes)
             ? in_array($userPrefix, $prefixes, true)

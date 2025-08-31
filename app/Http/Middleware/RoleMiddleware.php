@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Repositories\User\UserTypeRepository;
+use App\Repositories\User\RoleRepository;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,16 +15,16 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class RoleMiddleware
 {
-    protected UserTypeRepository $userTypeRepository;
+    protected RoleRepository $RoleRepository;
 
     /**
      * Constructor del middleware.
      *
-     * @param UserTypeRepository $userTypeRepository
+     * @param RoleRepository $RoleRepository
      */
-    public function __construct(UserTypeRepository $userTypeRepository)
+    public function __construct(RoleRepository $RoleRepository)
     {
-        $this->userTypeRepository = $userTypeRepository;
+        $this->RoleRepository = $RoleRepository;
     }
 
     /**
@@ -45,7 +45,7 @@ class RoleMiddleware
         }
 
         // Validar que el tipo de usuario exista
-        $userTypePrefix = $this->userTypeRepository->getValueById($user->user_type, 'prefix');
+        $userTypePrefix = $this->RoleRepository->getValueById($user->user_type, 'prefix');
         if (!$userTypePrefix) {
             Auth::logout(); // Cierra sesión si tipo inválido
             return redirect()->route('login')->with('error', 'Usuario inválido.');
@@ -54,7 +54,7 @@ class RoleMiddleware
         // Definir Gates dinámicamente si no existen aún
         foreach ($roles as $role) {
             if (!Gate::has($role)) {
-                Gate::define($role, fn($user) => $this->userTypeRepository->getValueById($user->user_type, 'prefix') === $role);
+                Gate::define($role, fn($user) => $this->RoleRepository->getValueById($user->user_type, 'prefix') === $role);
             }
         }
 

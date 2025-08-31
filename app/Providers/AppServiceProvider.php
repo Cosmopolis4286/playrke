@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Repositories\User\UserTypeRepository;
+use App\Repositories\User\RoleRepository;
 use App\Services\Games\Room\RoomTypeService;
 use App\Services\RouteService;
 use Illuminate\Support\ServiceProvider;
@@ -39,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
 
             if (Auth::check()) {
                 $userTypeId = Auth::user()->user_type;
-                $prefix = UserTypeRepository::getValueById($userTypeId, 'prefix');
+                $prefix = RoleRepository::getValueById($userTypeId, 'prefix');
             }
 
             $view->with('creatorTypePrefix', $prefix);

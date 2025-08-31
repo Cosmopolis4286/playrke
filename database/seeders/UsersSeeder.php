@@ -11,10 +11,9 @@ class UsersSeeder extends Seeder
 {
     public function run(): void
     {
-        // Registra el Usuario Admin
-        $userId = User::create([
+        // Crear el usuario Admin
+        $user = User::create([
             'username' => 'admin',
-            'user_type' => 2,
             'first_name' => 'Play',
             'last_name' => 'RKE',
             'country' => 3,
@@ -23,14 +22,20 @@ class UsersSeeder extends Seeder
             'phone' => null,
             'email' => 'admin@playrke.com',
             'email_verified_at' => now(),
-            'password' => Hash::make('EHC-4286-RKE'), // Contraseña encriptada
+            'password' => Hash::make('EHC-4286-RKE'),
             'remember_token' => null,
             'referral_code' => 'ABC123XYZ456',
             'referred_by' => null,
-            'status' => 1
-        ])->id;
+            'status' => 1,
+        ]);
 
-        // Registra Monedero
-        Wallet::create(['coin' => 3, 'user' => $userId]);
+        // Asignar rol Admin usando Spatie
+        $user->assignRole('admin'); // Puedes usar el nombre del rol o la instancia Role
+
+        // Crear monedero asociado
+        Wallet::create([
+            'coin' => 3,
+            'user' => $user->id,
+        ]);
     }
 }

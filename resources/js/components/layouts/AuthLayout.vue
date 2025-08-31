@@ -1,29 +1,19 @@
-<!-- resources/js/Components/Layouts/AuthLayout.vue -->
 <template>
     <main id="containerFirst">
-        <img id="bgImg" src="/img/body/wall9.jpg" alt="Background" />
-
+        <img id="bgImg" :src="bgImg" alt="Background" />
         <div id="containerRKE">
-            <LoginLogo />
-
-            <!-- Inyección del formulario -->
-            <div class="container-form">
-                <slot name="form" />
-            </div>
-
-            <FooterLinks>
-                <template #pre-footer>
-                    <slot name="pre-footer" />
-                </template>
-            </FooterLinks>
+            <AuthLogo />
+            <slot /> <!-- Aquí va el contenido principal (LoginForm) -->
+            <AuthFooter>
+                <slot name="pre-footer" />
+            </AuthFooter>
         </div>
     </main>
 </template>
 
 <script setup lang="ts">
-import LoginLogo from '@/components/auth/shared/Logo.vue'
-import FooterLinks from '@/components/auth/shared/FooterLinks.vue'
+import AuthLogo from '@/Components/Auth/Shared/AuthLogo.vue'
+import AuthFooter from '@/Components/Auth/Shared/AuthFooter.vue'
 
-// 👇 Asignamos un nombre explícito al componente
-defineOptions({ name: 'AuthLayout' })
+const bgImg = new URL('/img/body/wall9.jpg', import.meta.url).href
 </script>

@@ -49,7 +49,7 @@ use App\Models\UserPurchaseCodes;
 use App\Models\UserType;
 use App\Models\UUIDCodes;
 use App\Models\Wallet;
-use App\Repositories\User\UserTypeRepository;
+use App\Repositories\User\RoleRepository;
 // Services
 use App\Services\Games\Bingo\AutoGenerateBingoRooms;
 use App\Services\Games\Bingo\AutoGenerateBingoRoomsService;
@@ -885,7 +885,7 @@ class BingoController extends Controller
         $creatorUser = $code->user;
 
         $creator = [
-            'type' => UserTypeRepository::getValueById($code->user_type, 'prefix'),
+            'type' => RoleRepository::getValueById($code->user_type, 'prefix'),
             'id' => User::getCreatorUser($creatorUser),
             'userId' => $creatorUser
         ];
@@ -1792,7 +1792,7 @@ class BingoController extends Controller
         } else {
             $user = Auth::id();
             $userTypeID = User::getValueById($user, 'user_type');
-            $userType = UserTypeRepository::getValueById($userTypeID, 'prefix');
+            $userType = RoleRepository::getValueById($userTypeID, 'prefix');
         }
 
         if (!in_array($userType, ['admin', 'commerce', 'customer'])) {
@@ -2052,7 +2052,7 @@ class BingoController extends Controller
         $creatorUserID = BingoRoom::getValueById($roomId, 'creator_user');
         $userType = User::getValueById($creatorUserID, 'user_type');
 
-        $creatorType = UserTypeRepository::getValueById($userType, 'prefix');
+        $creatorType = RoleRepository::getValueById($userType, 'prefix');
 
         if ($creatorType === 'commerce') {
             $bingoCreator = BingoCreator::existsByRoomCreatorUser($roomId, $creatorUserID);
@@ -2195,7 +2195,7 @@ class BingoController extends Controller
         } else {
             $user = Auth::id();
             $userTypeID = User::getValueById($user, 'user_type');
-            $userType = UserTypeRepository::getValueById($userTypeID, 'prefix');
+            $userType = RoleRepository::getValueById($userTypeID, 'prefix');
         }
 
         if (!in_array($userType, ['admin', 'commerce', 'customer'])) {

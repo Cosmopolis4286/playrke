@@ -1,4 +1,4 @@
-@extends('layouts.layout-external')
+@extends('layouts.auth-layout')
 @section('title', 'Tu Sitio Para Ganar')
 
 @section('content')

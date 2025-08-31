@@ -3,22 +3,39 @@
 namespace App\Http\Controllers;
 
 use App\Models\Settings;
+use Inertia\Inertia;
+use Inertia\Response;
 
+/**
+ * Controlador de páginas públicas
+ *
+ * Maneja la página de login y páginas de información estática.
+ */
 class PublicController extends Controller
 {
     /**
      * Página de inicio / login con estado de registro
+     *
+     * @return Response
      */
-    public function root()
+    public function root(): Response
     {
         $register = Settings::getStatus('REGISTER');
-        return view('auth.login', compact('register'));
+
+        // Renderiza la página Login como componente Vue/Inertia
+        return Inertia::render('Auth/Login', [
+            'register' => $register,
+            'passwordRequestUrl' => route('password.request'),
+        ]);
     }
 
     /**
-     * Páginas de información estática
+     * Páginas de información estática (terms, about, privacy)
+     *
+     * @param string $page
+     * @return Response
      */
-    public function info($page)
+    public function info(string $page): Response
     {
         $allowed = ['terms', 'about', 'privacy'];
 
@@ -26,6 +43,9 @@ class PublicController extends Controller
             abort(404);
         }
 
-        return view("includes.info.$page");
+        // Renderiza página estática usando componente Vue/Inertia
+        return Inertia::render('Info/StaticPage', [
+            'page' => $page,
+        ]);
     }
 }

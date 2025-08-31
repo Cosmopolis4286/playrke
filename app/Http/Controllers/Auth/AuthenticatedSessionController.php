@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\{Coin, Country, Settings};
-use App\Repositories\User\UserTypeRepository;
+use App\Repositories\User\RoleRepository;
 
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,7 +39,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $country = Auth::user()->country;
-        $userType = UserTypeRepository::getValueById(Auth::user()->user_type, 'prefix');
+        $userType = RoleRepository::getValueById(Auth::user()->user_type, 'prefix');
 
         $isoCode = Country::getValue($country, 'iso_code_2');
         $coin = encrypt(Coin::getValueByCountry($country, 'id'));

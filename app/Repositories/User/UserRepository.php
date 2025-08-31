@@ -2,9 +2,9 @@
 
 namespace App\Repositories\User;
 
-use App\Models\User;
-use App\Models\UserType;
+use App\Models\{User, Role};
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repositorio para manejar operaciones de consulta relacionadas con usuarios.
@@ -57,45 +57,85 @@ class UserRepository
     public static function generateUniqueReferralCode(): string
     {
         do {
-            $code = Str::random(12);
+            $code = Str::random(16);
         } while (User::where('referral_code', $code)->exists());
 
         return $code;
     }
 
     /**
-     * Obtener el prefijo del tipo de usuario de un usuario.
+     * Obtener todos los roles de un usuario.
      *
      * @param int $userId
-     * @return string|null
+     * @return Collection<int, Role>
      */
-    public static function getUserTypePrefix(int $userId): ?string
+    public static function getRoles(int $userId): Collection
     {
-        $userTypeId = self::getValueById($userId, 'user_type');
-        return $userTypeId ? UserType::where('id', $userTypeId)->value('prefix') : null;
+        $user = User::find($userId);
+        return $user ? $user->roles : collect();
     }
 
     /**
-     * Obtener el "creator" asociado a un usuario.
+     * Verificar si un usuario tiene un rol específico por prefijo.
      *
      * @param int $userId
-     * @param string|bool|null $userType
-     * @param bool $returnFull
-     * @return int|array|null
+     * @param string $rolePrefix
+     * @return bool
      */
-    public static function getCreatorUser(int $userId, $userType = false, bool $returnFull = false): mixed
+    public static function hasRole(int $userId, string $rolePrefix): bool
     {
-        if (!$userType) {
-            $userType = self::getUserTypePrefix($userId);
+        $user = User::find($userId);
+        return $user ? $user->roles->contains(fn($role) => $role->prefix === $rolePrefix) : false;
+    }
+
+    /**
+     * Obtener las entidades asociadas a un usuario según sus roles (commerce, seller, etc.).
+     *
+     * @param int $userId
+     * @return array<string, mixed>
+     */
+    public static function getEntities(int $userId): array
+    {
+        $user = User::with(['roles', 'commerce', 'seller'])->find($userId);
+        if (!$user) return [];
+
+        $entities = [];
+        foreach ($user->roles as $role) {
+            $entities[$role->prefix] = match ($role->prefix) {
+                'commerce' => $user->commerce,
+                'seller'   => $user->seller,
+                default    => null,
+            };
         }
 
-        $prefix = UserType::where('id', $userType)->value('prefix');
-        $modelName = ucfirst(is_string($userType) ? $userType : $prefix);
+        return $entities;
+    }
 
-        $creatorId = app("App\\Models\\$modelName")::where('user', $userId)->value('id');
+    /**
+     * Obtener el "creator" asociado a un usuario según un rol específico.
+     *
+     * @param int $userId
+     * @param string|null $rolePrefix Prefijo del rol
+     * @param bool $returnFull Retornar array con más detalles
+     * @return int|array|null
+     */
+    public static function getCreatorUser(int $userId, string|null $rolePrefix = null, bool $returnFull = false): mixed
+    {
+        $entities = self::getEntities($userId);
+
+        if ($rolePrefix && isset($entities[$rolePrefix])) {
+            $entity = $entities[$rolePrefix];
+        } else {
+            $entity = count($entities) > 0 ? reset($entities) : null;
+            $rolePrefix = $rolePrefix ?? key($entities);
+        }
+
+        if (!$entity) return null;
+
+        $creatorId = $entity->id;
 
         return $returnFull
-            ? ['type' => $userType, 'id' => $creatorId, 'userId' => $userId]
+            ? ['type' => $rolePrefix, 'id' => $creatorId, 'userId' => $userId]
             : $creatorId;
     }
 }

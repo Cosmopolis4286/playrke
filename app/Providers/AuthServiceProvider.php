@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
-use App\Repositories\User\UserTypeRepository;
+use App\Repositories\User\RoleRepository;
 use Illuminate\Support\Facades\App;
 
 class AuthServiceProvider extends ServiceProvider
@@ -25,8 +25,8 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // Definir Gates dinámicamente usando UserTypeRepository
-        $userTypeRepo = App::make(UserTypeRepository::class);
+        // Definir Gates dinámicamente usando RoleRepository
+        $userTypeRepo = App::make(RoleRepository::class);
 
         // Gate para admin
         Gate::define('admin', fn($user) => $userTypeRepo->getValueById($user->user_type, 'prefix') === 'admin');

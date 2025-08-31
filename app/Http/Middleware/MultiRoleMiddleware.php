@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Repositories\User\UserTypeRepository;
+use App\Repositories\User\RoleRepository;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,16 +16,16 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class MultiRoleMiddleware
 {
-    protected UserTypeRepository $userTypeRepository;
+    protected RoleRepository $RoleRepository;
 
     /**
      * Constructor del middleware.
      *
-     * @param UserTypeRepository $userTypeRepository
+     * @param RoleRepository $RoleRepository
      */
-    public function __construct(UserTypeRepository $userTypeRepository)
+    public function __construct(RoleRepository $RoleRepository)
     {
-        $this->userTypeRepository = $userTypeRepository;
+        $this->RoleRepository = $RoleRepository;
     }
 
     /**
@@ -46,7 +46,7 @@ class MultiRoleMiddleware
         }
 
         // 2. Validar que el tipo de usuario exista y obtener todos sus roles
-        $userRoles = $this->userTypeRepository->getRolesByUserId($user->id);
+        $userRoles = $this->RoleRepository->getRolesByUserId($user->id);
 
         if (empty($userRoles)) {
             Auth::logout();

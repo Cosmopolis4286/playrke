@@ -6,16 +6,16 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Modelo User
  *
  * Representa a un usuario dentro del sistema, con soporte para relaciones
- * hacia otros modelos como Commerce, Seller, UserType, etc., y empresas (multiempresa).
+ * hacia otros modelos como Commerce, Seller, Roles, etc., y empresas (multiempresa).
  *
  * @property int         $id
  * @property string      $username
- * @property int         $user_type
  * @property string      $first_name
  * @property string      $last_name
  * @property string      $password
@@ -27,14 +27,14 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $referral_code
  * @property int|null    $referred_by
  * @property \DateTime|null $email_verified_at
- * @property-read string|null $user_type_description
+ * @property-read string  $full_name
  *
- * @property-read \App\Models\UserType|null $userType
- * @property-read \App\Models\User|null     $referredBy
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Role[] $roles
+ * @property-read \App\Models\User|null $referredBy
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\User[] $referrals
- * @property-read \App\Models\Country|null  $countryRelation
+ * @property-read \App\Models\Country|null $country
  * @property-read \App\Models\Commerce|null $commerce
- * @property-read \App\Models\Seller|null   $seller
+ * @property-read \App\Models\Seller|null $seller
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Company[] $companies
  */
 class User extends Authenticatable implements MustVerifyEmail
@@ -44,10 +44,8 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $table = "users";
     protected $primaryKey = 'id';
 
-    /** @var array<int,string> */
     protected $fillable = [
         'username',
-        'user_type',
         'first_name',
         'last_name',
         'password',
@@ -61,38 +59,29 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at',
     ];
 
-    /** @var array<int,string> */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    protected $hidden = ['password', 'remember_token'];
 
-    /** @var array<string,string> */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-    ];
+    protected $casts = ['email_verified_at' => 'datetime'];
 
-    /** @var array<int,string> */
-    protected $appends = ['user_type_description'];
+    protected $appends = ['full_name'];
 
     /* ========================
-     |   Relaciones
+     | Relaciones
      |======================== */
 
     /**
-     * Relación con el tipo de usuario.
+     * Roles del usuario (múltiples).
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * @return BelongsToMany
      */
-    public function userType()
+    public function roles(): BelongsToMany
     {
-        return $this->belongsTo(UserType::class, 'user_type');
+        return $this->belongsToMany(Role::class, 'role_user')
+            ->withTimestamps();
     }
 
     /**
-     * Relación con el usuario que lo refirió.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * Usuario que lo refirió.
      */
     public function referredBy()
     {
@@ -100,9 +89,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Relación con los usuarios referidos por este usuario.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * Usuarios referidos por este usuario.
      */
     public function referrals()
     {
@@ -111,58 +98,63 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Relación con el país.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function countryRelation()
+    public function country()
     {
         return $this->belongsTo(Country::class, 'country');
     }
 
     /**
      * Relación con el comercio asociado.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function commerce()
     {
-        return $this->belongsTo(Commerce::class, 'id', 'user');
+        return $this->hasOne(Commerce::class, 'user_id');
     }
 
     /**
      * Relación con el vendedor asociado.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function seller()
     {
-        return $this->belongsTo(Seller::class, 'id', 'user');
+        return $this->hasOne(Seller::class, 'user_id');
     }
 
     /**
-     * Relación con las empresas a las que pertenece el usuario.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     * Empresas a las que pertenece el usuario.
      */
     public function companies()
     {
-        // Con pivot role_id para indicar el rol del usuario dentro de la empresa
         return $this->belongsToMany(Company::class)
-            ->withPivot('role_id') // opcional: rol específico por empresa
+            ->withPivot('role_id')
             ->withTimestamps();
     }
 
     /* ========================
-     |   Accessors
+     | Accessors
      |======================== */
 
     /**
-     * Obtener la descripción del tipo de usuario.
-     *
-     * @return string|null
+     * Nombre completo del usuario.
      */
-    public function getUserTypeDescriptionAttribute(): ?string
+    public function getFullNameAttribute(): string
     {
-        return optional($this->userType)->description;
+        return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    /**
+     * Obtener las entidades asociadas según los roles (commerce, seller, etc.).
+     */
+    public function entities(): array
+    {
+        $entities = [];
+        foreach ($this->roles as $role) {
+            $entities[$role->prefix] = match ($role->prefix) {
+                'commerce' => $this->commerce,
+                'seller'   => $this->seller,
+                default    => null,
+            };
+        }
+        return $entities;
     }
 }
