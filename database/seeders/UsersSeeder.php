@@ -35,7 +35,7 @@ class UsersSeeder extends Seeder
         // Crear monedero asociado
         Wallet::create([
             'coin' => 3,
-            'user' => $user->id,
+            'user_id' => $user->id,
         ]);
     }
 }

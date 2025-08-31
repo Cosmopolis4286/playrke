@@ -18,7 +18,7 @@ class RoleSeeder extends Seeder
      * @var array<int,array<string,mixed>>
      */
     protected array $roles = [
-        ['name' => 'Jugador',    'prefix' => 'user',       'description' => 'Jugador del sistema',    'status' => 1],
+        ['name' => 'Jugador',    'prefix' => 'player',     'description' => 'Jugador/Usuario del sistema',    'status' => 1],
         ['name' => 'Admin',      'prefix' => 'admin',      'description' => 'Administrador',         'status' => 1],
         ['name' => 'Comercio',   'prefix' => 'commerce',   'description' => 'Comercio',              'status' => 1],
         ['name' => 'Sucursal',   'prefix' => 'subsidiary', 'description' => 'Sucursal de un comercio', 'status' => 1],

@@ -14,7 +14,7 @@ use App\Models\Seller;
 use App\Models\SellerCountriesCoins;
 use App\Models\Treasurer;
 use App\Models\User;
-use App\Models\UserType;
+use App\Models\Role;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

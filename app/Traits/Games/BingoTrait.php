@@ -30,7 +30,7 @@ use App\Models\Games;
 use App\Models\PlayerLink;
 use App\Models\Seller;
 use App\Models\User;
-use App\Models\UserType;
+use App\Models\Role;
 use App\Models\Wallet;
 
 // Services

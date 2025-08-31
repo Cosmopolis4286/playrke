@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+{
+	protected $table = 'pago_movil';
+	protected $fillable = ['document_type', 'document', 'phone', 'bank', 'user'];
+
+	public function User()
+	{
+		return $this->belongsTo(User::class, 'user');
+	}
+
+	public function DocumentType()
+	{
+		return $this->belongsTo(DocumentType::class, 'document_type');
+	}
+
+	public function Bank()
+	{
+		return $this->belongsTo(BanksVenezuela::class, 'bank');
+	}
+
+	public static function getUserByPagoMovil($documentType, $document, $bank, $phone)
+	{
+		return self::where('document_type', $documentType)->where('document', $document)
+			->where('bank', $bank)->where('phone', $phone)->value('user');
+	}
+
+	public static function existsPagoMovil($documentType, $document, $bank, $phone, $user = false)
+	{
+		return self::where([
+			['document_type', $documentType],
+			['document', $document],
+			['bank', $bank],
+			['phone', $phone]
+		])->when($user, fn($query) => $query->where('user', '<>', $user))->exists();
+	}
+}
