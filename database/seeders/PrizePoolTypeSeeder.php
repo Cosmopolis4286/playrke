@@ -2,23 +2,30 @@
 
 namespace Database\Seeders;
 
+use App\Models\Games\Shared\PrizePool\PrizePoolType;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class PrizePoolTypeSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Ejecuta el seeder para poblar la tabla 'prize_pool_types' con los tipos de pool de premios.
      *
      * @return void
      */
-    public function run()
+    public function run(): void
     {
-        // Insertar los datos en la tabla 'prize_pool_types'
-        DB::table('prize_pool_types')->insert([
-            ['id' => 1, 'description' => 'Acumulativo'],
-            ['id' => 2, 'description' => 'Premio'],
-            ['id' => 3, 'description' => 'Mixto']
-        ]);
+        $entries = [
+            ['description' => 'Acumulativo'],
+            ['description' => 'Premio'],
+            ['description' => 'Mixto'],
+        ];
+
+        // Inserta o actualiza los registros para evitar duplicados
+        foreach ($entries as $entry) {
+            PrizePoolType::updateOrCreate(
+                ['description' => $entry['description']],
+                $entry
+            );
+        }
     }
 }

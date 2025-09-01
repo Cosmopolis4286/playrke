@@ -17,7 +17,7 @@ class CreateBingoRoomConfigTable extends Migration
             $table->id();
             $table->unsignedBigInteger('room');
             $table->enum('creation', ['M', 'A'])->default('M');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('game_mode');
             $table->enum('in_live', ['Y', 'N'])->default('N');
             $table->date('date');

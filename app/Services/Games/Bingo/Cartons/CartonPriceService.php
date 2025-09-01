@@ -24,7 +24,7 @@ class CartonPriceService
             BingoCtnPrice::updateOrCreate(
                 ['room' => $roomId, 'coin' => $coin],
                 [
-                    'creator_user' => $draft->creator_user,
+                    'creator_user_id' => $draft->creator_user,
                     'ctn_price' => $prices[$index] ?? 0
                 ]
             );

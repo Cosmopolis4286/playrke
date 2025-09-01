@@ -8,26 +8,22 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('settings', function (Blueprint $table) {
             $table->id();
-            $table->string('param', 35);
-            $table->string('param_value', 50)->nullable();
+            $table->string('param', 50)->unique(); // Más claro y único para evitar duplicados
+            $table->string('value', 100)->nullable();
             $table->boolean('status')->default(1);
-            $table->timestamps();
+            $table->timestamps(); // created_at y updated_at
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('settings');
     }

@@ -100,7 +100,7 @@ class BingoController extends Controller
                 $q->select('id', 'room'),
             'Config:room,unix_date'
         ])->select('id', 'encrypted', 'status')
-            ->where('creator_user', decrypt($creatorUser))
+            ->where('creator_user_id', decrypt($creatorUser))
             ->whereIn('status', [2, 3])->get();
 
         return [
@@ -182,7 +182,7 @@ class BingoController extends Controller
                 $query->select('room', 'game_mode', 'prize_pool_type', 'date', 'time', 'coin', 'ctn_price');
             },
             'CtnPrice' => function ($query) use ($creatorUser, $coin) {
-                $query->where('creator_user', $creatorUser)
+                $query->where('creator_user_id', $creatorUser)
                     ->where('coin', $coin);
             },
             'PlayersRoom' => function ($query) use ($playerUser) {
@@ -198,7 +198,7 @@ class BingoController extends Controller
                 'ctns',
                 'encrypted'
             )
-            ->where('creator_user', $creatorUser)
+            ->where('creator_user_id', $creatorUser)
             ->where('room_type', $roomType)
             ->whereHas('Config', function ($query) {
                 $query->whereIn('game_mode', [1, 3])
@@ -607,7 +607,7 @@ class BingoController extends Controller
 
                 // Obtener informacion de Sala
                 $room = BingoRoom::select('id', 'status')
-                    ->where('creator_user', $creatorUser)
+                    ->where('creator_user_id', $creatorUser)
                     ->where('encrypted', $data['room'])
                     ->whereIn('status', [2, 3, 4])->first();
 
@@ -707,7 +707,7 @@ class BingoController extends Controller
                     'coinsAvailable' => $coinsAvailable ?? []
                 ];
 
-                $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomId, 'creator_user');
+                $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomId, 'creator_user_id');
                 // Definir precio del carton 
                 $bingoCtnPrice = BingoCtnPrice::getValueCtnPrice($roomId, $coinID, $bingoCreatorUser)
                     ?? CommerceExchangeRate::getCommerceCoinValue($creatorID, $coinID);
@@ -828,7 +828,7 @@ class BingoController extends Controller
     public function inGame($player, $room = '')
     {
         // Vista para el juego de la venta conjunta de todos los comercios
-        $player = ExternalPlayers::getByLink($player, ['room', 'creator_user', 'link', 'coin']);
+        $player = ExternalPlayers::getByLink($player, ['room', 'creator_user_id', 'link', 'coin']);
 
         if (!$player) abort(404); // Retorna un error 404 Not Found
 
@@ -1014,10 +1014,10 @@ class BingoController extends Controller
 
         if ($otherCommerce) {
             $relations['Creator'] = fn($q) => $q->select('id', 'room')
-                ->where('creator_user', $creatorUser)->where('status', 1);
+                ->where('creator_user_id', $creatorUser)->where('status', 1);
 
             $relations['CtnsLot'] = fn($q) => $q->select('id', 'room', 'exchange_rate', 'sale_amount')
-                ->where('creator_user', $creatorUser);
+                ->where('creator_user_id', $creatorUser);
         } else {
             $relations['Creator'] = fn($query) => $query->select('id', 'room');
         }
@@ -1028,12 +1028,12 @@ class BingoController extends Controller
                     $query->where('winner', '<>', '0');
                 }
             ])
-            ->where('creator_user', $operator, $creatorUser)
+            ->where('creator_user_id', $operator, $creatorUser)
             ->where('room_type', $roomType);
 
         if ($otherCommerce) {
             $query->whereHas('Creator', function ($q) use ($creatorUser) {
-                $q->where('creator_user', $creatorUser)->where('status', 1);
+                $q->where('creator_user_id', $creatorUser)->where('status', 1);
             });
         }
 
@@ -1359,7 +1359,7 @@ class BingoController extends Controller
             'encrypted' => $this->generateUniqueCode($model),
             'status' => 1,
             'room_type' => $request->room_type,
-            'creator_user' => $userID,
+            'creator_user_id' => $userID,
             'prize_pool' => $boat,
             'code_uuid' => $this->getCodeUUID($model)
         ];
@@ -1379,7 +1379,7 @@ class BingoController extends Controller
             $dataConfig = [
                 'room' => $roomId,
                 'creation' => 'M',
-                'creator_user' => $userID,
+                'creator_user_id' => $userID,
                 'game_mode' => $request->game_mode,
                 'date' => $request->date,
                 'time' => $request->time,
@@ -1405,7 +1405,7 @@ class BingoController extends Controller
             $creatorTypeID = Role::getValueByPrefix($creatorType, 'id');
             BingoCreator::create([
                 'room' => $roomId,
-                'creator_user' => $userID,
+                'creator_user_id' => $userID,
                 'creator_type' => $creatorTypeID,
                 'creator_id' => $creatorID,
                 'creator_commn' => $request->room_commn,
@@ -1519,7 +1519,7 @@ class BingoController extends Controller
         ];
 
         if ($creatorUser) {
-            $data['creator_user'] = $creatorUser;
+            $data['creator_user_id'] = $creatorUser;
         }
 
         try {
@@ -1575,7 +1575,7 @@ class BingoController extends Controller
                 }
 
                 $bingoCreator = BingoCreator::select('id', 'creator_commn', 'ctn_price', 'allowed_coins')
-                    ->where('room', $roomId)->where('creator_user', $creatorUser)->first();
+                    ->where('room', $roomId)->where('creator_user_id', $creatorUser)->first();
 
                 if ($bingoCreator) {
                     $updates = [];
@@ -2049,7 +2049,7 @@ class BingoController extends Controller
 
         $bingoCreator = true;
 
-        $creatorUserID = BingoRoom::getValueById($roomId, 'creator_user');
+        $creatorUserID = BingoRoom::getValueById($roomId, 'creator_user_id');
         $userType = User::getValueById($creatorUserID, 'user_type');
 
         $creatorType = RoleRepository::getValueById($userType, 'prefix');
@@ -2085,11 +2085,11 @@ class BingoController extends Controller
         return BingoRoom::with([
             'Creator' => function ($query) use ($userData) {
                 $query->select('room', 'status')
-                    ->where('creator_user', $userData['userId']);
+                    ->where('creator_user_id', $userData['userId']);
             },
             'Config:room,date,time,ctn_price'
         ])->select('id', 'encrypted', 'room_commn', 'prize_pool')
-            ->where('creator_user', '<>', $userData['userId'])
+            ->where('creator_user_id', '<>', $userData['userId'])
             ->where('room_type', 'PB')->where('status', 2)->get();
     }
 
@@ -2113,7 +2113,7 @@ class BingoController extends Controller
                 $roomId = decrypt($roomId);
 
                 BingoCreator::where('room', $roomId)
-                    ->where('creator_user', $creatorUser)
+                    ->where('creator_user_id', $creatorUser)
                     ->update(['status' => 0]);
             } else {
                 $bingo = BingoRoom::with('Config:id,room,ctn_price,room_commn')
@@ -2121,14 +2121,14 @@ class BingoController extends Controller
 
                 $bingoCreator = BingoCreator::select('id', 'status')
                     ->where('room', $bingo->id)
-                    ->where('creator_user', $creatorUser)->first();
+                    ->where('creator_user_id', $creatorUser)->first();
 
                 if ($bingoCreator) {
                     $bingoCreator->update(['status' => 1]);
                 } else {
                     BingoCreator::create([
                         'room' => $bingo->id,
-                        'creator_user' => $creatorUser,
+                        'creator_user_id' => $creatorUser,
                         'creator_type' => Role::getValueByPrefix($userData['type']),
                         'creator_id' => $userData['id'],
                         'creator_commn' => $bingo->Config->room_commn,
@@ -2158,7 +2158,7 @@ class BingoController extends Controller
         $creatorUser = $userData['userId'];
 
         // Obtener IDs de salas públicas (PB) con estado 4
-        $roomIds = BingoPrizeCtns::where('creator_user', $creatorUser)
+        $roomIds = BingoPrizeCtns::where('creator_user_id', $creatorUser)
             ->whereHas('Room', function ($query) {
                 $query->where('room_type', 'PB')
                     ->where('status', 4);
@@ -2171,7 +2171,7 @@ class BingoController extends Controller
 
         // Obtener ventas del creador para esas salas
         return BingoCreatorSales::with('Coin:id,iso_code')
-            ->where('creator_user', $creatorUser)->whereIn('room', $roomIds)
+            ->where('creator_user_id', $creatorUser)->whereIn('room', $roomIds)
             ->get(['coin', 'prize_pool_amount']);
     }
 
@@ -2300,7 +2300,7 @@ class BingoController extends Controller
             'encrypted' => $this->generateUniqueCode($model),
             'status' => 1,
             'room_type' => $existingRoom->room_type,
-            'creator_user' => $userID,
+            'creator_user_id' => $userID,
             'prize_pool' => $boat,
             'code_uuid' => $this->getCodeUUID($model)
         ];
@@ -2317,7 +2317,7 @@ class BingoController extends Controller
             BingoRoomConfig::create([
                 'room' => $newRoomID,
                 'creation' => 'A',
-                'creator_user' => $userID,
+                'creator_user_id' => $userID,
                 'game_mode' => $existingRoomConfig->game_mode,
                 'date' => $existingRoomConfig->date,
                 'time' => $existingRoomConfig->time,
@@ -2341,7 +2341,7 @@ class BingoController extends Controller
             // Registar el creador de la sala
             BingoCreator::create([
                 'room' => $newRoomID,
-                'creator_user' => $userID,
+                'creator_user_id' => $userID,
                 'creator_type' => $existingRoomCreator->creator_type,
                 'creator_id' => $existingRoomCreator->creator_id,
                 'creator_commn' => $existingRoomConfig->room_commn,
@@ -2358,7 +2358,7 @@ class BingoController extends Controller
             if ($existingRoomCtnPrice) {
                 BingoCtnPriceDrafts::create([
                     'room' => $roomId,
-                    'creator_user' => $userID,
+                    'creator_user_id' => $userID,
                     'coins' => $existingRoomCtnPrice->coins,
                     'ctn_prices' => $existingRoomCtnPrice->ctn_prices
                 ]);
@@ -2570,7 +2570,7 @@ class BingoController extends Controller
                 break;
         }
 
-        $automaticRooms = BingoRoomAutomatic::where('creator_user', $creator['userId'])
+        $automaticRooms = BingoRoomAutomatic::where('creator_user_id', $creator['userId'])
             ->whereNot('status', 3)
             ->get([
                 'id',
@@ -2590,7 +2590,7 @@ class BingoController extends Controller
                 'status'
             ]);
 
-        $activeRooms = BingoRoom::where('creator_user', $creator['userId'])->whereIn('status', [2, 3])->exists();
+        $activeRooms = BingoRoom::where('creator_user_id', $creator['userId'])->whereIn('status', [2, 3])->exists();
 
         $timeZoneID = User::getValueById($creator['userId'], 'time_zone');
         $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
@@ -2804,7 +2804,7 @@ class BingoController extends Controller
                 'num_serials' => $data->num_serials,
                 'creator_type' => Role::getValueByPrefix($creator->type, 'id'),
                 'creator_id' => decrypt($creator->id),
-                'creator_user' => $creatorUser
+                'creator_user_id' => $creatorUser
             ])->id;
 
             $roundsPrizeType = $data->rounds_prize_type ?? [];
@@ -3067,11 +3067,11 @@ class BingoController extends Controller
                     'Status',
                     'CtnsLot' => function ($subquery) use ($creatorUser, $coin) {
                         $subquery->select('room', 'coin', 'ctns', 'sale_amount', 'seller_commn')
-                            ->where('creator_user', $creatorUser)
+                            ->where('creator_user_id', $creatorUser)
                             ->where('coin', $coin)->with('Coin');
                     }
                 ])->whereHas('CtnsLot', function ($query) use ($creatorUser, $coin) {
-                    $query->where('creator_user', $creatorUser)->where('coin', $coin);
+                    $query->where('creator_user_id', $creatorUser)->where('coin', $coin);
                 });
 
                 break;
@@ -3217,7 +3217,7 @@ class BingoController extends Controller
             'parameters' => ['room' => $roomEncrypted, 'coin' => $coin]
         ];
 
-        $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted', 'creator_user']);
+        $room = BingoRoom::getByEncrypted($roomEncrypted, ['id', 'encrypted', 'creator_user_id']);
         $roomId = $room->id;
 
         $verifyCoin = $this->verifyExistenceOfSales($userData, $coin, false, $roomId);
@@ -3373,7 +3373,7 @@ class BingoController extends Controller
                 $ctnsSoldQuery = $this->applyDateFilter($dateFilter, $ctnsSoldQuery);
 
                 $ctnsSold = $ctnsSoldQuery->where('coin', $coin)
-                    ->where('creator_user', $userData['userId'])
+                    ->where('creator_user_id', $userData['userId'])
                     ->whereHas('Seller')->orderBy('status')->orderByDesc('id')->get();
 
                 $view = 'modules.commerce.games.bingo.cartons.ctns-sold';
@@ -3511,9 +3511,9 @@ class BingoController extends Controller
                 })->whereHas('Seller');
 
                 if ($type === 'private') {
-                    $winnersQuery->where('creator_user', $creatorUser);
+                    $winnersQuery->where('creator_user_id', $creatorUser);
                 } else {
-                    $winnersQuery->whereNot('creator_user', $creatorUser);
+                    $winnersQuery->whereNot('creator_user_id', $creatorUser);
                 }
 
                 $winnersQuery = $this->applyDateFilter($dateFilter, $winnersQuery);
@@ -3632,7 +3632,7 @@ class BingoController extends Controller
                     (object)[
                         'relation' => 'PrizeCtns',
                         'constraints' => function ($query) use ($roomId, $creatorUser) {
-                            $query->where('room', $roomId)->where('creator_user', $creatorUser);
+                            $query->where('room', $roomId)->where('creator_user_id', $creatorUser);
                         }
                     ]
                 ]);
@@ -3655,7 +3655,7 @@ class BingoController extends Controller
                     ->whereHas('GameExchangeRate');
 
                 $winners = $winnersQuery->where('active', 'Y')
-                    ->where('creator_user', $creatorUser)
+                    ->where('creator_user_id', $creatorUser)
                     ->where('room', $roomId)->orderBy('prize_type')->get();
 
                 $view = 'modules.commerce.games.bingo.cartons.awarded.by-room';

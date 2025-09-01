@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('bingo_room_id')->nullable()->constrained('bingo_rooms');
             $table->foreignId('automatic_bingo_room_id')->nullable()->constrained('automatic_bingo_rooms');
-            $table->foreignId('creator_user')->constrained('users');
+            $table->foreignId('creator_user_id')->constrained('users');
             $table->json('coins');
             $table->json('ctn_prices');
             $table->enum('status', ['ACTIVE', 'FINISHED'])->default('ACTIVE');

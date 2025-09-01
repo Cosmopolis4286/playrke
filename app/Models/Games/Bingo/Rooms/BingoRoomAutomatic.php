@@ -31,7 +31,7 @@ class BingoRoomAutomatic extends Model
     'play_types',
     'creator_type',
     'creator_id',
-    'creator_user',
+    'creator_user_id',
     'status'
   ];
 

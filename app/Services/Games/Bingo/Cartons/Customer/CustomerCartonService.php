@@ -22,7 +22,7 @@ class CustomerCartonService
         }
 
         // Verificar si el cliente tiene premios no procesados
-        $hasPrizes = BingoPrizeCtns::where('creator_user', $creatorUser)
+        $hasPrizes = BingoPrizeCtns::where('creator_user_id', $creatorUser)
             ->where('active', 'N')->exists();
 
         if (!$hasPrizes) {
@@ -30,7 +30,7 @@ class CustomerCartonService
         }
 
         // Procesar premios en fragmentos
-        BingoPrizeCtns::where('creator_user', $creatorUser)
+        BingoPrizeCtns::where('creator_user_id', $creatorUser)
             ->where('active', 'N')
             ->chunk(100, function ($prizeCtns) use ($customerID) {
                 $this->processPrizeCtns($prizeCtns, $customerID);

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->enum('payment', ['PS', 'SC']);
             $table->string('description', 35)->nullable();
             $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('seller')->nullable();
             $table->integer('user')->nullable();
             $table->foreignId('player_link')->constrained('external_players')->onDelete('cascade');

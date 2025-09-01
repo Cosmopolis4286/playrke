@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class GameConfig extends Model
 {
     protected $table = "game_config";
-    protected $fillable = ['game_id', 'param', 'param_value', 'description', 'status', 'created_at', 'updated_at'];
+    protected $fillable = ['game_id', 'param', 'value', 'description', 'status', 'created_at', 'updated_at'];
 
     public static function getGameParam($gameId, $param)
     {
@@ -16,7 +16,7 @@ class GameConfig extends Model
         return self::where('game_id', $gameId)->where('param', $param)->first();
     }
 
-    public static function getGameParamValue($game, $param, $value = 'param_value')
+    public static function getGameParamValue($game, $param, $value = 'value')
     {
         $gameID = Games::getValueByName($game);
         return self::where('game', $gameId)->where('param', $param)->value($value);

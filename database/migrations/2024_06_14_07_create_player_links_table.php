@@ -20,7 +20,7 @@ return new class extends Migration
             // Relaciones
             $table->foreignId('game')->constrained('games');
             $table->integer('room');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('country')->constrained('countries');
             $table->foreignId('coin')->constrained('coins');
             $table->foreignId('seller')->nullable()->constrained('sellers');

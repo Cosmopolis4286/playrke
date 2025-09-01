@@ -15,12 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('name', 30);
             $table->string('description', 45)->nullable();
-            $table->unsignedBigInteger('country')->nullable();
-            $table->unsignedBigInteger('user')->nullable();
-            $table->string('customer_id', 30)->nullable()->unique();
+            $table->foreignId('country_id')->nullable()->constrained('countries');
+            $table->foreignId('user_id')->nullable()->constrained('users');
+            $table->string('customer_code', 30)->nullable()->unique();
             $table->string('phone', 12)->nullable();
             $table->double('commn')->nullable();
-            $table->boolean('all_in')->default(0);
+            $table->boolean('all_in')->default(false);
             $table->string('brand', 25)->nullable();
             $table->string('product', 25)->nullable();
             $table->string('logo', 35)->nullable();
@@ -28,12 +28,8 @@ return new class extends Migration
             $table->string('token', 36)->nullable()->unique();
             $table->text('customer_key')->nullable();
             $table->text('security_key')->nullable();
-            $table->boolean('status')->default(0);
+            $table->boolean('status')->default(false);
             $table->timestamps();
-
-            // Foreign keys
-            $table->foreign('country')->references('id')->on('countries');
-            $table->foreign('user')->references('id')->on('users');
         });
     }
 

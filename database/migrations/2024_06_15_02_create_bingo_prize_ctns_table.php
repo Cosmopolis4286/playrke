@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('room')->constrained('bingo_rooms');
             $table->string('round', 2);
             $table->enum('active', ['Y', 'N'])->default('N');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('seller')->nullable()->constrained('sellers');
             $table->foreignId('room_user')->constrained('bingo_rooms_user');
             $table->foreignId('lot')->constrained('bingo_ctns_lot');

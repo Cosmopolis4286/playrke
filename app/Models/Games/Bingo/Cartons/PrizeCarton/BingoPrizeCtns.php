@@ -11,7 +11,7 @@ class BingoPrizeCtns extends Model
         'active',
         'room',
         'round',
-        'creator_user',
+        'creator_user_id',
         'seller',
         'room_user',
         'player_user',
@@ -120,13 +120,13 @@ class BingoPrizeCtns extends Model
 
     public static function getPendingPaymentsCountByCreator($creatorUser)
     {
-        return self::where('creator_user', $creatorUser)->where('active', 'Y')
+        return self::where('creator_user_id', $creatorUser)->where('active', 'Y')
             ->where('room_user', '<>', '')->where('status', '<', 2)->count();
     }
 
     public static function getPendingPaymentsCountExcludingCreator($creatorUser)
     {
-        return self::whereNot('creator_user', $creatorUser)->where('active', 'Y')
+        return self::whereNot('creator_user_id', $creatorUser)->where('active', 'Y')
             ->where('room_user', '<>', '')->where('status', '<>', 3)->count();
     }
 }

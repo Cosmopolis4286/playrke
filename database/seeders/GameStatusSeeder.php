@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\GameStatus;
+use App\Models\Games\Shared\Utils\GameStatus;
 use Illuminate\Database\Seeder;
 
 class GameStatusSeeder extends Seeder

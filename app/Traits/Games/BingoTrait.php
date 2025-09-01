@@ -599,7 +599,7 @@ trait BingoTrait
         try {
 
             $BingoCtnsLotID = BingoCtnsLot::insertGetId([
-                'creator_user' => $creatorUser,
+                'creator_user_id' => $creatorUser,
                 'seller' => $seller,
                 'player_user' => $arrCtn['playerUser'] ?? null,
                 'room_user' => $arrCtn['roomUser'],
@@ -697,7 +697,7 @@ trait BingoTrait
     {
         return [
             'room' => $arrCtn['room'],
-            'creator_user' => $arrCtn['creator']['userId'],
+            'creator_user_id' => $arrCtn['creator']['userId'],
             'seller' => $arrCtn['seller'] ?? null,
             'player_user' => $arrCtn['playerUser'] ?? null,
             'room_user' => $arrCtn['roomUser'],
@@ -741,7 +741,7 @@ trait BingoTrait
             // Definir los valores por defecto para crear un nuevo registro
             $defaults = [
                 'room' => $arrCtn['room'],
-                'creator_user' => $arrCtn['creator']['userId'],
+                'creator_user_id' => $arrCtn['creator']['userId'],
                 'player_user' => $arrCtn['playerUser'] ?? null,
                 'ctns' => $arrCtn['numOfCtns'],
                 'automarker' => 1,
@@ -941,7 +941,7 @@ trait BingoTrait
 
     public function convertPrizeValue($roomId, $coin, $value)
     {
-        $room = BingoRoom::getById($roomId, ['creator_user', 'prize_pool']);
+        $room = BingoRoom::getById($roomId, ['creator_user_id', 'prize_pool']);
 
         $creatorUser = $room->creator_user;
         $userCreator = User::getCreatorUser($creatorUser, false, true);
@@ -980,7 +980,7 @@ trait BingoTrait
                     'active' => 'N',
                     'room' => $roomId,
                     'round' => $round,
-                    'creator_user' => $ctn->creator_user,
+                    'creator_user_id' => $ctn->creator_user,
                     'seller' => $ctn->seller,
                     'room_user' => $roomUser,
                     'ctn' => $ctn->id,
@@ -1067,7 +1067,7 @@ trait BingoTrait
 
     public function getWinnersData($prizeType, $roomId, $roomUser = null)
     {
-        $room = BingoRoom::select('creator_user')
+        $room = BingoRoom::select('creator_user_id')
             ->where('id', $roomId)
             ->where('status', '>=', 3)
             ->first();
@@ -1220,7 +1220,7 @@ trait BingoTrait
     public function handleWinners($roomId)
     {
         $room = BingoRoom::with('Config:room,serials_pct')
-            ->select('id', 'creator_user', 'prize_pool', 'serial_prize', 'players')
+            ->select('id', 'creator_user_id', 'prize_pool', 'serial_prize', 'players')
             ->findOrFail($roomId);
 
         // Validar si ya hay ganadores 
@@ -1279,7 +1279,7 @@ trait BingoTrait
 
             $ctnsJackpot = BingoCtns::where('room', $roomId)
                 ->whereIn('id', $winners->values())
-                ->get(['id', 'creator_user', 'seller', 'room_user', 'coin', 'lot']);
+                ->get(['id', 'creator_user_id', 'seller', 'room_user', 'coin', 'lot']);
 
             DB::beginTransaction();
 
@@ -1484,7 +1484,7 @@ trait BingoTrait
             // Obtener la información final de los cartones ganadores
             $ctnsSerials = BingoCtns::whereIn('id', $serialCtns)
                 ->where('room', $roomId)
-                ->get(['id', 'seller', 'creator_user', 'room_user', 'coin', 'lot']);
+                ->get(['id', 'seller', 'creator_user_id', 'room_user', 'coin', 'lot']);
 
             // Repartir el premio entre los ganadores
             $winnerJackpotPrize = $serialPrize / count($serialCtns);
@@ -1593,7 +1593,7 @@ trait BingoTrait
         return BingoCtnsPayment::create([
             'payment' => $payment,
             'room' => $lotCtn->room,
-            'creator_user' => $lotCtn->creator_user,
+            'creator_user_id' => $lotCtn->creator_user,
             'seller' => $lotCtn->seller,
             'player_link' => ExternalPlayers::getValueByRoomUser('BINGO', $lotCtn->room_user, 'id'),
             'lot' => $lotCtn->id,
@@ -1611,7 +1611,7 @@ trait BingoTrait
                 'prize_ctn' => $prizeCtn->id,
                 'payment' => $payment,
                 'room' => $prizeCtn->room,
-                'creator_user' => $prizeCtn->creator_user,
+                'creator_user_id' => $prizeCtn->creator_user,
                 'seller' => $prizeCtn->seller,
                 'player_link' => ExternalPlayers::getValueByRoomUser('BINGO', $prizeCtn->room_user, 'id'),
                 'user' => $user,
@@ -1630,7 +1630,7 @@ trait BingoTrait
 
     public function verifyExistenceOfSales($user, $coin = '', $dateFilter = '', $room = '')
     {
-        $column = $user['type'] !== 'seller' ? 'creator_user' : 'seller';
+        $column = $user['type'] !== 'seller' ? 'creator_user_id' : 'seller';
         $columnValue = $column !== 'seller' ? $user['userId'] : $user['id'];
 
         $query = BingoCtnsLot::where($column, $columnValue);

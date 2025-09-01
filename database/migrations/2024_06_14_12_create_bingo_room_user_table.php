@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('bingo_rooms_user', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->integer('player_user')->nullable();
             $table->string('ctns', 3);
             $table->double('automarker')->nullable();

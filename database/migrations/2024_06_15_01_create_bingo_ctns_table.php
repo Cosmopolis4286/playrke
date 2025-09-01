@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('bingo_ctns', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('seller')->nullable();
             $table->integer('player_user')->nullable();
             $table->unsignedBigInteger('room_user');

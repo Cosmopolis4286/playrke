@@ -36,7 +36,7 @@ return new class extends Migration
             $table->json('play_types')->nullable();
             $table->foreignId('creator_type')->constrained('user_type')->onDelete('cascade');
             $table->integer('creator_id');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->string('status', 1)->default('0');
             $table->timestamps();
         });

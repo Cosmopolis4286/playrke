@@ -160,7 +160,7 @@ class SellerController extends Controller
                 'country' => $seller->country,
                 'coin' => $seller->coin,
                 'level' => '1',
-                'creator_user' => $newUser,
+                'creator_user_id' => $newUser,
                 'status' => 1,
             ]);
 
@@ -374,8 +374,8 @@ class SellerController extends Controller
 
         $rooms = BingoRoom::with([
             'Creator' => function ($query) use ($creatorUser) {
-                $query->select('room', 'creator_user', 'status')
-                    ->where('creator_user', $creatorUser)
+                $query->select('room', 'creator_user_id', 'status')
+                    ->where('creator_user_id', $creatorUser)
                     ->where('status', 1);
             },
             'Config' => function ($query) {
@@ -383,11 +383,11 @@ class SellerController extends Controller
             }
         ])->select('id', 'encrypted', 'room_type', 'prize_pool')->where('status', 2)
             ->where(function ($query) use ($creatorUser) {
-                $query->where('creator_user', $creatorUser)
+                $query->where('creator_user_id', $creatorUser)
                     ->orWhere('room_type', 'PB');
             })
             ->whereHas('Creator', function ($query) use ($creatorUser) {
-                $query->where('creator_user', $creatorUser);
+                $query->where('creator_user_id', $creatorUser);
             })
             ->whereHas('Config', function ($query) {
                 $query->where('game_mode', 2)
@@ -416,7 +416,7 @@ class SellerController extends Controller
         $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 'ACTIVE');
 
         // Obtenemos el campo allowed_coins (json o null) y lo forzamos a array
-        $allowedCoinsRoom = BingoCreator::where('creator_user', $creatorUser)
+        $allowedCoinsRoom = BingoCreator::where('creator_user_id', $creatorUser)
             ->where('room', $roomId)->value('allowed_coins');
 
         $allowedCoinsRoom = is_array($allowedCoinsRoom) ? $allowedCoinsRoom : [];
@@ -626,7 +626,7 @@ class SellerController extends Controller
         $allPendingCtns = BingoCtns::with('Lot:id,ctns,sale_amount')
             ->whereHas('Lot', function ($query) use ($seller) {
                 $query->where(['seller' => $seller, 'status' => 0]);
-            })->where('seller', $seller)->get(['room', 'creator_user', 'room_user', 'coin', 'lot']);
+            })->where('seller', $seller)->get(['room', 'creator_user_id', 'room_user', 'coin', 'lot']);
 
         try {
 
@@ -641,7 +641,7 @@ class SellerController extends Controller
                 $paymentToInsert[] = [
                     'payment' => 'SC',
                     'room' => $ctn->room,
-                    'creator_user' => $ctn->creator_user,
+                    'creator_user_id' => $ctn->creator_user,
                     'seller' => $seller,
                     'player_link' => $playerLink,
                     'lot' => $ctn->lot,

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('country')->nullable()->constrained('countries');
             $table->foreignId('coin')->constrained('coins');
             $table->enum('level', ['1', '2', '3']);
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->boolean('status')->default(0);
             $table->timestamps();
         });

@@ -1,13 +1,15 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Shared\PrizePool;
 
+use App\Models\Games\Shared\GameMode\GameModes;
+use App\Models\Games\Shared\Games;
 use Illuminate\Database\Eloquent\Model;
 
 class GamePrizePoolType extends Model
 {
     protected $table = "game_prize_pool_type";
-    protected $fillable = ['game', 'game_mode', 'prize_pool_type', 'status'];
+    protected $fillable = ['game_id', 'game_mode_id', 'prize_pool_type', 'status'];
 
     public function Game()
     {

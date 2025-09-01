@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class OtherTreasurers extends Model
 {
   protected $table = "other_treasurers";
-  protected $fillable = ['creator_user', 'allowed_games', 'allowed_coins', 'status'];
+  protected $fillable = ['creator_user_id', 'allowed_games', 'allowed_coins', 'status'];
 
   public function User()
   {
-    return $this->belongsTo(User::class, 'creator_user');
+    return $this->belongsTo(User::class, 'creator_user_id');
   }
 
   public static function getById($id, $fields = ['*'])
@@ -27,21 +27,21 @@ class OtherTreasurers extends Model
 
   public static function getByCreatorUser($creatorUser, $fields = ['*'])
   {
-    return self::select($fields)->where('creator_user', $creatorUser)->first();
+    return self::select($fields)->where('creator_user_id', $creatorUser)->first();
   }
 
   public static function getValueByCreatorUser($creatorUser, $value)
   {
-    return self::where('creator_user', $creatorUser)->value($value);
+    return self::where('creator_user_id', $creatorUser)->value($value);
   }
 
   public static function existsByCreatorUser($creatorUser)
   {
-    return self::where('creator_user', $creatorUser)->exists();
+    return self::where('creator_user_id', $creatorUser)->exists();
   }
 
   public static function getAllCreatorUser()
   {
-    return self::distinct()->pluck('creator_user');
+    return self::distinct()->pluck('creator_user_id');
   }
 }

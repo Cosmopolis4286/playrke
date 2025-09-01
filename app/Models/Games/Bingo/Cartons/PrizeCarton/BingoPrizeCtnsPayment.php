@@ -11,7 +11,7 @@ class BingoPrizeCtnsPayment extends Model
         'prize_ctn',
         'payment',
         'room',
-        'creator_user',
+        'creator_user_id',
         'seller',
         'player_link',
         'user',

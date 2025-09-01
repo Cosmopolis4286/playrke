@@ -4,43 +4,32 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateSellersTable extends Migration
+return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('sellers', function (Blueprint $table) {
             $table->id();
             $table->string('name', 30);
-            $table->unsignedBigInteger('country');
-            $table->unsignedBigInteger('coin');
+            $table->foreignId('country_id')->constrained('countries');
+            $table->foreignId('coin_id')->constrained('coins');
             $table->string('phone', 14);
             $table->double('commn');
-            $table->unsignedBigInteger('commerce_id')->nullable();
-            $table->unsignedBigInteger('subsidiary')->nullable();
-            $table->unsignedBigInteger('user');
+            $table->foreignId('commerce_id')->nullable()->constrained('commerces');
+            $table->foreignId('subsidiary_id')->nullable()->constrained('subsidiaries')->cascadeOnUpdate();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->boolean('status')->default(0);
             $table->timestamps();
-
-            // Foreign keys
-            $table->foreign('country')->references('id')->on('countries');
-            $table->foreign('coin')->references('id')->on('coins');
-            $table->foreign('commerce_id')->references('id')->on('commerces');
-            $table->foreign('subsidiary')->references('id')->on('subsidiaries')->onUpdate('cascade');
-            $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('sellers');
     }

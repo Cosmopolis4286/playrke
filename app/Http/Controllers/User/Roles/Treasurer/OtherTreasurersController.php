@@ -22,7 +22,7 @@ class OtherTreasurersController extends Controller
         $id = decrypt($id);
 
         $otherTreasurer = OtherTreasurers::with(['User:id,username,country', 'User.Country:id,name'])
-            ->select('creator_user', 'allowed_games', 'allowed_coins')->where('id', $id)->first();
+            ->select('creator_user_id', 'allowed_games', 'allowed_coins')->where('id', $id)->first();
 
         $data = [
             'username' => $otherTreasurer->User->username,

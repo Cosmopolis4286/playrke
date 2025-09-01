@@ -9,7 +9,7 @@ class BingoCreator extends Model
     protected $table = 'bingo_creator';
     protected $fillable = [
         'room',
-        'creator_user',
+        'creator_user_id',
         'creator_type',
         'creator_id',
         'creator_commn',
@@ -54,7 +54,7 @@ class BingoCreator extends Model
 
     public static function getByRoomCreatorUser($room, $creatorUser, $fields = ['*'])
     {
-        return self::select($fields)->where('room', $room)->where('creator_user', $creatorUser)->first();
+        return self::select($fields)->where('room', $room)->where('creator_user_id', $creatorUser)->first();
     }
 
     public static function getByCreatorRoom($creator, $room, $fields = ['*'])
@@ -79,6 +79,6 @@ class BingoCreator extends Model
 
     public static function existsByRoomCreatorUser($room, $creatorUser)
     {
-        return self::where('room', $room)->where('creator_user', $creatorUser)->exists();
+        return self::where('room', $room)->where('creator_user_id', $creatorUser)->exists();
     }
 }

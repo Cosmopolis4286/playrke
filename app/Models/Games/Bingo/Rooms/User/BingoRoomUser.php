@@ -9,7 +9,7 @@ class BingoRoomUser extends Model
     protected $table = 'bingo_rooms_user';
     protected $fillable = [
         'room',
-        'creator_user',
+        'creator_user_id',
         'player_user',
         'ctns',
         'automarker',
@@ -33,13 +33,13 @@ class BingoRoomUser extends Model
 
     public static function getByPlayerUser($room, $creatorUser, $playerUser, $fields = ['*'])
     {
-        return self::select($fields)->where('room', $room)->where('creator_user', $creatorUser)
+        return self::select($fields)->where('room', $room)->where('creator_user_id', $creatorUser)
             ->where('player_user', $playerUser)->first();
     }
 
     public static function getValueByPlayerUser($room, $creatorUser, $playerUser, $value = 'id')
     {
-        return self::where('room', $room)->where('creator_user', $creatorUser)
+        return self::where('room', $room)->where('creator_user_id', $creatorUser)
             ->where('player_user', $playerUser)->value($value);
     }
 

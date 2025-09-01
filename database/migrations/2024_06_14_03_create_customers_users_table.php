@@ -4,36 +4,31 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateCustomersUsersTable extends Migration
+return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('customers_users', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('customer');
-            $table->string('user_id');
+            $table->foreignId('customer_id')->constrained('customers')->cascadeOnUpdate()->cascadeOnDelete();
+            $table->string('user_id'); // Mantengo string, parece ser externo o UUID
             $table->string('brand')->nullable();
             $table->string('token', 255);
-            $table->string('country', 3)->nullable();
-            $table->string('coin', 15);
+            $table->string('country_code', 3)->nullable(); // Mejor nombre para claridad
+            $table->string('coin_id', 15);
             $table->timestamp('last_activity');
             $table->timestamps();
-
-            $table->foreign('customer')->references('id')->on('customers')->onDelete('cascade')->onUpdate('cascade');
         });
     }
 
-    public function down()
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
     {
-        Schema::table('customers_users', function (Blueprint $table) {
-            $table->dropForeign(['country']);
-            $table->dropForeign(['customer']);
-        });
         Schema::dropIfExists('customers_users');
     }
-}
+};

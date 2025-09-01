@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('bingo_ctn_price', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->foreignId('creator_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->string('coin', 15);
             $table->double('ctn_price');
             $table->timestamps();

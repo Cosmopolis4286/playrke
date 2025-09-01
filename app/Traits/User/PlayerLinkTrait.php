@@ -55,7 +55,7 @@ trait ExternalPlayersTrait
             $dataPlayer = [
                 'game' => Games::getValueByName('BINGO'),
                 'room' => $data['room'],
-                'creator_user' => $data['creator']['userId'],
+                'creator_user_id' => $data['creator']['userId'],
                 'room_user' => $roomUser,
                 'seller' => $data['seller'],
                 'country' => $country,

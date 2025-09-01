@@ -16,7 +16,7 @@ class ExternalPlayers extends Model
   protected $fillable = [
     'game_id',
     'room_id',
-    'creator_user',
+    'creator_user_id',
     'seller_id',
     'room_user',
     'link',
@@ -36,7 +36,7 @@ class ExternalPlayers extends Model
 
   public function CreatorUser()
   {
-    return $this->belongsTo(User::class, 'creator_user');
+    return $this->belongsTo(User::class, 'creator_user_id');
   }
 
   public function Country()

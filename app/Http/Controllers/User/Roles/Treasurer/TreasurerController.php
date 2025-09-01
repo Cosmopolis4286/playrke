@@ -99,7 +99,7 @@ class TreasurerController extends Controller
                 }
 
                 OtherTreasurers::create([
-                    'creator_user' => $userToPromote,
+                    'creator_user_id' => $userToPromote,
                     'allowed_games' => $allowedGames,
                     'allowed_coins' => $otherCoins,
                 ]);
@@ -161,7 +161,7 @@ class TreasurerController extends Controller
                 'country' => $treasurer->country,
                 'coin' => $treasurer->coin,
                 'level' => '1',
-                'creator_user' => $newUser,
+                'creator_user_id' => $newUser,
                 'status' => 1
             ]);
 
@@ -255,7 +255,7 @@ class TreasurerController extends Controller
 
                 if ($coinChange) {
                     // Actualizar moneda Principal
-                    TreasurerCountriesCoins::where('creator_user', $treasurer->user)
+                    TreasurerCountriesCoins::where('creator_user_id', $treasurer->user)
                         ->where('coin', $treasurer->coin)
                         ->update([
                             'country' => $treasurer->country,

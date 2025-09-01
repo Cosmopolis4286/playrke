@@ -18,7 +18,7 @@ class PrizeCartonService
     {
         try {
             // Obtener draft de precios para la sala
-            $draft = BingoCtnPriceDrafts::getByRoom($roomId, ['creator_user', 'coins', 'ctn_prices', 'status']);
+            $draft = BingoCtnPriceDrafts::getByRoom($roomId, ['creator_user_id', 'coins', 'ctn_prices', 'status']);
 
             if (!$draft) {
                 Log::info("No se encontró draft de precios para sala ID {$roomId}");
@@ -38,7 +38,7 @@ class PrizeCartonService
                 BingoCtnPrice::updateOrCreate(
                     ['room' => $roomId, 'coin' => $coin],
                     [
-                        'creator_user' => $draft->creator_user,
+                        'creator_user_id' => $draft->creator_user,
                         'ctn_price' => $prices[$index],
                     ]
                 );

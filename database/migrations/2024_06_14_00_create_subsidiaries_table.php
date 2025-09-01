@@ -7,19 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Ejecuta la migración para crear la tabla 'subsidiaries'.
      */
     public function up(): void
     {
         Schema::create('subsidiaries', function (Blueprint $table) {
             $table->id();
             $table->string('name', 30);
-            $table->unsignedBigInteger('country');
-            $table->unsignedBigInteger('coin');
-            $table->string('phone', 14);
-            $table->double('commn');
-            $table->unsignedBigInteger('commerce_id')->nullable();
-            $table->unsignedBigInteger('user');
+            $table->foreignId('country_id')->constrained('countries')->cascadeOnUpdate();
+            $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate();
+            $table->string('phone', 14)->nullable();
+            $table->double('commn', 8, 2)->default(0); // mejor precisión
+            $table->foreignId('commerce_id')->nullable()->constrained('commerces')->cascadeOnUpdate()->nullOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('brand', 20)->nullable();
             $table->string('product', 30)->nullable();
             $table->string('link_route', 255)->nullable();
@@ -27,17 +27,11 @@ return new class extends Migration
             $table->string('security_key', 255);
             $table->boolean('status')->default(0);
             $table->timestamps();
-
-            // Foreign keys
-            $table->foreign('country')->references('id')->on('countries');
-            $table->foreign('coin')->references('id')->on('coins');
-            $table->foreign('commerce_id')->references('id')->on('commerces');
-            $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Revierte la migración eliminando la tabla 'subsidiaries'.
      */
     public function down(): void
     {

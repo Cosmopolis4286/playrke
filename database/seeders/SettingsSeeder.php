@@ -8,16 +8,25 @@ use Illuminate\Database\Seeder;
 class SettingsSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Ejecuta el seeder para poblar la tabla 'settings'.
      *
      * @return void
      */
-    public function run()
+    public function run(): void
     {
-        // Insertar los datos en la tabla 'settings'
-        Settings::insert([
-            ['param' => 'LOGIN', 'status' => 1],
-            ['param' => 'REGISTER', 'status' => 1]
-        ]);
+        $timestamp = now();
+
+        $entries = [
+            ['param' => 'LOGIN', 'status' => 1, 'created_at' => $timestamp, 'updated_at' => $timestamp],
+            ['param' => 'REGISTER', 'status' => 1, 'created_at' => $timestamp, 'updated_at' => $timestamp],
+        ];
+
+        // Inserta o actualiza los registros para evitar duplicados
+        foreach ($entries as $entry) {
+            Settings::updateOrCreate(
+                ['param' => $entry['param']], // Condición única
+                $entry
+            );
+        }
     }
 }

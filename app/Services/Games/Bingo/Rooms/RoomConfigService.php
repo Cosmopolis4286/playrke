@@ -49,7 +49,7 @@ class RoomConfigService
             'encrypted' => $this->generateUniqueCode($model),
             'status' => 2,
             'room_type' => $room->room_type,
-            'creator_user' => $room->creator_user,
+            'creator_user_id' => $room->creator_user,
             'prizePool' => $prizePool,
             'code_uuid' => $this->getCodeUUID($model)
         ];
@@ -76,7 +76,7 @@ class RoomConfigService
         BingoCreator::updateOrCreate(
             ['room' => $roomId],
             [
-                'creator_user' => $dataRoom->creator_user,
+                'creator_user_id' => $dataRoom->creator_user,
                 'creator_type' => $dataRoom->creator_type,
                 'creator_id' => $dataRoom->creator_id,
                 'creator_commn' => $dataRoom->room_commn,
@@ -108,7 +108,7 @@ class RoomConfigService
 
         return BingoRoomConfig::with('Room:id,status')
             ->select('room')
-            ->where('creator_user', $creatorUser)
+            ->where('creator_user_id', $creatorUser)
             ->whereBetween('date', [$startDate, $date])
             ->where('time', $time)
             ->where('ctn_price', $ctnPrice)

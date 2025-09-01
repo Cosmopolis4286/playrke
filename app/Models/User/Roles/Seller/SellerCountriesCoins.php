@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class SellerCountriesCoins extends Model
 {
     protected $table = "sellers_countries_coins";
-    protected $fillable = ['seller', 'country_id', 'coin_id', 'level', 'creator_user', 'status'];
+    protected $fillable = ['seller', 'country_id', 'coin_id', 'level', 'creator_user_id', 'status'];
 
     // Relación con el Pais 
     public function Country()

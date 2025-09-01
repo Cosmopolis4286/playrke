@@ -246,7 +246,7 @@ trait UserValTrait
     {
         $userType = $user['type'];
         $userId = $userType !== 'seller' ? $user['userId'] : $user['id'];
-        $userColumn = $userType !== 'seller' ? 'creator_user' : 'seller';
+        $userColumn = $userType !== 'seller' ? 'creator_user_id' : 'seller';
 
         $primaryRelation = $relation[0] ?? null;
         $secondaryRelation = $relation[1] ?? null;
@@ -353,7 +353,7 @@ trait UserValTrait
                 'country' => $coin->country,
                 'coin' => $coin->id,
                 'level' => '2',
-                'creator_user' => $creatorUser['userId'],
+                'creator_user_id' => $creatorUser['userId'],
                 'status' => 1,
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp
@@ -407,7 +407,7 @@ trait UserValTrait
                 'country' => $coin->country,
                 'coin' => $coin->id,
                 'level' => '2',
-                'creator_user' => $creatorUser['userId'],
+                'creator_user_id' => $creatorUser['userId'],
                 'status' => 1,
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp

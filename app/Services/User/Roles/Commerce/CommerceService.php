@@ -106,7 +106,7 @@ class CommerceService
             'country'      => $commerce->country,
             'coin'         => $commerce->coin,
             'level'        => '1',
-            'creator_user' => $userId,
+            'creator_user_id' => $userId,
             'status'       => 1
         ]);
     }

@@ -13,16 +13,17 @@ return new class extends Migration
     {
         Schema::create('user_purchase_codes', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 20);
-            $table->string('lastname', 20)->nullable();
-            $table->unsignedBigInteger('country');
+            $table->string('first_name', 50);
+            $table->string('last_name', 50)->nullable();
+            $table->foreignId('country_id')->constrained('countries');
             $table->string('phone', 14);
-            $table->string('code', 8);
-            $table->string('status', 12);
+            $table->string('code', 12)->unique();
+            $table->enum('status', ['active', 'used', 'expired'])->default('active');
             $table->timestamp('expiration_date')->nullable();
             $table->timestamps();
 
-            $table->foreign('country')->references('id')->on('countries');
+            // Índice compuesto opcional para búsquedas rápidas
+            $table->index(['country_id', 'status']);
         });
     }
 

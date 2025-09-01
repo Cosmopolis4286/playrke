@@ -20,7 +20,7 @@ class HandleBingoRoomsService
     {
         BingoRoom::with('Config:room,unix_date')
             ->whereIn('status', [2, 3])
-            ->when($creatorUser, fn($q) => $q->where('creator_user', $creatorUser))
+            ->when($creatorUser, fn($q) => $q->where('creator_user_id', $creatorUser))
             ->when($room, fn($q) => $q->where('id', $room))
             ->get('id')
             ->each(fn($r) => $this->closureService->processClosure($r));
@@ -32,8 +32,8 @@ class HandleBingoRoomsService
     {
         BingoRoom::with('Config:room,date,time')
             ->where('status', 4)
-            ->when($creatorUser, fn($q) => $q->where('creator_user', $creatorUser))
-            ->get(['id', 'creator_user'])
+            ->when($creatorUser, fn($q) => $q->where('creator_user_id', $creatorUser))
+            ->get(['id', 'creator_user_id'])
             ->each(fn($room) => $this->finishedService->processFinishedRoom($room));
     }
 }

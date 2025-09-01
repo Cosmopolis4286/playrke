@@ -9,7 +9,7 @@ class BingoCreatorSales extends Model
     protected $table = 'bingo_creator_sales';
     protected $fillable = [
         'room',
-        'creator_user',
+        'creator_user_id',
         'coin',
         'sale_amount',
         'rke_commn',
@@ -32,7 +32,7 @@ class BingoCreatorSales extends Model
 
     public function CreatorUser()
     {
-        return $this->belongsTo(User::class, 'creator_user');
+        return $this->belongsTo(User::class, 'creator_user_id');
     }
 
     public static function getById($id, $fields = ['*'])
@@ -48,18 +48,18 @@ class BingoCreatorSales extends Model
     public static function getByRoomCreatorUser($room, $creatorUser, $coin, $fields = ['*'])
     {
         return self::select($fields)->where('room', $room)->where('coin', $coin)
-            ->where('creator_user', $creatorUser)->first();
+            ->where('creator_user_id', $creatorUser)->first();
     }
 
     public static function getValueByRoomCreatorUser($room, $creatorUser, $coin, $value)
     {
         return self::where('room', $room)->where('coin', $coin)
-            ->where('creator_user', $creatorUser)->value($value);
+            ->where('creator_user_id', $creatorUser)->value($value);
     }
 
     public static function existsByRoomCreatorUser($room, $creatorUser, $coin = '')
     {
-        $query = self::where('room', $room)->where('creator_user', $creatorUser);
+        $query = self::where('room', $room)->where('creator_user_id', $creatorUser);
         if ($coin)  $query->where('coin', $coin);
         return $query->exists();
     }
@@ -79,7 +79,7 @@ class BingoCreatorSales extends Model
         $prizePool = round(($amount - $rkeCommn - $roomCommn - $sellerCommn), 3);
 
         $sale = self::firstOrCreate(
-            ['room' => $roomId, 'creator_user' => $creatorUser, 'coin' => $coin],
+            ['room' => $roomId, 'creator_user_id' => $creatorUser, 'coin' => $coin],
             [
                 'sale_amount' => $amount,
                 'rke_commn' => $rkeCommn,
