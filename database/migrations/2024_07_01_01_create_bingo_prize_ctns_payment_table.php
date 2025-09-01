@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('room')->constrained('bingo_rooms');
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('seller')->constrained('sellers')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreignId('player_link')->constrained('external_players')->onDelete('cascade');
+            $table->foreignId('external_player_id')->constrained('external_players')->onDelete('cascade');
             $table->foreignId('user')->constrained('users')->onDelete('cascade');
             $table->foreignId('coin')->constrained('coins');
 

@@ -2,6 +2,8 @@
 
 namespace App\Models\Games\Bingo\Rooms;
 
+use App\Models\Games\Shared\GameMode\GameModes;
+use App\Models\Games\Shared\PrizePool\PrizePoolType;
 use Illuminate\Database\Eloquent\Model;
 
 class BingoRoomAutomatic extends Model
@@ -39,7 +41,7 @@ class BingoRoomAutomatic extends Model
 
   public function GameMode()
   {
-    return $this->belongsTo(GameModes::class, 'game_mode');
+    return $this->belongsTo(GameModes::class, 'game_mode?id');
   }
 
   public function PrizePoolType()

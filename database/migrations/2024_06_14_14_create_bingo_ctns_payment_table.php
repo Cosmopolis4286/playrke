@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('seller')->nullable();
             $table->integer('user')->nullable();
-            $table->foreignId('player_link')->constrained('external_players')->onDelete('cascade');
+            $table->foreignId('external_player_id')->constrained('external_players')->onDelete('cascade');
             $table->unsignedBigInteger('coin');
             $table->unsignedBigInteger('lot');
             $table->double('amount');

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Foreign keys
-            $table->foreign('bank')->references('id')->on('banks_bra');
+            $table->foreign('bank')->references('id')->on('banks_brasil');
             $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
         });
     }

@@ -51,7 +51,7 @@ class BingoCtnsPaymentRepository
      */
     public function getByExternalPlayers(int $playerLinkId, array $fields = ['*'])
     {
-        return BingoCtnsPayment::select($fields)->where('player_link_id', $playerLinkId)->get();
+        return BingoCtnsPayment::select($fields)->where('external_player_id_id', $playerLinkId)->get();
     }
 
     /**

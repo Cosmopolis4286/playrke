@@ -4,35 +4,32 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateIdentificationDocumentTable extends Migration
+return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
-        Schema::create('document_type', function (Blueprint $table) {
+        Schema::create('document_types', function (Blueprint $table) {
             $table->id();
-            $table->string('value', 6);
-            $table->string('description', 20);
-            $table->unsignedBigInteger('country')->nullable();
-            $table->boolean('status')->default(0);
+            $table->string('value', 6)->comment('Código corto del documento');
+            $table->string('description', 50)->comment('Descripción legible del documento');
+            $table->foreignId('country_id')->nullable()->constrained('countries')->cascadeOnUpdate()->nullOnDelete();
+            $table->boolean('status')->default(0)->comment('Estado activo/inactivo');
             $table->timestamps();
 
-            // Definición de la clave foránea para 'country'
-            $table->foreign('country')->references('id')->on('countries');
+            // Índices para optimizar consultas frecuentes
+            $table->index('country_id');
+            $table->index('status');
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
-        Schema::dropIfExists('document_type');
+        Schema::dropIfExists('document_types');
     }
 };

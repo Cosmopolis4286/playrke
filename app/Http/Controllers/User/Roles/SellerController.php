@@ -643,7 +643,7 @@ class SellerController extends Controller
                     'room' => $ctn->room,
                     'creator_user_id' => $ctn->creator_user,
                     'seller' => $seller,
-                    'player_link' => $playerLink,
+                    'external_player_id' => $playerLink,
                     'lot' => $ctn->lot,
                     'coin' => $ctn->coin,
                     'amount' => $ctnPrice,

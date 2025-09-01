@@ -19,7 +19,7 @@ class BingoCtnsPayment extends Model
         'creator_user_id',
         'seller_id',
         'commerce_id',
-        'player_link_id',
+        'external_player_id_id',
         'coin_id',
         'lot_id',
         'amount',
@@ -55,7 +55,7 @@ class BingoCtnsPayment extends Model
      */
     public function playerLink()
     {
-        return $this->belongsTo(ExternalPlayers::class, 'player_link_id');
+        return $this->belongsTo(ExternalPlayers::class, 'external_player_id_id');
     }
 
     /**

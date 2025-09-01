@@ -2,6 +2,8 @@
 
 namespace App\Models\Games\Bingo\Rooms;
 
+use App\Models\Games\Shared\GameMode\GameModes;
+use App\Models\Games\Shared\PrizePool\PrizePoolType;
 use Illuminate\Database\Eloquent\Model;
 
 class BingoRoomConfig extends Model

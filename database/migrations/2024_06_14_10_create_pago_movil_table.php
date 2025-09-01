@@ -17,14 +17,14 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('document_type');
             $table->string('document', 10);
-            $table->unsignedBigInteger('bank');
+            $table->unsignedBigInteger('bank_id');
             $table->string('phone', 11);
-            $table->unsignedBigInteger('user');
+            $table->unsignedBigInteger('user_id');
             $table->timestamps();
 
             // Foreign keys
             $table->foreign('document_type')->references('id')->on('document_type');
-            $table->foreign('bank')->references('id')->on('banks_ven');
+            $table->foreign('bank_id')->references('id')->on('banks_venezuela');
             $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
         });
     }

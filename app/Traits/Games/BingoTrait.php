@@ -7,7 +7,6 @@ use App\Models\BingoCreator;
 use App\Models\BingoCreatorSales;
 use App\Models\SellerRoomLimits;
 use App\Models\BingoCtns;
-use App\Models\BingoRoom;
 use App\Models\BingoDraws;
 use App\Models\BingoDrawsCode;
 use App\Models\BingoCtnsLot;
@@ -28,6 +27,7 @@ use App\Models\GamePrizes;
 use App\Models\GameRoomJackpot;
 use App\Models\Games;
 use App\Models\ExternalPlayers;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Seller;
 use App\Models\User;
 use App\Models\Role;
@@ -1595,7 +1595,7 @@ trait BingoTrait
             'room' => $lotCtn->room,
             'creator_user_id' => $lotCtn->creator_user,
             'seller' => $lotCtn->seller,
-            'player_link' => ExternalPlayers::getValueByRoomUser('BINGO', $lotCtn->room_user, 'id'),
+            'external_player_id' => ExternalPlayers::getValueByRoomUser('BINGO', $lotCtn->room_user, 'id'),
             'lot' => $lotCtn->id,
             'coin' => $lotCtn->coin,
             'amount' => $lotCtn->sale_amount,
@@ -1613,7 +1613,7 @@ trait BingoTrait
                 'room' => $prizeCtn->room,
                 'creator_user_id' => $prizeCtn->creator_user,
                 'seller' => $prizeCtn->seller,
-                'player_link' => ExternalPlayers::getValueByRoomUser('BINGO', $prizeCtn->room_user, 'id'),
+                'external_player_id' => ExternalPlayers::getValueByRoomUser('BINGO', $prizeCtn->room_user, 'id'),
                 'user' => $user,
                 'prize_type' => $prizeCtn->prize_type,
                 'lot' => $prizeCtn->lot,

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class BanksBrasil extends Model
 {
-    protected $table = "banks_bra";
+    protected $table = "banks_brasil";
     protected $fillable = ['name', 'full_name', 'ispb'];
 
     public static function getByISPB($ispb, $fields = ['*'])
