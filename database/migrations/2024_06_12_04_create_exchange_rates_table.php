@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('exchange_rates', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('coin_id')->constrained('coins')->cascadeOnDelete();
+            $table->string('coin', 20);
             $table->decimal('value', 15, 8)->default(1);
             $table->timestamps();
 

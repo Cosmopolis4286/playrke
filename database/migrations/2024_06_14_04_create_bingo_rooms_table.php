@@ -13,30 +13,43 @@ return new class extends Migration
     {
         Schema::create('bingo_rooms', function (Blueprint $table) {
             $table->id();
-            $table->string('encrypted', 18)->unique(); // Identificador encriptado único
-            $table->unsignedBigInteger('status_id')->default(1); // FK a game_status
-            $table->enum('room_type', ['PV', 'PB'])->default('PV'); // Tipo de sala
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->boolean('paid_win')->default(false);
+
+            $table->string('encrypted', 18)->unique()
+                ->comment('Identificador encriptado único de la sala');
+
+            $table->foreignId('status_id')
+                ->constrained('game_status')
+                ->onDelete('cascade')
+                ->default(1);
+
+            $table->enum('room_type', ['PV', 'PB'])
+                ->default('PV')
+                ->comment('Tipo de sala: PV o PB');
+
+            $table->foreignId('creator_user_id')
+                ->constrained('users')
+                ->onDelete('cascade');
+
+            $table->boolean('paid_win')->default(false)
+                ->comment('Indica si el premio fue pagado');
+
             $table->timestamp('publication_date')->nullable();
             $table->integer('players')->default(0);
             $table->integer('ctns')->default(0);
 
             // Campos financieros
-            $table->double('all_sale', 15, 2)->default(0);
-            $table->double('rke_commn', 15, 2)->default(0);
-            $table->double('room_commn', 15, 2)->default(0);
-            $table->double('seller_commn', 15, 2)->default(0);
-            $table->double('prize_pool', 15, 2)->default(0);
-            $table->double('full_house_prize', 15, 2)->default(0);
-            $table->double('serial_prize', 15, 2)->default(0);
+            $table->decimal('all_sale', 15, 2)->default(0);
+            $table->decimal('rke_commn', 15, 2)->default(0);
+            $table->decimal('room_commn', 15, 2)->default(0);
+            $table->decimal('seller_commn', 15, 2)->default(0);
+            $table->decimal('prize_pool', 15, 2)->default(0);
+            $table->decimal('full_house_prize', 15, 2)->default(0);
+            $table->decimal('serial_prize', 15, 2)->default(0);
 
             $table->integer('close_room')->nullable();
             $table->string('uuid_code', 36)->nullable()->unique();
-            $table->timestamps();
 
-            // Foreign key
-            $table->foreign('status_id')->references('id')->on('game_status')->onDelete('cascade');
+            $table->timestamps();
         });
     }
 

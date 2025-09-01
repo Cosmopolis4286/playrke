@@ -8,42 +8,53 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('bingo_ctns_payments', function (Blueprint $table) {
             $table->id();
-            $table->enum('payment', ['PS', 'SC']);
+
+            $table->enum('payment', ['PS', 'SC'])->comment('Método de pago');
             $table->string('description', 35)->nullable();
-            $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->unsignedBigInteger('seller')->nullable();
+
+            $table->foreignId('room_id')
+                ->constrained('bingo_rooms')
+                ->onDelete('cascade');
+
+            $table->foreignId('creator_user_id')
+                ->constrained('users')
+                ->onDelete('cascade');
+
+            $table->foreignId('seller_id')
+                ->nullable()
+                ->constrained('sellers')
+                ->onDelete('cascade');
+
             $table->integer('user')->nullable();
-            $table->foreignId('external_player_id')->constrained('external_players')->onDelete('cascade');
-            $table->unsignedBigInteger('coin');
-            $table->unsignedBigInteger('lot');
-            $table->double('amount');
+
+            $table->foreignId('external_player_id')
+                ->constrained('external_players')
+                ->onDelete('cascade');
+
+            $table->foreignId('coin_id')->constrained('coins');
+
+            $table->foreignId('lot_id')
+                ->constrained('bingo_ctns_lot');
+
+            $table->decimal('amount', 12, 2);
             $table->string('payment_proof', 25);
+
             $table->timestamps();
 
-            $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('seller')->references('id')->on('sellers')->onDelete('cascade');
-            $table->foreign('coin')->references('id')->on('coins');
-            $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
-
             // índice compuesto
-            $table->index(['room', 'seller']);
+            $table->index(['room_id', 'seller_id']);
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('bingo_ctns_payments');
     }

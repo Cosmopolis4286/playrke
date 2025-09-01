@@ -8,25 +8,21 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('game_sounds', function (Blueprint $table) {
             $table->id();
-            $table->string('file', 35);
-            $table->string('description', 20);
+            $table->string('file', 35)->unique()->comment('Nombre del archivo de sonido');
+            $table->string('description', 50)->comment('Descripción del sonido');
             $table->timestamps();
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('game_sounds');
     }

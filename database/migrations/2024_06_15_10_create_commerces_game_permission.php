@@ -14,9 +14,12 @@ return new class extends Migration
         Schema::create('commerce_game_permissions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('commerce_id')->constrained('commerces')->onDelete('cascade');
-            $table->foreignId('game')->constrained('games')->onDelete('cascade');
-            $table->boolean('status')->default(false);
+            $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
+            $table->boolean('status')->default(false)->comment('Permiso activo o inactivo');
             $table->timestamps();
+
+            // Evita duplicados: un comercio solo puede tener un registro por juego
+            $table->unique(['commerce_id', 'game_id'], 'commerce_game_unique');
         });
     }
 

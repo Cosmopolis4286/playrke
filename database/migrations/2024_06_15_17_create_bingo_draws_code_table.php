@@ -8,34 +8,28 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('bingo_draws_code', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('room');
-            $table->string('num', 1);
-            $table->string('sym', 6);
+            $table->foreignId('room_id')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->tinyInteger('num'); // número (1 dígito)
+            $table->char('sym', 6);     // símbolo (ej: código fijo)
             $table->timestamps();
 
-            $table->foreign('room')->references('id')->on('bingo_rooms');
-
             // Evitar duplicados: un número único por sala
-            $table->unique(['room', 'num'], 'unique_num_per_room');
+            $table->unique(['room_id', 'num'], 'unique_num_per_room');
 
-            // Opcional: evitar que se repita un símbolo por sala (si aplica en tu lógica)
-            // $table->unique(['room', 'sym'], 'unique_sym_per_room');
+            // Evitar símbolos repetidos por sala
+            $table->unique(['room_id', 'sym'], 'unique_sym_per_room');
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('bingo_draws_code');
     }

@@ -11,15 +11,18 @@ return new class extends Migration
         Schema::create('sellers_countries_coins', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('seller')->constrained('sellers')->onDelete('cascade');
-            $table->foreignId('country')->nullable()->constrained('countries');
-            $table->foreignId('coin')->constrained('coins')->onDelete('cascade');
+            $table->foreignId('seller_id')->constrained('sellers')->onDelete('cascade');
+            $table->foreignId('country_id')->constrained('countries')->onDelete('set null');
+            $table->foreignId('coin_id')->constrained('coins')->onDelete('cascade');
 
-            $table->enum('level', ['1', '2', '3']);
+            $table->tinyInteger('level')->comment('1=básico, 2=medio, 3=avanzado');
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
 
-            $table->boolean('status')->default(0);
+            $table->boolean('status')->default(false);
             $table->timestamps();
+
+            // Evitar duplicados
+            $table->unique(['seller_id', 'country_id', 'coin_id'], 'unique_seller_country_coin');
         });
     }
 

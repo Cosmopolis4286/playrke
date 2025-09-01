@@ -8,29 +8,28 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
-        Schema::create('bingo_rooms_user', function (Blueprint $table) {
+        Schema::create('bingo_room_users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->foreignId('room_id')->constrained('bingo_rooms')->onDelete('cascade');
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->string('ctns', 3);
-            $table->double('automarker')->nullable();
-            $table->enum('winner', ['0', '1', '2'])->default('0');
+            $table->tinyInteger('ctns')->comment('Cantidad de cartones');
+            $table->decimal('automarker', 8, 2)->nullable()->comment('Automarcador (si aplica)');
+
+            $table->enum('winner', ['0', '1', '2'])->default('0')
+                ->comment('0 = no ganador, 1 = primer premio, 2 = segundo premio');
+
             $table->timestamps();
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
-        Schema::dropIfExists('bingo_rooms_user');
+        Schema::dropIfExists('bingo_room_users');
     }
 };

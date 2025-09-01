@@ -8,29 +8,23 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('game_extras', function (Blueprint $table) {
             $table->id();
-            $table->string('description', 20);
-            $table->double('price', 2, 2);
-            $table->unsignedBigInteger('game');
-            $table->boolean('status')->default(0);
+            $table->string('description', 50);
+            $table->decimal('price', 10, 2)->default(0);
+            $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
+            $table->boolean('status')->default(false);
             $table->timestamps();
-
-            $table->foreign('game')->references('id')->on('games');
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('game_extras');
     }

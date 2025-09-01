@@ -6,32 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
-        Schema::create('game_exchange_rate', function (Blueprint $table) {
+        Schema::create('game_exchange_rates', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('game');
+            $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
+            $table->foreignId('coin_id')->constrained('coins')->onDelete('cascade');
             $table->integer('room');
-            $table->string('coin', 15);
-            $table->double('exchange_rate');
+            $table->decimal('exchange_rate', 15, 8);
             $table->timestamps();
 
-            $table->foreign('game')->references('id')->on('games');
+            // Evitar duplicados
+            $table->unique(['game_id', 'room', 'coin_id'], 'unique_exchange_per_game_room_coin');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
-        Schema::dropIfExists('game_exchange_rate');
+        Schema::dropIfExists('game_exchange_rates');
     }
 };

@@ -8,30 +8,23 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('sellers_room_limits', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('game');
-            $table->integer('room');
-            $table->unsignedBigInteger('seller');
-            $table->double('commn');
+            $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
+            $table->integer('room')->comment('Número de sala');
+            $table->foreignId('seller_id')->constrained('sellers')->onDelete('cascade');
+            $table->decimal('commn', 8, 2)->comment('Comisión del vendedor en esta sala');
             $table->timestamps();
-
-            $table->foreign('game')->references('id')->on('games');
-            $table->foreign('seller')->references('id')->on('sellers');
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('sellers_room_limits');
     }

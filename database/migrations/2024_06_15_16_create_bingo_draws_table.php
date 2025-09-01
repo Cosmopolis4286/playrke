@@ -8,32 +8,28 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('bingo_draws', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->string('round', 2)->default('1');
-            $table->string('chip', 2);
-            $table->string('code', 8);
-            $table->integer('time');
-            $table->string('status')->default('0');
+            $table->foreignId('room_id')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->tinyInteger('round')->default(1); // número de ronda
+            $table->char('chip', 2); // ficha extraída
+            $table->char('code', 8); // código asociado
+            $table->unsignedInteger('time'); // segundos o timestamp relativo
+            $table->enum('status', ['0', '1'])->default('0'); // pendiente/procesado
             $table->timestamps();
 
-            // Índice único para evitar duplicados de chip por sala y ronda
-            $table->unique(['room', 'round', 'chip'], 'unique_chip_per_room_round');
+            // Índice único: chip no puede repetirse en la misma sala/ronda
+            $table->unique(['room_id', 'round', 'chip'], 'unique_chip_per_room_round');
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('bingo_draws');
     }

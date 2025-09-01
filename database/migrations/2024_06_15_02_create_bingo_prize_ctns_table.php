@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('room_user_id')->constrained('bingo_rooms_user')->cascadeOnDelete();
             $table->foreignId('lot_id')->constrained('bingo_ctns_lot')->cascadeOnDelete();
             $table->foreignId('ctn_id')->constrained('bingo_ctns')->cascadeOnDelete();
-            $table->foreignId('coin_id')->constrained('coins');
+            $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate();
 
             // Datos del premio
             $table->string('round', 2);
