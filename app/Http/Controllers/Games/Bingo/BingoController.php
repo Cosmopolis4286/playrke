@@ -47,7 +47,7 @@ use App\Models\TimeZone;
 use App\Models\User;
 use App\Models\UserPurchaseCodes;
 use App\Models\Role;
-use App\Models\UUIDCodes;
+use App\Models\UniqueCode;
 use App\Models\Wallet;
 use App\Repositories\User\Roles\RoleRepository;
 // Services
@@ -880,7 +880,7 @@ class BingoController extends Controller
     public function outGame($uuidCode, $room = '', $coin = '')
     {
         // Vista del el juego solo para comprar [TODOS]
-        $code = UUIDCodes::getByCode($uuidCode);
+        $code = UniqueCode::getByCode($uuidCode);
 
         $creatorUser = $code->user;
 
@@ -1075,7 +1075,7 @@ class BingoController extends Controller
                 $gameRoomRoute =  route('bingo.gameRoomsCommerce', ['roomType' => $view, 'coin' => encrypt($coin)]);
 
                 $moreViewData = [
-                    'uuidCode' => Commerce::getValueById($creatorID, 'code_uuid'),
+                    'uuidCode' => Commerce::getValueById($creatorID, 'uuid_code'),
                     'countries' => Country::getAllAvailableCountries()
                 ];
 
@@ -1361,7 +1361,7 @@ class BingoController extends Controller
             'room_type' => $request->room_type,
             'creator_user_id' => $userID,
             'prize_pool' => $boat,
-            'code_uuid' => $this->getCodeUUID($model)
+            'uuid_code' => $this->getCodeUUID($model)
         ];
 
         date_default_timezone_set(config('app.timezone'));
@@ -2302,7 +2302,7 @@ class BingoController extends Controller
             'room_type' => $existingRoom->room_type,
             'creator_user_id' => $userID,
             'prize_pool' => $boat,
-            'code_uuid' => $this->getCodeUUID($model)
+            'uuid_code' => $this->getCodeUUID($model)
         ];
 
         DB::beginTransaction();
@@ -2542,7 +2542,7 @@ class BingoController extends Controller
             case 'commerce_id': // Comercio
                 $isLogin = true;
 
-                $commerce = Commerce::getById($creatorID, ['user', 'coin', 'code_uuid']);
+                $commerce = Commerce::getById($creatorID, ['user', 'coin', 'uuid_code']);
 
                 $gameRoomRoute =  route('bingo.gameRoomsCommerce', ['roomType' => 'private', 'coin' => encrypt($commerce->coin)]);
 
@@ -2674,7 +2674,7 @@ class BingoController extends Controller
                 $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($userData['id'], $coin);
 
                 $moreViewData = [
-                    'uuidCode' => UUIDCodes::getValueByUser($userData['userId'], 'code_uuid')
+                    'uuidCode' => UniqueCode::getValueByUser($userData['userId'], 'uuid_code')
                 ];
                 break;
             case 'customer':

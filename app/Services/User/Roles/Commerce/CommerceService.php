@@ -7,7 +7,7 @@ use App\Models\Wallet;
 use App\Models\PhoneNumbers;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
-use App\Models\UUIDCodes;
+use App\Models\UniqueCode;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -46,7 +46,7 @@ class CommerceService
             $this->createCommerceCountriesCoins($commerce, $user->id);
 
             // 🔑 Registrar Code UUID
-            $this->createUUID($commerce->code_uuid, $user->id, $user->user_type);
+            $this->createUUID($commerce->uuid_code, $user->id, $user->user_type);
 
             return ['commerce_id' => $commerce, 'password' => $password];
         });
@@ -80,8 +80,8 @@ class CommerceService
             'country'   => $data['country'],
             'status'    => 1,
             'user'      => $userId,
-            'code_rke'  => $data['code_rke'],
-            'code_uuid' => $this->generateUUID(),
+            'rke_code'  => $data['rke_code'],
+            'uuid_code' => $this->generateUUID(),
         ]);
     }
 
@@ -113,8 +113,8 @@ class CommerceService
 
     private function createUUID(string $uuid, int $userId, int $userType): void
     {
-        UUIDCodes::create([
-            'code_uuid'  => $uuid,
+        UniqueCode::create([
+            'uuid_code'  => $uuid,
             'user'       => $userId,
             'user_type'  => $userType,
         ]);

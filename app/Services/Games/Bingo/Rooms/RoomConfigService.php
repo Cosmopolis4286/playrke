@@ -51,7 +51,7 @@ class RoomConfigService
             'room_type' => $room->room_type,
             'creator_user_id' => $room->creator_user,
             'prizePool' => $prizePool,
-            'code_uuid' => $this->getCodeUUID($model)
+            'uuid_code' => $this->getCodeUUID($model)
         ];
     }
 

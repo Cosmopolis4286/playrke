@@ -6,32 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('game_prizes', function (Blueprint $table) {
             $table->id();
             $table->string('description', 20);
             $table->string('code', 4);
-            $table->unsignedBigInteger('game');
+
+            // Relación con la tabla 'games'
+            $table->foreignId('game_id')->constrained('games')->cascadeOnDelete();
+
             $table->boolean('status')->default(0);
             $table->timestamps();
 
-            // Clave única compuesta
-            $table->unique(['game', 'code']);
+            // Clave única compuesta: evita duplicados de código por juego
+            $table->unique(['game_id', 'code']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('game_prizes');
     }

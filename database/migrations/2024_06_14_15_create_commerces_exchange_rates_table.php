@@ -6,33 +6,32 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('commerces_exchange_rates', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('commerce_id')->constrained('commerces')->onDelete('cascade');
-            $table->unsignedBigInteger('coin');
-            $table->double('exchange_rate')->default(1);
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'OLD', 'DIRECTORY']);
-            $table->string('pct', 8)->default('0');
+
+            // Comercio relacionado
+            $table->foreignId('commerce_id')
+                ->constrained('commerces')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
+
+            // Moneda relacionada
+            $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate();
+
+            $table->double('exchange_rate', 10, 4)->default(1)->comment('Valor de cambio de la moneda');
+            $table->enum('status', ['active', 'inactive', 'old', 'directory'])->default('active');
+            $table->string('pct', 8)->default('0')->comment('Porcentaje asociado a la tasa de cambio');
+
             $table->timestamps();
 
-            // Foreign keys
-            $table->foreign('coin')->references('id')->on('coins');
+            // Índices
+            $table->unique(['commerce_id', 'coin_id'], 'commerce_coin_unique');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('commerces_exchange_rates');
     }

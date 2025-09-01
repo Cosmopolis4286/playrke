@@ -43,7 +43,7 @@ class CommerceRequest extends FormRequest
             'coin'         => ['required', 'numeric', 'exists:coins,id'],
             'phone'        => ['required', 'string', 'max:20'],
             'name'         => ['required', 'string'],
-            'code_rke'     => ['required', 'string'],
+            'rke_code'     => ['required', 'string'],
             'other_coins.*' => ['exists:coins,id'],
         ];
 
@@ -52,12 +52,12 @@ class CommerceRequest extends FormRequest
             $rules['username'][] = 'unique:users,username,' . $commerceId;
             $rules['email'][]    = 'unique:users,email,' . $commerceId;
             $rules['phone'][]    = 'unique:commerces,phone,' . $commerceId;
-            $rules['code_rke'][] = 'unique:commerces,code_rke,' . $commerceId;
+            $rules['rke_code'][] = 'unique:commerces,rke_code,' . $commerceId;
         } else {
             $rules['username'][] = 'unique:users,username';
             $rules['email'][]    = 'unique:users,email';
             $rules['phone'][]    = 'unique:commerces,phone';
-            $rules['code_rke'][] = 'unique:commerces,code_rke';
+            $rules['rke_code'][] = 'unique:commerces,rke_code';
         }
 
         return $rules;
@@ -74,7 +74,7 @@ class CommerceRequest extends FormRequest
             'username.unique' => 'El nombre de usuario no está disponible.',
             'email.unique'    => 'Este correo ya está registrado.',
             'phone.unique'    => 'El número ' . $this->phone . ' ya está registrado.',
-            'code_rke.unique' => 'El código RKE ya existe.',
+            'rke_code.unique' => 'El código RKE ya existe.',
             'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
             'time_zone.exists' => 'La zona horaria seleccionada no existe.',
         ];

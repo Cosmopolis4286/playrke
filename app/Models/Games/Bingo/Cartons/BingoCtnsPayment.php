@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class BingoCtnsPayment extends Model
 {
-    protected $table = "bingo_ctns_payments"; // plural recomendado en migración
+    protected $table = "bingo_ctns_paymentss"; // plural recomendado en migración
 
     protected $fillable = [
         'payment',

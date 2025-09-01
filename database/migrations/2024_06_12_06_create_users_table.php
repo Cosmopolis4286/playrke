@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('username', 20)->unique();
             $table->string('first_name', 50)->nullable();
             $table->string('last_name', 50)->nullable();
-            $table->foreignId('country')->constrained('countries')->onDelete('cascade');
-            $table->foreignId('time_zone')->nullable()->constrained('time_zones')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreignId('country_id')->constrained('countries')->onDelete('cascade');
+            $table->foreignId('time_zone_id')->nullable()->constrained('time_zones')->onDelete('restrict')->onUpdate('cascade');
             $table->string('photo', 255)->nullable();
             $table->string('phone', 20)->nullable();
             $table->string('email', 250)->unique();

@@ -6,43 +6,45 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('bingo_ctns_lot', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->unsignedBigInteger('seller')->nullable();
-            $table->unsignedBigInteger('room_user');
-            $table->integer('player_user')->nullable();
-            $table->integer('ctns');
+
+            $table->foreignId('room_id')
+                ->constrained('bingo_rooms')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
+
+            $table->foreignId('creator_user_id')
+                ->constrained('users')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
+
+            $table->foreignId('seller_id')
+                ->nullable()
+                ->constrained('sellers')
+                ->cascadeOnUpdate();
+
+            $table->foreignId('room_user_id')
+                ->constrained('bingo_rooms_user')
+                ->cascadeOnUpdate();
+
+            $table->integer('ctns')->comment('Cantidad de cartones');
             $table->string('coin', 15);
-            $table->double('ctn_price');
-            $table->double('exchange_rate');
-            $table->double('sale_amount');
-            $table->double('seller_commn')->nullable();
-            $table->boolean('status')->default(0);
+            $table->double('ctn_price', 10, 2);
+            $table->double('exchange_rate', 10, 2);
+            $table->double('sale_amount', 10, 2);
+            $table->double('seller_commn', 10, 2)->nullable();
+            $table->boolean('status')->default(0)->comment('0 = inactivo, 1 = activo');
+
             $table->timestamps();
 
-            $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('seller')->references('id')->on('sellers');
-            $table->foreign('room_user')->references('id')->on('bingo_rooms_user');
-
-            $table->index(['room']);
+            $table->index('room_id');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('bingo_ctns_lot');
     }

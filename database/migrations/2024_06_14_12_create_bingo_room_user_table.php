@@ -17,7 +17,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('room')->constrained('bingo_rooms')->onDelete('cascade');
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->integer('player_user')->nullable();
             $table->string('ctns', 3);
             $table->double('automarker')->nullable();
             $table->enum('winner', ['0', '1', '2'])->default('0');

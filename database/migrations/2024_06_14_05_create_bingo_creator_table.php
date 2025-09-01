@@ -19,7 +19,6 @@ return new class extends Migration
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
 
             // Datos del creador
-            $table->unsignedBigInteger('creator_id');
             $table->double('creator_commn', 15, 2)->default(0);
             $table->double('ctn_price', 15, 2);
             $table->json('allowed_coins')->nullable();

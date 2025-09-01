@@ -108,8 +108,8 @@ class AdminController extends Controller
 
     public function promoteUserToCommerce(Request $request)
     { // Convierte un usuario ya registrado en Comercializadora
-        $codeRKE = $request->code_rke;
-        $existsCodeRKE = Commerce::existsValue('code_rke', $codeRKE);
+        $codeRKE = $request->rke_code;
+        $existsCodeRKE = Commerce::existsValue('rke_code', $codeRKE);
 
         if ($existsCodeRKE) {
             return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
@@ -125,8 +125,8 @@ class AdminController extends Controller
                 'country' => $request->country,
                 'status' => 1,
                 'user' => $request->user_id,
-                'code_rke' => $this->replaceLettersWithNumbers($codeRKE),
-                'code_uuid' => $this->getCodeUUID('Commerce')
+                'rke_code' => $this->replaceLettersWithNumbers($codeRKE),
+                'uuid_code' => $this->getCodeUUID('Commerce')
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

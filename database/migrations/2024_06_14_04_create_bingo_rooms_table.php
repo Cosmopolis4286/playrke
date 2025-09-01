@@ -32,7 +32,7 @@ return new class extends Migration
             $table->double('serial_prize', 15, 2)->default(0);
 
             $table->integer('close_room')->nullable();
-            $table->string('code_uuid', 36)->nullable()->unique();
+            $table->string('uuid_code', 36)->nullable()->unique();
             $table->timestamps();
 
             // Foreign key

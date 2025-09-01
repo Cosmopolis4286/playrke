@@ -8,34 +8,25 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
-        Schema::create('pago_movil', function (Blueprint $table) {
+        Schema::create('pago_moviles', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('document_type');
-            $table->string('document', 10);
-            $table->unsignedBigInteger('bank_id');
-            $table->string('phone', 11);
-            $table->unsignedBigInteger('user_id');
+            $table->foreignId('document_type')->constrained('document_type')->cascadeOnUpdate();
+            $table->string('document', 15)->index()->comment('Número de documento del titular');
+            $table->foreignId('bank_id')->constrained('banks_venezuela')->cascadeOnUpdate();
+            $table->string('phone', 15)->index()->comment('Teléfono asociado al pago móvil');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->timestamps();
-
-            // Foreign keys
-            $table->foreign('document_type')->references('id')->on('document_type');
-            $table->foreign('bank_id')->references('id')->on('banks_venezuela');
-            $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
-        Schema::dropIfExists('pago_movil');
+        Schema::dropIfExists('pago_moviles');
     }
 };

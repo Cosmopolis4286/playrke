@@ -16,10 +16,8 @@ return new class extends Migration
             $table->string('name', 50)->unique()->comment('Nombre completo de la zona horaria (ej. America/Sao_Paulo)');
             $table->string('utc', 8)->comment('Offset UTC (ej. UTC-03)');
             $table->foreignId('country')->nullable()
-                ->constrained('countries')
-                ->cascadeOnUpdate()
-                ->nullOnDelete()
-                ->comment('ID del país asociado (opcional)');
+                ->constrained('countries')->cascadeOnUpdate()
+                ->nullOnDelete()->comment('ID del país asociado (opcional)');
             $table->boolean('status')->default(true)->comment('Estado activo/inactivo');
             $table->timestamps();
         });

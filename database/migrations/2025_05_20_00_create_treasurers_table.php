@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('coin')->constrained('coins');
             $table->string('phone', 12);
             $table->foreignId('user')->constrained('users');
-            $table->uuid('code_uuid')->unique();
+            $table->uuid('uuid_code')->unique();
             $table->string('status', 1)->default('1');
             $table->timestamps();
         });

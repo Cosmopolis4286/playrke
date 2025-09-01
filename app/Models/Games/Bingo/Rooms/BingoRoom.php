@@ -25,7 +25,7 @@ class BingoRoom extends Model
     'full_house_prize',
     'serial_prize',
     'close_room',
-    'code_uuid',
+    'uuid_code',
   ];
 
   protected $appends = ['room_type_description'];

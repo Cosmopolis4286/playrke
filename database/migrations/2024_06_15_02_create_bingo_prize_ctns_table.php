@@ -11,22 +11,28 @@ return new class extends Migration
         Schema::create('bingo_prize_ctns', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('room')->constrained('bingo_rooms');
+            // Relaciones
+            $table->foreignId('room_id')->constrained('bingo_rooms')->cascadeOnDelete();
+            $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('seller_id')->nullable()->constrained('sellers')->nullOnDelete();
+            $table->foreignId('room_user_id')->constrained('bingo_rooms_user')->cascadeOnDelete();
+            $table->foreignId('lot_id')->constrained('bingo_ctns_lot')->cascadeOnDelete();
+            $table->foreignId('ctn_id')->constrained('bingo_ctns')->cascadeOnDelete();
+            $table->foreignId('coin_id')->constrained('coins');
+
+            // Datos del premio
             $table->string('round', 2);
             $table->enum('active', ['Y', 'N'])->default('N');
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('seller')->nullable()->constrained('sellers');
-            $table->foreignId('room_user')->constrained('bingo_rooms_user');
-            $table->foreignId('lot')->constrained('bingo_ctns_lot');
-            $table->foreignId('ctn')->constrained('bingo_ctns');
             $table->enum('prize_type', ['FLHE', 'SONG', 'SRL']);
             $table->string('pattern', 50);
             $table->double('usd_amount', 10, 2);
-            $table->string('coin', 15);
             $table->double('amount', 16, 8);
             $table->enum('status', ['WT', 'CC', 'CS', 'SP']);
+
             $table->timestamps();
-            $table->index('room'); // índice ya existente
+
+            // Índices para consultas rápidas
+            $table->index(['room_id', 'ctn_id']);
         });
     }
 

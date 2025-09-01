@@ -8,7 +8,7 @@ use App\Models\CustomerUser;
 use App\Models\PhoneNumbers;
 use App\Models\User;
 use App\Models\Role;
-use App\Models\UUIDCodes;
+use App\Models\UniqueCode;
 use App\Models\Wallet;
 use App\Traits\Games\SeamlessWallet;
 use App\Traits\Helpers\EncryptTrait;
@@ -185,8 +185,8 @@ class CustomerController extends Controller
             ]);
 
             // Registrar Code UUID
-            UUIDCodes::create([
-                'code_uuid' => $codeUUID,
+            UniqueCode::create([
+                'uuid_code' => $codeUUID,
                 'user' => $newUser,
                 'user_type' => Role::getValueByPrefix('customer', 'id')
             ]);

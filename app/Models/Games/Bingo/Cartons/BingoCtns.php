@@ -16,7 +16,6 @@ class BingoCtns extends Model
         'creator_user_id',
         'seller',
         'room_user',
-        'player_user',
         'coin',
         'lot',
         'serial',

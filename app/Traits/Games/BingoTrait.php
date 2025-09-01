@@ -911,7 +911,7 @@ trait BingoTrait
             // Si la sala es de un cliente
             if ($creator['type'] === 'customer') {
                 // Registrar transacción (se consulta nuvamente el saldo del juagdor)
-                $roomId = BingoRoom::getValueById($roomId, 'code_uuid') ?? $this->getCodeUUID('BingoRoom');
+                $roomId = BingoRoom::getValueById($roomId, 'uuid_code') ?? $this->getCodeUUID('BingoRoom');
 
                 $transactionBet = $this->handleTransactionByBET(
                     $game,

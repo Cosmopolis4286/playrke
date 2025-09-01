@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('bingo_ctns_payment', function (Blueprint $table) {
+        Schema::create('bingo_ctns_payments', function (Blueprint $table) {
             $table->id();
             $table->enum('payment', ['PS', 'SC']);
             $table->string('description', 35)->nullable();
@@ -45,6 +45,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bingo_ctns_payment');
+        Schema::dropIfExists('bingo_ctns_payments');
     }
 };

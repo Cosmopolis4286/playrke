@@ -13,13 +13,8 @@ return new class extends Migration
     {
         Schema::create('exchange_rates', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('coin_id')
-                ->constrained('coins')
-                ->cascadeOnDelete();
-
-            // decimal es más seguro que double para valores monetarios
+            $table->foreignId('coin_id')->constrained('coins')->cascadeOnDelete();
             $table->decimal('value', 15, 8)->default(1);
-
             $table->timestamps();
 
             // Índice compuesto por si consultas coin + value frecuentemente

@@ -11,14 +11,33 @@ return new class extends Migration
         Schema::create('commerces_countries_coins', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('commerce_id')->constrained('commerces')->onDelete('cascade');
-            $table->foreignId('country')->nullable()->constrained('countries');
-            $table->foreignId('coin')->constrained('coins')->onDelete('cascade');
+            $table->foreignId('commerce_id')
+                ->constrained('commerces')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
 
-            $table->enum('level', ['1', '2', '3']);
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('country_id')
+                ->nullable()
+                ->constrained('countries')
+                ->cascadeOnUpdate();
 
-            $table->boolean('status')->default(0);
+            $table->foreignId('coin_id')
+                ->constrained('coins')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
+
+            $table->tinyInteger('level')
+                ->comment('Nivel asignado: 1 = básico, 2 = intermedio, 3 = avanzado');
+
+            $table->foreignId('creator_user_id')
+                ->constrained('users')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
+
+            $table->boolean('status')
+                ->default(0)
+                ->comment('0 = inactivo, 1 = activo');
+
             $table->timestamps();
         });
     }

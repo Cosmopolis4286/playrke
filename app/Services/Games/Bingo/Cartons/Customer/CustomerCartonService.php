@@ -77,7 +77,7 @@ class CustomerCartonService
      */
     private function getRoomUUID($roomId)
     {
-        $roomUUID = BingoRoom::getValueById($roomId, 'code_uuid');
+        $roomUUID = BingoRoom::getValueById($roomId, 'uuid_code');
 
         if (!$roomUUID) {
             throw new Exception("No se encontró un código UUID para la sala con ID: $roomId");

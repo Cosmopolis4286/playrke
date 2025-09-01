@@ -10,7 +10,6 @@ class BingoRoomUser extends Model
     protected $fillable = [
         'room',
         'creator_user_id',
-        'player_user',
         'ctns',
         'automarker',
         'winner'

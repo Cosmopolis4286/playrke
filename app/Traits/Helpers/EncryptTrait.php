@@ -78,11 +78,11 @@ trait EncryptTrait
      * @param string $model
      * @return string
      */
-    public function getCodeUUID(string $model = 'UUIDCodes'): string
+    public function getCodeUUID(string $model = 'UniqueCode'): string
     {
         do {
             $code = strtoupper(Str::uuid()->toString());
-        } while (app("App\\Models\\$model")::where('code_uuid', $code)->exists());
+        } while (app("App\\Models\\$model")::where('uuid_code', $code)->exists());
 
         return $code;
     }

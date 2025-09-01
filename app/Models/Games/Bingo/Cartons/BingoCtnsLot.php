@@ -15,7 +15,6 @@ class BingoCtnsLot extends Model
         'room_id',
         'creator_user_id',
         'seller_id',
-        'player_user',
         'room_user',
         'ctns',
         'coin_id',

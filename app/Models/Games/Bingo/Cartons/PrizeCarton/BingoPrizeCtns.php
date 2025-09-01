@@ -14,7 +14,6 @@ class BingoPrizeCtns extends Model
         'creator_user_id',
         'seller',
         'room_user',
-        'player_user',
         'lot',
         'ctn',
         'prize_type',

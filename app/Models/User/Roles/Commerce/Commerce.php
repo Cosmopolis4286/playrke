@@ -2,6 +2,8 @@
 
 namespace App\Models\User\Roles\Commerce;
 
+use App\Models\Countries\Country;
+use App\Models\User\Roles\Seller\Seller;
 use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,13 +18,12 @@ class Commerce extends Model
    */
   protected $fillable = [
     'name',
-    'country',   // FK Country
-    'coin',
+    'country_id',   // FK Country
+    'coin_id',
     'phone',
-    'user',      // FK User
+    'user_id',      // FK User
     'commn',
-    'code_rke',
-    'code_uuid',
+    'rke_code_id',
     'status'
   ];
 
@@ -42,7 +43,7 @@ class Commerce extends Model
    */
   public function Country(): BelongsTo
   {
-    return $this->belongsTo(Country::class, 'country');
+    return $this->belongsTo(Country::class, 'country_id');
   }
 
   /**
@@ -50,7 +51,7 @@ class Commerce extends Model
    */
   public function User(): BelongsTo
   {
-    return $this->belongsTo(User::class, 'user');
+    return $this->belongsTo(User::class, 'user_id');
   }
 
   /**
@@ -87,22 +88,22 @@ class Commerce extends Model
 
   public static function getByCodeRKE($code, $fields = ['*']): ?self
   {
-    return self::select($fields)->where('code_rke', $code)->first();
+    return self::select($fields)->where('rke_code', $code)->first();
   }
 
   public static function getValueByCodeRKE($code, $value)
   {
-    return self::where('code_rke', $code)->value($value);
+    return self::where('rke_code', $code)->value($value);
   }
 
   public static function getByCodeUUID($code, $fields = ['*']): ?self
   {
-    return self::select($fields)->where('code_uuid', $code)->first();
+    return self::select($fields)->where('uuid_code', $code)->first();
   }
 
   public static function getValueByCodeUUID($code, $value)
   {
-    return self::where('code_uuid', $code)->value($value);
+    return self::where('uuid_code', $code)->value($value);
   }
 
   /**

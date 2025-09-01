@@ -17,9 +17,9 @@ return new class extends Migration
             $table->time('time')->comment('Hora del juego');
             $table->foreignId('game_id')->constrained('games')->onUpdate('cascade')->onDelete('cascade')->comment('Juego asociado');
             $table->unsignedBigInteger('room_id')->comment('Sala o room asociada');
-            $table->string('coin', 8)->comment('Moneda utilizada');
+            $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate()->comment('Moneda utilizada');
             $table->decimal('gain', 12, 2)->comment('Ganancia obtenida');
-            $table->string('action', 15)->comment('Acción realizada');
+            $table->string('action', 35)->comment('Acción realizada');
             $table->foreignId('user_id')->constrained('users')->onUpdate('cascade')->onDelete('cascade')->comment('Usuario que jugó');
             $table->timestamps();
         });

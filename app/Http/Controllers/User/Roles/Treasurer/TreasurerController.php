@@ -12,7 +12,7 @@ use App\Models\Treasurer;
 use App\Models\TreasurerCountriesCoins;
 use App\Models\PhoneNumbers;
 use App\Models\Role;
-use App\Models\UUIDCodes;
+use App\Models\UniqueCode;
 use App\Models\Wallet;
 use App\Traits\Helpers\FiltersTrait;
 use App\Traits\Users\UserValTrait;
@@ -144,13 +144,13 @@ class TreasurerController extends Controller
                 'coin' => $request->coin,
                 'country' => $request->country,
                 'user' => $newUser,
-                'code_uuid' => $this->getCodeUUID('Treasurer'),
+                'uuid_code' => $this->getCodeUUID('Treasurer'),
                 'status' => 1
             ]);
 
             // Registrar Code UUID
-            UUIDCodes::create([
-                'code_uuid' => $treasurer->code_uuid,
+            UniqueCode::create([
+                'uuid_code' => $treasurer->uuid_code,
                 'user' => $newUser,
                 'user_type' => Role::getValueByPrefix('treasurer', 'id'),
             ]);

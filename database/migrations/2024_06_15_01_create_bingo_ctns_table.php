@@ -6,67 +6,37 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('bingo_ctns', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('room');
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->unsignedBigInteger('seller')->nullable();
-            $table->integer('player_user')->nullable();
-            $table->unsignedBigInteger('room_user');
-            $table->unsignedBigInteger('lot');
+
+            $table->foreignId('room_id')->constrained('bingo_rooms')->cascadeOnDelete();
+            $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('seller_id')->nullable()->constrained('sellers')->nullOnDelete();
+            $table->foreignId('room_user_id')->constrained('bingo_rooms_user')->cascadeOnDelete();
+            $table->foreignId('lot_id')->constrained('bingo_ctns_lot')->cascadeOnDelete();
+
             $table->string('coin', 15);
             $table->string('serial', 20);
-            $table->string('b1', 2);
-            $table->string('b2', 2);
-            $table->string('b3', 2);
-            $table->string('b4', 2);
-            $table->string('b5', 2);
-            $table->string('i1', 2);
-            $table->string('i2', 2);
-            $table->string('i3', 2);
-            $table->string('i4', 2);
-            $table->string('i5', 2);
-            $table->string('n1', 2);
-            $table->string('n2', 2);
-            $table->string('n3', 2)->nullable();
-            $table->string('n4', 2);
-            $table->string('n5', 2);
-            $table->string('g1', 2);
-            $table->string('g2', 2);
-            $table->string('g3', 2);
-            $table->string('g4', 2);
-            $table->string('g5', 2);
-            $table->string('o1', 2);
-            $table->string('o2', 2);
-            $table->string('o3', 2);
-            $table->string('o4', 2);
-            $table->string('o5', 2);
+
+            // Columnas del cartón: B, I, N, G, O
+            foreach (['b', 'i', 'n', 'g', 'o'] as $letter) {
+                for ($i = 1; $i <= 5; $i++) {
+                    $nullable = ($letter === 'n' && $i === 3) ? true : false; // N3 puede ser nulo
+                    $table->string("{$letter}{$i}", 2)->nullable($nullable);
+                }
+            }
+
             $table->string('hash', 64);
             $table->timestamps();
 
-            $table->foreign('room')->references('id')->on('bingo_rooms');
-            $table->foreign('seller')->references('id')->on('sellers');
-            $table->foreign('room_user')->references('id')->on('bingo_rooms_user');
-            $table->foreign('lot')->references('id')->on('bingo_ctns_lot');
-
-            // Índice compuesto
+            // Índice compuesto para consultas rápidas por sala
             $table->index(['room']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('bingo_ctns');
     }
