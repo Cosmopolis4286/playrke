@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('bingo_rounds', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room')->constrained('bingo_rooms');
+            $table->foreignId('room_id')->constrained('bingo_rooms');
             $table->string('round', 2);
             $table->integer('start_time')->nullable();
             $table->string('last_chip', 2)->nullable();
             $table->enum('prize_type', ['PCT', 'USD', 'OTHER']);
-            $table->foreignId('play_type')->constrained('bingo_patterns');
-            $table->double('prize_value')->nullable();
-            $table->enum('status', ['ACTIVE', 'IN PROGRESS', 'FINISHED'])->default('ACTIVE');
+            $table->foreignId('bingo_pattern_id')->constrained('bingo_patterns');
+            $table->decimal('prize_value')->nullable();
+            $table->enum('status', ['active', 'in_progress', 'finished'])->default('active');
             $table->timestamps();
         });
     }

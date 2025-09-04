@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained('users');
             $table->string('customer_code', 30)->nullable()->unique();
             $table->string('phone', 12)->nullable();
-            $table->double('commn')->nullable();
+            $table->decimal('commn', 3, 2)->nullable();
             $table->boolean('all_in')->default(false);
             $table->string('brand', 25)->nullable();
             $table->string('product', 25)->nullable();

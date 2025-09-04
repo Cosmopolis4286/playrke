@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('description', 50);
             $table->decimal('price', 10, 2)->default(0);
             $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
-            $table->boolean('status')->default(false);
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

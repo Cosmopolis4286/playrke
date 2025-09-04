@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('phone', 12);
             $table->foreignId('user')->constrained('users');
             $table->uuid('uuid_code')->unique();
-            $table->string('status', 1)->default('1');
+            $table->enum('status', ['active', 'inactive', 'blocked'])->default('active');
             $table->timestamps();
         });
     }

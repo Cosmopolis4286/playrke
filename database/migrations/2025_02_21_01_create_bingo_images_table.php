@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('bingo_images', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade')->nullable();
             $table->enum('type', ['1', '2']);
             $table->string('param', 15);
             $table->string('route', 35);
             $table->string('code', 8);
-            $table->boolean('status')->default(1);
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

@@ -14,11 +14,11 @@ return new class extends Migration
         Schema::create('exchange_rates', function (Blueprint $table) {
             $table->id();
             $table->string('coin', 20);
-            $table->decimal('value', 15, 8)->default(1);
+            $table->decimal('value', 12, 4)->default(1);
             $table->timestamps();
 
             // Índice compuesto por si consultas coin + value frecuentemente
-            $table->index(['coin_id', 'value']);
+            $table->index(['coin', 'value']);
         });
     }
 

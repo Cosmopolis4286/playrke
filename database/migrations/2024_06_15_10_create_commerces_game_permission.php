@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('commerce_id')->constrained('commerces')->onDelete('cascade');
             $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
-            $table->boolean('status')->default(false)->comment('Permiso activo o inactivo');
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
 
             // Evita duplicados: un comercio solo puede tener un registro por juego

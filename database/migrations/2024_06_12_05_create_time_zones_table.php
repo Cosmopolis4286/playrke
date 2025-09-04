@@ -15,9 +15,11 @@ return new class extends Migration
             $table->id()->comment('ID de la zona horaria');
             $table->string('name', 50)->unique()->comment('Nombre completo de la zona horaria (ej. America/Sao_Paulo)');
             $table->string('utc', 8)->comment('Offset UTC (ej. UTC-03)');
-            $table->foreignId('country_id')->constrained('countries')->cascadeOnUpdate()
+            $table->foreignId('country_id')->nullable()
+                ->constrained('countries')->cascadeOnUpdate()
                 ->nullOnDelete()->comment('ID del país asociado (opcional)');
-            $table->boolean('status')->default(true)->comment('Estado activo/inactivo');
+            $table->boolean('is_active')->default(true)
+                ->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

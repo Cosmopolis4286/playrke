@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id()->comment('ID de la relación entre juego y modo');
             $table->unsignedBigInteger('game_id')->comment('ID del juego');
             $table->unsignedBigInteger('game_mode_id')->comment('ID del modo de juego');
-            $table->boolean('status')->default(0)->comment('Estado activo/inactivo de la relación');
+            $table->enum('status', ['active', 'inactive'])->default('active')
+                ->comment('Estado activo/inactivo de la relación');
             $table->timestamps();
 
             // Claves foráneas

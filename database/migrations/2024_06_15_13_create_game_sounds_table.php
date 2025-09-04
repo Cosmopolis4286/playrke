@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('file', 35)->unique()->comment('Nombre del archivo de sonido');
             $table->string('description', 50)->comment('Descripción del sonido');
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

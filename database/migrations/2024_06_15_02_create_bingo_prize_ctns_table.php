@@ -18,15 +18,15 @@ return new class extends Migration
             $table->foreignId('room_user_id')->constrained('bingo_rooms_user')->cascadeOnDelete();
             $table->foreignId('lot_id')->constrained('bingo_ctns_lot')->cascadeOnDelete();
             $table->foreignId('ctn_id')->constrained('bingo_ctns')->cascadeOnDelete();
-            $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate();
+            $table->string('coin');
 
             // Datos del premio
-            $table->string('round', 2);
+            $table->tinyInteger('round', 2);
             $table->enum('active', ['Y', 'N'])->default('N');
             $table->enum('prize_type', ['FLHE', 'SONG', 'SRL']);
             $table->string('pattern', 50);
-            $table->double('usd_amount', 10, 2);
-            $table->double('amount', 16, 8);
+            $table->decimal('usd_amount', 12, 2);
+            $table->decimal('amount', 12, 8);
             $table->enum('status', ['WT', 'CC', 'CS', 'SP']);
 
             $table->timestamps();

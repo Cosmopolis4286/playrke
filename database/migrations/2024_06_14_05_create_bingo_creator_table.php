@@ -6,34 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('bingo_creators', function (Blueprint $table) {
             $table->id();
 
             // Relaciones
-            $table->foreignId('room_id')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('room_id')->constrained('bingo_rooms')->cascadeOnDelete();
+            $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
 
             // Datos del creador
-            $table->double('creator_commn', 15, 2)->default(0);
-            $table->double('ctn_price', 15, 2);
-            $table->json('allowed_coins')->nullable();
+            $table->decimal('creator_commn', 15, 2)->default(0); // Comisión del creador
+            $table->decimal('ctn_price', 15, 2);                 // Precio del cartón
 
-            $table->boolean('status')->default(true);
+            $table->enum('status', ['active', 'inactive'])->default('active');
+
             $table->timestamps();
 
-            // Índices adicionales opcionales
-            $table->index(['room_id', 'creator_user_id']);
+            // Evitar duplicados de creador por sala
+            $table->unique(['room_id', 'creator_user_id'], 'unique_creator_per_room');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('bingo_creators');

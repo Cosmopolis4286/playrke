@@ -30,6 +30,8 @@ return new class extends Migration
             $table->string('last_name', 50);
             $table->string('identification', 20)->nullable();
             $table->string('phone', 14);
+            $table->enum('status', ['active', 'inactive', 'blocked'])->default('active')
+                ->comment('Estado activo/inactivo');
 
             $table->timestamps();
 

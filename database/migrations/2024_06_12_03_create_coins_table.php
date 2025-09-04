@@ -22,7 +22,8 @@ return new class extends Migration
                 ->constrained('countries')
                 ->onDelete('restrict')
                 ->comment('Referencia al país de la moneda');
-            $table->boolean('status')->default(false)->comment('Estado activo/inactivo de la moneda');
+            $table->boolean('is_active')->default(true)
+                ->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

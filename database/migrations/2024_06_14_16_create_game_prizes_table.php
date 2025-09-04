@@ -10,17 +10,18 @@ return new class extends Migration
     {
         Schema::create('game_prizes', function (Blueprint $table) {
             $table->id();
-            $table->string('description', 20);
-            $table->string('code', 4);
+            $table->string('description', 50);
+            $table->string('code', 10)->index();
 
-            // Relación con la tabla 'games'
             $table->foreignId('game_id')->constrained('games')->cascadeOnDelete();
 
-            $table->boolean('status')->default(0);
+            $table->boolean('is_active')->default(true)
+                ->comment('true = activo, false = inactivo');
+
             $table->timestamps();
 
-            // Clave única compuesta: evita duplicados de código por juego
-            $table->unique(['game_id', 'code']);
+            // Evitar duplicados de código por juego
+            $table->unique(['game_id', 'code'], 'unique_game_code');
         });
     }
 

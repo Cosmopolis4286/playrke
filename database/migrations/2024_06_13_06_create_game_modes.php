@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('game_modes', function (Blueprint $table) {
             $table->id()->comment('ID del modo de juego');
             $table->string('description', 50)->comment('Descripción del modo de juego');
-            $table->boolean('status')->default(1)->comment('Estado activo/inactivo');
+            $table->boolean('is_active')->default(true)
+                ->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

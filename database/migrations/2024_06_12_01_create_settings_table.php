@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('param', 50)->unique(); // Más claro y único para evitar duplicados
             $table->string('value', 100)->nullable();
-            $table->boolean('status')->default(1);
+            $table->boolean('is_active')->default(true)
+                ->comment('true = activo, false = inactivo');
             $table->timestamps(); // created_at y updated_at
         });
     }

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('game_status', function (Blueprint $table) {
             $table->id()->comment('ID del estado del juego');
-            $table->string('value', 30)->unique()->comment('Código único del estado (ej: ACTIVE, FINISHED)');
+            $table->string('value', 15)->unique()->comment('Código único del estado (ej: ACTIVE, FINISHED)');
             $table->string('description', 100)->comment('Descripción legible del estado');
             $table->timestamps();
         });

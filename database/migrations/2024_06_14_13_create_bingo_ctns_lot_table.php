@@ -33,11 +33,12 @@ return new class extends Migration
             $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate();
 
             $table->integer('ctns')->comment('Cantidad de cartones');
-            $table->double('ctn_price', 10, 2);
-            $table->double('exchange_rate', 10, 2);
-            $table->double('sale_amount', 10, 2);
-            $table->double('seller_commn', 10, 2)->nullable();
-            $table->boolean('status')->default(0)->comment('0 = inactivo, 1 = activo');
+            $table->decimal('ctn_price', 10, 2);
+            $table->decimal('exchange_rate', 10, 2);
+            $table->decimal('sale_amount', 10, 2);
+            $table->decimal('seller_commn', 10, 2)->nullable();
+            $table->boolean('is_active')->default(true)
+                ->comment('true = activo, false = inactivo');
 
             $table->timestamps();
 

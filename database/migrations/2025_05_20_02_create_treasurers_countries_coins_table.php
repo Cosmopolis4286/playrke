@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('treasurers_countries_coins', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('treasurer')->constrained('treasurers');
-            $table->foreignId('country')->nullable()->constrained('countries');
-            $table->foreignId('coin')->constrained('coins');
+            $table->foreignId('treasurer_id')->constrained('treasurers');
+            $table->foreignId('country_id')->nullable()->constrained('countries');
+            $table->foreignId('coin_id')->constrained('coins');
             $table->enum('level', ['1', '2', '3']);
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->boolean('status')->default(0);
+            $table->enum('status', ['active', 'inactive', 'blocked'])->default('active');
             $table->timestamps();
         });
     }

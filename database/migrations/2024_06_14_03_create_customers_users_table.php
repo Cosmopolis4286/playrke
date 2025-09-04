@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('brand')->nullable();
             $table->string('token', 255);
             $table->string('country_code', 3)->nullable(); // Mejor nombre para claridad
-            $table->string('coin_id', 15);
+            $table->string('coin_id', 20);
             $table->timestamp('last_activity');
             $table->timestamps();
         });

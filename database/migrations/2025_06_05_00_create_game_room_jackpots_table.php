@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('game_room_jackpots', function (Blueprint $table) {
             $table->id();
             $table->string('coin', 15);
-            $table->double('amount');
-            $table->enum('status', ['AVAILABLE', 'USED'])->default('AVAILABLE');
+            $table->decimal('amount', 12, 4);
+            $table->enum('status', ['available', 'used'])->default('available');
             $table->timestamps();
         });
     }

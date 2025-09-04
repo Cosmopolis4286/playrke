@@ -17,10 +17,7 @@ return new class extends Migration
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->tinyInteger('ctns')->comment('Cantidad de cartones');
             $table->decimal('automarker', 8, 2)->nullable()->comment('Automarcador (si aplica)');
-
-            $table->enum('winner', ['0', '1', '2'])->default('0')
-                ->comment('0 = no ganador, 1 = primer premio, 2 = segundo premio');
-
+            $table->enum('winner', ['Y', 'N'])->default('N')->comment('N = no ganador, Y = ganador');
             $table->timestamps();
         });
     }

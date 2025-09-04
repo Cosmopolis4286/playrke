@@ -41,7 +41,7 @@ return new class extends Migration
             $table->foreignId('lot_id')
                 ->constrained('bingo_ctns_lot');
 
-            $table->decimal('amount', 12, 2);
+            $table->decimal('amount', 10, 2);
             $table->string('payment_proof', 25);
 
             $table->timestamps();

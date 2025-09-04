@@ -16,7 +16,7 @@ return new class extends Migration
             // Claves foráneas
             $table->foreignId('room_id')->constrained('bingo_rooms')->onDelete('cascade');
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->string('coin', 20);  
+            $table->string('coin', 15);  
             $table->decimal('ctn_price', 10, 2)->comment('Precio del cartón de bingo');
             $table->timestamps();
         });

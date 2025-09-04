@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->enum('account_type', ['E', 'P', 'B']);
             $table->string('data_value', 100);
-            $table->foreignId('user')->constrained('users')->onDelete('cascade');
-            $table->boolean('status');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->enum('status', ['active', 'inactive', 'blocked'])->default('active');
             $table->timestamps();
         });
     }

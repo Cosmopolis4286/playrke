@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('value', 6)->comment('Código corto del documento');
             $table->string('description', 50)->comment('Descripción legible del documento');
             $table->foreignId('country_id')->nullable()->constrained('countries')->cascadeOnUpdate()->nullOnDelete();
-            $table->boolean('status')->default(0)->comment('Estado activo/inactivo');
+            $table->boolean('is_active')->default(true)
+                ->comment('true = activo, false = inactivo');
             $table->timestamps();
 
             // Índices para optimizar consultas frecuentes

@@ -21,7 +21,8 @@ return new class extends Migration
             $table->foreignId('commerce_id')->nullable()->constrained('commerces');
             $table->foreignId('subsidiary_id')->nullable()->constrained('subsidiaries')->cascadeOnUpdate();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->boolean('status')->default(0);
+            $table->enum('status', ['active', 'inactive'])->default('active')
+                ->comment('Estado activo/inactivo');
             $table->timestamps();
         });
     }

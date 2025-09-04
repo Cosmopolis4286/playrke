@@ -26,7 +26,7 @@ return new class extends Migration
             $table->rememberToken();
             $table->string('referral_code', 16)->unique();
             $table->foreignId('referred_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->boolean('status')->default(1);
+            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
 
             // Indexes adicionales
