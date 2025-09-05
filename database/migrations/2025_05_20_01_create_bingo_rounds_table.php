@@ -6,28 +6,36 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('bingo_rounds', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained('bingo_rooms');
-            $table->string('round', 2);
-            $table->integer('start_time')->nullable();
-            $table->string('last_chip', 2)->nullable();
-            $table->enum('prize_type', ['PCT', 'USD', 'OTHER']);
-            $table->foreignId('bingo_pattern_id')->constrained('bingo_patterns');
-            $table->decimal('prize_value')->nullable();
-            $table->enum('status', ['active', 'in_progress', 'finished'])->default('active');
+
+            $table->foreignId('room_id')
+                ->constrained('bingo_rooms')
+                ->cascadeOnDelete();
+
+            $table->tinyInteger('round')->comment('Número de la ronda');
+            $table->timestamp('start_time')->nullable()->comment('Inicio de la ronda');
+            $table->char('last_chip', 2)->nullable()->comment('Última ficha jugada');
+
+            $table->enum('prize_type', ['PCT', 'USD', 'OTHER'])->comment('Tipo de premio');
+            $table->foreignId('play_type_id')
+                ->constrained('bingo_patterns')
+                ->cascadeOnDelete();
+
+            $table->decimal('prize_value', 15, 6)->nullable()->comment('Valor del premio');
+            $table->enum('status', ['ACTIVE', 'IN_PROGRESS', 'FINISHED'])
+                ->default('ACTIVE')
+                ->index();
+
             $table->timestamps();
+
+            // Índice compuesto útil para evitar duplicados de ronda por sala
+            $table->unique(['room_id', 'round'], 'unique_round_per_room');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('bingo_rounds');

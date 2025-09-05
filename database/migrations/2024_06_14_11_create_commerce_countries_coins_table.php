@@ -34,7 +34,7 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->cascadeOnUpdate();
 
-            $table->enum('status', ['active', 'inactive', 'blocked'])->default('active')
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE')
                 ->comment('Estado activo/inactivo');
 
             $table->timestamps();

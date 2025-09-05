@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('coin_id')->constrained('coins');
             $table->enum('level', ['1', '2', '3']);
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->enum('status', ['active', 'inactive', 'blocked'])->default('active');
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
             $table->timestamps();
         });
     }

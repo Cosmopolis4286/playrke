@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('room_id')->constrained('bingo_rooms')->onDelete('cascade');
             $table->foreignId('room_user_id')->constrained('bingo_rooms_user')->onDelete('cascade');
             $table->foreignId('round_id')->constrained('bingo_rounds');
-            $table->enum('award_status', ['waiting', 'paid'])->default('waiting');
+            $table->enum('award_status', ['WAITING', 'PAID'])->default('WAITING');
             $table->timestamps();
         });
     }

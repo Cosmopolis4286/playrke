@@ -21,14 +21,14 @@ return new class extends Migration
             $table->string('phone', 12)->nullable();
             $table->decimal('commn', 3, 2)->nullable();
             $table->boolean('all_in')->default(false);
-            $table->string('brand', 25)->nullable();
-            $table->string('product', 25)->nullable();
+            $table->string('brand', 30)->nullable();
+            $table->string('product', 30)->nullable();
             $table->string('logo', 35)->nullable();
             $table->string('link_route', 255)->nullable();
             $table->string('token', 36)->nullable()->unique();
             $table->text('customer_key')->nullable();
             $table->text('security_key')->nullable();
-            $table->boolean('status')->default(false);
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
             $table->timestamps();
         });
     }

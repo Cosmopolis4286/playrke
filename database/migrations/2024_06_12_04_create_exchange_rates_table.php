@@ -13,12 +13,14 @@ return new class extends Migration
     {
         Schema::create('exchange_rates', function (Blueprint $table) {
             $table->id();
-            $table->string('coin', 20);
+            $table->foreignId('coin_id')->constrained('coins')
+                ->cascadeOnUpdate()->cascadeOnDelete()
+                ->comment('ID de la moneda asociada');
             $table->decimal('value', 12, 4)->default(1);
             $table->timestamps();
 
             // Índice compuesto por si consultas coin + value frecuentemente
-            $table->index(['coin', 'value']);
+            $table->index(['coin_id', 'value']);
         });
     }
 

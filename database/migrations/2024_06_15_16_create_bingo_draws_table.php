@@ -18,7 +18,7 @@ return new class extends Migration
             $table->char('chip', 2); // ficha extraída
             $table->char('code', 8); // código asociado
             $table->integer('time'); // segundos o timestamp relativo
-            $table->enum('status', ['waiting', 'finished'])->default('waiting'); // pendiente/finalizado
+            $table->enum('status', ['WAITING', 'FINISHED'])->default('WAITING'); // pendiente/finalizado
             $table->timestamps();
 
             // Índice único: chip no puede repetirse en la misma sala/ronda

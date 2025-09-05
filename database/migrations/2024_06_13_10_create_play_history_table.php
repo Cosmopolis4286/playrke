@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('room_id')->comment('Sala o room asociada');
             $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate()->comment('Moneda utilizada');
             $table->decimal('gain', 12, 2)->comment('Ganancia obtenida');
-            $table->string('action', 35)->comment('Acción realizada');
+            $table->string('action', 50)->comment('Acción realizada');
             $table->foreignId('user_id')->constrained('users')->onUpdate('cascade')->onDelete('cascade')->comment('Usuario que jugó');
             $table->timestamps();
         });

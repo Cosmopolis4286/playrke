@@ -6,32 +6,29 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('rewards', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 12);
-            $table->enum('reward_type', ['product', 'service']);
-            $table->string('name', 50);
-            $table->enum('kit', ['Y', 'N'])->default('N');
-            $table->string('num_items', 2)->default('1');
+
+            $table->string('code', 12)->comment('Código único del premio');
+            $table->enum('reward_type', ['PRODUCT', 'SERVICE'])->comment('Tipo de recompensa');
+            $table->string('name', 60);
+            $table->enum('kit', ['Y', 'N'])->default('N')->comment('Indica si es un kit');
+            $table->tinyInteger('num_items')->default(1)->comment('Número de ítems en el kit');
             $table->decimal('price', 12, 2);
-            $table->text('description');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->string('description', 255)->nullable();
+
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();
 
-            // Clave única compuesta
-            $table->unique(['user', 'code']);
+            // Clave única compuesta: evita duplicados de código por usuario
+            $table->unique(['user_id', 'code']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('rewards');

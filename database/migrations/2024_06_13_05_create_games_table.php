@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('games', function (Blueprint $table) {
             $table->id()->comment('ID del juego');
             $table->string('name', 50)->comment('Nombre del juego');
-            $table->enum('status', ['active', 'inactive'])->default('active')
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE')
                 ->comment('Estado activo/inactivo');
             $table->timestamps();
         });

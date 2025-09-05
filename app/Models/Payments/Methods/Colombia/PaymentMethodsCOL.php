@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PaymentMethodsCOL extends Model
 {
-	protected $table = 'payment_methods_col';
+	protected $table = 'colombian_payment_accounts';
 	protected $fillable = ['gateway', 'user_name', 'acc_number', 'document_number', 'user'];
 
 	public function user()

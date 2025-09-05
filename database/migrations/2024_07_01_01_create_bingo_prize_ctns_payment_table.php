@@ -11,22 +11,23 @@ return new class extends Migration
         Schema::create('bingo_prize_ctns_payment', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('prize_ctn')->constrained('bingo_prize_ctns');
+            $table->foreignId('prize_ctn_id')->constrained('bingo_prize_ctns');
             $table->enum('payment', ['CS', 'CC', 'SP']);
 
-            $table->foreignId('room')->constrained('bingo_rooms');
+            $table->foreignId('room_id')->constrained('bingo_rooms');
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('seller')->constrained('sellers')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('seller_id')->constrained('sellers')->onDelete('cascade')->onUpdate('cascade');
             $table->foreignId('external_player_id')->constrained('external_players')->onDelete('cascade');
-            $table->foreignId('user')->constrained('users')->onDelete('cascade');
-            $table->foreignId('coin')->constrained('coins');
-
-            $table->double('amount', 16, 8);
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('coin_id')->constrained('coins')
+                ->cascadeOnUpdate()->cascadeOnDelete()
+                ->comment('ID de la moneda asociada');
+            $table->decimal('amount', 16, 8);
             $table->string('payment_proof', 25);
 
             $table->timestamps();
 
-            $table->index(['room', 'user']);
+            $table->index(['room_id', 'user_id']);
         });
     }
 

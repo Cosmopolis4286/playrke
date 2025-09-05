@@ -16,7 +16,9 @@ return new class extends Migration
             $table->foreignId('bingo_room_config_id')
                 ->constrained('bingo_rooms_config')
                 ->cascadeOnDelete();
-            $table->string('coin', 15);
+            $table->foreignId('coin_id')->constrained('coins')
+                ->cascadeOnUpdate()->cascadeOnDelete()
+                ->comment('ID moneda asociada');
             $table->timestamps();
 
             $table->unique(['bingo_room_config_id', 'coin'], 'unique_config_coin');

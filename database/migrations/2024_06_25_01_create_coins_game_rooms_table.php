@@ -6,32 +6,37 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('coins_game_rooms', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('game');
-            $table->unsignedBigInteger('game_mode')->nullable();
-            $table->integer('room');
-            $table->string('coin', 15);
+
+            // Relaciones principales
+            $table->foreignId('game_id')
+                ->constrained('games')
+                ->cascadeOnDelete();
+
+            $table->foreignId('game_mode_id')
+                ->nullable()
+                ->constrained('game_modes')
+                ->nullOnDelete();
+
+            $table->foreignId('room_id')
+                ->constrained('bingo_rooms')
+                ->cascadeOnDelete();
+
+            $table->foreignId('coin_id')
+                ->constrained('coins')
+                ->cascadeOnDelete();
+
             $table->timestamps();
 
-            $table->foreign('game')->references('id')->on('games');
-            $table->foreign('game_mode')->references('id')->on('game_modes');
+            // Evitar duplicados: misma combinación no debe repetirse
+            $table->unique(['game_id', 'game_mode_id', 'room_id', 'coin_id'], 'uniq_game_mode_room_coin');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('coins_game_rooms');
     }

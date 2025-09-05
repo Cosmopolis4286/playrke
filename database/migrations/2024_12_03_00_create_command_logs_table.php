@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('command'); // Nombre del comando ejecutado
             $table->text('output')->nullable(); // Resultado del comando
-            $table->enum('status', ['SUCCESS', 'ERROR'])->default('SUCCESS');
+            $table->enum('status', ['success', 'error'])->default('success');
             $table->timestamp('executed_at'); // Fecha y hora de ejecución
             $table->timestamps();
         });

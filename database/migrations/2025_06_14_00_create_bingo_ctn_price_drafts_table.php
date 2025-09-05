@@ -28,7 +28,7 @@ return new class extends Migration
             $table->json('coins');       // Ej: ["USD","BRL"]
             $table->json('ctn_prices');  // Ej: {"USD": 5, "BRL": 25}
 
-            $table->enum('status', ['active', 'finished'])->default('active');
+            $table->enum('status', ['ACTIVE', 'EXECUTED'])->default('ACTIVE');
 
             $table->timestamps();
 

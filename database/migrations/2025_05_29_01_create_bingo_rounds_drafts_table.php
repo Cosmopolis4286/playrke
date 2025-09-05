@@ -19,7 +19,7 @@ return new class extends Migration
             $table->json('prize_types');
             $table->json('play_types');
             $table->json('prize_values');
-            $table->enum('status', ['active', 'finished'])->default('active');
+            $table->enum('status', ['ACTIVE', 'EXECUTED'])->default('ACTIVE');
             $table->timestamps();
         });
     }

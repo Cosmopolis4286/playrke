@@ -20,7 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->comment('ID del usuario creador');
             $table->decimal('commn', 5, 2)->default(25)->comment('Comisión (%) por defecto');
             $table->foreignId('unique_code_id')->constrained('unique_codes');
-            $table->enum('status', ['active', 'inactive'])->default('active')
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE')
                 ->comment('Estado activo/inactivo');
             $table->timestamps();
 

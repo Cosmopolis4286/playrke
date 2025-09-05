@@ -49,7 +49,7 @@ return new class extends Migration
 
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
 
-            $table->string('status', 1)->default('0');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 
             $table->timestamps();
         });

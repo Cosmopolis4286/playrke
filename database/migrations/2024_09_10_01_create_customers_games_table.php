@@ -6,29 +6,44 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('customers_games', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('customer');
-            $table->unsignedBigInteger('game');
-            $table->string('customer_game_id');
-            $table->string('product');
-            $table->string('description', 40)->nullable();
-            $table->boolean('status')->default(0);
+
+            $table->foreignId('customer_id')
+                ->constrained('customers')
+                ->cascadeOnDelete()
+                ->comment('Cliente asociado');
+
+            $table->foreignId('game_id')
+                ->constrained('games')
+                ->cascadeOnDelete()
+                ->comment('Juego asociado');
+
+            $table->string('customer_game_id', 50)
+                ->comment('Identificador único del cliente para el juego');
+
+            $table->string('product', 50)
+                ->comment('Producto relacionado con el juego');
+
+            $table->string('description', 40)
+                ->nullable()
+                ->comment('Descripción opcional');
+
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE')
+                ->index()
+                ->comment('Estado del registro');
+
             $table->timestamps();
 
-            $table->foreign('customer')->references('id')->on('customers');
-            $table->foreign('game')->references('id')->on('games');
+            // Índices compuestos para consultas frecuentes
+            $table->index(['customer_id', 'game_id']);
+            $table->unique(['customer_id', 'customer_game_id']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('customers_games');

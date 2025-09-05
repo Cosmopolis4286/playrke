@@ -6,54 +6,54 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('bingo_ctns_payments', function (Blueprint $table) {
             $table->id();
 
-            $table->enum('payment', ['PS', 'SC'])->comment('Método de pago');
-            $table->string('description', 35)->nullable();
+            $table->enum('payment', ['PS', 'SC'])
+                ->comment('Método de pago: PS = Payment System, SC = Seller Cash');
+
+            $table->string('description', 50)->nullable();
 
             $table->foreignId('room_id')
                 ->constrained('bingo_rooms')
-                ->onDelete('cascade');
+                ->cascadeOnDelete();
 
             $table->foreignId('creator_user_id')
                 ->constrained('users')
-                ->onDelete('cascade');
+                ->cascadeOnDelete();
 
             $table->foreignId('seller_id')
                 ->nullable()
                 ->constrained('sellers')
-                ->onDelete('cascade');
+                ->cascadeOnDelete();
 
-            $table->integer('user')->nullable();
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained('users')
+                ->cascadeOnDelete();
 
             $table->foreignId('external_player_id')
                 ->constrained('external_players')
-                ->onDelete('cascade');
+                ->cascadeOnDelete();
 
-            $table->foreignId('coin_id')->constrained('coins');
+            $table->foreignId('coin_id')
+                ->constrained('coins');
 
             $table->foreignId('lot_id')
-                ->constrained('bingo_ctns_lot');
+                ->constrained('bingo_ctns_lots');
 
-            $table->decimal('amount', 10, 2);
-            $table->string('payment_proof', 25);
+            $table->decimal('amount', 12, 2);
+            $table->string('payment_proof', 100);
 
             $table->timestamps();
 
-            // índice compuesto
-            $table->index(['room_id', 'seller_id']);
+            // Índice compuesto para optimizar búsquedas
+            $table->index(['room_id', 'seller_id'], 'idx_room_seller');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('bingo_ctns_payments');

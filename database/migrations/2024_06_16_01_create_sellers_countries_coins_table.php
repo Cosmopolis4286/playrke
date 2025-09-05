@@ -18,7 +18,7 @@ return new class extends Migration
             $table->tinyInteger('level')->comment('1=básico, 2=medio, 3=avanzado');
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
 
-            $table->boolean('status')->default(false);
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
             $table->timestamps();
 
             // Evitar duplicados

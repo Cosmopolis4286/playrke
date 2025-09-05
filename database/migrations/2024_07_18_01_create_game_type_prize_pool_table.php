@@ -16,14 +16,14 @@ return new class extends Migration
         Schema::create('game_prize_pool_type', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('game');
-            $table->unsignedBigInteger('game_mode');
+            $table->unsignedBigInteger('game_mode_id');
             $table->unsignedBigInteger('prize_pool_type')->default(1);
             $table->boolean('status')->default(1);
             $table->timestamps();
 
-            $table->foreign('game')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('game_mode')->references('id')->on('game_modes')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('prize_pool_type')->references('id')->on('prize_pool_types')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('game_id')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('game_mode_id')->references('id')->on('game_modes')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('prize_pool_type_id')->references('id')->on('prize_pool_types')->onDelete('restrict')->onUpdate('cascade');
         });
     }
 

@@ -17,7 +17,9 @@ return new class extends Migration
             $table->foreignId('room_user_id')->constrained('bingo_rooms_user')->cascadeOnDelete();
             $table->foreignId('lot_id')->constrained('bingo_ctns_lot')->cascadeOnDelete();
 
-            $table->string('coin', 20);
+            $table->foreignId('coin_id')->constrained('coins')
+                ->cascadeOnUpdate()->cascadeOnDelete()
+                ->comment('ID de la moneda asociada');
             $table->string('serial', 20);
 
             // Columnas del cartón: B, I, N, G, O

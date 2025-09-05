@@ -6,31 +6,32 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('payment_methods_col', function (Blueprint $table) {
+        Schema::create('colombian_payment_accounts', function (Blueprint $table) {
             $table->id();
-            $table->enum('gateway', ['B', 'D', 'N'])->index();
-            $table->string('user_name', 45)->nullable();
-            $table->string('acc_number', 15)->nullable()->index();
-            $table->string('document_number', 15)->nullable();
-            $table->unsignedBigInteger('user');
+
+            $table->enum('gateway', ['BANCOLOMBIA', 'DAVIPLATA', 'NEQUI'])
+                ->index()
+                ->comment('Pasarela de pago en Colombia');
+
+            $table->string('user_name', 60)->nullable()->comment('Nombre del titular de la cuenta');
+            $table->string('account_number', 25)->nullable()->index();
+            $table->string('document_number', 20)->nullable()->comment('Número de documento asociado');
+
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
             $table->timestamps();
 
-            $table->foreign('user')->references('id')->on('users')->onDelete('cascade');
-
-            $table->index('user');
+            // Evitar que un mismo usuario registre la misma cuenta/gateway más de una vez
+            $table->unique(['user_id', 'gateway', 'account_number'], 'uniq_user_gateway_acc');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('payment_methods_col');
+        Schema::dropIfExists('colombian_payment_accounts');
     }
 };

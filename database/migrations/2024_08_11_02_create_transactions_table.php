@@ -15,23 +15,23 @@ class CreateTransactionsTable extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('customer');
+            $table->unsignedBigInteger('customer_id');
             $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('game');
-            $table->unsignedBigInteger('game_mode');
+            $table->unsignedBigInteger('game_id');
+            $table->unsignedBigInteger('game_mode_id');
             $table->string('bet_id');
             $table->string('code')->unique();
             $table->string('transaction_type', 12);
             $table->string('coin', 15);
-            $table->double('amount');
+            $table->decimal('amount');
             $table->boolean('status')->default(0);
             $table->timestamp('processing_data')->nullable();
             $table->timestamps();
 
-            $table->foreign('customer')->references('id')->on('customers')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('customer_id')->references('id')->on('customers')->onDelete('restrict')->onUpdate('cascade');
             $table->foreign('user_id')->references('id')->on('customers_users')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('game')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('game_mode')->references('id')->on('game_modes');
+            $table->foreign('game_id')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('game_mode_id')->references('id')->on('game_modes');
         });
     }
 

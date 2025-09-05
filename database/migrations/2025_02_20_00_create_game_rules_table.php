@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('image', 30)->nullable();
             $table->text('rules');
             $table->string('encrypted', 12);
-            $table->boolean('status')->default(1);
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

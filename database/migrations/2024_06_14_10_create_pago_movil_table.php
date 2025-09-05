@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('pago_moviles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('document_type')->constrained('document_type')->cascadeOnUpdate();
+            $table->foreignId('document_type_id')->constrained('document_type')->cascadeOnUpdate();
             $table->string('document', 15)->index()->comment('Número de documento del titular');
             $table->foreignId('bank_id')->constrained('banks_venezuela')->cascadeOnUpdate();
             $table->string('phone', 15)->index()->comment('Teléfono asociado al pago móvil');

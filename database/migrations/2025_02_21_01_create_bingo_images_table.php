@@ -6,26 +6,34 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('bingo_images', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade')->nullable();
-            $table->enum('type', ['1', '2']);
-            $table->string('param', 15);
-            $table->string('route', 35);
-            $table->string('code', 8);
-            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete()
+                ->comment('Usuario que subió la imagen');
+
+            $table->enum('type', ['TYPE1', 'TYPE2'])
+                ->comment('Tipo de imagen');
+
+            $table->string('param', 15)->comment('Parámetro asociado a la imagen');
+            $table->string('route', 255)->comment('Ruta del archivo de la imagen');
+            $table->string('code', 8)->comment('Código identificador de la imagen');
+
+            $table->boolean('is_active')->default(true)
+                ->comment('true = activo, false = inactivo');
+
             $table->timestamps();
+
+            // Índices para consultas frecuentes
+            $table->index(['user_id', 'type', 'is_active']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('bingo_images');

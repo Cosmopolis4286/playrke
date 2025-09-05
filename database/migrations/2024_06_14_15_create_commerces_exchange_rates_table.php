@@ -22,7 +22,7 @@ return new class extends Migration
 
             $table->decimal('exchange_rate', 10, 4)->default(1)->comment('Valor de cambio de la moneda');
             $table->double('pct', 8)->default(0)->comment('Porcentaje asociado a la tasa de cambio');
-            $table->enum('status', ['active', 'inactive', 'old', 'directory'])->default('active');
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'OLD', 'DIRECTORY'])->default('ACTIVE');
 
             $table->timestamps();
 

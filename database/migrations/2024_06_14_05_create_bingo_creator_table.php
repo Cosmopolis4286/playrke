@@ -16,10 +16,10 @@ return new class extends Migration
             $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
 
             // Datos del creador
-            $table->decimal('creator_commn', 15, 2)->default(0); // Comisión del creador
+            $table->decimal('creator_commn', 10, 2)->default(0); // Comisión del creador
             $table->decimal('ctn_price', 15, 2);                 // Precio del cartón
 
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 
             $table->timestamps();
 

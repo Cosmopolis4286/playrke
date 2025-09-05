@@ -6,27 +6,32 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('game_config', function (Blueprint $table) {
+        Schema::create('game_configs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('game')->constrained('games')->onDelete('cascade');
-            $table->string('param', 35);
-            $table->string('value', 50)->nullable();
-            $table->string('description', 70)->nullable();
-            $table->boolean('status')->default(1);
+
+            $table->foreignId('game_id')
+                ->constrained('games')
+                ->cascadeOnDelete();
+
+            $table->string('param', 50); // Nombre del parámetro
+            $table->string('value', 100)->nullable(); // Valor del parámetro
+            $table->string('description', 150)->nullable();
+
+            $table->boolean('is_active')
+                ->default(true)
+                ->comment('true = activo, false = inactivo');
+
             $table->timestamps();
+
+            // Evita duplicar parámetros por juego
+            $table->unique(['game_id', 'param'], 'unique_game_param');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('game_config');
+        Schema::dropIfExists('game_configs');
     }
 };

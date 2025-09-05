@@ -30,7 +30,9 @@ return new class extends Migration
                 ->constrained('bingo_rooms_user')
                 ->cascadeOnUpdate();
 
-            $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate();
+            $table->foreignId('coin_id')->constrained('coins')
+                ->cascadeOnUpdate()->cascadeOnDelete()
+                ->comment('ID de la moneda asociada');
 
             $table->integer('ctns')->comment('Cantidad de cartones');
             $table->decimal('ctn_price', 10, 2);

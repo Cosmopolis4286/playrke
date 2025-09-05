@@ -17,11 +17,11 @@ return new class extends Migration
             $table->foreignId('country_id')->constrained('countries');
             $table->foreignId('coin_id')->constrained('coins');
             $table->string('phone', 14);
-            $table->double('commn');
+            $table->decimal('commn', 3, 2);
             $table->foreignId('commerce_id')->nullable()->constrained('commerces');
             $table->foreignId('subsidiary_id')->nullable()->constrained('subsidiaries')->cascadeOnUpdate();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->enum('status', ['active', 'inactive'])->default('active')
+            $table->enum('status', ['ACTIVE', 'inactive'])->default('ACTIVE')
                 ->comment('Estado activo/inactivo');
             $table->timestamps();
         });

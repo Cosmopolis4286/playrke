@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name')->unique();         // Nombre del rol
             $table->string('prefix')->unique();       // Prefijo para identificar rol en el sistema
             $table->string('description')->nullable(); // Descripción opcional
-            $table->enum('status', ['active', 'inactive'])->default('active');    // Estado activo/inactivo
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');    // Estado activo/inactivo
             $table->timestamps();
         });
     }

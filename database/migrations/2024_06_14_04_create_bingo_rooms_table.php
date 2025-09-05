@@ -30,7 +30,7 @@ return new class extends Migration
                 ->constrained('users')
                 ->onDelete('cascade');
 
-            $table->enum('paid_win', ['Y', 'N'])->default('N')
+            $table->enum('prizes_paid', ['Y', 'N'])->default('N')
                 ->comment('Indica si el premio fue pagado');
 
             $table->timestamp('publication_date')->nullable();

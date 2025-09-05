@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('country_id')->constrained('countries');
             $table->string('phone', 14);
             $table->string('code', 12)->unique();
-            $table->enum('status', ['active', 'used', 'expired'])->default('active');
+            $table->enum('status', ['ACTIVE', 'USED', 'EXPIRED'])->default('ACTIVE');
             $table->timestamp('expiration_date')->nullable();
             $table->timestamps();
 

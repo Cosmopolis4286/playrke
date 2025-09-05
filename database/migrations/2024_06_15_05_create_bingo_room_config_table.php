@@ -47,7 +47,7 @@ return new class extends Migration
 
             $table->decimal('amount_added_prize_pool', 12, 2)->nullable();
             $table->string('time_chip', 2)->nullable();
-            $table->tinyInteger('rounds')->default(1);
+            $table->string('rounds',2)->default('1');
             $table->decimal('rounds_pct', 5, 2)->nullable();
             $table->decimal('serials_pct', 5, 2)->nullable();
             $table->tinyInteger('num_serials')->nullable();

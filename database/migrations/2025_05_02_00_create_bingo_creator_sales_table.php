@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('room_id')->constrained('bingo_rooms')->onDelete('cascade');
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->string('coin', 15);
+            $table->foreignId('coin_id')->constrained('coins')
+                ->cascadeOnUpdate()->cascadeOnDelete()
+                ->comment('ID moneda asociada');
             $table->decimal('sale_amount', 12, 2);
             $table->decimal('rke_commn', 6, 2);
             $table->decimal('room_commn', 6, 2);
