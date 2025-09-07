@@ -9,9 +9,9 @@ const arrCoins = getAppDataProperty<Coin[]>('coins', []);
 // ==========================
 //   Elementos del DOM
 // ==========================
-const coin = document.getElementById('coin') as HTMLSelectElement | null;
-const coinText = document.getElementById('coin-text') as HTMLElement | null;
-const containerCoin = document.getElementById('container-coin') as HTMLElement | null;
+const currency = document.getElementById('currency') as HTMLSelectElement | null;
+const coinText = document.getElementById('currency-text') as HTMLElement | null;
+const containerCoin = document.getElementById('container-currency') as HTMLElement | null;
 const containerOtherCoins = document.getElementById('container-other-coins') as HTMLElement | null;
 const containerTimeZone = document.getElementById('container-time-zone') as HTMLElement | null;
 const country = document.getElementById('country') as HTMLSelectElement | null;
@@ -34,11 +34,11 @@ function clearOtherCoins(): void {
  * @param selectedCoins - Array de IDs de monedas que deben estar preseleccionadas.
  */
 export function insertOtherCoins(selectedCoins: (number | string)[] = []): void {
-    if (!otherCoins || !coin) return;
+    if (!otherCoins || !currency) return;
 
     clearOtherCoins();
 
-    const mainCoinId = Number(coin.value);
+    const mainCoinId = Number(currency.value);
 
     arrCoins
         .filter(c => c.id !== mainCoinId)
@@ -57,9 +57,9 @@ export function insertOtherCoins(selectedCoins: (number | string)[] = []): void 
 /** Actualiza la moneda principal y el texto según el país seleccionado */
 function updateMainCoinByCountry(selectedCountry: number): void {
     const matchingCoin = arrCoins.find(c => c.country === selectedCountry);
-    if (!matchingCoin || !coin || !coinText) return;
+    if (!matchingCoin || !currency || !coinText) return;
 
-    coin.value = String(matchingCoin.id);
+    currency.value = String(matchingCoin.id);
     coinText.textContent = `(${matchingCoin.symbol}) ${matchingCoin.short_name}`;
 
     containerCoin?.classList.remove('d-none');
@@ -68,7 +68,7 @@ function updateMainCoinByCountry(selectedCountry: number): void {
 
 /** Resetea selección de moneda y oculta container de otras monedas */
 function resetCoinSelection(): void {
-    if (coin) coin.value = '';
+    if (currency) currency.value = '';
     if (coinText) coinText.textContent = '';
     containerOtherCoins?.classList.add('d-none');
     containerCoin?.classList.add('d-none');

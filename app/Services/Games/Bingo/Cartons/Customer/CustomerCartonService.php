@@ -97,7 +97,7 @@ class CustomerCartonService
             $ctn->player_user,
             $roomUUID,
             'WIN',
-            $ctn->coin,
+            $ctn->currency,
             $ctn->amount
         );
 

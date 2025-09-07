@@ -37,7 +37,7 @@ class CommerceService
             $commerce = $this->createCommerceRecord($data, $user->id);
 
             // 💰 Wallet
-            $this->createWallet($user->id, $data['coin']);
+            $this->createWallet($user->id, $data['currency']);
 
             // 📞 Teléfono
             $this->createPhoneNumber($user->id, $data['country'], $data['phone']);
@@ -76,7 +76,7 @@ class CommerceService
         return Commerce::create([
             'name'      => $data['name'],
             'phone'     => $data['phone'],
-            'coin'      => $data['coin'],
+            'currency'      => $data['currency'],
             'country'   => $data['country'],
             'status'    => 1,
             'user'      => $userId,
@@ -85,9 +85,9 @@ class CommerceService
         ]);
     }
 
-    private function createWallet(int $userId, string $coin): void
+    private function createWallet(int $userId, string $currency): void
     {
-        Wallet::create(['coin' => $coin, 'user' => $userId]);
+        Wallet::create(['currency' => $currency, 'user' => $userId]);
     }
 
     private function createPhoneNumber(int $userId, string $country, string $phone): void
@@ -104,7 +104,7 @@ class CommerceService
         CommerceCountriesCoins::create([
             'commerce_id'     => $commerce->id,
             'country'      => $commerce->country,
-            'coin'         => $commerce->coin,
+            'currency'         => $commerce->currency,
             'level'        => '1',
             'creator_user_id' => $userId,
             'status'       => 1

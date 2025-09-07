@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AmericanTimeZonesTableSeeder::class,
             CountriesSeeder::class,
-            CoinsSeeder::class,
+            CurrenciesSeeder::class,
             BanksVenezuelaSeeder::class,
             DocumentTypeSeeder::class,
             GamesSeeder::class,

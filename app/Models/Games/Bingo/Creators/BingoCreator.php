@@ -14,13 +14,13 @@ class BingoCreator extends Model
         'creator_id',
         'creator_commn',
         'ctn_price',
-        'allowed_coins',
+        'allowed_currencies',
         'status',
         'created_at',
         'updated_at'
     ];
 
-    protected $casts = ['allowed_coins' => 'array'];
+    protected $casts = ['allowed_currencies' => 'array'];
 
     public function Room()
     {

@@ -43,8 +43,8 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Cartón ganador');
 
-            $table->foreignId('coin_id')
-                ->constrained('coins')
+            $table->foreignId('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Moneda asociada');

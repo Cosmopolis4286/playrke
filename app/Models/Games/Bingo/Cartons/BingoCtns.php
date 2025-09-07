@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Bingo\Cartons;
 
-use App\Models\Coins\Coin;
+use App\Models\Currencies\Currencys\Coin;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\User\Roles\Player\External\ExternalPlayers;
 use App\Models\User\Roles\Seller\Seller;
@@ -16,7 +16,7 @@ class BingoCtns extends Model
         'creator_user_id',
         'seller',
         'room_user',
-        'coin',
+        'currency',
         'lot',
         'serial',
         'b1',
@@ -57,7 +57,7 @@ class BingoCtns extends Model
 
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Currency::class, 'currency');
     }
 
     public function Room()

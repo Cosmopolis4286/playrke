@@ -11,17 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bingo_room_config_allowed_coins', function (Blueprint $table) {
+        Schema::create('bingo_room_config_allowed_currencies', function (Blueprint $table) {
             $table->id();
             $table->foreignId('bingo_room_config_id')
                 ->constrained('bingo_rooms_config')
                 ->cascadeOnDelete();
-            $table->foreignId('coin_id')->constrained('coins')
+            $table->foreignId('currency_id')->constrained('currencies')
                 ->cascadeOnUpdate()->cascadeOnDelete()
                 ->comment('ID moneda asociada');
             $table->timestamps();
 
-            $table->unique(['bingo_room_config_id', 'coin'], 'unique_config_coin');
+            $table->unique(['bingo_room_config_id', 'currency'], 'unique_config_coin');
         });
     }
 
@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bingo_room_config_allowed_coins');
+        Schema::dropIfExists('bingo_room_config_allowed_currencies');
     }
 };

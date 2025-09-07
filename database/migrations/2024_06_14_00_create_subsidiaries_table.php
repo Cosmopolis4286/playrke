@@ -45,8 +45,8 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->comment('País de la sucursal');
 
-            $table->foreignSnowflake('coin_id')
-                ->constrained('coins')
+            $table->foreignSnowflake('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->comment('Moneda utilizada');
 

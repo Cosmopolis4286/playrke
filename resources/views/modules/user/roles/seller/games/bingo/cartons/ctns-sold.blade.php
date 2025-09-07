@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs')
+                @include('includes.currency-tabs')
                 @include('includes.date-filter-buttons')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
@@ -33,15 +33,15 @@
                                         <tr>
                                             <td class="align-middle">
                                                 <a class="badge bg-navy" title="Ver Reporte"
-                                                    href="{{ route('bingo.reportSalesByRoom', ['room' => $ctn->Room->encrypted, 'coin' => encrypt($coin), 'dateFilter' => $dateFilter]) }}">
+                                                    href="{{ route('bingo.reportSalesByRoom', ['room' => $ctn->Room->encrypted, 'currency' => encrypt($currency), 'dateFilter' => $dateFilter]) }}">
                                                     {{ $ctn->Room->encrypted }}
                                                 </a>
                                             </td>
                                             <td>{{ $ctn->ExternalPlayers->name }} {{ $ctn->ExternalPlayers->lastname }}</td>
                                             <td>{{ $ctn->ExternalPlayers->Country->name }}</td>
-                                            <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
+                                            <td>{{ $currencyData->short_name }} ({{ $currencyData->iso_code }})</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ $ctn->sale_amount }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $ctn->sale_amount }}</td>
                                             <td>{{ $ctn->created_at->format('d/m/y H:i:s') }}<small
                                                     class="ml-1">GMT-4</small></td>
                                             <td>
@@ -71,7 +71,7 @@
                                         <tr>
                                             <td colspan="4" class="text-right"><b>Total:</b></td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ $ctnsSold->sum('sale_amount') }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $ctnsSold->sum('sale_amount') }}</td>
                                             <td colspan="2"></td>
                                         </tr>
                                     </tfoot>
@@ -95,21 +95,21 @@
     @vite(['resources/js/helpers/switch-payment-method.js', 'resources/js/helpers/payment-confirm-button.js'])
     <script>
         const name = '{{ $moduleId }}';
-        const coin = '{{ encrypt($coin) }}';
-        const coinName = '{{ $coinData->short_name }}';
+        const currency = '{{ encrypt($currency) }}';
+        const coinName = '{{ $currencyData->short_name }}';
         const allPendingCtnSale = '{{ $allPendingCtnSale }}';
         const commerceName = '{{ $commerceName }}';
         let allNotifyCtns = false;
         let amountSent;
 
         function getPaymentCommerceDetails() {
-            $.getJSON(route('seller.getPaymentCommerceDetails', coin))
+            $.getJSON(route('seller.getPaymentCommerceDetails', currency))
                 .done(data => {
                     if (data.error) {
                         showToast(data.error, 'info');
                     } else {
                         if (!allNotifyCtns) {
-                            $("#sent-amount").text(`${data.coin} ${amountSent}`);
+                            $("#sent-amount").text(`${data.currency} ${amountSent}`);
                         } else {
                             $("#notify-all").show();
                             $("#sent-amount").text(`${coinName} ${allPendingCtnSale}`);

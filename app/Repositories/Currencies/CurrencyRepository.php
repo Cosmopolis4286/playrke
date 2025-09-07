@@ -1,21 +1,21 @@
 <?php
 
-namespace App\Repositories\Coins;
+namespace App\Repositories\Currencies;
 
-use App\Models\Coins\Coin;
+use App\Models\Currencies\Currency;
 
-class CoinRepository
+class CurrencyRepository
 {
     /**
      * Obtener moneda por ID.
      *
-     * @param int $coinId
+     * @param int $currencyId
      * @param array $fields
      * @return Coin|null
      */
-    public static function getById(int $coinId, array $fields = ['*'])
+    public static function getById(int $currencyId, array $fields = ['*'])
     {
-        return Coin::select($fields)->find($coinId);
+        return Currency::select($fields)->find($currencyId);
     }
 
     /**
@@ -27,7 +27,7 @@ class CoinRepository
      */
     public static function getByISOCode(string $isoCode, array $fields = ['*'])
     {
-        return Coin::select($fields)->where('iso_code', $isoCode)->first();
+        return Currency::select($fields)->where('iso_code', $isoCode)->first();
     }
 
     /**
@@ -39,19 +39,19 @@ class CoinRepository
      */
     public static function getByStatus(array $status = ['>=', 0], array $fields = ['*'])
     {
-        return Coin::select($fields)->where('status', $status[0], $status[1])->get();
+        return Currency::select($fields)->where('status', $status[0], $status[1])->get();
     }
 
     /**
      * Obtener el valor de un campo por ID de moneda.
      *
-     * @param int $coinId
+     * @param int $currencyId
      * @param string $field
      * @return mixed
      */
-    public static function getValue(int $coinId, string $field)
+    public static function getValue(int $currencyId, string $field)
     {
-        return Coin::where('id', $coinId)->value($field);
+        return Currency::where('id', $currencyId)->value($field);
     }
 
     /**
@@ -63,7 +63,7 @@ class CoinRepository
      */
     public static function getValueByISOCode(string $isoCode, string $field)
     {
-        return Coin::where('iso_code', $isoCode)->value($field);
+        return Currency::where('iso_code', $isoCode)->value($field);
     }
 
     /**
@@ -75,7 +75,7 @@ class CoinRepository
      */
     public static function getCoinByCountry(int $countryId, array $fields = ['*'])
     {
-        return Coin::select($fields)->where('country_id', $countryId)->first();
+        return Currency::select($fields)->where('country_id', $countryId)->first();
     }
 
     /**
@@ -87,7 +87,7 @@ class CoinRepository
      */
     public static function getValueByCountry(int $countryId, string $field)
     {
-        return Coin::where('country_id', $countryId)->value($field);
+        return Currency::where('country_id', $countryId)->value($field);
     }
 
     /**
@@ -99,7 +99,7 @@ class CoinRepository
      */
     public static function getValueBySymbol(string $symbol, string $field)
     {
-        return Coin::where('symbol', $symbol)->value($field);
+        return Currency::where('symbol', $symbol)->value($field);
     }
 
     /**
@@ -110,19 +110,19 @@ class CoinRepository
      */
     public static function getIdByCountry(int $countryId)
     {
-        return Coin::where('country_id', $countryId)->value('id');
+        return Currency::where('country_id', $countryId)->value('id');
     }
 
     /**
      * Obtener varias monedas por ID.
      *
-     * @param array $coinIds
+     * @param array $currencyIds
      * @param array $fields
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public static function getByIds(array $coinIds, array $fields = ['*'])
+    public static function getByIds(array $currencyIds, array $fields = ['*'])
     {
-        return Coin::select($fields)->whereIn('id', $coinIds)->get();
+        return Currency::select($fields)->whereIn('id', $currencyIds)->get();
     }
 
     /**
@@ -133,29 +133,29 @@ class CoinRepository
      */
     public static function getCoinsByCountry(array $countryIds)
     {
-        return Coin::whereIn('country_id', $countryIds)->pluck('id')->toArray();
+        return Currency::whereIn('country_id', $countryIds)->pluck('id')->toArray();
     }
 
     /**
      * Obtener países asociados a varias monedas.
      *
-     * @param array $coinIds
+     * @param array $currencyIds
      * @return array
      */
-    public static function getCountriesByCoins(array $coinIds)
+    public static function getCountriesByCoins(array $currencyIds)
     {
-        return Coin::whereIn('id', $coinIds)->pluck('country_id')->toArray();
+        return Currency::whereIn('id', $currencyIds)->pluck('country_id')->toArray();
     }
 
     /**
      * Obtener el método de pago de una moneda.
      *
-     * @param int $coinId
+     * @param int $currencyId
      * @return string|null
      */
-    public static function getPaymentMethodByCoin(int $coinId)
+    public static function getPaymentMethodByCoin(int $currencyId)
     {
-        return Coin::where('id', $coinId)->value('payment_method');
+        return Currency::where('id', $currencyId)->value('payment_method');
     }
 
     /**
@@ -166,6 +166,6 @@ class CoinRepository
      */
     public static function getAvailableCoins(array $fields = ['*'])
     {
-        return Coin::select($fields)->where('status', 1)->get();
+        return Currency::select($fields)->where('status', 1)->get();
     }
 }

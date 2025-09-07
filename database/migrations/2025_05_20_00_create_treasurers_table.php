@@ -18,8 +18,8 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
 
-            $table->foreignId('coin_id')
-                ->constrained('coins')
+            $table->foreignId('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('ID de moneda asociada');

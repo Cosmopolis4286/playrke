@@ -22,8 +22,8 @@ return new class extends Migration
                 ->comment('Comercio al que aplica la tasa');
 
             // Moneda relacionada
-            $table->foreignId('coin_id')
-                ->constrained('coins')
+            $table->foreignId('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->comment('Moneda asociada a la tasa');
 
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Restricción única por comercio y moneda
-            $table->unique(['commerce_id', 'coin_id'], 'commerce_coin_unique');
+            $table->unique(['commerce_id', 'currency_id'], 'commerce_currency_unique');
         });
     }
 

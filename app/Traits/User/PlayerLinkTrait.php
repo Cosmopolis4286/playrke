@@ -59,7 +59,7 @@ trait ExternalPlayersTrait
                 'room_user' => $roomUser,
                 'seller' => $data['seller'],
                 'country' => $country,
-                'coin' => $data['coin'],
+                'currency' => $data['currency'],
                 'link' => $playerLink,
                 'name' => $playerName,
                 'lastname' => $playerLastName,

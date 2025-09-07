@@ -17,7 +17,7 @@ class CommerceDTO
     public readonly string $email;
     public readonly string $country;
     public readonly string $timeZone;
-    public readonly string $coin;
+    public readonly string $currency;
     public readonly string $phone;
     public readonly string $name;
     public readonly string $codeRke;

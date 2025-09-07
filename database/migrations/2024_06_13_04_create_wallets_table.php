@@ -23,8 +23,8 @@ return new class extends Migration
                 ->comment('ID del usuario dueño de la wallet');
 
             // Relación con moneda usando Snowflake
-            $table->foreignSnowflake('coin_id')
-                ->constrained('coins')
+            $table->foreignSnowflake('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('ID de la moneda asociada');
@@ -42,7 +42,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índice compuesto para consultas frecuentes por usuario y moneda
-            $table->index(['user_id', 'coin_id']);
+            $table->index(['user_id', 'currency_id']);
         });
     }
 

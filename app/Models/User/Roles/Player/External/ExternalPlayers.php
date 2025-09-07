@@ -2,7 +2,7 @@
 
 namespace App\Models\User\Roles\Player\External;
 
-use App\Models\Coins\Coin;
+use App\Models\Currencies\Currencys\Coin;
 use App\Models\Countries\Country;
 use App\Models\Games\Shared\Games;
 use App\Models\User\Roles\Commerce\Commerce;
@@ -21,7 +21,7 @@ class ExternalPlayers extends Model
     'room_user',
     'link',
     'country_id',
-    'coin_id',
+    'currency_id',
     'name',
     'lastname',
     'identification',
@@ -46,7 +46,7 @@ class ExternalPlayers extends Model
 
   public function Coin()
   {
-    return $this->belongsTo(Coin::class, 'coin_id');
+    return $this->belongsTo(Currency::class, 'currency_id');
   }
 
   public function Commerce()

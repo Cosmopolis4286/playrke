@@ -2,14 +2,14 @@
 
 namespace App\Models\User\Roles\Seller;
 
-use App\Models\Coins\Coin;
+use App\Models\Currencies\Currencys\Coin;
 use App\Models\Countries\Country;
 use Illuminate\Database\Eloquent\Model;
 
 class SellerCountriesCoins extends Model
 {
-    protected $table = "sellers_countries_coins";
-    protected $fillable = ['seller', 'country_id', 'coin_id', 'level', 'creator_user_id', 'status'];
+    protected $table = "sellers_countries_currencies";
+    protected $fillable = ['seller', 'country_id', 'currency_id', 'level', 'creator_user_id', 'status'];
 
     // Relación con el Pais 
     public function Country()
@@ -20,7 +20,7 @@ class SellerCountriesCoins extends Model
     // Relación con la moneda del vendedor
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Currency::class, 'currency');
     }
 
     // Relación con el vendedor
@@ -29,20 +29,20 @@ class SellerCountriesCoins extends Model
         return $this->belongsTo(Seller::class, 'seller');
     }
 
-    public static function getById($seller, $coin, $fields = ['*'])
+    public static function getById($seller, $currency, $fields = ['*'])
     {
-        return self::select($fields)->where('seller', $seller)->where('coin', $coin)->first();
+        return self::select($fields)->where('seller', $seller)->where('currency', $currency)->first();
     }
 
-    public static function getValue($seller, $coin, $value)
+    public static function getValue($seller, $currency, $value)
     {
-        return self::where('seller', $seller)->where('coin', $coin)->value($value);
+        return self::where('seller', $seller)->where('currency', $currency)->value($value);
     }
 
     public static function getCountCoin($seller)
     {
-        return self::select('coin')->where('seller', $seller)
-            ->whereNotNull('coin')->distinct()->count();
+        return self::select('currency')->where('seller', $seller)
+            ->whereNotNull('currency')->distinct()->count();
     }
 
     public static function getAvailableCountries($seller)
@@ -53,8 +53,8 @@ class SellerCountriesCoins extends Model
 
     public static function getAvailableCoins($seller)
     {
-        return self::select('coin')->where('seller', $seller)
-            ->where('status', 1)->distinct()->pluck('coin')->toArray();
+        return self::select('currency')->where('seller', $seller)
+            ->where('status', 1)->distinct()->pluck('currency')->toArray();
     }
 
     public static function getCountryCoin($seller, $arr, $fields = ['*'])

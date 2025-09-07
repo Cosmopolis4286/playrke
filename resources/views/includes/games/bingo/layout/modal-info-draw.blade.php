@@ -58,28 +58,28 @@
                             @endif
                             <div class="alert alert-primary py-1" role="alert">
                                 <span><b>Precio Cartón:</b></span>
-                                <span id="ctn-price-coin-symbol"></span>
+                                <span id="ctn-price-currency-symbol"></span>
                                 <span id="ctn-price-amount"></span>
                             </div>
                             @isset($saleLink)
                                 <div class="form-group">
                                     <div class="input-group">
                                         <div class="input-group-prepend">
-                                            <sapn class="input-group-text" for="coin">Moneda</span>
+                                            <sapn class="input-group-text" for="currency">Moneda</span>
                                         </div>
                                         @if (!$player)
-                                            <select class="custom-select" id="coin">
+                                            <select class="custom-select" id="currency">
                                                 <option value="" disabled selected>Seleccionar</option>
-                                                @foreach ($coinsAvailable as $item)
+                                                @foreach ($currencysAvailable as $item)
                                                     <option value="{{ encrypt($item->id) }}">
                                                         {{ $item->long_name }} ({{ $item->symbol }})
                                                     </option>
                                                 @endforeach
                                             </select>
                                         @else
-                                            <div class="form-control text-left">{{ $coinsAvailable->long_name }}
-                                                ({{ $coinsAvailable->symbol }})</div>
-                                            <input type="hidden" id="coin" value="{{ encrypt($coinsAvailable->id) }}">
+                                            <div class="form-control text-left">{{ $currencysAvailable->long_name }}
+                                                ({{ $currencysAvailable->symbol }})</div>
+                                            <input type="hidden" id="currency" value="{{ encrypt($currencysAvailable->id) }}">
                                         @endif
                                     </div>
                                 </div>

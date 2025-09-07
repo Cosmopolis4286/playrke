@@ -18,7 +18,7 @@ class ExchangeRateRelationRepository
         return ExchangeRateRelation::where('user_id', $userId)
             ->where('commerce_id', $commerceId)
             ->distinct()
-            ->pluck('coin_id')
+            ->pluck('currency_id')
             ->toArray();
     }
 
@@ -51,14 +51,14 @@ class ExchangeRateRelationRepository
      *
      * @param int $userId
      * @param int $commerceId
-     * @param int $coinId
+     * @param int $currencyId
      * @return bool
      */
-    public function hasAccessToCoin(int $userId, int $commerceId, int $coinId): bool
+    public function hasAccessToCoin(int $userId, int $commerceId, int $currencyId): bool
     {
         return ExchangeRateRelation::where('user_id', $userId)
             ->where('commerce_id', $commerceId)
-            ->where('coin_id', $coinId)
+            ->where('currency_id', $currencyId)
             ->exists();
     }
 }

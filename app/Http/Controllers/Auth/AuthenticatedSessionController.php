@@ -44,13 +44,13 @@ class AuthenticatedSessionController extends Controller
         $userType = RoleRepository::getValueById(Auth::user()->user_type, 'prefix');
 
         $isoCode = CountryRepository::getValue($country, 'iso_code_2');
-        $coin = encrypt(CoinRepository::getValueByCountry($country, 'id'));
+        $currency = encrypt(CoinRepository::getValueByCountry($country, 'id'));
 
         // Crear la variable de sesión 'countryCode'
         $request->session()->put('countryCode', $isoCode);
 
-        // Crear la variable de sesión 'coin'
-        $request->session()->put('coin', $coin);
+        // Crear la variable de sesión 'currency'
+        $request->session()->put('currency', $currency);
 
         // Crear la variable de sesión 'userType'
         $request->session()->put('userType', $userType);

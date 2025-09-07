@@ -14,7 +14,7 @@ import { computed } from 'vue'
 
 const props = defineProps({
   coins: { type: Array, required: true }, // cada item debe tener id, encrypted, y label
-  coin: { type: [Number, String], required: true },
+  currency: { type: [Number, String], required: true },
   routeWithCoin: {
     type: Object,
     required: true,
@@ -24,18 +24,18 @@ const props = defineProps({
 })
 
 // Funciones auxiliares
-const isActive = id => String(id) === String(props.coin)
+const isActive = id => String(id) === String(props.currency)
 
 const tabId = item =>
-  `${item.id}-${item.iso_code ?? item.coin ?? item.short_name}`
+  `${item.id}-${item.iso_code ?? item.currency ?? item.short_name}`
 
 const getCoinLabel = item =>
-  item.iso_code ?? item.coin ?? item.short_name
+  item.iso_code ?? item.currency ?? item.short_name
 
 const tabLink = item => {
   return $route(props.routeWithCoin.route, {
     ...props.routeWithCoin.parameters,
-    coin: item.encrypted // <- usamos encrypted del backend
+    currency: item.encrypted // <- usamos encrypted del backend
   })
 }
 </script>

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Coin;
+use App\Models\Currencies\Currency;
 use App\Models\Country;
 use App\Models\User;
 use App\Models\Wallet;
@@ -66,11 +66,11 @@ class RegisteredUserController extends Controller
             ]);
 
             // Obtener el valor de la moneda para el país del usuario
-            $coin = Coin::getValueByCountry($user->country, 'id');
+            $currency = Currency::getValueByCountry($user->country, 'id');
 
             // Crear un nuevo Wallet para el usuario
             $wallet = new Wallet;
-            $wallet->coin = $coin;
+            $wallet->currency = $currency;
             $wallet->user = $user->id;
             $wallet->save();
 

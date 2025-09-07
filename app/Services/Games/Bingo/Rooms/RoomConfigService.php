@@ -81,7 +81,7 @@ class RoomConfigService
                 'creator_id' => $dataRoom->creator_id,
                 'creator_commn' => $dataRoom->room_commn,
                 'ctn_price' => $dataRoom->ctn_price,
-                'allowed_coins' => $dataRoom->allowed_coins
+                'allowed_currencies' => $dataRoom->allowed_currencies
             ]
         );
     }

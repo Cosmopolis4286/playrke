@@ -17,13 +17,13 @@ export const sellerRoutes = {
     "cartonGenerate": "/seller/bingo/carton/generate",
     "generateCarton": "/seller/bingo/carton/generate/store",
     "ctnsLotPayment": "/seller/bingo/carton/payment/status",
-    "getCtnPriceCoin": "/seller/bingo/get/ctn-price-coin/{room}/{country}",
+    "getCtnPriceCoin": "/seller/bingo/get/ctn-price-currency/{room}/{country}",
     "getWinnerInfoForCtn": "/seller/bingo/getWinnerInfoForCtn/{ctnId}",
     "getPlayerInfo": "/seller/bingo/player/{playerLink}/info",
     "showPlayerCartons": "/seller/bingo/player/cartons/{playerLink}/{room}",
     "getPlayer": "/seller/bingo/player/get/player",
     "getCtnPrice": "/seller/bingo/carton/get/price/{roomID}",
-    "getPaymentCommerceDetails": "/seller/getPaymentCommerceDetails/{coin}"
+    "getPaymentCommerceDetails": "/seller/getPaymentCommerceDetails/{currency}"
 } as const;
 
 /**

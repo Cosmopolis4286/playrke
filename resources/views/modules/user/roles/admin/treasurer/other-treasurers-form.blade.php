@@ -9,7 +9,7 @@
     </div>
     <div class="form-group col-sm-6">
         <label for="other-coins">Monedas Permitidas:</label>
-        <select multiple id="other-coins" name="other_coins[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
+        <select multiple id="other-coins" name="other_currencies[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
             class="select2 form-control">
         </select>
     </div>

@@ -27,13 +27,13 @@
                         $roomRoute = route('bingo.out-game-customer', [
                             'customer' => $creator['id'],
                             'room' => $roomId,
-                            'coin' => encrypt($coin),
+                            'currency' => encrypt($currency),
                         ]);
                     } else {
                         $roomRoute = route('bingo.out-game', [
                             'uuidCode' => $uuidCode,
                             'room' => $roomId,
-                            'coin' => encrypt($coin),
+                            'currency' => encrypt($currency),
                         ]);
                     }
 
@@ -58,7 +58,7 @@
                         <a class="badge bg-navy" title="Ver Reporte"
                             href="{{ route('bingo.reportSalesByRoom', [
                                 'room' => $room->encrypted,
-                                'coin' => encrypt($coin),
+                                'currency' => encrypt($currency),
                             ]) }}">
                             {{ $room->encrypted }}
                         </a>
@@ -67,18 +67,18 @@
                         {{ \Carbon\Carbon::parse($room->Config->date)->format('d/m/y') }}
                     </td>
                     <td class="align-middle">{{ $room->Config->time }} H</td>
-                    <td class="align-middle">{{ $coinData->iso_code }} {{ $ctnPrice }}</td>
+                    <td class="align-middle">{{ $currencyData->iso_code }} {{ $ctnPrice }}</td>
                     <td class="align-middle">
                         <i class="fa-solid fa-users mr-1" title="Jugadores"></i>
                         {{ $room->players }}<br>
                         <i class="fa-solid fa-trophy mr-1" title="Ganadores"></i>
                         {{ count($room->PlayersRoom) ?? 0 }}
                     </td>
-                    <td class="align-middle">{{ $coinData->iso_code }}
+                    <td class="align-middle">{{ $currencyData->iso_code }}
                         {{ number_format($allSale, 2, '.') }}</td>
                     <td>
                         <small>{{ $room->Config->PrizePoolType->description }}</small>
-                        <br>{{ $coinData->iso_code }} {{ number_format($prizePool, 2, '.') }}
+                        <br>{{ $currencyData->iso_code }} {{ number_format($prizePool, 2, '.') }}
                     </td>
                     {{-- Estado --}}
                     <td class="align-middle">
@@ -117,8 +117,8 @@
         <tfoot>
             <tr>
                 <td colspan="5" class="text-right"><b>Total:</b></td>
-                <td>{{ $coinData->iso_code }} {{ number_format($totalAllSale, 2, '.') }}</td>
-                <td>{{ $coinData->iso_code }} {{ number_format($totalJackpot, 2, '.') }}</td>
+                <td>{{ $currencyData->iso_code }} {{ number_format($totalAllSale, 2, '.') }}</td>
+                <td>{{ $currencyData->iso_code }} {{ number_format($totalJackpot, 2, '.') }}</td>
                 <td colspan="3"></td>
             </tr>
         </tfoot>

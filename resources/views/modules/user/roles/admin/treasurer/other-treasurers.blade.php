@@ -92,7 +92,7 @@
         });
 
         const name = '<?php echo $moduleId; ?>';
-        const coins = JSON.parse('<?php echo $coins; ?>');
+        const coins = JSON.parse('<?php echo $currencys; ?>');
         const otherCoins = $("#other-coins");
         const games = $("#games");
         const arrGames = @json($games);
@@ -128,7 +128,7 @@
             $('#username').val(data.username);
             $('#country').val(data.country);
 
-            insertOtherCoins(data.other_coins);
+            insertOtherCoins(data.other_currencies);
 
             $(`#modal-${name}`).modal('show');
         }

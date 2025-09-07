@@ -14,7 +14,7 @@ export const commerceRoutes = {
     "delete": "/commerce/delete/{id}",
     "changePassw": "/commerce/changePassw/{id}",
     "changeStatus": "/commerce/changeStatus/{id}",
-    "getPaymentCommerceDetails": "/commerce/getPaymentCommerceDetails/{commerce}/{coin}",
+    "getPaymentCommerceDetails": "/commerce/getPaymentCommerceDetails/{commerce}/{currency}",
     "rewards": "/commerce/rewards",
     "sellers": "/commerce/sellers",
     "getCoinByCountry": "/commerce/seller/getCoinByCountry/{country}/{seller}",

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('creator_user_id')->unique()->constrained('users')->onDelete('cascade');
             $table->json('allowed_games');
-            $table->json('allowed_coins');
+            $table->json('allowed_currencies');
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
             $table->timestamps();
         });

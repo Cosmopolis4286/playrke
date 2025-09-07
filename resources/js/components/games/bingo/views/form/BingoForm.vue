@@ -56,10 +56,10 @@
     <!-- Monedas permitidas -->
     <div id="container-allowed-coins" class="form-group col-sm-6">
       <label for="allowed-coins">Monedas Permitidas*</label>
-      <select multiple id="allowed-coins" v-model="form.allowedCoins" name="allowed_coins" class="form-control select2"
+      <select multiple id="allowed-coins" v-model="form.allowedCoins" name="allowed_currencies" class="form-control select2"
         data-allow-clear="1" placeholder="Seleccionar Monedas">
-        <option v-for="coin in allowedCoinsOptions" :key="coin.value" :value="coin.value">
-          {{ coin.label }}
+        <option v-for="currency in allowedCoinsOptions" :key="currency.value" :value="currency.value">
+          {{ currency.label }}
         </option>
       </select>
     </div>

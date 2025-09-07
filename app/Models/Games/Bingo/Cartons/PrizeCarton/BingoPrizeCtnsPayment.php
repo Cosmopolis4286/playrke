@@ -15,7 +15,7 @@ class BingoPrizeCtnsPayment extends Model
         'seller',
         'external_player_id',
         'user',
-        'coin',
+        'currency',
         'ctn',
         'amount',
         'payment_proof',
@@ -25,7 +25,7 @@ class BingoPrizeCtnsPayment extends Model
 
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Currency::class, 'currency');
     }
 
     public function Ctn()

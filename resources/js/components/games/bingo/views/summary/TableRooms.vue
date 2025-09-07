@@ -76,7 +76,7 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  coin: Number,
+  currency: Number,
   uuidCode: String,
   exchangeRate: {
     type: Number,
@@ -123,7 +123,7 @@ const statusColor = (statusId) => {
 const generateRoomRoute = (room) => {
   const params = new URLSearchParams({
     room: room.encrypted,
-    coin: btoa(props.coinSym),
+    currency: btoa(props.coinSym),
   })
 
   if (props.creator?.type === 'customer') {
@@ -138,7 +138,7 @@ const generateRoomRoute = (room) => {
 const reportLink = (room) => {
   return route('bingo.reportSalesByRoom', {
     room: room.encrypted,
-    coin: btoa(1),
+    currency: btoa(1),
   })
 }
 

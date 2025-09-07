@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('coins_game_rooms', function (Blueprint $table) {
+        Schema::create('currencies_game_rooms', function (Blueprint $table) {
             $table->id();
 
             // Relaciones principales
@@ -25,19 +25,19 @@ return new class extends Migration
                 ->constrained('bingo_rooms')
                 ->cascadeOnDelete();
 
-            $table->foreignId('coin_id')
-                ->constrained('coins')
+            $table->foreignId('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnDelete();
 
             $table->timestamps();
 
             // Evitar duplicados: misma combinación no debe repetirse
-            $table->unique(['game_id', 'game_mode_id', 'room_id', 'coin_id'], 'uniq_game_mode_room_coin');
+            $table->unique(['game_id', 'game_mode_id', 'room_id', 'currency_id'], 'uniq_game_mode_room_coin');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('coins_game_rooms');
+        Schema::dropIfExists('currencies_game_rooms');
     }
 };

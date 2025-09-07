@@ -53,8 +53,8 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Jugador externo asociado');
 
-            $table->foreignId('coin_id')
-                ->constrained('coins')
+            $table->foreignId('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->comment('Moneda utilizada');
 

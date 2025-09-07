@@ -16,7 +16,7 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Cliente asociado');
 
-            $table->string('coin_id', 20)->comment('Moneda asociada');
+            $table->string('currency_id', 20)->comment('Moneda asociada');
             $table->decimal('exchange_rate', 15, 6)->default(1)->comment('Tipo de cambio');
 
             $table->foreignId('user_id')
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índices compuestos para consultas frecuentes
-            $table->index(['customer_id', 'coin']);
+            $table->index(['customer_id', 'currency']);
             $table->index(['customer_id', 'status']);
         });
     }

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('seller_id')->constrained('sellers')->onDelete('cascade')->onUpdate('cascade');
             $table->foreignId('external_player_id')->constrained('external_players')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('coin_id')->constrained('coins')
+            $table->foreignId('currency_id')->constrained('currencies')
                 ->cascadeOnUpdate()->cascadeOnDelete()
                 ->comment('ID de la moneda asociada');
             $table->decimal('amount', 16, 8);

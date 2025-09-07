@@ -43,7 +43,7 @@
     </div>
     <div id="container-allowed-coins" class="form-group col-sm-6">
         <label for="allowed-coins">Monedas Permitidas*</label>
-        <select multiple id="allowed-coins" name="allowed_coins[]" placeholder="  Seleccionar Monedas"
+        <select multiple id="allowed-coins" name="allowed_currencies[]" placeholder="  Seleccionar Monedas"
             data-allow-clear="1" class="select2 form-control">
         </select>
     </div>

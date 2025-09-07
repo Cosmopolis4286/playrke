@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PlayHistory extends Model
 {
     protected $table = "play_history";
-    protected $fillable = ['date', 'time', 'game', 'room', 'coin', 'gain', 'action', 'user'];
+    protected $fillable = ['date', 'time', 'game', 'room', 'currency', 'gain', 'action', 'user'];
 
     public function User()
     {

@@ -15,8 +15,8 @@ return new class extends Migration
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del tipo de documento');
 
-            // Código único del documento
-            $table->string('code', 10)
+            // Código único del documento (ej: CPF, DNI, PASSPORT)
+            $table->string('code', 15)
                 ->unique()
                 ->comment('Código corto del documento');
 
@@ -40,7 +40,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índice compuesto para consultas frecuentes por país y estado
-            $table->index(['country_id', 'is_active'], 'idx_country_status');
+            $table->index(['country_id', 'is_active'], 'idx_document_types_country_status');
         });
     }
 

@@ -1,33 +1,38 @@
 <?php
 
-namespace Database\Seeders;
+namespace App\Models\User\Shared;
 
-use App\Models\User\Shared\DocumentType;
-use Illuminate\Database\Seeder;
+use App\Models\Countries\Country;
+use Illuminate\Database\Eloquent\Model;
 
-class DocumentTypeSeeder extends Seeder
+class DocumentType extends Model
 {
-    /**
-     * Ejecuta el seeder para poblar la tabla 'document_type' con los tipos de documento.
-     *
-     * @return void
-     */
-    public function run(): void
-    {
-        // Lista de tipos de documento predefinidos
-        $documentTypes = [
-            ['value' => 'CPF', 'description' => 'CPF', 'country' => 2, 'status' => 1],
-            ['value' => 'V',   'description' => 'Venezolano', 'country' => 3, 'status' => 1],
-            ['value' => 'E',   'description' => 'Extranjero', 'country' => 3, 'status' => 1],
-            ['value' => 'J',   'description' => 'Comercio', 'country' => 3, 'status' => 1],
-        ];
+    protected $table = "document_types"; // convención plural
+    protected $fillable = ['value', 'description', 'country_id', 'status'];
 
-        // Inserta o actualiza los registros según 'value' y 'country' para evitar duplicados
-        foreach ($documentTypes as $type) {
-            DocumentType::updateOrCreate(
-                ['value' => $type['value'], 'country' => $type['country']], // Clave única compuesta
-                ['description' => $type['description'], 'status' => $type['status']]
-            );
-        }
+    /**
+     * Relación: un tipo de documento pertenece a un país.
+     */
+    public function country()
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
+    /**
+     * Obtener un valor específico de un documento por ID.
+     */
+    public static function getValueById(int $id, string $column)
+    {
+        return self::where('id', $id)->value($column);
+    }
+
+    /**
+     * Obtener los tipos de documento activos de un país.
+     */
+    public static function getActiveByCountry(int $countryId)
+    {
+        return self::where('country_id', $countryId)
+            ->where('status', 1)
+            ->get();
     }
 }

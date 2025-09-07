@@ -25,18 +25,18 @@ class PrizeCartonService
                 return false;
             }
 
-            $coins = (array) $draft->coins;
+            $currencys = (array) $draft->currencies;
             $prices = (array) $draft->ctn_prices;
 
             // Validar integridad de datos
-            if (count($coins) !== count($prices)) {
+            if (count($currencys) !== count($prices)) {
                 throw new \Exception("Datos inconsistentes: la cantidad de monedas no coincide con la de precios. Sala ID {$roomId}");
             }
 
             // Registrar precios usando updateOrCreate para evitar duplicados
-            foreach ($coins as $index => $coin) {
+            foreach ($currencys as $index => $currency) {
                 BingoCtnPrice::updateOrCreate(
-                    ['room' => $roomId, 'coin' => $coin],
+                    ['room' => $roomId, 'currency' => $currency],
                     [
                         'creator_user_id' => $draft->creator_user,
                         'ctn_price' => $prices[$index],

@@ -25,7 +25,7 @@ return new class extends Migration
                 ->constrained('users')
                 ->cascadeOnDelete();
 
-            $table->json('coins');       // Ej: ["USD","BRL"]
+            $table->json('currencies');       // Ej: ["USD","BRL"]
             $table->json('ctn_prices');  // Ej: {"USD": 5, "BRL": 25}
 
             $table->enum('status', ['ACTIVE', 'EXECUTED'])->default('ACTIVE');

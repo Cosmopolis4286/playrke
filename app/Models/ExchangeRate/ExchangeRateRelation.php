@@ -2,7 +2,7 @@
 
 namespace App\Models\ExchangeRate;
 
-use App\Models\Coins\Coin;
+use App\Models\Currencies\Currencys\Coin;
 use App\Models\User\Roles\Commerce\Commerce;
 use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +12,7 @@ class ExchangeRateRelation extends Model
     protected $table = "exchange_rate_relation";
 
     protected $fillable = [
-        'coin_id',
+        'currency_id',
         'status',
         'commerce_id',
         'user_id'
@@ -21,9 +21,9 @@ class ExchangeRateRelation extends Model
     /**
      * Relación: la relación pertenece a una moneda.
      */
-    public function coin()
+    public function currency()
     {
-        return $this->belongsTo(Coin::class, 'coin_id');
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 
     /**

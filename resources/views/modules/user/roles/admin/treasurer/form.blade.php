@@ -53,13 +53,13 @@
         @enderror
     </div>
     <div class="form-group col-sm-6 new-treasurer">
-        <label for="coin">Moneda*</label>
-        <input type="text" id="coin-text" class="form-control" disabled />
-        <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}" />
+        <label for="currency">Moneda*</label>
+        <input type="text" id="currency-text" class="form-control" disabled />
+        <input type="hidden" id="currency" name="currency" value="{{ old('currency') }}" />
     </div>
     <div id="cont-other-coins" class="form-group col-sm-6 hide-elem">
         <label id="label-other-coins" for="other-coins"></label>
-        <select multiple id="other-coins" name="other_coins[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
+        <select multiple id="other-coins" name="other_currencies[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
             class="select2 form-control">
         </select>
     </div>

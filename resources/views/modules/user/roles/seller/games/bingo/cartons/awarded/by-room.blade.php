@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs')
+                @include('includes.currency-tabs')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-2">
@@ -38,8 +38,8 @@
                                                     {{ $win->ExternalPlayers->Country->name }}
                                                 @endif
                                             </td>
-                                            <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
-                                            <td>{{ $coinData->iso_code }} {{ $win->amount }}</td>
+                                            <td>{{ $currencyData->short_name }} ({{ $currencyData->iso_code }})</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $win->amount }}</td>
                                             <td>{{ $win->prize_type_description }}</td>
                                             <td>
                                                 @if ($win->status == null)
@@ -80,7 +80,7 @@
                                     <tfoot>
                                         <tr>
                                             <td colspan="4" class="text-right"><b>Total:</b></td>
-                                            <td>{{ $coinData->iso_code }} {{ $winners->sum('amount') }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $winners->sum('amount') }}</td>
                                             <td colspan="3"></td>
                                         </tr>
                                     </tfoot>

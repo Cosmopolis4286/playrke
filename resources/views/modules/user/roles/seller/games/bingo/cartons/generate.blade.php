@@ -15,7 +15,7 @@
                                 <select id="room" name="room" class="form-control" disabled required></select>
                                 <div id="cont-tx-prize-pool-room" class="ml-1 mt-1 d-none">
                                     <small><b><span class="prize-pool-type"></span> Actual:</b></small>
-                                    <span class="coin-symbol"></span>
+                                    <span class="currency-symbol"></span>
                                     <span id="tx-prize-pool-room"></span>
                                 </div>
                             </div>
@@ -43,7 +43,7 @@
                                 <div class="col-6 col-sm-4 mt-1">
                                     <label>{{ $info['label'] }}</label>
                                     <div class="d-flex mt-n1">
-                                        <span class="coin-symbol"></span>
+                                        <span class="currency-symbol"></span>
                                         <span class="sale-info ml-1" id="{{ $info['id'] }}"></span>
                                     </div>
                                     <small>{{ $info['desc'] }}</small>
@@ -240,7 +240,7 @@
             const prizePool = formatNumber((total - totalsellerCommn));
 
             if (roomID) {
-                $(".coin-symbol").text(coinSym);
+                $(".currency-symbol").text(coinSym);
                 $("#tx-total-amount").text(total);
                 $("#tx-seller-commn").text(totalsellerCommn);
                 $("#tx-commerce-amount").text(prizePool);
@@ -300,7 +300,7 @@
             roomID = $(this).val();
 
             if (!roomID) {
-                $(".coin-symbol, .sale-info").empty();
+                $(".currency-symbol, .sale-info").empty();
                 $(".ctn-player-info, #cont-tx-prize-pool-room").addClass('d-none');
             } else {
                 $.getJSON({
@@ -314,7 +314,7 @@
                             prizePool: prizePoolAmount,
                             prizePoolType,
                             price,
-                            coin,
+                            currency,
                             countries,
                             USDT
                         } = data;
@@ -322,7 +322,7 @@
                         prizePool = formatNumber(prizePoolAmount, 2);
                         roomCtnPrice = formatNumber(price);
                         ctnPrice = roomCtnPrice;
-                        coinSym = coin;
+                        coinSym = currency;
 
                         handleAllowsUSDT(USDT);
                         insertCountries(countries)

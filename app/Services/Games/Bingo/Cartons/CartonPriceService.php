@@ -17,12 +17,12 @@ class CartonPriceService
             return;
         }
 
-        $coins = $draft->coins ?? [];
+        $currencys = $draft->currencies ?? [];
         $prices = $draft->ctn_prices ?? [];
 
-        foreach ($coins as $index => $coin) {
+        foreach ($currencys as $index => $currency) {
             BingoCtnPrice::updateOrCreate(
-                ['room' => $roomId, 'coin' => $coin],
+                ['room' => $roomId, 'currency' => $currency],
                 [
                     'creator_user_id' => $draft->creator_user,
                     'ctn_price' => $prices[$index] ?? 0

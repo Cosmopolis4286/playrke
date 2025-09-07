@@ -6,7 +6,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs')
+                @include('includes.currency-tabs')
                 @include('includes.date-filter-buttons')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">

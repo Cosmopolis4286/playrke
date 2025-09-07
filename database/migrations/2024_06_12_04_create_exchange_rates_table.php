@@ -16,8 +16,8 @@ return new class extends Migration
             $table->snowflake('id')->primary()->comment('ID único de la tasa de cambio');
 
             // Relación con moneda usando Snowflake
-            $table->foreignSnowflake('coin_id')
-                ->constrained('coins')
+            $table->foreignSnowflake('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('ID de la moneda asociada');
@@ -29,7 +29,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índice compuesto para consultas frecuentes por moneda y valor
-            $table->index(['coin_id', 'value']);
+            $table->index(['currency_id', 'value']);
         });
     }
 

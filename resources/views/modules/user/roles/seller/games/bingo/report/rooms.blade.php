@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs')
+                @include('includes.currency-tabs')
                 @include('includes.date-filter-buttons')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
@@ -30,7 +30,7 @@
                                                 <a class="badge bg-navy" title="Ver Reporte"
                                                     href="{{ route('bingo.reportSalesByRoom', [
                                                         'room' => $room['encrypted'],
-                                                        'coin' => encrypt($coin),
+                                                        'currency' => encrypt($currency),
                                                     ]) }}">
                                                     {{ $room['encrypted'] }}
                                                 </a>
@@ -39,10 +39,10 @@
                                             <td>{{ $room['date'] }}
                                             </td>
                                             <td>{{ $room['time'] }}h</td>
-                                            <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
+                                            <td>{{ $currencyData->short_name }} ({{ $currencyData->iso_code }})</td>
                                             <td>{{ $room['ctns'] }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ $room['sales'] }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ $room['sellerCommn'] }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $room['sales'] }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $room['sellerCommn'] }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -51,8 +51,8 @@
                                         <tr>
                                             <td colspan="5" class="text-right"><b>Total:</b></td>
                                             <td>{{ $totalsFormatted['ctns'] }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ $totalsFormatted['sellerCommn'] }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['sellerCommn'] }}</td>
                                         </tr>
                                     </tfoot>
                                 @endif

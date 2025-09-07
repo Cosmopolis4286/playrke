@@ -9,12 +9,12 @@ class ExchangeRateRepository
     /**
      * Obtener el último valor de la tasa de cambio por moneda.
      *
-     * @param int $coinId
+     * @param int $currencyId
      * @return float|null
      */
-    public function getLastValueByCoin(int $coinId): ?float
+    public function getLastValueByCoin(int $currencyId): ?float
     {
-        return ExchangeRate::where('coin_id', $coinId)
+        return ExchangeRate::where('currency_id', $currencyId)
             ->latest()
             ->value('value');
     }
@@ -22,12 +22,12 @@ class ExchangeRateRepository
     /**
      * Obtener un valor actual de la tasa de cambio por moneda.
      *
-     * @param int $coinId
+     * @param int $currencyId
      * @return float|null
      */
-    public function getValue(int $coinId): ?float
+    public function getValue(int $currencyId): ?float
     {
-        return ExchangeRate::where('coin_id', $coinId)
+        return ExchangeRate::where('currency_id', $currencyId)
             ->value('value');
     }
 
@@ -45,12 +45,12 @@ class ExchangeRateRepository
     /**
      * Obtener todas las tasas de cambio registradas para una moneda.
      *
-     * @param int $coinId
+     * @param int $currencyId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getAllByCoin(int $coinId)
+    public function getAllByCoin(int $currencyId)
     {
-        return ExchangeRate::where('coin_id', $coinId)
+        return ExchangeRate::where('currency_id', $currencyId)
             ->orderByDesc('created_at')
             ->get();
     }

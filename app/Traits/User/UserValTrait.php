@@ -2,7 +2,7 @@
 
 namespace App\Traits\Users;
 
-use App\Models\Coin;
+use App\Models\Currencies\Currency;
 use App\Models\Commerce;
 use App\Models\CommerceCountriesCoins;
 use App\Models\CommerceExchangeRate;
@@ -95,42 +95,42 @@ trait UserValTrait
 
         switch ($creatorType) {
             case 'user': // Jugador
-                $coins = [User::getValueById($user, 'country')];
+                $currencys = [User::getValueById($user, 'country')];
                 break;
             case 'admin': // Admin
                 # code...
                 break;
             case 'commerce_id': // Comercio
                 $commerce = Commerce::getValueByUserId($user, 'id');
-                $coins = CommerceCountriesCoins::getAvailableCoins($commerce);
+                $currencys = CommerceCountriesCoins::getAvailableCoins($commerce);
                 break;
             case 'seller': // Vendedor
                 $seller = Seller::getValueByUserId($user, 'id');
-                $coins = SellerCountriesCoins::getAvailableCoins($seller);
+                $currencys = SellerCountriesCoins::getAvailableCoins($seller);
                 break;
             case 'customer': // Cliente
                 $seller = Seller::getValueByUserId($user, 'id');
-                $coins = SellerCountriesCoins::getAvailableCoins($seller);
+                $currencys = SellerCountriesCoins::getAvailableCoins($seller);
                 break;
             default:
-                $coins = [];
+                $currencys = [];
                 break;
         }
 
-        return $coins;
+        return $currencys;
     }
 
-    public function checkBankDirectoriesExistence($coins)
+    public function checkBankDirectoriesExistence($currencys)
     {
         $user = User::getCreatorUser(Auth::id(), false, true);
-        $coinModels = Coin::getCoinsById($coins, ['id', 'iso_code']);
+        $currencyModels = Currency::getCoinsById($currencys, ['id', 'iso_code']);
 
-        $coinsWithoutDirectories = collect($coinModels)->filter(function ($coin) use ($user) {
-            return match ($coin->iso_code) {
+        $currencysWithoutDirectories = collect($currencyModels)->filter(function ($currency) use ($user) {
+            return match ($currency->iso_code) {
                 'VES' => !PagoMovil::where('user', $user['userId'])->exists(),
                 'BRL' => !Pix::where('user', $user['userId'])->exists(),
                 'COP' => true,
-                default => throw new \InvalidArgumentException("Tipo de moneda no soportado: {$coin->iso_code}"),
+                default => throw new \InvalidArgumentException("Tipo de moneda no soportado: {$currency->iso_code}"),
             };
         })->pluck('id')->all();
 
@@ -142,11 +142,11 @@ trait UserValTrait
 
             $commerceID = Commerce::getValueByUserId($user['userId'], 'id');
 
-            // Obtener los IDs más recientes de cada moneda (coin)
+            // Obtener los IDs más recientes de cada moneda (currency)
             $ids = CommerceExchangeRate::select(DB::raw('MAX(id) as id'))
                 ->where('commerce_id', $commerceID)
-                ->whereNotIn('coin', $coinsWithoutDirectories)
-                ->groupBy('coin')
+                ->whereNotIn('currency', $currencysWithoutDirectories)
+                ->groupBy('currency')
                 ->pluck('id');
 
             CommerceExchangeRate::where('commerce_id', $commerceID)
@@ -154,11 +154,11 @@ trait UserValTrait
                 ->whereIn('status', ['ACTIVE', 'DIRECTORY'])
                 ->update(['status' => 'INACTIVE']);
 
-            if ($coinsWithoutDirectories) {
+            if ($currencysWithoutDirectories) {
                 // Marcar status 'DIRECTORY' en monedas sin directorio
                 CommerceExchangeRate::where('commerce_id', $commerceID)
                     ->whereIn('id', $ids)->where('exchange_rate', '>', 0)
-                    ->whereIn('coin', $coinsWithoutDirectories)
+                    ->whereIn('currency', $currencysWithoutDirectories)
                     ->where('status', '!=', 'DIRECTORY')
                     ->update(['status' => 'DIRECTORY']);
             }
@@ -170,7 +170,7 @@ trait UserValTrait
         }
     }
 
-    public function getPaymentDetailsByUserId($user, $coin)
+    public function getPaymentDetailsByUserId($user, $currency)
     {
         try {
             $user = User::getById($user, ['id', 'user_type']);
@@ -183,13 +183,13 @@ trait UserValTrait
                 return response()->json(['error' => 'Tipo de usuario no válido.'], 400);
             }
 
-            $coinInfo = Coin::getById($coin, ['country', 'symbol']);
+            $currencyInfo = Currency::getById($currency, ['country', 'symbol']);
 
-            if (!$coinInfo) {
+            if (!$currencyInfo) {
                 return response()->json(['error' => 'Moneda no válida.'], 404);
             }
 
-            $isoCode = Country::getValue($coinInfo->country, 'iso_code_2');
+            $isoCode = Country::getValue($currencyInfo->country, 'iso_code_2');
 
             if (!$isoCode) {
                 return response()->json(['error' => 'Código ISO del país no encontrado.'], 404);
@@ -234,7 +234,7 @@ trait UserValTrait
             return [
                 'paymentMethod' => $paymentMethod,
                 'code' => $isoCode,
-                'coin' => $coinInfo->symbol
+                'currency' => $currencyInfo->symbol
             ];
         } catch (\Exception $e) {
             Log::error('Ha ocurrido un error al procesar la solicitud: ' . $e->getMessage());
@@ -256,7 +256,7 @@ trait UserValTrait
         }
 
         // Construcción de la consulta principal
-        $query = CommerceCountriesCoins::select('id', 'coin')
+        $query = CommerceCountriesCoins::select('id', 'currency')
             ->with($primaryRelation)
             ->whereHas($primaryRelation, function ($subquery) use (
                 $userId,
@@ -267,7 +267,7 @@ trait UserValTrait
                 $where
             ) {
                 // Condiciones base
-                $subquery->whereColumn('coin', 'commerces_countries_coins.coin')
+                $subquery->whereColumn('currency', 'commerces_countries_currencies.currency')
                     ->where($userColumn, $userId);
 
                 // Filtro por fecha
@@ -299,9 +299,9 @@ trait UserValTrait
             }
         }
 
-        $coinIDs = $query->where('status', 1)->orderBy('country')->distinct()->pluck('coin');
+        $currencyIDs = $query->where('status', 1)->orderBy('country')->distinct()->pluck('currency');
 
-        return Coin::getCoinsById($coinIDs);
+        return Currency::getCoinsById($currencyIDs);
     }
 
     public function getUserData()
@@ -341,17 +341,17 @@ trait UserValTrait
         $userColumn = strtolower($modelName);
         $model = app("App\\Models\\{$modelName}CountriesCoins");
 
-        $otherCoins = Coin::getCoinsById($otherCoins, ['id', 'country']);
-        $coinsToCreate = [];
-        $coinIds = [];
+        $otherCoins = Currency::getCoinsById($otherCoins, ['id', 'country']);
+        $currencysToCreate = [];
+        $currencyIds = [];
         $timestamp = now();
 
-        foreach ($otherCoins as $coin) {
-            $coinIds[] = $coin->id;
-            $coinsToCreate[] = [
+        foreach ($otherCoins as $currency) {
+            $currencyIds[] = $currency->id;
+            $currencysToCreate[] = [
                 $userColumn => $creatorID,
-                'country' => $coin->country,
-                'coin' => $coin->id,
+                'country' => $currency->country,
+                'currency' => $currency->id,
                 'level' => '2',
                 'creator_user_id' => $creatorUser['userId'],
                 'status' => 1,
@@ -360,21 +360,21 @@ trait UserValTrait
             ];
         }
 
-        DB::transaction(function () use ($model, $userColumn, $creatorID, $coinsToCreate, $coinIds) {
+        DB::transaction(function () use ($model, $userColumn, $creatorID, $currencysToCreate, $currencyIds) {
             try {
-                foreach ($coinsToCreate as $coinData) {
+                foreach ($currencysToCreate as $currencyData) {
                     $model::firstOrCreate(
-                        [$userColumn => $creatorID, 'coin' => $coinData['coin']],
-                        $coinData
+                        [$userColumn => $creatorID, 'currency' => $currencyData['currency']],
+                        $currencyData
                     );
                 }
 
                 $model::where($userColumn, $creatorID)
-                    ->whereIn('coin', $coinIds)
+                    ->whereIn('currency', $currencyIds)
                     ->update(['status' => 1]);
 
                 $model::where($userColumn, $creatorID)
-                    ->where('level', '2')->whereNotIn('coin', $coinIds)
+                    ->where('level', '2')->whereNotIn('currency', $currencyIds)
                     ->update(['status' => 0]); // monedas no seleccionadas = inactivas
 
             } catch (\Exception $e) {
@@ -395,17 +395,17 @@ trait UserValTrait
         $userColumn = strtolower($modelName);
         $model = app("App\\Models\\{$modelName}CountriesCoins");
 
-        $allowedGames = Coin::getCoinsById($allowedGames, ['id', 'country']);
-        $coinsToCreate = [];
-        $coinIds = [];
+        $allowedGames = Currency::getCoinsById($allowedGames, ['id', 'country']);
+        $currencysToCreate = [];
+        $currencyIds = [];
         $timestamp = now();
 
-        foreach ($allowedGames as $coin) {
-            $coinIds[] = $coin->id;
-            $coinsToCreate[] = [
+        foreach ($allowedGames as $currency) {
+            $currencyIds[] = $currency->id;
+            $currencysToCreate[] = [
                 $userColumn => $creatorID,
-                'country' => $coin->country,
-                'coin' => $coin->id,
+                'country' => $currency->country,
+                'currency' => $currency->id,
                 'level' => '2',
                 'creator_user_id' => $creatorUser['userId'],
                 'status' => 1,
@@ -414,21 +414,21 @@ trait UserValTrait
             ];
         }
 
-        DB::transaction(function () use ($model, $userColumn, $creatorID, $coinsToCreate, $coinIds) {
+        DB::transaction(function () use ($model, $userColumn, $creatorID, $currencysToCreate, $currencyIds) {
             try {
-                foreach ($coinsToCreate as $coinData) {
+                foreach ($currencysToCreate as $currencyData) {
                     $model::firstOrCreate(
-                        [$userColumn => $creatorID, 'coin' => $coinData['coin']],
-                        $coinData
+                        [$userColumn => $creatorID, 'currency' => $currencyData['currency']],
+                        $currencyData
                     );
                 }
 
                 $model::where($userColumn, $creatorID)
-                    ->whereIn('coin', $coinIds)
+                    ->whereIn('currency', $currencyIds)
                     ->update(['status' => 1]);
 
                 $model::where($userColumn, $creatorID)
-                    ->where('level', '2')->whereNotIn('coin', $coinIds)
+                    ->where('level', '2')->whereNotIn('currency', $currencyIds)
                     ->update(['status' => 0]); // monedas no seleccionadas = inactivas
 
             } catch (\Exception $e) {

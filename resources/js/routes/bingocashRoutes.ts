@@ -8,7 +8,7 @@
 import { route as baseRoute } from './helper.js';
 
 export const bingocashRoutes = {
-    "bingo.out-game": "/bingocash/game-room/{uuidCode}/{room?}/{coin?}",
+    "bingo.out-game": "/bingocash/game-room/{uuidCode}/{room?}/{currency?}",
     "bingo.generateCarton": "/bingocash/carton/generate/store",
     "bingo.getDraw": "/bingocash/getDraw/{room}",
     "bingo.getChips": "/bingocash/get/chips/{room}",

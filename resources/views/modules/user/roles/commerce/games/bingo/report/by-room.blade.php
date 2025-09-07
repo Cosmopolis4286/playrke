@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs')
+                @include('includes.currency-tabs')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-2">
@@ -52,10 +52,10 @@
                                             </td>
                                             <td>{{ $seller->Country->name }}</td>
                                             <td>{{ $allCtnsSeller }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ number_format($saleAmountSeller, 2) }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ number_format($comSaleSeller, 2) }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ number_format($roomCommn, 2) }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ number_format($prizePool, 2) }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ number_format($saleAmountSeller, 2) }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ number_format($comSaleSeller, 2) }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ number_format($roomCommn, 2) }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ number_format($prizePool, 2) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -63,10 +63,10 @@
                                     <tr>
                                         <td colspan="2" class="text-right"><b>Total:</b></td>
                                         <td>{{ $totalCtnsBuy }}</td>
-                                        <td>{{ $coinData->iso_code }} {{ number_format($totalAllSale, 2) }}</td>
-                                        <td>{{ $coinData->iso_code }} {{ number_format($totalComSaleSeller, 2) }}</td>
-                                        <td>{{ $coinData->iso_code }} {{ number_format($totalRoomCommn, 2) }}</td>
-                                        <td>{{ $coinData->iso_code }} {{ number_format($totalJackpot, 2) }}</td>
+                                        <td>{{ $currencyData->iso_code }} {{ number_format($totalAllSale, 2) }}</td>
+                                        <td>{{ $currencyData->iso_code }} {{ number_format($totalComSaleSeller, 2) }}</td>
+                                        <td>{{ $currencyData->iso_code }} {{ number_format($totalRoomCommn, 2) }}</td>
+                                        <td>{{ $currencyData->iso_code }} {{ number_format($totalJackpot, 2) }}</td>
                                     </tr>
                                 </tfoot>
                             </table>

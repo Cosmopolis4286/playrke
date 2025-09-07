@@ -27,8 +27,8 @@ return new class extends Migration
                 ->restrictOnDelete()
                 ->comment('ID del país del comercio');
 
-            $table->foreignSnowflake('coin_id')
-                ->constrained('coins')
+            $table->foreignSnowflake('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
                 ->comment('ID de la moneda asociada');
@@ -54,7 +54,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índices compuestos para consultas frecuentes
-            $table->index(['country_id', 'coin_id', 'status']);
+            $table->index(['country_id', 'currency_id', 'status']);
         });
     }
 

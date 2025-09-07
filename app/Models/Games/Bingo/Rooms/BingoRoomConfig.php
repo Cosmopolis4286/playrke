@@ -19,7 +19,7 @@ class BingoRoomConfig extends Model
     'time',
     'unix_date',
     'ctn_price',
-    'allowed_coins',
+    'allowed_currencies',
     'rke_commn',
     'room_commn',
     'prize_pool_type',
@@ -34,7 +34,7 @@ class BingoRoomConfig extends Model
     'play_types'
   ];
 
-  protected $casts = ['allowed_coins' => 'array'];
+  protected $casts = ['allowed_currencies' => 'array'];
 
   public function Room()
   {

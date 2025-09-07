@@ -118,16 +118,16 @@ class ExchangeRateService
                 }
             }
 
-            foreach ($data as $coinIso => $newRate) {
-                if ($coinIso === 'Promedio' || $newRate == 0) continue;
+            foreach ($data as $currencyIso => $newRate) {
+                if ($currencyIso === 'Promedio' || $newRate == 0) continue;
 
-                $coinId = Coin::getValueByISOCode($coinIso, 'id');
-                if (!$coinId) continue;
+                $currencyId = Currency::getValueByISOCode($currencyIso, 'id');
+                if (!$currencyId) continue;
 
-                $currentRate = $exchangeModel::getValue($id, $coinId);
+                $currentRate = $exchangeModel::getValue($id, $currencyId);
                 $pct = $currentRate != 0 ? round((($newRate * 100) / $currentRate) - 100, 2) : 0;
 
-                $exchangeModel::updateOrCreateExchangeRate($id, $coinId, $newRate, $pct);
+                $exchangeModel::updateOrCreateExchangeRate($id, $currencyId, $newRate, $pct);
             }
         }
     }

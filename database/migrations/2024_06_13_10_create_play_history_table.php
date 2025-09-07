@@ -26,8 +26,8 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Juego asociado');
 
-            $table->foreignSnowflake('coin_id')
-                ->constrained('coins')
+            $table->foreignSnowflake('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->comment('Moneda utilizada');
 

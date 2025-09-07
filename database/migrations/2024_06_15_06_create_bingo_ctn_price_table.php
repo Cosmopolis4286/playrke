@@ -25,8 +25,8 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Usuario que estableció el precio');
 
-            $table->foreignId('coin_id')
-                ->constrained('coins')
+            $table->foreignId('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
                 ->comment('Moneda asociada al precio');
@@ -38,7 +38,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Evita duplicados: mismo room y misma moneda no deben repetirse
-            $table->unique(['room_id', 'coin_id'], 'uniq_room_coin_price');
+            $table->unique(['room_id', 'currency_id'], 'uniq_room_currency_price');
         });
     }
 

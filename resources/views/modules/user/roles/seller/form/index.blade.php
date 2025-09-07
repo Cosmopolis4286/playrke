@@ -37,7 +37,7 @@
                                                 data-toggle="popover" data-trigger="focus" title="Otras Monedas"
                                                 data-content="
                                                     @foreach ($seller->CountriesCoins as $item)
-                                                        @if ($item->coin != $seller->coin)
+                                                        @if ($item->currency != $seller->currency)
                                                             <span>{{ $item->Coin->long_name }} ({{ $item->Coin->symbol }})</span><br>
                                                         @endif @endforeach
                                                 ">
@@ -91,7 +91,7 @@
     @push('stack-scripts')
         <script>
             window.appData = {
-                coins: @json($coins),
+                coins: @json($currencys),
                 countries: @json($countries),
                 moduleFile: 'seller/form/sellerForm.ts',
                 timeZones: @json($timeZones)

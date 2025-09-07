@@ -5,13 +5,13 @@
         <div class="card">
             <x-shared.card-header :title="$title" :subtitle="$subtitle" :btnCardHeader="['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear']" />
             <div class="card-body">
-                <x-shared.coin-tabs :coins="$coins" :selectedCoin="$coin" :routeWithCoin="$routeWithCoin" />
+                <x-shared.currency-tabs :coins="$currencys" :selectedCoin="$currency" :routeWithCoin="$routeWithCoin" />
                 <x-games.bingo.shared.button-group view="PRIVATE" name="btn-ver-salas" :creator="$creator" :rooms="$rooms"
                     :activeRooms="$activeRooms" :gameRoomRoute="$gameRoomRoute" />
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <x-games.bingo.tables.table-info-bingo-rooms :rooms="$rooms" :creator="$creator"
-                            :coinSym="$coinSym" :coin="$coin" :uuidCode="$uuidCode" :exchangeRate="$exchangeRate" :view="$view"
+                            :coinSym="$currencySym" :currency="$currency" :uuidCode="$uuidCode" :exchangeRate="$exchangeRate" :view="$view"
                             :name="$moduleId" />
                     </div>
                 </div>
@@ -52,12 +52,12 @@
         const creatorType = @json($creator['type'] ?? '');
         const creatorID = @json($creator['id'] ?? '');
         const prizePoolType = $("#prize-pool-type");
-        const coins = @json($coins);
+        const coins = @json($currencys);
         const allowedCoins = $("#allowed-coins");
         const gameMode = $("#game-mode");
         const bingoPatterns = $("#bingo-patterns");
         const arrBingoPatterns = @json($bingoPatterns);
-        const arrCoins = @json($coins);
+        const arrCoins = @json($currencys);
         const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
         let room = '';
@@ -148,7 +148,7 @@
         function insertInfo(type, data = '') {
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
-            const allowedCoins = (type == 2 && data.config.allowed_coins) ? data.config.allowed_coins : [];
+            const allowedCoins = (type == 2 && data.config.allowed_currencies) ? data.config.allowed_currencies : [];
 
             selectedBingoPlays = [];
             coinsCtnPrice = false;

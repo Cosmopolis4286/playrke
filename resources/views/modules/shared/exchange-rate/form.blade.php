@@ -1,9 +1,9 @@
 <div class="form-group">
-    <label for="coin">Divisa*</label>
+    <label for="currency">Divisa*</label>
     @if ($creator['type'] === 'customer')
-        <input type="text" id="coin" class="form-control" name="coin">
+        <input type="text" id="currency" class="form-control" name="currency">
     @else
-        <select id="coin" class="form-control" name="coin"></select>
+        <select id="currency" class="form-control" name="currency"></select>
     @endif
 </div>
 <div class="form-group">

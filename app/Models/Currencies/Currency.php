@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Models\Coins;
+namespace App\Models\Currencies;
 
 use App\Models\Countries\Country;
 use App\Models\ExchangeRate\ExchangeRate;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\User\Roles\Commerce\CommerceExchangeRate;
 use App\Models\User\Roles\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;
 
-class Coin extends Model
+class Currency extends Model
 {
     protected $table = "coins";
 
@@ -35,7 +36,7 @@ class Coin extends Model
      */
     public function exchangeRate()
     {
-        return $this->hasOne(ExchangeRate::class, 'coin_id');
+        return $this->hasOne(ExchangeRate::class, 'currency_id');
     }
 
     /**
@@ -43,15 +44,7 @@ class Coin extends Model
      */
     public function commerceExchangeRates()
     {
-        return $this->hasMany(CommerceExchangeRate::class, 'coin_id');
-    }
-
-    /**
-     * Salas de bingo que aceptan esta moneda.
-     */
-    public function bingoRooms()
-    {
-        return $this->hasMany(BingoRoom::class, 'coin_id');
+        return $this->hasMany(CommerceExchangeRate::class, 'currency_id');
     }
 
     /**
@@ -59,6 +52,6 @@ class Coin extends Model
      */
     public function sellers()
     {
-        return $this->hasMany(Seller::class, 'coin_id');
+        return $this->hasMany(Seller::class, 'currency_id');
     }
 }

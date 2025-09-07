@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class TreasurerCountriesCoins extends Model
 {
-    protected $table = "treasurers_countries_coins";
-    protected $fillable = ['treasurer', 'country', 'coin', 'level', 'creator_user_id', 'status'];
+    protected $table = "treasurers_countries_currencies";
+    protected $fillable = ['treasurer', 'country', 'currency', 'level', 'creator_user_id', 'status'];
 
     public function Treasurer()
     {
@@ -21,16 +21,16 @@ class TreasurerCountriesCoins extends Model
 
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Currency::class, 'currency');
     }
 
     public static function getAvailableCoins($treasurer, $exceptCoin = '')
     {
-        return self::select('coin')->where('treasurer', $treasurer)
+        return self::select('currency')->where('treasurer', $treasurer)
             ->where('status', 1)
             ->when($exceptCoin, function ($query, $exceptCoin) {
-                return $query->where('coin', '<>', $exceptCoin);
-            })->distinct()->pluck('coin')->toArray();
+                return $query->where('currency', '<>', $exceptCoin);
+            })->distinct()->pluck('currency')->toArray();
     }
 
     public static function getAllAvailableCountriesCoins($treasurer, $fields = ['*'])

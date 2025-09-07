@@ -6,11 +6,11 @@
             @include('includes.card-header', ['title' => $user->username])
             <div class="card-body">
                 @if ($user->user_type == 1 || $user->user_type == 2)
-                    @if ($wallet->coin == 1)
+                    @if ($wallet->currency == 1)
                         @include('modules/all/profile/forms/form_user_usdt')
-                    @elseif($wallet->coin == 2)
+                    @elseif($wallet->currency == 2)
                         @include('modules/all/profile/forms/form_user_ves')
-                    @elseif($wallet->coin == 4)
+                    @elseif($wallet->currency == 4)
                         @include('modules/all/profile/forms/form_user_chl')
                     @endif
                 @endif

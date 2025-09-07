@@ -167,7 +167,7 @@ trait SeamlessWallet
     public function getUserBalanceFromCustomer($customerID, $userToken)
     {
         // Intenta obtener el usuario localmente
-        $user = CustomerUser::getByToken($customerID, $userToken, ['user_id', 'coin']);
+        $user = CustomerUser::getByToken($customerID, $userToken, ['user_id', 'currency']);
 
         // Si no se encuentra, realiza una solicitud para obtener la información del usuario
         if (!$user) {
@@ -177,17 +177,17 @@ trait SeamlessWallet
                 return false; // Termina si no hay datos válidos
             }
             $userID = $response['Data']['ID'];
-            $coin = $response['Data']['DefaultCurrencyCode'] ?? null;
+            $currency = $response['Data']['DefaultCurrencyCode'] ?? null;
         } else {
             $userID = $user->user_id;
-            $coin = $user->coin;
+            $currency = $user->currency;
         }
 
         // Construye el cuerpo del JSON de manera segura
         $dataJson = json_encode([
             "Token" => $userToken,
             "UserID" => $userID,
-            "CurrencyCode" => $coin ?: ''
+            "CurrencyCode" => $currency ?: ''
         ]);
 
         // Realiza la solicitud y retorna la respuesta
@@ -215,7 +215,7 @@ trait SeamlessWallet
         }
 
         // Obtener informacion del jugador
-        $player = CustomerUser::getById($transaction->user_id, ['user_id', 'brand', 'token', 'coin']);
+        $player = CustomerUser::getById($transaction->user_id, ['user_id', 'brand', 'token', 'currency']);
 
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
@@ -225,7 +225,7 @@ trait SeamlessWallet
             "Brand" => $player->brand,
             "Token" => $player->token ?? '',
             "UserID" => $player->user_id ?? '',
-            "CurrencyCode" => $player->coin,
+            "CurrencyCode" => $player->currency,
             "BetID" => $transaction->bet_id,
             "Amount" => $transaction->amount,
             "TransactionID" => $transaction->code,
@@ -263,11 +263,11 @@ trait SeamlessWallet
     }
 
     // Funcion para manejar una transaccion tipo "BET"
-    private function handleTransactionByBET(array $game, $customer, $roomId, $playerUser, $coin, $totalSaleAmount)
+    private function handleTransactionByBET(array $game, $customer, $roomId, $playerUser, $currency, $totalSaleAmount)
     {
         try {
             // Manejo de transacciones en un closure
-            DB::transaction(function () use ($game, $customer, $roomId, $playerUser, $coin, $totalSaleAmount) {
+            DB::transaction(function () use ($game, $customer, $roomId, $playerUser, $currency, $totalSaleAmount) {
                 // Registrar la transacción
                 $transaction = $this->registerTransaction(
                     $game,
@@ -275,7 +275,7 @@ trait SeamlessWallet
                     $playerUser,
                     $roomId,
                     'BET',
-                    $coin,
+                    $currency,
                     $totalSaleAmount
                 );
 
@@ -309,7 +309,7 @@ trait SeamlessWallet
     }
 
     // Función para registrar las transacciones del cliente 
-    public function registerTransaction(array $game, $customer, $clientUser, $betId, $type, $coin, $amount, $status = 0)
+    public function registerTransaction(array $game, $customer, $clientUser, $betId, $type, $currency, $amount, $status = 0)
     {
         try {
             // Validar datos requeridos
@@ -330,7 +330,7 @@ trait SeamlessWallet
                 'bet_id' => $betId,
                 'code' => $code, // transaction_id
                 'transaction_type' => $type,
-                'coin' => $coin,
+                'currency' => $currency,
                 'amount' => $amount,
                 'status' => $status,
             ]);

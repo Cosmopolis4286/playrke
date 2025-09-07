@@ -16,7 +16,7 @@ export { route };
 export const formTitleSuffix = 'Comercio';
 export const moduleId = 'commerce-form';
 
-export const requiredFields: string[] = ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email'];
+export const requiredFields: string[] = ['name', 'country', 'time-zone', 'currency', 'phone', 'username', 'email'];
 
 // ==========================
 // Mapeo de acciones personalizadas
@@ -70,7 +70,7 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
     // Rellenar campos en edición
     if (action === 'edit' && data) {
         // Insertar monedas adicionales
-        if (data?.other_coins) insertOtherCoins(data.other_coins);
+        if (data?.other_currencies) insertOtherCoins(data.other_currencies);
         // Insertar juegos permitidos
         if (data?.allowed_games) insertOtherCoins(data.allowed_games);
 

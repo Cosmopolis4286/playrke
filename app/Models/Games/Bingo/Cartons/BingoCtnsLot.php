@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Bingo\Cartons;
 
-use App\Models\Coins\Coin;
+use App\Models\Currencies\Currencys\Coin;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\User\Roles\Player\External\ExternalPlayers;
 use App\Models\User\Roles\Seller\Seller;
@@ -17,7 +17,7 @@ class BingoCtnsLot extends Model
         'seller_id',
         'room_user',
         'ctns',
-        'coin_id',
+        'currency_id',
         'ctn_price',
         'exchange_rate',
         'sale_amount',
@@ -40,7 +40,7 @@ class BingoCtnsLot extends Model
     // Relación con la moneda
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin_id');
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 
     // Relación con el enlace del jugador
@@ -75,6 +75,6 @@ class BingoCtnsLot extends Model
 
     public static function getCoinByIds($room)
     {
-        return self::select('coin')->where('room', $room)->distinct()->pluck('coin');
+        return self::select('currency')->where('room', $room)->distinct()->pluck('currency');
     }
 }

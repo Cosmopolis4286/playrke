@@ -136,7 +136,7 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'treasurer', 'as' =
     Route::put('changePassw/{id}', [TreasurerController::class, 'changePassword'])->name('changePassw');
     Route::put('changeStatus/{id}', [TreasurerController::class, 'changeStatus'])->name('changeStatus');
 
-    Route::get('getPaymentTreasurerDetails/{treasurer}/{coin}', [TreasurerController::class, 'getPaymentTreasurerDetails'])
+    Route::get('getPaymentTreasurerDetails/{treasurer}/{currency}', [TreasurerController::class, 'getPaymentTreasurerDetails'])
         ->withoutMiddleware(['admin']);
 });
 
@@ -168,8 +168,8 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
     Route::delete('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
     Route::put('changeStatus/{id}', [ExchangeRateController::class, 'changeStatus'])->name('changeStatus');
-    Route::get('getLastValueByCoin/{coin}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
-    Route::get('historical/{coin?}/{creatorType}/{creatorID}', [ExchangeRateController::class, 'historical'])->name('historical');
+    Route::get('getLastValueByCoin/{currency}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
+    Route::get('historical/{currency?}/{creatorType}/{creatorID}', [ExchangeRateController::class, 'historical'])->name('historical');
     Route::get('{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
 });
 
@@ -190,14 +190,14 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::post('bingo/carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
     Route::post('bingo/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
 
-    Route::get('bingo/get/ctn-price-coin/{room}/{country}', [SellerController::class, 'getCtnPriceCoin'])->name('getCtnPriceCoin');
+    Route::get('bingo/get/ctn-price-currency/{room}/{country}', [SellerController::class, 'getCtnPriceCoin'])->name('getCtnPriceCoin');
     Route::get('bingo/getWinnerInfoForCtn/{ctnId}', [SellerController::class, 'getWinnerInfoForCtn'])->name('getWinnerInfoForCtn');
     Route::get('bingo/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
     Route::get('bingo/player/cartons/{playerLink}/{room}', [SellerController::class, 'showPlayerCartons'])->name('showPlayerCartons');
     Route::post('bingo/player/get/player', [SellerController::class, 'getPlayer'])->name('getPlayer');
     Route::get('bingo/carton/get/price/{roomID}', [SellerController::class, 'getCtnPrice'])->name('getCtnPrice');
 
-    Route::get('getPaymentCommerceDetails/{coin}', [SellerController::class, 'getPaymentCommerceDetails'])->name('getPaymentCommerceDetails');
+    Route::get('getPaymentCommerceDetails/{currency}', [SellerController::class, 'getPaymentCommerceDetails'])->name('getPaymentCommerceDetails');
 });
 
 // Recompensas (Rewards) - middleware commerce
@@ -274,7 +274,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
 
     // Info y precios
     Route::get('getInfo/{id}/{starTime?}', [BingoController::class, 'getInfo'])->name('getInfo');
-    Route::get('getInfoByEncrypt/{id}/{creatorUser}/{coin}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
+    Route::get('getInfoByEncrypt/{id}/{creatorUser}/{currency}', [BingoController::class, 'getInfoByEncrypt'])->name('getInfoByEncrypt');
     Route::get('getInfoPublicRoom', [BingoController::class, 'getInfoPublicRoom'])->name('getInfoPublicRoom');
     Route::get('getInfoPublicRoomPendingPayments', [BingoController::class, 'getInfoPublicRoomPendingPayments'])->name('getInfoPublicRoomPendingPayments');
     Route::get('getRoundsConfig/{room}/{type}', [BingoController::class, 'getRoundsConfig'])->name('getRoundsConfig');
@@ -289,14 +289,14 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::put('handle-bingo-rules/{id?}', [BingoController::class, 'handleBingoRules'])->name('handleBingoRules');
 
     // Reportes ventas
-    Route::get('sales-report/{coin?}/{dateFilter?}', [BingoController::class, 'reportSalesRooms'])->name('reportSalesRooms');
-    Route::get('sales-report-by-room/{room}/{coin}', [BingoController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
-    Route::get('sales-report-by-room-winners/{room}/{coin}', [BingoController::class, 'reportSalesByRoomWinners'])->name('reportSalesByRoomWinners');
+    Route::get('sales-report/{currency?}/{dateFilter?}', [BingoController::class, 'reportSalesRooms'])->name('reportSalesRooms');
+    Route::get('sales-report-by-room/{room}/{currency}', [BingoController::class, 'reportSalesByRoom'])->name('reportSalesByRoom');
+    Route::get('sales-report-by-room-winners/{room}/{currency}', [BingoController::class, 'reportSalesByRoomWinners'])->name('reportSalesByRoomWinners');
     Route::get('sales-report-by-room/{room}/player/{playerLink}', [SellerController::class, 'reportSalesByRoomPlayer'])->name('reportSalesByRoomPlayer');
 
     // Ganadores y cartones vendidos
-    Route::get('winners/{type}/{dateFilter}/{coin?}', [BingoController::class, 'ctnsAwarded'])->name('ctnsAwarded');
-    Route::get('cartons-sold/{coin?}/{dateFilter?}', [BingoController::class, 'ctnsSold'])->name('ctnsSold');
+    Route::get('winners/{type}/{dateFilter}/{currency?}', [BingoController::class, 'ctnsAwarded'])->name('ctnsAwarded');
+    Route::get('cartons-sold/{currency?}/{dateFilter?}', [BingoController::class, 'ctnsSold'])->name('ctnsSold');
 
     // CRUD Bingo
     Route::post('create', [BingoController::class, 'create'])->name('create');
@@ -312,10 +312,10 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::post('test/regenerate-draw', [BingoController::class, 'regenerateDraw'])->name('test.regenerateDraw');
 
     // Rutas con middleware para juegos de sala
-    Route::get('game-rooms/admin/{user}/{coin?}', [BingoController::class, 'gamesRooms'])
+    Route::get('game-rooms/admin/{user}/{currency?}', [BingoController::class, 'gamesRooms'])
         ->middleware(['auth', 'admin'])->name('gameRoomsAdmin');
 
-    Route::get('{roomType}/game-rooms/{coin?}', [BingoController::class, 'gamesRoomsCommerce'])
+    Route::get('{roomType}/game-rooms/{currency?}', [BingoController::class, 'gamesRoomsCommerce'])
         ->middleware(['auth', 'commerce_id'])->name('gameRoomsCommerce');
 
     Route::post('actWn', [BingoController::class, 'actWn'])->middleware(['auth', 'admin'])->name('actWn');
@@ -323,7 +323,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
 
 // BingoCash - Rutas jugador/comercio (sin middleware definido)
 Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
-    Route::get('game-room/{uuidCode}/{room?}/{coin?}', [BingoController::class, 'outGame'])->name('out-game');
+    Route::get('game-room/{uuidCode}/{room?}/{currency?}', [BingoController::class, 'outGame'])->name('out-game');
     Route::post('carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
     Route::get('getDraw/{room}', [BingoController::class, 'getDraw'])->name('getDraw');
     Route::get('get/chips/{room}', [BingoController::class, 'getChips'])->name('getChips');
@@ -334,11 +334,11 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 Route::get('bingo/view-ctn/{ctnId}', [BingoController::class, 'viewCtn'])->name('bingo.viewCtn');
 
 // Bingo sala de juego resumen
-Route::get('bingo/{roomType}/{creatorType}/{creatorID?}/{coin?}', [BingoController::class, 'handleGameRoomSummary'])->name('bingo.handleGameRoomSummary');
+Route::get('bingo/{roomType}/{creatorType}/{creatorID?}/{currency?}', [BingoController::class, 'handleGameRoomSummary'])->name('bingo.handleGameRoomSummary');
 
 // Rutas jugador/cliente bingo
 Route::get('{customer}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('bingo.in-game-customer');
-Route::get('game/{customer}/room/{room}/{coin}', [BingoController::class, 'outGameCustomer'])->name('bingo.out-game-customer');
+Route::get('game/{customer}/room/{room}/{currency}', [BingoController::class, 'outGameCustomer'])->name('bingo.out-game-customer');
 
 // Ruta para sesión clave RKE (ejemplo)
 Route::get('bingo/k3yg4m3/play-rke', function () {

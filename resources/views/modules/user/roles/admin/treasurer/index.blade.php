@@ -118,12 +118,12 @@
         const name = '<?php echo $moduleId; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
         const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
-        const coins = JSON.parse('<?php echo $coins; ?>');
+        const coins = JSON.parse('<?php echo $currencys; ?>');
         const userRole = $("#select-user-role");
         const country = $("#country");
         const timeZone = $("#time-zone");
-        const coin = $("#coin");
-        const coinText = $("#coin-text");
+        const currency = $("#currency");
+        const coinText = $("#currency-text");
         const otherCoins = $("#other-coins");
         const games = $("#games");
         const arrGames = @json($games);
@@ -150,13 +150,13 @@
                 $.each(coins, function(index, item) {
                     if (item.country == selectedCountry) {
                         coinText.val(`(${item.symbol}) ${item.short_name}`);
-                        coin.val(item.id);
+                        currency.val(item.id);
                     }
                 });
                 if (coins.length > 1 && !update) insertOtherCoins();
             } else {
                 coinText.val('');
-                coin.val('');
+                currency.val('');
                 $("#cont-other-coins").addClass('hide-elem');
             }
         });
@@ -164,7 +164,7 @@
         function insertOtherCoins(selectedCoins = []) {
             otherCoins.empty();
             $.each(coins, function(index, item) {
-                if (item.id != coin.val()) {
+                if (item.id != currency.val()) {
                     const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
                     otherCoins.append(
                         `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
@@ -214,7 +214,7 @@
 
             if (type == 2) {
                 const treasurer = data.treasurer;
-                const otherCoins = data.other_coins;
+                const otherCoins = data.other_currencies;
                 const user = data.user;
 
                 $('#name').val(treasurer.name);
@@ -235,7 +235,7 @@
 
         $(document).on("click", "#btn-confirm", function() {
             if (!$('#select-user-to-promote').val()) {
-                submitForm(name, ['moduleId', 'country', 'time-zone', 'coin', 'phone', 'username', 'email']);
+                submitForm(name, ['moduleId', 'country', 'time-zone', 'currency', 'phone', 'username', 'email']);
             } else {
                 submitForm(name, ['select-user-role', 'select-user-to-promote', 'other-coins'])
             }

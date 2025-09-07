@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class GameExchangeRate extends Model
 {
     protected $table = "game_exchange_rate";
-    protected $fillable = ['game', 'room', 'coin', 'exchange_rate'];
+    protected $fillable = ['game', 'room', 'currency', 'exchange_rate'];
 
     public function Game()
     {
@@ -16,14 +16,14 @@ class GameExchangeRate extends Model
 
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Currency::class, 'currency');
     }
 
-    public static function getGameExchangeRateValue($gameName, $room, $coin, $value = 'exchange_rate')
+    public static function getGameExchangeRateValue($gameName, $room, $currency, $value = 'exchange_rate')
     {
         $gameID = Games::getValueByName($gameName);
 
-        return self::where('game', $gameID)->where('room', $room)->where('coin', $coin)->value($value);
+        return self::where('game', $gameID)->where('room', $room)->where('currency', $currency)->value($value);
     }
 
     public static function getCountGameExchangeRate($game, $room)
@@ -31,8 +31,8 @@ class GameExchangeRate extends Model
         return self::where('game', $game)->where('room', $room)->count();
     }
 
-    public static function existsGameExchangeRate($game, $room, $coin)
+    public static function existsGameExchangeRate($game, $room, $currency)
     {
-        return self::where('game', $game)->where('room', $room)->where('coin', $coin)->exists();
+        return self::where('game', $game)->where('room', $room)->where('currency', $currency)->exists();
     }
 }

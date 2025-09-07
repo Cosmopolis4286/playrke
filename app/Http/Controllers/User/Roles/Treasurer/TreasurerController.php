@@ -39,10 +39,10 @@ class TreasurerController extends Controller
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
             'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
-            'coin' => ['required', 'numeric', 'exists:coins,id'],
+            'currency' => ['required', 'numeric', 'exists:coins,id'],
             'name' => ['required', 'string'],
             'phone' => ['required', 'string', 'max:20', 'unique:treasurers,phone'],
-            'other_coins.*' => ['exists:coins,id'],
+            'other_currencies.*' => ['exists:coins,id'],
         ];
 
         // Ajustar reglas de validación si es una actualización.
@@ -57,7 +57,7 @@ class TreasurerController extends Controller
             'username.unique' => 'Nombre de usuario no disponible.',
             'email.unique' => 'Este correo ya está registrado.',
             'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
-            'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
+            'other_currencies.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
         ];
 
         // Crear el validador.
@@ -86,7 +86,7 @@ class TreasurerController extends Controller
         try {
 
             $userToPromote = $request->user_to_promote;
-            $otherCoins = $request->other_coins;
+            $otherCoins = $request->other_currencies;
             $allowedGames = $request->allowed_games;
 
             if ($userToPromote) {
@@ -101,7 +101,7 @@ class TreasurerController extends Controller
                 OtherTreasurers::create([
                     'creator_user_id' => $userToPromote,
                     'allowed_games' => $allowedGames,
-                    'allowed_coins' => $otherCoins,
+                    'allowed_currencies' => $otherCoins,
                 ]);
 
                 DB::commit();
@@ -130,7 +130,7 @@ class TreasurerController extends Controller
             ])->id;
 
             // Crear un nuevo Wallet para el usuario
-            Wallet::create(['coin' => $request->coin, 'user' => $newUser]);
+            Wallet::create(['currency' => $request->currency, 'user' => $newUser]);
 
             PhoneNumbers::create([
                 'user' => $newUser,
@@ -141,7 +141,7 @@ class TreasurerController extends Controller
             $treasurer = Treasurer::create([
                 'name' => $request->name,
                 'phone' => $phoneNumber,
-                'coin' => $request->coin,
+                'currency' => $request->currency,
                 'country' => $request->country,
                 'user' => $newUser,
                 'uuid_code' => $this->getCodeUUID('Treasurer'),
@@ -159,7 +159,7 @@ class TreasurerController extends Controller
             TreasurerCountriesCoins::create([
                 'treasurer' => $treasurer->id,
                 'country' => $treasurer->country,
-                'coin' => $treasurer->coin,
+                'currency' => $treasurer->currency,
                 'level' => '1',
                 'creator_user_id' => $newUser,
                 'status' => 1
@@ -192,14 +192,14 @@ class TreasurerController extends Controller
     public function getInfo($id) // Obtener Info Comercializadora
     {
         $id = decrypt($id);
-        $treasurer = Treasurer::getById($id, ['name', 'country', 'coin', 'phone']);
+        $treasurer = Treasurer::getById($id, ['name', 'country', 'currency', 'phone']);
         $otherCoins = TreasurerCountriesCoins::getAvailableCoins($id);
         $user = User::getById(Treasurer::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
 
         $data = [
             'treasurer' => $treasurer,
             'user' => $user,
-            'other_coins' => $otherCoins
+            'other_currencies' => $otherCoins
         ];
 
         return response()->json($data);
@@ -234,13 +234,13 @@ class TreasurerController extends Controller
                 }
 
                 // Verificar si la moneda principal ha cambiado
-                $coinChange = $treasurer->coin !== $request->coin;
+                $currencyChange = $treasurer->currency !== $request->currency;
 
                 // Actualizar los campos del vendedor
                 $treasurer->update([
                     'name' => $request->name,
                     'country' => $request->country,
-                    'coin' => $request->coin,
+                    'currency' => $request->currency,
                     'phone' => $request->phone
                 ]);
 
@@ -253,13 +253,13 @@ class TreasurerController extends Controller
                     ]);
                 }
 
-                if ($coinChange) {
+                if ($currencyChange) {
                     // Actualizar moneda Principal
                     TreasurerCountriesCoins::where('creator_user_id', $treasurer->user)
-                        ->where('coin', $treasurer->coin)
+                        ->where('currency', $treasurer->currency)
                         ->update([
                             'country' => $treasurer->country,
-                            'coin' => $treasurer->coin
+                            'currency' => $treasurer->currency
                         ]);
                 }
 
@@ -269,7 +269,7 @@ class TreasurerController extends Controller
                     'userId' => $treasurer->user
                 ];
 
-                $otherCoins = $request->other_coins;
+                $otherCoins = $request->other_currencies;
 
                 if ($otherCoins) {
                     // Insertar otras monedas
@@ -324,14 +324,14 @@ class TreasurerController extends Controller
         return redirect()->back();
     }
 
-    public function getPaymentTreasurerDetails($treasurer, $coin)
+    public function getPaymentTreasurerDetails($treasurer, $currency)
     {
         $treasurerID = decrypt($treasurer);
-        $coin = decrypt($coin);
+        $currency = decrypt($currency);
 
         $treasurer = Treasurer::getById($treasurerID, ['name', 'user']);
         // Obtener detalles de pago por tesorero usando el ID del usuario autenticado y la moneda desencriptada
-        $paymentDetails = $this->getPaymentDetailsByUserId($treasurer->user, $coin);
+        $paymentDetails = $this->getPaymentDetailsByUserId($treasurer->user, $currency);
 
         if (!$paymentDetails) {
             return response()->json(['Error' => 'El tesorero no ha cargado los datos bancarios']);

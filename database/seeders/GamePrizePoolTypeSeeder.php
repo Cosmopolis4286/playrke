@@ -26,18 +26,18 @@ class GamePrizePoolTypeSeeder extends Seeder
 
         // Entradas a insertar o actualizar
         $entries = [
-            ['game' => $gameId, 'game_mode' => 2, 'prize_pool_type' => 1, 'status' => 'ACTIVE'],
-            ['game' => $gameId, 'game_mode' => 2, 'prize_pool_type' => 2, 'status' => 'ACTIVE'],
-            ['game' => $gameId, 'game_mode' => 2, 'prize_pool_type' => 3, 'status' => 'ACTIVE'],
+            ['game_id' => $gameId, 'game_mode_id' => 2, 'prize_pool_type_id' => 1, 'status' => 'ACTIVE'],
+            ['game_id' => $gameId, 'game_mode_id' => 2, 'prize_pool_type_id' => 2, 'status' => 'ACTIVE'],
+            ['game_id' => $gameId, 'game_mode_id' => 2, 'prize_pool_type_id' => 3, 'status' => 'ACTIVE'],
         ];
 
         // Inserta o actualiza los registros para evitar duplicados
         foreach ($entries as $entry) {
             GamePrizePoolType::updateOrCreate(
                 [
-                    'game' => $entry['game'],
-                    'game_mode' => $entry['game_mode'],
-                    'prize_pool_type' => $entry['prize_pool_type']
+                    'game_id' => $entry['game_id'],
+                    'game_mode_id' => $entry['game_mode_id'],
+                    'prize_pool_type_id' => $entry['prize_pool_type_id']
                 ],
                 ['status' => $entry['status']]
             );

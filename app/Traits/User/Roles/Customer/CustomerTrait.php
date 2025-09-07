@@ -17,10 +17,10 @@ trait CustomerTrait
      * @param int        $userID     ID del usuario
      * @param string     $token      Token único
      * @param string     $country    Código o nombre del país
-     * @param string     $coin       Moneda asociada
+     * @param string     $currency       Moneda asociada
      * @return bool      true si se registra correctamente, false si falla
      */
-    public function registerUserByCustomer($customer, int $userID, string $token, string $country, string $coin): bool
+    public function registerUserByCustomer($customer, int $userID, string $token, string $country, string $currency): bool
     {
         DB::beginTransaction();
 
@@ -30,7 +30,7 @@ trait CustomerTrait
                 'user_id' => $userID,
                 'token' => $token,
                 'country' => $country,
-                'coin' => $coin,
+                'currency' => $currency,
                 'last_activity' => now(),
             ]);
 

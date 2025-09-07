@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Wallets\Wallet;
-use App\Repositories\Coins\CoinRepository;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -66,7 +65,7 @@ class UsersSeeder extends Seeder
             }
 
             // Crear monedero asociado con validación
-            $currency = \App\Models\Coins\Coin::where('iso_code', 'VES')->first();
+            $currency = \App\Models\Currencies\Currency::where('iso_code', 'VES')->first();
             
             if ($currency) {
                 Wallet::create([

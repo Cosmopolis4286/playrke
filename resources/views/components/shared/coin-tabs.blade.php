@@ -1,13 +1,13 @@
 @props(['coins', 'selectedCoin', 'routeWithCoin'])
 
 <ul class="nav nav-tabs mt-n2 mb-2" id="myTab" role="tablist">
-    @foreach ($coins as $item)
+    @foreach ($currencys as $item)
         @php
-            $label = $item->iso_code ?? ($item->coin ?? $item->short_name);
+            $label = $item->iso_code ?? ($item->currency ?? $item->short_name);
             $encryptedId = encrypt($item->id);
             $isActive = $selectedCoin == $item->id;
             $tabId = "{$item->id}-{$label}";
-            $url = route($routeWithCoin['route'], [...$routeWithCoin['parameters'], 'coin' => $encryptedId]);
+            $url = route($routeWithCoin['route'], [...$routeWithCoin['parameters'], 'currency' => $encryptedId]);
         @endphp
 
         <li class="nav-item">

@@ -16,7 +16,7 @@ use App\Models\BingoCreator;
 use App\Models\BingoCtnPrice;
 use App\Models\BingoCtnsPayment;
 use App\Models\BingoPrizeCtns;
-use App\Models\Coin;
+use App\Models\Currencies\Currency;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
@@ -58,11 +58,11 @@ class SellerController extends Controller
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
             'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
-            'coin' => ['required', 'numeric', 'exists:coins,id'],
+            'currency' => ['required', 'numeric', 'exists:coins,id'],
             'name' => ['required', 'string'],
             'phone' => ['required', 'string', 'max:20', 'unique:sellers,phone'],
             'commission' => ['required', 'numeric', 'between:0,25'],
-            'other_coins.*' => ['exists:coins,id'],
+            'other_currencies.*' => ['exists:coins,id'],
         ];
 
         if ($isUpdate && $encryptedId) {
@@ -76,7 +76,7 @@ class SellerController extends Controller
             'username.unique' => 'Nombre de usuario no disponible.',
             'email.unique' => 'Este correo ya está registrado.',
             'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
-            'other_coins.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
+            'other_currencies.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
         ];
 
         return Validator::make($request->all(), $rules, $messages);
@@ -131,7 +131,7 @@ class SellerController extends Controller
 
             // Crear Wallet asociado al usuario
             Wallet::create([
-                'coin' => $request->coin,
+                'currency' => $request->currency,
                 'user' => $newUser,
             ]);
 
@@ -146,7 +146,7 @@ class SellerController extends Controller
             $seller = Seller::create([
                 'name' => $request->name,
                 'phone' => $request->phone,
-                'coin' => $request->coin,
+                'currency' => $request->currency,
                 'country' => $request->country,
                 'commerce_id' => Commerce::getValueByUserId(Auth::id(), 'id'),
                 'commission' => $request->commission,
@@ -158,21 +158,21 @@ class SellerController extends Controller
             SellerCountriesCoins::create([
                 'seller' => $seller->id,
                 'country' => $seller->country,
-                'coin' => $seller->coin,
+                'currency' => $seller->currency,
                 'level' => '1',
                 'creator_user_id' => $newUser,
                 'status' => 1,
             ]);
 
             // Insertar monedas adicionales si hay
-            if ($request->other_coins) {
+            if ($request->other_currencies) {
                 $this->insertOtherCoins(
                     [
                         'model' => 'Seller',
                         'id' => $seller->id,
                         'userId' => $newUser,
                     ],
-                    $request->other_coins
+                    $request->other_currencies
                 );
             }
 
@@ -271,7 +271,7 @@ class SellerController extends Controller
                 }
 
                 // Verificar si la moneda principal ha cambiado
-                $coinChange = $seller->coin !== $request->coin;
+                $currencyChange = $seller->currency !== $request->currency;
 
                 $phoneNumber = $request->phone;
 
@@ -286,17 +286,17 @@ class SellerController extends Controller
                 $seller->update([
                     'name' => $request->name,
                     'country' => $request->country,
-                    'coin' => $request->coin,
+                    'currency' => $request->currency,
                     'phone' => $phoneNumber,
                     'commission' => $request->commission
                 ]);
 
-                if ($coinChange) {
+                if ($currencyChange) {
                     // Actualizar moneda Principal
                     SellerCountriesCoins::where('seller', $seller->id)
-                        ->where('coin', $seller->coin)->update([
+                        ->where('currency', $seller->currency)->update([
                             'country' => $seller->country,
-                            'coin' => $seller->coin
+                            'currency' => $seller->currency
                         ]);
                 }
 
@@ -306,7 +306,7 @@ class SellerController extends Controller
                     'userId' => $seller->user
                 ];
 
-                $otherCoins = $request->other_coins;
+                $otherCoins = $request->other_currencies;
 
                 if ($otherCoins) {
                     // Insertar otras monedas
@@ -415,26 +415,26 @@ class SellerController extends Controller
         $sellerCoins = SellerCountriesCoins::getAvailableCoins($seller->id);
         $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 'ACTIVE');
 
-        // Obtenemos el campo allowed_coins (json o null) y lo forzamos a array
+        // Obtenemos el campo allowed_currencies (json o null) y lo forzamos a array
         $allowedCoinsRoom = BingoCreator::where('creator_user_id', $creatorUser)
-            ->where('room', $roomId)->value('allowed_coins');
+            ->where('room', $roomId)->value('allowed_currencies');
 
         $allowedCoinsRoom = is_array($allowedCoinsRoom) ? $allowedCoinsRoom : [];
 
-        $coinsAvailable = array_values(array_intersect(
+        $currencysAvailable = array_values(array_intersect(
             array_map('strval', $sellerCoins),
             array_map('strval', $commerceCoins),
             array_map('strval', $allowedCoinsRoom)
         ));
 
         // Eliminamos '1' si existe
-        $USDT = ($key = array_search('1', $coinsAvailable, true)) !== false;
+        $USDT = ($key = array_search('1', $currencysAvailable, true)) !== false;
         if ($USDT) {
-            unset($coinsAvailable[$key]);
-            $coinsAvailable = array_values($coinsAvailable);
+            unset($currencysAvailable[$key]);
+            $currencysAvailable = array_values($currencysAvailable);
         }
 
-        $countriesAvailable = Coin::getCountriesByCoinInArray($coinsAvailable);
+        $countriesAvailable = Currency::getCountriesByCoinInArray($currencysAvailable);
 
         $countries = Country::getCountries($countriesAvailable, ['id', 'name']);
 
@@ -456,7 +456,7 @@ class SellerController extends Controller
         return response()->json([
             'prizePoolType' => $room->Config->prize_pool_type,
             'prizePool' => $room->prize_pool,
-            'coin' => 'USDT',
+            'currency' => 'USDT',
             'price' => $room->Config->ctn_price,
             'countries' => $countriesCoins['countries'],
             'USDT' => $countriesCoins['USDT']
@@ -466,8 +466,8 @@ class SellerController extends Controller
     public function getCtnPriceCoin($room, $country)
     {
         // Obtener moneda según el país
-        $coin = Coin::getCoinByCountry($country, ['id', 'symbol']);
-        if (!$coin) {
+        $currency = Currency::getCoinByCountry($country, ['id', 'symbol']);
+        if (!$currency) {
             return response()->json(['error' => 'Moneda no encontrada'], 404);
         }
 
@@ -478,7 +478,7 @@ class SellerController extends Controller
         }
 
         // Obtener tasa de cambio
-        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $coin->id);
+        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $currency->id);
 
         $roomId = BingoRoom::getValueByEncrypted($room, 'id');
         $creator = ['type' => 'commerce_id', 'id' => $commerce];
@@ -490,7 +490,7 @@ class SellerController extends Controller
         $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomId, 'id');
 
         // Intentar obtener el precio configurado
-        $ctnPrice = BingoCtnPrice::getValueCtnPrice($roomId, $coin->id, $bingoCreatorID);
+        $ctnPrice = BingoCtnPrice::getValueCtnPrice($roomId, $currency->id, $bingoCreatorID);
 
         if ($ctnPrice) {
             $setPrice = true;
@@ -499,7 +499,7 @@ class SellerController extends Controller
 
         // Construir y devolver la respuesta
         return response()->json([
-            'sym' => $coin->symbol,
+            'sym' => $currency->symbol,
             'exchangeRate' => $exchangeRate,
             'setPrice' => $setPrice,
             'value' => $value,
@@ -533,13 +533,13 @@ class SellerController extends Controller
         }
     }
 
-    public function getPaymentCommerceDetails($coin)
+    public function getPaymentCommerceDetails($currency)
     {
         try {
             $user = Commerce::getValueById($this->seller('commerce_id')->commerce, 'user');
 
             // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda decriptada
-            $data = $this->getPaymentDetailsByUserId($user, decrypt($coin));
+            $data = $this->getPaymentDetailsByUserId($user, decrypt($currency));
 
             // Verificar si se obtuvieron datos y retornar una respuesta JSON adecuada
             if (!isset($data['error'])) {
@@ -626,7 +626,7 @@ class SellerController extends Controller
         $allPendingCtns = BingoCtns::with('Lot:id,ctns,sale_amount')
             ->whereHas('Lot', function ($query) use ($seller) {
                 $query->where(['seller' => $seller, 'status' => 0]);
-            })->where('seller', $seller)->get(['room', 'creator_user_id', 'room_user', 'coin', 'lot']);
+            })->where('seller', $seller)->get(['room', 'creator_user_id', 'room_user', 'currency', 'lot']);
 
         try {
 
@@ -645,7 +645,7 @@ class SellerController extends Controller
                     'seller' => $seller,
                     'external_player_id' => $playerLink,
                     'lot' => $ctn->lot,
-                    'coin' => $ctn->coin,
+                    'currency' => $ctn->currency,
                     'amount' => $ctnPrice,
                     'payment_proof' => $paymentProof,
                     'created_at' => $timestamp,

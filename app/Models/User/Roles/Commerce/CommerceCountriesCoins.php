@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CommerceCountriesCoins extends Model
 {
-    protected $table = "commerces_countries_coins";
-    protected $fillable = ['commerce_id', 'country', 'coin', 'level', 'creator_user_id', 'status'];
+    protected $table = "commerces_countries_currencies";
+    protected $fillable = ['commerce_id', 'country', 'currency', 'level', 'creator_user_id', 'status'];
 
     public function Commerce()
     {
@@ -22,7 +22,7 @@ class CommerceCountriesCoins extends Model
 
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Currency::class, 'currency');
     }
 
     public function ExternalPlayers()
@@ -42,11 +42,11 @@ class CommerceCountriesCoins extends Model
 
     public static function getAvailableCoins($commerce, $exceptCoin = '')
     {
-        return self::select('coin')->where('commerce_id', $commerce)
+        return self::select('currency')->where('commerce_id', $commerce)
             ->where('status', 1)
             ->when($exceptCoin, function ($query, $exceptCoin) {
-                return $query->where('coin', '<>', $exceptCoin);
-            })->distinct()->pluck('coin')->toArray();
+                return $query->where('currency', '<>', $exceptCoin);
+            })->distinct()->pluck('currency')->toArray();
     }
 
     public static function getAllAvailableCountriesCoins($commerce, $fields = ['*'])

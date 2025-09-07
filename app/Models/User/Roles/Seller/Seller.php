@@ -2,7 +2,7 @@
 
 namespace App\Models\User\Roles\Seller;
 
-use App\Models\Coins\Coin;
+use App\Models\Currencies\Currencys\Coin;
 use App\Models\Countries\Country;
 use App\Models\User\Roles\Commerce\Commerce;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 class Seller extends Model
 {
     protected $table = "sellers";
-    protected $fillable = ['name', 'country', 'coin', 'phone', 'commission', 'commerce_id', 'status', 'user'];
+    protected $fillable = ['name', 'country', 'currency', 'phone', 'commission', 'commerce_id', 'status', 'user'];
 
     // Relación con el país del vendedor
     public function Country()
@@ -21,12 +21,12 @@ class Seller extends Model
     // Relación con la moneda del vendedor
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Currency::class, 'currency');
     }
 
     public static function getCoinByIdId($seller)
     {
-        return self::where('id', $seller)->value('coin');
+        return self::where('id', $seller)->value('currency');
     }
 
     // Relación del Vendedor con las Monedas  

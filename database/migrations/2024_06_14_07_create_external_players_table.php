@@ -39,8 +39,8 @@ return new class extends Migration
                 ->restrictOnDelete()
                 ->comment('País del jugador');
 
-            $table->foreignSnowflake('coin_id')
-                ->constrained('coins')
+            $table->foreignSnowflake('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
                 ->comment('Moneda utilizada');
@@ -73,7 +73,7 @@ return new class extends Migration
 
             // Índices compuestos para consultas frecuentes
             $table->index(['game_id', 'room', 'creator_user_id'], 'idx_game_room_creator');
-            $table->index(['country_id', 'coin_id'], 'idx_country_coin');
+            $table->index(['country_id', 'currency_id'], 'idx_country_coin');
         });
     }
 

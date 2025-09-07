@@ -8,12 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('sellers_countries_coins', function (Blueprint $table) {
+        Schema::create('sellers_countries_currencies', function (Blueprint $table) {
             $table->id();
 
             $table->foreignId('seller_id')->constrained('sellers')->onDelete('cascade');
             $table->foreignId('country_id')->constrained('countries')->onDelete('set null');
-            $table->foreignId('coin_id')->constrained('coins')->onDelete('cascade');
+            $table->foreignId('currency_id')->constrained('currencies')->onDelete('cascade');
 
             $table->tinyInteger('level')->comment('1=básico, 2=medio, 3=avanzado');
             $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
@@ -22,12 +22,12 @@ return new class extends Migration
             $table->timestamps();
 
             // Evitar duplicados
-            $table->unique(['seller_id', 'country_id', 'coin_id'], 'unique_seller_country_coin');
+            $table->unique(['seller_id', 'country_id', 'currency_id'], 'unique_seller_country_coin');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('sellers_countries_coins');
+        Schema::dropIfExists('sellers_countries_currencies');
     }
 };

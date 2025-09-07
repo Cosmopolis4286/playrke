@@ -18,7 +18,7 @@ use App\Models\BingoRoomConfig;
 use App\Models\BingoRounds;
 use App\Models\BingoRoundsDrafts;
 use App\Models\BingoRoomUser;
-use App\Models\CoinGameRoom;
+use App\Models\Currencies\CurrencyGameRoom;
 use App\Models\Country;
 use App\Models\Customer;
 use App\Models\CustomerUser;
@@ -533,7 +533,7 @@ trait BingoTrait
 
         $this->handleWinners($roomId);
 
-        $winners = $this->getWinners('ALL', $roomId, $data['coin'], $roomUser);
+        $winners = $this->getWinners('ALL', $roomId, $data['currency'], $roomUser);
 
         return $winners;
     }
@@ -592,7 +592,7 @@ trait BingoTrait
 
         $creatorUser = $arrCtn['creator']['userId'];
         $roomId = $arrCtn['room'];
-        $coin = $arrCtn['coin'];
+        $currency = $arrCtn['currency'];
 
         $currentTime = now();
 
@@ -605,7 +605,7 @@ trait BingoTrait
                 'room_user' => $arrCtn['roomUser'],
                 'room' => $roomId,
                 'ctns' => $arrCtn['numOfCtns'],
-                'coin' => $coin,
+                'currency' => $currency,
                 'ctn_price' => $arrCtn['ctnPrice'],
                 'exchange_rate' => $arrCtn['exchangeRate'],
                 'sale_amount' => $saleAmount,
@@ -616,7 +616,7 @@ trait BingoTrait
             ]);
 
             // Actualizar monto de venta total por monedas
-            BingoCreatorSales::updateOrCreateSale($roomId, $creatorUser, $coin, $saleAmount, $sellerCommn);
+            BingoCreatorSales::updateOrCreateSale($roomId, $creatorUser, $currency, $saleAmount, $sellerCommn);
 
             return $BingoCtnsLotID;
         } catch (Exception $e) {
@@ -701,7 +701,7 @@ trait BingoTrait
             'seller' => $arrCtn['seller'] ?? null,
             'player_user' => $arrCtn['playerUser'] ?? null,
             'room_user' => $arrCtn['roomUser'],
-            'coin' => $arrCtn['coin'],
+            'currency' => $arrCtn['currency'],
             'lot' => $lotID,
             'serial' => $serialCtn,
             'b1' => $nwCtn[0],
@@ -845,7 +845,7 @@ trait BingoTrait
             $creator = $arrCtn['creator'];
             $seller = $arrCtn['seller'] ?? null;
             $playerUser = $arrCtn['playerUser'] ?? null;
-            $coin = $arrCtn['coin'];
+            $currency = $arrCtn['currency'];
             $numOfCtns = $arrCtn['numOfCtns'];
 
             // Formatear Monto de Venta
@@ -889,7 +889,7 @@ trait BingoTrait
             // Si no es modo offline y el creador es <> a un customer 
             if ($gameMode != 2 && $creator['type'] !== 'customer') {
                 // Determinar la columna de saldo en función de la moneda
-                $columnBalance = $coin == 1 ? 'usdt' : 'balance';
+                $columnBalance = $currency == 1 ? 'usdt' : 'balance';
 
                 // Descontar monto del saldo del usuario
                 $walletUpdated = Wallet::where('user', $playerUser)->decrement($columnBalance, $saleAmount);
@@ -904,8 +904,8 @@ trait BingoTrait
             $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
 
             //Registrar nueva moneda en juego de ser necesario
-            if (!CoinGameRoom::existsCoinGameRoom($coin, $roomId, 'BINGO', $gameMode)) {
-                CoinGameRoom::createNewCoinInRoom($game, $roomId, $coin);
+            if (!CoinGameRoom::existsCoinGameRoom($currency, $roomId, 'BINGO', $gameMode)) {
+                CoinGameRoom::createNewCoinInRoom($game, $roomId, $currency);
             }
 
             // Si la sala es de un cliente
@@ -918,7 +918,7 @@ trait BingoTrait
                     $creator['id'],
                     $roomId,
                     $playerUser,
-                    $coin,
+                    $currency,
                     $saleAmount
                 );
 
@@ -939,7 +939,7 @@ trait BingoTrait
         }
     }
 
-    public function convertPrizeValue($roomId, $coin, $value)
+    public function convertPrizeValue($roomId, $currency, $value)
     {
         $room = BingoRoom::getById($roomId, ['creator_user_id', 'prize_pool']);
 
@@ -948,7 +948,7 @@ trait BingoTrait
 
         $creator = ['type' => $userCreator['type'], 'id' => $userCreator['id'], 'userId' => $creatorUser];
 
-        $data = ['coin' => $coin, 'value' => $value, 'creator' => $creator];
+        $data = ['currency' => $currency, 'value' => $value, 'creator' => $creator];
 
         return $this->convertValueByGame('BINGO', $roomId, $data);
     }
@@ -967,7 +967,7 @@ trait BingoTrait
                 $roomUser = $ctn->room_user;
 
                 // Verificar y obtener el tipo de cambio
-                $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomId, $ctn->coin) ?? 1;
+                $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $roomId, $ctn->currency) ?? 1;
 
                 // Multiplicamos por el exchangeRate
                 $convertedAmount = $USDValue * $exchangeRate;
@@ -987,7 +987,7 @@ trait BingoTrait
                     'lot' => $ctn->lot,
                     'prize_type' => $pattern,
                     'usd_amount' => $USDValue,
-                    'coin' => $ctn->coin,
+                    'currency' => $ctn->currency,
                     'amount' => $prizeAmount,
                     'status' => 'WT',
                     'created_at' => $timestamp,
@@ -1053,16 +1053,16 @@ trait BingoTrait
     {
         switch ($creator) {
             case 'customer':
-                $coin = CustomerUser::getValueById($playerID, 'coin');
+                $currency = CustomerUser::getValueById($playerID, 'currency');
                 break;
             case 'commerce_id':
-                $coin = ExternalPlayers::getValueByRoomUser('BINGO', $playerID, 'coin');
+                $currency = ExternalPlayers::getValueByRoomUser('BINGO', $playerID, 'currency');
                 break;
             default:
                 break;
         }
 
-        return $coin;
+        return $currency;
     }
 
     public function getWinnersData($prizeType, $roomId, $roomUser = null)
@@ -1108,7 +1108,7 @@ trait BingoTrait
 
     public function getArrayWinnersData($data)
     {
-        $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $data['room'], $data['coin']) ?? 1;
+        $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $data['room'], $data['currency']) ?? 1;
         $bingoRounds = BingoRounds::where('room', $data['room'])
             ->get(['round', 'play_type', 'prize_value', 'start_time', 'last_chip'])
             ->keyBy('round');
@@ -1279,7 +1279,7 @@ trait BingoTrait
 
             $ctnsJackpot = BingoCtns::where('room', $roomId)
                 ->whereIn('id', $winners->values())
-                ->get(['id', 'creator_user_id', 'seller', 'room_user', 'coin', 'lot']);
+                ->get(['id', 'creator_user_id', 'seller', 'room_user', 'currency', 'lot']);
 
             DB::beginTransaction();
 
@@ -1336,7 +1336,7 @@ trait BingoTrait
         return true;
     }
 
-    public function getWinners(string $prizeType, int $roomId, int $coin, ?int $roomUser = null)
+    public function getWinners(string $prizeType, int $roomId, int $currency, ?int $roomUser = null)
     {
         $data = $this->getWinnersData($prizeType, $roomId, $roomUser);
 
@@ -1344,7 +1344,7 @@ trait BingoTrait
         if (isset($data['Error'])) return $data['Error'];
 
         // Agregar la moneda al resultado
-        $data['coin'] = $coin;
+        $data['currency'] = $currency;
 
         return $this->getArrayWinnersData($data);
     }
@@ -1454,18 +1454,18 @@ trait BingoTrait
                 $gameID = Games::getValueByName('BINGO');
 
                 // Obtener las monedas activas en la sala
-                $coins = CoinGameRoom::getCoinsByRoom($gameID, $roomId);
+                $currencys = CoinGameRoom::getCoinsByRoom($gameID, $roomId);
 
                 // Preparar los datos para insertar
-                $dataJackpots = $coins->map(function ($coin) use ($roomId, $gameID, $serialsPct, $timestamp) {
+                $dataJackpots = $currencys->map(function ($currency) use ($roomId, $gameID, $serialsPct, $timestamp) {
 
-                    $prizePoolAmount = BingoCreatorSales::getPrizePoolAmountByRoomAndCoin($roomId, $coin);
+                    $prizePoolAmount = BingoCreatorSales::getPrizePoolAmountByRoomAndCoin($roomId, $currency);
                     $amount = round($prizePoolAmount * $serialsPct, 3);
 
                     return [
                         'game' => $gameID,
                         'room' => $roomId,
-                        'coin' => $coin,
+                        'currency' => $currency,
                         'amount' => $amount,
                         'created_at' => $timestamp,
                         'updated_at' => $timestamp,
@@ -1484,7 +1484,7 @@ trait BingoTrait
             // Obtener la información final de los cartones ganadores
             $ctnsSerials = BingoCtns::whereIn('id', $serialCtns)
                 ->where('room', $roomId)
-                ->get(['id', 'seller', 'creator_user_id', 'room_user', 'coin', 'lot']);
+                ->get(['id', 'seller', 'creator_user_id', 'room_user', 'currency', 'lot']);
 
             // Repartir el premio entre los ganadores
             $winnerJackpotPrize = $serialPrize / count($serialCtns);
@@ -1597,7 +1597,7 @@ trait BingoTrait
             'seller' => $lotCtn->seller,
             'external_player_id' => ExternalPlayers::getValueByRoomUser('BINGO', $lotCtn->room_user, 'id'),
             'lot' => $lotCtn->id,
-            'coin' => $lotCtn->coin,
+            'currency' => $lotCtn->currency,
             'amount' => $lotCtn->sale_amount,
             'payment_proof' => $paymentImage,
         ]);
@@ -1618,7 +1618,7 @@ trait BingoTrait
                 'prize_type' => $prizeCtn->prize_type,
                 'lot' => $prizeCtn->lot,
                 'ctn' => $prizeCtn->ctn,
-                'coin' => $prizeCtn->coin,
+                'currency' => $prizeCtn->currency,
                 'amount' => $prizeCtn->amount,
                 'payment_proof' => $filePayment,
             ]);
@@ -1628,7 +1628,7 @@ trait BingoTrait
         }
     }
 
-    public function verifyExistenceOfSales($user, $coin = '', $dateFilter = '', $room = '')
+    public function verifyExistenceOfSales($user, $currency = '', $dateFilter = '', $room = '')
     {
         $column = $user['type'] !== 'seller' ? 'creator_user_id' : 'seller';
         $columnValue = $column !== 'seller' ? $user['userId'] : $user['id'];
@@ -1636,13 +1636,13 @@ trait BingoTrait
         $query = BingoCtnsLot::where($column, $columnValue);
 
         // Filtro por moneda
-        if ($coin) {
+        if ($currency) {
             try {
-                $coin = decrypt($coin);
+                $currency = decrypt($currency);
             } catch (Exception) {
                 // Si falla el descifrado, asume que viene en texto plano
             }
-            $query->where('coin', $coin);
+            $query->where('currency', $currency);
         }
 
         // Filtro por sala
@@ -1657,19 +1657,19 @@ trait BingoTrait
             $existsSaleDateFilter = $this->applyDateFilter($dateFilter, $query)->exists();
             // Si no existe venta en la fecha, retorna
             if (!$existsSaleDateFilter) {
-                return ['return' => true, 'coin' => encrypt($coin)];
+                return ['return' => true, 'currency' => encrypt($currency)];
             }
         }
 
         // Si no existe venta o no hay filtros de moneda ni sala
-        if (!$existsSale || (!$coin && !$room)) {
+        if (!$existsSale || (!$currency && !$room)) {
 
-            $firstSale = BingoCtnsLot::select('coin')->where($column, $columnValue)->first();
+            $firstSale = BingoCtnsLot::select('currency')->where($column, $columnValue)->first();
 
             if ($firstSale) {
                 return [
                     'return' => true,
-                    'coin'   => encrypt($firstSale->coin)
+                    'currency'   => encrypt($firstSale->currency)
                 ];
             }
 
@@ -1677,6 +1677,6 @@ trait BingoTrait
         }
 
         // Si existe venta y cumple con todos los filtros
-        return $coin ?? null;
+        return $currency ?? null;
     }
 }

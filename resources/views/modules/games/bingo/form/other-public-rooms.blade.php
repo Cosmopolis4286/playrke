@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header', ['subtitle' => $subtitle])
             <div class="card-body">
-                @include('includes.coin-tabs', ['userToken' => $userToken ?? false])
+                @include('includes.currency-tabs', ['userToken' => $userToken ?? false])
                 @include('includes.games.bingo.report.btn-group', ['view' => 'OTHER-PUBLIC'])
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">

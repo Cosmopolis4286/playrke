@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Bingo\Cartons;
 
-use App\Models\Coins\Coin;
+use App\Models\Currencies\Currencys\Coin;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\User\Roles\Commerce\Commerce;
 use App\Models\User\Roles\Player\External\ExternalPlayers;
@@ -20,7 +20,7 @@ class BingoCtnsPayment extends Model
         'seller_id',
         'commerce_id',
         'external_player_id_id',
-        'coin_id',
+        'currency_id',
         'lot_id',
         'amount',
         'payment_proof'
@@ -61,9 +61,9 @@ class BingoCtnsPayment extends Model
     /**
      * Moneda usada en el pago.
      */
-    public function coin()
+    public function currency()
     {
-        return $this->belongsTo(Coin::class, 'coin_id');
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 
     /**

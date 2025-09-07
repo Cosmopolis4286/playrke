@@ -18,7 +18,7 @@ class BingoPrizeCtns extends Model
         'ctn',
         'prize_type',
         'usd_amount',
-        'coin',
+        'currency',
         'amount',
         'status',
         'created_at',
@@ -60,7 +60,7 @@ class BingoPrizeCtns extends Model
 
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Currency::class, 'currency');
     }
 
     public function GameExchangeRate()

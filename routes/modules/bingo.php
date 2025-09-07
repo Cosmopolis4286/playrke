@@ -33,7 +33,7 @@ mapControllerRoutes('bingo', 'bingo.', [
 
 // Ruta pública de pago (sin middleware)
 Route::get(
-    'commerce/getPaymentCommerceDetails/{commerce}/{coin}',
+    'commerce/getPaymentCommerceDetails/{commerce}/{currency}',
     [BingoController::class, 'getPaymentCommerceDetails']
 )
     ->withoutMiddleware(['auth', 'commerce_id'])

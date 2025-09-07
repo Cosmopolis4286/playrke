@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Ejecutar la migración: crear tabla 'commerces_countries_coins'.
+     * Ejecutar la migración: crear tabla 'commerces_countries_currencies'.
      */
     public function up(): void
     {
-        Schema::create('commerces_countries_coins', function (Blueprint $table) {
+        Schema::create('commerces_countries_currencies', function (Blueprint $table) {
             // ID tipo Snowflake para consistencia
             $table->snowflake('id')->primary()->comment('ID único del registro');
 
@@ -30,8 +30,8 @@ return new class extends Migration
                 ->comment('País asociado (opcional)');
 
             // Moneda
-            $table->foreignId('coin_id')
-                ->constrained('coins')
+            $table->foreignId('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Moneda asociada');
@@ -56,15 +56,15 @@ return new class extends Migration
             $table->timestamps();
 
             // Índices para optimizar búsquedas frecuentes
-            $table->index(['commerce_id', 'country_id', 'coin_id'], 'idx_commerce_country_coin');
+            $table->index(['commerce_id', 'country_id', 'currency_id'], 'idx_commerce_country_coin');
         });
     }
 
     /**
-     * Revertir la migración: eliminar tabla 'commerces_countries_coins'.
+     * Revertir la migración: eliminar tabla 'commerces_countries_currencies'.
      */
     public function down(): void
     {
-        Schema::dropIfExists('commerces_countries_coins');
+        Schema::dropIfExists('commerces_countries_currencies');
     }
 };

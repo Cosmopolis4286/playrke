@@ -14,7 +14,7 @@
         <div id="cont-prize-pool-info-amount">
             <span id="cont-prize-pool-type">{{ $prizePoolType }}</span>
             <div id="cont-prize-pool-amount">
-                <span id="prize-pool-coin-sym">{{ $coinSym }}</span>
+                <span id="prize-pool-currency-sym">{{ $currencySym }}</span>
                 <span id="prize-pool-amount">{{ $prizePool ?? 0 }}</span>
             </div>
         </div>

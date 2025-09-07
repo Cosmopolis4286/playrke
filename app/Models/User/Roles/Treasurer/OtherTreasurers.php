@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class OtherTreasurers extends Model
 {
   protected $table = "other_treasurers";
-  protected $fillable = ['creator_user_id', 'allowed_games', 'allowed_coins', 'status'];
+  protected $fillable = ['creator_user_id', 'allowed_games', 'allowed_currencies', 'status'];
 
   public function User()
   {

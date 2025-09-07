@@ -10,7 +10,7 @@ class BingoCreatorSales extends Model
     protected $fillable = [
         'room',
         'creator_user_id',
-        'coin',
+        'currency',
         'sale_amount',
         'rke_commn',
         'room_commn',
@@ -27,7 +27,7 @@ class BingoCreatorSales extends Model
 
     public function Coin()
     {
-        return $this->belongsTo(Coin::class, 'coin');
+        return $this->belongsTo(Currency::class, 'currency');
     }
 
     public function CreatorUser()
@@ -45,31 +45,31 @@ class BingoCreatorSales extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getByRoomCreatorUser($room, $creatorUser, $coin, $fields = ['*'])
+    public static function getByRoomCreatorUser($room, $creatorUser, $currency, $fields = ['*'])
     {
-        return self::select($fields)->where('room', $room)->where('coin', $coin)
+        return self::select($fields)->where('room', $room)->where('currency', $currency)
             ->where('creator_user_id', $creatorUser)->first();
     }
 
-    public static function getValueByRoomCreatorUser($room, $creatorUser, $coin, $value)
+    public static function getValueByRoomCreatorUser($room, $creatorUser, $currency, $value)
     {
-        return self::where('room', $room)->where('coin', $coin)
+        return self::where('room', $room)->where('currency', $currency)
             ->where('creator_user_id', $creatorUser)->value($value);
     }
 
-    public static function existsByRoomCreatorUser($room, $creatorUser, $coin = '')
+    public static function existsByRoomCreatorUser($room, $creatorUser, $currency = '')
     {
         $query = self::where('room', $room)->where('creator_user_id', $creatorUser);
-        if ($coin)  $query->where('coin', $coin);
+        if ($currency)  $query->where('currency', $currency);
         return $query->exists();
     }
 
-    public static function getPrizePoolAmountByRoomAndCoin($room, $coin)
+    public static function getPrizePoolAmountByRoomAndCoin($room, $currency)
     {
-        return self::where('room', $room)->where('coin', $coin)->sum('prize_pool_amount');
+        return self::where('room', $room)->where('currency', $currency)->sum('prize_pool_amount');
     }
 
-    public static function updateOrCreateSale($roomId, $creatorUser, $coin, $amount, $sellerCommn)
+    public static function updateOrCreateSale($roomId, $creatorUser, $currency, $amount, $sellerCommn)
     {
         $roomConfig = BingoRoomConfig::getByRoom($roomId, ['rke_commn', 'room_commn']);
 
@@ -79,7 +79,7 @@ class BingoCreatorSales extends Model
         $prizePool = round(($amount - $rkeCommn - $roomCommn - $sellerCommn), 3);
 
         $sale = self::firstOrCreate(
-            ['room' => $roomId, 'creator_user_id' => $creatorUser, 'coin' => $coin],
+            ['room' => $roomId, 'creator_user_id' => $creatorUser, 'currency' => $currency],
             [
                 'sale_amount' => $amount,
                 'rke_commn' => $rkeCommn,

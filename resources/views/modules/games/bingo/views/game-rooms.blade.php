@@ -20,8 +20,8 @@
             <div id="container-text-game-rooms">
                 <span id="text-game-rooms">SALAS DE JUEGO</span>
                 {{-- <a class="mt-n1 badge badge-primary"
-                    href="{{ route('bingo.gameRoomsCommerce', ['user' => encrypt(Auth::id()), 'coin' => encrypt(2)]) }}">
-                    Cambiar a <b>{{ $coinSym }}</b>
+                    href="{{ route('bingo.gameRoomsCommerce', ['user' => encrypt(Auth::id()), 'currency' => encrypt(2)]) }}">
+                    Cambiar a <b>{{ $currencySym }}</b>
                 </a> --}}
             </div>
         </div>
@@ -59,15 +59,15 @@
                                         <span id="prize-pool-room_{{ $room->encrypted }}">
                                             {{ number_format($room->prize_pool * $exchangeRate, 2) }}
                                         </span>
-                                        <small id="coin-symbol-room_{{ $room->encrypted }}">
-                                            {{ $coinSym }}
+                                        <small id="currency-symbol-room_{{ $room->encrypted }}">
+                                            {{ $currencySym }}
                                         </small>
                                     </h3>
                                 </div>
                                 <span class="card-game-room__ctn-price">
                                     Cartón: <span id="ctn-price_{{ $room->encrypted }}">
                                         {{ number_format($room->Config->ctn_price * $exchangeRate, 2) }}
-                                    </span> {{ $coinSym }}
+                                    </span> {{ $currencySym }}
                                 </span>
                                 <span class="card-game-room__status" id="card-game-room__status_{{ $room->encrypted }}">
                                     {{ $room->status == 2 ? 'Comprar cartones' : 'No disponible' }}
@@ -86,7 +86,7 @@
     @vite('resources/js/helpers/format-date-time-unix.js')
     <script>
         const creator = @json($creator);
-        const coin = @json($coin ?? null);
+        const currency = @json($currency ?? null);
         const player = @json($player);
         const userToken = @json($userToken ?? null);
         const creatorUser = @json($creatorUser);
@@ -176,7 +176,7 @@
                 url: route('bingo.getInfoByEncrypt', {
                     id: roomID,
                     creatorUser,
-                    coin
+                    currency
                 }),
                 method: 'GET',
                 dataType: 'json',
@@ -193,7 +193,7 @@
                     generateModalPurchase(roomID);
 
                     $('#purchase-ctns__coin-text').text(room.prizePoolType);
-                    $('.purchase-ctns__coin-label').text(room.coin);
+                    $('.purchase-ctns__coin-label').text(room.currency);
                     $('#prize-pool-amount').text(room.prizePool);
                     formatDateTime(room.dateTime);
                     handleTotalAmount();
@@ -233,7 +233,7 @@
                 },
                 data: {
                     room: roomID,
-                    coin,
+                    currency,
                     num_ctns: numCtns,
                     creator_type: creator.type,
                     creator_id: creator.id,

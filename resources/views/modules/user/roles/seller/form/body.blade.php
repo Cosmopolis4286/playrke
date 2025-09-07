@@ -26,14 +26,14 @@
         <x-form.input label="Teléfono" name="phone" required placeholder="Ingresa el número" col="col-sm-6" />
 
         <!-- Moneda principal -->
-        <div id="container-coin" class="form-group col-sm-6 d-none">
-            <label for="coin">Moneda*</label>
-            <div id="coin-text" class="form-control"></div>
-            <input type="hidden" id="coin" name="coin" value="{{ old('coin') }}">
+        <div id="container-currency" class="form-group col-sm-6 d-none">
+            <label for="currency">Moneda*</label>
+            <div id="currency-text" class="form-control"></div>
+            <input type="hidden" id="currency" name="currency" value="{{ old('currency') }}">
         </div>
 
         <!-- Otras Monedas -->
-        <x-form.select containerId="other-coins" label="Otras Monedas" id="other-coins" name="other_coins" multiple
+        <x-form.select containerId="other-coins" label="Otras Monedas" id="other-coins" name="other_currencies" multiple
             select2 placeholder="Seleccionar otras monedas" data-source="coins" data-value="id" data-label="long_name"
             col="col-sm d-none" />
 

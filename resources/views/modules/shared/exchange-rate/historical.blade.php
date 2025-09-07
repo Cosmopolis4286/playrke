@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @if (!empty($coins) || $creator['type'] === 'customer')
+                @if (!empty($currencys) || $creator['type'] === 'customer')
                     <button type="button" class="btn-{{ $moduleId }} btn btn-sm btn-success" data-action="create"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                 @endif
@@ -33,7 +33,7 @@
                                         </td>
                                     @endif
                                     <td>
-                                        {{ $creator['type'] === 'customer' ? $item->coin : $item->Coin->long_name }}
+                                        {{ $creator['type'] === 'customer' ? $item->currency : $item->Coin->long_name }}
                                     </td>
                                     <td>
                                         @if ($creator['type'] === 'customer')
@@ -94,8 +94,8 @@
         const name = '{{ $moduleId }}';
         const creatorType = @json($creator['type'] ?? '');
         const exchangeRate = $("#exchange-rate");
-        const arrCoins = @json($coins) ?? [];
-        const coin = $("#coin");
+        const arrCoins = @json($currencys) ?? [];
+        const currency = $("#currency");
 
         let exchangeRateMax;
         let exchangeRateMin;
@@ -107,13 +107,13 @@
         })
 
         function setTextExchangeRate() {
-            if (coin.val() && exchange-rate.val() > 0) {
+            if (currency.val() && exchange-rate.val() > 0) {
                 $("#text-exchange-rate").text(`${exchange-rate.val()} ${coinName}`);
                 $("#alert-exchange-rate").removeClass('hide-elem');
             }
         }
 
-        $(document).on("input change", "#coin", function() {
+        $(document).on("input change", "#currency", function() {
             setTextExchangeRate();
         });
 
@@ -133,7 +133,7 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, [coin.attr('id'), exchange-rate.attr('id')]);
+            submitForm(name, [currency.attr('id'), exchange-rate.attr('id')]);
         });
 
         const otherCasesMap = {
@@ -150,7 +150,7 @@
         };
 
         if (creatorType === 'customer') {
-            coin.mask('AAAAAA', {
+            currency.mask('AAAAAA', {
                 translation: {
                     'A': {
                         pattern: /[A-Za-z]/
@@ -158,18 +158,18 @@
                 }
             });
 
-            coin.on('input', function() {
+            currency.on('input', function() {
                 var valor = $(this).val();
                 $(this).val(valor.toUpperCase());
             });
 
-            $(document).on("input", coin, function() {
-                coinName = coin.val();
+            $(document).on("input", currency, function() {
+                coinName = currency.val();
             });
         } else {
-            function getLastValueByCoin(coin) {
+            function getLastValueByCoin(currency) {
                 $.getJSON({
-                    url: route('exchange-rate.getLastValueByCoin', coin),
+                    url: route('exchange-rate.getLastValueByCoin', currency),
                     success: function(data) {
                         const coinValue = parseFloat(data.toFixed(2));
                         // Calcular los valores de máximo y mínimo
@@ -185,12 +185,12 @@
                 });
             }
 
-            // coin.on("change", function() {
-            //     if (coin.val() != '') exchange-rate.attr('readonly', true), getLastValueByCoin(coin.val());
+            // currency.on("change", function() {
+            //     if (currency.val() != '') exchange-rate.attr('readonly', true), getLastValueByCoin(currency.val());
             // });
 
-            $(document).on("input", coin, function() {
-                coinName = coin.find("option:selected").text();
+            $(document).on("input", currency, function() {
+                coinName = currency.find("option:selected").text();
             });
         }
 
@@ -200,13 +200,13 @@
             if (type == 2) {
                 $('#creator').prop('disabled', true);
                 update = true;
-                const currentCoin = data.coin;
+                const currentCoin = data.currency;
 
                 if (creatorType === 'customer') {
-                    coin.val(currentCoin);
+                    currency.val(currentCoin);
                     coinName = currentCoin;
                 } else {
-                    coin.append(
+                    currency.append(
                         `<option value="${currentCoin.id}" selected>${currentCoin.long_name} (${currentCoin.symbol})</option>`
                     );
                     coinName = `${currentCoin.long_name} (${currentCoin.symbol})`;
@@ -214,7 +214,7 @@
 
                 exchange-rate.val(data.exchange_rate);
 
-                $("#coin").trigger('change');
+                $("#currency").trigger('change');
                 $("#alert-exchange-rate").removeClass('hide-elem');
             } else {
                 $('#creator').prop('disabled', false);
@@ -222,7 +222,7 @@
 
             if (arrCoins.length && creatorType !== 'customer') {
                 $.each(arrCoins, function(index, item) {
-                    coin.append(`<option value="${item.id}">${item.long_name} (${item.symbol})</option>`);
+                    currency.append(`<option value="${item.id}">${item.long_name} (${item.symbol})</option>`);
                 });
             }
 

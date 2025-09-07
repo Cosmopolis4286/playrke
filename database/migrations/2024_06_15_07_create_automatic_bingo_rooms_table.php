@@ -37,7 +37,7 @@ return new class extends Migration
 
             $table->decimal('ctn_price', 12, 2)->comment('Precio del cartón');
 
-            $table->json('allowed_coins')->nullable();
+            $table->json('allowed_currencies')->nullable();
             $table->string('time_chip', 2)->nullable();
             $table->string('rounds', 2)->default('1');
             $table->decimal('rounds_pct', 5, 2)->nullable();

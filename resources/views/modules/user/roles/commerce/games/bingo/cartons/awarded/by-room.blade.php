@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs')
+                @include('includes.currency-tabs')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-2">

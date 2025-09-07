@@ -7,15 +7,15 @@ use Illuminate\Support\Facades\Log;
 
 class CoinGameRoom extends Model
 {
-    protected $table = "coins_game_rooms";
-    protected $fillable = ['game', 'game_mode', 'room', 'coin'];
+    protected $table = "currencies_game_rooms";
+    protected $fillable = ['game', 'game_mode', 'room', 'currency'];
 
     public function Game()
     {
         return $this->belongsTo(Games::class, 'game');
     }
 
-    public static function createNewCoinInRoom($game, $room, $coin)
+    public static function createNewCoinInRoom($game, $room, $currency)
     {
         try {
             // Obtener el ID del juego
@@ -26,7 +26,7 @@ class CoinGameRoom extends Model
                 'game' => $gameID,
                 'game_mode' => $game['game_mode'],
                 'room' => $room,
-                'coin' => $coin,
+                'currency' => $currency,
             ]);
             return true;
         } catch (\Exception $e) {
@@ -36,12 +36,12 @@ class CoinGameRoom extends Model
         }
     }
 
-    public static function existsCoinGameRoom($coin, $room, $game, $gameMode = '')
+    public static function existsCoinGameRoom($currency, $room, $game, $gameMode = '')
     {
         $gameID = Games::getValueByName($game);
 
         // Iniciar la consulta
-        $query = self::where('coin', $coin)->where('room', $room)->where('game', $gameID);
+        $query = self::where('currency', $currency)->where('room', $room)->where('game', $gameID);
 
         // Añadir condicionalmente el filtro de 'game_mode'
         if ($gameMode) {
@@ -58,7 +58,7 @@ class CoinGameRoom extends Model
         $gameID = is_string($game) ? Games::getValueByName($game) : $game;
 
         // Construir la consulta
-        $query = self::select('coin')->where('game', $gameID)->where('room', $room);
+        $query = self::select('currency')->where('game', $gameID)->where('room', $room);
 
         // Agregar filtro de modo de juego si se proporciona
         if (!is_null($gameMode)) {
@@ -66,6 +66,6 @@ class CoinGameRoom extends Model
         }
 
         // Retornar monedas distintas disponibles en esa sala y modo
-        return $query->distinct()->pluck('coin');
+        return $query->distinct()->pluck('currency');
     }
 }

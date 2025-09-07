@@ -12,7 +12,7 @@ class Treasurer extends Model
   protected $fillable = [
     'name',
     'country',
-    'coin',
+    'currency',
     'phone',
     'user',
     'uuid_code',

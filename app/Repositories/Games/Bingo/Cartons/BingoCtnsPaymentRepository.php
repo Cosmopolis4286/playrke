@@ -57,13 +57,13 @@ class BingoCtnsPaymentRepository
     /**
      * Listar pagos en una moneda específica.
      *
-     * @param int $coinId
+     * @param int $currencyId
      * @param array $fields
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getByCoin(int $coinId, array $fields = ['*'])
+    public function getByCoin(int $currencyId, array $fields = ['*'])
     {
-        return BingoCtnsPayment::select($fields)->where('coin_id', $coinId)->get();
+        return BingoCtnsPayment::select($fields)->where('currency_id', $currencyId)->get();
     }
 
     /**

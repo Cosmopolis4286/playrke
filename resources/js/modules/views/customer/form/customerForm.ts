@@ -15,7 +15,7 @@ export { route };
 export const formTitleSuffix = 'Comercio';
 export const moduleId = 'commerce-form';
 
-export const requiredFields: string[] = ['name', 'country', 'time-zone', 'coin', 'phone', 'username', 'email'];
+export const requiredFields: string[] = ['name', 'country', 'time-zone', 'currency', 'phone', 'username', 'email'];
 
 // ==========================
 // Mapeo de acciones personalizadas

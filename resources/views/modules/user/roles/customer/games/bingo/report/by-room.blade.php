@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs')
+                @include('includes.currency-tabs')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <div class="table-responsive mt-2">
@@ -29,7 +29,7 @@
                                         @foreach ($sellers as $seller)
                                             @php
                                                 $allSale = $allSalePreJackpot = 0;
-                                                $coinSym = $seller->CtnsLot[0]->Coin->symbol;
+                                                $currencySym = $seller->CtnsLot[0]->Coin->symbol;
                                                 $allCtnsSeller = $seller->CtnsLot->sum('ctns');
                                                 $totalCtnsBuy += $allCtnsSeller;
 
@@ -60,11 +60,11 @@
                                                 </td>
                                                 <td>{{ $seller->Country->name }}</td>
                                                 <td>{{ $allCtnsSeller }}</td>
-                                                <td>{{ $coinSym }} {{ $allSale }}</td>
-                                                <td>{{ $coinSym }} {{ $comSaleSeller }}</td>
-                                                <td>{{ $coinSym }} {{ $finalSale }}</td>
-                                                <td>{{ $coinSym }} {{ $prizePool }}</td>
-                                                <td>{{ $coinSym }} {{ $roomCommn }}</td>
+                                                <td>{{ $currencySym }} {{ $allSale }}</td>
+                                                <td>{{ $currencySym }} {{ $comSaleSeller }}</td>
+                                                <td>{{ $currencySym }} {{ $finalSale }}</td>
+                                                <td>{{ $currencySym }} {{ $prizePool }}</td>
+                                                <td>{{ $currencySym }} {{ $roomCommn }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -72,11 +72,11 @@
                                         <tr>
                                             <td colspan="2" class="text-right"><b>Total:</b></td>
                                             <td>{{ $totalCtnsBuy }}</td>
-                                            <td>{{ $coinSym }} {{ $totalAllSale }}</td>
-                                            <td>{{ $coinSym }} {{ $totalComSaleSeller }}</td>
-                                            <td>{{ $coinSym }} {{ $totalFinalSale }}</td>
-                                            <td>{{ $coinSym }} {{ $totalJackpot }}</td>
-                                            <td>{{ $coinSym }} {{ $totalRoomCommn }}</td>
+                                            <td>{{ $currencySym }} {{ $totalAllSale }}</td>
+                                            <td>{{ $currencySym }} {{ $totalComSaleSeller }}</td>
+                                            <td>{{ $currencySym }} {{ $totalFinalSale }}</td>
+                                            <td>{{ $currencySym }} {{ $totalJackpot }}</td>
+                                            <td>{{ $currencySym }} {{ $totalRoomCommn }}</td>
                                         </tr>
                                     </tfoot>
                                 @endif

@@ -28,7 +28,7 @@ return new class extends Migration
             $table->string('brand', 30)->nullable()->comment('Marca asociada a este usuario');
             $table->string('token', 255)->comment('Token de autenticación del usuario');
             $table->string('country_code', 3)->nullable()->comment('Código ISO del país del usuario');
-            $table->string('coin_id', 20)->comment('Código de moneda (ISO o interno)');
+            $table->string('currency_id', 20)->comment('Código de moneda (ISO o interno)');
 
             // Actividad
             $table->timestamp('last_activity')->nullable()->comment('Última actividad del usuario');
@@ -38,7 +38,7 @@ return new class extends Migration
 
             // Índices compuestos para búsquedas rápidas
             $table->index(['customer_id', 'user_id'], 'idx_customer_user');
-            $table->index(['country_code', 'coin_id'], 'idx_country_coin');
+            $table->index(['country_code', 'currency_id'], 'idx_country_coin');
         });
     }
 

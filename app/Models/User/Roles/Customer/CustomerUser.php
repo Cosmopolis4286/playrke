@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CustomerUser extends Model
 {
     protected $table = "customers_users";
-    protected $fillable = ['customer', 'user_id', 'brand', 'token', 'country', 'coin', 'last_activity'];
+    protected $fillable = ['customer', 'user_id', 'brand', 'token', 'country', 'currency', 'last_activity'];
 
     public static function getById($id, $fields = ['*'])
     {

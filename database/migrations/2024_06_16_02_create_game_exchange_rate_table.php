@@ -11,13 +11,13 @@ return new class extends Migration
         Schema::create('game_exchange_rates', function (Blueprint $table) {
             $table->id();
             $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
-            $table->foreignId('coin_id')->constrained('coins')->onDelete('cascade');
+            $table->foreignId('currency_id')->constrained('currencies')->onDelete('cascade');
             $table->integer('room');
             $table->decimal('exchange_rate', 15, 8);
             $table->timestamps();
 
             // Evitar duplicados
-            $table->unique(['game_id', 'room', 'coin_id'], 'unique_exchange_per_game_room_coin');
+            $table->unique(['game_id', 'room', 'currency_id'], 'unique_exchange_per_game_room_coin');
         });
     }
 

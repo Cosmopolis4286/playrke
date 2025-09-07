@@ -5,7 +5,7 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @include('includes.coin-tabs')
+                @include('includes.currency-tabs')
                 @include('includes.date-filter-buttons')
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
@@ -30,7 +30,7 @@
                                                 <a class="badge bg-navy" title="Ver Reporte"
                                                     href="{{ route('bingo.reportSalesByRoom', [
                                                         'room' => $ctn->Room->encrypted,
-                                                        'coin' => encrypt($coin),
+                                                        'currency' => encrypt($currency),
                                                         'dateFilter' => $dateFilter,
                                                     ]) }}">
                                                     {{ $ctn->Room->encrypted }}
@@ -38,9 +38,9 @@
                                             </td>
                                             <td>{{ $ctn->Room->room_type_description }}</td>
                                             <td>{{ $ctn->Seller->name }}</td>
-                                            <td>{{ $coinData->short_name }} ({{ $coinData->iso_code }})</td>
+                                            <td>{{ $currencyData->short_name }} ({{ $currencyData->iso_code }})</td>
                                             <td>{{ $ctn->ctns }}</td>
-                                            <td>{{ $coinData->iso_code }} {{ number_format($ctn->sale_amount, 2, '.') }}
+                                            <td>{{ $currencyData->iso_code }} {{ number_format($ctn->sale_amount, 2, '.') }}
                                             </td>
                                             <td>
                                                 {{ $ctn->created_at->format('d/m/y H:i:s') }}
@@ -53,7 +53,7 @@
                                                     <button class="btn btn-primary btn-sm btn-confirm-payment"
                                                         data-seller="{{ $ctn->Seller->name }}"
                                                         data-lot="{{ encrypt($ctn->id) }}"
-                                                        data-coin_sym="{{ $coinData->iso_code }}"
+                                                        data-coin_sym="{{ $currencyData->iso_code }}"
                                                         data-sale_ctns="{{ $ctn->sale_amount }}"
                                                         data-proof="{{ $ctn->Payment->payment_proof }}">
                                                         Validar Pago
@@ -76,7 +76,7 @@
                                             <td colspan="4" class="text-right"><b>Total:</b></td>
                                             <td>{{ $ctnsSold->sum('ctns') }}</td>
                                             <td>
-                                                {{ $coinData->iso_code }}
+                                                {{ $currencyData->iso_code }}
                                                 {{ number_format($ctnsSold->sum('sale_amount'), 2, '.') }}
                                             </td>
                                             <td colspan="2"></td>

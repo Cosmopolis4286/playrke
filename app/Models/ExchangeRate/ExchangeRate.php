@@ -2,7 +2,7 @@
 
 namespace App\Models\ExchangeRate;
 
-use App\Models\Coins\Coin;
+use App\Models\Currencies\Currencys\Coin;
 use Illuminate\Database\Eloquent\Model;
 
 class ExchangeRate extends Model
@@ -10,15 +10,15 @@ class ExchangeRate extends Model
     protected $table = "exchange_rates";
 
     protected $fillable = [
-        'coin_id',
+        'currency_id',
         'value'
     ];
 
     /**
      * Relación: un tipo de cambio pertenece a una moneda.
      */
-    public function coin()
+    public function currency()
     {
-        return $this->belongsTo(Coin::class, 'coin_id');
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 }

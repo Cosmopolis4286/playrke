@@ -23,7 +23,7 @@ class CustomerSessionService
 
         $userID = $customerResponse['Data']['ID'];
         $country = $customerResponse['Data']['Country'] ?? null;
-        $coin = $customerResponse['Data']['DefaultCurrencyCode'];
+        $currency = $customerResponse['Data']['DefaultCurrencyCode'];
 
         if (!CustomerUser::existsUserByCustomer($customerID, $userID)) {
             $this->registerUserByCustomer(
@@ -31,7 +31,7 @@ class CustomerSessionService
                 $userID,
                 $userToken,
                 $country,
-                $coin
+                $currency
             );
         } else {
             CustomerUser::where('user_id', $userID)->update([
@@ -39,7 +39,7 @@ class CustomerSessionService
                 'user_id' => $userID,
                 'token' => $userToken,
                 'country' => $country,
-                'coin' => $coin,
+                'currency' => $currency,
                 'last_activity' => now()
             ]);
         }

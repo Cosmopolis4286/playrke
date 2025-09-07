@@ -39,8 +39,8 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->comment('Jugador propietario del lote');
 
-            $table->foreignId('coin_id')
-                ->constrained('coins')
+            $table->foreignId('currency_id')
+                ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Moneda utilizada');

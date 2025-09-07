@@ -20,19 +20,19 @@
                 <tr>
                     <td class="align-middle">
                         <a class="badge bg-navy" title="Ver Reporte"
-                            href="{{ route('bingo.reportSalesByRoom', ['room' => $room['encrypted'], 'coin' => encrypt($coin)]) }}">
+                            href="{{ route('bingo.reportSalesByRoom', ['room' => $room['encrypted'], 'currency' => encrypt($currency)]) }}">
                             {{ $room['encrypted'] }}
                         </a>
                     </td>
                     <td>{{ $room['roomType'] }}</td>
                     <td>{{ $room['date'] }}</td>
                     <td>{{ $room['time'] }}h</td>
-                    <td>{{ $coinData->short_name }}</td>
+                    <td>{{ $currencyData->short_name }}</td>
                     <td>{{ $room['ctns'] }}</td>
-                    <td>{{ $coinData->iso_code }} {{ $room['sales'] }}</td>
-                    <td>{{ $coinData->iso_code }} {{ $room['sellerCommn'] }}</td>
-                    <td>{{ $coinData->iso_code }} {{ $room['roomCommn'] }}</td>
-                    <td>{{ $coinData->iso_code }} {{ $room['prizePool'] }}</td>
+                    <td>{{ $currencyData->iso_code }} {{ $room['sales'] }}</td>
+                    <td>{{ $currencyData->iso_code }} {{ $room['sellerCommn'] }}</td>
+                    <td>{{ $currencyData->iso_code }} {{ $room['roomCommn'] }}</td>
+                    <td>{{ $currencyData->iso_code }} {{ $room['prizePool'] }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -41,10 +41,10 @@
                 <tr>
                     <td colspan="5" class="text-right"><b>Total:</b></td>
                     <td>{{ $totalsFormatted['ctns'] }}</td>
-                    <td>{{ $coinData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
-                    <td>{{ $coinData->iso_code }} {{ $totalsFormatted['sellerCommn'] }}</td>
-                    <td>{{ $coinData->iso_code }} {{ $totalsFormatted['roomCommn'] }}</td>
-                    <td>{{ $coinData->iso_code }} {{ $totalsFormatted['prizePool'] }}</td>
+                    <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
+                    <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['sellerCommn'] }}</td>
+                    <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['roomCommn'] }}</td>
+                    <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['prizePool'] }}</td>
                 </tr>
             </tfoot>
         @endif

@@ -20,8 +20,8 @@ class CountriesSeeder extends Seeder
 
         Country::upsert(
             $countries,
-            ['iso_code_2'], // campo único para evitar duplicados
-            ['name', 'iso_code_3', 'status'] // columnas que se actualizan si ya existe
+            ['iso_code_2'], // clave única
+            ['name', 'iso_code_3', 'status']
         );
     }
 }

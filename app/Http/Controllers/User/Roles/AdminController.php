@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\Coin;
+use App\Models\Currencies\Currency;
 use App\Models\Commerce;
 use App\Models\Country;
 use App\Models\Customer;
@@ -28,7 +28,7 @@ class AdminController extends Controller
      */
     public function commerces()
     {
-        $coins = Coin::getByIdForStatus(['=', 1]);
+        $currencys = Currency::getByIdForStatus(['=', 1]);
         $commerces = Commerce::with(['Country:id,name', 'User:id,email'])->get();
         $countries = Country::getAllAvailableCountries();
         $games = Games::getAvailableGames();
@@ -37,7 +37,7 @@ class AdminController extends Controller
         return view('modules.admin.commerce.index', [
             'title' => 'Comercializadoras',
             'pageData' => [
-                'coins' => $coins,
+                'coins' => $currencys,
                 'commerces' => $commerces,
                 'countries' => $countries,
                 'enableFormCrud' => true,
@@ -53,7 +53,7 @@ class AdminController extends Controller
         $customers = Customer::with(['Country:id,name', 'User:id,email'])->get();
 
         $countries = Country::getAllAvailableCountries();
-        $coins = Coin::getByIdForStatus(['=', 1]);
+        $currencys = Currency::getByIdForStatus(['=', 1]);
         $timeZones = TimeZone::where('status', 1)->get();
 
         return view('modules/admin/customer/index')->with([
@@ -62,7 +62,7 @@ class AdminController extends Controller
             'customers' => $customers,
             'countries' => $countries,
             'timeZones' => $timeZones,
-            'coins' => $coins
+            'coins' => $currencys
         ]);
     }
 
@@ -71,7 +71,7 @@ class AdminController extends Controller
         $treasurers = Treasurer::with(['Country:id,name', 'User:id,email'])->get();
 
         $countries = Country::getAllAvailableCountries();
-        $coins = Coin::getByIdForStatus(['=', 1]);
+        $currencys = Currency::getByIdForStatus(['=', 1]);
         $timeZones = TimeZone::where('status', 1)->get();
 
         return view('modules/admin/treasurer/index')->with([
@@ -81,7 +81,7 @@ class AdminController extends Controller
             'treasurers' => $treasurers,
             'countries' => $countries,
             'timeZones' => $timeZones,
-            'coins' => $coins,
+            'coins' => $currencys,
             'games' => Games::getAvailableGames()
         ]);
     }
@@ -93,7 +93,7 @@ class AdminController extends Controller
             'User.Country:id,name'
         ])->get();
 
-        $coins = Coin::getByIdForStatus(['=', 1]);
+        $currencys = Currency::getByIdForStatus(['=', 1]);
         $games = Games::getAvailableGames();
 
         return view('modules/admin/treasurer/other-treasurers')->with([
@@ -101,7 +101,7 @@ class AdminController extends Controller
             'others' => true,
             'name' => 'admin-other-treasurers',
             'otherTreasurers' => $otherTreasurers,
-            'coins' => $coins,
+            'coins' => $currencys,
             'games' => $games
         ]);
     }
@@ -121,7 +121,7 @@ class AdminController extends Controller
             Commerce::create([
                 'name' => $request->name,
                 'phone' => $request->phone,
-                'coin' => $request->coin,
+                'currency' => $request->currency,
                 'country' => $request->country,
                 'status' => 1,
                 'user' => $request->user_id,

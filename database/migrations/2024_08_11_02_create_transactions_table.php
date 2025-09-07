@@ -22,7 +22,7 @@ class CreateTransactionsTable extends Migration
             $table->string('bet_id');
             $table->string('code')->unique();
             $table->string('transaction_type', 15);
-            $table->string('coin_id', 15);
+            $table->string('currency_id', 15);
             $table->decimal('amount', 16, 8);
             $table->enum('status', ['WAITING', 'EXECUTED'])->default('WAITING');
             $table->timestamp('processing_data')->nullable();

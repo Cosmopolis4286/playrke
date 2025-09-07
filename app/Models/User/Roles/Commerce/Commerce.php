@@ -19,7 +19,7 @@ class Commerce extends Model
   protected $fillable = [
     'name',
     'country_id',   // FK Country
-    'coin_id',
+    'currency_id',
     'phone',
     'user_id',      // FK User
     'commission',

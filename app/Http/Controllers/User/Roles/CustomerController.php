@@ -151,7 +151,7 @@ class CustomerController extends Controller
             ])->id;
 
             // Crear un nuevo Wallet para el usuario
-            Wallet::create(['coin' => $request->coin ?? 1, 'user' => $newUser]);
+            Wallet::create(['currency' => $request->currency ?? 1, 'user' => $newUser]);
 
             $phoneNumber = $request->phone;
 
@@ -380,7 +380,7 @@ class CustomerController extends Controller
         $customerID = Customer::getValueByUserId(Auth::id(), 'id');
         if (!$customerID) return false;
 
-        $player = CustomerUser::getByToken($customerID, $userToken, ['id', 'coin']);
+        $player = CustomerUser::getByToken($customerID, $userToken, ['id', 'currency']);
 
         if (!$player) {
             return response()->json(['type' => 'warning', 'message' => 'Usuario no encontrado en DB']);
@@ -395,7 +395,7 @@ class CustomerController extends Controller
                 $player->id,
                 'TESTE_RECARGAR_SALDO',
                 'WIN',
-                $player->coin,
+                $player->currency,
                 $balance
             );
 

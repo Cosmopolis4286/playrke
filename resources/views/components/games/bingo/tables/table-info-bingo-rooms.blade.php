@@ -1,4 +1,4 @@
-@props(['rooms', 'creator', 'coinSym', 'coin', 'uuidCode', 'exchangeRate', 'view', 'moduleId'])
+@props(['rooms', 'creator', 'coinSym', 'currency', 'uuidCode', 'exchangeRate', 'view', 'moduleId'])
 
 @php
     use Carbon\Carbon;
@@ -32,12 +32,12 @@
                             ? route('bingo.out-game-customer', [
                                 'customer' => $creator['id'],
                                 'room' => $roomId,
-                                'coin' => encrypt($coinSym),
+                                'currency' => encrypt($currencySym),
                             ])
                             : route('bingo.out-game', [
                                 'uuidCode' => $uuidCode,
                                 'room' => $roomId,
-                                'coin' => encrypt($coin),
+                                'currency' => encrypt($currency),
                             ]);
 
                     $rate = $room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate;
@@ -70,7 +70,7 @@
                         <a class="badge bg-navy" title="Ver Reporte"
                             href="{{ route('bingo.reportSalesByRoom', [
                                 'room' => $room->encrypted,
-                                'coin' => encrypt(1),
+                                'currency' => encrypt(1),
                             ]) }}">
                             {{ $room->encrypted }}
                         </a>
@@ -80,7 +80,7 @@
                         {{ Carbon::parse($room->Config->date)->format('d/m/y') }}
                     </td>
                     <td class="align-middle">{{ $room->Config->time }} H</td>
-                    <td class="align-middle">{{ $coinSym }} {{ $ctnPrice }}</td>
+                    <td class="align-middle">{{ $currencySym }} {{ $ctnPrice }}</td>
 
                     <td class="align-middle">
                         <i class="fa-solid fa-users mr-1" title="Jugadores"></i>
@@ -90,12 +90,12 @@
                     </td>
 
                     <td class="align-middle">
-                        {{ $coinSym }} {{ number_format($allSale, 2, '.') }}
+                        {{ $currencySym }} {{ number_format($allSale, 2, '.') }}
                     </td>
 
                     <td class="align-middle">
                         <small>{{ $room->Config->PrizePoolType->description }}</small><br>
-                        {{ $coinSym }} {{ number_format($prizePool, 2, '.') }}
+                        {{ $currencySym }} {{ number_format($prizePool, 2, '.') }}
                     </td>
 
                     <td class="align-middle">
@@ -146,8 +146,8 @@
         <tfoot>
             <tr>
                 <td colspan="5" class="text-right"><b>Total:</b></td>
-                <td>{{ $coinSym }} {{ number_format($totalAllSale, 2, '.') }}</td>
-                <td>{{ $coinSym }} {{ number_format($totalJackpot, 2, '.') }}</td>
+                <td>{{ $currencySym }} {{ number_format($totalAllSale, 2, '.') }}</td>
+                <td>{{ $currencySym }} {{ number_format($totalJackpot, 2, '.') }}</td>
                 <td colspan="3"></td>
             </tr>
         </tfoot>
