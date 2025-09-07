@@ -30,14 +30,17 @@ class BingoRoomAutomatic extends Model
     'num_serials',
     'jackpot_pct',
     'plays_pct',
-    'play_types',
+    'bingo_patterns',
     'creator_type',
     'creator_id',
     'creator_user_id',
     'status'
   ];
 
-  protected $casts = ['allowed_currencies' => 'array'];
+  protected $casts = [
+    'allowed_currencies' => 'array',
+    'bingo_patterns' => 'array'
+  ];
 
   public function GameMode()
   {

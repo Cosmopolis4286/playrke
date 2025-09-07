@@ -26,7 +26,7 @@ class BingoPatternsSeeder extends Seeder
             ['type_pattern' => 'UNIQUE', 'name' => 'LINEA O1-O5', 'boxes' => 'O1;O2;O3;O4;O5', 'status' => 'ACTIVE'],
             ['type_pattern' => 'UNIQUE', 'name' => 'LINEA B1-O1', 'boxes' => 'B1;I1;N1;G1;O1', 'status' => 'ACTIVE'],
             ['type_pattern' => 'UNIQUE', 'name' => 'LINEA B2-O2', 'boxes' => 'B2;I2;N2;G2;O2', 'status' => 'ACTIVE'],
-            ['type_pattern' => 'UNIQUE', 'name' => 'LINEA B3-03', 'boxes' => 'B3;I3;G3;O3', 'status' => 'ACTIVE'],
+            ['type_pattern' => 'UNIQUE', 'name' => 'LINEA B3-O3', 'boxes' => 'B3;I3;G3;O3', 'status' => 'ACTIVE'],
             ['type_pattern' => 'UNIQUE', 'name' => 'LINEA B4-O4', 'boxes' => 'B4;I4;N4;G4;O4', 'status' => 'ACTIVE'],
             ['type_pattern' => 'UNIQUE', 'name' => 'LINEA B5-O5', 'boxes' => 'B5;I5;N5;G5;O5', 'status' => 'ACTIVE'],
             ['type_pattern' => 'GROUP', 'name' => 'LINEAS V', 'boxes' => '2;3;4;5;6', 'status' => 'ACTIVE'],

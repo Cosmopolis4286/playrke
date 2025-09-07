@@ -134,7 +134,7 @@ trait BingoTrait
                 $currentTimestamp = now();
 
                 // Preparar info de las rondas
-                $playType = $bingoRoundDraft->play_types[$round - 1];
+                $playType = $bingoRoundDraft->bingo_patterns[$round - 1];
                 $prizeType = $bingoRoundDraft->prize_types[$round - 1];
                 $prizeValue = $bingoRoundDraft->prize_values[$round - 1];
 
@@ -142,7 +142,7 @@ trait BingoTrait
                     'room' => $room,
                     'round' => $round,
                     'start_time' => $lastDrawTime,
-                    'play_type' => $playType,
+                    'bingo_pattern_id' => $playType,
                     'prize_type' => $prizeType,
                     'prize_value' => $prizeValue,
                     'status' => 'ACTIVE',
@@ -467,7 +467,7 @@ trait BingoTrait
 
             // Obtener cantidad de rondas y tipos de juego asociados a cada una
             $roundsCount = (int) BingoRoomConfig::getValueByRoom($roomId, 'rounds');
-            $roundPlayTypes = BingoRounds::where('room', $roomId)->pluck('play_type', 'round');
+            $roundPlayTypes = BingoRounds::where('room', $roomId)->pluck('bingo_pattern_id', 'round');
 
             $firstChipDraw = null;
 
@@ -1110,7 +1110,7 @@ trait BingoTrait
     {
         $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $data['room'], $data['currency']) ?? 1;
         $bingoRounds = BingoRounds::where('room', $data['room'])
-            ->get(['round', 'play_type', 'prize_value', 'start_time', 'last_chip'])
+            ->get(['round', 'bingo_pattern_id', 'prize_value', 'start_time', 'last_chip'])
             ->keyBy('round');
 
         $winnersByRound = [
@@ -1134,7 +1134,7 @@ trait BingoTrait
             } else if ($prizeCtn->prize_type === 'FLHE') {
                 $prizeType = 'CARTON LLENO';
             } else {
-                $prizeType = BingoPatterns::getValueById($bingoRounds[$round]->play_type, 'name');
+                $prizeType = BingoPatterns::getValueById($bingoRounds[$round]->bingo_pattern_id, 'name');
             }
 
             $serialCtn = BingoCtns::getValueById($ctnId, 'serial');
@@ -1183,7 +1183,7 @@ trait BingoTrait
 
     private function findWinners($roomId, $roundID, array $chipsDraw)
     {
-        $playType = BingoRounds::getValueById($roundID, 'play_type');
+        $playType = BingoRounds::getValueById($roundID, 'bingo_pattern_id');
 
         // Columnas del patrón
         $patternColumns = ($playType == 1)
@@ -1291,7 +1291,7 @@ trait BingoTrait
                     $roomId,
                     $roundNumber,
                     $ctnsJackpot,
-                    $roundItem->play_type,
+                    $roundItem->bingo_pattern_id,
                     $jackpotPrizePerCtn
                 );
 
@@ -1540,7 +1540,7 @@ trait BingoTrait
         $carton = $ctn->only($boxes);
 
         if ($prizeType === 'SONG') {
-            $bingoPattern = BingoRounds::getValueByRoom($roomId, $round, 'play_type');
+            $bingoPattern = BingoRounds::getValueByRoom($roomId, $round, 'bingo_pattern_id');
             $checkBoxes = BingoPatterns::getColumnsBoxesById($bingoPattern);
 
             // Verificar las checkBoxes con respeto al sorteo (draw) de la ronda 

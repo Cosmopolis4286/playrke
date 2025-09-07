@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bingo_room_play_types', function (Blueprint $table) {
+        Schema::create('bingo_room_bingo_patterns', function (Blueprint $table) {
             $table->id();
 
             $table->foreignSnowflake('bingo_room_config_id')
@@ -19,15 +19,15 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Configuración de sala asociada');
 
-            $table->foreignSnowflake('play_type_id')
+            $table->foreignSnowflake('bingo_pattern_id')
                 ->constrained('bingo_patterns')
                 ->cascadeOnDelete()
-                ->comment('Tipo de jugada permitida');
+                ->comment('Patrón de bingo permitido');
 
             $table->timestamps();
 
             // Evita duplicados de tipo de juego por configuración de sala
-            $table->unique(['bingo_room_config_id', 'play_type_id'], 'bingo_room_config_play_type_unique');
+            $table->unique(['bingo_room_config_id', 'bingo_pattern_id'], 'bingo_room_config_pattern_unique');
         });
     }
 
@@ -36,6 +36,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bingo_room_play_types'); 
+        Schema::dropIfExists('bingo_room_bingo_patterns'); 
     }
 };

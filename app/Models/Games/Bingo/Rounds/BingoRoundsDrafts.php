@@ -16,15 +16,15 @@ class BingoRoundsDrafts extends Model
         'automatic_bingo_room_id',
         'rounds',
         'prize_types',
-        'play_types',
+        'bingo_patterns',
         'prize_values',
         'status',
     ];
 
     protected $casts = [
-        'prize_types'  => 'array',
-        'play_types'   => 'array',
-        'prize_values' => 'array',
+        'prize_types'    => 'array',
+        'bingo_patterns' => 'array',
+        'prize_values'   => 'array',
     ];
 
     public static function getById(int $id, array $fields = ['*']): ?self

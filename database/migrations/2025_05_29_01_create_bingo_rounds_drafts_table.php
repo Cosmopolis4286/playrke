@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignSnowflake('automatic_bingo_room_id')->unique()->nullable()->constrained('automatic_bingo_rooms');
             $table->string('rounds', 2);
             $table->json('prize_types');
-            $table->json('play_types');
+            $table->json('bingo_patterns');
             $table->json('prize_values');
             $table->enum('status', ['ACTIVE', 'EXECUTED'])->default('ACTIVE');
             $table->timestamps();

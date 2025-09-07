@@ -19,8 +19,8 @@ return new class extends Migration
             $table->timestamp('start_time')->nullable()->comment('Inicio de la ronda');
             $table->char('last_chip', 2)->nullable()->comment('Última ficha jugada');
 
-            $table->enum('prize_type', ['percentage', 'USD', 'OTHER'])->comment('Tipo de premio');
-            $table->foreignSnowflake('play_type_id')
+            $table->enum('prize_type', ['PCT', 'USD', 'OTHER'])->comment('Tipo de premio');
+            $table->foreignSnowflake('bingo_pattern_id')
                 ->constrained('bingo_patterns')
                 ->cascadeOnDelete();
 

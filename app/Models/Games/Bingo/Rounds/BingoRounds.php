@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BingoRounds extends Model
 {
     protected $table = 'bingo_rounds';
-    protected $fillable = ['room', 'round', 'start_time', 'last_chip', 'play_type', 'prize_type', 'prize_value', 'status'];
+    protected $fillable = ['room', 'round', 'start_time', 'last_chip', 'bingo_pattern_id', 'prize_type', 'prize_value', 'status'];
 
     public static function getById($id, $fields = ['*'])
     {

@@ -45,7 +45,7 @@ return new class extends Migration
             $table->string('num_serials', 2)->nullable();
             $table->decimal('jackpot_pct', 5, 2)->nullable();
             $table->decimal('plays_pct', 5, 2)->nullable();
-            $table->json('play_types')->nullable();
+            $table->json('bingo_patterns')->nullable();
 
             $table->foreignSnowflake('creator_user_id')->constrained('users')->onDelete('cascade');
 

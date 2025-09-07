@@ -218,8 +218,8 @@
                     $('.content-rounds-pct').show();
                 }
 
-                if (config.play_types) {
-                    selectedBingoPlays = stringToArray(config.play_types);
+                if (config.bingo_patterns) {
+                    selectedBingoPlays = stringToArray(config.bingo_patterns);
                     $('#plays-pct').val(config.plays_pct);
                 }
             }

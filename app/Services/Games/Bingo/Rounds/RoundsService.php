@@ -28,7 +28,7 @@ class RoundsService
             'room'         => $roomId,
             'rounds'       => $draft->rounds,
             'prize_types'  => $draft->prize_types,
-            'play_types'   => $draft->play_types,
+            'bingo_patterns'   => $draft->bingo_patterns,
             'prize_values' => $draft->prize_values,
             'status'       => RoundStatus::ACTIVE->value, // ✅ Guardamos el valor del enum
         ]);

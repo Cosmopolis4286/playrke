@@ -729,14 +729,14 @@ class BingoController extends Controller
 
         if (!in_array($room->status, [2, 3, 4])) return ['error' => 'Sala no disponible'];
 
-        $bingoRound = BingoRounds::getRoundInProgress($roomId, ['round', 'start_time', 'play_type']);
+        $bingoRound = BingoRounds::getRoundInProgress($roomId, ['round', 'start_time', 'bingo_pattern_id']);
 
         if ($bingoRound) {
             $round = $bingoRound->round;
             $starTime = $bingoRound->start_time;
             $bingoPattern = 'CARTON LLENO';
-            if ($bingoRound->play_type > 1) {
-                $bingoPattern = BingoPatterns::getValueById($bingoRound->play_type, 'name');
+            if ($bingoRound->bingo_pattern_id > 1) {
+                $bingoPattern = BingoPatterns::getValueById($bingoRound->bingo_pattern_id, 'name');
             }
         } else {
             $round = 1;
@@ -1397,7 +1397,7 @@ class BingoController extends Controller
                 'num_serials' => $request->num_serials,
                 'jackpot_pct' => $request->jackpot_pct,
                 'plays_pct' => null,
-                'play_types' => null
+                'bingo_patterns' => null
             ];
             BingoRoomConfig::create($dataConfig);
 
@@ -1418,7 +1418,7 @@ class BingoController extends Controller
                 'M',
                 'CREATE',
                 $request->rounds_prize_type ?? [],
-                $request->rounds_play_type ?? [],
+                $request->rounds_bingo_patterns ?? [],
                 $request->rounds_prize_value ?? [],
                 $roomId
             );
@@ -1450,7 +1450,7 @@ class BingoController extends Controller
                 $columnRoom => $roomId,
                 'rounds' => $numRounds,
                 'prize_types' => ($numRounds === 1) ? array_fill(0, 1, 'percentage') : $roundsPrizeType,
-                'play_types' => ($numRounds === 1) ? array_fill(0, 1, '1') : $roundsPlayType,
+                'bingo_patterns' => ($numRounds === 1) ? array_fill(0, 1, '1') : $roundsPlayType,
                 'prize_values' => ($numRounds === 1) ? array_fill(0, 1, '100') : $roundsPrizeValue,
                 'status' => 'ACTIVE',
                 'created_at' => $timestamp,
@@ -1470,7 +1470,7 @@ class BingoController extends Controller
                     $existing->update([
                         'rounds' => $numRounds,
                         'prize_types' => $data['prize_types'],
-                        'play_types' => $data['play_types'],
+                        'bingo_patterns' => $data['bingo_patterns'],
                         'prize_values' => $data['prize_values'],
                         'updated_at' => $timestamp,
                     ]);
@@ -1643,7 +1643,7 @@ class BingoController extends Controller
             'num_serials' => $request->num_serials,
             'jackpot_pct' => $request->jackpot_pct,
             'plays_pct' => null,
-            'play_types' => null
+            'bingo_patterns' => null
         ];
 
         // Solo añadir 'game_mode' si el prize_pool es 0
@@ -1668,7 +1668,7 @@ class BingoController extends Controller
             ]);
 
             $roundsPrizeType = $request->rounds_prize_type ?? [];
-            $roundsPlayType = $request->rounds_play_type ?? [];
+            $roundsPlayType = $request->rounds_bingo_patterns ?? [];
             $roundsPrizeValue = $request->rounds_prize_value ?? [];
 
             $this->handleRoundsDrafts('M', 'UPDATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $roomId);
@@ -1692,7 +1692,7 @@ class BingoController extends Controller
         $query = BingoRoundsDrafts::select(
             'rounds',
             'prize_types',
-            'play_types',
+            'bingo_patterns',
             'prize_values'
         );
 
@@ -2044,7 +2044,7 @@ class BingoController extends Controller
             'num_serials',
             'jackpot_pct',
             'plays_pct',
-            'play_types'
+            'bingo_patterns'
         )->where('room', $roomId)->firstOrFail();
 
         $bingoCreator = true;
@@ -2335,7 +2335,7 @@ class BingoController extends Controller
                 'num_serials' => $existingRoomConfig->num_serials,
                 'jackpot_pct' => $existingRoomConfig->jackpot_pct,
                 'plays_pct' => $existingRoomConfig->plays_pct,
-                'play_types' => $existingRoomConfig->play_types
+                'bingo_patterns' => $existingRoomConfig->bingo_patterns
             ]);
 
             // Registar el creador de la sala
@@ -2350,7 +2350,7 @@ class BingoController extends Controller
             ]);
 
             $roundsPrizeType = $existingRoomRounds->prize_type;
-            $roundsPlayType = $existingRoomRounds->play_type;
+            $roundsPlayType = $existingRoomRounds->bingo_patterns;
             $roundsPrizeValue = $existingRoomRounds->prize_value;
 
             $this->handleRoundsDrafts('M', 'CREATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $roomId);
@@ -2799,7 +2799,7 @@ class BingoController extends Controller
                 'room_commn' => $data->room_commn,
                 'jackpot_pct' => $data->serials_commission,
                 'plays_pct' => null,
-                'play_types' => null,
+                'bingo_patterns' => null,
                 'serials_pct' => $data->serials_pct,
                 'num_serials' => $data->num_serials,
                 'creator_type' => Role::getValueByPrefix($creator->type, 'id'),
@@ -2808,7 +2808,7 @@ class BingoController extends Controller
             ])->id;
 
             $roundsPrizeType = $data->rounds_prize_type ?? [];
-            $roundsPlayType = $request->rounds_play_type ?? [];
+            $roundsPlayType = $request->rounds_bingo_patterns ?? [];
             $roundsPrizeValue = $data->rounds_prize_value ?? [];
 
             $this->handleRoundsDrafts('A', 'CREATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $automaticBingoId);
@@ -2862,7 +2862,7 @@ class BingoController extends Controller
             ]);
 
             $roundsPrizeType = $request->rounds_prize_type ?? [];
-            $roundsPlayType = $request->rounds_play_type ?? [];
+            $roundsPlayType = $request->rounds_bingo_patterns ?? [];
             $roundsPrizeValue = $request->rounds_prize_value ?? [];
 
             $this->handleRoundsDrafts('A', 'UPDATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $automaticBingoId);

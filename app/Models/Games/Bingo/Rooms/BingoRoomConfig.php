@@ -31,10 +31,13 @@ class BingoRoomConfig extends Model
     'num_serials',
     'jackpot_pct',
     'plays_pct',
-    'play_types'
+    'bingo_patterns'
   ];
 
-  protected $casts = ['allowed_currencies' => 'array'];
+  protected $casts = [
+    'allowed_currencies' => 'array',
+    'bingo_patterns' => 'array'
+  ];
 
   public function Room()
   {
