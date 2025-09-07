@@ -7,42 +7,78 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Ejecutar la migración: crear tabla 'external_players'.
      */
     public function up(): void
     {
         Schema::create('external_players', function (Blueprint $table) {
-            $table->id();
-            $table->string('link', 25)->unique(); // Link único del jugador externo
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del jugador externo');
 
-            // Relaciones
-            $table->foreignId('game_id')->constrained('games')->cascadeOnDelete();
-            $table->integer('room');
-            $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('country_id')->constrained('countries');
-            $table->foreignId('coin_id')->constrained('coins');
-            $table->foreignId('seller_id')->nullable()->constrained('sellers');
-            $table->foreignId('purchase_code_id')->constrained('user_purchase_codes');
+            // Link único
+            $table->string('link', 25)->unique()->comment('Link único del jugador externo');
 
-            // Datos del jugador externo
-            $table->integer('room_user');
-            $table->string('first_name', 50);
-            $table->string('last_name', 50);
-            $table->string('identification', 20)->nullable();
-            $table->string('phone', 14);
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE')
-                ->comment('Estado activo/inactivo');
+            // Relaciones principales
+            $table->foreignSnowflake('game_id')
+                ->constrained('games')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Juego asociado');
 
+            $table->unsignedBigInteger('room')->comment('ID de la sala');
+
+            $table->foreignSnowflake('creator_user_id')
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Usuario creador');
+
+            $table->foreignSnowflake('country_id')
+                ->constrained('countries')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete()
+                ->comment('País del jugador');
+
+            $table->foreignSnowflake('coin_id')
+                ->constrained('coins')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete()
+                ->comment('Moneda utilizada');
+
+            $table->foreignSnowflake('seller_id')
+                ->nullable()
+                ->constrained('sellers')
+                ->cascadeOnUpdate()
+                ->nullOnDelete()
+                ->comment('Vendedor asociado');
+
+            $table->foreignSnowflake('purchase_code_id')
+                ->constrained('user_purchase_codes')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete()
+                ->comment('Código de compra asociado');
+
+            // Datos del jugador
+            $table->unsignedBigInteger('room_user')->comment('Número de usuario dentro de la sala');
+            $table->string('first_name', 50)->comment('Nombre del jugador');
+            $table->string('last_name', 50)->comment('Apellido del jugador');
+            $table->string('identification', 20)->nullable()->comment('Documento de identificación');
+            $table->string('phone', 14)->comment('Teléfono del jugador');
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE')
+                ->comment('Estado del jugador');
+
+            // Timestamps
             $table->timestamps();
 
-            // Índices para optimizar consultas frecuentes
-            $table->index(['game_id', 'room', 'creator_user_id']);
-            $table->index(['country_id', 'coin_id']);
+            // Índices compuestos para consultas frecuentes
+            $table->index(['game_id', 'room', 'creator_user_id'], 'idx_game_room_creator');
+            $table->index(['country_id', 'coin_id'], 'idx_country_coin');
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Revertir la migración: eliminar tabla 'external_players'.
      */
     public function down(): void
     {

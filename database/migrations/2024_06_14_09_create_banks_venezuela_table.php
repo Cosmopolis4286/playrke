@@ -7,23 +7,32 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Ejecutar la migración: crear tabla 'banks_venezuela'.
      */
     public function up(): void
     {
         Schema::create('banks_venezuela', function (Blueprint $table) {
-            $table->id();
-            $table->string('name', 50)->comment('Nombre del banco');
-            $table->string('code', 4)->unique()->comment('Código del banco');
+            // ID Snowflake para consistencia y seguridad
+            $table->snowflake('id')->primary()->comment('ID único del banco');
+
+            // Nombre del banco
+            $table->string('name', 50)
+                ->comment('Nombre del banco');
+
+            // Código único del banco
+            $table->string('code', 4)
+                ->unique()
+                ->comment('Código único del banco');
+
             $table->timestamps();
 
-            // Índices
-            $table->index('name');
+            // Índices para búsquedas rápidas
+            $table->index('name', 'idx_banks_name');
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Revertir la migración: eliminar tabla 'banks_venezuela'.
      */
     public function down(): void
     {

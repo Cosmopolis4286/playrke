@@ -149,7 +149,7 @@ class SellerController extends Controller
                 'coin' => $request->coin,
                 'country' => $request->country,
                 'commerce_id' => Commerce::getValueByUserId(Auth::id(), 'id'),
-                'commn' => $request->commission,
+                'commission' => $request->commission,
                 'status' => 1,
                 'user' => $newUser,
             ]);
@@ -228,7 +228,7 @@ class SellerController extends Controller
         }
 
         // Obtener datos del vendedor
-        $seller = Seller::getById($id, ['name', 'commerce_id', 'commn', 'country', 'phone']);
+        $seller = Seller::getById($id, ['name', 'commerce_id', 'commission', 'country', 'phone']);
 
         // Obtener monedas adicionales disponibles para el vendedor
         $otherCoins = SellerCountriesCoins::getAvailableCoins($id);
@@ -288,7 +288,7 @@ class SellerController extends Controller
                     'country' => $request->country,
                     'coin' => $request->coin,
                     'phone' => $phoneNumber,
-                    'commn' => $request->commission
+                    'commission' => $request->commission
                 ]);
 
                 if ($coinChange) {
@@ -364,7 +364,7 @@ class SellerController extends Controller
     {
         $documentType = DocumentType::where('country', 234)->get();
 
-        $seller = $this->seller(['commerce_id', 'country', 'commn', 'status']);
+        $seller = $this->seller(['commerce_id', 'country', 'commission', 'status']);
 
         $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
@@ -400,7 +400,7 @@ class SellerController extends Controller
             'title' => 'Generar Cartón',
             'documentType' => $documentType,
             'status' => $seller->status,
-            'commn' => $seller->commn,
+            'commission' => $seller->commn,
             'country' => $seller->country,
             'rooms' => $rooms
         ]);

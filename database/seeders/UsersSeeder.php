@@ -7,36 +7,101 @@ use App\Models\Wallets\Wallet;
 use App\Repositories\Coins\CoinRepository;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UsersSeeder extends Seeder
 {
+    /**
+     * Ejecutar el seeder para crear usuarios del sistema
+     *
+     * @return void
+     */
     public function run(): void
     {
-        // Crear el usuario Admin
-        $user = User::create([
-            'username' => 'admin',
-            'first_name' => 'Play',
-            'last_name' => 'RKE',
-            'country' => 3,
-            'time_zone' => null,
-            'photo' => null,
-            'phone' => null,
-            'email' => 'admin@playrke.com',
-            'email_verified_at' => now(),
-            'password' => Hash::make('EHC-4286-RKE'),
-            'remember_token' => null,
-            'referral_code' => 'ABC123XYZ456',
-            'referred_by' => null,
-            'status' => 1,
-        ]);
+        try {
+            // Obtener país Venezuela de forma dinámica
+            $venezuelaCountry = \App\Models\Countries\Country::where('iso_code_2', 'VE')->first();
+            
+            if (!$venezuelaCountry) {
+                $this->command->warn('País Venezuela no encontrado. Ejecute CountriesSeeder primero.');
+                return;
+            }
 
-        // Asignar rol Admin usando Spatie
-        $user->assignRole('admin'); // Puedes usar el nombre del rol o la instancia Role
+            // Verificar si el usuario admin ya existe
+            $existingAdmin = User::where('email', 'admin@playrke.com')->first();
+            
+            if ($existingAdmin) {
+                $this->command->info('Usuario admin ya existe con ID: ' . $existingAdmin->id);
+                return;
+            }
 
-        // Obtener $coinId
-        $coinId = CoinRepository::getValueByISOCode('VES', 'id');
+            // Crear el usuario Admin con validación mejorada
+            $adminData = [
+                'username' => 'admin',
+                'first_name' => 'Play',
+                'last_name' => 'RKE',
+                'country_id' => $venezuelaCountry->id,
+                'time_zone_id' => null,
+                'photo' => null,
+                'phone_number' => null,
+                'email' => 'admin@playrke.com',
+                'email_verified_at' => now(),
+                'password' => Hash::make('EHC-4286-RKE'),
+                'remember_token' => Str::random(10),
+                'referral_code' => $this->generateUniqueReferralCode(),
+                'referred_by' => null,
+                'status' => 'ACTIVE',
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
 
-        // Crear monedero asociado
-        Wallet::create(['coin' => $coinId, 'user_id' => $user->id]);
+            $user = User::create($adminData);
+
+            // Asignar rol Admin usando Spatie con verificación
+            try {
+                $user->assignRole('admin');
+                $this->command->info('Rol admin asignado correctamente');
+            } catch (\Exception $e) {
+                $this->command->warn('No se pudo asignar el rol admin: ' . $e->getMessage());
+            }
+
+            // Crear monedero asociado con validación
+            $currency = \App\Models\Coins\Coin::where('iso_code', 'VES')->first();
+            
+            if ($currency) {
+                Wallet::create([
+                    'currency_id' => $currency->id,
+                    'user_id' => $user->id,
+                    'balance' => 0.00,
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                
+                $this->command->info('Monedero VES creado para el usuario admin');
+            } else {
+                $this->command->warn('Moneda VES no encontrada. Ejecute CoinsSeeder primero.');
+            }
+
+            $this->command->info("Usuario Admin creado exitosamente con ID: {$user->id}");
+
+        } catch (\Exception $e) {
+            $this->command->error("Error en UsersSeeder: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Generar código de referido único
+     *
+     * @return string
+     */
+    private function generateUniqueReferralCode(): string
+    {
+        do {
+            $code = strtoupper(Str::random(12));
+        } while (User::where('referral_code', $code)->exists());
+
+        return $code;
     }
 }

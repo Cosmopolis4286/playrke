@@ -12,11 +12,24 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('games', function (Blueprint $table) {
-            $table->id()->comment('ID del juego');
-            $table->string('name', 50)->comment('Nombre del juego');
-            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE')
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del juego');
+
+            // Nombre legible y descriptivo
+            $table->string('name', 50)
+                ->unique()
+                ->comment('Nombre del juego');
+
+            // Estado del juego
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'MAINTENANCE'])
+                ->default('ACTIVE')
                 ->comment('Estado activo/inactivo');
+
+            // Timestamps automáticos
             $table->timestamps();
+
+            // Índice por estado para consultas rápidas
+            $table->index(['status', 'name']);
         });
     }
 

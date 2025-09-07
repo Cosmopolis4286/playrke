@@ -24,8 +24,7 @@ return new class extends Migration
             $table->string('phone_number', 20)
                 ->comment('Número de teléfono incluyendo código país');
 
-            $table->boolean('is_active')
-                ->default(true)
+            $table->boolean('is_active')->default(true)
                 ->comment('true = activo, false = inactivo');
 
             $table->timestamps();

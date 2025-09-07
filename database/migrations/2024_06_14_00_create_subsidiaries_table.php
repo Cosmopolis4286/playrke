@@ -12,22 +12,54 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('subsidiaries', function (Blueprint $table) {
-            $table->id();
-            $table->string('name', 30);
-            $table->foreignId('country_id')->constrained('countries')->cascadeOnUpdate();
-            $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate();
-            $table->string('phone', 14)->nullable();
-            $table->double('commn', 8, 2)->default(0); // mejor precisión
-            $table->foreignId('commerce_id')->nullable()->constrained('commerces')->cascadeOnUpdate()->nullOnDelete();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('brand', 20)->nullable();
-            $table->string('product', 30)->nullable();
-            $table->string('link_route', 255)->nullable();
-            $table->string('token', 255);
-            $table->string('security_key', 255);
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE')
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único de la sucursal');
+
+            // Datos de la sucursal
+            $table->string('name', 30)->comment('Nombre de la sucursal');
+            $table->string('brand', 20)->nullable()->comment('Marca asociada');
+            $table->string('product', 30)->nullable()->comment('Producto principal');
+            $table->string('link_route', 255)->nullable()->comment('Ruta de enlace o URL');
+            $table->string('token', 255)->comment('Token de autenticación');
+            $table->string('security_key', 255)->comment('Llave de seguridad');
+
+            // Comisiones y teléfono
+            $table->double('commission', 8, 2)->default(0)->comment('Comisión (%) por defecto');
+            $table->string('phone', 14)->nullable()->comment('Teléfono de contacto');
+
+            // Relaciones Snowflake
+            $table->foreignSnowflake('commerce_id')
+                ->nullable()
+                ->constrained('commerces')
+                ->cascadeOnUpdate()
+                ->nullOnDelete()
+                ->comment('Comercio asociado (opcional)');
+
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete()
+                ->comment('Usuario creador');
+
+            $table->foreignSnowflake('country_id')
+                ->constrained('countries')
+                ->cascadeOnUpdate()
+                ->comment('País de la sucursal');
+
+            $table->foreignSnowflake('coin_id')
+                ->constrained('coins')
+                ->cascadeOnUpdate()
+                ->comment('Moneda utilizada');
+
+            // Estado de la sucursal
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE')
                 ->comment('Estado activo/inactivo');
+
+            // Timestamps automáticos
             $table->timestamps();
+
+            // Índices compuestos para consultas frecuentes
+            $table->index(['status', 'commerce_id', 'country_id']);
         });
     }
 

@@ -1449,7 +1449,7 @@ class BingoController extends Controller
             $data = [
                 $columnRoom => $roomId,
                 'rounds' => $numRounds,
-                'prize_types' => ($numRounds === 1) ? array_fill(0, 1, 'PCT') : $roundsPrizeType,
+                'prize_types' => ($numRounds === 1) ? array_fill(0, 1, 'percentage') : $roundsPrizeType,
                 'play_types' => ($numRounds === 1) ? array_fill(0, 1, '1') : $roundsPlayType,
                 'prize_values' => ($numRounds === 1) ? array_fill(0, 1, '100') : $roundsPrizeValue,
                 'status' => 'ACTIVE',

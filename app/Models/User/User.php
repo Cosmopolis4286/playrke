@@ -12,27 +12,23 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Dive\Snowflake\HasSnowflake;
 
 /**
- * Modelo User
+ * Modelo User con Snowflake IDs
  *
- * Representa a un usuario dentro del sistema, con soporte para relaciones
- * hacia otros modelos como Commerce, Seller, Roles, etc., y empresas (multiempresa).
- *
- * @property int         $id
+ * @property string      $id
  * @property string      $username
- * @property string      $first_name
- * @property string      $last_name
- * @property string      $password
- * @property string|null $photo
+ * @property string|null $first_name
+ * @property string|null $last_name
  * @property string      $email
  * @property string|null $phone
- * @property string      $country
- * @property string      $time_zone
+ * @property string|null $photo
  * @property string|null $referral_code
- * @property int|null    $referred_by
+ * @property string|null $referred_by
  * @property \DateTime|null $email_verified_at
- * @property-read string  $full_name
+ * @property string      $status
+ * @property-read string $full_name
  *
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Role[] $roles
  * @property-read \App\Models\User|null $referredBy
@@ -44,10 +40,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable, HasRoles;
+    use Notifiable, HasRoles, HasSnowflake;
 
-    protected $table = "users";
+    protected $table = 'users';
     protected $primaryKey = 'id';
+
+    // Snowflake IDs no incrementales
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'username',
@@ -65,69 +65,43 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     protected $hidden = ['password', 'remember_token'];
-
     protected $casts = ['email_verified_at' => 'datetime'];
-
     protected $appends = ['full_name'];
 
     /* ========================
      | Relaciones
      |======================== */
 
-    /**
-     * Roles del usuario (múltiples).
-     *
-     * @return BelongsToMany
-     */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'role_user')
-            ->withTimestamps();
+        return $this->belongsToMany(Role::class, 'role_user')->withTimestamps();
     }
 
-    /**
-     * Usuario que lo refirió.
-     */
     public function referredBy()
     {
         return $this->belongsTo(User::class, 'referred_by');
     }
 
-    /**
-     * Usuarios referidos por este usuario.
-     */
     public function referrals()
     {
         return $this->hasMany(User::class, 'referred_by');
     }
 
-    /**
-     * Relación con el país.
-     */
     public function country()
     {
         return $this->belongsTo(Country::class, 'country');
     }
 
-    /**
-     * Relación con el comercio asociado.
-     */
     public function commerce()
     {
         return $this->hasOne(Commerce::class, 'user_id');
     }
 
-    /**
-     * Relación con el vendedor asociado.
-     */
     public function seller()
     {
         return $this->hasOne(Seller::class, 'user_id');
     }
 
-    /**
-     * Empresas a las que pertenece el usuario.
-     */
     public function companies()
     {
         return $this->belongsToMany(Company::class)
@@ -136,30 +110,31 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /* ========================
-     | Accessors
+     | Accessors & Helpers
      |======================== */
 
-    /**
-     * Nombre completo del usuario.
-     */
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
     }
 
     /**
-     * Obtener las entidades asociadas según los roles (commerce, seller, etc.).
+     * Devuelve las entidades relacionadas según los roles asignados
+     *
+     * @return array<string, mixed>
      */
     public function entities(): array
     {
         $entities = [];
+
         foreach ($this->roles as $role) {
             $entities[$role->prefix] = match ($role->prefix) {
                 'commerce_id' => $this->commerce,
-                'seller'   => $this->seller,
-                default    => null,
+                'seller'      => $this->seller,
+                default       => null,
             };
         }
+
         return $entities;
     }
 }

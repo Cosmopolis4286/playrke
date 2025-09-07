@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Games\Shared\Games;
 use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
 use Illuminate\Database\Seeder;
 
@@ -14,10 +15,20 @@ class GamePrizePoolTypeSeeder extends Seeder
      */
     public function run(): void
     {
+        // Obtener el ID del juego 'BINGO'
+        $gameId = Games::where('name', 'BINGO')->value('id');
+
+        if (!$gameId) {
+            // Evitar error si no existe el juego
+            $this->command->warn("Juego 'BINGO' no encontrado. Seeder GamePrizePool omitido.");
+            return;
+        }
+
+        // Entradas a insertar o actualizar
         $entries = [
-            ['game' => 1, 'game_mode' => 2, 'prize_pool_type' => 1, 'status' => 1],
-            ['game' => 1, 'game_mode' => 2, 'prize_pool_type' => 2, 'status' => 1],
-            ['game' => 1, 'game_mode' => 2, 'prize_pool_type' => 3, 'status' => 1],
+            ['game' => $gameId, 'game_mode' => 2, 'prize_pool_type' => 1, 'status' => 'ACTIVE'],
+            ['game' => $gameId, 'game_mode' => 2, 'prize_pool_type' => 2, 'status' => 'ACTIVE'],
+            ['game' => $gameId, 'game_mode' => 2, 'prize_pool_type' => 3, 'status' => 'ACTIVE'],
         ];
 
         // Inserta o actualiza los registros para evitar duplicados

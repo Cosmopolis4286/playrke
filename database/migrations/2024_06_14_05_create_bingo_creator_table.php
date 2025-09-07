@@ -6,28 +6,55 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Ejecutar la migración: crear tabla 'bingo_creators'.
+     */
     public function up(): void
     {
         Schema::create('bingo_creators', function (Blueprint $table) {
-            $table->id();
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del registro de creador');
 
             // Relaciones
-            $table->foreignId('room_id')->constrained('bingo_rooms')->cascadeOnDelete();
-            $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignSnowflake('room_id')
+                ->constrained('bingo_rooms')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Sala asociada');
 
-            // Datos del creador
-            $table->decimal('creator_commn', 10, 2)->default(0); // Comisión del creador
-            $table->decimal('ctn_price', 15, 2);                 // Precio del cartón
+            $table->foreignSnowflake('creator_user_id')
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Usuario creador');
 
-            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
+            // Datos financieros
+            $table->decimal('creator_commission', 10, 2)
+                ->default(0)
+                ->comment('Comisión del creador en la sala');
 
+            $table->decimal('card_price', 15, 2)
+                ->comment('Precio de cada cartón para esta sala');
+
+            // Estado
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])
+                ->default('ACTIVE')
+                ->comment('Estado del registro del creador');
+
+            // Timestamps automáticos
             $table->timestamps();
 
-            // Evitar duplicados de creador por sala
+            // Evitar duplicados: un creador por sala
             $table->unique(['room_id', 'creator_user_id'], 'unique_creator_per_room');
+
+            // Índices compuestos opcionales para consultas rápidas
+            $table->index(['room_id', 'status'], 'idx_room_status');
         });
     }
 
+    /**
+     * Revertir la migración: eliminar tabla 'bingo_creators'.
+     */
     public function down(): void
     {
         Schema::dropIfExists('bingo_creators');

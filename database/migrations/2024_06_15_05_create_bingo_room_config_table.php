@@ -12,49 +12,65 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bingo_rooms_config', function (Blueprint $table) {
-            $table->id();
+            $table->id()->comment('ID de la configuración de la sala');
 
+            // Sala asociada
             $table->foreignId('room_id')
                 ->constrained('bingo_rooms')
                 ->restrictOnDelete()
-                ->cascadeOnUpdate();
+                ->cascadeOnUpdate()
+                ->comment('Sala a la que pertenece la configuración');
 
-            $table->enum('creation', ['M', 'A'])->default('M');
+            $table->enum('creation', ['M', 'A'])->default('M')
+                ->comment('Modo de creación: M = manual, A = automático');
 
+            // Creador
             $table->foreignId('creator_user_id')
                 ->constrained('users')
-                ->cascadeOnDelete();
+                ->cascadeOnDelete()
+                ->comment('Usuario que creó la sala');
 
+            // Modo de juego
             $table->foreignId('game_mode_id')
                 ->constrained('game_modes')
                 ->restrictOnDelete()
-                ->cascadeOnUpdate();
+                ->cascadeOnUpdate()
+                ->comment('Modo de juego asignado a la sala');
 
-            $table->enum('in_live', ['Y', 'N'])->default('N');
-            $table->date('date');
-            $table->string('time', 10);
-            $table->integer('unix_date');
+            // Estado de transmisión
+            $table->enum('in_live', ['Y', 'N'])->default('N')
+                ->comment('Indica si la sala está en vivo');
 
-            $table->decimal('ctn_price', 12, 2);
-            $table->decimal('rke_commn', 8, 2)->nullable();
-            $table->decimal('room_commn', 8, 2)->nullable();
+            $table->date('date')->comment('Fecha del juego');
+            $table->string('time', 10)->comment('Hora del juego');
+            $table->integer('unix_date')->comment('Fecha en formato timestamp UNIX');
 
+            // Comisiones y precios
+            $table->decimal('ctn_price', 12, 2)->comment('Precio del cartón');
+            $table->decimal('rke_commn', 8, 2)->nullable()->comment('Comisión del RKE');
+            $table->decimal('room_commn', 8, 2)->nullable()->comment('Comisión de la sala');
+
+            // Tipo de premio
             $table->foreignId('prize_pool_type_id')
                 ->constrained('prize_pool_types')
                 ->default(1)
                 ->restrictOnDelete()
-                ->cascadeOnUpdate();
+                ->cascadeOnUpdate()
+                ->comment('Tipo de pool de premio');
 
-            $table->decimal('amount_added_prize_pool', 12, 2)->nullable();
-            $table->string('time_chip', 2)->nullable();
-            $table->string('rounds',2)->default('1');
-            $table->decimal('rounds_pct', 5, 2)->nullable();
-            $table->decimal('serials_pct', 5, 2)->nullable();
-            $table->tinyInteger('num_serials')->nullable();
-            $table->decimal('jackpot_pct', 5, 2)->nullable();
-            $table->decimal('plays_pct', 5, 2)->nullable();
+            $table->decimal('amount_added_prize_pool', 12, 2)->nullable()
+                ->comment('Monto adicional agregado al pool de premios');
 
-            $table->timestamps();
+            // Configuración de tiempo y rondas
+            $table->string('time_chip', 2)->nullable()->comment('Duración del chip');
+            $table->string('rounds', 2)->default('1')->comment('Número de rondas');
+            $table->decimal('rounds_pct', 5, 2)->nullable()->comment('Porcentaje aplicado a las rondas');
+            $table->decimal('serials_pct', 5, 2)->nullable()->comment('Porcentaje aplicado a seriales');
+            $table->tinyInteger('num_serials')->nullable()->comment('Número de seriales disponibles');
+            $table->decimal('jackpot_pct', 5, 2)->nullable()->comment('Porcentaje destinado al jackpot');
+            $table->decimal('plays_pct', 5, 2)->nullable()->comment('Porcentaje destinado a las jugadas');
+
+            $table->timestamps(); // created_at y updated_at
         });
     }
 

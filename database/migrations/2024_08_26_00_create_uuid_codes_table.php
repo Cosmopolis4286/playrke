@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('unique_codes', function (Blueprint $table) {
             $table->id();
             $table->string('uuid_code', 36)->unique();
-            $table->string('rke_code',25)->unique();
+            $table->string('rke_code', 25)->unique();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade')->nullable();
-            $table->boolean('status')->default(1);
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

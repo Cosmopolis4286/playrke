@@ -13,9 +13,9 @@ class CountriesSeeder extends Seeder
     public function run(): void
     {
         $countries = [
-            ['name' => 'Brasil',    'iso_code_2' => 'BR', 'iso_code_3' => 'BRA', 'status' => 1],
-            ['name' => 'Colombia',  'iso_code_2' => 'CO', 'iso_code_3' => 'COL', 'status' => 1],
-            ['name' => 'Venezuela', 'iso_code_2' => 'VE', 'iso_code_3' => 'VEN', 'status' => 1],
+            ['name' => 'Brasil',    'iso_code_2' => 'BR', 'iso_code_3' => 'BRA', 'status' => true],
+            ['name' => 'Colombia',  'iso_code_2' => 'CO', 'iso_code_3' => 'COL', 'status' => true],
+            ['name' => 'Venezuela', 'iso_code_2' => 'VE', 'iso_code_3' => 'VEN', 'status' => true],
         ];
 
         Country::upsert(

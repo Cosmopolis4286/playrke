@@ -6,54 +6,78 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Ejecutar la migración: crear tabla 'bingo_ctns_payments'.
+     */
     public function up(): void
     {
         Schema::create('bingo_ctns_payments', function (Blueprint $table) {
-            $table->id();
+            $table->id()->comment('ID único del pago');
 
-            $table->enum('payment', ['PS', 'SC'])
+            // Tipo de pago
+            $table->enum('payment_method', ['PS', 'SC'])
                 ->comment('Método de pago: PS = Payment System, SC = Seller Cash');
 
-            $table->string('description', 50)->nullable();
+            $table->string('description', 100)->nullable()->comment('Descripción opcional del pago');
 
+            // Relaciones
             $table->foreignId('room_id')
                 ->constrained('bingo_rooms')
-                ->cascadeOnDelete();
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Sala asociada');
 
             $table->foreignId('creator_user_id')
                 ->constrained('users')
-                ->cascadeOnDelete();
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Usuario creador del pago');
 
             $table->foreignId('seller_id')
                 ->nullable()
                 ->constrained('sellers')
-                ->cascadeOnDelete();
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Vendedor asociado si aplica');
 
             $table->foreignId('user_id')
                 ->nullable()
                 ->constrained('users')
-                ->cascadeOnDelete();
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Usuario que realizó el pago');
 
             $table->foreignId('external_player_id')
                 ->constrained('external_players')
-                ->cascadeOnDelete();
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Jugador externo asociado');
 
             $table->foreignId('coin_id')
-                ->constrained('coins');
+                ->constrained('coins')
+                ->cascadeOnUpdate()
+                ->comment('Moneda utilizada');
 
             $table->foreignId('lot_id')
-                ->constrained('bingo_ctns_lots');
+                ->constrained('bingo_ctns_lot')
+                ->cascadeOnUpdate()
+                ->comment('Lote de cartones asociado');
 
-            $table->decimal('amount', 12, 2);
-            $table->string('payment_proof', 100);
+            // Datos del pago
+            $table->decimal('amount', 12, 2)->comment('Monto del pago');
+            $table->string('payment_proof', 255)->comment('Prueba o comprobante del pago');
 
             $table->timestamps();
 
-            // Índice compuesto para optimizar búsquedas
+            // Índices para búsquedas frecuentes
             $table->index(['room_id', 'seller_id'], 'idx_room_seller');
+            $table->index(['user_id', 'external_player_id'], 'idx_user_external');
         });
     }
 
+    /**
+     * Revertir la migración: eliminar tabla 'bingo_ctns_payments'.
+     */
     public function down(): void
     {
         Schema::dropIfExists('bingo_ctns_payments');

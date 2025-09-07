@@ -22,7 +22,7 @@ class Commerce extends Model
     'coin_id',
     'phone',
     'user_id',      // FK User
-    'commn',
+    'commission',
     'rke_code_id',
     'status'
   ];

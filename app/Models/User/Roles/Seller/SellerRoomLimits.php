@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class SellerRoomLimits extends Model
 {
     protected $table = "sellers_room_limits";
-    protected $fillable = ['game', 'room', 'seller', 'commn'];
+    protected $fillable = ['game', 'room', 'seller', 'commission'];
 
     public function Room()
     {

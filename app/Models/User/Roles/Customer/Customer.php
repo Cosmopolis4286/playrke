@@ -16,7 +16,7 @@ class Customer extends Model
     'user',
     'customer_id',
     'phone',
-    'commn',
+    'commission',
     'all_in',
     'brand',
     'product',

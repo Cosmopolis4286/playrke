@@ -15,10 +15,10 @@ return new class extends Migration
     {
         Schema::create('game_prize_pool_type', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('game');
+            $table->unsignedBigInteger('game_id');
             $table->unsignedBigInteger('game_mode_id');
             $table->unsignedBigInteger('prize_pool_type')->default(1);
-            $table->boolean('status')->default(1);
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
             $table->timestamps();
 
             $table->foreign('game_id')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');

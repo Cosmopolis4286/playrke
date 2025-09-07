@@ -7,25 +7,43 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Ejecutar la migración: crear tabla 'customers_users'.
      */
     public function up(): void
     {
         Schema::create('customers_users', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('customer_id')->constrained('customers')->cascadeOnUpdate()->cascadeOnDelete();
-            $table->string('user_id'); // Mantengo string, parece ser externo o UUID
-            $table->string('brand')->nullable();
-            $table->string('token', 255);
-            $table->string('country_code', 3)->nullable(); // Mejor nombre para claridad
-            $table->string('coin_id', 20);
-            $table->timestamp('last_activity');
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único de la relación cliente-usuario');
+
+            // Relaciones
+            $table->foreignSnowflake('customer_id')
+                ->constrained('customers')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Cliente asociado');
+
+            $table->string('user_id', 36)->comment('ID del usuario externo o UUID');
+
+            // Información adicional
+            $table->string('brand', 30)->nullable()->comment('Marca asociada a este usuario');
+            $table->string('token', 255)->comment('Token de autenticación del usuario');
+            $table->string('country_code', 3)->nullable()->comment('Código ISO del país del usuario');
+            $table->string('coin_id', 20)->comment('Código de moneda (ISO o interno)');
+
+            // Actividad
+            $table->timestamp('last_activity')->nullable()->comment('Última actividad del usuario');
+
+            // Timestamps automáticos
             $table->timestamps();
+
+            // Índices compuestos para búsquedas rápidas
+            $table->index(['customer_id', 'user_id'], 'idx_customer_user');
+            $table->index(['country_code', 'coin_id'], 'idx_country_coin');
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Revertir la migración: eliminar tabla 'customers_users'.
      */
     public function down(): void
     {

@@ -30,7 +30,7 @@ return new class extends Migration
                 ->index()
                 ->comment('Estado del tipo de cambio');
 
-            $table->decimal('pct', 6, 3)->default(0)->comment('Porcentaje aplicado');
+            $table->decimal('percentage', 6, 3)->default(0)->comment('Porcentaje aplicado');
 
             $table->timestamps();
 

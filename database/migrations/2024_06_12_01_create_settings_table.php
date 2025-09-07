@@ -7,22 +7,30 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Ejecutar la migración: crear tabla 'settings'.
      */
     public function up(): void
     {
         Schema::create('settings', function (Blueprint $table) {
-            $table->id();
-            $table->string('param', 50)->unique(); // Más claro y único para evitar duplicados
-            $table->string('value', 100)->nullable();
-            $table->boolean('is_active')->default(true)
-                ->comment('true = activo, false = inactivo');
-            $table->timestamps(); // created_at y updated_at
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del parámetro');
+
+            // Parámetro único y legible
+            $table->string('param', 50)->unique()->comment('Nombre del parámetro de configuración');
+            $table->string('value', 100)->nullable()->comment('Valor del parámetro');
+
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
+
+            // Timestamps automáticos
+            $table->timestamps();
+
+            // Índice opcional por estado para consultas rápidas
+            $table->index(['status', 'param']);
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Revertir la migración: eliminar tabla 'settings'.
      */
     public function down(): void
     {

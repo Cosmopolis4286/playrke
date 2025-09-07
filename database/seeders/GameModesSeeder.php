@@ -15,9 +15,10 @@ class GameModesSeeder extends Seeder
     public function run(): void
     {
         $gameModes = [
-            ['description' => 'Online', 'status' => 1],
-            ['description' => 'Offline', 'status' => 1],
-            ['description' => 'Mixto', 'status' => 1],
+            ['description' => 'Online', 'is_active' => true],
+            ['description' => 'Offline', 'is_active' => true],
+            ['description' => 'Mixto', 'is_active' => true],
+            ['description' => 'Demo', 'is_active' => true],
         ];
 
         // Inserta todos los registros de manera masiva

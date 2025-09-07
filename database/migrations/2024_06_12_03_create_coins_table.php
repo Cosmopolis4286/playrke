@@ -12,18 +12,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('coins', function (Blueprint $table) {
-            $table->id();
-            $table->string('iso_code', 4)->nullable()->unique()->comment('Código ISO de la moneda');
+            // Snowflake ID
+            $table->snowflake('id')->primary();
+
+            // Campos legibles y únicos
+            $table->string('iso_code', 4)->unique()->comment('Código ISO de la moneda');
             $table->string('symbol', 6)->comment('Símbolo de la moneda');
             $table->string('short_name', 10)->comment('Nombre corto de la moneda');
             $table->string('long_name', 15)->comment('Nombre largo de la moneda');
-            $table->foreignId('country')
-                ->nullable()
-                ->constrained('countries')
-                ->onDelete('restrict')
+
+            // Relación con país (opcional)
+            $table->foreignSnowflake('country')->nullable()->constrained('countries')->onDelete('restrict')
                 ->comment('Referencia al país de la moneda');
-            $table->boolean('is_active')->default(true)
-                ->comment('true = activo, false = inactivo');
+
+            // Estado activo/inactivo
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+
             $table->timestamps();
         });
     }

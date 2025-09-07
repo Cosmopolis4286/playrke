@@ -7,21 +7,31 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Ejecuta la migración: crea la tabla 'game_sounds'.
      */
     public function up(): void
     {
         Schema::create('game_sounds', function (Blueprint $table) {
-            $table->id();
-            $table->string('file', 35)->unique()->comment('Nombre del archivo de sonido');
-            $table->string('description', 50)->comment('Descripción del sonido');
-            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+            $table->id()->comment('ID del sonido del juego');
+
+            $table->string('file', 50)
+                ->unique()
+                ->comment('Nombre del archivo de sonido (ej. mp3, wav)');
+
+            $table->string('description', 100)
+                ->nullable()
+                ->comment('Descripción o uso del sonido');
+
+            $table->boolean('is_active')
+                ->default(true)
+                ->comment('true = activo, false = inactivo');
+
             $table->timestamps();
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Revierte la migración: elimina la tabla 'game_sounds'.
      */
     public function down(): void
     {

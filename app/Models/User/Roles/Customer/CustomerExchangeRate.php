@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class CustomerExchangeRate extends Model
 {
     protected $table = "customers_exchange_rates";
-    protected $fillable = ['customer', 'coin', 'exchange_rate', 'pct', 'status'];
+    protected $fillable = ['customer', 'coin', 'exchange_rate', 'percentage', 'status'];
 
     public function Customer()
     {
@@ -28,7 +28,7 @@ class CustomerExchangeRate extends Model
     public static function getAllExchangeRatesByCoin($customer, $coin)
     {
         return self::where('customer', $customer)->where('coin', $coin)
-            ->orderByDesc('id')->get(['coin', 'exchange_rate', 'pct']);
+            ->orderByDesc('id')->get(['coin', 'exchange_rate', 'percentage']);
     }
 
     public static function getByCustomerCoin($customer, $coin, $fields = ['*'])
@@ -98,7 +98,7 @@ class CustomerExchangeRate extends Model
                 'customer' => $customer,
                 'coin' => $coin,
                 'exchange_rate' => $amount,
-                'pct' => $pct,
+                'percentage' => $pct,
                 'status' => 'ACTIVE'
             ]);
         }

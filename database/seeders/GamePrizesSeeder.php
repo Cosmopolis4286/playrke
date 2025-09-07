@@ -25,9 +25,9 @@ class GamePrizesSeeder extends Seeder
         }
 
         $prizes = [
-            ['description' => 'Cartón Lleno', 'code' => 'FLHE', 'game' => $gameId, 'status' => 1],
-            ['description' => 'Serial', 'code' => 'SRL', 'game' => $gameId, 'status' => 1],
-            ['description' => 'Canto', 'code' => 'SONG', 'game' => $gameId, 'status' => 1],
+            ['description' => 'Cartón Lleno', 'code' => 'FLHE', 'game' => $gameId, 'is_active' => true],
+            ['description' => 'Serial', 'code' => 'SRL', 'game' => $gameId, 'is_active' => true],
+            ['description' => 'Canto', 'code' => 'SONG', 'game' => $gameId, 'is_active' => true],
         ];
 
         // Inserción masiva

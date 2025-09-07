@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('roles', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();         // Nombre del rol
-            $table->string('prefix')->unique();       // Prefijo para identificar rol en el sistema
-            $table->string('description')->nullable(); // Descripción opcional
-            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');    // Estado activo/inactivo
+            $table->snowflake('id')->primary(); // Snowflake en lugar de auto-increment
+            $table->string('name')->unique();
+            $table->string('prefix')->unique();
+            $table->string('description')->nullable();
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

@@ -23,6 +23,8 @@ return new class extends Migration
                 ->constrained('users')
                 ->cascadeOnDelete();
 
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+
             $table->timestamps();
 
             // Evitar que un mismo usuario registre la misma cuenta/gateway más de una vez

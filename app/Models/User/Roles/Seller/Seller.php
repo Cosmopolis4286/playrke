@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 class Seller extends Model
 {
     protected $table = "sellers";
-    protected $fillable = ['name', 'country', 'coin', 'phone', 'commn', 'commerce_id', 'status', 'user'];
+    protected $fillable = ['name', 'country', 'coin', 'phone', 'commission', 'commerce_id', 'status', 'user'];
 
     // Relación con el país del vendedor
     public function Country()

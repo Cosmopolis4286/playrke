@@ -9,32 +9,58 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bingo_ctns', function (Blueprint $table) {
-            $table->id();
+            $table->id()->comment('ID del cartón de bingo');
 
-            $table->foreignId('room_id')->constrained('bingo_rooms')->cascadeOnDelete();
-            $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('seller_id')->nullable()->constrained('sellers')->nullOnDelete();
-            $table->foreignId('room_user_id')->constrained('bingo_rooms_user')->cascadeOnDelete();
-            $table->foreignId('lot_id')->constrained('bingo_ctns_lot')->cascadeOnDelete();
+            // Relaciones
+            $table->foreignId('room_id')
+                ->constrained('bingo_rooms')
+                ->cascadeOnDelete()
+                ->comment('Sala asociada');
 
-            $table->foreignId('coin_id')->constrained('coins')
-                ->cascadeOnUpdate()->cascadeOnDelete()
-                ->comment('ID de la moneda asociada');
-            $table->string('serial', 20);
+            $table->foreignId('creator_user_id')
+                ->constrained('users')
+                ->cascadeOnDelete()
+                ->comment('Creador del cartón');
+
+            $table->foreignId('seller_id')
+                ->nullable()
+                ->constrained('sellers')
+                ->nullOnDelete()
+                ->comment('Vendedor asociado si aplica');
+
+            $table->foreignId('room_user_id')
+                ->constrained('bingo_room_users')
+                ->cascadeOnDelete()
+                ->comment('Usuario en la sala');
+
+            $table->foreignId('lot_id')
+                ->constrained('bingo_ctns_lot')
+                ->cascadeOnDelete()
+                ->comment('Lote del cartón');
+
+            $table->foreignId('coin_id')
+                ->constrained('coins')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Moneda utilizada');
+
+            $table->string('serial', 20)->comment('Número de serie del cartón');
 
             // Columnas del cartón: B, I, N, G, O
             foreach (['b', 'i', 'n', 'g', 'o'] as $letter) {
                 for ($i = 1; $i <= 5; $i++) {
-                    $nullable = ($letter === 'n' && $i === 3) ? true : false; // N3 puede ser nulo
+                    $nullable = ($letter === 'n' && $i === 3);
                     $table->string("{$letter}{$i}", 2)->nullable($nullable);
                 }
             }
 
-            $table->string('hash', 64);
+            $table->string('hash', 64)->comment('Hash único del cartón');
+
             $table->timestamps();
 
-            // Índice compuesto para consultas rápidas por sala
-            $table->index(['room']);
+            // Índices
+            $table->index(['room_id', 'creator_user_id'], 'idx_room_creator');
+            $table->index(['room_id', 'lot_id'], 'idx_room_lot');
         });
     }
 

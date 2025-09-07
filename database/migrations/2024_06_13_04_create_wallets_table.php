@@ -12,14 +12,37 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('wallets', function (Blueprint $table) {
-            $table->id()->comment('ID de la wallet');
-            $table->foreignId('user_id')->constrained('users')
-                ->cascadeOnUpdate()->restrictOnDelete()->comment('ID del usuario dueño de la wallet');
-            $table->foreignId('coin_id')->constrained('coins')
-                ->cascadeOnUpdate()->cascadeOnDelete()->comment('ID de la moneda asociada');
-            $table->decimal('balance', 15, 2)->default(0.00)->comment('Balance en moneda local');
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único de la wallet');
+
+            // Relación con usuario usando Snowflake
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete()
+                ->comment('ID del usuario dueño de la wallet');
+
+            // Relación con moneda usando Snowflake
+            $table->foreignSnowflake('coin_id')
+                ->constrained('coins')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('ID de la moneda asociada');
+
+            // Balance de la wallet
+            $table->decimal('balance', 15, 2)
+                ->default(0.00)
+                ->comment('Balance en moneda local');
+
+            // Estado de la wallet
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE');
+
+            // Timestamps automáticos
             $table->timestamps();
+
+            // Índice compuesto para consultas frecuentes por usuario y moneda
+            $table->index(['user_id', 'coin_id']);
         });
     }
 

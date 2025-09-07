@@ -12,22 +12,49 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('commerces', function (Blueprint $table) {
-            $table->id()->comment('ID del comercio');
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del comercio');
+
+            // Datos del comercio
             $table->string('name', 30)->comment('Nombre del comercio');
-            $table->unsignedBigInteger('country_id')->comment('ID del país del comercio');
-            $table->unsignedBigInteger('coin_id')->comment('ID de la moneda asociada');
-            $table->string('phone', 12)->comment('Teléfono del comercio');
-            $table->unsignedBigInteger('user_id')->comment('ID del usuario creador');
-            $table->decimal('commn', 5, 2)->default(25)->comment('Comisión (%) por defecto');
-            $table->foreignId('unique_code_id')->constrained('unique_codes');
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE')
+            $table->decimal('commission', 5, 2)->default(25)->comment('Comisión (%) por defecto');
+            $table->string('phone', 12)->nullable()->comment('Teléfono del comercio');
+
+            // Relaciones Snowflake
+            $table->foreignSnowflake('country_id')
+                ->constrained('countries')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete()
+                ->comment('ID del país del comercio');
+
+            $table->foreignSnowflake('coin_id')
+                ->constrained('coins')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete()
+                ->comment('ID de la moneda asociada');
+
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete()
+                ->comment('ID del usuario creador');
+
+            $table->foreignSnowflake('unique_code_id')
+                ->constrained('unique_codes')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete()
+                ->comment('Código único de referencia');
+
+            // Estado del comercio
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE')
                 ->comment('Estado activo/inactivo');
+
+            // Timestamps automáticos
             $table->timestamps();
 
-            // Claves foráneas
-            $table->foreign('country_id')->references('id')->on('countries')->onUpdate('cascade')->onDelete('restrict');
-            $table->foreign('coin_id')->references('id')->on('coins')->onUpdate('cascade')->onDelete('restrict');
-            $table->foreign('user_id')->references('id')->on('users')->onUpdate('cascade')->onDelete('restrict');
+            // Índices compuestos para consultas frecuentes
+            $table->index(['country_id', 'coin_id', 'status']);
         });
     }
 

@@ -17,8 +17,8 @@ class SettingsSeeder extends Seeder
         $timestamp = now();
 
         $entries = [
-            ['param' => 'LOGIN', 'status' => 1, 'created_at' => $timestamp, 'updated_at' => $timestamp],
-            ['param' => 'REGISTER', 'status' => 1, 'created_at' => $timestamp, 'updated_at' => $timestamp],
+            ['param' => 'LOGIN', 'status' => 'ACTIVE', 'created_at' => $timestamp, 'updated_at' => $timestamp],
+            ['param' => 'REGISTER', 'status' => 'ACTIVE', 'created_at' => $timestamp, 'updated_at' => $timestamp],
         ];
 
         // Inserta o actualiza los registros para evitar duplicados

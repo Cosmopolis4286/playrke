@@ -7,29 +7,45 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Ejecutar la migración: crear tabla 'game_mode_relationship'.
+     * Ejecutar la migración: crear tabla pivot 'game_mode_relationship'.
      */
     public function up(): void
     {
         Schema::create('game_mode_relationship', function (Blueprint $table) {
-            $table->id()->comment('ID de la relación entre juego y modo');
-            $table->unsignedBigInteger('game_id')->comment('ID del juego');
-            $table->unsignedBigInteger('game_mode_id')->comment('ID del modo de juego');
-            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE')
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único de la relación juego-modo');
+
+            // Relaciones usando Snowflake
+            $table->foreignSnowflake('game_id')
+                ->constrained('games')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('ID del juego');
+
+            $table->foreignSnowflake('game_mode_id')
+                ->constrained('game_modes')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('ID del modo de juego');
+
+            // Estado de la relación
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])
+                ->default('ACTIVE')
                 ->comment('Estado activo/inactivo de la relación');
+
+            // Timestamps automáticos
             $table->timestamps();
 
-            // Claves foráneas
-            $table->foreign('game_id')->references('id')->on('games')->onUpdate('cascade')->onDelete('cascade');
-            $table->foreign('game_mode_id')->references('id')->on('game_modes')->onUpdate('cascade')->onDelete('cascade');
-
-            // Índices para consultas más rápidas
+            // Constraint único para evitar duplicados
             $table->unique(['game_id', 'game_mode_id'], 'game_mode_unique');
+
+            // Índice compuesto opcional para búsquedas frecuentes por estado
+            $table->index(['status', 'game_id', 'game_mode_id']);
         });
     }
 
     /**
-     * Revertir la migración: eliminar tabla 'game_mode_relationship'.
+     * Revertir la migración: eliminar tabla pivot 'game_mode_relationship'.
      */
     public function down(): void
     {

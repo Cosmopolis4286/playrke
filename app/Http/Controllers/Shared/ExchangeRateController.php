@@ -168,7 +168,7 @@ class ExchangeRateController extends Controller
                         'commerce_id' => $dataExchangeRate->commerce,
                         'coin' => $dataExchangeRate->coin,
                         'exchange_rate' => $newExchangeRate,
-                        'pct' => $pct,
+                        'percentage' => $pct,
                         'status' => 'ACTIVE'
                     ]);
 
@@ -187,7 +187,7 @@ class ExchangeRateController extends Controller
                         'commerce_id' => $dataExchangeRate->commerce,
                         'coin' => $dataExchangeRate->coin,
                         'exchange_rate' => $newExchangeRate,
-                        'pct' => $pct,
+                        'percentage' => $pct,
                         'status' => 'ACTIVE'
                     ]);
 

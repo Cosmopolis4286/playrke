@@ -16,9 +16,9 @@ class GamesSeeder extends Seeder
     {
         // Lista de juegos predefinidos
         $games = [
-            ['name' => 'BINGO',  'status' => 1],
-            ['name' => 'TRIVIA', 'status' => 1],
-            ['name' => 'POLLA',  'status' => 1],
+            ['name' => 'BINGO',  'status' => 'ACTIVE'],
+            ['name' => 'POLLA',  'status' => 'ACTIVE'],
+            ['name' => 'TRIVIA', 'status' => 'ACTIVE'],
         ];
 
         // Inserta o actualiza los registros según el nombre del juego para evitar duplicados

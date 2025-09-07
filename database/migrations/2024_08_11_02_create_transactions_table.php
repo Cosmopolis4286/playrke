@@ -21,10 +21,10 @@ class CreateTransactionsTable extends Migration
             $table->unsignedBigInteger('game_mode_id');
             $table->string('bet_id');
             $table->string('code')->unique();
-            $table->string('transaction_type', 12);
-            $table->string('coin', 15);
-            $table->decimal('amount');
-            $table->boolean('status')->default(0);
+            $table->string('transaction_type', 15);
+            $table->string('coin_id', 15);
+            $table->decimal('amount', 16, 8);
+            $table->enum('status', ['WAITING', 'EXECUTED'])->default('WAITING');
             $table->timestamp('processing_data')->nullable();
             $table->timestamps();
 

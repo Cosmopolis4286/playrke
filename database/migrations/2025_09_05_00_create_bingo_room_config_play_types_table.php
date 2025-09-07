@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('play_type_id')
                 ->constrained('bingo_patterns')
                 ->restrictOnDelete()
-                ->comment('Tipo de juego permitido');
+                ->comment('Tipo de jugada permitida');
 
             $table->timestamps();
 

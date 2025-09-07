@@ -12,16 +12,44 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('play_history', function (Blueprint $table) {
-            $table->id()->comment('ID del historial de juego');
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del historial de juego');
+
+            // Fecha y hora del juego
             $table->date('date')->comment('Fecha del juego');
             $table->time('time')->comment('Hora del juego');
-            $table->foreignId('game_id')->constrained('games')->onUpdate('cascade')->onDelete('cascade')->comment('Juego asociado');
-            $table->unsignedBigInteger('room_id')->comment('Sala o room asociada');
-            $table->foreignId('coin_id')->constrained('coins')->cascadeOnUpdate()->comment('Moneda utilizada');
-            $table->decimal('gain', 12, 2)->comment('Ganancia obtenida');
+
+            // Relaciones Snowflake
+            $table->foreignSnowflake('game_id')
+                ->constrained('games')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Juego asociado');
+
+            $table->foreignSnowflake('coin_id')
+                ->constrained('coins')
+                ->cascadeOnUpdate()
+                ->comment('Moneda utilizada');
+
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Usuario que jugó');
+
+            // Sala o room asociada (si quieres relacionarla con otra tabla, se puede adaptar)
+            $table->snowflake('room_id')->comment('Sala o room asociada');
+
+            // Detalles del juego
+            $table->decimal('gain', 12, 2)->default(0.00)->comment('Ganancia obtenida');
             $table->string('action', 50)->comment('Acción realizada');
-            $table->foreignId('user_id')->constrained('users')->onUpdate('cascade')->onDelete('cascade')->comment('Usuario que jugó');
+
+            // Timestamps automáticos
             $table->timestamps();
+
+            // Índices compuestos para consultas frecuentes
+            $table->index(['user_id', 'game_id', 'date']);
+            $table->index(['room_id', 'game_id']);
         });
     }
 

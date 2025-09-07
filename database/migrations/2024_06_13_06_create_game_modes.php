@@ -12,10 +12,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('game_modes', function (Blueprint $table) {
-            $table->id()->comment('ID del modo de juego');
-            $table->string('description', 50)->comment('Descripción del modo de juego');
-            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del modo de juego');
+
+            // Descripción legible y única
+            $table->string('description', 50)
+                ->unique()
+                ->comment('Descripción del modo de juego');
+
+            // Estado activo/inactivo
+            $table->boolean('is_active')->default(true)
+                ->comment('true = activo, false = inactivo');
+
+            // Timestamps automáticos
             $table->timestamps();
+
+            // Índice por estado para consultas rápidas
+            $table->index(['is_active', 'description']);
         });
     }
 
