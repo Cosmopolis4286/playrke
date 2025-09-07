@@ -77,10 +77,6 @@ return new class extends Migration
             $table->index(['referral_code'], 'idx_referral_code');
             $table->index(['last_login_at'], 'idx_last_login');
             $table->index(['created_at', 'status'], 'idx_created_status');
-
-            // Restricciones de integridad
-            $table->check("LENGTH(username) >= 3", 'chk_username_min_length');
-            $table->check("LENGTH(phone_number) >= 10 OR phone_number IS NULL", 'chk_phone_min_length');
         });
     }
 
