@@ -11,17 +11,17 @@ return new class extends Migration
         Schema::create('bingo_ctn_price_drafts', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('bingo_room_id')
+            $table->foreignSnowflake('bingo_room_id')
                 ->nullable()
                 ->constrained('bingo_rooms')
                 ->nullOnDelete();
 
-            $table->foreignId('automatic_bingo_room_id')
+            $table->foreignSnowflake('automatic_bingo_room_id')
                 ->nullable()
                 ->constrained('automatic_bingo_rooms')
                 ->nullOnDelete();
 
-            $table->foreignId('creator_user_id')
+            $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnDelete();
 

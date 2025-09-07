@@ -12,33 +12,33 @@ return new class extends Migration
             $table->id()->comment('ID del cartón de bingo');
 
             // Relaciones
-            $table->foreignId('room_id')
+            $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
-            $table->foreignId('creator_user_id')
+            $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnDelete()
                 ->comment('Creador del cartón');
 
-            $table->foreignId('seller_id')
+            $table->foreignSnowflake('seller_id')
                 ->nullable()
                 ->constrained('sellers')
                 ->nullOnDelete()
                 ->comment('Vendedor asociado si aplica');
 
-            $table->foreignId('room_user_id')
+            $table->foreignSnowflake('room_user_id')
                 ->constrained('bingo_room_users')
                 ->cascadeOnDelete()
                 ->comment('Usuario en la sala');
 
-            $table->foreignId('lot_id')
+            $table->foreignSnowflake('lot_id')
                 ->constrained('bingo_ctns_lot')
                 ->cascadeOnDelete()
                 ->comment('Lote del cartón');
 
-            $table->foreignId('currency_id')
+            $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()

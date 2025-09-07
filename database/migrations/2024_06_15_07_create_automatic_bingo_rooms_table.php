@@ -19,12 +19,12 @@ return new class extends Migration
             $table->string('days')->nullable();
             $table->string('time', 10);
 
-            $table->foreignId('game_mode_id')->constrained('game_modes')->onDelete('cascade');
+            $table->foreignSnowflake('game_mode_id')->constrained('game_modes')->onDelete('cascade');
 
             $table->enum('in_live', ['Y', 'N'])->default('N');
             $table->enum('room_type', ['PV', 'PB'])->default('PV');
 
-            $table->foreignId('prize_pool_type_id')
+            $table->foreignSnowflake('prize_pool_type_id')
                 ->constrained('prize_pool_types')
                 ->onDelete('cascade')
                 ->default(1);
@@ -47,7 +47,7 @@ return new class extends Migration
             $table->decimal('plays_pct', 5, 2)->nullable();
             $table->json('play_types')->nullable();
 
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignSnowflake('creator_user_id')->constrained('users')->onDelete('cascade');
 
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 

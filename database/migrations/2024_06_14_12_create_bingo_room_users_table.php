@@ -16,13 +16,13 @@ return new class extends Migration
             $table->snowflake('id')->primary()->comment('ID único del jugador en la sala');
 
             // Relaciones
-            $table->foreignId('room_id')
+            $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
-            $table->foreignId('creator_user_id')
+            $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()

@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('bingo_creator_sales', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('currency_id')->constrained('currencies')
+            $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->foreignSnowflake('creator_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignSnowflake('currency_id')->constrained('currencies')
                 ->cascadeOnUpdate()->cascadeOnDelete()
                 ->comment('ID moneda asociada');
             $table->decimal('sale_amount', 12, 2);

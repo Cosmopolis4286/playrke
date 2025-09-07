@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('bingo_rounds', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('room_id')
+            $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
                 ->cascadeOnDelete();
 
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->char('last_chip', 2)->nullable()->comment('Última ficha jugada');
 
             $table->enum('prize_type', ['percentage', 'USD', 'OTHER'])->comment('Tipo de premio');
-            $table->foreignId('play_type_id')
+            $table->foreignSnowflake('play_type_id')
                 ->constrained('bingo_patterns')
                 ->cascadeOnDelete();
 

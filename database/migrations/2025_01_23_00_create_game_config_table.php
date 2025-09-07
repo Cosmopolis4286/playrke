@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('game_configs', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('game_id')
+            $table->foreignSnowflake('game_id')
                 ->constrained('games')
                 ->cascadeOnDelete();
 

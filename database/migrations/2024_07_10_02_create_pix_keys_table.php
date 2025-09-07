@@ -13,7 +13,7 @@ return new class extends Migration
 
             $table->string('name', 35)->nullable();
 
-            $table->foreignId('bank_id')
+            $table->foreignSnowflake('bank_id')
                 ->constrained('banks_brasil')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
@@ -23,7 +23,7 @@ return new class extends Migration
 
             $table->string('pix_key_value', 100);
 
-            $table->foreignId('user_id')
+            $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnDelete();
 

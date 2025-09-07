@@ -16,7 +16,7 @@ return new class extends Migration
             $table->snowflake('id')->primary()->comment('ID único del registro de pago móvil');
 
             // Tipo de documento
-            $table->foreignId('document_type_id')
+            $table->foreignSnowflake('document_type_id')
                 ->constrained('document_types')
                 ->cascadeOnUpdate()
                 ->comment('Tipo de documento del titular');
@@ -27,7 +27,7 @@ return new class extends Migration
                 ->comment('Número de documento del titular');
 
             // Banco
-            $table->foreignId('bank_id')
+            $table->foreignSnowflake('bank_id')
                 ->constrained('banks_venezuela')
                 ->cascadeOnUpdate()
                 ->comment('Banco asociado al pago móvil');
@@ -38,7 +38,7 @@ return new class extends Migration
                 ->comment('Teléfono asociado al pago móvil');
 
             // Usuario
-            $table->foreignId('user_id')
+            $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnDelete()
                 ->comment('Usuario propietario del registro');

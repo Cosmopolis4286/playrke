@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('account_number', 25)->nullable()->index();
             $table->string('document_number', 20)->nullable()->comment('Número de documento asociado');
 
-            $table->foreignId('user_id')
+            $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnDelete();
 

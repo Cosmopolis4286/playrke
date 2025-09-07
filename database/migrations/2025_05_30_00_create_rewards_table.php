@@ -19,7 +19,7 @@ return new class extends Migration
             $table->decimal('price', 12, 2);
             $table->string('description', 255)->nullable();
 
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignSnowflake('user_id')->constrained('users')->cascadeOnDelete();
 
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();

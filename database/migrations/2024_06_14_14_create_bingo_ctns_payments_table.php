@@ -21,44 +21,44 @@ return new class extends Migration
             $table->string('description', 100)->nullable()->comment('Descripción opcional del pago');
 
             // Relaciones
-            $table->foreignId('room_id')
+            $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
-            $table->foreignId('creator_user_id')
+            $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Usuario creador del pago');
 
-            $table->foreignId('seller_id')
+            $table->foreignSnowflake('seller_id')
                 ->nullable()
                 ->constrained('sellers')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Vendedor asociado si aplica');
 
-            $table->foreignId('user_id')
+            $table->foreignSnowflake('user_id')
                 ->nullable()
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Usuario que realizó el pago');
 
-            $table->foreignId('external_player_id')
+            $table->foreignSnowflake('external_player_id')
                 ->constrained('external_players')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Jugador externo asociado');
 
-            $table->foreignId('currency_id')
+            $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->comment('Moneda utilizada');
 
-            $table->foreignId('lot_id')
+            $table->foreignSnowflake('lot_id')
                 ->constrained('bingo_ctns_lot')
                 ->cascadeOnUpdate()
                 ->comment('Lote de cartones asociado');

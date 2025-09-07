@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('description', 50);
             $table->decimal('price', 12, 2)->default(0);
-            $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
+            $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
             $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
         });

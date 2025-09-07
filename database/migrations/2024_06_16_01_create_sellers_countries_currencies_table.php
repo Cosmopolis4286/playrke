@@ -11,18 +11,38 @@ return new class extends Migration
         Schema::create('sellers_countries_currencies', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('seller_id')->constrained('sellers')->onDelete('cascade');
-            $table->foreignId('country_id')->constrained('countries')->onDelete('set null');
-            $table->foreignId('currency_id')->constrained('currencies')->onDelete('cascade');
+            // Relaciones
+            $table->foreignSnowflake('seller_id')
+                ->constrained('sellers')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
 
-            $table->tinyInteger('level')->comment('1=básico, 2=medio, 3=avanzado');
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignSnowflake('country_id')
+                ->nullable()                // IMPORTANTE: nullable para SET NULL
+                ->constrained('countries')
+                ->nullOnDelete()            // ON DELETE SET NULL
+                ->cascadeOnUpdate();
 
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
+            $table->foreignSnowflake('currency_id')
+                ->constrained('currencies')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
+
+            $table->tinyInteger('level')
+                ->comment('1 = básico, 2 = medio, 3 = avanzado');
+
+            $table->foreignSnowflake('creator_user_id')
+                ->constrained('users')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
+
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE');
+
             $table->timestamps();
 
-            // Evitar duplicados
-            $table->unique(['seller_id', 'country_id', 'currency_id'], 'unique_seller_country_coin');
+            // Evitar duplicados por combinación
+            $table->unique(['seller_id', 'country_id', 'currency_id'], 'unique_seller_country_currency');
         });
     }
 

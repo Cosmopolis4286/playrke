@@ -12,20 +12,20 @@ return new class extends Migration
             $table->id();
 
             // Relaciones principales
-            $table->foreignId('game_id')
+            $table->foreignSnowflake('game_id')
                 ->constrained('games')
                 ->cascadeOnDelete();
 
-            $table->foreignId('game_mode_id')
+            $table->foreignSnowflake('game_mode_id')
                 ->nullable()
                 ->constrained('game_modes')
                 ->nullOnDelete();
 
-            $table->foreignId('room_id')
+            $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
                 ->cascadeOnDelete();
 
-            $table->foreignId('currency_id')
+            $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnDelete();
 

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->enum('type_pattern', ['UNIQUE', 'GROUP'])->default('UNIQUE');
             $table->string('name', 15);
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignSnowflake('user_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('boxes', 150);
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();

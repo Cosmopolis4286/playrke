@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('bingo_room_config_play_types', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('bingo_room_config_id')
+            $table->foreignSnowflake('bingo_room_config_id')
                 ->constrained('bingo_rooms_config')
                 ->cascadeOnDelete()
                 ->comment('Configuración de sala asociada');
 
-            $table->foreignId('play_type_id')
+            $table->foreignSnowflake('play_type_id')
                 ->constrained('bingo_patterns')
                 ->restrictOnDelete()
                 ->comment('Tipo de jugada permitida');

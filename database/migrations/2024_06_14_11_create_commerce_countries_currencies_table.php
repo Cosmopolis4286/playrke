@@ -16,21 +16,21 @@ return new class extends Migration
             $table->snowflake('id')->primary()->comment('ID único del registro');
 
             // Comercio
-            $table->foreignId('commerce_id')
+            $table->foreignSnowflake('commerce_id')
                 ->constrained('commerces')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Comercio asociado');
 
             // País (opcional)
-            $table->foreignId('country_id')
+            $table->foreignSnowflake('country_id')
                 ->nullable()
                 ->constrained('countries')
                 ->cascadeOnUpdate()
                 ->comment('País asociado (opcional)');
 
             // Moneda
-            $table->foreignId('currency_id')
+            $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
@@ -42,7 +42,7 @@ return new class extends Migration
                 ->comment('Nivel asignado: 1 = básico, 2 = intermedio, 3 = avanzado');
 
             // Usuario creador
-            $table->foreignId('creator_user_id')
+            $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()

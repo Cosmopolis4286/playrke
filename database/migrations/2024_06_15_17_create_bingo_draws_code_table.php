@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('bingo_draws_code', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained('bingo_rooms')->onDelete('cascade');
+            $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->onDelete('cascade');
             $table->tinyInteger('num'); // número (1 dígito)
             $table->char('sym', 6);     // símbolo (ej: código fijo)
             $table->timestamps();

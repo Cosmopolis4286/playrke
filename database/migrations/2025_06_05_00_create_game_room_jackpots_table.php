@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('game_room_jackpots', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('currency_id')->constrained('currencies')
+            $table->foreignSnowflake('currency_id')->constrained('currencies')
                 ->cascadeOnUpdate()->cascadeOnDelete()
                 ->comment('ID moneda asociada');
             $table->decimal('amount', 12, 4);

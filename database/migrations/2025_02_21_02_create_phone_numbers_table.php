@@ -11,12 +11,12 @@ return new class extends Migration
         Schema::create('phone_numbers', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('user_id')
+            $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnDelete()
                 ->comment('Usuario propietario del número');
 
-            $table->foreignId('country_id')
+            $table->foreignSnowflake('country_id')
                 ->constrained('countries')
                 ->cascadeOnDelete()
                 ->comment('País del número');

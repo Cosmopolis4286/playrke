@@ -15,14 +15,14 @@ return new class extends Migration
             $table->id()->comment('ID único del registro de tasa de cambio');
 
             // Comercio relacionado
-            $table->foreignId('commerce_id')
+            $table->foreignSnowflake('commerce_id')
                 ->constrained('commerces')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('Comercio al que aplica la tasa');
 
             // Moneda relacionada
-            $table->foreignId('currency_id')
+            $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->comment('Moneda asociada a la tasa');

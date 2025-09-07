@@ -13,12 +13,12 @@ return new class extends Migration
 
             $table->string('name', 75)->comment('Nombre del tesorero');
 
-            $table->foreignId('country_id')
+            $table->foreignSnowflake('country_id')
                 ->constrained('countries')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
 
-            $table->foreignId('currency_id')
+            $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
@@ -26,7 +26,7 @@ return new class extends Migration
 
             $table->string('phone', 20)->nullable()->comment('Teléfono de contacto');
 
-            $table->foreignId('user_id')
+            $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();

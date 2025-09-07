@@ -15,17 +15,17 @@ return new class extends Migration
             $table->id()->comment('ID del precio del cartón');
 
             // Relaciones
-            $table->foreignId('room_id')
+            $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
                 ->cascadeOnDelete()
                 ->comment('Sala de bingo a la que aplica el precio');
 
-            $table->foreignId('creator_user_id')
+            $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnDelete()
                 ->comment('Usuario que estableció el precio');
 
-            $table->foreignId('currency_id')
+            $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()

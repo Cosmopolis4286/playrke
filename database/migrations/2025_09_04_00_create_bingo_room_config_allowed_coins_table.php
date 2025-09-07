@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('bingo_room_config_allowed_currencies', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('bingo_room_config_id')
+            $table->foreignSnowflake('bingo_room_config_id')
                 ->constrained('bingo_rooms_config')
                 ->cascadeOnDelete();
-            $table->foreignId('currency_id')->constrained('currencies')
+            $table->foreignSnowflake('currency_id')->constrained('currencies')
                 ->cascadeOnUpdate()->cascadeOnDelete()
                 ->comment('ID moneda asociada');
             $table->timestamps();

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('uuid_code', 36)->unique();
             $table->string('rke_code', 25)->unique();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade')->nullable();
             $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
         });

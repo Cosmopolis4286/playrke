@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('description', 50)->comment('Descripción legible del premio');
             $table->string('code', 10)->comment('Código único interno del premio')->index();
 
-            $table->foreignId('game_id')
+            $table->foreignSnowflake('game_id')
                 ->constrained('games')
                 ->cascadeOnDelete()
                 ->comment('Juego asociado al premio');

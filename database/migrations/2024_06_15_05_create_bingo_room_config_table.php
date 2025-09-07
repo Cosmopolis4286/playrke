@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id()->comment('ID de la configuración de la sala');
 
             // Sala asociada
-            $table->foreignId('room_id')
+            $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
                 ->restrictOnDelete()
                 ->cascadeOnUpdate()
@@ -25,13 +25,13 @@ return new class extends Migration
                 ->comment('Modo de creación: M = manual, A = automático');
 
             // Creador
-            $table->foreignId('creator_user_id')
+            $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnDelete()
                 ->comment('Usuario que creó la sala');
 
             // Modo de juego
-            $table->foreignId('game_mode_id')
+            $table->foreignSnowflake('game_mode_id')
                 ->constrained('game_modes')
                 ->restrictOnDelete()
                 ->cascadeOnUpdate()
@@ -51,7 +51,7 @@ return new class extends Migration
             $table->decimal('room_commn', 8, 2)->nullable()->comment('Comisión de la sala');
 
             // Tipo de premio
-            $table->foreignId('prize_pool_type_id')
+            $table->foreignSnowflake('prize_pool_type_id')
                 ->constrained('prize_pool_types')
                 ->default(1)
                 ->restrictOnDelete()

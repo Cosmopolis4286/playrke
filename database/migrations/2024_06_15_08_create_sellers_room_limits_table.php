@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('sellers_room_limits', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
+            $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
             $table->integer('room')->comment('ID de sala');
-            $table->foreignId('seller_id')->constrained('sellers')->onDelete('cascade');
+            $table->foreignSnowflake('seller_id')->constrained('sellers')->onDelete('cascade');
             $table->decimal('commission', 8, 2)->comment('Comisión del vendedor en esta sala');
             $table->timestamps();
         });

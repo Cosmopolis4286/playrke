@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('game_rules', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('game_id')->constrained('games')->onDelete('cascade');
+            $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
             $table->string('image', 30)->nullable();
             $table->text('rules');
             $table->string('encrypted', 12);

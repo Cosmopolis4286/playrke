@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('treasurers_countries_currencies', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('treasurer_id')->constrained('treasurers');
-            $table->foreignId('country_id')->nullable()->constrained('countries');
-            $table->foreignId('currency_id')->constrained('currencies');
+            $table->foreignSnowflake('treasurer_id')->constrained('treasurers');
+            $table->foreignSnowflake('country_id')->nullable()->constrained('countries');
+            $table->foreignSnowflake('currency_id')->constrained('currencies');
             $table->enum('level', ['1', '2', '3']);
-            $table->foreignId('creator_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignSnowflake('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
             $table->timestamps();
         });

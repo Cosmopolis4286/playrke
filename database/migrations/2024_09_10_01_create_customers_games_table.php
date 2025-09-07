@@ -11,12 +11,12 @@ return new class extends Migration
         Schema::create('customers_games', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('customer_id')
+            $table->foreignSnowflake('customer_id')
                 ->constrained('customers')
                 ->cascadeOnDelete()
                 ->comment('Cliente asociado');
 
-            $table->foreignId('game_id')
+            $table->foreignSnowflake('game_id')
                 ->constrained('games')
                 ->cascadeOnDelete()
                 ->comment('Juego asociado');

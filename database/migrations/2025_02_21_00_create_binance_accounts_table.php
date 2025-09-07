@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->enum('account_type', ['E', 'P', 'B']);
             $table->string('data_value', 100);
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
             $table->timestamps();
         });
