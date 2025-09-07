@@ -22,9 +22,9 @@ trait SeamlessWallet
 {
     use CustomerTrait;
 
-    private function getCustomerKey($customerID)
+    private function getCustomerKey($customerId)
     {
-        $customer = Customer::getById($customerID, ['customer_key', 'security_key']);
+        $customer = Customer::getById($customerId, ['customer_key', 'security_key']);
 
         // Desencriptar clave de seguridad 
         $encryptedKey = decrypt($customer->security_key, env('CTMER_ENCRYPTION_KEY'));
@@ -42,11 +42,11 @@ trait SeamlessWallet
         return hash('sha256', $dataJson . $securityKey);
     }
 
-    private function globalCurl($customerID, $dataJson, $action)
+    private function globalCurl($customerId, $dataJson, $action)
     {
         // Obtener la clave de seguridad y la ruta del enlace
-        $customerKey = $this->getCustomerKey($customerID);
-        $linkRoute = Customer::getValueById($customerID, 'link_route');
+        $customerKey = $this->getCustomerKey($customerId);
+        $linkRoute = Customer::getValueById($customerId, 'link_route');
 
         // Generar la firma
         $hashHex = $this->generateSignature($dataJson, $customerKey);
@@ -75,7 +75,7 @@ trait SeamlessWallet
         return json_decode($response);
     }
 
-    private function globalGuzzle($customerID, $dataJson, $action)
+    private function globalGuzzle($customerId, $dataJson, $action)
     {
         // Validar que el JSON sea válido
         if (!is_string($dataJson) || is_null(json_decode($dataJson, true))) {
@@ -84,9 +84,9 @@ trait SeamlessWallet
         }
 
         // Obtener la clave de seguridad del cliente
-        $customerKey = $this->getCustomerKey($customerID);
+        $customerKey = $this->getCustomerKey($customerId);
         if (!$customerKey) {
-            Log::error("No se pudo obtener la clave del cliente.", ['customerID' => $customerID]);
+            Log::error("No se pudo obtener la clave del cliente.", ['customerId' => $customerId]);
             return null;
         }
 
@@ -94,9 +94,9 @@ trait SeamlessWallet
         $signature = $this->generateSignature($dataJson, $customerKey);
 
         // Obtener la URL base del cliente
-        $linkRoute = Customer::getValueById($customerID, 'link_route');
+        $linkRoute = Customer::getValueById($customerId, 'link_route');
         if (!$linkRoute) {
-            Log::error("No se pudo obtener la URL base del cliente.", ['customerID' => $customerID]);
+            Log::error("No se pudo obtener la URL base del cliente.", ['customerId' => $customerId]);
             return null;
         }
 
@@ -156,62 +156,62 @@ trait SeamlessWallet
         ]);
     }
 
-    public function getUserInfoFromCustomer($customerID, $userToken)
+    public function getUserInfoFromCustomer($customerId, $userToken)
     {
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode(["Token" => $userToken]);
 
-        return $this->globalGuzzle($customerID, $dataJson, 'GetUserInfo');
+        return $this->globalGuzzle($customerId, $dataJson, 'GetUserInfo');
     }
 
-    public function getUserBalanceFromCustomer($customerID, $userToken)
+    public function getUserBalanceFromCustomer($customerId, $userToken)
     {
         // Intenta obtener el usuario localmente
-        $user = CustomerUser::getByToken($customerID, $userToken, ['user_id', 'currency']);
+        $user = CustomerUser::getByToken($customerId, $userToken, ['user_id', 'currency']);
 
         // Si no se encuentra, realiza una solicitud para obtener la información del usuario
         if (!$user) {
-            $response = $this->getUserInfoFromCustomer($customerID, $userToken);
+            $response = $this->getUserInfoFromCustomer($customerId, $userToken);
             // Valida si la respuesta contiene los datos esperados
             if (!isset($response['Data'])) {
                 return false; // Termina si no hay datos válidos
             }
-            $userID = $response['Data']['ID'];
+            $userId = $response['Data']['ID'];
             $currency = $response['Data']['DefaultCurrencyCode'] ?? null;
         } else {
-            $userID = $user->user_id;
+            $userId = $user->user_id;
             $currency = $user->currency;
         }
 
         // Construye el cuerpo del JSON de manera segura
         $dataJson = json_encode([
             "Token" => $userToken,
-            "UserID" => $userID,
+            "UserID" => $userId,
             "CurrencyCode" => $currency ?: ''
         ]);
 
         // Realiza la solicitud y retorna la respuesta
-        return $this->globalGuzzle($customerID, $dataJson, 'GetBalance');
+        return $this->globalGuzzle($customerId, $dataJson, 'GetBalance');
     }
 
     public function transferMoney($transaction, $additionalData = '')
     {
         // Obtener datos del cliente
-        $customerID = $transaction->customer;
-        $customer = Customer::getById($customerID, ['brand', 'product']);
+        $customerId = $transaction->customer;
+        $customer = Customer::getById($customerId, ['brand', 'product']);
 
         // Validar que se obtuvieron datos del cliente
         if (!$customer) {
-            Log::error("Cliente no encontrado: [ID => {$customerID}]");
+            Log::error("Cliente no encontrado: [ID => {$customerId}]");
             return ['Error' => 'Cliente no encontrado'];
         }
 
         // Obtener Info del Juego con respecto al cliente
-        $game = CustomerGames::getByGameID($customerID, $transaction->game, ['customer_game_id', 'product']);
+        $game = CustomerGames::getByGameID($customerId, $transaction->game, ['customer_game_id', 'product']);
 
         if (!$game) {
-            Log::error("No existe el ID de Juego del cliente [{$customerID}] para el juego [games.id={$transaction->game}]");
-            return ['Error' => "No existe el ID de Juego del cliente [{$customerID}]"];
+            Log::error("No existe el ID de Juego del cliente [{$customerId}] para el juego [games.id={$transaction->game}]");
+            return ['Error' => "No existe el ID de Juego del cliente [{$customerId}]"];
         }
 
         // Obtener informacion del jugador
@@ -234,7 +234,7 @@ trait SeamlessWallet
         ]);
 
         // Llamada al método globalGuzzle
-        $response = $this->globalGuzzle($customerID, $dataJson, 'TransferMoney');
+        $response = $this->globalGuzzle($customerId, $dataJson, 'TransferMoney');
 
         // Manejo de la respuesta
         if (!$response || (isset($response['Error']) && $response['Error'])) {
@@ -245,7 +245,7 @@ trait SeamlessWallet
         return $response;
     }
 
-    public function getTransaction($game, $customerID, $user)
+    public function getTransaction($game, $customerId, $user)
     {
         // Obtener la marca de tiempo fuera del bucle
         $timestamp = Carbon::now()->timestamp;
@@ -253,11 +253,11 @@ trait SeamlessWallet
         do {
             // Concatenar los valores con una cadena aleatoria para asegurar unicidad
             $randomString = bin2hex(random_bytes(5)); // Genera una cadena aleatoria
-            $data = $game . $customerID . $user . $timestamp . $randomString;
+            $data = $game . $customerId . $user . $timestamp . $randomString;
 
             // Generar un hash MD5 del valor concatenado
             $uniqueId = md5($data);
-        } while (Transactions::existsCode($uniqueId, $customerID));
+        } while (Transactions::existsCode($uniqueId, $customerId));
 
         return $uniqueId;
     }
@@ -303,7 +303,7 @@ trait SeamlessWallet
             });
         } catch (\Exception $e) {
             // Registrar el error y devolverlo como respuesta
-            Log::error("Error en handleTransactionByBET ['customerID' => $customer]: " . $e->getMessage());
+            Log::error("Error en handleTransactionByBET ['customerId' => $customer]: " . $e->getMessage());
             return ['Error' => $e->getMessage()];
         }
     }
@@ -318,14 +318,14 @@ trait SeamlessWallet
             }
 
             // Obtener valores necesarios
-            $gameID = Games::getValueByName($game['name']);
+            $gameId = Games::getValueByName($game['name']);
             $code = $this->getTransaction($game['name'], $customer, $clientUser);
 
             // Crear la transacción
             return Transactions::create([
                 'customer' => $customer,
                 'user_id' => $clientUser,
-                'game' => $gameID,
+                'game' => $gameId,
                 'game_mode' => $game['game_mode'],
                 'bet_id' => $betId,
                 'code' => $code, // transaction_id
@@ -338,7 +338,7 @@ trait SeamlessWallet
             Log::warning('Datos inválidos para registrar la transacción: ' . $e->getMessage());
             return false;
         } catch (\Exception $e) {
-            Log::error("Error al registrar la transacción ['customerID' => $customer]: " . $e->getMessage());
+            Log::error("Error al registrar la transacción ['customerId' => $customer]: " . $e->getMessage());
             return false;
         }
     }

@@ -168,7 +168,7 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
     Route::put('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
     Route::delete('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
     Route::put('changeStatus/{id}', [ExchangeRateController::class, 'changeStatus'])->name('changeStatus');
-    Route::get('getLastValueByCoin/{currency}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
+    Route::get('getLastValueByCurrency/{currency}', [ExchangeRateController::class, 'getLastValueByCurrency'])->name('getLastValueByCurrency');
     Route::get('historical/{currency?}/{creatorType}/{creatorId}', [ExchangeRateController::class, 'historical'])->name('historical');
     Route::get('{creatorType}/{creatorId?}', [ExchangeRateController::class, 'index'])->name('index');
 });
@@ -190,7 +190,7 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::post('bingo/carton/generate/store', [BingoController::class, 'generateCarton'])->name('generateCarton');
     Route::post('bingo/carton/payment/status', [SellerController::class, 'ctnsLotPayment'])->name('ctnsLotPayment');
 
-    Route::get('bingo/get/ctn-price-currency/{room}/{country}', [SellerController::class, 'getCtnPriceCoin'])->name('getCtnPriceCoin');
+    Route::get('bingo/get/ctn-price-currency/{room}/{country}', [SellerController::class, 'getCtnPriceCurrency'])->name('getCtnPriceCurrency');
     Route::get('bingo/getWinnerInfoForCtn/{ctnId}', [SellerController::class, 'getWinnerInfoForCtn'])->name('getWinnerInfoForCtn');
     Route::get('bingo/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
     Route::get('bingo/player/cartons/{playerLink}/{room}', [SellerController::class, 'showPlayerCartons'])->name('showPlayerCartons');
@@ -279,7 +279,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('getInfoPublicRoomPendingPayments', [BingoController::class, 'getInfoPublicRoomPendingPayments'])->name('getInfoPublicRoomPendingPayments');
     Route::get('getRoundsConfig/{room}/{type}', [BingoController::class, 'getRoundsConfig'])->name('getRoundsConfig');
     Route::get('getDateTimeRooms/{creatorUser}/{player}', [BingoController::class, 'getDateTimeRooms'])->name('getDatetimeRooms');
-    Route::get('getCtnPriceForCoin/{creation}/{creatorType}/{creatorId}/{room?}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
+    Route::get('getCtnPriceForCurrency/{creation}/{creatorType}/{creatorId}/{room?}', [BingoController::class, 'getCtnPriceForCurrency'])->name('getCtnPriceForCurrency');
 
     // Participación y notificaciones
     Route::put('participate/public-room/{id?}/{getOut?}', [BingoController::class, 'participateInPublicRoom'])->name('participateInPublicRoom');

@@ -17,7 +17,7 @@ export const commerceRoutes = {
     "getPaymentCommerceDetails": "/commerce/getPaymentCommerceDetails/{commerce}/{currency}",
     "rewards": "/commerce/rewards",
     "sellers": "/commerce/sellers",
-    "getCoinByCountry": "/commerce/seller/getCoinByCountry/{country}/{seller}",
+    "getCurrencyByCountry": "/commerce/seller/getCurrencyByCountry/{country}/{seller}",
     "getSellerInfoByCtn": "/commerce/seller/getSellerInfoByCtn/{ctnId}",
     "ctnsLotPayment": "/commerce/bingo/carton-lot/payment"
 } as const;

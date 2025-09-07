@@ -31,9 +31,9 @@ trait UserValTrait
         return User::select($fields)->find($userId);
     }
 
-    public function wallet($userID = null)
+    public function wallet($userId = null)
     {
-        return Wallet::with('Currency')->where('user', $userID ?? Auth::id())->first();
+        return Wallet::with('Currency')->where('user', $userId ?? Auth::id())->first();
     }
 
     public function commerce($fields = ['*'])
@@ -140,23 +140,23 @@ trait UserValTrait
 
         try {
 
-            $commerceID = Commerce::getValueByUserId($user['userId'], 'id');
+            $commerceId = Commerce::getValueByUserId($user['userId'], 'id');
 
             // Obtener los IDs más recientes de cada moneda (currency)
             $ids = CommerceExchangeRate::select(DB::raw('MAX(id) as id'))
-                ->where('commerce_id', $commerceID)
+                ->where('commerce_id', $commerceId)
                 ->whereNotIn('currency', $currenciesWithoutDirectories)
                 ->groupBy('currency')
                 ->pluck('id');
 
-            CommerceExchangeRate::where('commerce_id', $commerceID)
+            CommerceExchangeRate::where('commerce_id', $commerceId)
                 ->whereIn('id', $ids)->where('exchange_rate', 0)
                 ->whereIn('status', ['ACTIVE', 'DIRECTORY'])
                 ->update(['status' => 'INACTIVE']);
 
             if ($currenciesWithoutDirectories) {
                 // Marcar status 'DIRECTORY' en monedas sin directorio
-                CommerceExchangeRate::where('commerce_id', $commerceID)
+                CommerceExchangeRate::where('commerce_id', $commerceId)
                     ->whereIn('id', $ids)->where('exchange_rate', '>', 0)
                     ->whereIn('currency', $currenciesWithoutDirectories)
                     ->where('status', '!=', 'DIRECTORY')
@@ -299,9 +299,9 @@ trait UserValTrait
             }
         }
 
-        $currencyIDs = $query->where('status', 1)->orderBy('country')->distinct()->pluck('currency');
+        $currencyIds = $query->where('status', 1)->orderBy('country')->distinct()->pluck('currency');
 
-        return Currency::getCurrenciesById($currencyIDs);
+        return Currency::getCurrenciesById($currencyIds);
     }
 
     public function getUserData()

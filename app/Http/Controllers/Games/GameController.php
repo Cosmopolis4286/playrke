@@ -20,7 +20,7 @@ class GameController extends Controller
             $customerGame = CustomerGames::find($id);
 
             // Obtener ID del juego
-            $gameID = Games::getValueByName($request->game_id);
+            $gameId = Games::getValueByName($request->game_id);
 
             if ($customerGame) {
                 // Actualizar el registro existente
@@ -33,7 +33,7 @@ class GameController extends Controller
                 // Crear un nuevo registro
                 CustomerGames::create([
                     'customer' => decrypt($request->customer),
-                    'game' => $gameID,
+                    'game' => $gameId,
                     'customer_game_id' => $request->customer_game_id,
                     'product' => $request->customer_game_product
                 ]);

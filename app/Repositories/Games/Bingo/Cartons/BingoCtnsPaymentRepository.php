@@ -61,7 +61,7 @@ class BingoCtnsPaymentRepository
      * @param array $fields
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getByCoin(int $currencyId, array $fields = ['*'])
+    public function getByCurrency(int $currencyId, array $fields = ['*'])
     {
         return BingoCtnsPayment::select($fields)->where('currency_id', $currencyId)->get();
     }

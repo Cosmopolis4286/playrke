@@ -24,7 +24,7 @@ mapControllerRoutes('commerce_id', 'commerce.', [
         'routes' => [
             'rewards'                => ['method' => 'get', 'uri' => 'rewards'],
             'sellers'                => ['method' => 'get', 'uri' => 'sellers'],
-            'getCoinByCountry'       => ['method' => 'get', 'uri' => 'seller/getCoinByCountry/{country}/{seller}'],
+            'getCurrencyByCountry'       => ['method' => 'get', 'uri' => 'seller/getCurrencyByCountry/{country}/{seller}'],
             'getSellerInfoByCtn'     => ['method' => 'get', 'uri' => 'seller/getSellerInfoByCtn/{ctnId}'],
             'ctnsLotPayment'         => ['method' => 'put', 'uri' => 'bingo/carton-lot/payment'],
         ],

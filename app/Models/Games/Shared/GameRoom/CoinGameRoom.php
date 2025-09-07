@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
-class CoinGameRoom extends Model
+class CurrencyGameRoom extends Model
 {
     protected $table = "currencies_game_rooms";
     protected $fillable = ['game', 'game_mode', 'room', 'currency'];
@@ -15,15 +15,15 @@ class CoinGameRoom extends Model
         return $this->belongsTo(Games::class, 'game');
     }
 
-    public static function createNewCoinInRoom($game, $room, $currency)
+    public static function createNewCurrencyInRoom($game, $room, $currency)
     {
         try {
             // Obtener el ID del juego
-            $gameID = Games::getValueByName($game['name']);
+            $gameId = Games::getValueByName($game['name']);
 
             // Crear el nuevo registro
             self::create([
-                'game' => $gameID,
+                'game' => $gameId,
                 'game_mode' => $game['game_mode'],
                 'room' => $room,
                 'currency' => $currency,
@@ -36,12 +36,12 @@ class CoinGameRoom extends Model
         }
     }
 
-    public static function existsCoinGameRoom($currency, $room, $game, $gameMode = '')
+    public static function existsCurrencyGameRoom($currency, $room, $game, $gameMode = '')
     {
-        $gameID = Games::getValueByName($game);
+        $gameId = Games::getValueByName($game);
 
         // Iniciar la consulta
-        $query = self::where('currency', $currency)->where('room', $room)->where('game', $gameID);
+        $query = self::where('currency', $currency)->where('room', $room)->where('game', $gameId);
 
         // Añadir condicionalmente el filtro de 'game_mode'
         if ($gameMode) {
@@ -55,10 +55,10 @@ class CoinGameRoom extends Model
     public static function getCurrenciesByRoom($game, $room, $gameMode = null)
     {
         // Obtener el ID del juego si se pasa como string
-        $gameID = is_string($game) ? Games::getValueByName($game) : $game;
+        $gameId = is_string($game) ? Games::getValueByName($game) : $game;
 
         // Construir la consulta
-        $query = self::select('currency')->where('game', $gameID)->where('room', $room);
+        $query = self::select('currency')->where('game', $gameId)->where('room', $room);
 
         // Agregar filtro de modo de juego si se proporciona
         if (!is_null($gameMode)) {

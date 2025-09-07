@@ -3,7 +3,7 @@
     <li class="nav-item" v-for="item in currencies" :key="item.id">
       <a class="nav-link" :class="{ active: isActive(item.id) }" :id="tabId(item)" :href="tabLink(item)" role="tab"
         :aria-controls="tabId(item)" :aria-selected="isActive(item.id) ? 'true' : 'false'">
-        {{ getCoinLabel(item) }}
+        {{ getCurrencyLabel(item) }}
       </a>
     </li>
   </ul>
@@ -15,7 +15,7 @@ import { computed } from 'vue'
 const props = defineProps({
   currencies: { type: Array, required: true }, // cada item debe tener id, encrypted, y label
   currency: { type: [Number, String], required: true },
-  routeWithCoin: {
+  routeWithCurrency: {
     type: Object,
     required: true,
     validator: val =>
@@ -29,12 +29,12 @@ const isActive = id => String(id) === String(props.currency)
 const tabId = item =>
   `${item.id}-${item.iso_code ?? item.currency ?? item.short_name}`
 
-const getCoinLabel = item =>
+const getCurrencyLabel = item =>
   item.iso_code ?? item.currency ?? item.short_name
 
 const tabLink = item => {
-  return $route(props.routeWithCoin.route, {
-    ...props.routeWithCoin.parameters,
+  return $route(props.routeWithCurrency.route, {
+    ...props.routeWithCurrency.parameters,
     currency: item.encrypted // <- usamos encrypted del backend
   })
 }

@@ -263,11 +263,11 @@ class SellerController extends Controller
                     return redirect()->back()->withErrors($validator)->withInput();
                 }
 
-                $userID = $seller->user;
-                $userTimeZone = User::getValueById($userID, 'time_zone');
+                $userId = $seller->user;
+                $userTimeZone = User::getValueById($userId, 'time_zone');
 
                 if ($userTimeZone <> $request->time_zone) {
-                    User::where('id', $userID)->update(['time_zone' => $request->time_zone]);
+                    User::where('id', $userId)->update(['time_zone' => $request->time_zone]);
                 }
 
                 // Verificar si la moneda principal ha cambiado
@@ -434,7 +434,7 @@ class SellerController extends Controller
             $currenciesAvailable = array_values($currenciesAvailable);
         }
 
-        $countriesAvailable = Currency::getCountriesByCoinInArray($currenciesAvailable);
+        $countriesAvailable = Currency::getCountriesByCurrencyInArray($currenciesAvailable);
 
         $countries = Country::getCountries($countriesAvailable, ['id', 'name']);
 
@@ -463,10 +463,10 @@ class SellerController extends Controller
         ]);
     }
 
-    public function getCtnPriceCoin($room, $country)
+    public function getCtnPriceCurrency($room, $country)
     {
         // Obtener moneda según el país
-        $currency = Currency::getCoinByCountry($country, ['id', 'symbol']);
+        $currency = Currency::getCurrencyByCountry($country, ['id', 'symbol']);
         if (!$currency) {
             return response()->json(['error' => 'Moneda no encontrada'], 404);
         }
@@ -478,7 +478,7 @@ class SellerController extends Controller
         }
 
         // Obtener tasa de cambio
-        $exchangeRate = CommerceExchangeRate::getCommerceCoinValue($commerce, $currency->id);
+        $exchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($commerce, $currency->id);
 
         $roomId = BingoRoom::getValueByEncrypted($room, 'id');
         $creator = ['type' => 'commerce_id', 'id' => $commerce];

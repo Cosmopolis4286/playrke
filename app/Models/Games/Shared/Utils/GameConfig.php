@@ -18,7 +18,7 @@ class GameConfig extends Model
 
     public static function getGameParamValue($game, $param, $value = 'value')
     {
-        $gameID = Games::getValueByName($game);
+        $gameId = Games::getValueByName($game);
         return self::where('game', $gameId)->where('param', $param)->value($value);
     }
 }

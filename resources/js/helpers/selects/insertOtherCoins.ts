@@ -11,7 +11,7 @@ const arrCurrencies = getAppDataProperty<Currency[]>('currencies', []);
 // ==========================
 const currency = document.getElementById('currency') as HTMLSelectElement | null;
 const currencyText = document.getElementById('currency-text') as HTMLElement | null;
-const containerCoin = document.getElementById('container-currency') as HTMLElement | null;
+const containerCurrency = document.getElementById('container-currency') as HTMLElement | null;
 const containerOtherCurrencies = document.getElementById('container-other-currencies') as HTMLElement | null;
 const containerTimeZone = document.getElementById('container-time-zone') as HTMLElement | null;
 const country = document.getElementById('country') as HTMLSelectElement | null;
@@ -38,10 +38,10 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
 
     clearOtherCurrencies();
 
-    const mainCoinId = Number(currency.value);
+    const mainCurrencyId = Number(currency.value);
 
     arrCurrencies
-        .filter(c => c.id !== mainCoinId)
+        .filter(c => c.id !== mainCurrencyId)
         .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' }))
         .forEach(({ id, symbol, long_name }) => {
             const option = document.createElement('option');
@@ -55,23 +55,23 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
 }
 
 /** Actualiza la moneda principal y el texto según el país seleccionado */
-function updateMainCoinByCountry(selectedCountry: number): void {
-    const matchingCoin = arrCurrencies.find(c => c.country === selectedCountry);
-    if (!matchingCoin || !currency || !currencyText) return;
+function updateMainCurrencyByCountry(selectedCountry: number): void {
+    const matchingCurrency = arrCurrencies.find(c => c.country === selectedCountry);
+    if (!matchingCurrency || !currency || !currencyText) return;
 
-    currency.value = String(matchingCoin.id);
-    currencyText.textContent = `(${matchingCoin.symbol}) ${matchingCoin.short_name}`;
+    currency.value = String(matchingCurrency.id);
+    currencyText.textContent = `(${matchingCurrency.symbol}) ${matchingCurrency.short_name}`;
 
-    containerCoin?.classList.remove('d-none');
+    containerCurrency?.classList.remove('d-none');
     containerTimeZone?.classList.remove('d-none');
 }
 
 /** Resetea selección de moneda y oculta container de otras monedas */
-function resetCoinSelection(): void {
+function resetCurrencySelection(): void {
     if (currency) currency.value = '';
     if (currencyText) currencyText.textContent = '';
     containerOtherCurrencies?.classList.add('d-none');
-    containerCoin?.classList.add('d-none');
+    containerCurrency?.classList.add('d-none');
     containerTimeZone?.classList.add('d-none');
 }
 
@@ -79,7 +79,7 @@ function resetCoinSelection(): void {
 //   Inicialización
 // ==========================
 /** Inicializa el selector de moneda en función del país */
-export function initCoinSelector(): void {
+export function initCurrencySelector(): void {
     if (!country) return;
 
     containerOtherCurrencies?.classList.add('d-none');
@@ -88,15 +88,15 @@ export function initCoinSelector(): void {
         const selectedCountry = Number(country.value);
 
         if (!selectedCountry) {
-            resetCoinSelection();
+            resetCurrencySelection();
             return;
         }
 
-        updateMainCoinByCountry(selectedCountry);
+        updateMainCurrencyByCountry(selectedCountry);
 
         if (arrCurrencies.length > 1) insertOtherCurrencies();
     });
 }
 
 // Ejecutar inicialización automáticamente si existe el select de país
-initCoinSelector();
+initCurrencySelector();

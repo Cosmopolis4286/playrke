@@ -14,7 +14,7 @@ export const exchangeRateRoutes = {
     "update": "/exchange-rate/update/{id}",
     "delete": "/exchange-rate/delete/{id}",
     "changeStatus": "/exchange-rate/changeStatus/{id}",
-    "getLastValueByCoin": "/exchange-rate/getLastValueByCoin/{currency}",
+    "getLastValueByCurrency": "/exchange-rate/getLastValueByCurrency/{currency}",
     "historical": "/exchange-rate/historical/{currency?}/{creatorType}/{creatorId}",
     "index": "/exchange-rate/{creatorType}/{creatorId?}"
 } as const;

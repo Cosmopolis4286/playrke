@@ -63,7 +63,7 @@
         <script>
             const creatorType = '{{ $creatorType }}';
             const creatorId = @json($creatorId);
-            const currencyId = @json($currencyID);
+            const currencyId = @json($currencyId);
             const ctnPrice = @json($ctnPrice);
             let gameStartTime = @json($startTime);
             let amount = ctnPrice;

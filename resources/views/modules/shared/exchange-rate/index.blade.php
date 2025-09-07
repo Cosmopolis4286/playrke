@@ -109,7 +109,7 @@
         const arrCurrencies = @json($currencies) ?? [];
         const currency = $("#currency");
 
-        let selectedCoin = 'all';
+        let selectedCurrency = 'all';
         let exchangeRateMax;
         let exchangeRateMin;
         let currencyName;
@@ -120,8 +120,8 @@
         })
 
         function setTextExchangeRate() {
-            const selectedCoin = currency.find("option:selected");
-            const currencySymbolbol = selectedCoin.length ? selectedCoin.text() : currencyName;
+            const selectedCurrency = currency.find("option:selected");
+            const currencySymbolbol = selectedCurrency.length ? selectedCurrency.text() : currencyName;
             const rateValue = parseFloat(exchange-rate.val());
 
             if (currency.val() && rateValue > 0) {
@@ -188,9 +188,9 @@
                 currencyName = currency.val();
             });
         } else {
-            function getLastValueByCoin(currency) {
+            function getLastValueByCurrency(currency) {
                 $.getJSON({
-                    url: route('exchange-rate.getLastValueByCoin', currency),
+                    url: route('exchange-rate.getLastValueByCurrency', currency),
                     success: function(data) {
                         const currencyValue = parseFloat(data.toFixed(2));
                         // Calcular los valores de máximo y mínimo
@@ -217,16 +217,16 @@
             if (type == 2) {
                 $('#creator').prop('disabled', true);
                 update = true;
-                const currentCoin = data.currency;
+                const currentCurrency = data.currency;
 
                 if (creatorType === 'customer') {
-                    currency.val(currentCoin);
-                    currencyName = currentCoin;
+                    currency.val(currentCurrency);
+                    currencyName = currentCurrency;
                 } else {
                     currency.append(
-                        `<option value="${currentCoin.id}" selected>${currentCoin.long_name} (${currentCoin.symbol})</option>`
+                        `<option value="${currentCurrency.id}" selected>${currentCurrency.long_name} (${currentCurrency.symbol})</option>`
                     );
-                    currencyName = `${currentCoin.long_name} (${currentCoin.symbol})`;
+                    currencyName = `${currentCurrency.long_name} (${currentCurrency.symbol})`;
                 }
 
                 exchange-rate.val(data.exchange_rate);
@@ -252,7 +252,7 @@
             // Obten la URL
             const urlTemplate = $(this).data("url-template");
             // Reemplaza los placeholders en la URL
-            const finalUrl = urlTemplate.replace(':currency', selectedCoin)
+            const finalUrl = urlTemplate.replace(':currency', selectedCurrency)
             // Redirige a la URL final
             window.location.href = finalUrl;
         });

@@ -73,7 +73,7 @@ class CurrencyRepository
      * @param array $fields
      * @return Currency|null
      */
-    public static function getCoinByCountry(int $countryId, array $fields = ['*'])
+    public static function getCurrencyByCountry(int $countryId, array $fields = ['*'])
     {
         return Currency::select($fields)->where('country_id', $countryId)->first();
     }
@@ -153,7 +153,7 @@ class CurrencyRepository
      * @param int $currencyId
      * @return string|null
      */
-    public static function getPaymentMethodByCoin(int $currencyId)
+    public static function getPaymentMethodByCurrency(int $currencyId)
     {
         return Currency::where('id', $currencyId)->value('payment_method');
     }

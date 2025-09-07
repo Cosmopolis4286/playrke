@@ -904,8 +904,8 @@ trait BingoTrait
             $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
 
             //Registrar nueva moneda en juego de ser necesario
-            if (!CoinGameRoom::existsCoinGameRoom($currency, $roomId, 'BINGO', $gameMode)) {
-                CoinGameRoom::createNewCoinInRoom($game, $roomId, $currency);
+            if (!CurrencyGameRoom::existsCurrencyGameRoom($currency, $roomId, 'BINGO', $gameMode)) {
+                CurrencyGameRoom::createNewCurrencyInRoom($game, $roomId, $currency);
             }
 
             // Si la sala es de un cliente
@@ -1049,14 +1049,14 @@ trait BingoTrait
         }
     }
 
-    private function getCoinByPlayer($creator, $playerID)
+    private function getCurrencyByPlayer($creator, $playerId)
     {
         switch ($creator) {
             case 'customer':
-                $currency = CustomerUser::getValueById($playerID, 'currency');
+                $currency = CustomerUser::getValueById($playerId, 'currency');
                 break;
             case 'commerce_id':
-                $currency = ExternalPlayers::getValueByRoomUser('BINGO', $playerID, 'currency');
+                $currency = ExternalPlayers::getValueByRoomUser('BINGO', $playerId, 'currency');
                 break;
             default:
                 break;
@@ -1451,19 +1451,19 @@ trait BingoTrait
             if ($countCtns === 0) {
 
                 $timestamp = now();
-                $gameID = Games::getValueByName('BINGO');
+                $gameId = Games::getValueByName('BINGO');
 
                 // Obtener las monedas activas en la sala
-                $currencies = CoinGameRoom::getCurrenciesByRoom($gameID, $roomId);
+                $currencies = CurrencyGameRoom::getCurrenciesByRoom($gameId, $roomId);
 
                 // Preparar los datos para insertar
-                $dataJackpots = $currencies->map(function ($currency) use ($roomId, $gameID, $serialsPct, $timestamp) {
+                $dataJackpots = $currencies->map(function ($currency) use ($roomId, $gameId, $serialsPct, $timestamp) {
 
-                    $prizePoolAmount = BingoCreatorSales::getPrizePoolAmountByRoomAndCoin($roomId, $currency);
+                    $prizePoolAmount = BingoCreatorSales::getPrizePoolAmountByRoomAndCurrency($roomId, $currency);
                     $amount = round($prizePoolAmount * $serialsPct, 3);
 
                     return [
-                        'game' => $gameID,
+                        'game' => $gameId,
                         'room' => $roomId,
                         'currency' => $currency,
                         'amount' => $amount,

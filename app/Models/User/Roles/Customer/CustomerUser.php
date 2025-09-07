@@ -44,8 +44,8 @@ class CustomerUser extends Model
         return self::where('customer', $customer)->where('token', $token)->value($value);
     }
 
-    public static function existsUserByCustomer($customer, $userID)
+    public static function existsUserByCustomer($customer, $userId)
     {
-        return self::where('customer', $customer)->where('user_id', $userID)->exists();
+        return self::where('customer', $customer)->where('user_id', $userId)->exists();
     }
 }

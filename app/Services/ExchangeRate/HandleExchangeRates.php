@@ -45,13 +45,13 @@ class ExchangeRateService
     }
 
     /**
-     * Actualiza las tasas de cambio para un usuario específico o para todos si no se pasa userID.
+     * Actualiza las tasas de cambio para un usuario específico o para todos si no se pasa userId.
      *
-     * @param int|null $userID
+     * @param int|null $userId
      * @param bool $checkUpdate
      * @return bool|array
      */
-    public function updateRates(?int $userID = null, bool $checkUpdate = false): bool|array
+    public function updateRates(?int $userId = null, bool $checkUpdate = false): bool|array
     {
         $data = $this->fetchFromApi();
         if (!$data) return ['Error' => 'No se pudieron obtener las tasas de cambio.'];
@@ -59,7 +59,7 @@ class ExchangeRateService
         DB::beginTransaction();
 
         try {
-            $creator = $userID ? User::getCreatorUser($userID, false, true) : null;
+            $creator = $userId ? User::getCreatorUser($userId, false, true) : null;
 
             if (!$creator) {
                 $this->updateForAll('commerce_id', $data, $checkUpdate);

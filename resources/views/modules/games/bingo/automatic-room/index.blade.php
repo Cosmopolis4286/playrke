@@ -111,7 +111,7 @@
             $('#content-rounds-config, #content-price-config').empty();
 
             if (type == 2) {
-                getCtnPriceCoin(data.room.id, creation, creatorType, creatorId);
+                getCtnPriceCurrency(data.room.id, creation, creatorType, creatorId);
                 if (data.room.rounds > 1) getRoundsConfig(data.room.id);
             }
 

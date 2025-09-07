@@ -23,7 +23,7 @@ class SellerRoomLimits extends Model
 
     public static function getGameRoomValueBySeller($gameId, $roomId, $sellerId, $value)
     {
-        $gameID = Games::getValueByName($game);
-        return self::where('game_id', $gameID)->where('room_id', $room)->where('seller_id', $seller)->value($value);
+        $gameId = Games::getValueByName($game);
+        return self::where('game_id', $gameId)->where('room_id', $room)->where('seller_id', $seller)->value($value);
     }
 }

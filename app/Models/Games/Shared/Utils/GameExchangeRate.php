@@ -21,9 +21,9 @@ class GameExchangeRate extends Model
 
     public static function getGameExchangeRateValue($gameName, $room, $currency, $value = 'exchange_rate')
     {
-        $gameID = Games::getValueByName($gameName);
+        $gameId = Games::getValueByName($gameName);
 
-        return self::where('game', $gameID)->where('room', $room)->where('currency', $currency)->value($value);
+        return self::where('game', $gameId)->where('room', $room)->where('currency', $currency)->value($value);
     }
 
     public static function getCountGameExchangeRate($game, $room)

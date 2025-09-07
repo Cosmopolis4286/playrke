@@ -19,7 +19,7 @@ export const bingoRoutes = {
     "getInfoPublicRoomPendingPayments": "/bingo/getInfoPublicRoomPendingPayments",
     "getRoundsConfig": "/bingo/getRoundsConfig/{room}/{type}",
     "getDatetimeRooms": "/bingo/getDateTimeRooms/{creatorUser}/{player}",
-    "getCtnPriceForCoin": "/bingo/getCtnPriceForCoin/{creation}/{creatorType}/{creatorId}/{room?}",
+    "getCtnPriceForCurrency": "/bingo/getCtnPriceForCurrency/{creation}/{creatorType}/{creatorId}/{room?}",
     "participateInPublicRoom": "/bingo/participate/public-room/{id?}/{getOut?}",
     "notifyPaymentPrizeWinningCtn": "/bingo/carton/notify/payment/win-ctn",
     "handleBingoRules": "/bingo/handle-bingo-rules/{id?}",

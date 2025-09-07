@@ -167,9 +167,9 @@
                 currencyName = currency.val();
             });
         } else {
-            function getLastValueByCoin(currency) {
+            function getLastValueByCurrency(currency) {
                 $.getJSON({
-                    url: route('exchange-rate.getLastValueByCoin', currency),
+                    url: route('exchange-rate.getLastValueByCurrency', currency),
                     success: function(data) {
                         const currencyValue = parseFloat(data.toFixed(2));
                         // Calcular los valores de máximo y mínimo
@@ -186,7 +186,7 @@
             }
 
             // currency.on("change", function() {
-            //     if (currency.val() != '') exchange-rate.attr('readonly', true), getLastValueByCoin(currency.val());
+            //     if (currency.val() != '') exchange-rate.attr('readonly', true), getLastValueByCurrency(currency.val());
             // });
 
             $(document).on("input", currency, function() {
@@ -200,16 +200,16 @@
             if (type == 2) {
                 $('#creator').prop('disabled', true);
                 update = true;
-                const currentCoin = data.currency;
+                const currentCurrency = data.currency;
 
                 if (creatorType === 'customer') {
-                    currency.val(currentCoin);
-                    currencyName = currentCoin;
+                    currency.val(currentCurrency);
+                    currencyName = currentCurrency;
                 } else {
                     currency.append(
-                        `<option value="${currentCoin.id}" selected>${currentCoin.long_name} (${currentCoin.symbol})</option>`
+                        `<option value="${currentCurrency.id}" selected>${currentCurrency.long_name} (${currentCurrency.symbol})</option>`
                     );
-                    currencyName = `${currentCoin.long_name} (${currentCoin.symbol})`;
+                    currencyName = `${currentCurrency.long_name} (${currentCurrency.symbol})`;
                 }
 
                 exchange-rate.val(data.exchange_rate);

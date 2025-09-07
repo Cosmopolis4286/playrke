@@ -24,12 +24,12 @@ class TreasurerCountriesCurrencies extends Model
         return $this->belongsTo(Currency::class, 'currency');
     }
 
-    public static function getAvailableCurrencies($treasurer, $exceptCoin = '')
+    public static function getAvailableCurrencies($treasurer, $exceptCurrency = '')
     {
         return self::select('currency')->where('treasurer', $treasurer)
             ->where('status', 1)
-            ->when($exceptCoin, function ($query, $exceptCoin) {
-                return $query->where('currency', '<>', $exceptCoin);
+            ->when($exceptCurrency, function ($query, $exceptCurrency) {
+                return $query->where('currency', '<>', $exceptCurrency);
             })->distinct()->pluck('currency')->toArray();
     }
 

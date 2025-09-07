@@ -30,13 +30,13 @@ class CommerceExchangeRate extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getAllExchangeRatesByCoin($commerce, $currency)
+    public static function getAllExchangeRatesByCurrency($commerce, $currency)
     {
         return self::where('commerce_id', $commerce)->where('currency', $currency)
             ->where('status', 'ACTIVE')->orderByDesc('id')->get(['currency', 'exchange_rate', 'percentage']);
     }
 
-    public static function getCommerceCoinValue($commerce, $currency, $value = 'exchange_rate')
+    public static function getCommerceCurrencyValue($commerce, $currency, $value = 'exchange_rate')
     {
         return self::where('commerce_id', $commerce)->where('currency', $currency)
             ->where('status', 'ACTIVE')->orderByDesc('id')->value($value);
@@ -48,7 +48,7 @@ class CommerceExchangeRate extends Model
             ->orderByDesc('id')->get(['currency', 'exchange_rate']);
     }
 
-    public static function getValuesByCoin($currency)
+    public static function getValuesByCurrency($currency)
     {
         return self::select('exchange_rate')->where('currency', $currency)
             ->where('status', 'ACTIVE')->pluck('exchange_rate');

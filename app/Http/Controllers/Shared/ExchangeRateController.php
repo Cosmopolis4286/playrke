@@ -102,7 +102,7 @@ class ExchangeRateController extends Controller
             if ($creator->type === 'customer') {
 
                 $user = Customer::getValueById($creatorId, 'user');
-                $currencyID = CustomerExchangeRate::getCustomerCoinValue($creatorId, $currency, 'id');
+                $currencyId = CustomerExchangeRate::getCustomerCurrencyValue($creatorId, $currency, 'id');
 
                 $data = [
                     'customer' => $creatorId,
@@ -112,14 +112,14 @@ class ExchangeRateController extends Controller
                     'exchange_rate' => $request->exchange_rate
                 ];
 
-                if ($currencyID) {
+                if ($currencyId) {
                     $data['status'] = 1;
-                    CustomerExchangeRate::where('id', $currencyID)->update($data);
+                    CustomerExchangeRate::where('id', $currencyId)->update($data);
                 } else {
                     CustomerExchangeRate::create($data);
                 }
             } else {
-                $existsCommerceExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorId, $currency);
+                $existsCommerceExchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($creatorId, $currency);
 
                 if ($existsCommerceExchangeRate) return redirect()->back();
 
@@ -215,7 +215,7 @@ class ExchangeRateController extends Controller
         if ($getAVG) {
             try {
                 // Obtener el valor promedio de la tasa con respecto a la moneda recibida
-                $exchangeRates = CommerceExchangeRate::getValuesByCoin($currency);
+                $exchangeRates = CommerceExchangeRate::getValuesByCurrency($currency);
 
                 if ($exchangeRates->isEmpty()) {
                     // Si no hay tasas de cambio disponibles, no hacer nada y retornar false
@@ -329,9 +329,9 @@ class ExchangeRateController extends Controller
         return $info;
     }
 
-    public function getLastValueByCoin($currency)
+    public function getLastValueByCurrency($currency)
     {
-        return ExchangeRate::getLastValueByCoin($currency) ?? 1;
+        return ExchangeRate::getLastValueByCurrency($currency) ?? 1;
     }
 
     public function historical($creatorType, $creatorId, $currency)
@@ -352,13 +352,13 @@ class ExchangeRateController extends Controller
                     $creatorId = $customer;
                 }
 
-                $exchangeRate = CustomerExchangeRate::getAllExchangeRatesByCoin($creatorId, $currency);
+                $exchangeRate = CustomerExchangeRate::getAllExchangeRatesByCurrency($creatorId, $currency);
                 break;
             case 'commerce_id':
                 $creatorId = decrypt($creatorId);
                 $currency = decrypt($currency);
 
-                $exchangeRate = CommerceExchangeRate::getAllExchangeRatesByCoin($creatorId, $currency);
+                $exchangeRate = CommerceExchangeRate::getAllExchangeRatesByCurrency($creatorId, $currency);
                 break;
             default:
                 return response()->json(['message' => 'Ruta no encontrada'], 404);

@@ -40,12 +40,12 @@ class CommerceCountriesCurrencies extends Model
         return $this->hasMany(BingoPrizeCtns::class, 'creator_user_id', 'creator_user_id');
     }
 
-    public static function getAvailableCurrencies($commerce, $exceptCoin = '')
+    public static function getAvailableCurrencies($commerce, $exceptCurrency = '')
     {
         return self::select('currency')->where('commerce_id', $commerce)
             ->where('status', 1)
-            ->when($exceptCoin, function ($query, $exceptCoin) {
-                return $query->where('currency', '<>', $exceptCoin);
+            ->when($exceptCurrency, function ($query, $exceptCurrency) {
+                return $query->where('currency', '<>', $exceptCurrency);
             })->distinct()->pluck('currency')->toArray();
     }
 

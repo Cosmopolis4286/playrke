@@ -21,19 +21,19 @@ class GameRules extends Model
 
     public static function getByGame($game, $user = null, array $fields = ['*'])
     {
-        $gameID = is_string($game) ? Games::getValueByName($game) : $game;
+        $gameId = is_string($game) ? Games::getValueByName($game) : $game;
 
         return self::select($fields)
-            ->where('game', $gameID)
+            ->where('game', $gameId)
             ->when($user, fn($query) => $query->where('user', $user))
             ->first();
     }
 
     public static function getValueByGame($game, $user = false, $value = 'rules')
     {
-        $gameID = is_string($game) ? Games::getValueByName($game) : $game;
+        $gameId = is_string($game) ? Games::getValueByName($game) : $game;
 
-        return self::where('game', $gameID)
+        return self::where('game', $gameId)
             ->when($user, fn($query) => $query->where('user', $user))
             ->value($value);
     }

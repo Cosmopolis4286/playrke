@@ -39,7 +39,7 @@ class SellerCountriesCurrencies extends Model
         return self::where('seller', $seller)->where('currency', $currency)->value($value);
     }
 
-    public static function getCountCoin($seller)
+    public static function getCountCurrency($seller)
     {
         return self::select('currency')->where('seller', $seller)
             ->whereNotNull('currency')->distinct()->count();
@@ -57,18 +57,18 @@ class SellerCountriesCurrencies extends Model
             ->where('status', 1)->distinct()->pluck('currency')->toArray();
     }
 
-    public static function getCountryCoin($seller, $arr, $fields = ['*'])
+    public static function getCountryCurrency($seller, $arr, $fields = ['*'])
     {
         return self::select($fields)->where('seller', $seller)
             ->where('country', $arr[0])->where($arr[1])->first();
     }
 
-    public static function getCountryCoinValue($seller, $arr, $value)
+    public static function getCountryCurrencyValue($seller, $arr, $value)
     {
         return self::where('seller', $seller)->where('country', $arr[0])->where($arr[1])->value($value);
     }
 
-    public static function getCountCountryCoin($seller)
+    public static function getCountCountryCurrency($seller)
     {
         return self::where('seller', $seller)->count();
     }

@@ -7,8 +7,8 @@
         icon: 'fa-solid fa-gear'
       }" />
       <div class="card-body">
-        <CoinTabs :currencies="currencies" :currency="selectedCurrencyId" :routeWithCoin="{
-          route: 'bingo.byCoin',
+        <CurrencyTabs :currencies="currencies" :currency="selectedCurrencyId" :routeWithCurrency="{
+          route: 'bingo.byCurrency',
           parameters: { room: 42 }
         }" />
         <BtnGroup :buttons="[
@@ -27,7 +27,7 @@
 
 <script setup>
 import CardHeader from '@/components/utils/CardHeader.vue'
-import CoinTabs from '@/components/utils/CoinTabs.vue'
+import CurrencyTabs from '@/components/utils/CurrencyTabs.vue'
 import BtnGroup from '@/components/utils/BtnGroup.vue'
 import TableRooms from '@/components/summary/TableRooms.vue'
 import { computed } from 'vue'

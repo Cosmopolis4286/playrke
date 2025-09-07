@@ -17,7 +17,7 @@ export const sellerRoutes = {
     "cartonGenerate": "/seller/bingo/carton/generate",
     "generateCarton": "/seller/bingo/carton/generate/store",
     "ctnsLotPayment": "/seller/bingo/carton/payment/status",
-    "getCtnPriceCoin": "/seller/bingo/get/ctn-price-currency/{room}/{country}",
+    "getCtnPriceCurrency": "/seller/bingo/get/ctn-price-currency/{room}/{country}",
     "getWinnerInfoForCtn": "/seller/bingo/getWinnerInfoForCtn/{ctnId}",
     "getPlayerInfo": "/seller/bingo/player/{playerLink}/info",
     "showPlayerCartons": "/seller/bingo/player/cartons/{playerLink}/{room}",

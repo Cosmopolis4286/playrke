@@ -11,10 +11,10 @@ trait ExternalPlayersTrait
 {
     public function createExternalPlayers($game, $room = '')
     {
-        $gameID = Games::getValueByName($game);
+        $gameId = Games::getValueByName($game);
         do {
             $code = Str::random(20);
-        } while (ExternalPlayers::where('game', $gameID)->where('link', $code)->exists());
+        } while (ExternalPlayers::where('game', $gameId)->where('link', $code)->exists());
         return $code;
     }
 

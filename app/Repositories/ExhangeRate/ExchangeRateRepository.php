@@ -12,7 +12,7 @@ class ExchangeRateRepository
      * @param int $currencyId
      * @return float|null
      */
-    public function getLastValueByCoin(int $currencyId): ?float
+    public function getLastValueByCurrency(int $currencyId): ?float
     {
         return ExchangeRate::where('currency_id', $currencyId)
             ->latest()
@@ -48,7 +48,7 @@ class ExchangeRateRepository
      * @param int $currencyId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getAllByCoin(int $currencyId)
+    public function getAllByCurrency(int $currencyId)
     {
         return ExchangeRate::where('currency_id', $currencyId)
             ->orderByDesc('created_at')

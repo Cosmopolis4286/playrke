@@ -15,9 +15,9 @@ class CustomerCartonService
     public function handleCustomerPrizeCarton($creatorUser)
     {
         // Buscar información del cliente
-        $customerID = Customer::where('user', $creatorUser)->value('id');
+        $customerId = Customer::where('user', $creatorUser)->value('id');
 
-        if (!$customerID) {
+        if (!$customerId) {
             throw new Exception("Cliente no encontrado.");
         }
 
@@ -32,12 +32,12 @@ class CustomerCartonService
         // Procesar premios en fragmentos
         BingoPrizeCtns::where('creator_user_id', $creatorUser)
             ->where('active', 'N')
-            ->chunk(100, function ($prizeCtns) use ($customerID) {
-                $this->processPrizeCtns($prizeCtns, $customerID);
+            ->chunk(100, function ($prizeCtns) use ($customerId) {
+                $this->processPrizeCtns($prizeCtns, $customerId);
             });
 
         // Ejecutar validación de transacciones después del procesamiento
-        app(HandleTransactions::class)->validateTransactions($customerID);
+        app(HandleTransactions::class)->validateTransactions($customerId);
 
         return ['status' => 'success', 'message' => 'Premios procesados exitosamente.'];
     }
@@ -45,7 +45,7 @@ class CustomerCartonService
     /**
      * Procesar premios no procesados
      */
-    private function processPrizeCtns($prizeCtns, $customerID)
+    private function processPrizeCtns($prizeCtns, $customerId)
     {
         DB::beginTransaction();
 
@@ -56,7 +56,7 @@ class CustomerCartonService
                 $roomUUID = $this->getRoomUUID($ctn->room);
 
                 // Registrar la transacción
-                $this->processPrizeTransaction($ctn, $customerID, $roomUUID);
+                $this->processPrizeTransaction($ctn, $customerId, $roomUUID);
 
                 // Actualizar estado del premio
                 if (!$ctn->update(['active' => 'Y'])) {
@@ -89,11 +89,11 @@ class CustomerCartonService
     /**
      * Procesar transacción del premio
      */
-    private function processPrizeTransaction($ctn, $customerID, $roomUUID)
+    private function processPrizeTransaction($ctn, $customerId, $roomUUID)
     {
         $transaction = $this->registerTransaction(
             ['name' => 'BINGO', 'game_mode' => 1],
-            $customerID,
+            $customerId,
             $ctn->player_user,
             $roomUUID,
             'WIN',

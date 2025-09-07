@@ -226,11 +226,11 @@ class TreasurerController extends Controller
                     return redirect()->back()->withErrors($validator)->withInput();
                 }
 
-                $userID = $treasurer->user;
-                $userTimeZone = User::getValueById($userID, 'time_zone');
+                $userId = $treasurer->user;
+                $userTimeZone = User::getValueById($userId, 'time_zone');
 
                 if ($userTimeZone <> $request->time_zone) {
-                    User::where('id', $userID)->update(['time_zone' => $request->time_zone]);
+                    User::where('id', $userId)->update(['time_zone' => $request->time_zone]);
                 }
 
                 // Verificar si la moneda principal ha cambiado

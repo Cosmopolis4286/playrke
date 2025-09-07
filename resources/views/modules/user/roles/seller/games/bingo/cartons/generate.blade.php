@@ -280,9 +280,9 @@
             }
         }
 
-        function getCtnPriceCoin(country) {
+        function getCtnPriceCurrency(country) {
             $.getJSON({
-                url: route('seller.getCtnPriceCoin', {
+                url: route('seller.getCtnPriceCurrency', {
                     room: roomId,
                     country
                 }),
@@ -366,7 +366,7 @@
             if (!countryVal) {
                 clearPlayerInfo();
             } else {
-                getCtnPriceCoin(country);
+                getCtnPriceCurrency(country);
             }
         });
 

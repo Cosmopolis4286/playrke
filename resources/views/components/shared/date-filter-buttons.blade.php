@@ -1,6 +1,6 @@
 @foreach (['yesterday' => 'Ayer', 'today' => 'Hoy', 'all' => 'Todo'] as $filter => $label)
     <a href="{{ route(
-        $routeWithCoin,
+        $routeWithCurrency,
         array_merge(
             ['dateFilter' => $filter],
             isset($room) ? ['room' => $room] : [],

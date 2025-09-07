@@ -364,7 +364,7 @@
                                 room
                             }) :
                             route('bingo.in-game-customer', {
-                                customer: '{{ $customerID }}',
+                                customer: '{{ $customerId }}',
                                 userToken,
                                 room
                             });

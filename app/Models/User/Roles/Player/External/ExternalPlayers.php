@@ -86,13 +86,13 @@ class ExternalPlayers extends Model
 
   public static function getByRoomUser($game, $roomUser, $fields = ['*'])
   {
-    $gameID = Games::getValueByName($game);
-    return self::select($fields)->where('game', $gameID)->where('room_user', $roomUser)->first();
+    $gameId = Games::getValueByName($game);
+    return self::select($fields)->where('game', $gameId)->where('room_user', $roomUser)->first();
   }
 
   public static function getValueByRoomUser($game, $roomUser, $value)
   {
-    $gameID = Games::getValueByName($game);
-    return self::where('game', $gameID)->where('room_user', $roomUser)->value($value);
+    $gameId = Games::getValueByName($game);
+    return self::where('game', $gameId)->where('room_user', $roomUser)->value($value);
   }
 }

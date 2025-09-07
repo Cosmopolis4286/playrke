@@ -91,7 +91,7 @@ class CustomerController extends Controller
         return ['customerKey' => $customerKey, 'securityKey' => $securityKey];
     }
 
-    private function saveLogo(UploadedFile $logo, $customerID)
+    private function saveLogo(UploadedFile $logo, $customerId)
     {
         try {
             if ($logo && $logo->isValid()) {
@@ -99,7 +99,7 @@ class CustomerController extends Controller
                 $fileName = Carbon::now()->timestamp . '.' . $logo->getClientOriginalExtension();
 
                 // Crear una carpeta personalizada usando el ID del cliente
-                $customerFolder = "customers/$customerID";
+                $customerFolder = "customers/$customerId";
 
                 // Eliminar cualquier archivo existente en la carpeta
                 Storage::disk('public')->deleteDirectory($customerFolder);
@@ -113,7 +113,7 @@ class CustomerController extends Controller
             throw new \Exception('El archivo no es válido o está corrupto.');
         } catch (\Exception $e) {
             // Registrar el error para depuración
-            Log::error("Error al guardar el logo para el cliente $customerID: " . $e->getMessage());
+            Log::error("Error al guardar el logo para el cliente $customerId: " . $e->getMessage());
 
             throw new HttpResponseException(response()->json([
                 'message' => 'Error al guardar el logo. Inténtalo de nuevo.',
@@ -252,11 +252,11 @@ class CustomerController extends Controller
                     return redirect()->back()->withErrors($validator)->withInput();
                 }
 
-                $userID = $customer->user;
-                $userTimeZone = User::getValueById($userID, 'time_zone');
+                $userId = $customer->user;
+                $userTimeZone = User::getValueById($userId, 'time_zone');
 
                 if ($userTimeZone <> $request->time_zone) {
-                    User::where('id', $userID)->update(['time_zone' => $request->time_zone]);
+                    User::where('id', $userId)->update(['time_zone' => $request->time_zone]);
                 }
 
                 $fileLogo = $request->file('logo');
@@ -363,24 +363,24 @@ class CustomerController extends Controller
 
     public function getUserId($userToken)
     {
-        $customerID = Customer::getValueByUserId(Auth::id(), 'id');
-        if (!$customerID) return false;
-        return $this->getUserInfoFromCustomer($customerID, $userToken);
+        $customerId = Customer::getValueByUserId(Auth::id(), 'id');
+        if (!$customerId) return false;
+        return $this->getUserInfoFromCustomer($customerId, $userToken);
     }
 
     public function getUserBalance($userToken)
     {
-        $customerID = Customer::getValueByUserId(Auth::id(), 'id');
-        if (!$customerID) return false;
-        return $this->getUserBalanceFromCustomer($customerID, $userToken);
+        $customerId = Customer::getValueByUserId(Auth::id(), 'id');
+        if (!$customerId) return false;
+        return $this->getUserBalanceFromCustomer($customerId, $userToken);
     }
 
     public function increaseBalance($userToken, $balance = 2000)
     {
-        $customerID = Customer::getValueByUserId(Auth::id(), 'id');
-        if (!$customerID) return false;
+        $customerId = Customer::getValueByUserId(Auth::id(), 'id');
+        if (!$customerId) return false;
 
-        $player = CustomerUser::getByToken($customerID, $userToken, ['id', 'currency']);
+        $player = CustomerUser::getByToken($customerId, $userToken, ['id', 'currency']);
 
         if (!$player) {
             return response()->json(['type' => 'warning', 'message' => 'Usuario no encontrado en DB']);
@@ -391,7 +391,7 @@ class CustomerController extends Controller
         try {
             $transaction = $this->registerTransaction(
                 ['name' => 'BINGO', 'game_mode' => 1],
-                $customerID,
+                $customerId,
                 $player->id,
                 'TESTE_RECARGAR_SALDO',
                 'WIN',

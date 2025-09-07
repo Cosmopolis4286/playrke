@@ -24,7 +24,7 @@ class Seller extends Model
         return $this->belongsTo(Currency::class, 'currency');
     }
 
-    public static function getCoinByIdId($seller)
+    public static function getCurrencyByIdId($seller)
     {
         return self::where('id', $seller)->value('currency');
     }

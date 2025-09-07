@@ -9,9 +9,9 @@ class CustomerSessionService
 {
     use SeamlessWallet;
 
-    public function handleCustomerUserSession($customerID, $userToken)
+    public function handleCustomerUserSession($customerId, $userToken)
     {
-        $customerResponse = $this->getUserInfoFromCustomer($customerID, $userToken);
+        $customerResponse = $this->getUserInfoFromCustomer($customerId, $userToken);
 
         if (isset($customerResponse['Error'])) {
             return ['Error' => $customerResponse['Error']];
@@ -21,22 +21,22 @@ class CustomerSessionService
             return ['Error' => 'Error en la solicitud HTTP'];
         }
 
-        $userID = $customerResponse['Data']['ID'];
+        $userId = $customerResponse['Data']['ID'];
         $country = $customerResponse['Data']['Country'] ?? null;
         $currency = $customerResponse['Data']['DefaultCurrencyCode'];
 
-        if (!CustomerUser::existsUserByCustomer($customerID, $userID)) {
+        if (!CustomerUser::existsUserByCustomer($customerId, $userId)) {
             $this->registerUserByCustomer(
-                $customerID,
-                $userID,
+                $customerId,
+                $userId,
                 $userToken,
                 $country,
                 $currency
             );
         } else {
-            CustomerUser::where('user_id', $userID)->update([
-                'customer' => $customerID,
-                'user_id' => $userID,
+            CustomerUser::where('user_id', $userId)->update([
+                'customer' => $customerId,
+                'user_id' => $userId,
                 'token' => $userToken,
                 'country' => $country,
                 'currency' => $currency,

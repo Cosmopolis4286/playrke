@@ -5,7 +5,7 @@
         <div class="card">
             <x-shared.card-header :title="$title" :subtitle="$subtitle" :btnCardHeader="['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear']" />
             <div class="card-body">
-                <x-shared.currency-tabs :currencies="$currencies" :selectedCoin="$currency" :routeWithCoin="$routeWithCoin" />
+                <x-shared.currency-tabs :currencies="$currencies" :selectedCurrency="$currency" :routeWithCurrency="$routeWithCurrency" />
                 <x-games.bingo.shared.button-group view="PRIVATE" name="btn-ver-salas" :creator="$creator" :rooms="$rooms"
                     :activeRooms="$activeRooms" :gameRoomRoute="$gameRoomRoute" />
                 <div class="tab-content" id="myTabContent">
@@ -117,7 +117,7 @@
         }
 
         allowedCurrencies.on('change', function() {
-            getCtnPriceCoin(room, creation, creatorType, creatorId);
+            getCtnPriceCurrency(room, creation, creatorType, creatorId);
         });
 
         function insertBingoPlays() {
@@ -159,7 +159,7 @@
 
             if (type == 2 && data.config.rounds > 1) getRoundsConfig(room);
             insertAllowedCurrencies(allowedCurrencies);
-            getCtnPriceCoin(room, creation, creatorType, creatorId);
+            getCtnPriceCurrency(room, creation, creatorType, creatorId);
 
             gameMode.prop({
                 disabled: isDisabled,

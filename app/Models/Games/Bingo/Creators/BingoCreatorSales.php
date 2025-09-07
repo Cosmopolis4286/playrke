@@ -64,7 +64,7 @@ class BingoCreatorSales extends Model
         return $query->exists();
     }
 
-    public static function getPrizePoolAmountByRoomAndCoin($room, $currency)
+    public static function getPrizePoolAmountByRoomAndCurrency($room, $currency)
     {
         return self::where('room', $room)->where('currency', $currency)->sum('prize_pool_amount');
     }

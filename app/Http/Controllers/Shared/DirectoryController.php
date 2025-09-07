@@ -21,7 +21,7 @@ class DirectoryController extends Controller
     public function index($countryCode)
     {
         $user = $this->user(['id', 'user_type']);
-        $userID = $user->id;
+        $userId = $user->id;
         $userType = RoleRepository::getValueById($user->user_type, 'prefix');
 
         if ($userType === 'customer') {
@@ -47,7 +47,7 @@ class DirectoryController extends Controller
             $isoCode3 = $country->iso_code_3;
         }
 
-        $countries = Country::getCountriesById($this->getAvailableCountries($userID));
+        $countries = Country::getCountriesById($this->getAvailableCountries($userId));
 
         $paymentType = null;
         $moduleId  = null;
@@ -58,7 +58,7 @@ class DirectoryController extends Controller
                 $paymentType = 'Registro';
                 $moduleId  = 'binance';
                 $additionalData = [
-                    'accounts' => BinanceAccounts::where('user', $userID)->get(),
+                    'accounts' => BinanceAccounts::where('user', $userId)->get(),
                     'accountTypes' => BinanceAccounts::getAccountTypes()
                 ];
                 break;
@@ -67,7 +67,7 @@ class DirectoryController extends Controller
                 $paymentType = 'Pix';
                 $moduleId  = 'pix';
                 $additionalData = [
-                    'pixs' => Pix::where('user', $userID)->get(),
+                    'pixs' => Pix::where('user', $userId)->get(),
                     'pixKeys' => Pix::getPixKeys()
                 ];
                 break;
@@ -76,7 +76,7 @@ class DirectoryController extends Controller
                 $paymentType = 'Registro';
                 $moduleId  = 'payment-method-col';
                 $additionalData = [
-                    'paymentMethods' => PaymentMethodsCOL::where('user', $userID)->get(),
+                    'paymentMethods' => PaymentMethodsCOL::where('user', $userId)->get(),
                     'arrPaymentMethod' => ['B' => 'Bancolombia', 'D' => 'Daviplata', 'N' => 'Nequi']
                 ];
                 break;
@@ -85,7 +85,7 @@ class DirectoryController extends Controller
                 $paymentType = 'Pago Movil';
                 $moduleId  = 'pagomovil';
                 $additionalData = [
-                    'pagomovils' => PagoMovil::with('Bank')->where('user', $userID)->get(),
+                    'pagomovils' => PagoMovil::with('Bank')->where('user', $userId)->get(),
                     'documentType' => DocumentType::getDocumentTypeByCountry($country->id),
                     'banks' => BanksVenezuela::all()
                 ];
@@ -93,7 +93,7 @@ class DirectoryController extends Controller
         }
 
         if ($userType === 'commerce_id') {
-            $commerce = Commerce::getValueByUserId($userID, 'id');
+            $commerce = Commerce::getValueByUserId($userId, 'id');
 
             $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($commerce);
 

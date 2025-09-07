@@ -54,7 +54,7 @@ class ExchangeRateRelationRepository
      * @param int $currencyId
      * @return bool
      */
-    public function hasAccessToCoin(int $userId, int $commerceId, int $currencyId): bool
+    public function hasAccessToCurrency(int $userId, int $commerceId, int $currencyId): bool
     {
         return ExchangeRateRelation::where('user_id', $userId)
             ->where('commerce_id', $commerceId)

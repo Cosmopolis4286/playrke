@@ -39,7 +39,7 @@
         function insertInfo(type, data = '') {
             if (type !== 2) return;
 
-            getCtnPriceCoin(data.room.encrypted, creation, creatorType, creatorId);
+            getCtnPriceCurrency(data.room.encrypted, creation, creatorType, creatorId);
 
             $('#ctn-price').val(data.creator?.card_price ?? data.config?.card_price);
             $('#room-commn').val(data.creator?.creator_commn ?? data.config?.room_commn);

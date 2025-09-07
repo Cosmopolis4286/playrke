@@ -25,19 +25,19 @@ class CustomerExchangeRate extends Model
         return self::where('id', $id)->value($value);
     }
 
-    public static function getAllExchangeRatesByCoin($customer, $currency)
+    public static function getAllExchangeRatesByCurrency($customer, $currency)
     {
         return self::where('customer', $customer)->where('currency', $currency)
             ->orderByDesc('id')->get(['currency', 'exchange_rate', 'percentage']);
     }
 
-    public static function getByCustomerCoin($customer, $currency, $fields = ['*'])
+    public static function getByCustomerCurrency($customer, $currency, $fields = ['*'])
     {
         return self::select($fields)->where('customer', $customer)
             ->where('currency', $currency)->orderByDesc('id')->first();
     }
 
-    public static function getCustomerCoinValue($customer, $currency, $value = 'exchange_rate')
+    public static function getCustomerCurrencyValue($customer, $currency, $value = 'exchange_rate')
     {
         return self::where('customer', $customer)->where('currency', $currency)
             ->where('status', 'ACTIVE')->orderByDesc('id')->value($value);
@@ -49,7 +49,7 @@ class CustomerExchangeRate extends Model
             ->where('status', 'ACTIVE')->orderByDesc('id')->get(['currency', 'exchange_rate']);
     }
 
-    public static function getValuesByCoin($currency)
+    public static function getValuesByCurrency($currency)
     {
         return self::select('exchange_rate')->where('currency', $currency)
             ->where('status', 'ACTIVE')->pluck('exchange_rate');
@@ -74,7 +74,7 @@ class CustomerExchangeRate extends Model
         return self::select('id', 'currency')->where('customer', $customer)->where('status', $status)->get();
     }
 
-    public static function existsCoinByCustomer($customer, $currency)
+    public static function existsCurrencyByCustomer($customer, $currency)
     {
         return self::where(['customer' => $customer, 'currency' => $currency])->exists();
     }
