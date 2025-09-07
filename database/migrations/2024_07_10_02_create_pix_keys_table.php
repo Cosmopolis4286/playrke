@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('name', 35)->nullable();
 
             $table->foreignSnowflake('bank_id')
-                ->constrained('banks_brasil')
+                ->constrained('banks_brazil')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
 

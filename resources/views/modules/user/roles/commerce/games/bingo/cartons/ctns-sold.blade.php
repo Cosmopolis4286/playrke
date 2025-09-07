@@ -53,7 +53,7 @@
                                                     <button class="btn btn-primary btn-sm btn-confirm-payment"
                                                         data-seller="{{ $ctn->Seller->name }}"
                                                         data-lot="{{ encrypt($ctn->id) }}"
-                                                        data-coin_sym="{{ $currencyData->iso_code }}"
+                                                        data-currency-symbol="{{ $currencyData->iso_code }}"
                                                         data-sale_ctns="{{ $ctn->sale_amount }}"
                                                         data-proof="{{ $ctn->Payment->payment_proof }}">
                                                         Validar Pago
@@ -148,7 +148,7 @@
 
             $("#lot").val(data.lot);
             $("#seller-name").html(`<b>Vendedor: </b>${data.seller}<br>`);
-            $("#sale-ctns").html(`<b>Venta: </b>${data.coin_sym} ${data.sale_ctns}`);
+            $("#sale-ctns").html(`<b>Venta: </b>${data.currency-symbol} ${data.sale_ctns}`);
             $('#show-payment-proof').attr('href', route('image.show-image-payment-ctns', filename: data.proof));
 
             $("#modal-payment").modal("show");

@@ -169,8 +169,8 @@ Route::group(['prefix' => 'exchange-rate', 'as' => 'exchange-rate.'], function (
     Route::delete('delete/{id}', [ExchangeRateController::class, 'delete'])->name('delete');
     Route::put('changeStatus/{id}', [ExchangeRateController::class, 'changeStatus'])->name('changeStatus');
     Route::get('getLastValueByCoin/{currency}', [ExchangeRateController::class, 'getLastValueByCoin'])->name('getLastValueByCoin');
-    Route::get('historical/{currency?}/{creatorType}/{creatorID}', [ExchangeRateController::class, 'historical'])->name('historical');
-    Route::get('{creatorType}/{creatorID?}', [ExchangeRateController::class, 'index'])->name('index');
+    Route::get('historical/{currency?}/{creatorType}/{creatorId}', [ExchangeRateController::class, 'historical'])->name('historical');
+    Route::get('{creatorType}/{creatorId?}', [ExchangeRateController::class, 'index'])->name('index');
 });
 
 // Opciones para Seller - admin y comercio
@@ -195,7 +195,7 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::get('bingo/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
     Route::get('bingo/player/cartons/{playerLink}/{room}', [SellerController::class, 'showPlayerCartons'])->name('showPlayerCartons');
     Route::post('bingo/player/get/player', [SellerController::class, 'getPlayer'])->name('getPlayer');
-    Route::get('bingo/carton/get/price/{roomID}', [SellerController::class, 'getCtnPrice'])->name('getCtnPrice');
+    Route::get('bingo/carton/get/price/{roomId}', [SellerController::class, 'getCtnPrice'])->name('getCtnPrice');
 
     Route::get('getPaymentCommerceDetails/{currency}', [SellerController::class, 'getPaymentCommerceDetails'])->name('getPaymentCommerceDetails');
 });
@@ -279,7 +279,7 @@ Route::group(['prefix' => 'bingo', 'as' => 'bingo.'], function () {
     Route::get('getInfoPublicRoomPendingPayments', [BingoController::class, 'getInfoPublicRoomPendingPayments'])->name('getInfoPublicRoomPendingPayments');
     Route::get('getRoundsConfig/{room}/{type}', [BingoController::class, 'getRoundsConfig'])->name('getRoundsConfig');
     Route::get('getDateTimeRooms/{creatorUser}/{player}', [BingoController::class, 'getDateTimeRooms'])->name('getDatetimeRooms');
-    Route::get('getCtnPriceForCoin/{creation}/{creatorType}/{creatorID}/{room?}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
+    Route::get('getCtnPriceForCoin/{creation}/{creatorType}/{creatorId}/{room?}', [BingoController::class, 'getCtnPriceForCoin'])->name('getCtnPriceForCoin');
 
     // Participación y notificaciones
     Route::put('participate/public-room/{id?}/{getOut?}', [BingoController::class, 'participateInPublicRoom'])->name('participateInPublicRoom');
@@ -334,7 +334,7 @@ Route::group(['prefix' => 'bingocash', 'as' => 'bingo.'], function () {
 Route::get('bingo/view-ctn/{ctnId}', [BingoController::class, 'viewCtn'])->name('bingo.viewCtn');
 
 // Bingo sala de juego resumen
-Route::get('bingo/{roomType}/{creatorType}/{creatorID?}/{currency?}', [BingoController::class, 'handleGameRoomSummary'])->name('bingo.handleGameRoomSummary');
+Route::get('bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}', [BingoController::class, 'handleGameRoomSummary'])->name('bingo.handleGameRoomSummary');
 
 // Rutas jugador/cliente bingo
 Route::get('{customer}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('bingo.in-game-customer');
@@ -354,7 +354,7 @@ Route::group(['middleware' => 'auth', 'prefix' => 'bingo-automatic-room', 'as' =
     Route::put('automatic-room/changeStatus/{id}', [BingoController::class, 'changeStatusAutomaticRoom'])->name('changeStatus');
     Route::put('automatic-room/delete/{id}', [BingoController::class, 'deleteAutomaticRoom'])->name('delete');
     Route::put('automatic-room/copy/{id}', [BingoController::class, 'copyAutomaticRoom'])->name('copy');
-    Route::get('automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorID}', [BingoController::class, 'executeGenerateBingoRoomsJob'])->name('executeGenerateBingoRoomsJob');
+    Route::get('automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorId}', [BingoController::class, 'executeGenerateBingoRoomsJob'])->name('executeGenerateBingoRoomsJob');
 });
 
 // Billetera (Wallet) - middleware auth

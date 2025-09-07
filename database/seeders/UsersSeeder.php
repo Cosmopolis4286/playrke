@@ -79,7 +79,7 @@ class UsersSeeder extends Seeder
                 
                 $this->command->info('Monedero VES creado para el usuario admin');
             } else {
-                $this->command->warn('Moneda VES no encontrada. Ejecute CoinsSeeder primero.');
+                $this->command->warn('Moneda VES no encontrada. Ejecute CurrenciesSeeder primero.');
             }
 
             $this->command->info("Usuario Admin creado exitosamente con ID: {$user->id}");

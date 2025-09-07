@@ -32,7 +32,7 @@ class IframeController extends Controller
                     [
                         'roomType' => 'private-rooms',
                         'creatorType' => 'customer',
-                        'creatorID' => encrypt($customer->id)
+                        'creatorId' => encrypt($customer->id)
                     ]
                 )
             ],

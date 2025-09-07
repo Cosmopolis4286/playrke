@@ -25,7 +25,7 @@ class CommerceDTO
     /** @var array<int,string>|null */
     public readonly ?array $allowedGames;
     /** @var array<int,string>|null */
-    public readonly ?array $otherCoins;
+    public readonly ?array $otherCurrencies;
 
     /**
      * Constructor privado: mapea snake_case -> camelCase.

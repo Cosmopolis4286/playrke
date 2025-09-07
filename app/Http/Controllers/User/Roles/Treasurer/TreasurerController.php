@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Models\OtherTreasurers;
 use App\Models\Treasurer;
-use App\Models\TreasurerCountriesCoins;
+use App\Models\TreasurerCountriesCurrencies;
 use App\Models\PhoneNumbers;
 use App\Models\Role;
 use App\Models\UniqueCode;
@@ -39,10 +39,10 @@ class TreasurerController extends Controller
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
             'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
-            'currency' => ['required', 'numeric', 'exists:coins,id'],
+            'currency' => ['required', 'numeric', 'exists:currencies,id'],
             'name' => ['required', 'string'],
             'phone' => ['required', 'string', 'max:20', 'unique:treasurers,phone'],
-            'other_currencies.*' => ['exists:coins,id'],
+            'other_currencies.*' => ['exists:currencies,id'],
         ];
 
         // Ajustar reglas de validación si es una actualización.
@@ -57,7 +57,7 @@ class TreasurerController extends Controller
             'username.unique' => 'Nombre de usuario no disponible.',
             'email.unique' => 'Este correo ya está registrado.',
             'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
-            'other_currencies.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
+            'other_currencies.*.exists' => 'Uno o más de los otros currencies seleccionados no existen en la base de datos.',
         ];
 
         // Crear el validador.
@@ -86,7 +86,7 @@ class TreasurerController extends Controller
         try {
 
             $userToPromote = $request->user_to_promote;
-            $otherCoins = $request->other_currencies;
+            $otherCurrencies = $request->other_currencies;
             $allowedGames = $request->allowed_games;
 
             if ($userToPromote) {
@@ -101,7 +101,7 @@ class TreasurerController extends Controller
                 OtherTreasurers::create([
                     'creator_user_id' => $userToPromote,
                     'allowed_games' => $allowedGames,
-                    'allowed_currencies' => $otherCoins,
+                    'allowed_currencies' => $otherCurrencies,
                 ]);
 
                 DB::commit();
@@ -156,7 +156,7 @@ class TreasurerController extends Controller
             ]);
 
             // Registar moneda Principal
-            TreasurerCountriesCoins::create([
+            TreasurerCountriesCurrencies::create([
                 'treasurer' => $treasurer->id,
                 'country' => $treasurer->country,
                 'currency' => $treasurer->currency,
@@ -171,9 +171,9 @@ class TreasurerController extends Controller
                 'userId' => $newUser
             ];
 
-            if ($otherCoins) {
+            if ($otherCurrencies) {
                 // Insertar otras monedas
-                $this->insertOtherCoins($creatorUser, $otherCoins);
+                $this->insertOtherCurrencies($creatorUser, $otherCurrencies);
             }
 
             DB::commit();
@@ -193,13 +193,13 @@ class TreasurerController extends Controller
     {
         $id = decrypt($id);
         $treasurer = Treasurer::getById($id, ['name', 'country', 'currency', 'phone']);
-        $otherCoins = TreasurerCountriesCoins::getAvailableCoins($id);
+        $otherCurrencies = TreasurerCountriesCurrencies::getAvailableCurrencies($id);
         $user = User::getById(Treasurer::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
 
         $data = [
             'treasurer' => $treasurer,
             'user' => $user,
-            'other_currencies' => $otherCoins
+            'other_currencies' => $otherCurrencies
         ];
 
         return response()->json($data);
@@ -255,7 +255,7 @@ class TreasurerController extends Controller
 
                 if ($currencyChange) {
                     // Actualizar moneda Principal
-                    TreasurerCountriesCoins::where('creator_user_id', $treasurer->user)
+                    TreasurerCountriesCurrencies::where('creator_user_id', $treasurer->user)
                         ->where('currency', $treasurer->currency)
                         ->update([
                             'country' => $treasurer->country,
@@ -269,11 +269,11 @@ class TreasurerController extends Controller
                     'userId' => $treasurer->user
                 ];
 
-                $otherCoins = $request->other_currencies;
+                $otherCurrencies = $request->other_currencies;
 
-                if ($otherCoins) {
+                if ($otherCurrencies) {
                     // Insertar otras monedas
-                    $this->insertOtherCoins($creatorUser, $otherCoins);
+                    $this->insertOtherCurrencies($creatorUser, $otherCurrencies);
                 }
 
                 DB::commit();

@@ -11,7 +11,7 @@ class CurrencyRepository
      *
      * @param int $currencyId
      * @param array $fields
-     * @return Coin|null
+     * @return Currency|null
      */
     public static function getById(int $currencyId, array $fields = ['*'])
     {
@@ -23,7 +23,7 @@ class CurrencyRepository
      *
      * @param string $isoCode
      * @param array $fields
-     * @return Coin|null
+     * @return Currency|null
      */
     public static function getByISOCode(string $isoCode, array $fields = ['*'])
     {
@@ -71,7 +71,7 @@ class CurrencyRepository
      *
      * @param int $countryId
      * @param array $fields
-     * @return Coin|null
+     * @return Currency|null
      */
     public static function getCoinByCountry(int $countryId, array $fields = ['*'])
     {
@@ -131,7 +131,7 @@ class CurrencyRepository
      * @param array $countryIds
      * @return array
      */
-    public static function getCoinsByCountry(array $countryIds)
+    public static function getCurrenciesByCountry(array $countryIds)
     {
         return Currency::whereIn('country_id', $countryIds)->pluck('id')->toArray();
     }
@@ -142,7 +142,7 @@ class CurrencyRepository
      * @param array $currencyIds
      * @return array
      */
-    public static function getCountriesByCoins(array $currencyIds)
+    public static function getCountriesByCurrencies(array $currencyIds)
     {
         return Currency::whereIn('id', $currencyIds)->pluck('country_id')->toArray();
     }
@@ -164,7 +164,7 @@ class CurrencyRepository
      * @param array $fields
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public static function getAvailableCoins(array $fields = ['*'])
+    public static function getAvailableCurrencies(array $fields = ['*'])
     {
         return Currency::select($fields)->where('status', 1)->get();
     }

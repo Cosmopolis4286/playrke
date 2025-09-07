@@ -19,7 +19,7 @@ export const bingoRoutes = {
     "getInfoPublicRoomPendingPayments": "/bingo/getInfoPublicRoomPendingPayments",
     "getRoundsConfig": "/bingo/getRoundsConfig/{room}/{type}",
     "getDatetimeRooms": "/bingo/getDateTimeRooms/{creatorUser}/{player}",
-    "getCtnPriceForCoin": "/bingo/getCtnPriceForCoin/{creation}/{creatorType}/{creatorID}/{room?}",
+    "getCtnPriceForCoin": "/bingo/getCtnPriceForCoin/{creation}/{creatorType}/{creatorId}/{room?}",
     "participateInPublicRoom": "/bingo/participate/public-room/{id?}/{getOut?}",
     "notifyPaymentPrizeWinningCtn": "/bingo/carton/notify/payment/win-ctn",
     "handleBingoRules": "/bingo/handle-bingo-rules/{id?}",
@@ -42,7 +42,7 @@ export const bingoRoutes = {
     "gameRoomsCommerce": "/bingo/{roomType}/game-rooms/{currency?}",
     "actWn": "/bingo/actWn",
     "viewCtn": "/bingo/view-ctn/{ctnId}",
-    "handleGameRoomSummary": "/bingo/{roomType}/{creatorType}/{creatorID?}/{currency?}",
+    "handleGameRoomSummary": "/bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}",
     "k3yg4m3": "/bingo/k3yg4m3/play-rke"
 } as const;
 

@@ -11,16 +11,16 @@ class RoundsService
     /**
      * Asocia las rondas a la sala.
      *
-     * @param int $automaticBingoID
+     * @param int $automaticBingoId
      * @param int $roomId
      * @return void
      */
-    public function associateRounds(int $automaticBingoID, int $roomId): void
+    public function associateRounds(int $automaticBingoId, int $roomId): void
     {
-        $draft = BingoRoundsDrafts::getByAutomaticRoom($automaticBingoID);
+        $draft = BingoRoundsDrafts::getByAutomaticRoom($automaticBingoId);
 
         if (!$draft) {
-            Log::warning("No hay draft de rondas para automatic bingo ID {$automaticBingoID}");
+            Log::warning("No hay draft de rondas para automatic bingo ID {$automaticBingoId}");
             return;
         }
 

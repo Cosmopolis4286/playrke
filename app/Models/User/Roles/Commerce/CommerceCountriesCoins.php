@@ -5,7 +5,7 @@ namespace App\Models\User\Roles\Commerce;
 use App\Models\Countries\Country;
 use Illuminate\Database\Eloquent\Model;
 
-class CommerceCountriesCoins extends Model
+class CommerceCountriesCurrencies extends Model
 {
     protected $table = "commerces_countries_currencies";
     protected $fillable = ['commerce_id', 'country', 'currency', 'level', 'creator_user_id', 'status'];
@@ -20,7 +20,7 @@ class CommerceCountriesCoins extends Model
         return $this->belongsTo(Country::class, 'country');
     }
 
-    public function Coin()
+    public function Currency()
     {
         return $this->belongsTo(Currency::class, 'currency');
     }
@@ -40,7 +40,7 @@ class CommerceCountriesCoins extends Model
         return $this->hasMany(BingoPrizeCtns::class, 'creator_user_id', 'creator_user_id');
     }
 
-    public static function getAvailableCoins($commerce, $exceptCoin = '')
+    public static function getAvailableCurrencies($commerce, $exceptCoin = '')
     {
         return self::select('currency')->where('commerce_id', $commerce)
             ->where('status', 1)
@@ -49,7 +49,7 @@ class CommerceCountriesCoins extends Model
             })->distinct()->pluck('currency')->toArray();
     }
 
-    public static function getAllAvailableCountriesCoins($commerce, $fields = ['*'])
+    public static function getAllAvailableCountriesCurrencies($commerce, $fields = ['*'])
     {
         return self::select($fields)->where('commerce_id', $commerce)->where('status', 1)->orderBy('country')->get();
     }

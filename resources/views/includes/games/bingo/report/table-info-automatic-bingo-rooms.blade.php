@@ -23,7 +23,7 @@
                     </td>
                     <td>{{ $room->GameMode->description }}</td>
                     <td>{{ $room->time }} H</td>
-                    <td>{{ $room->ctn_price }}&nbsp<small>USDT</small></td>
+                    <td>{{ $room->card_price }}&nbsp<small>USDT</small></td>
                     <td>{{ $room->PrizePoolType->description }}</td>
                     <td>{{ $room->room_commn }}%</td>
                     <td>{{ $room->serials_pct }}%</td>

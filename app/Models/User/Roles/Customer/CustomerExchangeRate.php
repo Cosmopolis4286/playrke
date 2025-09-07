@@ -60,7 +60,7 @@ class CustomerExchangeRate extends Model
         return self::where('customer', $customer)->where('status', '<>', 'OLD')->get();
     }
 
-    public static function getCoinsByCustomer($customer, $status = 'ACTIVE')
+    public static function getCurrenciesByCustomer($customer, $status = 'ACTIVE')
     {
         $query = self::select('currency')->where('customer', $customer);
 
@@ -69,7 +69,7 @@ class CustomerExchangeRate extends Model
         return $query->distinct()->pluck('currency')->toArray();
     }
 
-    public static function getCoinsIDsByCustomer($customer, $status = 'ACTIVE')
+    public static function getCurrenciesIDsByCustomer($customer, $status = 'ACTIVE')
     {
         return self::select('id', 'currency')->where('customer', $customer)->where('status', $status)->get();
     }

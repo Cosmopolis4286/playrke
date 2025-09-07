@@ -44,7 +44,7 @@
                                                 </a>
                                             </td>
                                             <td>{{ $ctn->Seller->name }}</td>
-                                            <td>{{ $ctn->Coin->long_name }} ({{ $currencySym }})</td>
+                                            <td>{{ $ctn->Currency->long_name }} ({{ $currencySym }})</td>
                                             <td>{{ $ctn->ctns }}</td>
                                             <td>{{ $currencySym }} {{ $ctn->sale_amount }}</td>
                                             <td>
@@ -58,7 +58,7 @@
                                                     <button class="btn btn-primary btn-sm btn-confirm-payment"
                                                         data-seller="{{ $ctn->Seller->name }}"
                                                         data-lot="{{ encrypt($ctn->id) }}"
-                                                        data-coin_sym="{{ $currencySym }}"
+                                                        data-currency-symbol="{{ $currencySym }}"
                                                         data-sale_ctns="{{ $ctn->sale_amount }}"
                                                         data-proof="{{ $ctn->Payment->payment_proof }}">
                                                         Confirmar Pago
@@ -126,7 +126,7 @@
             const data = $(this).data();
             $('#lot').val(data.lot);
             $('#seller-name').html(`<b>Vendedor: </b>${data.seller}<br>`);
-            $('#sale-ctns').html(`<b>Venta: </b>${data.coin_sym} ${data.sale_ctns}`);
+            $('#sale-ctns').html(`<b>Venta: </b>${data.currency-symbol} ${data.sale_ctns}`);
 
             $('#show-payment-proof').attr('href', route('image.show-image-payment-ctns', filename: data.proof));
 

@@ -1,4 +1,4 @@
-@props(['rooms', 'creator', 'coinSym', 'currency', 'uuidCode', 'exchangeRate', 'view', 'moduleId'])
+@props(['rooms', 'creator', 'currencySymbol', 'currency', 'uuidCode', 'exchangeRate', 'view', 'moduleId'])
 
 @php
     use Carbon\Carbon;
@@ -41,7 +41,7 @@
                             ]);
 
                     $rate = $room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate;
-                    $ctnPrice = truncate(($room->Config->ctn_price ?? 0) * $rate);
+                    $ctnPrice = truncate(($room->Config->card_price ?? 0) * $rate);
                     $allSale = truncate(($room->all_sale ?? 0) * $rate);
                     $prizePool = truncate(($room->prize_pool ?? 0) * $rate);
 

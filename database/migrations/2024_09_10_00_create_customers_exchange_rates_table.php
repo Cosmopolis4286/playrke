@@ -35,7 +35,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índices compuestos para consultas frecuentes
-            $table->index(['customer_id', 'currency']);
+            $table->index(['customer_id', 'currency_id']);
             $table->index(['customer_id', 'status']);
         });
     }

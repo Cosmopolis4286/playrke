@@ -26,5 +26,5 @@
     </div>
 
     <!-- Campo oculto para customer -->
-    <input type="hidden" name="customer" value="{{ $creatorID }}">
+    <input type="hidden" name="customer" value="{{ $creatorId }}">
 </div>

@@ -21,7 +21,7 @@ use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PhoneNumbers;
-use App\Models\SellerCountriesCoins;
+use App\Models\SellerCountriesCurrencies;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Wallet;
@@ -58,11 +58,11 @@ class SellerController extends Controller
             'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
             'country' => ['required', 'numeric', 'exists:countries,id'],
             'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
-            'currency' => ['required', 'numeric', 'exists:coins,id'],
+            'currency' => ['required', 'numeric', 'exists:currencies,id'],
             'name' => ['required', 'string'],
             'phone' => ['required', 'string', 'max:20', 'unique:sellers,phone'],
             'commission' => ['required', 'numeric', 'between:0,25'],
-            'other_currencies.*' => ['exists:coins,id'],
+            'other_currencies.*' => ['exists:currencies,id'],
         ];
 
         if ($isUpdate && $encryptedId) {
@@ -76,7 +76,7 @@ class SellerController extends Controller
             'username.unique' => 'Nombre de usuario no disponible.',
             'email.unique' => 'Este correo ya está registrado.',
             'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
-            'other_currencies.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
+            'other_currencies.*.exists' => 'Uno o más de los otros currencies seleccionados no existen en la base de datos.',
         ];
 
         return Validator::make($request->all(), $rules, $messages);
@@ -155,7 +155,7 @@ class SellerController extends Controller
             ]);
 
             // Registrar moneda principal para Seller
-            SellerCountriesCoins::create([
+            SellerCountriesCurrencies::create([
                 'seller' => $seller->id,
                 'country' => $seller->country,
                 'currency' => $seller->currency,
@@ -166,7 +166,7 @@ class SellerController extends Controller
 
             // Insertar monedas adicionales si hay
             if ($request->other_currencies) {
-                $this->insertOtherCoins(
+                $this->insertOtherCurrencies(
                     [
                         'model' => 'Seller',
                         'id' => $seller->id,
@@ -231,14 +231,14 @@ class SellerController extends Controller
         $seller = Seller::getById($id, ['name', 'commerce_id', 'commission', 'country', 'phone']);
 
         // Obtener monedas adicionales disponibles para el vendedor
-        $otherCoins = SellerCountriesCoins::getAvailableCoins($id);
+        $otherCurrencies = SellerCountriesCurrencies::getAvailableCurrencies($id);
 
         // Obtener datos del usuario asociado al vendedor
         $userId = Seller::getValueById($id, 'user');
         $user = User::getById($userId, ['username', 'email']);
 
         // Preparar respuesta estructurada
-        $data = ['seller' => $seller, 'user' => $user, 'otherCoins' => $otherCoins];
+        $data = ['seller' => $seller, 'user' => $user, 'otherCurrencies' => $otherCurrencies];
 
         // Retornar datos en formato JSON
         return response()->json($data);
@@ -293,7 +293,7 @@ class SellerController extends Controller
 
                 if ($currencyChange) {
                     // Actualizar moneda Principal
-                    SellerCountriesCoins::where('seller', $seller->id)
+                    SellerCountriesCurrencies::where('seller', $seller->id)
                         ->where('currency', $seller->currency)->update([
                             'country' => $seller->country,
                             'currency' => $seller->currency
@@ -306,11 +306,11 @@ class SellerController extends Controller
                     'userId' => $seller->user
                 ];
 
-                $otherCoins = $request->other_currencies;
+                $otherCurrencies = $request->other_currencies;
 
-                if ($otherCoins) {
+                if ($otherCurrencies) {
                     // Insertar otras monedas
-                    $this->insertOtherCoins($creatorUser, $otherCoins);
+                    $this->insertOtherCurrencies($creatorUser, $otherCurrencies);
                 }
 
                 DB::commit();
@@ -412,29 +412,29 @@ class SellerController extends Controller
         $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
         // Obtenemos las monedas disponibles para el vendedor y el comercio
-        $sellerCoins = SellerCountriesCoins::getAvailableCoins($seller->id);
-        $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($seller->commerce, 'ACTIVE');
+        $sellerCurrencies = SellerCountriesCurrencies::getAvailableCurrencies($seller->id);
+        $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($seller->commerce, 'ACTIVE');
 
         // Obtenemos el campo allowed_currencies (json o null) y lo forzamos a array
-        $allowedCoinsRoom = BingoCreator::where('creator_user_id', $creatorUser)
+        $allowedCurrenciesRoom = BingoCreator::where('creator_user_id', $creatorUser)
             ->where('room', $roomId)->value('allowed_currencies');
 
-        $allowedCoinsRoom = is_array($allowedCoinsRoom) ? $allowedCoinsRoom : [];
+        $allowedCurrenciesRoom = is_array($allowedCurrenciesRoom) ? $allowedCurrenciesRoom : [];
 
-        $currencysAvailable = array_values(array_intersect(
-            array_map('strval', $sellerCoins),
-            array_map('strval', $commerceCoins),
-            array_map('strval', $allowedCoinsRoom)
+        $currenciesAvailable = array_values(array_intersect(
+            array_map('strval', $sellerCurrencies),
+            array_map('strval', $commerceCurrencies),
+            array_map('strval', $allowedCurrenciesRoom)
         ));
 
         // Eliminamos '1' si existe
-        $USDT = ($key = array_search('1', $currencysAvailable, true)) !== false;
+        $USDT = ($key = array_search('1', $currenciesAvailable, true)) !== false;
         if ($USDT) {
-            unset($currencysAvailable[$key]);
-            $currencysAvailable = array_values($currencysAvailable);
+            unset($currenciesAvailable[$key]);
+            $currenciesAvailable = array_values($currenciesAvailable);
         }
 
-        $countriesAvailable = Currency::getCountriesByCoinInArray($currencysAvailable);
+        $countriesAvailable = Currency::getCountriesByCoinInArray($currenciesAvailable);
 
         $countries = Country::getCountries($countriesAvailable, ['id', 'name']);
 
@@ -443,7 +443,7 @@ class SellerController extends Controller
 
     public function getCtnPrice($roomId)
     {
-        $room = BingoRoom::with('Config:room,prize_pool_type,ctn_price')
+        $room = BingoRoom::with('Config:room,prize_pool_type,card_price')
             ->select('id', 'encrypted', 'prize_pool')
             ->where('encrypted', $roomId)->first();
 
@@ -451,15 +451,15 @@ class SellerController extends Controller
             return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
         }
 
-        $countriesCoins = $this->getAvailableCountriesBySeller($room->id);
+        $countriesCurrencies = $this->getAvailableCountriesBySeller($room->id);
 
         return response()->json([
             'prizePoolType' => $room->Config->prize_pool_type,
             'prizePool' => $room->prize_pool,
             'currency' => 'USDT',
-            'price' => $room->Config->ctn_price,
-            'countries' => $countriesCoins['countries'],
-            'USDT' => $countriesCoins['USDT']
+            'price' => $room->Config->card_price,
+            'countries' => $countriesCurrencies['countries'],
+            'USDT' => $countriesCurrencies['USDT']
         ]);
     }
 

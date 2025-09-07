@@ -21,7 +21,7 @@ class BingoRoomAutomatic extends Model
     'room_type',
     'rke_commn',
     'room_commn',
-    'ctn_price',
+    'card_price',
     'allowed_currencies',
     'time_chip',
     'rounds',
@@ -54,9 +54,9 @@ class BingoRoomAutomatic extends Model
     return self::select($fields)->where('id', $id)->first();
   }
 
-  public static function getByCreator($creatorType, $creatorID, $fields = ['*'])
+  public static function getByCreator($creatorType, $creatorId, $fields = ['*'])
   {
-    return self::select($fields)->where($creatorType, $creatorID)->first();
+    return self::select($fields)->where($creatorType, $creatorId)->first();
   }
 
   public static function getValue($id, $value)

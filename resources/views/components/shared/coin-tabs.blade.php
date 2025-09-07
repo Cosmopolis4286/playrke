@@ -1,7 +1,7 @@
-@props(['coins', 'selectedCoin', 'routeWithCoin'])
+@props(['currencies', 'selectedCoin', 'routeWithCoin'])
 
 <ul class="nav nav-tabs mt-n2 mb-2" id="myTab" role="tablist">
-    @foreach ($currencys as $item)
+    @foreach ($currencies as $item)
         @php
             $label = $item->iso_code ?? ($item->currency ?? $item->short_name);
             $encryptedId = encrypt($item->id);

@@ -1,8 +1,8 @@
 <div class="row">
     <input type="hidden" name="creator" value="{{ json_encode($creator) }}">
-    <div id="container-allowed-coins" class="form-group col-sm-6">
-        <label for="allowed-coins">Monedas Permitidas*</label>
-        <select multiple id="allowed-coins" name="allowed_currencies[]" placeholder="  Seleccionar Monedas" data-allow-clear="1"
+    <div id="container-allowed-currencies" class="form-group col-sm-6">
+        <label for="allowed-currencies">Monedas Permitidas*</label>
+        <select multiple id="allowed-currencies" name="allowed_currencies[]" placeholder="  Seleccionar Monedas" data-allow-clear="1"
             class="select2 form-control">
         </select>
     </div>
@@ -12,7 +12,7 @@
             <div class="input-group-prepend">
                 <span class="input-group-text">$</span>
             </div>
-            <input type="number" id="ctn-price" name="ctn_price" class="form-control" placeholder="Precio Cartón"
+            <input type="number" id="ctn-price" name="card_price" class="form-control" placeholder="Precio Cartón"
                 min="0.35" max="50" value="1" step="0.05" required title="Precio Base">
             <div class="input-group-append">
                 <button id="btn-ctn-price-config" class="btn btn-outline-secondary" type="button" data-active="0"

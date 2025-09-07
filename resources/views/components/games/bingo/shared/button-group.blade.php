@@ -41,12 +41,12 @@
 
         @if ($view === 'AUTO')
             <a class="btn btn-sm btn-secondary"
-                href="{{ route('bingo.handleGameRoomSummary', ['roomType' => 'private-rooms', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                href="{{ route('bingo.handleGameRoomSummary', ['roomType' => 'private-rooms', 'creatorType' => $creator['type'], 'creatorId' => $creator['id']]) }}">
                 <i class="fas fa-cogs"></i> Manual
             </a>
         @else
             <a class="btn btn-sm {{ $routeData['class'] }}"
-                href="{{ route('bingo.handleGameRoomSummary', ['roomType' => $routeData['roomType'], 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                href="{{ route('bingo.handleGameRoomSummary', ['roomType' => $routeData['roomType'], 'creatorType' => $creator['type'], 'creatorId' => $creator['id']]) }}">
                 <i class="{{ $routeData['icon'] }}"></i> {{ $routeData['text'] }}
             </a>
 
@@ -58,7 +58,7 @@
                 @endphp
 
                 <a class="btn btn-sm btn-secondary"
-                    href="{{ route('bingo.handleGameRoomSummary', ['roomType' => $altRoomType, 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                    href="{{ route('bingo.handleGameRoomSummary', ['roomType' => $altRoomType, 'creatorType' => $creator['type'], 'creatorId' => $creator['id']]) }}">
                     <i class="{{ $altIcon }}"></i> {{ $altTitle }}
                 </a>
             @else

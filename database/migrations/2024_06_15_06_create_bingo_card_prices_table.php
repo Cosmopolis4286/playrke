@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Ejecutar la migración: crear tabla 'bingo_ctn_prices'.
+     * Ejecutar la migración: crear tabla 'bingo_card_prices'.
      */
     public function up(): void
     {
-        Schema::create('bingo_ctn_prices', function (Blueprint $table) {
+        Schema::create('bingo_card_prices', function (Blueprint $table) {
             $table->id()->comment('ID del precio del cartón');
 
             // Relaciones
@@ -32,7 +32,7 @@ return new class extends Migration
                 ->comment('Moneda asociada al precio');
 
             // Precio del cartón
-            $table->decimal('ctn_price', 12, 2)
+            $table->decimal('card_price', 12, 2)
                 ->comment('Precio del cartón de bingo en la moneda asociada');
 
             $table->timestamps();
@@ -43,10 +43,10 @@ return new class extends Migration
     }
 
     /**
-     * Revertir la migración: eliminar tabla 'bingo_ctn_prices'.
+     * Revertir la migración: eliminar tabla 'bingo_card_prices'.
      */
     public function down(): void
     {
-        Schema::dropIfExists('bingo_ctn_prices');
+        Schema::dropIfExists('bingo_card_prices');
     }
 };

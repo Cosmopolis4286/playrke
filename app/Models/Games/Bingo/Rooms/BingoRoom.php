@@ -14,7 +14,7 @@ class BingoRoom extends Model
     'creator_user_id',
     'paid_win',
     'publication_date',
-    'ctn_price',
+    'card_price',
     'players',
     'ctns',
     'all_sale',

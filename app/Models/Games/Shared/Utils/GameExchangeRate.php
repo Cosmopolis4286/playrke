@@ -14,7 +14,7 @@ class GameExchangeRate extends Model
         return $this->belongsTo(Games::class, 'game');
     }
 
-    public function Coin()
+    public function Currency()
     {
         return $this->belongsTo(Currency::class, 'currency');
     }

@@ -2,7 +2,7 @@
 
 namespace App\Models\User\Roles\Commerce;
 
-use App\Models\Currencies\Currencys\Coin;
+use App\Models\Currencies\Currency;
 use Illuminate\Database\Eloquent\Model;
 
 class CommerceExchangeRate extends Model
@@ -10,7 +10,7 @@ class CommerceExchangeRate extends Model
     protected $table = "commerces_exchange_rates";
     protected $fillable = ['commerce_id', 'currency', 'exchange_rate', 'percentage', 'status'];
 
-    public function Coin()
+    public function Currency()
     {
         return $this->belongsTo(Currency::class, 'currency');
     }
@@ -22,7 +22,7 @@ class CommerceExchangeRate extends Model
 
     public static function getById($id, $fields = ['*'])
     {
-        return self::with('Coin')->select($fields)->where('id', $id)->first();
+        return self::with('Currency')->select($fields)->where('id', $id)->first();
     }
 
     public static function getValueById($id, $value = 'exchange_rate')
@@ -59,7 +59,7 @@ class CommerceExchangeRate extends Model
         return self::where('commerce_id', $commerce)->where('status', '<>', 'OLD')->get();
     }
 
-    public static function getCoinsByCommerce($commerce, $status = 'ACTIVE')
+    public static function getCurrenciesByCommerce($commerce, $status = 'ACTIVE')
     {
         $query = self::select('currency')->where('commerce_id', $commerce);
 

@@ -35,7 +35,7 @@ return new class extends Migration
             $table->decimal('rke_commn', 8, 2)->default(0)->comment('Comisión RKE');
             $table->decimal('room_commn', 8, 2)->default(0)->comment('Comisión de la sala');
 
-            $table->decimal('ctn_price', 12, 2)->comment('Precio del cartón');
+            $table->decimal('card_price', 12, 2)->comment('Precio del cartón');
 
             $table->json('allowed_currencies')->nullable();
             $table->string('time_chip', 2)->nullable();

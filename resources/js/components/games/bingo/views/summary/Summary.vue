@@ -7,7 +7,7 @@
         icon: 'fa-solid fa-gear'
       }" />
       <div class="card-body">
-        <CoinTabs :coins="coins" :currency="selectedCoinId" :routeWithCoin="{
+        <CoinTabs :currencies="currencies" :currency="selectedCurrencyId" :routeWithCoin="{
           route: 'bingo.byCoin',
           parameters: { room: 42 }
         }" />

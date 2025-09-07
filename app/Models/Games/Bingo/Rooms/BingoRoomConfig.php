@@ -18,7 +18,7 @@ class BingoRoomConfig extends Model
     'date',
     'time',
     'unix_date',
-    'ctn_price',
+    'card_price',
     'allowed_currencies',
     'rke_commn',
     'room_commn',

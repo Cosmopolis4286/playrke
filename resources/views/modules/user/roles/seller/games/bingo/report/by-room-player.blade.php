@@ -38,7 +38,7 @@
                                                 @foreach ($allctnsSold as $sold)
                                                     @if ($sold->room == $room->id)
                                                         @php
-                                                            $roomSale += $sold->ctns * $room->ctn_price;
+                                                            $roomSale += $sold->ctns * $room->card_price;
                                                         @endphp
                                                     @endif
                                                 @endforeach
@@ -47,8 +47,8 @@
                                                     $totalSale += $roomSale;
                                                     $totalComision += $roomSaleCom;
                                                 @endphp
-                                                <td>{{ $room->Coin->symbol }} {{ $roomSale }}</td>
-                                                <td>{{ $room->Coin->symbol }} {{ $roomSaleCom }}</td>
+                                                <td>{{ $room->Currency->symbol }} {{ $roomSale }}</td>
+                                                <td>{{ $room->Currency->symbol }} {{ $roomSaleCom }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -57,9 +57,9 @@
                                             <td></td>
                                             <td></td>
                                             <td></td>
-                                            <td><small><b>Total Venta: {{ $room->Coin->symbol }}
+                                            <td><small><b>Total Venta: {{ $room->Currency->symbol }}
                                                         {{ $totalSale }}</b></small></td>
-                                            <td><small><b>Total %Com: {{ $room->Coin->symbol }}
+                                            <td><small><b>Total %Com: {{ $room->Currency->symbol }}
                                                         {{ $totalComision }}</b></small></td>
                                         </tr>
                                     </tfoot>

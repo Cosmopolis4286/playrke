@@ -52,7 +52,7 @@ class CoinGameRoom extends Model
         return $query->exists();
     }
 
-    public static function getCoinsByRoom($game, $room, $gameMode = null)
+    public static function getCurrenciesByRoom($game, $room, $gameMode = null)
     {
         // Obtener el ID del juego si se pasa como string
         $gameID = is_string($game) ? Games::getValueByName($game) : $game;

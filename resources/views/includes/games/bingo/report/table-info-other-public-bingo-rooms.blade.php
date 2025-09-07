@@ -39,7 +39,7 @@
 
                     $rate = $room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate;
 
-                    $ctnPrice = ($room->Config->ctn_price ?? 0) * $rate;
+                    $ctnPrice = ($room->Config->card_price ?? 0) * $rate;
                     $allSale = ($room->all_sale ?? 0) * $rate;
                     $prizePool = ($room->prize_pool ?? 0) * $rate;
 

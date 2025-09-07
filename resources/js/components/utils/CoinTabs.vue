@@ -1,6 +1,6 @@
 <template>
   <ul class="nav nav-tabs mt-n2 mb-2" role="tablist">
-    <li class="nav-item" v-for="item in coins" :key="item.id">
+    <li class="nav-item" v-for="item in currencies" :key="item.id">
       <a class="nav-link" :class="{ active: isActive(item.id) }" :id="tabId(item)" :href="tabLink(item)" role="tab"
         :aria-controls="tabId(item)" :aria-selected="isActive(item.id) ? 'true' : 'false'">
         {{ getCoinLabel(item) }}
@@ -13,7 +13,7 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  coins: { type: Array, required: true }, // cada item debe tener id, encrypted, y label
+  currencies: { type: Array, required: true }, // cada item debe tener id, encrypted, y label
   currency: { type: [Number, String], required: true },
   routeWithCoin: {
     type: Object,

@@ -5,11 +5,11 @@
         <div class="card">
             @include('includes.card-header')
             <div class="card-body">
-                @if (!empty($currencys) || $creator['type'] === 'customer')
+                @if (!empty($currencies) || $creator['type'] === 'customer')
                     <button type="button" class="btn-{{ $moduleId }} btn btn-sm btn-success" data-action="create"><i
                             class="fas fa-plus-square"></i> Añadir</button>
                     <button type="button" disabled id="btn-historical" class="btn btn-sm btn-primary" data-block="1"
-                        data-url-template="{{ route('exchange-rate.historical', ['currency' => ':currency', 'creatorType' => $creator['type'], 'creatorID' => $creator['id']]) }}">
+                        data-url-template="{{ route('exchange-rate.historical', ['currency' => ':currency', 'creatorType' => $creator['type'], 'creatorId' => $creator['id']]) }}">
                         <i class="fa-solid fa-money-bill-trend-up"></i> Histórico</button>
                     <button type="button" id="btn-update-exchange-rates" class="btn btn-sm btn-secondary">
                         <i class="fa-solid fa-rotate"></i> Actualizar</button>
@@ -35,16 +35,16 @@
                                 <tr>
                                     @if ($creator['type'] !== 'customer')
                                         <td>
-                                            {{ $item->Coin->Country ? $item->Coin->Country->name : 'Todos' }}
+                                            {{ $item->Currency->Country ? $item->Currency->Country->name : 'Todos' }}
                                         </td>
                                     @endif
                                     <td>
-                                        {{ $creator['type'] === 'customer' ? $item->currency : $item->Coin->long_name }}
+                                        {{ $creator['type'] === 'customer' ? $item->currency : $item->Currency->long_name }}
                                     </td>
                                     <td>
                                         @if ($creator['type'] === 'customer')
                                         @else
-                                            {{ $item->Coin->symbol }}
+                                            {{ $item->Currency->symbol }}
                                         @endif
                                         {{ $item->exchange_rate }}
                                     </td>
@@ -58,7 +58,7 @@
                                             <span class="badge badge-success">Disponible</span>
                                         @elseif($item->status === 'DIRECTORY')
                                             <a class="badge badge-danger" title="Registrar Datos Bancarios"
-                                                href="{{ route('directory.index', ['countryCode' => strtolower($item->Coin->Country->iso_code_2)]) }}">
+                                                href="{{ route('directory.index', ['countryCode' => strtolower($item->Currency->Country->iso_code_2)]) }}">
                                                 Falta Directorio
                                             </a>
                                         @endif
@@ -106,13 +106,13 @@
         const name = '{{ $moduleId }}';
         const creatorType = @json($creator['type'] ?? '');
         const exchangeRate = $("#exchange-rate");
-        const arrCoins = @json($currencys) ?? [];
+        const arrCurrencies = @json($currencies) ?? [];
         const currency = $("#currency");
 
         let selectedCoin = 'all';
         let exchangeRateMax;
         let exchangeRateMin;
-        let coinName;
+        let currencyName;
         let update = false;
 
         $(document).ready(function() {
@@ -121,11 +121,11 @@
 
         function setTextExchangeRate() {
             const selectedCoin = currency.find("option:selected");
-            const coinSymbol = selectedCoin.length ? selectedCoin.text() : coinName;
+            const currencySymbolbol = selectedCoin.length ? selectedCoin.text() : currencyName;
             const rateValue = parseFloat(exchange-rate.val());
 
             if (currency.val() && rateValue > 0) {
-                $("#text-exchange-rate").text(`${rateValue} ${coinSymbol}`);
+                $("#text-exchange-rate").text(`${rateValue} ${currencySymbolbol}`);
                 $("#alert-exchange-rate").removeClass('hide-elem');
             } else {
                 // Opcional: ocultar el mensaje si no hay datos válidos
@@ -185,20 +185,20 @@
             });
 
             $(document).on("input", currency, function() {
-                coinName = currency.val();
+                currencyName = currency.val();
             });
         } else {
             function getLastValueByCoin(currency) {
                 $.getJSON({
                     url: route('exchange-rate.getLastValueByCoin', currency),
                     success: function(data) {
-                        const coinValue = parseFloat(data.toFixed(2));
+                        const currencyValue = parseFloat(data.toFixed(2));
                         // Calcular los valores de máximo y mínimo
-                        if (coinValue > 1) {
-                            exchangeRateMax = (coinValue + 3).toFixed(2);
-                            exchangeRateMin = (coinValue - 2).toFixed(2);
+                        if (currencyValue > 1) {
+                            exchangeRateMax = (currencyValue + 3).toFixed(2);
+                            exchangeRateMin = (currencyValue - 2).toFixed(2);
                         }
-                        if (!update) exchange-rate.val(coinValue);
+                        if (!update) exchange-rate.val(currencyValue);
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         // Manejar errores aquí si es necesario
@@ -207,7 +207,7 @@
             }
 
             $(document).on("input", currency, function() {
-                coinName = currency.find("option:selected").text();
+                currencyName = currency.find("option:selected").text();
             });
         }
 
@@ -221,12 +221,12 @@
 
                 if (creatorType === 'customer') {
                     currency.val(currentCoin);
-                    coinName = currentCoin;
+                    currencyName = currentCoin;
                 } else {
                     currency.append(
                         `<option value="${currentCoin.id}" selected>${currentCoin.long_name} (${currentCoin.symbol})</option>`
                     );
-                    coinName = `${currentCoin.long_name} (${currentCoin.symbol})`;
+                    currencyName = `${currentCoin.long_name} (${currentCoin.symbol})`;
                 }
 
                 exchange-rate.val(data.exchange_rate);
@@ -238,8 +238,8 @@
                 $('#creator').prop('disabled', false);
             }
 
-            if (arrCoins.length && creatorType !== 'customer') {
-                $.each(arrCoins, function(index, item) {
+            if (arrCurrencies.length && creatorType !== 'customer') {
+                $.each(arrCurrencies, function(index, item) {
                     currency.append(`<option value="${item.id}">${item.long_name} (${item.symbol})</option>`);
                 });
             }

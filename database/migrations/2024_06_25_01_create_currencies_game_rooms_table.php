@@ -32,7 +32,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Evitar duplicados: misma combinación no debe repetirse
-            $table->unique(['game_id', 'game_mode_id', 'room_id', 'currency_id'], 'uniq_game_mode_room_coin');
+            $table->unique(['game_id', 'game_mode_id', 'room_id', 'currency_id'], 'uniq_game_mode_room_currency');
         });
     }
 

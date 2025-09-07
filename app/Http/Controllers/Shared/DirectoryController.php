@@ -95,9 +95,9 @@ class DirectoryController extends Controller
         if ($userType === 'commerce_id') {
             $commerce = Commerce::getValueByUserId($userID, 'id');
 
-            $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($commerce);
+            $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($commerce);
 
-            $this->checkBankDirectoriesExistence($commerceCoins);
+            $this->checkBankDirectoriesExistence($commerceCurrencies);
         }
 
         // Determinar la ruta de la vista

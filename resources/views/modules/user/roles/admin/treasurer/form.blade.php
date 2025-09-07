@@ -57,9 +57,9 @@
         <input type="text" id="currency-text" class="form-control" disabled />
         <input type="hidden" id="currency" name="currency" value="{{ old('currency') }}" />
     </div>
-    <div id="cont-other-coins" class="form-group col-sm-6 hide-elem">
-        <label id="label-other-coins" for="other-coins"></label>
-        <select multiple id="other-coins" name="other_currencies[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
+    <div id="cont-other-currencies" class="form-group col-sm-6 hide-elem">
+        <label id="label-other-currencies" for="other-currencies"></label>
+        <select multiple id="other-currencies" name="other_currencies[]" placeholder="Seleccionar Monedas" data-allow-clear="1"
             class="select2 form-control">
         </select>
     </div>

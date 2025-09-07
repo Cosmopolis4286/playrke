@@ -44,7 +44,7 @@
                 success: function(res) {
                     $("#payment-title").html(
                         `Vendedor: ${res.seller[0]}<br> Celular: ${res.seller[1]}`);
-                    $("#sent-amount").text(`${data.coin_sym} ${data.amount}`);
+                    $("#sent-amount").text(`${data.currency-symbol} ${data.amount}`);
                     $("#ctn").val(data.ctn);
                     $("#payment_type").val('CS');
 

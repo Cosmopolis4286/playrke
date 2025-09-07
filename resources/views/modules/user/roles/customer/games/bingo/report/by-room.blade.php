@@ -29,7 +29,7 @@
                                         @foreach ($sellers as $seller)
                                             @php
                                                 $allSale = $allSalePreJackpot = 0;
-                                                $currencySym = $seller->CtnsLot[0]->Coin->symbol;
+                                                $currencySym = $seller->CtnsLot[0]->Currency->symbol;
                                                 $allCtnsSeller = $seller->CtnsLot->sum('ctns');
                                                 $totalCtnsBuy += $allCtnsSeller;
 

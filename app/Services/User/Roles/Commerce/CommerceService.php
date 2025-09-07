@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\PhoneNumbers;
 use App\Models\Commerce;
-use App\Models\CommerceCountriesCoins;
+use App\Models\CommerceCountriesCurrencies;
 use App\Models\UniqueCode;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -43,7 +43,7 @@ class CommerceService
             $this->createPhoneNumber($user->id, $data['country'], $data['phone']);
 
             // 🌍 Moneda principal
-            $this->createCommerceCountriesCoins($commerce, $user->id);
+            $this->createCommerceCountriesCurrencies($commerce, $user->id);
 
             // 🔑 Registrar Code UUID
             $this->createUUID($commerce->uuid_code, $user->id, $user->user_type);
@@ -99,9 +99,9 @@ class CommerceService
         ]);
     }
 
-    private function createCommerceCountriesCoins(Commerce $commerce, int $userId): void
+    private function createCommerceCountriesCurrencies(Commerce $commerce, int $userId): void
     {
-        CommerceCountriesCoins::create([
+        CommerceCountriesCurrencies::create([
             'commerce_id'     => $commerce->id,
             'country'      => $commerce->country,
             'currency'         => $commerce->currency,

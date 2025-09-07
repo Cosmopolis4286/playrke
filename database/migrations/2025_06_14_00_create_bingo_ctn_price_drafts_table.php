@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('bingo_ctn_price_drafts', function (Blueprint $table) {
+        Schema::create('bingo_card_price_drafts', function (Blueprint $table) {
             $table->id();
 
             $table->foreignSnowflake('bingo_room_id')
@@ -26,7 +26,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->json('currencies');       // Ej: ["USD","BRL"]
-            $table->json('ctn_prices');  // Ej: {"USD": 5, "BRL": 25}
+            $table->json('card_prices');  // Ej: {"USD": 5, "BRL": 25}
 
             $table->enum('status', ['ACTIVE', 'EXECUTED'])->default('ACTIVE');
 
@@ -42,6 +42,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('bingo_ctn_price_drafts');
+        Schema::dropIfExists('bingo_card_price_drafts');
     }
 };

@@ -4,7 +4,7 @@ namespace App\Models\User\Roles\Treasurer;
 
 use Illuminate\Database\Eloquent\Model;
 
-class TreasurerCountriesCoins extends Model
+class TreasurerCountriesCurrencies extends Model
 {
     protected $table = "treasurers_countries_currencies";
     protected $fillable = ['treasurer', 'country', 'currency', 'level', 'creator_user_id', 'status'];
@@ -19,12 +19,12 @@ class TreasurerCountriesCoins extends Model
         return $this->belongsTo(Country::class, 'country');
     }
 
-    public function Coin()
+    public function Currency()
     {
         return $this->belongsTo(Currency::class, 'currency');
     }
 
-    public static function getAvailableCoins($treasurer, $exceptCoin = '')
+    public static function getAvailableCurrencies($treasurer, $exceptCoin = '')
     {
         return self::select('currency')->where('treasurer', $treasurer)
             ->where('status', 1)
@@ -33,7 +33,7 @@ class TreasurerCountriesCoins extends Model
             })->distinct()->pluck('currency')->toArray();
     }
 
-    public static function getAllAvailableCountriesCoins($treasurer, $fields = ['*'])
+    public static function getAllAvailableCountriesCurrencies($treasurer, $fields = ['*'])
     {
         return self::select($fields)->where('treasurer', $treasurer)->where('status', 1)->orderBy('country')->get();
     }

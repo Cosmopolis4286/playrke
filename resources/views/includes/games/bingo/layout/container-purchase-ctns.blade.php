@@ -4,11 +4,11 @@
             <div class="purchase-ctns__prize_pool-img">
                 <img class="purchase-ctns__img" src="{{ asset('img/cofre.png') }}" alt="">
             </div>
-            <div class="purchase-ctns__coin">
-                <div id="purchase-ctns__coin-text"></div>
-                <div id="purchase-ctns__coin-number">
+            <div class="purchase-card_currency">
+                <div id="purchase-card_currency-text"></div>
+                <div id="purchase-card_currency-number">
                     <span id="prize-pool-amount"></span>
-                    <small id="purchase-ctns__coin-label" class="ml-1 mt-1 purchase-ctns__coin-label"></small>
+                    <small id="purchase-card_currency-label" class="ml-1 mt-1 purchase-card_currency-label"></small>
                 </div>
             </div>
         </div>
@@ -54,7 +54,7 @@
                 </div>
                 <span class="form-text-total">Total:</span>
                 <span id="total-amount"></span>
-                <small class="purchase-ctns__coin-label"></small>
+                <small class="purchase-card_currency-label"></small>
             </div>
             <div id="purchase-ctns__body-form-section-right">
                 <div>

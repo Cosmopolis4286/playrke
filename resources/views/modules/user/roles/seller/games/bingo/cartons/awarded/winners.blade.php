@@ -60,7 +60,7 @@
                                                 <div class="btn-group" role="group" aria-label="Acciones">
                                                     @if ($win->status === 'CS')
                                                         <button class="btn btn-sm bg-danger notify-ctn-payment"
-                                                            title="Notificar Pago" data-coin_sym="{{ $win->coinSym }}"
+                                                            title="Notificar Pago" data-currency-symbol="{{ $win->currencySymbol }}"
                                                             data-prize_amount="{{ $win->amount }}"
                                                             data-ctn='{{ encrypt($win->ctn) }}'>
                                                             <i class="fa-solid fa-circle-dollar-to-slot mr-1"></i>
@@ -131,7 +131,7 @@
             $('#text-bank-data').addClass('hide-elem');
             $('#send-receive').text('Enviaste ');
             $('#ctn').val(ctnId);
-            $('#sent-amount').text(`${data.coin_sym} ${prizeAmount}`);
+            $('#sent-amount').text(`${data.currency-symbol} ${prizeAmount}`);
             $('#amount-sent').val(prizeAmount);
 
             $.ajax({

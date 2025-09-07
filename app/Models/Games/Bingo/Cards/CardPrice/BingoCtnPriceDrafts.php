@@ -8,10 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class BingoCtnPriceDrafts extends Model
 {
-    protected $table = 'bingo_ctn_price_drafts';
-    protected $fillable = ['bingo_room_id', 'automatic_bingo_room_id', 'creator_user_id', 'coins', 'ctn_prices', 'status'];
+    protected $table = 'bingo_card_price_drafts';
+    protected $fillable = ['bingo_room_id', 'automatic_bingo_room_id', 'creator_user_id', 'currencies', 'card_prices', 'status'];
 
-    protected $casts = ['coins'  => 'array', 'ctn_prices' => 'array'];
+    protected $casts = ['currencies'  => 'array', 'card_prices' => 'array'];
 
     public function Room()
     {

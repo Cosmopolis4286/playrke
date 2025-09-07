@@ -31,7 +31,7 @@
         const name = @json($moduleId);
         const creation = 'A';
         const creatorType = @json($creator['type'] ?? '');
-        const creatorID = @json($creator['id'] ?? '');
+        const creatorId = @json($creator['id'] ?? '');
         const roomType = $("#room-type");
         const prizePoolType = $("#prize-pool-type");
         const gameMode = $("#game-mode");
@@ -74,7 +74,7 @@
             // Realizar la solicitud
             $.getJSON(route('bingo-automatic-room.executeGenerateBingoRoomsJob', {
                     creatorType,
-                    creatorID
+                    creatorId
                 }), {
                     'X-CSRF-TOKEN': $("#5K3_70K").val()
                 })
@@ -111,7 +111,7 @@
             $('#content-rounds-config, #content-price-config').empty();
 
             if (type == 2) {
-                getCtnPriceCoin(data.room.id, creation, creatorType, creatorID);
+                getCtnPriceCoin(data.room.id, creation, creatorType, creatorId);
                 if (data.room.rounds > 1) getRoundsConfig(data.room.id);
             }
 
@@ -168,7 +168,7 @@
 
                 $('#time').val(room.time);
                 $('#room-commn').val(room.room_commn);
-                $('#ctn-price').val(room.ctn_price);
+                $('#ctn-price').val(room.card_price);
                 $('#time-chip').val(room.time_chip);
                 $('#rounds').val(room.rounds);
                 $('#serials-pct').val(room.serials_pct);
@@ -214,5 +214,5 @@
             },
         };
     </script>
-    @vite(['resources/js/games/bingo/ctn-price-coins.js', 'resources/js/games/bingo/rounds-config.js'])
+    @vite(['resources/js/games/bingo/ctn-price-currencies.js', 'resources/js/games/bingo/rounds-config.js'])
 @endsection

@@ -59,7 +59,7 @@
                                                     @if ($win->status === 'WT')
                                                         <button type="button"
                                                             class="btn btn-danger btn-sm notify-ctn-payment"
-                                                            title="Notificar Pago" data-coin_sym="{{ $win->Coin->symbol }}"
+                                                            title="Notificar Pago" data-currency-symbol="{{ $win->Currency->symbol }}"
                                                             data-amount="{{ $win->amount }}"
                                                             data-ctn='{{ encrypt($win->ctn) }}'>
                                                             <i class="fa-solid fa-bell"></i>

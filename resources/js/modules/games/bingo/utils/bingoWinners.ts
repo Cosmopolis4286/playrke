@@ -1,6 +1,6 @@
 import { GameInfo } from '../types/bingoTypes';
 
-export function showWinners(arrInfo: GameInfo, numRound: number, coinSym: string, logo: string) {
+export function showWinners(arrInfo: GameInfo, numRound: number, currencySymbol: string, logo: string) {
     const round = arrInfo.rounds[numRound];
     if (!round) return;
 
@@ -20,7 +20,7 @@ export function showWinners(arrInfo: GameInfo, numRound: number, coinSym: string
                     <i class="eye-icon fa-solid fa-eye"></i>
                     <img class="user-img" src="${logo}">
                     <div class="winner-info-text fw-bold badge badge-success w-100">${serial}</div>
-                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy w-100">${coinSym} ${ctnInfo.gain}</div>
+                    <div class="winner-info-text winner-prize-amount fw-bold badge bg-navy w-100">${currencySymbol} ${ctnInfo.gain}</div>
                 </div>`;
             row.appendChild(col);
         });

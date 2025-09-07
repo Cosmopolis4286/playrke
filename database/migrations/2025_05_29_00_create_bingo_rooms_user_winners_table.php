@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('bingo_rooms_user_winners', function (Blueprint $table) {
             $table->id();
             $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->foreignSnowflake('room_user_id')->constrained('bingo_rooms_user')->onDelete('cascade');
+            $table->foreignSnowflake('room_user_id')->constrained('bingo_room_users')->onDelete('cascade');
             $table->foreignSnowflake('round_id')->constrained('bingo_rounds');
             $table->enum('award_status', ['WAITING', 'PAID'])->default('WAITING');
             $table->timestamps();

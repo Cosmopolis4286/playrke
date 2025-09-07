@@ -14,7 +14,7 @@ export const bingoAutomaticRoomRoutes = {
     "changeStatus": "/bingo-automatic-room/automatic-room/changeStatus/{id}",
     "delete": "/bingo-automatic-room/automatic-room/delete/{id}",
     "copy": "/bingo-automatic-room/automatic-room/copy/{id}",
-    "executeGenerateBingoRoomsJob": "/bingo-automatic-room/automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorID}"
+    "executeGenerateBingoRoomsJob": "/bingo-automatic-room/automatic-room/executeGenerateBingoRoomsJob/{creatorType}/{creatorId}"
 } as const;
 
 /**

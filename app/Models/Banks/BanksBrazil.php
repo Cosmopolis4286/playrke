@@ -4,9 +4,9 @@ namespace App\Models\Banks;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BanksBrasil extends Model
+class BanksBrazil extends Model
 {
-    protected $table = "banks_brasil";
+    protected $table = "banks_brazil";
     protected $fillable = ['name', 'full_name', 'ispb'];
 
     public static function getByISPB($ispb, $fields = ['*'])

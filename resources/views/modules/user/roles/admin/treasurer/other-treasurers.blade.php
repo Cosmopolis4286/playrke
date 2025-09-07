@@ -92,8 +92,8 @@
         });
 
         const name = '<?php echo $moduleId; ?>';
-        const coins = JSON.parse('<?php echo $currencys; ?>');
-        const otherCoins = $("#other-coins");
+        const currencies = JSON.parse('<?php echo $currencies; ?>');
+        const otherCurrencies = $("#other-currencies");
         const games = $("#games");
         const arrGames = @json($games);
 
@@ -101,17 +101,17 @@
             formCRUD($(this), name, 'Tesorero', otherCasesMap)
         });
 
-        function insertOtherCoins(selectedCoins = []) {
-            otherCoins.empty();
+        function insertOtherCurrencies(selectedCurrencies = []) {
+            otherCurrencies.empty();
 
-            $.each(coins, function(index, item) {
-                const isSelected = selectedCoins.some(val => val == item.id) ? 'selected' : '';
-                otherCoins.append(
+            $.each(currencies, function(index, item) {
+                const isSelected = selectedCurrencies.some(val => val == item.id) ? 'selected' : '';
+                otherCurrencies.append(
                     `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
                 );
             });
 
-            $("#cont-other-coins").removeClass('hide-elem');
+            $("#cont-other-currencies").removeClass('hide-elem');
         }
 
         function insertGames(selectedGames = '') {
@@ -128,13 +128,13 @@
             $('#username').val(data.username);
             $('#country').val(data.country);
 
-            insertOtherCoins(data.other_currencies);
+            insertOtherCurrencies(data.other_currencies);
 
             $(`#modal-${name}`).modal('show');
         }
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['other-coins', 'allowed-games']);
+            submitForm(name, ['other-currencies', 'allowed-games']);
         });
 
         const otherCasesMap = {

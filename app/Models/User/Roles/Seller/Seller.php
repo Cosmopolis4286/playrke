@@ -2,7 +2,7 @@
 
 namespace App\Models\User\Roles\Seller;
 
-use App\Models\Currencies\Currencys\Coin;
+use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;
 use App\Models\User\Roles\Commerce\Commerce;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +19,7 @@ class Seller extends Model
     }
 
     // Relación con la moneda del vendedor
-    public function Coin()
+    public function Currency()
     {
         return $this->belongsTo(Currency::class, 'currency');
     }
@@ -30,9 +30,9 @@ class Seller extends Model
     }
 
     // Relación del Vendedor con las Monedas  
-    public function CountriesCoins()
+    public function CountriesCurrencies()
     {
-        return $this->hasMany(SellerCountriesCoins::class, 'seller', 'id');
+        return $this->hasMany(SellerCountriesCurrencies::class, 'seller', 'id');
     }
 
     // Relación con la Comision del vendedor en la sala

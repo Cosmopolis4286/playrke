@@ -25,7 +25,7 @@ class BingoCreatorSales extends Model
         return $this->belongsTo(BingoRoom::class, 'room');
     }
 
-    public function Coin()
+    public function Currency()
     {
         return $this->belongsTo(Currency::class, 'currency');
     }

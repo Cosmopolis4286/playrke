@@ -54,11 +54,11 @@
     </div>
 
     <!-- Monedas permitidas -->
-    <div id="container-allowed-coins" class="form-group col-sm-6">
-      <label for="allowed-coins">Monedas Permitidas*</label>
-      <select multiple id="allowed-coins" v-model="form.allowedCoins" name="allowed_currencies" class="form-control select2"
+    <div id="container-allowed-currencies" class="form-group col-sm-6">
+      <label for="allowed-currencies">Monedas Permitidas*</label>
+      <select multiple id="allowed-currencies" v-model="form.allowedCurrencies" name="allowed_currencies" class="form-control select2"
         data-allow-clear="1" placeholder="Seleccionar Monedas">
-        <option v-for="currency in allowedCoinsOptions" :key="currency.value" :value="currency.value">
+        <option v-for="currency in allowedCurrenciesOptions" :key="currency.value" :value="currency.value">
           {{ currency.label }}
         </option>
       </select>
@@ -166,7 +166,7 @@ const form = reactive({
   roomType: "",
   gameMode: "",
   prizePoolType: "",
-  allowedCoins: [] as string[],
+  allowedCurrencies: [] as string[],
   amountAddedPrizePool: null as number | null,
   roomCommn: 20,
   jackpotPct: null as number | null,
@@ -197,7 +197,7 @@ const prizePoolTypeOptions = ref([
   { value: "pool1", label: "Bote 1" },
   { value: "pool2", label: "Bote 2" },
 ]);
-const allowedCoinsOptions = ref([
+const allowedCurrenciesOptions = ref([
   { value: "coin1", label: "Moneda 1" },
   { value: "coin2", label: "Moneda 2" },
 ]);

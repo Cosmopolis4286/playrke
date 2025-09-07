@@ -3,7 +3,7 @@
 /**
  * Información de una moneda
  */
-export interface Coin {
+export interface Currency {
     id: number;
     symbol: string;
     long_name: string;

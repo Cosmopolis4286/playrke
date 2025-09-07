@@ -47,7 +47,7 @@
         const encrypted = @json($room->encrypted);
         const allCartons = @json($cartons);
         const roomStatus = @json($room->status);
-        const coinSym = @json($currencySym);
+        const currencySymbol = @json($currencySym);
         const chpLast = @json($vanDraw);
         const player = @json($player);
         const encrypt = @json($encrypt);
@@ -62,8 +62,8 @@
     @if ($room->status == 2 && $creatorType !== 'customer')
         <script>
             const creatorType = '{{ $creatorType }}';
-            const creatorID = @json($creatorID);
-            const coinID = @json($currencyID);
+            const creatorId = @json($creatorId);
+            const currencyId = @json($currencyID);
             const ctnPrice = @json($ctnPrice);
             let gameStartTime = @json($startTime);
             let amount = ctnPrice;

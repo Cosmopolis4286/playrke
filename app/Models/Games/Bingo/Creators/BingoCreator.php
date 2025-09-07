@@ -13,7 +13,7 @@ class BingoCreator extends Model
         'creator_type',
         'creator_id',
         'creator_commn',
-        'ctn_price',
+        'card_price',
         'allowed_currencies',
         'status',
         'created_at',

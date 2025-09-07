@@ -56,7 +56,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índices para optimizar búsquedas frecuentes
-            $table->index(['commerce_id', 'country_id', 'currency_id'], 'idx_commerce_country_coin');
+            $table->index(['commerce_id', 'country_id', 'currency_id'], 'idx_commerce_country_currency');
         });
     }
 

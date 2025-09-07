@@ -2,11 +2,11 @@
 
 namespace App\Models\User\Roles\Seller;
 
-use App\Models\Currencies\Currencys\Coin;
+use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;
 use Illuminate\Database\Eloquent\Model;
 
-class SellerCountriesCoins extends Model
+class SellerCountriesCurrencies extends Model
 {
     protected $table = "sellers_countries_currencies";
     protected $fillable = ['seller', 'country_id', 'currency_id', 'level', 'creator_user_id', 'status'];
@@ -18,7 +18,7 @@ class SellerCountriesCoins extends Model
     }
 
     // Relación con la moneda del vendedor
-    public function Coin()
+    public function Currency()
     {
         return $this->belongsTo(Currency::class, 'currency');
     }
@@ -51,7 +51,7 @@ class SellerCountriesCoins extends Model
             ->distinct()->pluck('country')->toArray();
     }
 
-    public static function getAvailableCoins($seller)
+    public static function getAvailableCurrencies($seller)
     {
         return self::select('currency')->where('seller', $seller)
             ->where('status', 1)->distinct()->pluck('currency')->toArray();

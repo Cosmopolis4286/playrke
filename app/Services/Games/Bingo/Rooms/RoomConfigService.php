@@ -21,7 +21,7 @@ class RoomConfigService
         $creatorUser = $room->creator_user;
         $roomDate = $this->calculateRoomDate($room->time);
 
-        $existingRoom = $this->existingRoom($creatorUser, $roomDate, $room->time, $room->ctn_price);
+        $existingRoom = $this->existingRoom($creatorUser, $roomDate, $room->time, $room->card_price);
 
         if ($existingRoom && $existingRoom->Room->status >= 2) {
             return null;
@@ -80,7 +80,7 @@ class RoomConfigService
                 'creator_type' => $dataRoom->creator_type,
                 'creator_id' => $dataRoom->creator_id,
                 'creator_commn' => $dataRoom->room_commn,
-                'ctn_price' => $dataRoom->ctn_price,
+                'card_price' => $dataRoom->card_price,
                 'allowed_currencies' => $dataRoom->allowed_currencies
             ]
         );
@@ -111,7 +111,7 @@ class RoomConfigService
             ->where('creator_user_id', $creatorUser)
             ->whereBetween('date', [$startDate, $date])
             ->where('time', $time)
-            ->where('ctn_price', $ctnPrice)
+            ->where('card_price', $ctnPrice)
             ->first();
     }
 }

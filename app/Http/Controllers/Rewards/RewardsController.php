@@ -19,7 +19,7 @@ class RewardsController extends Controller
         $userData = $this->getUserData();
 
         $creatorType = $userData['type'];
-        $creatorID = $userData['id'];
+        $creatorId = $userData['id'];
         $creatorUser = $userData['userId'];
 
         if (in_array($creatorType, ['seller'])) {
@@ -29,7 +29,7 @@ class RewardsController extends Controller
         $title = 'Premios';
         $name = 'rewards';
 
-        $creator = ['type' => $creatorType, 'id' => encrypt($creatorID)];
+        $creator = ['type' => $creatorType, 'id' => encrypt($creatorId)];
 
         $rewards = Rewards::getAllRewardsByCreator($creatorUser);
 

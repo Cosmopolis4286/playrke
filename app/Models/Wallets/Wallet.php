@@ -2,7 +2,7 @@
 
 namespace App\Models\Wallets;
 
-use App\Models\Currencies\Currencys\Coin;
+use App\Models\Currencies\Currency;
 use App\Models\User\User;
 use Illuminate\Database\Eloquent\Model;
 
@@ -18,7 +18,7 @@ class Wallet extends Model
     }
 
     // Relación con la moneda (currency)
-    public function Coin()
+    public function Currency()
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }

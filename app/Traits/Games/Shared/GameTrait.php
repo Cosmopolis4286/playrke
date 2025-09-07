@@ -28,22 +28,22 @@ trait GameTrait
                 $gameCreator = BingoCreator::getByRoom($room, ['creator_type', 'creator_id']);
 
                 $creatortType = RoleRepository::getValueById($gameCreator->creator_type, 'prefix');
-                $creatorID = $gameCreator->creator_id;
+                $creatorId = $gameCreator->creator_id;
             }
 
             // Obtener las monedas registradas en la sala de juego
-            $currencysInGameRoom = CoinGameRoom::getCoinsByRoom('BINGO', $room, $gameMode);
+            $currenciesInGameRoom = CoinGameRoom::getCurrenciesByRoom('BINGO', $room, $gameMode);
 
             // Obtener ExchangeRates (Tasas de Cambio)
             if ($creatortType === 'commerce_id') {
-                $exchangeRates = CommerceExchangeRate::getAllExchangeRates($creatorID);
+                $exchangeRates = CommerceExchangeRate::getAllExchangeRates($creatorId);
             } else if ($creatortType === 'customer') {
-                $exchangeRates = CustomerExchangeRate::getAllExchangeRates($creatorID);
+                $exchangeRates = CustomerExchangeRate::getAllExchangeRates($creatorId);
             }
 
             $timestamp = Carbon::now();
 
-            $recordsToInsert = $currencysInGameRoom
+            $recordsToInsert = $currenciesInGameRoom
                 ->filter(function ($currency) use ($gameID, $room) {
                     // Filtrar las monedas que no tienen una tasa de cambio existente
                     return !GameExchangeRate::existsGameExchangeRate($gameID, $room, $currency);
@@ -103,12 +103,12 @@ trait GameTrait
         $currency = $data['currency'];
 
         // Declarar variables del Creador de la sala
-        $creatorID = $data['creator']['id'];
+        $creatorId = $data['creator']['id'];
         $creatorType = $data['creator']['type'];
 
         // Definir la tasa de cambio de acuerdo al $creator['type'] 
         if (in_array($creatorType, ['RKE', 'commerce_id'])) {
-            $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $currency);
+            $creatorExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorId, $currency);
 
             if ($room->room_type === 'PB') { // Sala pública
                 $creatorExchangeRate = CommerceExchangeRate::whereIn('commerce_id', function ($query) use ($roomId) {
@@ -117,7 +117,7 @@ trait GameTrait
                 })->where('status', 1)->where('currency', $currency)->avg('exchange_rate');
             }
         } else {
-            $creatorExchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorID, $currency);
+            $creatorExchangeRate = CustomerExchangeRate::getCustomerCoinValue($creatorId, $currency);
         }
 
         // Definir Tasa de Cambio de la sala de acuerdo al estatus

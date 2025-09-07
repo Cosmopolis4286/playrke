@@ -30,18 +30,18 @@
 
           <td class="align-middle">{{ formatDate(room.Config?.date) }}</td>
           <td class="align-middle">{{ room.Config?.time || 'N/A' }} H</td>
-          <td class="align-middle">{{ coinSym }} {{ calculatePrice(room) }}</td>
+          <td class="align-middle">{{ currencySymbol }} {{ calculatePrice(room) }}</td>
 
           <td class="align-middle">
             <i class="fa-solid fa-users mr-1"></i> {{ room.players ?? 0 }}<br />
             <i class="fa-solid fa-trophy mr-1"></i> {{ room.winners ?? 0 }}
           </td>
 
-          <td class="align-middle">{{ coinSym }} {{ calculateAllSale(room) }}</td>
+          <td class="align-middle">{{ currencySymbol }} {{ calculateAllSale(room) }}</td>
 
           <td class="align-middle">
             <small>{{ room.Config?.PrizePoolType?.description || 'N/A' }}</small><br />
-            {{ coinSym }} {{ calculatePrizePool(room) }}
+            {{ currencySymbol }} {{ calculatePrizePool(room) }}
           </td>
 
           <td class="align-middle">
@@ -72,7 +72,7 @@ const props = defineProps({
     required: true,
   },
   creator: Object,
-  coinSym: {
+  currencySymbol: {
     type: String,
     default: '',
   },
@@ -94,7 +94,7 @@ const truncate = (n) => Math.floor(n * 100) / 100
 
 const calculatePrice = (room) => {
   const rate = room.GameExchangeRate?.[0]?.exchange_rate ?? props.exchangeRate
-  const price = (room.Config?.ctn_price ?? 0) * rate
+  const price = (room.Config?.card_price ?? 0) * rate
   return truncate(price)
 }
 
@@ -123,7 +123,7 @@ const statusColor = (statusId) => {
 const generateRoomRoute = (room) => {
   const params = new URLSearchParams({
     room: room.encrypted,
-    currency: btoa(props.coinSym),
+    currency: btoa(props.currencySymbol),
   })
 
   if (props.creator?.type === 'customer') {

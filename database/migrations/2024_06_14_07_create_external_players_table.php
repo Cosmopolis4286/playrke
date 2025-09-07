@@ -73,7 +73,7 @@ return new class extends Migration
 
             // Índices compuestos para consultas frecuentes
             $table->index(['game_id', 'room', 'creator_user_id'], 'idx_game_room_creator');
-            $table->index(['country_id', 'currency_id'], 'idx_country_coin');
+            $table->index(['country_id', 'currency_id'], 'idx_country_currency');
         });
     }
 

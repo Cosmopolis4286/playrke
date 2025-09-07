@@ -22,7 +22,7 @@ export const sellerRoutes = {
     "getPlayerInfo": "/seller/bingo/player/{playerLink}/info",
     "showPlayerCartons": "/seller/bingo/player/cartons/{playerLink}/{room}",
     "getPlayer": "/seller/bingo/player/get/player",
-    "getCtnPrice": "/seller/bingo/carton/get/price/{roomID}",
+    "getCtnPrice": "/seller/bingo/carton/get/price/{roomId}",
     "getPaymentCommerceDetails": "/seller/getPaymentCommerceDetails/{currency}"
 } as const;
 

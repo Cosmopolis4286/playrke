@@ -38,8 +38,8 @@
                                                     {{ $win->ExternalPlayers->Country->name }}
                                                 @endif
                                             </td>
-                                            <td>{{ $win->Coin->long_name }}</td>
-                                            <td>{{ $win->Coin->symbol }}&nbsp{{ $win->amount }}</td>
+                                            <td>{{ $win->Currency->long_name }}</td>
+                                            <td>{{ $win->Currency->symbol }}&nbsp{{ $win->amount }}</td>
                                             <td>{{ $win->prize_type_description }}</td>
                                             <td>
                                                 @if ($win->status === 'WT')
@@ -59,7 +59,7 @@
                                                     @if ($win->status == null)
                                                         <button type="button"
                                                             class="btn btn-danger btn-sm notify-ctn-payment"
-                                                            title="Notificar Pago" data-coin_sym="{{ $win->Coin->symbol }}"
+                                                            title="Notificar Pago" data-currency-symbol="{{ $win->Currency->symbol }}"
                                                             data-amount="{{ $win->amount }}"
                                                             data-ctn='{{ encrypt($win->ctn) }}'>
                                                             <i class="fa-solid fa-bell"></i>

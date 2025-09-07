@@ -17,7 +17,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Evitar duplicados
-            $table->unique(['game_id', 'room', 'currency_id'], 'unique_exchange_per_game_room_coin');
+            $table->unique(['game_id', 'room', 'currency_id'], 'unique_exchange_per_game_room_currency');
         });
     }
 

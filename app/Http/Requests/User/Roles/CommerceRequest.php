@@ -40,11 +40,11 @@ class CommerceRequest extends FormRequest
             'email'        => ['required', 'string', 'email', 'max:40'],
             'country'      => ['required', 'numeric', 'exists:countries,id'],
             'time_zone'    => ['required', 'numeric', 'exists:time_zones,id'],
-            'currency'         => ['required', 'numeric', 'exists:coins,id'],
+            'currency'         => ['required', 'numeric', 'exists:currencies,id'],
             'phone'        => ['required', 'string', 'max:20'],
             'name'         => ['required', 'string'],
             'rke_code'     => ['required', 'string'],
-            'other_currencies.*' => ['exists:coins,id'],
+            'other_currencies.*' => ['exists:currencies,id'],
         ];
 
         // Reglas de unicidad dinámicas
@@ -75,7 +75,7 @@ class CommerceRequest extends FormRequest
             'email.unique'    => 'Este correo ya está registrado.',
             'phone.unique'    => 'El número ' . $this->phone . ' ya está registrado.',
             'rke_code.unique' => 'El código RKE ya existe.',
-            'other_currencies.*.exists' => 'Uno o más de los otros coins seleccionados no existen en la base de datos.',
+            'other_currencies.*.exists' => 'Uno o más de los otros currencies seleccionados no existen en la base de datos.',
             'time_zone.exists' => 'La zona horaria seleccionada no existe.',
         ];
     }

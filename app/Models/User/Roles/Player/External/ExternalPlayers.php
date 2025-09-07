@@ -2,7 +2,7 @@
 
 namespace App\Models\User\Roles\Player\External;
 
-use App\Models\Currencies\Currencys\Coin;
+use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;
 use App\Models\Games\Shared\Games;
 use App\Models\User\Roles\Commerce\Commerce;
@@ -44,7 +44,7 @@ class ExternalPlayers extends Model
     return $this->belongsTo(Country::class, 'country');
   }
 
-  public function Coin()
+  public function Currency()
   {
     return $this->belongsTo(Currency::class, 'currency_id');
   }

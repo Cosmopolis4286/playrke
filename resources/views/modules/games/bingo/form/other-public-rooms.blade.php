@@ -26,7 +26,7 @@
         const name = @json($moduleId);
         const creation = 'M';
         const creatorType = @json($creator['type'] ?? '');
-        const creatorID = @json($creator['id'] ?? '');
+        const creatorId = @json($creator['id'] ?? '');
         let coinsCtnPrice = false;
 
         $(document).on("click", `.btn-${name}`, function() {
@@ -39,9 +39,9 @@
         function insertInfo(type, data = '') {
             if (type !== 2) return;
 
-            getCtnPriceCoin(data.room.encrypted, creation, creatorType, creatorID);
+            getCtnPriceCoin(data.room.encrypted, creation, creatorType, creatorId);
 
-            $('#ctn-price').val(data.creator?.ctn_price ?? data.config?.ctn_price);
+            $('#ctn-price').val(data.creator?.card_price ?? data.config?.card_price);
             $('#room-commn').val(data.creator?.creator_commn ?? data.config?.room_commn);
 
             $(`#modal-${name}`).modal('show');
@@ -150,5 +150,5 @@
             },
         };
     </script>
-    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-coins.js'])
+    @vite(['resources/js/games/bingo/form.js', 'resources/js/games/bingo/ctn-price-currencies.js'])
 @endsection

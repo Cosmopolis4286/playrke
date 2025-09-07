@@ -66,7 +66,7 @@
                                 </div>
                                 <span class="card-game-room__ctn-price">
                                     Cartón: <span id="ctn-price_{{ $room->encrypted }}">
-                                        {{ number_format($room->Config->ctn_price * $exchangeRate, 2) }}
+                                        {{ number_format($room->Config->card_price * $exchangeRate, 2) }}
                                     </span> {{ $currencySym }}
                                 </span>
                                 <span class="card-game-room__status" id="card-game-room__status_{{ $room->encrypted }}">
@@ -96,7 +96,7 @@
         let timestamp = new Date(dateTimeRooms['timestamp']);
         let arrRooms = [];
         let isLogin = false;
-        let roomID = false;
+        let roomId = false;
         let ctnPrice = 1;
         let numCtns = 1;
         let total = 0;
@@ -158,9 +158,9 @@
             });
         }
 
-        function generateModalPurchase(roomID) {
+        function generateModalPurchase(roomId) {
             $('#container-purchase-ctns').remove(); // Elimina el contenedor previo
-            $(`#container-card-game-room_${roomID}`).prepend(modalHTML); // Inserta el nuevo modal
+            $(`#container-card-game-room_${roomId}`).prepend(modalHTML); // Inserta el nuevo modal
             $("#quantity-down").hide();
         }
 
@@ -169,12 +169,12 @@
 
             if ($(this).data('status') != 2 || inCourse) return;
 
-            roomID = $(this).data('room');
+            roomId = $(this).data('room');
             total = 0;
 
             $.ajax({
                 url: route('bingo.getInfoByEncrypt', {
-                    id: roomID,
+                    id: roomId,
                     creatorUser,
                     currency
                 }),
@@ -190,18 +190,18 @@
                     ctnPrice = room.ctnPrice;
                     numCtns = 1;
 
-                    generateModalPurchase(roomID);
+                    generateModalPurchase(roomId);
 
-                    $('#purchase-ctns__coin-text').text(room.prizePoolType);
-                    $('.purchase-ctns__coin-label').text(room.currency);
+                    $('#purchase-card_currency-text').text(room.prizePoolType);
+                    $('.purchase-card_currency-label').text(room.currency);
                     $('#prize-pool-amount').text(room.prizePool);
                     formatDateTime(room.dateTime);
                     handleTotalAmount();
 
-                    $(`#prize_pool-room_${roomID}`).text(room.prizePool);
+                    $(`#prize_pool-room_${roomId}`).text(room.prizePool);
 
-                    if ($(`#ctn-price_${roomID}`).text() != ctnPrice) {
-                        $(`#ctn-price_${roomID}`).text(ctnPrice);
+                    if ($(`#ctn-price_${roomId}`).text() != ctnPrice) {
+                        $(`#ctn-price_${roomId}`).text(ctnPrice);
                     }
 
                     $('#container-spinner').hide();
@@ -232,7 +232,7 @@
                     'X-CSRF-TOKEN': $('#5K3_70K').val()
                 },
                 data: {
-                    room: roomID,
+                    room: roomId,
                     currency,
                     num_ctns: numCtns,
                     creator_type: creator.type,
@@ -248,8 +248,8 @@
                     showToast(res.message, res.type);
                     if (res.type === 'success') {
                         $('#prize-pool-amount').text(res.prize_pool);
-                        $(`#prize_pool-room_${roomID}`).text(res.prize_pool);
-                        $(`#number-of-ctns_${roomID}`).text(`+${res.ctns}`).removeClass('hide-elem');
+                        $(`#prize_pool-room_${roomId}`).text(res.prize_pool);
+                        $(`#number-of-ctns_${roomId}`).text(`+${res.ctns}`).removeClass('hide-elem');
                     }
                 },
                 error: function(error) {
@@ -328,10 +328,10 @@
         }
 
         // Mostrar/ocultar días, horas, minutos según su disponibilidad
-        function toggleTimeVisibility(roomID, timeRemaining) {
-            $(`#start-time_${roomID} .cnt-days`).toggle(timeRemaining.days > 0);
-            $(`#start-time_${roomID} .cnt-hours`).toggle(timeRemaining.hours > 0);
-            $(`#start-time_${roomID} .cnt-minutes`).toggle(timeRemaining.minutes > 0);
+        function toggleTimeVisibility(roomId, timeRemaining) {
+            $(`#start-time_${roomId} .cnt-days`).toggle(timeRemaining.days > 0);
+            $(`#start-time_${roomId} .cnt-hours`).toggle(timeRemaining.hours > 0);
+            $(`#start-time_${roomId} .cnt-minutes`).toggle(timeRemaining.minutes > 0);
         }
 
         let waitingTime = false;
@@ -411,10 +411,10 @@
         }
 
         // Actualizar el estado y tiempo restante de la sala
-        function updateRoomStatus(roomID, statusText = null, timeText = null) {
-            if (statusText) $(`#card-game-room__status_${roomID}`).text(statusText);
-            if (timeText && $(`#start-time_${roomID}`).html() !== timeText) {
-                $(`#start-time_${roomID}`).html(timeText);
+        function updateRoomStatus(roomId, statusText = null, timeText = null) {
+            if (statusText) $(`#card-game-room__status_${roomId}`).text(statusText);
+            if (timeText && $(`#start-time_${roomId}`).html() !== timeText) {
+                $(`#start-time_${roomId}`).html(timeText);
             }
         }
 

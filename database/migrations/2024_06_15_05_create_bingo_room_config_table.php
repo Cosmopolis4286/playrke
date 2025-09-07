@@ -46,7 +46,7 @@ return new class extends Migration
             $table->integer('unix_date')->comment('Fecha en formato timestamp UNIX');
 
             // Comisiones y precios
-            $table->decimal('ctn_price', 12, 2)->comment('Precio del cartón');
+            $table->decimal('card_price', 12, 2)->comment('Precio del cartón');
             $table->decimal('rke_commn', 8, 2)->nullable()->comment('Comisión del RKE');
             $table->decimal('room_commn', 8, 2)->nullable()->comment('Comisión de la sala');
 

@@ -99,7 +99,7 @@
     height: auto;
 }
 
-.purchase-ctns__coin {
+.purchase-card_currency {
     position: relative;
     display: flex;
     justify-content: center;
@@ -110,12 +110,12 @@
     line-height: 135%;
 }
 
-#purchase-ctns__coin-value {
+#purchase-card_currency-value {
     display: flex;
     align-items: center;
 }
 
-#purchase-ctns__coin-text {
+#purchase-card_currency-text {
     display: flex;
     align-items: center;
     font-size: 15.5px;
@@ -123,13 +123,13 @@
     font-weight: 500;
 }
 
-#purchase-ctns__coin-number {
+#purchase-card_currency-number {
     display: flex;
     align-items: center;
     font-size: 22.25px;
 }
 
-#purchase-ctns__coin-label {
+#purchase-card_currency-label {
     display: flex;
     align-items: center;
     color: rgb(219, 219, 219);

@@ -152,10 +152,10 @@
         const sellerCommn = @json($commn);
         const btnGenerate = $("#btn-generate-ctn");
         const btnSearchPhone = $("#btn-search-phone");
-        let roomID = '';
+        let roomId = '';
         let roomCtnPrice = false;
         let allowsUSDT = false;
-        let coinSym = '';
+        let currencySymbol = '';
         let ctnPrice = 1;
         let prizePool;
         let playerInfo = '';
@@ -239,8 +239,8 @@
             const totalsellerCommn = formatNumber(total * (sellerCommn / 100));
             const prizePool = formatNumber((total - totalsellerCommn));
 
-            if (roomID) {
-                $(".currency-symbol").text(coinSym);
+            if (roomId) {
+                $(".currency-symbol").text(currencySymbol);
                 $("#tx-total-amount").text(total);
                 $("#tx-seller-commn").text(totalsellerCommn);
                 $("#tx-commerce-amount").text(prizePool);
@@ -249,10 +249,10 @@
 
         function convertCurrency(data) {
             const exchangeRate = data.exchangeRate;
-            coinSym = data.sym;
+            currencySymbol = data.sym;
             ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
 
-            $("#ctn-price-symbol").text(coinSym);
+            $("#ctn-price-symbol").text(currencySymbol);
             $("#ctn-price-amount").text(ctnPrice);
             $("#tx-prize-pool-room").text(formatNumber((prizePool * exchangeRate), 2));
 
@@ -283,7 +283,7 @@
         function getCtnPriceCoin(country) {
             $.getJSON({
                 url: route('seller.getCtnPriceCoin', {
-                    room: roomID,
+                    room: roomId,
                     country
                 }),
                 success: function(data) {
@@ -297,14 +297,14 @@
 
         room.on("change", function() {
 
-            roomID = $(this).val();
+            roomId = $(this).val();
 
-            if (!roomID) {
+            if (!roomId) {
                 $(".currency-symbol, .sale-info").empty();
                 $(".ctn-player-info, #cont-tx-prize-pool-room").addClass('d-none');
             } else {
                 $.getJSON({
-                    url: route('seller.getCtnPrice', roomID),
+                    url: route('seller.getCtnPrice', roomId),
                     success: function(data) {
                         if (data.message) {
                             showToast(data.message, data.type);
@@ -322,12 +322,12 @@
                         prizePool = formatNumber(prizePoolAmount, 2);
                         roomCtnPrice = formatNumber(price);
                         ctnPrice = roomCtnPrice;
-                        coinSym = currency;
+                        currencySymbol = currency;
 
                         handleAllowsUSDT(USDT);
                         insertCountries(countries)
 
-                        $("#ctn-price-symbol").text(coinSym);
+                        $("#ctn-price-symbol").text(currencySymbol);
                         $("#ctn-price-amount").text(ctnPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
                         $(".prize-pool-type").text(prizePoolType == 1 ? 'Bote' : 'Premio');
@@ -400,7 +400,7 @@
                 },
                 data: {
                     game: 'BINGO',
-                    room: roomID,
+                    room: roomId,
                     country: country.val(),
                     player_info: playerInfo,
                 },

@@ -18,28 +18,28 @@ class PrizeCartonService
     {
         try {
             // Obtener draft de precios para la sala
-            $draft = BingoCtnPriceDrafts::getByRoom($roomId, ['creator_user_id', 'coins', 'ctn_prices', 'status']);
+            $draft = BingoCtnPriceDrafts::getByRoom($roomId, ['creator_user_id', 'currencies', 'card_prices', 'status']);
 
             if (!$draft) {
                 Log::info("No se encontró draft de precios para sala ID {$roomId}");
                 return false;
             }
 
-            $currencys = (array) $draft->currencies;
-            $prices = (array) $draft->ctn_prices;
+            $currencies = (array) $draft->currencies;
+            $prices = (array) $draft->card_prices;
 
             // Validar integridad de datos
-            if (count($currencys) !== count($prices)) {
+            if (count($currencies) !== count($prices)) {
                 throw new \Exception("Datos inconsistentes: la cantidad de monedas no coincide con la de precios. Sala ID {$roomId}");
             }
 
             // Registrar precios usando updateOrCreate para evitar duplicados
-            foreach ($currencys as $index => $currency) {
+            foreach ($currencies as $index => $currency) {
                 BingoCtnPrice::updateOrCreate(
                     ['room' => $roomId, 'currency' => $currency],
                     [
                         'creator_user_id' => $draft->creator_user,
-                        'ctn_price' => $prices[$index],
+                        'card_price' => $prices[$index],
                     ]
                 );
             }

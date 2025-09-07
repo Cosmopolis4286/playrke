@@ -38,7 +38,7 @@ return new class extends Migration
 
             // Índices compuestos para búsquedas rápidas
             $table->index(['customer_id', 'user_id'], 'idx_customer_user');
-            $table->index(['country_code', 'currency_id'], 'idx_country_coin');
+            $table->index(['country_code', 'currency_id'], 'idx_country_currency');
         });
     }
 

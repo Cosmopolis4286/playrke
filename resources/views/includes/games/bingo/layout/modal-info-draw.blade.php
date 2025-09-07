@@ -70,16 +70,16 @@
                                         @if (!$player)
                                             <select class="custom-select" id="currency">
                                                 <option value="" disabled selected>Seleccionar</option>
-                                                @foreach ($currencysAvailable as $item)
+                                                @foreach ($currenciesAvailable as $item)
                                                     <option value="{{ encrypt($item->id) }}">
                                                         {{ $item->long_name }} ({{ $item->symbol }})
                                                     </option>
                                                 @endforeach
                                             </select>
                                         @else
-                                            <div class="form-control text-left">{{ $currencysAvailable->long_name }}
-                                                ({{ $currencysAvailable->symbol }})</div>
-                                            <input type="hidden" id="currency" value="{{ encrypt($currencysAvailable->id) }}">
+                                            <div class="form-control text-left">{{ $currenciesAvailable->long_name }}
+                                                ({{ $currenciesAvailable->symbol }})</div>
+                                            <input type="hidden" id="currency" value="{{ encrypt($currenciesAvailable->id) }}">
                                         @endif
                                     </div>
                                 </div>

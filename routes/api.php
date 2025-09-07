@@ -35,4 +35,4 @@ Route::middleware('auth:sanctum')->group(function () {
 // ===============================
 // Rutas públicas de API
 // ===============================
-// Route::get('/coins', [CoinController::class, 'index']);
+// Route::get('/currencies', [CurrencyController::class, 'index']);

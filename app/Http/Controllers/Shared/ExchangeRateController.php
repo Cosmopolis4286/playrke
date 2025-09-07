@@ -22,15 +22,15 @@ class ExchangeRateController extends Controller
 {
     use UserValTrait;
 
-    public function index($creatorType, $creatorID = '')
+    public function index($creatorType, $creatorId = '')
     {
         $this->getExchangeRates(true);
 
         switch ($creatorType) {
             case 'customer': //customer
 
-                if ($creatorID) {
-                    $customer = Customer::getValueByToken($creatorID, 'id');
+                if ($creatorId) {
+                    $customer = Customer::getValueByToken($creatorId, 'id');
                     if (!$customer) {
                         return response()->json(['message' => 'Token del cliente no existe'], 404);
                     }
@@ -41,29 +41,29 @@ class ExchangeRateController extends Controller
                     $customer = Customer::getByUserId(Auth::id(), ['id', 'token']);
                     $isLogin = true;
 
-                    $creatorID = $customer->id;
+                    $creatorId = $customer->id;
                 }
 
-                $exchangeRate = CustomerExchangeRate::getAvailableExchangeRates($creatorID);
+                $exchangeRate = CustomerExchangeRate::getAvailableExchangeRates($creatorId);
                 break;
             case 'commerce_id':
                 $commerce = $this->commerce(['id', 'user']);
 
-                $creatorID = $commerce->id;
+                $creatorId = $commerce->id;
 
-                $commerceCoins = CommerceExchangeRate::getCoinsByCommerce($creatorID);
+                $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($creatorId);
 
-                $this->checkBankDirectoriesExistence($commerceCoins);
+                $this->checkBankDirectoriesExistence($commerceCurrencies);
 
-                $array = array_filter($this->getAvailableCoins($commerce->user), fn($value) => $value !== 1);
+                $array = array_filter($this->getAvailableCurrencies($commerce->user), fn($value) => $value !== 1);
 
-                $currencys = Currency::whereIn('id', $array)
-                    ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($creatorID) {
-                        $query->where('commerce_id', $creatorID);
+                $currencies = Currency::whereIn('id', $array)
+                    ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($creatorId) {
+                        $query->where('commerce_id', $creatorId);
                     })->get(['id', 'symbol', 'long_name']);
 
 
-                $exchangeRates = CommerceExchangeRate::getAvailableExchangeRates($creatorID);
+                $exchangeRates = CommerceExchangeRate::getAvailableExchangeRates($creatorId);
                 $isLogin = true;
                 break;
 
@@ -77,8 +77,8 @@ class ExchangeRateController extends Controller
             'title' => 'Tasas de Cambio',
             'name' => 'exchange-rate',
             'returnBtn' => $returnBtn ?? true,
-            'creator' => ['type' => $creatorType, 'id' => encrypt($creatorID)],
-            'coins' => $currencys ?? [],
+            'creator' => ['type' => $creatorType, 'id' => encrypt($creatorId)],
+            'currencies' => $currencies ?? [],
             'exchangeRates' => $exchangeRates
         ];
 
@@ -96,16 +96,16 @@ class ExchangeRateController extends Controller
         try {
 
             $creator = json_decode($request->creator);
-            $creatorID = decrypt($creator->id);
+            $creatorId = decrypt($creator->id);
             $currency = $request->currency;
 
             if ($creator->type === 'customer') {
 
-                $user = Customer::getValueById($creatorID, 'user');
-                $currencyID = CustomerExchangeRate::getCustomerCoinValue($creatorID, $currency, 'id');
+                $user = Customer::getValueById($creatorId, 'user');
+                $currencyID = CustomerExchangeRate::getCustomerCoinValue($creatorId, $currency, 'id');
 
                 $data = [
-                    'customer' => $creatorID,
+                    'customer' => $creatorId,
                     'currency' => $currency,
                     'status' => 1,
                     'user' => $user ?? null,
@@ -119,14 +119,14 @@ class ExchangeRateController extends Controller
                     CustomerExchangeRate::create($data);
                 }
             } else {
-                $existsCommerceExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorID, $currency);
+                $existsCommerceExchangeRate = CommerceExchangeRate::getCommerceCoinValue($creatorId, $currency);
 
                 if ($existsCommerceExchangeRate) return redirect()->back();
 
                 $status = $this->getPaymentDetailsByUserId(Auth::id(), $currency) ? 1 : 2;
 
                 CommerceExchangeRate::create([
-                    'commerce_id' => $creatorID,
+                    'commerce_id' => $creatorId,
                     'currency' => $currency,
                     'exchange_rate' => $request->exchange_rate,
                     'status' => $status,
@@ -334,31 +334,31 @@ class ExchangeRateController extends Controller
         return ExchangeRate::getLastValueByCoin($currency) ?? 1;
     }
 
-    public function historical($creatorType, $creatorID, $currency)
+    public function historical($creatorType, $creatorId, $currency)
     {
         $isLogin = true;
         $returnBtn = false;
 
         switch ($creatorType) {
             case 'customer':
-                $creatorID = decrypt($creatorID);
+                $creatorId = decrypt($creatorId);
                 $currency = decrypt($currency);
 
-                $customer = Customer::getValueByToken($creatorID, 'id');
+                $customer = Customer::getValueByToken($creatorId, 'id');
 
                 if ($customer) {
                     $isLogin = false;
                     $returnBtn = false;
-                    $creatorID = $customer;
+                    $creatorId = $customer;
                 }
 
-                $exchangeRate = CustomerExchangeRate::getAllExchangeRatesByCoin($creatorID, $currency);
+                $exchangeRate = CustomerExchangeRate::getAllExchangeRatesByCoin($creatorId, $currency);
                 break;
             case 'commerce_id':
-                $creatorID = decrypt($creatorID);
+                $creatorId = decrypt($creatorId);
                 $currency = decrypt($currency);
 
-                $exchangeRate = CommerceExchangeRate::getAllExchangeRatesByCoin($creatorID, $currency);
+                $exchangeRate = CommerceExchangeRate::getAllExchangeRatesByCoin($creatorId, $currency);
                 break;
             default:
                 return response()->json(['message' => 'Ruta no encontrada'], 404);
@@ -370,8 +370,8 @@ class ExchangeRateController extends Controller
             'title' => 'Histórico Tasa de Cambio',
             'name' => 'exchange-rate-historical',
             'returnBtn' => $returnBtn ?? true,
-            'creator' => ['type' => $creatorType, 'id' => $creatorID],
-            'coins' => $currencys ?? [],
+            'creator' => ['type' => $creatorType, 'id' => $creatorId],
+            'currencies' => $currencies ?? [],
             'exchangeRate' => $exchangeRate
         ];
 

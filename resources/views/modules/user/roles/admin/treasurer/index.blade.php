@@ -118,13 +118,13 @@
         const name = '<?php echo $moduleId; ?>';
         const arrCountries = JSON.parse('<?php echo $countries; ?>');
         const arrTimeZones = JSON.parse('<?php echo $timeZones; ?>');
-        const coins = JSON.parse('<?php echo $currencys; ?>');
+        const currencies = JSON.parse('<?php echo $currencies; ?>');
         const userRole = $("#select-user-role");
         const country = $("#country");
         const timeZone = $("#time-zone");
         const currency = $("#currency");
-        const coinText = $("#currency-text");
-        const otherCoins = $("#other-coins");
+        const currencyText = $("#currency-text");
+        const otherCurrencies = $("#other-currencies");
         const games = $("#games");
         const arrGames = @json($games);
         let update = false;
@@ -147,31 +147,31 @@
             const selectedCountry = country.val(); // Obtener el valor seleccionado del país
 
             if (selectedCountry) {
-                $.each(coins, function(index, item) {
+                $.each(currencies, function(index, item) {
                     if (item.country == selectedCountry) {
-                        coinText.val(`(${item.symbol}) ${item.short_name}`);
+                        currencyText.val(`(${item.symbol}) ${item.short_name}`);
                         currency.val(item.id);
                     }
                 });
-                if (coins.length > 1 && !update) insertOtherCoins();
+                if (currencies.length > 1 && !update) insertOtherCurrencies();
             } else {
-                coinText.val('');
+                currencyText.val('');
                 currency.val('');
-                $("#cont-other-coins").addClass('hide-elem');
+                $("#cont-other-currencies").addClass('hide-elem');
             }
         });
 
-        function insertOtherCoins(selectedCoins = []) {
-            otherCoins.empty();
-            $.each(coins, function(index, item) {
+        function insertOtherCurrencies(selectedCurrencies = []) {
+            otherCurrencies.empty();
+            $.each(currencies, function(index, item) {
                 if (item.id != currency.val()) {
-                    const isSelected = selectedCoins.includes(item.id) ? 'selected' : '';
-                    otherCoins.append(
+                    const isSelected = selectedCurrencies.includes(item.id) ? 'selected' : '';
+                    otherCurrencies.append(
                         `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
                     );
                 }
             });
-            $("#cont-other-coins").removeClass('hide-elem');
+            $("#cont-other-currencies").removeClass('hide-elem');
         }
 
         function insertGames(selectedGames = '') {
@@ -214,14 +214,14 @@
 
             if (type == 2) {
                 const treasurer = data.treasurer;
-                const otherCoins = data.other_currencies;
+                const otherCurrencies = data.other_currencies;
                 const user = data.user;
 
                 $('#name').val(treasurer.name);
                 $('#phone').val(treasurer.phone);
                 update = true;
                 country.trigger('change');
-                insertOtherCoins(otherCoins)
+                insertOtherCurrencies(otherCurrencies)
 
                 $("#username").val(user.username);
                 $("#email").val(user.email);
@@ -237,7 +237,7 @@
             if (!$('#select-user-to-promote').val()) {
                 submitForm(name, ['moduleId', 'country', 'time-zone', 'currency', 'phone', 'username', 'email']);
             } else {
-                submitForm(name, ['select-user-role', 'select-user-to-promote', 'other-coins'])
+                submitForm(name, ['select-user-role', 'select-user-to-promote', 'other-currencies'])
             }
         });
 
@@ -251,9 +251,9 @@
                 $('#select-user-to-promote').append(`<option value="${item.user}">${item.name}</option>`);
             });
             $('.new-treasurer').addClass('hide-elem');
-            $('#label-other-coins').text('Monedas Permitidas:');
-            insertOtherCoins();
-            $('#cont-select-user-to-promote, #cont-other-coins').removeClass('hide-elem');
+            $('#label-other-currencies').text('Monedas Permitidas:');
+            insertOtherCurrencies();
+            $('#cont-select-user-to-promote, #cont-other-currencies').removeClass('hide-elem');
         }
 
         function getUserInfo(userRole, text) {
@@ -276,8 +276,8 @@
         function hideSelectUserRole() {
             $('#label-user-promote').text('');
             $('#select-user-to-promote').empty().prop('disabled', true);
-            $('#cont-select-user-to-promote, #cont-other-coins').addClass('hide-elem');
-            $('#label-other-coins').text('Otras Monedas:');
+            $('#cont-select-user-to-promote, #cont-other-currencies').addClass('hide-elem');
+            $('#label-other-currencies').text('Otras Monedas:');
             $('.new-treasurer').removeClass('hide-elem');
         }
 

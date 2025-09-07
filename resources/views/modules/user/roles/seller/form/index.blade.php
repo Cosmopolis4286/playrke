@@ -31,14 +31,14 @@
                                     <td>{{ $seller->phone }}</td>
                                     <td>{{ $seller->Country->name }}</td>
                                     <td>
-                                        {{ $seller->Coin->short_name }} ({{ $seller->Coin->symbol }})
-                                        @if ($seller->CountriesCoins->count() > 1)
+                                        {{ $seller->Currency->short_name }} ({{ $seller->Currency->symbol }})
+                                        @if ($seller->CountriesCurrencies->count() > 1)
                                             <a tabindex="0" class="badge btn-sm btn-primary" role="button"
                                                 data-toggle="popover" data-trigger="focus" title="Otras Monedas"
                                                 data-content="
-                                                    @foreach ($seller->CountriesCoins as $item)
+                                                    @foreach ($seller->CountriesCurrencies as $item)
                                                         @if ($item->currency != $seller->currency)
-                                                            <span>{{ $item->Coin->long_name }} ({{ $item->Coin->symbol }})</span><br>
+                                                            <span>{{ $item->Currency->long_name }} ({{ $item->Currency->symbol }})</span><br>
                                                         @endif @endforeach
                                                 ">
                                                 <i class="fa-solid fa-coins mr-1"></i>Ver
@@ -91,7 +91,7 @@
     @push('stack-scripts')
         <script>
             window.appData = {
-                coins: @json($currencys),
+                currencies: @json($currencies),
                 countries: @json($countries),
                 moduleFile: 'seller/form/sellerForm.ts',
                 timeZones: @json($timeZones)

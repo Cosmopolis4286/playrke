@@ -5,13 +5,13 @@
         <div class="card">
             <x-shared.card-header :title="$title" :subtitle="$subtitle" :btnCardHeader="['route' => route('bingo.configuration'), 'icon' => 'fa-solid fa-gear']" />
             <div class="card-body">
-                <x-shared.currency-tabs :coins="$currencys" :selectedCoin="$currency" :routeWithCoin="$routeWithCoin" />
+                <x-shared.currency-tabs :currencies="$currencies" :selectedCoin="$currency" :routeWithCoin="$routeWithCoin" />
                 <x-games.bingo.shared.button-group view="PRIVATE" name="btn-ver-salas" :creator="$creator" :rooms="$rooms"
                     :activeRooms="$activeRooms" :gameRoomRoute="$gameRoomRoute" />
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active">
                         <x-games.bingo.tables.table-info-bingo-rooms :rooms="$rooms" :creator="$creator"
-                            :coinSym="$currencySym" :currency="$currency" :uuidCode="$uuidCode" :exchangeRate="$exchangeRate" :view="$view"
+                            :currencySymbol="$currencySym" :currency="$currency" :uuidCode="$uuidCode" :exchangeRate="$exchangeRate" :view="$view"
                             :name="$moduleId" />
                     </div>
                 </div>
@@ -36,7 +36,7 @@
             'action' => route('games.handleCustomerGames', ['id' => $customerGameID->id ?? null]),
             'btnConfirm' => 'btn-confirm-game-id',
             'dataForm' => view('modules.customer.customer-games.form', [
-                'creatorID' => $creator['id'],
+                'creatorId' => $creator['id'],
                 'customerGameID' => $customerGameID,
             ])->render(),
         ])
@@ -50,14 +50,14 @@
         const creation = 'M';
         const roomType = @json($roomType);
         const creatorType = @json($creator['type'] ?? '');
-        const creatorID = @json($creator['id'] ?? '');
+        const creatorId = @json($creator['id'] ?? '');
         const prizePoolType = $("#prize-pool-type");
-        const coins = @json($currencys);
-        const allowedCoins = $("#allowed-coins");
+        const currencies = @json($currencies);
+        const allowedCurrencies = $("#allowed-currencies");
         const gameMode = $("#game-mode");
         const bingoPatterns = $("#bingo-patterns");
         const arrBingoPatterns = @json($bingoPatterns);
-        const arrCoins = @json($currencys);
+        const arrCurrencies = @json($currencies);
         const arrPrizePoolType = @json($typesPrizePool);
         const arrGameModes = @json($gameModes);
         let room = '';
@@ -106,18 +106,18 @@
             }
         });
 
-        function insertAllowedCoins(selectedCoins = []) {
-            allowedCoins.empty();
-            $.each(coins, function(index, item) {
-                const isSelected = selectedCoins.some(val => val == item.id) ? 'selected' : '';
-                allowedCoins.append(
+        function insertAllowedCurrencies(selectedCurrencies = []) {
+            allowedCurrencies.empty();
+            $.each(currencies, function(index, item) {
+                const isSelected = selectedCurrencies.some(val => val == item.id) ? 'selected' : '';
+                allowedCurrencies.append(
                     `<option value="${item.id}" ${isSelected}>(${item.iso_code}) ${item.short_name}</option>`
                 );
             });
         }
 
-        allowedCoins.on('change', function() {
-            getCtnPriceCoin(room, creation, creatorType, creatorID);
+        allowedCurrencies.on('change', function() {
+            getCtnPriceCoin(room, creation, creatorType, creatorId);
         });
 
         function insertBingoPlays() {
@@ -148,7 +148,7 @@
         function insertInfo(type, data = '') {
             const isDisabled = type === 2 && data.room.players;
             const isRequired = !isDisabled;
-            const allowedCoins = (type == 2 && data.config.allowed_currencies) ? data.config.allowed_currencies : [];
+            const allowedCurrencies = (type == 2 && data.config.allowed_currencies) ? data.config.allowed_currencies : [];
 
             selectedBingoPlays = [];
             coinsCtnPrice = false;
@@ -158,8 +158,8 @@
             $('#content-rounds-config, #content-price-config').empty();
 
             if (type == 2 && data.config.rounds > 1) getRoundsConfig(room);
-            insertAllowedCoins(allowedCoins);
-            getCtnPriceCoin(room, creation, creatorType, creatorID);
+            insertAllowedCurrencies(allowedCurrencies);
+            getCtnPriceCoin(room, creation, creatorType, creatorId);
 
             gameMode.prop({
                 disabled: isDisabled,
@@ -202,7 +202,7 @@
                 $('#time').val(config.time);
                 $('#room-commn').val(config.room_commn);
                 $('#jackpot-pct').val(config.jackpot_pct);
-                $('#ctn-price').val(config.ctn_price);
+                $('#ctn-price').val(config.card_price);
                 $('#time-chip').val(config.time_chip);
                 $('#rounds').val(config.rounds);
                 $('#rounds-pct').val(config.rounds_pct);
@@ -234,7 +234,7 @@
         $(document).on("click", "#btn-confirm", function() {
             submitForm(name, [
                 'date', 'room-type', 'prize-pool-type', 'game-mode', 'room-commn',
-                'ctn-price', 'allowed-coins', 'time-chip', 'rounds', 'serials-pct', 'num-serials'
+                'ctn-price', 'allowed-currencies', 'time-chip', 'rounds', 'serials-pct', 'num-serials'
             ]);
         });
 

@@ -96,7 +96,7 @@
     <script>
         const name = '{{ $moduleId }}';
         const currency = '{{ encrypt($currency) }}';
-        const coinName = '{{ $currencyData->short_name }}';
+        const currencyName = '{{ $currencyData->short_name }}';
         const allPendingCtnSale = '{{ $allPendingCtnSale }}';
         const commerceName = '{{ $commerceName }}';
         let allNotifyCtns = false;
@@ -112,7 +112,7 @@
                             $("#sent-amount").text(`${data.currency} ${amountSent}`);
                         } else {
                             $("#notify-all").show();
-                            $("#sent-amount").text(`${coinName} ${allPendingCtnSale}`);
+                            $("#sent-amount").text(`${currencyName} ${allPendingCtnSale}`);
                             $("#notify-all-ctns").val(1);
                         }
 

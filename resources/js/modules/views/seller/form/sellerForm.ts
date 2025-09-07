@@ -2,7 +2,7 @@
 //   Imports
 // ==========================
 import { formCRUD } from '@/helpers/form/formCrudInit';
-import { insertOtherCoins } from '@/helpers/selects/insertOtherCoins';
+import { insertOtherCurrencies } from '@/helpers/selects/insertOtherCurrencies';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
 import { route } from '@/routes/sellerRoutes';
@@ -107,8 +107,8 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
     initAllSelects(selectedValues);
 
     // Insertar otras monedas si es edición
-    if (action === 'edit' && data?.otherCoins) {
-        insertOtherCoins(data.otherCoins);
+    if (action === 'edit' && data?.otherCurrencies) {
+        insertOtherCurrencies(data.otherCurrencies);
     }
 
     // Rellenar campos en modo edición

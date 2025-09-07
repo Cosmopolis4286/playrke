@@ -2,15 +2,15 @@
 
 namespace App\Models\Games\Bingo\Cartons\CartonPrice;
 
-use App\Models\Currencies\Currencys\Coin;
+use App\Models\Currencies\Currency;
 use Illuminate\Database\Eloquent\Model;
 
 class BingoCtnPrice extends Model
 {
-    protected $table = 'bingo_ctn_price';
-    protected $fillable = ['room', 'creator_user_id', 'currency_id', 'ctn_price', 'created_at', 'updated_at'];
+    protected $table = 'bingo_card_price';
+    protected $fillable = ['room', 'creator_user_id', 'currency_id', 'card_price', 'created_at', 'updated_at'];
 
-    public function Coin()
+    public function Currency()
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }
@@ -27,11 +27,11 @@ class BingoCtnPrice extends Model
 
     public static function getValueCtnPrice($room, $currencyId, $creatorUser)
     {
-        return self::select('ctn_price')->where('room', $room)->where('currency_id', $currencyId)
-            ->where('creator_user_id', $creatorUser)->value('ctn_price');
+        return self::select('card_price')->where('room', $room)->where('currency_id', $currencyId)
+            ->where('creator_user_id', $creatorUser)->value('card_price');
     }
 
-    public static function getAllCoinsCtnPrice($room, $creatorUser)
+    public static function getAllCurrenciesCtnPrice($room, $creatorUser)
     {
         if (!$creatorUser) return collect();
 
@@ -39,21 +39,21 @@ class BingoCtnPrice extends Model
             ->where('creator_user_id', $creatorUser)->distinct()->pluck('currency_id');
     }
 
-    public static function getOnlyCoinsCtnPrice($room, $creatorUser, string $creation)
+    public static function getOnlyCurrenciesCtnPrice($room, $creatorUser, string $creation)
     {
         if (!$creatorUser) return collect();
 
-        return self::select('currency_id', BingoCtnPrice::raw('MAX(ctn_price) as ctn_price'))
+        return self::select('currency_id', BingoCtnPrice::raw('MAX(card_price) as card_price'))
             ->where('room', $room)->where('creator_user_id', $creatorUser)->groupBy('currency_id')
-            ->pluck('ctn_price', 'currency_id');
+            ->pluck('card_price', 'currency_id');
     }
 
     public static function getAllCtnPrice($room, $creatorUser)
     {
-        return self::with('Coin')->where('room', $room)->where('creator_user_id', $creatorUser)->get();
+        return self::with('Currency')->where('room', $room)->where('creator_user_id', $creatorUser)->get();
     }
 
-    public static function getCtnPrice($room, $currencyId, $creatorUser, $fields = ['id', 'ctn_price'])
+    public static function getCtnPrice($room, $currencyId, $creatorUser, $fields = ['id', 'card_price'])
     {
         return self::select($fields)->where('room', $room)->where('currency_id', $currencyId)
             ->where('creator_user_id', $creatorUser)->first();

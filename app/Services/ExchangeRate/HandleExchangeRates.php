@@ -2,7 +2,7 @@
 
 namespace App\Services\ExchangeRate;
 
-use App\Models\{Coin, Commerce, CommerceExchangeRate, Customer, CustomerExchangeRate, User};
+use App\Models\{Currency, Commerce, CommerceExchangeRate, Customer, CustomerExchangeRate, User};
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;

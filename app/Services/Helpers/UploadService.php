@@ -15,11 +15,11 @@ class UploadService
      *
      * @param UploadedFile $image
      * @param string $folder
-     * @param int|string $creatorID
+     * @param int|string $creatorId
      * @return string
      * @throws HttpResponseException
      */
-    public function saveImage(UploadedFile $image, string $folder, $creatorID): string
+    public function saveImage(UploadedFile $image, string $folder, $creatorId): string
     {
         try {
             if (!$image->isValid()) {
@@ -27,7 +27,7 @@ class UploadService
             }
 
             $fileName = Carbon::now()->timestamp . '.' . $image->getClientOriginalExtension();
-            $creatorFolder = "$folder/$creatorID";
+            $creatorFolder = "$folder/$creatorId";
 
             Storage::disk('public')->deleteDirectory($creatorFolder);
             $image->storeAs($creatorFolder, $fileName, 'public');

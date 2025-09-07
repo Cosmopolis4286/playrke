@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Settings\Settings;
-use App\Repositories\Coins\CoinRepository;
+use App\Repositories\Currencies\CurrencyRepository;
 use App\Repositories\Countries\CountryRepository;
 use App\Repositories\User\Roles\RoleRepository;
 
@@ -44,7 +44,7 @@ class AuthenticatedSessionController extends Controller
         $userType = RoleRepository::getValueById(Auth::user()->user_type, 'prefix');
 
         $isoCode = CountryRepository::getValue($country, 'iso_code_2');
-        $currency = encrypt(CoinRepository::getValueByCountry($country, 'id'));
+        $currency = encrypt(CurrencyRepository::getValueByCountry($country, 'id'));
 
         // Crear la variable de sesión 'countryCode'
         $request->session()->put('countryCode', $isoCode);

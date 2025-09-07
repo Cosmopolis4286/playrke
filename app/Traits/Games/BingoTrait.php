@@ -606,7 +606,7 @@ trait BingoTrait
                 'room' => $roomId,
                 'ctns' => $arrCtn['numOfCtns'],
                 'currency' => $currency,
-                'ctn_price' => $arrCtn['ctnPrice'],
+                'card_price' => $arrCtn['ctnPrice'],
                 'exchange_rate' => $arrCtn['exchangeRate'],
                 'sale_amount' => $saleAmount,
                 'seller_commn' => $sellerCommn ?? null,
@@ -634,8 +634,8 @@ trait BingoTrait
             $creatorType = $arrCtn['creator']['type'];
 
             if ($creatorType === 'customer') {
-                $creatorID = $arrCtn['creator']['id'];
-                $country = CustomerUser::getValueByUserId($creatorID, $arrCtn['playerUser'], 'country');
+                $creatorId = $arrCtn['creator']['id'];
+                $country = CustomerUser::getValueByUserId($creatorId, $arrCtn['playerUser'], 'country');
             } else {
                 $country = Country::getValue($arrCtn['country'], 'iso_code_2');
             }
@@ -1454,10 +1454,10 @@ trait BingoTrait
                 $gameID = Games::getValueByName('BINGO');
 
                 // Obtener las monedas activas en la sala
-                $currencys = CoinGameRoom::getCoinsByRoom($gameID, $roomId);
+                $currencies = CoinGameRoom::getCurrenciesByRoom($gameID, $roomId);
 
                 // Preparar los datos para insertar
-                $dataJackpots = $currencys->map(function ($currency) use ($roomId, $gameID, $serialsPct, $timestamp) {
+                $dataJackpots = $currencies->map(function ($currency) use ($roomId, $gameID, $serialsPct, $timestamp) {
 
                     $prizePoolAmount = BingoCreatorSales::getPrizePoolAmountByRoomAndCoin($roomId, $currency);
                     $amount = round($prizePoolAmount * $serialsPct, 3);

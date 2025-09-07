@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('game_id');
             $table->unsignedBigInteger('game_mode_id');
-            $table->unsignedBigInteger('prize_pool_type')->default(1);
+            $table->unsignedBigInteger('prize_pool_type_id')->default(1);
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
             $table->timestamps();
 

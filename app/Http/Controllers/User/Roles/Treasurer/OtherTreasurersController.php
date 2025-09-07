@@ -27,7 +27,7 @@ class OtherTreasurersController extends Controller
         $data = [
             'username' => $otherTreasurer->User->username,
             'country' => $otherTreasurer->User->Country->name,
-            'other_currencies' => $otherTreasurer->allowedCoins,
+            'other_currencies' => $otherTreasurer->allowedCurrencies,
             'allowed_games' => $otherTreasurer->allowed_games
         ];
 

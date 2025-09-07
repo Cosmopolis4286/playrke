@@ -2,7 +2,7 @@
 
 namespace App\Models\ExchangeRate;
 
-use App\Models\Currencies\Currencys\Coin;
+use App\Models\Currencies\Currency;
 use Illuminate\Database\Eloquent\Model;
 
 class ExchangeRate extends Model

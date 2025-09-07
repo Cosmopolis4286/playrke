@@ -1,6 +1,6 @@
 @php
     use App\Models\Wallet;
-    $wallet = Wallet::with('Coin')->where('user', Auth::id())->first();
+    $wallet = Wallet::with('Currency')->where('user', Auth::id())->first();
     $user = auth()->user();
 @endphp
 
@@ -24,7 +24,7 @@
                     </span>
                 @else
                     <span class="info-box-number" style="color:#BCB9C6;">
-                        <span style="color:#228B22;">{{ $wallet->Coin->symbol }}</span>
+                        <span style="color:#228B22;">{{ $wallet->Currency->symbol }}</span>
                         {{ number_format($wallet->balance, 2, ',', '.') }}
                     </span>
                 @endif

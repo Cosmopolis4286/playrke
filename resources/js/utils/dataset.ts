@@ -3,7 +3,7 @@ import { getAppDataProperty, getAppData, AppData } from '@/app';
 /**
  * Extrae las keys de un tipo de mapa de datasets.
  * @example
- *   datasetKeys<DatasetMap>() // => ["coins", "countries", ...]
+ *   datasetKeys<DatasetMap>() // => ["currencies", "countries", ...]
  */
 export function datasetKeys<T extends Record<string, any[]>>() {
     return Object.keys({} as T) as (keyof T)[];
