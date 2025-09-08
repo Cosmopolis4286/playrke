@@ -4,11 +4,18 @@ namespace App\Models\Countries;
 
 use App\Models\User\Roles\Player\External\ExternalPlayers;
 use App\Models\User\Roles\Seller\Seller;
+use BradieTilley\Snowflakes\Eloquent\HasSnowflake;
 use Illuminate\Database\Eloquent\Model;
 
 class Country extends Model
 {
+    use HasSnowflake; // Habilita IDs Snowflake
+
     protected $table = "countries";
+
+    // Indicar que la PK no es autoincremental y es string
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $fillable = [
         'name',

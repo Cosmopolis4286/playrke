@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Repositories\User\Shared\DocumentTypeRepository;
 use App\Repositories\Countries\CountryRepository;
+use BradieTilley\Snowflake\Snowflake;
 
 class DocumentTypeSeeder extends Seeder
 {
@@ -15,6 +16,9 @@ class DocumentTypeSeeder extends Seeder
     {
         $countryRepo = new CountryRepository();
         $documentRepo = new DocumentTypeRepository();
+
+        // Instanciar Snowflake
+        $snowflake = new Snowflake();
 
         // Obtener países por ISO
         $brasil    = $countryRepo->getCountryByIsoCode('BR');
@@ -37,7 +41,11 @@ class DocumentTypeSeeder extends Seeder
             if ($type['country_id']) { // solo si existe el país
                 $documentRepo->updateOrCreate(
                     ['value' => $type['value'], 'country_id' => $type['country_id']], // clave compuesta
-                    ['description' => $type['description'], 'status' => $type['status']]
+                    [
+                        'id' => $snowflake->id(), // Generar ID Snowflake
+                        'description' => $type['description'],
+                        'status' => $type['status']
+                    ]
                 );
             }
         }

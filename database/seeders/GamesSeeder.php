@@ -3,29 +3,32 @@
 namespace Database\Seeders;
 
 use App\Models\Games\Shared\Games;
+use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 
 class GamesSeeder extends Seeder
 {
-    /**
-     * Ejecuta el seeder para poblar la tabla 'games' con los juegos base.
-     *
-     * @return void
-     */
     public function run(): void
     {
-        // Lista de juegos predefinidos
+        $snowflake = new Snowflake();
+        $timestamp = now();
+
         $games = [
             ['name' => 'BINGO',  'status' => 'ACTIVE'],
             ['name' => 'POLLA',  'status' => 'ACTIVE'],
             ['name' => 'TRIVIA', 'status' => 'ACTIVE'],
         ];
 
-        // Inserta o actualiza los registros según el nombre del juego para evitar duplicados
+        foreach ($games as &$game) {
+            $game['id'] = $snowflake->id();   // Genera ID Snowflake
+            $game['created_at'] = $timestamp;
+            $game['updated_at'] = $timestamp;
+        }
+
         foreach ($games as $game) {
             Games::updateOrCreate(
-                ['name' => $game['name']], // campo único
-                ['status' => $game['status']]
+                ['name' => $game['name']],  // campo único
+                $game                        // incluye id y timestamps
             );
         }
     }

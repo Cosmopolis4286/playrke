@@ -12,14 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('settings', function (Blueprint $table) {
-            // ID Snowflake
+            // ID Snowflake con el paquete bradietilley/laravel-snowflake
             $table->snowflake('id')->primary()->comment('ID único del parámetro');
 
             // Parámetro único y legible
-            $table->string('param', 50)->unique()->comment('Nombre del parámetro de configuración');
-            $table->string('value', 100)->nullable()->comment('Valor del parámetro');
+            $table->string('param', 50)->unique()
+                ->comment('Nombre del parámetro de configuración');
+            $table->string('value', 100)->nullable()
+                ->comment('Valor del parámetro');
 
-            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE')
+                ->comment('Estado del parámetro');
 
             // Timestamps automáticos
             $table->timestamps();

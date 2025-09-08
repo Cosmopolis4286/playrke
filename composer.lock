@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "398743a5f314e9147a9714156fbed572",
+    "content-hash": "0c10e4c1592038568e3e88ae2e38cfcb",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -59,6 +59,110 @@
                 "source": "https://github.com/Bacon/BaconQrCode/tree/v3.0.1"
             },
             "time": "2024-10-01T13:55:55+00:00"
+        },
+        {
+            "name": "bradietilley/laravel-snowflake",
+            "version": "v1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/bradietilley/laravel-snowflake.git",
+                "reference": "4eee861a59e07646f772e10da7b51ae9b7078dff"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/bradietilley/laravel-snowflake/zipball/4eee861a59e07646f772e10da7b51ae9b7078dff",
+                "reference": "4eee861a59e07646f772e10da7b51ae9b7078dff",
+                "shasum": ""
+            },
+            "require": {
+                "bradietilley/php-snowflake": "^1.0.1",
+                "laravel/framework": "^11.40",
+                "php": "^8.4",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.19",
+                "orchestra/testbench": "^9.0",
+                "pestphp/pest": "^3.7",
+                "phpstan/phpstan": "^2.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "BradieTilley\\Snowflakes\\SnowflakesServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "BradieTilley\\Snowflakes\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bradie Tilley",
+                    "email": "bradietilley@gmail.com",
+                    "homepage": "https://github.com/bradietilley"
+                }
+            ],
+            "description": "Laravel implementation for Snowflake IDs",
+            "support": {
+                "issues": "https://github.com/bradietilley/laravel-snowflake/issues",
+                "source": "https://github.com/bradietilley/laravel-snowflake/tree/v1.1.0"
+            },
+            "time": "2025-02-02T03:19:58+00:00"
+        },
+        {
+            "name": "bradietilley/php-snowflake",
+            "version": "v1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/bradietilley/php-snowflake.git",
+                "reference": "56b31c7f611fb5c18c6babb7411ab6b4f05caf58"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/bradietilley/php-snowflake/zipball/56b31c7f611fb5c18c6babb7411ab6b4f05caf58",
+                "reference": "56b31c7f611fb5c18c6babb7411ab6b4f05caf58",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.4"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0",
+                "pestphp/pest": "^2.0",
+                "phpstan/phpstan": "^2.1",
+                "symfony/var-dumper": "^7.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "BradieTilley\\Snowflake\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bradie Tilley",
+                    "email": "bradietilley@gmail.com",
+                    "homepage": "https://github.com/bradietilley"
+                }
+            ],
+            "description": "Snowflake ID Generator for PHP",
+            "support": {
+                "issues": "https://github.com/bradietilley/php-snowflake/issues",
+                "source": "https://github.com/bradietilley/php-snowflake/tree/v1.0.1"
+            },
+            "time": "2025-02-02T00:52:15+00:00"
         },
         {
             "name": "brick/math",
@@ -5205,6 +5309,67 @@
                 }
             ],
             "time": "2025-02-25T21:11:49+00:00"
+        },
+        {
+            "name": "spatie/laravel-package-tools",
+            "version": "1.92.7",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/laravel-package-tools.git",
+                "reference": "f09a799850b1ed765103a4f0b4355006360c49a5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/spatie/laravel-package-tools/zipball/f09a799850b1ed765103a4f0b4355006360c49a5",
+                "reference": "f09a799850b1ed765103a4f0b4355006360c49a5",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/contracts": "^9.28|^10.0|^11.0|^12.0",
+                "php": "^8.0"
+            },
+            "require-dev": {
+                "mockery/mockery": "^1.5",
+                "orchestra/testbench": "^7.7|^8.0|^9.0|^10.0",
+                "pestphp/pest": "^1.23|^2.1|^3.1",
+                "phpunit/php-code-coverage": "^9.0|^10.0|^11.0",
+                "phpunit/phpunit": "^9.5.24|^10.5|^11.5",
+                "spatie/pest-plugin-test-time": "^1.1|^2.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Spatie\\LaravelPackageTools\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Freek Van der Herten",
+                    "email": "freek@spatie.be",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Tools for creating Laravel packages",
+            "homepage": "https://github.com/spatie/laravel-package-tools",
+            "keywords": [
+                "laravel-package-tools",
+                "spatie"
+            ],
+            "support": {
+                "issues": "https://github.com/spatie/laravel-package-tools/issues",
+                "source": "https://github.com/spatie/laravel-package-tools/tree/1.92.7"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/spatie",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-07-17T15:46:43+00:00"
         },
         {
             "name": "spatie/laravel-permission",

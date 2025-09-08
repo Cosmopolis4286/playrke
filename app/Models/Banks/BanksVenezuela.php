@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BanksVenezuela extends Model
 {
-    protected $table = 'banks_venezuelaezuela';
+    protected $table = 'banks_venezuela';
 
     protected $fillable = [
         'name',       // Nombre corto o código

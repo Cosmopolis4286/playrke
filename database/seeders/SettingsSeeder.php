@@ -3,17 +3,14 @@
 namespace Database\Seeders;
 
 use App\Models\Settings\Settings;
+use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 
 class SettingsSeeder extends Seeder
 {
-    /**
-     * Ejecuta el seeder para poblar la tabla 'settings'.
-     *
-     * @return void
-     */
     public function run(): void
     {
+        $snowflake = new Snowflake();
         $timestamp = now();
 
         $entries = [
@@ -21,7 +18,12 @@ class SettingsSeeder extends Seeder
             ['param' => 'REGISTER', 'status' => 'ACTIVE', 'created_at' => $timestamp, 'updated_at' => $timestamp],
         ];
 
-        // Inserta o actualiza los registros para evitar duplicados
+        foreach ($entries as &$entry) {
+            // Agregar ID Snowflake
+            $entry['id'] = $snowflake->id();
+        }
+
+        // Inserción usando upsert para evitar duplicados
         foreach ($entries as $entry) {
             Settings::updateOrCreate(
                 ['param' => $entry['param']], // Condición única

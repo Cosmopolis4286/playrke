@@ -20,9 +20,8 @@ return new class extends Migration
             $table->string('iso_code_2', 2)->unique()->comment('Código ISO de 2 letras');
             $table->string('iso_code_3', 3)->unique()->comment('Código ISO de 3 letras');
 
-            // Estado activo/inactivo
-            $table->boolean('is_active')->default(true)
-                ->comment('true = activo, false = inactivo');
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE')->comment('Estado del país');
 
             $table->timestamps();
         });

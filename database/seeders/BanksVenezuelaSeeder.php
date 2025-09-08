@@ -4,13 +4,12 @@ namespace Database\Seeders;
 
 use App\Models\Banks\BanksVenezuela;
 use Illuminate\Database\Seeder;
+use BradieTilley\Snowflake\Snowflake;
 
 class BanksVenezuelaSeeder extends Seeder
 {
     /**
      * Ejecuta el seeder para poblar los bancos de Venezuela.
-     *
-     * @return void
      */
     public function run(): void
     {
@@ -40,9 +39,21 @@ class BanksVenezuelaSeeder extends Seeder
             ['name' => 'Banfanb', 'code' => '0177'],
         ];
 
-        // Ordenar por código antes de insertar
+        // Ordenar por código
         $banks = collect($banks)->sortBy('code')->values()->toArray();
 
+        // Instanciar Snowflake
+        $snowflake = new Snowflake();
+
+        // Agregar ID Snowflake a cada registro
+        $banks = array_map(function ($bank) use ($snowflake) {
+            $bank['id'] = $snowflake->id();
+            $bank['created_at'] = now();
+            $bank['updated_at'] = now();
+            return $bank;
+        }, $banks);
+
+        // Insertar en la base de datos
         BanksVenezuela::insert($banks);
     }
 }

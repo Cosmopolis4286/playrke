@@ -2,56 +2,56 @@
 
 namespace Database\Seeders;
 
+use App\Models\Countries\Country;
+use App\Models\User\Shared\TimeZone;
+use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use DateTimeZone;
-use DateTime;
 
 class AmericanTimeZonesTableSeeder extends Seeder
 {
     public function run()
     {
-        // Países y patrones de búsqueda en las zonas horarias de PHP
-        $countriesPatterns = [
+        $timezones = [
             'Venezuela' => ['America/Caracas'],
             'Colombia'  => ['America/Bogota'],
             'Chile'     => ['America/Santiago', 'Pacific/Easter'],
-            'Brazil'    => ['America/'] // Brasil tiene múltiples zonas que comienzan con America/
+            'Brazil'    => [
+                'America/Sao_Paulo',
+                'America/Manaus',
+                'America/Belem',
+                'America/Recife',
+                'America/Fortaleza',
+                'America/Campo_Grande',
+                'America/Cuiaba',
+                'America/Porto_Velho',
+                'America/Boa_Vista',
+                'America/Eirunepe',
+                'America/Rio_Branco',
+                'America/Noronha',
+            ],
         ];
 
-        $allTimezones = timezone_identifiers_list();
-        $allowedTimezones = [];
+        $snowflake = new Snowflake();
+        $data = [];
 
-        foreach ($allTimezones as $tz) {
-            foreach ($countriesPatterns as $country => $patterns) {
-                foreach ($patterns as $pattern) {
-                    // Incluye si contiene el patrón (exacto o como prefijo)
-                    if ($pattern === $tz || str_starts_with($tz, $pattern)) {
-                        $allowedTimezones[] = $tz;
-                    }
-                }
+        foreach ($timezones as $countryName => $zones) {
+            $countryId = Country::where('name', $countryName)->value('id');
+
+            foreach ($zones as $zone) {
+                $offset = (new \DateTimeZone($zone))->getOffset(new \DateTime('now'));
+                $utc = 'UTC' . ($offset < 0 ? '-' : '+') . str_pad(floor(abs($offset) / 3600), 2, '0', STR_PAD_LEFT);
+
+                $data[] = [
+                    'id'         => $snowflake->id(), // ID Snowflake
+                    'name'       => $zone,
+                    'utc'        => $utc,
+                    'country_id' => $countryId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
         }
 
-        // Eliminar duplicados
-        $allowedTimezones = array_unique($allowedTimezones);
-
-        // Preparar los datos para inserción
-        $data = array_map(function ($timezone) {
-            $dtz = new DateTimeZone($timezone);
-            $dt = new DateTime('now', $dtz);
-            $offset = $dt->getOffset();
-            $utc = 'UTC' . ($offset < 0 ? '-' : '+') . str_pad(abs($offset) / 3600, 2, '0', STR_PAD_LEFT);
-
-            return [
-                'name' => $timezone,
-                'utc' => $utc,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }, $allowedTimezones);
-
-        // Insertar en la base de datos
-        DB::table('time_zones')->insert($data);
+        TimeZone::insert($data);
     }
 }

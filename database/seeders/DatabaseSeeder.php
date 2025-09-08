@@ -15,8 +15,8 @@ class DatabaseSeeder extends Seeder
     {
         // Llamar a todos los seeders necesarios
         $this->call([
-            AmericanTimeZonesTableSeeder::class,
             CountriesSeeder::class,
+            AmericanTimeZonesTableSeeder::class,
             CurrenciesSeeder::class,
             BanksVenezuelaSeeder::class,
             DocumentTypeSeeder::class,

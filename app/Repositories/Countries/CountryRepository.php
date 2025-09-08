@@ -43,14 +43,14 @@ class CountryRepository
     }
 
     /**
-     * Listar todos los países activos (is_active = true).
+     * Listar todos los países activos (status = 'ACTIVE').
      *
      * @param array $fields
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getAllAvailableCountries(array $fields = ['*'])
     {
-        return Country::select($fields)->where('is_active', true)->get();
+        return Country::select($fields)->where('status', 'ACTIVE')->get();
     }
 
     /**
@@ -66,7 +66,7 @@ class CountryRepository
     }
 
     /**
-     * Obtener países activos (is_active = true) filtrados por IDs.
+     * Obtener países activos (status = 'ACTIVE') filtrados por IDs.
      *
      * @param array $ids
      * @param array $fields
@@ -75,7 +75,7 @@ class CountryRepository
     public function getCountries(array $ids, array $fields = ['*'])
     {
         return Country::select($fields)
-            ->where('is_active', true)
+            ->where('status', 'ACTIVE')
             ->whereIn('id', $ids)
             ->get();
     }

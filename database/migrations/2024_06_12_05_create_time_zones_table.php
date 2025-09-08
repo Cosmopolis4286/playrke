@@ -12,20 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('time_zones', function (Blueprint $table) {
-            // ID Snowflake
+            // ID autoincremental estándar
             $table->snowflake('id')->primary()->comment('ID único de la zona horaria');
 
             // Nombre legible y único
-            $table->string('name', 50)
-                ->unique()
+            $table->string('name', 60)->unique()
                 ->comment('Nombre completo de la zona horaria (ej. America/Sao_Paulo)');
 
             // Offset UTC
-            $table->string('utc', 8)
-                ->comment('Offset UTC (ej. UTC-03)');
+            $table->string('utc', 8)->comment('Offset UTC (ej. UTC-03)');
 
-            // Relación opcional con país usando Snowflake
-            $table->foreignSnowflake('country_id')->nullable()
+            // Relación opcional con país
+            $table->foreignSnowflake('country_id')
+                ->nullable()
                 ->constrained('countries')
                 ->cascadeOnUpdate()
                 ->nullOnDelete()
