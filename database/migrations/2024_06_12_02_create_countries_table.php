@@ -16,7 +16,7 @@ return new class extends Migration
             $table->snowflake('id')->primary()->comment('ID único del país');
 
             // Campos legibles y únicos
-            $table->string('name', 35)->unique()->comment('Nombre del país');
+            $table->string('name', 70)->unique()->comment('Nombre del país');
             $table->string('iso_code_2', 2)->unique()->comment('Código ISO de 2 letras');
             $table->string('iso_code_3', 3)->unique()->comment('Código ISO de 3 letras');
 

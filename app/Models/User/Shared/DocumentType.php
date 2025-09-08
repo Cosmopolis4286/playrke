@@ -7,21 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class DocumentType extends Model
 {
-    protected $table = "document_type";
-    protected $fillable = ['value', 'description', 'country', 'status'];
+    protected $table = "document_types"; // convención plural
 
-    public function Country()
-    {
-        return $this->belongsTo(Country::class, 'country');
-    }
+    protected $fillable = [
+        'value',
+        'description',
+        'country_id',
+        'status'
+    ];
 
-    public static function getValue($id, $value)
+    /**
+     * Relación: un tipo de documento pertenece a un país.
+     */
+    public function country()
     {
-        return self::where('id', $id)->value($value);
-    }
-
-    public static function getDocumentTypeByCountry($country)
-    {
-        return self::where('country', $country)->where('status', 1)->get();
+        return $this->belongsTo(Country::class, 'country_id');
     }
 }
