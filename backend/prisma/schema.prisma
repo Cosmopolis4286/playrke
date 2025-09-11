@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                            String    @id @default(cuid()) // Compatible con Snowflake ID
+  username                      String    @unique @db.VarChar(30)
+  firstName                     String?   @map("first_name") @db.VarChar(100)
+  lastName                      String?   @map("last_name") @db.VarChar(100)
+  email                         String    @unique @db.VarChar(320)
+  emailVerifiedAt               DateTime? @map("email_verified_at")
+  password                      String    @db.VarChar(255)
+  rememberToken                 String?   @map("remember_token")
+  
+  // Profile & Contact
+  profilePhotoUrl               String?   @map("profile_photo_url") @db.VarChar(500)
+  phoneNumber                   String?   @map("phone_number") @db.VarChar(25)
+  
+  // Location
+  countryId                     String    @map("country_id")
+  timeZoneId                    String?   @map("time_zone_id")
+  
+  // Referral System
+  referralCode                  String    @unique @map("referral_code") @db.VarChar(20)
+  referredByUserId              String?   @map("referred_by_user_id")
+  
+  // Status & Security
+  status                        UserStatus @default(PENDING_VERIFICATION)
+  isEmailNotificationsEnabled   Boolean   @default(true) @map("is_email_notifications_enabled")
+  isTwoFactorEnabled            Boolean   @default(false) @map("is_two_factor_enabled")
+  twoFactorSecret               String?   @map("two_factor_secret")
+  twoFactorRecoveryCodes        Json?     @map("two_factor_recovery_codes")
+  
+  // Activity Tracking
+  lastLoginAt                   DateTime? @map("last_login_at")
+  lastLoginIp                   String?   @map("last_login_ip")
+  
+  // Preferences
+  userPreferences               Json?     @map("user_preferences")
+  
+  // Timestamps
+  createdAt                     DateTime  @default(now()) @map("created_at")
+  updatedAt                     DateTime  @updatedAt @map("updated_at")
+  deletedAt                     DateTime? @map("deleted_at")
+  
+  // Relations
+  referredBy                    User?     @relation("UserReferrals", fields: [referredByUserId], references: [id])
+  referrals                     User[]    @relation("UserReferrals")
+  
+  sessions                      UserSession[]
+  passwordResets                PasswordReset[]
+  emailVerifications            EmailVerification[]
+  userRoles                     UserRole[]
+  
+  @@index([countryId, status], map: "idx_country_status")
+  @@index([email, status], map: "idx_email_status")
+  @@index([referralCode], map: "idx_referral_code")
+  @@index([lastLoginAt], map: "idx_last_login")
+  @@index([createdAt, status], map: "idx_created_status")
+  @@map("users")
+}
+
+model Country {
+  id            String   @id @default(cuid())
+  name          String   @db.VarChar(100)
+  code          String   @unique @db.VarChar(3)
+  currencyCode  String   @map("currency_code") @db.VarChar(3)
+  phonePrefix   String   @map("phone_prefix") @db.VarChar(10)
+  isActive      Boolean  @default(true) @map("is_active")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  @@map("countries")
+}
+
+model TimeZone {
+  id            String   @id @default(cuid())
+  name          String   @db.VarChar(100)
+  abbreviation  String   @db.VarChar(10)
+  offset        String   @db.VarChar(10)
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  @@map("time_zones")
+}
+
+model Role {
+  id            String     @id @default(cuid())
+  name          String     @unique @db.VarChar(50)
+  description   String?
+  permissions   Json?
+  isActive      Boolean    @default(true) @map("is_active")
+  
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  
+  userRoles     UserRole[]
+  
+  @@map("roles")
+}
+
+model UserRole {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  roleId        String   @map("role_id")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role          Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model UserSession {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  token         String    @unique
+  refreshToken  String?   @unique @map("refresh_token")
+  ipAddress     String    @map("ip_address")
+  userAgent     String?   @map("user_agent")
+  isActive      Boolean   @default(true) @map("is_active")
+  expiresAt     DateTime  @map("expires_at")
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model PasswordReset {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  email         String    @db.VarChar(320)
+  token         String    @unique
+  isUsed        Boolean   @default(false) @map("is_used")
+  expiresAt     DateTime  @map("expires_at")
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_resets")
+}
+
+model EmailVerification {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  email         String    @db.VarChar(320)
+  token         String    @unique
+  isUsed        Boolean   @default(false) @map("is_used")
+  expiresAt     DateTime  @map("expires_at")
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("email_verifications")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}

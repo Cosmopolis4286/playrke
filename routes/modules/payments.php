@@ -1,0 +1,74 @@
+<?php
+
+use App\Http\Controllers\{
+    PaymentController, ExchangeRateController, PagoMovilController, 
+    PixController, PaymentMethodsCOLController, ReportsController
+};
+
+require_once app_path('Helpers/RouteHelper.php');
+
+/*
+|--------------------------------------------------------------------------
+| Rutas de Métodos de Pago
+|--------------------------------------------------------------------------
+| Gestión de todos los métodos de pago: Pago Móvil, PIX, Colombia,
+| tasas de cambio y comprobantes de pago.
+*/
+
+// ====================================
+// COMPROBANTES DE PAGO
+// ====================================
+Route::middleware('auth')
+    ->get('payment/proof/{fileName}', [PaymentController::class, 'showPaymentProof'])
+    ->name('payment.proof');
+
+// ====================================
+// TASAS DE CAMBIO
+// ====================================
+route_group('exchange-rate', 'exchange-rate.', [], ExchangeRateController::class, [
+    'index' => ['method' => 'get', 'uri' => '{creatorType}/{creatorId?}'],
+    'create' => ['method' => 'post', 'uri' => ''],
+    'show' => ['method' => 'get', 'uri' => '{id}'],
+    'update' => ['method' => 'put', 'uri' => '{id}'],
+    'destroy' => ['method' => 'delete', 'uri' => '{id}'],
+    'change-status' => ['method' => 'put', 'uri' => '{id}/status'],
+    'get-rates' => ['method' => 'get', 'uri' => 'rates'],
+    'last-value' => ['method' => 'get', 'uri' => 'last-value/{currency}'],
+    'historical' => ['method' => 'get', 'uri' => 'historical/{currency?}/{creatorType}/{creatorId}'],
+]);
+
+// ====================================
+// PAGO MÓVIL (VENEZUELA)
+// ====================================
+crud_routes('pagomovil', PagoMovilController::class, ['auth'], ['destroy']);
+Route::middleware('auth')->group(function () {
+    Route::delete('pagomovil/{id}', [PagoMovilController::class, 'destroy'])->name('pagomovil.destroy');
+    Route::get('pagomovil/{id}/info', [PagoMovilController::class, 'show'])->name('pagomovil.show');
+});
+
+// ====================================
+// PIX (BRASIL)
+// ====================================
+crud_routes('pix', PixController::class, ['auth'], ['destroy']);
+Route::middleware('auth')->group(function () {
+    Route::delete('pix/{id}', [PixController::class, 'destroy'])->name('pix.destroy');
+    Route::get('pix/{id}/info', [PixController::class, 'show'])->name('pix.show');
+    Route::get('pix/banks', [PixController::class, 'getBanks'])->name('pix.banks');
+});
+
+// ====================================
+// MÉTODOS DE PAGO COLOMBIA
+// ====================================
+crud_routes('payment-method-col', PaymentMethodsCOLController::class, ['auth'], ['index', 'destroy']);
+Route::middleware('auth')->group(function () {
+    Route::delete('payment-method-col/{id}', [PaymentMethodsCOLController::class, 'destroy'])->name('payment-method-col.destroy');
+    Route::get('payment-method-col/{id}/info', [PaymentMethodsCOLController::class, 'show'])->name('payment-method-col.show');
+});
+
+// ====================================
+// REPORTES DE PAGOS
+// ====================================
+route_group('report', 'report.', ['auth'], ReportsController::class, [
+    'index' => ['method' => 'get', 'uri' => ''],
+    'store' => ['method' => 'post', 'uri' => ''],
+]);
