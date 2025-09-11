@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bingo_creator_sales', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->onDelete('cascade');
             $table->foreignSnowflake('creator_user_id')->constrained('users')->onDelete('cascade');
             $table->foreignSnowflake('currency_id')->constrained('currencies')

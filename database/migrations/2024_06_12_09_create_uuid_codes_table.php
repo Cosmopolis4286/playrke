@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('unique_codes', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->string('uuid_code', 36)->unique();
             $table->string('rke_code', 25)->unique();
             $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade')->nullable();

@@ -14,7 +14,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('companies', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->string('name', 100);
             $table->string('slug', 100)->unique(); // identificador amigable
             $table->timestamps();

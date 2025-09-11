@@ -9,7 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('customers_exchange_rates', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
 
             $table->foreignSnowflake('customer_id')
                 ->constrained('customers')

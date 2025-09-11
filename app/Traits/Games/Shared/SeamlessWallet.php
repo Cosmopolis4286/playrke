@@ -257,7 +257,7 @@ trait SeamlessWallet
 
             // Generar un hash MD5 del valor concatenado
             $uniqueId = md5($data);
-        } while (Transactions::existsCode($uniqueId, $customerId));
+        } while (Transaction::existsCode($uniqueId, $customerId));
 
         return $uniqueId;
     }
@@ -318,11 +318,11 @@ trait SeamlessWallet
             }
 
             // Obtener valores necesarios
-            $gameId = Games::getValueByName($game['name']);
+            $gameId = Game::getValueByName($game['name']);
             $code = $this->getTransaction($game['name'], $customer, $clientUser);
 
             // Crear la transacción
-            return Transactions::create([
+            return Transaction::create([
                 'customer' => $customer,
                 'user_id' => $clientUser,
                 'game' => $gameId,

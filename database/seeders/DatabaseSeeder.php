@@ -15,20 +15,20 @@ class DatabaseSeeder extends Seeder
     {
         // Llamar a todos los seeders necesarios
         $this->call([
-            CountriesSeeder::class,
-            AmericanTimeZonesTableSeeder::class,
-            CurrenciesSeeder::class,
-            BanksVenezuelaSeeder::class,
+            CountrySeeder::class,
+            AmericanTimeZoneSeeder::class,
+            CurrencySeeder::class,
+            BankVenezuelaSeeder::class,
             DocumentTypeSeeder::class,
-            GamesSeeder::class,
-            GameModesSeeder::class,
+            GameSeeder::class,
+            GameModeSeeder::class,
             GameStatusSeeder::class,
-            GamePrizesSeeder::class,
+            GamePrizeSeeder::class,
             PrizePoolTypeSeeder::class,
             GamePrizePoolTypeSeeder::class,
-            BingoPatternsSeeder::class,
-            SettingsSeeder::class,
-            UsersSeeder::class,
+            BingoPatternSeeder::class,
+            SettingSeeder::class,
+            UserSeeder::class,
             RoleSeeder::class
         ]);
     }

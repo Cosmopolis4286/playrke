@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('other_treasurers', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->foreignSnowflake('creator_user_id')->unique()->constrained('users')->onDelete('cascade');
             $table->json('allowed_games');
             $table->json('allowed_currencies');

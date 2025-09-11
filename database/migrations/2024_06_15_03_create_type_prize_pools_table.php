@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('prize_pool_types', function (Blueprint $table) {
-            $table->id()->comment('ID del tipo de premio en el pool');
+            // PK con Snowflake
+            $table->snowflake('id')->primary()->comment('ID del tipo de premio en el pool');
             $table->string('description', 50)->comment('Descripción legible del tipo de premio');
             $table->boolean('is_active')->default(true)
                 ->comment('true = activo, false = inactivo'); // útil para filtrar tipos obsoletos

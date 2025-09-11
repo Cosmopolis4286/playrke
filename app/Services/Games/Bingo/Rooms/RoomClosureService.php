@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Rooms;
 
-use App\Models\{BingoRoom, BingoCtns, BingoDraws};
+use App\Models\{BingoRoom, BingoCtns, BingoDraw};
 use Illuminate\Support\Facades\Log;
 use App\Enums\Games\GameStatus;
 use App\Enums\Games\Bingo\RoundStatus;
@@ -37,7 +37,7 @@ class RoomClosureService
         $status = RoundStatus::DRAFT; // Por defecto
 
         if (BingoCtns::getCountCtnByRoom($roomId)) {
-            $winChip = BingoDraws::getWinningChip($roomId);
+            $winChip = BingoDraw::getWinningChip($roomId);
 
             if (isset($winChip['Error'])) {
                 Log::info($winChip['Error'] . ": Sala [ID => $roomId]");

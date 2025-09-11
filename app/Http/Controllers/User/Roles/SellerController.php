@@ -13,7 +13,7 @@ use App\Traits\Games\BingoTrait;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
-use App\Models\BingoCtnPrice;
+use App\Models\BingoCardPrice;
 use App\Models\BingoCtnsPayment;
 use App\Models\BingoPrizeCtns;
 use App\Models\Currencies\Currency;
@@ -490,7 +490,7 @@ class SellerController extends Controller
         $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomId, 'id');
 
         // Intentar obtener el precio configurado
-        $ctnPrice = BingoCtnPrice::getValueCtnPrice($roomId, $currency->id, $bingoCreatorID);
+        $ctnPrice = BingoCardPrice::getValueCtnPrice($roomId, $currency->id, $bingoCreatorID);
 
         if ($ctnPrice) {
             $setPrice = true;

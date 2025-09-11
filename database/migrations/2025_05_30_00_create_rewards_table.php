@@ -9,7 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('rewards', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
 
             $table->string('code', 12)->comment('Código único del premio');
             $table->enum('reward_type', ['PRODUCT', 'SERVICE'])->comment('Tipo de recompensa');

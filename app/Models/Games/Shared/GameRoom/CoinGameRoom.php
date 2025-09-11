@@ -12,14 +12,14 @@ class CurrencyGameRoom extends Model
 
     public function Game()
     {
-        return $this->belongsTo(Games::class, 'game');
+        return $this->belongsTo(Game::class, 'game');
     }
 
     public static function createNewCurrencyInRoom($game, $room, $currency)
     {
         try {
             // Obtener el ID del juego
-            $gameId = Games::getValueByName($game['name']);
+            $gameId = Game::getValueByName($game['name']);
 
             // Crear el nuevo registro
             self::create([
@@ -38,7 +38,7 @@ class CurrencyGameRoom extends Model
 
     public static function existsCurrencyGameRoom($currency, $room, $game, $gameMode = '')
     {
-        $gameId = Games::getValueByName($game);
+        $gameId = Game::getValueByName($game);
 
         // Iniciar la consulta
         $query = self::where('currency', $currency)->where('room', $room)->where('game', $gameId);
@@ -55,7 +55,7 @@ class CurrencyGameRoom extends Model
     public static function getCurrenciesByRoom($game, $room, $gameMode = null)
     {
         // Obtener el ID del juego si se pasa como string
-        $gameId = is_string($game) ? Games::getValueByName($game) : $game;
+        $gameId = is_string($game) ? Game::getValueByName($game) : $game;
 
         // Construir la consulta
         $query = self::select('currency')->where('game', $gameId)->where('room', $room);

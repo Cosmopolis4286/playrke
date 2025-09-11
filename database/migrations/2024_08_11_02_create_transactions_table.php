@@ -14,11 +14,12 @@ class CreateTransactionsTable extends Migration
     public function up()
     {
         Schema::create('transactions', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('customer_id');
-            $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('game_id');
-            $table->unsignedBigInteger('game_mode_id');
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
+            $table->foreignSnowflake('customer_id');
+            $table->foreignSnowflake('user_id');
+            $table->foreignSnowflake('game_id');
+            $table->foreignSnowflake('game_mode_id');
             $table->string('bet_id');
             $table->string('code')->unique();
             $table->string('transaction_type', 15);

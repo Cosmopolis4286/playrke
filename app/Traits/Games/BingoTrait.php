@@ -4,19 +4,19 @@ namespace App\Traits\Games;
 
 // Models
 use App\Models\BingoCreator;
-use App\Models\BingoCreatorSales;
+use App\Models\BingoCreatorSale;
 use App\Models\SellerRoomLimits;
 use App\Models\BingoCtns;
-use App\Models\BingoDraws;
-use App\Models\BingoDrawsCode;
+use App\Models\BingoDraw;
+use App\Models\BingoDrawCode;
 use App\Models\BingoCtnsLot;
 use App\Models\BingoCtnsPayment;
 use App\Models\BingoPatterns;
 use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomConfig;
-use App\Models\BingoRounds;
-use App\Models\BingoRoundsDrafts;
+use App\Models\BingoRound;
+use App\Models\BingoRoundDraft;
 use App\Models\BingoRoomUser;
 use App\Models\Currencies\CurrencyGameRoom;
 use App\Models\Country;
@@ -55,7 +55,7 @@ trait BingoTrait
     private function encryptDraw($room)
     {
         // Revisa qué números ya tienen símbolo en esta sala
-        $existingNums = BingoDrawsCode::where('room', $room)->pluck('num')->all();
+        $existingNums = BingoDrawCode::where('room', $room)->pluck('num')->all();
 
         // Si ya existen los 10 números codificados (0 a 9), no hacer nada
         if (count($existingNums) >= 10) return false;
@@ -73,7 +73,7 @@ trait BingoTrait
 
                 do {
                     $code = Str::random(3);
-                    $exists = BingoDrawsCode::where('room', $room)->where('sym', $code)->exists();
+                    $exists = BingoDrawCode::where('room', $room)->where('sym', $code)->exists();
                 } while ($exists); // Reintentar hasta que sea único
 
                 $newSymbols->push([
@@ -86,7 +86,7 @@ trait BingoTrait
             }
 
             if ($newSymbols->isNotEmpty()) {
-                BingoDrawsCode::insert($newSymbols->toArray());
+                BingoDrawCode::insert($newSymbols->toArray());
             }
 
             DB::commit();
@@ -114,15 +114,15 @@ trait BingoTrait
         $timeChip = BingoRoomConfig::getValueByRoom($room, 'time_chip') ?? 6;
 
         // Verificar si existen draws previos
-        $hasDraws = BingoDraws::where('room', $room)->where('time', '>', 0)->exists();
+        $hasDraws = BingoDraw::where('room', $room)->where('time', '>', 0)->exists();
 
         // Si no hay draws generados, los creamos para cada ronda
         if (!$hasDraws) {
 
             $this->encryptDraw($room);
 
-            $symbols = BingoDrawsCode::where('room', $room)->pluck('sym', 'num');
-            $bingoRoundDraft = BingoRoundsDrafts::where('bingo_room_id', $room)->first();
+            $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
+            $bingoRoundDraft = BingoRoundDraft::where('bingo_room_id', $room)->first();
 
             $allDraws = [];
             $allRounds = [];
@@ -172,8 +172,8 @@ trait BingoTrait
             DB::beginTransaction();
 
             try {
-                BingoDraws::insert($allDraws);
-                BingoRounds::insert($allRounds);
+                BingoDraw::insert($allDraws);
+                BingoRound::insert($allRounds);
                 $bingoRoundDraft->update(['status' => 'FINISHED']);
                 DB::commit();
             } catch (\Throwable $e) {
@@ -190,7 +190,7 @@ trait BingoTrait
 
             // Determinar la ronda a usar
             $roundToUse = $rounds > 1
-                ? BingoDraws::where('room', $room)->max('round')
+                ? BingoDraw::where('room', $room)->max('round')
                 : 1;
 
             // Obtener el cartón del usuario
@@ -211,7 +211,7 @@ trait BingoTrait
             $ctnChips = collect($ctn)->only($fields)->values()->shuffle()->all();
 
             // Fichas que no están en el cartón del usuario, en esta ronda
-            $drawChips = BingoDraws::where('room', $room)
+            $drawChips = BingoDraw::where('room', $room)
                 ->where('round', $roundToUse)
                 ->whereNotIn('chip', $ctnChips)
                 ->inRandomOrder()
@@ -226,7 +226,7 @@ trait BingoTrait
             );
 
             // Obtener IDs de la ronda
-            $drawIds = BingoDraws::where('room', $room)
+            $drawIds = BingoDraw::where('room', $room)
                 ->where('round', $roundToUse)->pluck('id')->toArray();
 
             // Asociar IDs con nuevo orden de chips
@@ -257,7 +257,7 @@ trait BingoTrait
             }
         }
 
-        if (!BingoDraws::getWinningChip($room) || $roomUser) {
+        if (!BingoDraw::getWinningChip($room) || $roomUser) {
             return $this->chipWin($room);
         }
 
@@ -365,7 +365,7 @@ trait BingoTrait
     private function getLastMatchingChip(int $roomId, int $round, array $chipIndex, bool $isGroup = false): ?string
     {
         // Obtiene las fichas jugadas en orden descendente (última jugada primero)
-        $drawnChips = BingoDraws::where('room', $roomId)
+        $drawnChips = BingoDraw::where('room', $roomId)
             ->where('round', $round)
             ->orderByDesc('id')
             ->pluck('chip')
@@ -459,7 +459,7 @@ trait BingoTrait
             if (!BingoRoomUser::where('room', $roomId)->exists()) {
                 // No hay jugadores: marcar sala como "abierta" y limpiar tiempos de fichas
                 BingoRoom::where('id', $roomId)->update(['status' => 1]);
-                BingoDraws::where('room', $roomId)->update(['time' => 0]);
+                BingoDraw::where('room', $roomId)->update(['time' => 0]);
 
                 DB::commit(); // Confirmar cambios antes de salir
                 return ['Error' => 'No hay jugadores en la sala'];
@@ -467,7 +467,7 @@ trait BingoTrait
 
             // Obtener cantidad de rondas y tipos de juego asociados a cada una
             $roundsCount = (int) BingoRoomConfig::getValueByRoom($roomId, 'rounds');
-            $roundPlayTypes = BingoRounds::where('room', $roomId)->pluck('bingo_pattern_id', 'round');
+            $roundPlayTypes = BingoRound::where('room', $roomId)->pluck('bingo_pattern_id', 'round');
 
             $firstChipDraw = null;
 
@@ -485,7 +485,7 @@ trait BingoTrait
                 $winningChip = $this->getLastWinningChip($roomId, $round, $playType);
 
                 // Obtener información de la ficha ganadora
-                $chipDraw = BingoDraws::select('id', 'time', 'chip', 'status')
+                $chipDraw = BingoDraw::select('id', 'time', 'chip', 'status')
                     ->where('room', $roomId)
                     ->where('round', $round)
                     ->where('chip', $winningChip)
@@ -501,7 +501,7 @@ trait BingoTrait
                 $chipDraw->update(['status' => 3]);
 
                 // Actualizar información de la ronda
-                BingoRounds::where('room', $roomId)
+                BingoRound::where('room', $roomId)
                     ->where('round', $round)
                     ->update([
                         'start_time' => $chipDraw->time,
@@ -616,7 +616,7 @@ trait BingoTrait
             ]);
 
             // Actualizar monto de venta total por monedas
-            BingoCreatorSales::updateOrCreateSale($roomId, $creatorUser, $currency, $saleAmount, $sellerCommn);
+            BingoCreatorSale::updateOrCreateSale($roomId, $creatorUser, $currency, $saleAmount, $sellerCommn);
 
             return $BingoCtnsLotID;
         } catch (Exception $e) {
@@ -1041,7 +1041,7 @@ trait BingoTrait
 
         $recordsToInsert = [];
 
-        $bingoCreatorSales = BingoCreatorSales::where('room', $roomId)->get();
+        $bingoCreatorSales = BingoCreatorSale::where('room', $roomId)->get();
 
         try {
         } catch (Exception $e) {
@@ -1076,7 +1076,7 @@ trait BingoTrait
             return ['Error' => 'Sala no disponible'];
         }
 
-        $round = BingoRounds::getValueByRoundInProgress($roomId, 'round');
+        $round = BingoRound::getValueByRoundInProgress($roomId, 'round');
 
         $query = BingoPrizeCtns::where('room', $roomId)->where('round', '<=', $round);
 
@@ -1109,7 +1109,7 @@ trait BingoTrait
     public function getArrayWinnersData($data)
     {
         $exchangeRate = GameExchangeRate::getGameExchangeRateValue('BINGO', $data['room'], $data['currency']) ?? 1;
-        $bingoRounds = BingoRounds::where('room', $data['room'])
+        $bingoRounds = BingoRound::where('room', $data['room'])
             ->get(['round', 'bingo_pattern_id', 'prize_value', 'start_time', 'last_chip'])
             ->keyBy('round');
 
@@ -1183,7 +1183,7 @@ trait BingoTrait
 
     private function findWinners($roomId, $roundID, array $chipsDraw)
     {
-        $playType = BingoRounds::getValueById($roundID, 'bingo_pattern_id');
+        $playType = BingoRound::getValueById($roundID, 'bingo_pattern_id');
 
         // Columnas del patrón
         $patternColumns = ($playType == 1)
@@ -1229,7 +1229,7 @@ trait BingoTrait
         $prizePool = $room->prize_pool;
         $serialsPct = $room->Config->serials_pct;
         $applySerialPrize = false;
-        $rounds = BingoRounds::where('room', $roomId)->get();
+        $rounds = BingoRound::where('room', $roomId)->get();
         $roundsCount = $rounds->count();
 
         foreach ($rounds as $roundItem) {
@@ -1246,7 +1246,7 @@ trait BingoTrait
 
             $roundPrizeValue = round($roundPrizeValue, 2);
 
-            $lastChip = BingoDraws::where('room', $roomId)
+            $lastChip = BingoDraw::where('room', $roomId)
                 ->where('round', $roundNumber)
                 ->where('status', 3)
                 ->orderByDesc('id')
@@ -1257,7 +1257,7 @@ trait BingoTrait
                 continue;
             }
 
-            $chipsDraw = BingoDraws::where('room', $roomId)
+            $chipsDraw = BingoDraw::where('room', $roomId)
                 ->where('round', $roundNumber)
                 ->where('id', '<=', $lastChip->id)
                 ->pluck('chip')
@@ -1358,12 +1358,12 @@ trait BingoTrait
             if ($getWinners) return false;
 
             // Obtener la última ficha ganadora
-            $lastChip = BingoDraws::where('room', $roomId)->where('status', 3)
+            $lastChip = BingoDraw::where('room', $roomId)->where('status', 3)
                 ->where('round', $round)->value('id');
 
             // Fichas que han salido antes del jackpot
             $chipsDraw = array_flip(
-                BingoDraws::where('room', $roomId)
+                BingoDraw::where('room', $roomId)
                     ->where('id', '<', $lastChip)
                     ->where('round', $round)
                     ->pluck('chip')->toArray()
@@ -1451,7 +1451,7 @@ trait BingoTrait
             if ($countCtns === 0) {
 
                 $timestamp = now();
-                $gameId = Games::getValueByName('BINGO');
+                $gameId = Game::getValueByName('BINGO');
 
                 // Obtener las monedas activas en la sala
                 $currencies = CurrencyGameRoom::getCurrenciesByRoom($gameId, $roomId);
@@ -1459,7 +1459,7 @@ trait BingoTrait
                 // Preparar los datos para insertar
                 $dataJackpots = $currencies->map(function ($currency) use ($roomId, $gameId, $serialsPct, $timestamp) {
 
-                    $prizePoolAmount = BingoCreatorSales::getPrizePoolAmountByRoomAndCurrency($roomId, $currency);
+                    $prizePoolAmount = BingoCreatorSale::getPrizePoolAmountByRoomAndCurrency($roomId, $currency);
                     $amount = round($prizePoolAmount * $serialsPct, 3);
 
                     return [
@@ -1540,15 +1540,15 @@ trait BingoTrait
         $carton = $ctn->only($boxes);
 
         if ($prizeType === 'SONG') {
-            $bingoPattern = BingoRounds::getValueByRoom($roomId, $round, 'bingo_pattern_id');
+            $bingoPattern = BingoRound::getValueByRoom($roomId, $round, 'bingo_pattern_id');
             $checkBoxes = BingoPatterns::getColumnsBoxesById($bingoPattern);
 
             // Verificar las checkBoxes con respeto al sorteo (draw) de la ronda 
-            $lastId = BingoDraws::where('room', $roomId)->where('round', $round)
+            $lastId = BingoDraw::where('room', $roomId)->where('round', $round)
                 ->where('status', 3)->orderByDesc('id')->value('id');
 
             $chipDraw = $lastId
-                ? BingoDraws::where('room', $roomId)->where('round', $round)
+                ? BingoDraw::where('room', $roomId)->where('round', $round)
                 ->where('id', '<=', $lastId)->pluck('chip')->toArray()
                 : [];
 

@@ -9,7 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('game_configs', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
 
             $table->foreignSnowflake('game_id')
                 ->constrained('games')

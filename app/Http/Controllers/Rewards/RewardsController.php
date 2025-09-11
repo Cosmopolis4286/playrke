@@ -31,9 +31,9 @@ class RewardsController extends Controller
 
         $creator = ['type' => $creatorType, 'id' => encrypt($creatorId)];
 
-        $rewards = Rewards::getAllRewardsByCreator($creatorUser);
+        $rewards = Reward::getAllRewardsByCreator($creatorUser);
 
-        $rewardTypes = Rewards::REWARD_TYPE;
+        $rewardTypes = Reward::REWARD_TYPE;
         $optionsKit = ['N' => 'NO', 'Y' => 'SI'];
 
         $additionalData = [];
@@ -57,7 +57,7 @@ class RewardsController extends Controller
 
             $rewardCode = $this->generateRewardCode();
 
-            Rewards::create([
+            Reward::create([
                 'code' => $rewardCode,
                 'reward_type' => $request->reward_type,
                 'name' => $request->name,
@@ -90,7 +90,7 @@ class RewardsController extends Controller
 
         try {
 
-            $reward = Rewards::findOrFail(decrypt($id));
+            $reward = Reward::findOrFail(decrypt($id));
 
             $reward->update([
                 'reward_type' => $request->reward_type,
@@ -125,7 +125,7 @@ class RewardsController extends Controller
 
             $id = decrypt($id);
 
-            $reward = Rewards::findOrFail($id);
+            $reward = Reward::findOrFail($id);
 
             $status = $reward->status == 3 ? 1 : (int)!$reward->status;
 
@@ -152,7 +152,7 @@ class RewardsController extends Controller
         DB::beginTransaction();
 
         try {
-            Rewards::destroy(decrypt($request->id));
+            Reward::destroy(decrypt($request->id));
             DB::commit();
             return redirect()->back()->with('message', 'El registro ha sido eliminado')->with('type', 'success');
         } catch (\Exception $e) {
@@ -163,6 +163,6 @@ class RewardsController extends Controller
 
     public function getInfo($id)
     {
-        return Rewards::getById(decrypt($id), ['code', 'reward_type', 'name', 'num_items', 'price', 'description']);
+        return Reward::getById(decrypt($id), ['code', 'reward_type', 'name', 'num_items', 'price', 'description']);
     }
 }

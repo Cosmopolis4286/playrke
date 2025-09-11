@@ -20,7 +20,7 @@ trait GameTrait
     {
         try {
             // Obtener el ID del juego
-            $gameId = Games::getValueByName($game);
+            $gameId = Game::getValueByName($game);
             $gameMode = null;
 
             if ($game === 'BINGO') {

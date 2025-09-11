@@ -2,33 +2,37 @@
 
 namespace App\Models\Games\Shared\PrizePool;
 
-use App\Models\Games\Shared\GameMode\GameModes;
-use App\Models\Games\Shared\Games;
+use App\Models\Games\Shared\GameMode\GameMode;
+use App\Models\Games\Shared\Game;
 use Illuminate\Database\Eloquent\Model;
 
 class GamePrizePoolType extends Model
 {
-    protected $table = "game_prize_pool_type";
-    protected $fillable = ['game_id', 'game_mode_id', 'prize_pool_type', 'status'];
+    protected $table = 'game_prize_pool_types';
 
-    public function Game()
+    protected $fillable = [
+        'game_id',
+        'game_mode_id',
+        'prize_pool_type_id',
+        'status',
+    ];
+
+    /* -------------------------
+     | Relaciones
+     |--------------------------*/
+
+    public function game()
     {
-        return $this->belongsTo(Games::class, 'game');
+        return $this->belongsTo(Game::class, 'game_id');
     }
 
-    public function GameMode()
+    public function gameMode()
     {
-        return $this->belongsTo(GameModes::class, 'game_mode');
+        return $this->belongsTo(GameMode::class, 'game_mode_id');
     }
 
-    public function PrizePoolType()
+    public function prizePoolType()
     {
-        return $this->belongsTo(PrizePoolType::class, 'prize_pool_type');
-    }
-
-    public static function getAvailableByGameMode($game, $game_mode = '')
-    {
-        return self::select('prize_pool_type')->where('game', $game)->where('game_mode', $game_mode)
-            ->where('status', 1)->distinct()->pluck('prize_pool_type')->toArray();
+        return $this->belongsTo(PrizePoolType::class, 'prize_pool_type_id');
     }
 }

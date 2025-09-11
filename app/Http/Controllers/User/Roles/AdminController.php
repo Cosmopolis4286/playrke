@@ -31,7 +31,7 @@ class AdminController extends Controller
         $currencies = Currency::getByIdForStatus(['=', 1]);
         $commerces = Commerce::with(['Country:id,name', 'User:id,email'])->get();
         $countries = Country::getAllAvailableCountries();
-        $games = Games::getAvailableGames();
+        $games = Game::getAvailableGames();
         $timeZones = TimeZone::where('status', 1)->get();
 
         return view('modules.admin.commerce.index', [
@@ -82,7 +82,7 @@ class AdminController extends Controller
             'countries' => $countries,
             'timeZones' => $timeZones,
             'currencies' => $currencies,
-            'games' => Games::getAvailableGames()
+            'games' => Game::getAvailableGames()
         ]);
     }
 
@@ -94,7 +94,7 @@ class AdminController extends Controller
         ])->get();
 
         $currencies = Currency::getByIdForStatus(['=', 1]);
-        $games = Games::getAvailableGames();
+        $games = Game::getAvailableGames();
 
         return view('modules/admin/treasurer/other-treasurers')->with([
             'title' => 'Otros Tesoreros',

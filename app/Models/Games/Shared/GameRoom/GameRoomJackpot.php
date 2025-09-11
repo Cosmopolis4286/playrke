@@ -11,6 +11,6 @@ class GameRoomJackpot extends Model
 
     public function Game()
     {
-        return $this->belongsTo(Games::class, 'game');
+        return $this->belongsTo(Game::class, 'game');
     }
 }

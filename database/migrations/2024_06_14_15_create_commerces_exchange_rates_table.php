@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('commerces_exchange_rates', function (Blueprint $table) {
-            $table->id()->comment('ID único del registro de tasa de cambio');
+            // PK con Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del registro de tasa de cambio');
 
             // Comercio relacionado
             $table->foreignSnowflake('commerce_id')

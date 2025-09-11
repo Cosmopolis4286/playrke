@@ -9,7 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bingo_images', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
 
             $table->foreignSnowflake('user_id')
                 ->nullable()

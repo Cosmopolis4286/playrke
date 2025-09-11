@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sellers_room_limits', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
             $table->integer('room')->comment('ID de sala');
             $table->foreignSnowflake('seller_id')->constrained('sellers')->onDelete('cascade');

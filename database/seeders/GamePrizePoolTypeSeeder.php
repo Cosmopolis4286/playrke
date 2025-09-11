@@ -2,44 +2,53 @@
 
 namespace Database\Seeders;
 
-use App\Models\Games\Shared\Games;
-use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
-use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
+use App\Models\Games\Shared\Game;
+use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
+use App\Models\Games\Shared\GameMode\GameMode;
+use BradieTilley\Snowflake\Snowflake;
 
 class GamePrizePoolTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        // Obtener el ID del juego 'BINGO'
-        $gameId = Games::where('name', 'BINGO')->value('id');
+        $snowflake = new Snowflake();
+        $now = now();
 
+        // Obtener el ID del juego 'BINGO'
+        $gameId = Game::where('name', 'BINGO')->value('id');
         if (!$gameId) {
             $this->command->warn("Juego 'BINGO' no encontrado. Seeder omitido.");
             return;
         }
 
-        $entries = [
-            ['game_mode_id' => 2, 'prize_pool_type_id' => 1],
-            ['game_mode_id' => 2, 'prize_pool_type_id' => 2],
-            ['game_mode_id' => 2, 'prize_pool_type_id' => 3],
-        ];
+        // Traer todos los GameModes existentes
+        $gameModes = GameMode::all();
 
-        // Crear instancia de Snowflake
-        $snowflake = new Snowflake();
+        if ($gameModes->isEmpty()) {
+            $this->command->warn("No hay GameModes disponibles. Seeder omitido.");
+            return;
+        }
 
-        foreach ($entries as $entry) {
-            GamePrizePoolType::updateOrCreate(
-                [
-                    'game_id' => $gameId,
-                    'game_mode_id' => $entry['game_mode_id'],
-                    'prize_pool_type_id' => $entry['prize_pool_type_id'],
-                ],
-                [
-                    'id' => $snowflake->id(), // ✅ ID Snowflake único
-                    'status' => 'ACTIVE',
-                ]
-            );
+        // Definir los prize_pool_type_ids que queremos crear
+        $prizePoolTypeIds = [1, 2, 3];
+
+        foreach ($gameModes as $mode) {
+            foreach ($prizePoolTypeIds as $poolId) {
+                GamePrizePoolType::updateOrCreate(
+                    [
+                        'game_id' => $gameId,
+                        'game_mode_id' => $mode->id,
+                        'prize_pool_type_id' => $poolId,
+                    ],
+                    [
+                        'id' => $snowflake->id(),
+                        'status' => 'ACTIVE',
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]
+                );
+            }
         }
     }
 }

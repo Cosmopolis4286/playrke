@@ -4,8 +4,8 @@ namespace App\Models\Payments\Methods\Venezuela;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
-use App\Models\User\Shared\DocumentType;
-use App\Models\Banks\BanksVenezuela;
+use App\Models\Users\Shared\DocumentType;
+use App\Models\Banks\BankVenezuela;
 
 class PagoMovil extends Model
 {
@@ -32,7 +32,7 @@ class PagoMovil extends Model
 
 	public function bank()
 	{
-		return $this->belongsTo(BanksVenezuela::class, 'bank_id');
+		return $this->belongsTo(BankVenezuela::class, 'bank_id');
 	}
 
 	/* Métodos helpers */

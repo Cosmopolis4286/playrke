@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('game_rules', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
             $table->string('image', 30)->nullable();

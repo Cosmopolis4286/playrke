@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Cartons;
 
-use App\Models\{BingoCtnPrice, BingoCtnPriceDrafts};
+use App\Models\{BingoCardPrice, BingoCardPriceDraft};
 
 class CartonPriceService
 {
@@ -11,7 +11,7 @@ class CartonPriceService
      */
     public function associateCtnPrices(int $automaticBingoId, int $roomId): void
     {
-        $draft = BingoCtnPriceDrafts::getByAutomaticRoom($automaticBingoId);
+        $draft = BingoCardPriceDraft::getByAutomaticRoom($automaticBingoId);
 
         if (!$draft) {
             return;
@@ -21,7 +21,7 @@ class CartonPriceService
         $prices = $draft->card_prices ?? [];
 
         foreach ($currencies as $index => $currency) {
-            BingoCtnPrice::updateOrCreate(
+            BingoCardPrice::updateOrCreate(
                 ['room' => $roomId, 'currency' => $currency],
                 [
                     'creator_user_id' => $draft->creator_user,

@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bingo_draws_code', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->onDelete('cascade');
             $table->tinyInteger('num'); // número (1 dígito)
             $table->char('sym', 6);     // símbolo (ej: código fijo)

@@ -18,7 +18,7 @@ class HandleTransactions
 
         try {
             // Obtener transacciones pendientes
-            $query = Transactions::where('status', 0);
+            $query = Transaction::where('status', 0);
 
             if ($customer) {
                 $query->where('customer', $customer);
@@ -48,7 +48,7 @@ class HandleTransactions
                     }
 
                     // Actualizar la transacción si es exitosa
-                    Transactions::where('id', $transactionID)->update([
+                    Transaction::where('id', $transactionID)->update([
                         'status' => 1,
                         'processing_data' => Carbon::now(),
                         'updated_at' => now(),

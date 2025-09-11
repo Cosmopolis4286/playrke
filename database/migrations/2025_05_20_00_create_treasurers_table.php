@@ -9,7 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('treasurers', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
 
             $table->string('name', 75)->comment('Nombre del tesorero');
 

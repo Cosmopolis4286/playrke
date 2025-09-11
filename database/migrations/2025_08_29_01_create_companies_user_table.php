@@ -14,10 +14,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('company_user', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->foreignSnowflake('user_id')->constrained()->cascadeOnDelete();
             $table->foreignSnowflake('company_id')->constrained()->cascadeOnDelete();
-            $table->unsignedBigInteger('role_id')->nullable(); // rol del usuario dentro de la empresa
+            $table->foreignSnowflake('role_id')->nullable(); // rol del usuario dentro de la empresa
             $table->timestamps();
 
             $table->unique(['user_id', 'company_id']); // evita duplicados

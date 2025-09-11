@@ -20,7 +20,7 @@ class GameController extends Controller
             $customerGame = CustomerGames::find($id);
 
             // Obtener ID del juego
-            $gameId = Games::getValueByName($request->game_id);
+            $gameId = Game::getValueByName($request->game_id);
 
             if ($customerGame) {
                 // Actualizar el registro existente

@@ -25,7 +25,7 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Juego asociado');
 
-            $table->unsignedBigInteger('room')->comment('ID de la sala');
+            $table->foreignSnowflake('room')->comment('ID de la sala');
 
             $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
@@ -59,7 +59,7 @@ return new class extends Migration
                 ->comment('Código de compra asociado');
 
             // Datos del jugador
-            $table->unsignedBigInteger('room_user')->comment('Número de usuario dentro de la sala');
+            $table->foreignSnowflake('room_user')->comment('Número de usuario dentro de la sala');
             $table->string('first_name', 50)->comment('Nombre del jugador');
             $table->string('last_name', 50)->comment('Apellido del jugador');
             $table->string('identification', 20)->nullable()->comment('Documento de identificación');

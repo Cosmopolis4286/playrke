@@ -11,7 +11,7 @@ class GameExchangeRate extends Model
 
     public function Game()
     {
-        return $this->belongsTo(Games::class, 'game');
+        return $this->belongsTo(Game::class, 'game');
     }
 
     public function Currency()
@@ -21,7 +21,7 @@ class GameExchangeRate extends Model
 
     public static function getGameExchangeRateValue($gameName, $room, $currency, $value = 'exchange_rate')
     {
-        $gameId = Games::getValueByName($gameName);
+        $gameId = Game::getValueByName($gameName);
 
         return self::where('game', $gameId)->where('room', $room)->where('currency', $currency)->value($value);
     }

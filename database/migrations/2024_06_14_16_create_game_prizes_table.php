@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('game_prizes', function (Blueprint $table) {
-            $table->id()->comment('ID único del premio');
+            // PK con Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del premio');
             
             $table->string('description', 50)->comment('Descripción legible del premio');
             $table->string('code', 10)->comment('Código único interno del premio')->index();

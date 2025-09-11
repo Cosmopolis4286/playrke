@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('binance_accounts', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->enum('account_type', ['E', 'P', 'B']);
             $table->string('data_value', 100);
             $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');

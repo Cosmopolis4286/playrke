@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('game_sounds', function (Blueprint $table) {
-            $table->id()->comment('ID del sonido del juego');
+            // PK con Snowflake
+            $table->snowflake('id')->primary()->comment('ID del sonido del juego');
 
             $table->string('file', 50)
                 ->unique()

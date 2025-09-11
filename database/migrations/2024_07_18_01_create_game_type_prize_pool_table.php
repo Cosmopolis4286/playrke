@@ -6,33 +6,36 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
-        Schema::create('game_prize_pool_type', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('game_id');
-            $table->unsignedBigInteger('game_mode_id');
-            $table->unsignedBigInteger('prize_pool_type_id')->default(1);
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
-            $table->timestamps();
+        Schema::create('game_prize_pool_types', function (Blueprint $table) {
+            // PK con Snowflake
+            $table->snowflake('id')->primary();
 
-            $table->foreign('game_id')->references('id')->on('games')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('game_mode_id')->references('id')->on('game_modes')->onDelete('restrict')->onUpdate('cascade');
-            $table->foreign('prize_pool_type_id')->references('id')->on('prize_pool_types')->onDelete('restrict')->onUpdate('cascade');
+            // Foreign keys Snowflake
+            $table->foreignSnowflake('game_id')
+                ->constrained('games')
+                ->onDelete('restrict')
+                ->onUpdate('cascade');
+
+            $table->foreignSnowflake('game_mode_id')
+                ->constrained('game_modes')
+                ->onDelete('restrict')
+                ->onUpdate('cascade');
+
+            $table->foreignSnowflake('prize_pool_type_id')
+                ->constrained('prize_pool_types')
+                ->onDelete('restrict')
+                ->onUpdate('cascade');
+
+            // Estado
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
+
+            $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('game_prize_pool_types');
     }

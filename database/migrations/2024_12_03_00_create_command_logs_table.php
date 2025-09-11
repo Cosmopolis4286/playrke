@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('command_logs', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->string('command'); // Nombre del comando ejecutado
             $table->text('output')->nullable(); // Resultado del comando
             $table->enum('status', ['success', 'error'])->default('success');

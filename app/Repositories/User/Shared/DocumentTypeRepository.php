@@ -2,7 +2,7 @@
 
 namespace App\Repositories\User\Shared;
 
-use App\Models\User\Shared\DocumentType;
+use App\Models\Users\Shared\DocumentType;
 
 class DocumentTypeRepository
 {
@@ -36,7 +36,7 @@ class DocumentTypeRepository
      *
      * @param array $attributes
      * @param array $values
-     * @return \App\Models\User\Shared\DocumentType
+     * @return \App\Models\Users\Shared\DocumentType
      */
     public function updateOrCreate(array $attributes, array $values = [])
     {

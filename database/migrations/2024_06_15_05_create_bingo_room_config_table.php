@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bingo_rooms_config', function (Blueprint $table) {
-            $table->id()->comment('ID de la configuración de la sala');
+            // PK con Snowflake
+            $table->snowflake('id')->primary()->comment('ID de la configuración de la sala');
 
             // Sala asociada
             $table->foreignSnowflake('room_id')

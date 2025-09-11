@@ -9,7 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('colombian_payment_accounts', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
 
             $table->enum('gateway', ['BANCOLOMBIA', 'DAVIPLATA', 'NEQUI'])
                 ->index()

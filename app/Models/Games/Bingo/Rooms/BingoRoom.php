@@ -52,7 +52,7 @@ class BingoRoom extends Model
 
   public function CtnPrice()
   {
-    return $this->hasMany(BingoCtnPrice::class, 'room', 'id');
+    return $this->hasMany(BingoCardPrice::class, 'room', 'id');
   }
 
   public function CtnsLot()
@@ -62,7 +62,7 @@ class BingoRoom extends Model
 
   public function CreatorSales()
   {
-    return $this->hasMany(BingoCreatorSales::class, 'room', 'id');
+    return $this->hasMany(BingoCreatorSale::class, 'room', 'id');
   }
 
   public function PlayersRoom()

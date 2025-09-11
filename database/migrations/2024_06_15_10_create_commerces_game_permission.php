@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('commerce_game_permissions', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->foreignSnowflake('commerce_id')->constrained('commerces')->onDelete('cascade');
             $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
             $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');

@@ -14,7 +14,8 @@ return new class extends Migration
     public function up()
     {
         Schema::create('banks_brazil', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->string('name', 40);
             $table->string('full_name', 60);
             $table->string('ispb', 8);

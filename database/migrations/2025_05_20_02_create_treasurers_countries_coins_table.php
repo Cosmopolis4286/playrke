@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('treasurers_countries_currencies', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->foreignSnowflake('treasurer_id')->constrained('treasurers');
             $table->foreignSnowflake('country_id')->nullable()->constrained('countries');
             $table->foreignSnowflake('currency_id')->constrained('currencies');

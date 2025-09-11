@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BanksVenezuela;
+use App\Models\BankVenezuela;
 use App\Models\BinanceAccounts;
 use App\Models\Commerce;
 use App\Models\CommerceExchangeRate;
@@ -87,7 +87,7 @@ class DirectoryController extends Controller
                 $additionalData = [
                     'pagomovils' => PagoMovil::with('Bank')->where('user', $userId)->get(),
                     'documentType' => DocumentType::getDocumentTypeByCountry($country->id),
-                    'banks' => BanksVenezuela::all()
+                    'banks' => BankVenezuela::all()
                 ];
                 break;
         }

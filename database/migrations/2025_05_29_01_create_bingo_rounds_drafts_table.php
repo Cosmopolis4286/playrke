@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bingo_rounds_drafts', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
             $table->foreignSnowflake('bingo_room_id')->unique()->nullable()->constrained('bingo_rooms');
             $table->foreignSnowflake('automatic_bingo_room_id')->unique()->nullable()->constrained('automatic_bingo_rooms');
             $table->string('rounds', 2);

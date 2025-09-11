@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bingo_card_prize_payments', function (Blueprint $table) {
-            $table->id()->comment('ID único del pago de premio');
+            // PK con Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del pago de premio');
 
             // Relaciones
             $table->foreignSnowflake('card_prize_id')

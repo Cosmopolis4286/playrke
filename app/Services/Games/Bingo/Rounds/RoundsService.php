@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Rounds;
 
-use App\Models\{BingoRounds, BingoRoundsDrafts};
+use App\Models\{BingoRound, BingoRoundDraft};
 use App\Enums\Games\Bingo\RoundStatus;
 use Illuminate\Support\Facades\Log;
 
@@ -17,14 +17,14 @@ class RoundsService
      */
     public function associateRounds(int $automaticBingoId, int $roomId): void
     {
-        $draft = BingoRoundsDrafts::getByAutomaticRoom($automaticBingoId);
+        $draft = BingoRoundDraft::getByAutomaticRoom($automaticBingoId);
 
         if (!$draft) {
             Log::warning("No hay draft de rondas para automatic bingo ID {$automaticBingoId}");
             return;
         }
 
-        BingoRounds::create([
+        BingoRound::create([
             'room'         => $roomId,
             'rounds'       => $draft->rounds,
             'prize_types'  => $draft->prize_types,
@@ -46,7 +46,7 @@ class RoundsService
     public function determineRoundsStatus(int $roomId, RoundStatus $status): void
     {
         try {
-            BingoRounds::where('room', $roomId)->update([
+            BingoRound::where('room', $roomId)->update([
                 'status' => $status->value, // ✅ Usamos el valor del enum (string)
             ]);
 

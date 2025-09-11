@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('automatic_bingo_rooms', function (Blueprint $table) {
-            $table->id();
+            // PK con Snowflake
+            $table->snowflake('id')->primary();;
 
             $table->string('description', 50)->nullable();
             $table->date('date')->nullable();

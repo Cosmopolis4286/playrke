@@ -11,7 +11,7 @@ trait ExternalPlayersTrait
 {
     public function createExternalPlayers($game, $room = '')
     {
-        $gameId = Games::getValueByName($game);
+        $gameId = Game::getValueByName($game);
         do {
             $code = Str::random(20);
         } while (ExternalPlayers::where('game', $gameId)->where('link', $code)->exists());
@@ -53,7 +53,7 @@ trait ExternalPlayersTrait
             $playerLink = $this->createExternalPlayers('BINGO');
 
             $dataPlayer = [
-                'game' => Games::getValueByName('BINGO'),
+                'game' => Game::getValueByName('BINGO'),
                 'room' => $data['room'],
                 'creator_user_id' => $data['creator']['userId'],
                 'room_user' => $roomUser,

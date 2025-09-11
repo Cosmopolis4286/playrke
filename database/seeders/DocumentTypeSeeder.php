@@ -30,21 +30,21 @@ class DocumentTypeSeeder extends Seeder
 
         // Lista de tipos de documento predefinidos
         $documentTypes = [
-            ['value' => 'CPF', 'description' => 'CPF',        'country_id' => $brasilId,    'status' => 1],
-            ['value' => 'V',   'description' => 'Venezolano', 'country_id' => $venezuelaId, 'status' => 1],
-            ['value' => 'E',   'description' => 'Extranjero', 'country_id' => $venezuelaId, 'status' => 1],
-            ['value' => 'J',   'description' => 'Comercio',   'country_id' => $venezuelaId, 'status' => 1],
+            ['value' => 'CPF', 'description' => 'CPF',        'country_id' => $brasilId,    'is_active' => true],
+            ['value' => 'V',   'description' => 'Venezolano', 'country_id' => $venezuelaId, 'is_active' => true],
+            ['value' => 'E',   'description' => 'Extranjero', 'country_id' => $venezuelaId, 'is_active' => true],
+            ['value' => 'J',   'description' => 'Comercio',   'country_id' => $venezuelaId, 'is_active' => true],
         ];
 
         // Inserta o actualiza registros evitando duplicados
         foreach ($documentTypes as $type) {
             if ($type['country_id']) { // solo si existe el país
                 $documentRepo->updateOrCreate(
-                    ['value' => $type['value'], 'country_id' => $type['country_id']], // clave compuesta
+                    ['code' => $type['value'], 'country_id' => $type['country_id']], // clave compuesta
                     [
                         'id' => $snowflake->id(), // Generar ID Snowflake
                         'description' => $type['description'],
-                        'status' => $type['status']
+                        'is_active' => $type['is_active']
                     ]
                 );
             }

@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bingo_cards', function (Blueprint $table) {
-            $table->id()->comment('ID del cartón de bingo');
+            // PK con Snowflake
+            $table->snowflake('id')->primary()->comment('ID del cartón de bingo');
 
             // Relaciones
             $table->foreignSnowflake('room_id')

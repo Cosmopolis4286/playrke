@@ -11,6 +11,6 @@ class PlayHistory extends Model
 
     public function User()
     {
-        return $this->belongsTo(Games::class, 'game');
+        return $this->belongsTo(Game::class, 'game');
     }
 }
