@@ -20,7 +20,7 @@ export const sellerRoutes = {
     "getCtnPriceCurrency": "/seller/bingo/get/ctn-price-currency/{room}/{country}",
     "getWinnerInfoForCtn": "/seller/bingo/getWinnerInfoForCtn/{ctnId}",
     "getPlayerInfo": "/seller/bingo/player/{playerLink}/info",
-    "showPlayerCartons": "/seller/bingo/player/cartons/{playerLink}/{room}",
+    "showPlayerCards": "/seller/bingo/player/cartons/{playerLink}/{room}",
     "getPlayer": "/seller/bingo/player/get/player",
     "getCtnPrice": "/seller/bingo/carton/get/price/{roomId}",
     "getPaymentCommerceDetails": "/seller/getPaymentCommerceDetails/{currency}"

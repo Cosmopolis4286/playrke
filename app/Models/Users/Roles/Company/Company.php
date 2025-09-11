@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\User\Roles\Company;
+namespace App\Models\Users\Roles\Company;
 
-use App\Models\User\User;
+use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 
 /**

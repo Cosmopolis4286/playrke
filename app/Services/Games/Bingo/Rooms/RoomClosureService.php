@@ -6,7 +6,7 @@ use App\Models\{BingoRoom, BingoCtns, BingoDraw};
 use Illuminate\Support\Facades\Log;
 use App\Enums\Games\GameStatus;
 use App\Enums\Games\Bingo\RoundStatus;
-use App\Services\Games\Bingo\Cartons\PrizeCartonService;
+use App\Services\Games\Bingo\Cards\PrizeCartonService;
 use App\Services\Games\Bingo\Rounds\RoundsService;
 
 class RoomClosureService

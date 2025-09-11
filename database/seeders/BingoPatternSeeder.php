@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Games\Bingo\Cartons\Patterns\BingoPattern;
+use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
 use Illuminate\Database\Seeder;
 use Carbon\Carbon;
 use BradieTilley\Snowflake\Snowflake;

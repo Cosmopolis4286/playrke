@@ -4,7 +4,7 @@ namespace App\Traits\Users;
 
 use App\Models\Games;
 use App\Models\ExternalPlayers;
-use App\Models\UserPurchaseCodes;
+use App\Models\UsersPurchaseCodes;
 use Illuminate\Support\Str;
 
 trait ExternalPlayersTrait

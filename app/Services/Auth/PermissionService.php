@@ -2,7 +2,7 @@
 
 namespace App\Services\Auth;
 
-use App\Models\User;
+use App\Models\Users;
 use Illuminate\Support\Facades\Auth;
 use App\Repositories\User\Roles\RoleRepository;
 

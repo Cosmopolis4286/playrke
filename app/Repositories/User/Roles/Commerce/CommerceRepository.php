@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use App\Models\User;
+use App\Models\Users;
 use App\Models\Role;
 use Illuminate\Support\Str;
 

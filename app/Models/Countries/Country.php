@@ -2,8 +2,8 @@
 
 namespace App\Models\Countries;
 
-use App\Models\User\Roles\Player\External\ExternalPlayers;
-use App\Models\User\Roles\Seller\Seller;
+use App\Models\Users\Roles\Player\External\ExternalPlayers;
+use App\Models\Users\Roles\Seller\Seller;
 use BradieTilley\Snowflakes\Eloquent\HasSnowflake;
 use Illuminate\Database\Eloquent\Model;
 

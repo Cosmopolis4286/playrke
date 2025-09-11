@@ -13,7 +13,7 @@ use App\Models\Pix;
 use App\Models\Seller;
 use App\Models\SellerCountriesCurrencies;
 use App\Models\Treasurer;
-use App\Models\User;
+use App\Models\Users;
 use App\Models\Role;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;

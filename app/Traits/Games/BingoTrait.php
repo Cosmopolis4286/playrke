@@ -29,7 +29,7 @@ use App\Models\Games;
 use App\Models\ExternalPlayers;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Seller;
-use App\Models\User;
+use App\Models\Users;
 use App\Models\Role;
 use App\Models\Wallet;
 
@@ -414,7 +414,7 @@ trait BingoTrait
         }
 
         // Modo UNIQUE: índice plano de chip => [cartonIds]
-        $matchedCartons = [];  // Evita contar el mismo cartón varias veces
+        $matchedCards = [];  // Evita contar el mismo cartón varias veces
         $winningChips = [];    // Fichas que han causado coincidencia
 
         foreach ($drawnChips as $chip) {
@@ -424,8 +424,8 @@ trait BingoTrait
 
             foreach ($chipIndex[$chip] as $ctnId) {
                 // Si este cartón no ha sido contado antes
-                if (!isset($matchedCartons[$ctnId])) {
-                    $matchedCartons[$ctnId] = true;
+                if (!isset($matchedCards[$ctnId])) {
+                    $matchedCards[$ctnId] = true;
                     $winningChips[$chip] = true;
                 }
             }

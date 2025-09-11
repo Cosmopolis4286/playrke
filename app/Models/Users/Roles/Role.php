@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\User\Roles;
+namespace App\Models\Users\Roles;
 
-use App\Models\User\User;
+use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -17,10 +17,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string|null $description
  * @property bool $status
  *
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\User[] $users
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Users[] $users
  */
 class Role extends Model
 {
+    protected $table = "roles";
     protected $fillable = ['name', 'prefix', 'description', 'status'];
 
     /**

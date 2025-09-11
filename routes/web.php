@@ -193,7 +193,7 @@ Route::group(['middleware' => ['auth', 'seller'], 'prefix' => 'seller', 'as' => 
     Route::get('bingo/get/ctn-price-currency/{room}/{country}', [SellerController::class, 'getCtnPriceCurrency'])->name('getCtnPriceCurrency');
     Route::get('bingo/getWinnerInfoForCtn/{ctnId}', [SellerController::class, 'getWinnerInfoForCtn'])->name('getWinnerInfoForCtn');
     Route::get('bingo/player/{playerLink}/info', [SellerController::class, 'getPlayerInfo'])->name('getPlayerInfo');
-    Route::get('bingo/player/cartons/{playerLink}/{room}', [SellerController::class, 'showPlayerCartons'])->name('showPlayerCartons');
+    Route::get('bingo/player/cartons/{playerLink}/{room}', [SellerController::class, 'showPlayerCards'])->name('showPlayerCards');
     Route::post('bingo/player/get/player', [SellerController::class, 'getPlayer'])->name('getPlayer');
     Route::get('bingo/carton/get/price/{roomId}', [SellerController::class, 'getCtnPrice'])->name('getCtnPrice');
 

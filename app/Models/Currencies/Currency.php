@@ -5,8 +5,8 @@ namespace App\Models\Currencies;
 use App\Models\Countries\Country;
 use App\Models\ExchangeRate\ExchangeRate;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\User\Roles\Commerce\CommerceExchangeRate;
-use App\Models\User\Roles\Seller\Seller;
+use App\Models\Users\Roles\Commerce\CommerceExchangeRate;
+use App\Models\Users\Roles\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;
 
 class Currency extends Model

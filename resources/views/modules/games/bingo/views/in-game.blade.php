@@ -45,7 +45,7 @@
         const preRoute = '{{ asset('') }}';
         const logo = @json($customerLogo ?? 'img/rke.png');
         const encrypted = @json($room->encrypted);
-        const allCartons = @json($cartons);
+        const allCards = @json($cartons);
         const roomStatus = @json($room->status);
         const currencySymbol = @json($currencySym);
         const chpLast = @json($vanDraw);

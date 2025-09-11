@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Models\User\Roles\Player\External;
+namespace App\Models\Users\Roles\Player\External;
 
 use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;
 use App\Models\Games\Shared\Games;
-use App\Models\User\Roles\Commerce\Commerce;
-use App\Models\User\Roles\Seller\Seller;
-use App\Models\User\User;
+use App\Models\Users\Roles\Commerce\Commerce;
+use App\Models\Users\Roles\Seller\Seller;
+use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 
 class ExternalPlayers extends Model

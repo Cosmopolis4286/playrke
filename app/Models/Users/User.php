@@ -1,51 +1,28 @@
 <?php
 
-namespace App\Models\User;
+namespace App\Models\Users;
 
 use App\Models\Countries\Country;
-use App\Models\User\Roles\Commerce\Commerce;
-use App\Models\User\Roles\Company\Company;
-use App\Models\User\Roles\Role;
-use App\Models\User\Roles\Seller\Seller;
+use App\Models\Users\Roles\Commerce\Commerce;
+use App\Models\Users\Roles\Company\Company;
+use App\Models\Users\Roles\Role;
+use App\Models\Users\Roles\Seller\Seller;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Dive\Snowflake\HasSnowflake;
 
 /**
  * Modelo User con Snowflake IDs
- *
- * @property string      $id
- * @property string      $username
- * @property string|null $first_name
- * @property string|null $last_name
- * @property string      $email
- * @property string|null $phone
- * @property string|null $photo
- * @property string|null $referral_code
- * @property string|null $referred_by
- * @property \DateTime|null $email_verified_at
- * @property string      $status
- * @property-read string $full_name
- *
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Role[] $roles
- * @property-read \App\Models\User|null $referredBy
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\User[] $referrals
- * @property-read \App\Models\Country|null $country
- * @property-read \App\Models\Commerce|null $commerce
- * @property-read \App\Models\Seller|null $seller
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Company[] $companies
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable, HasRoles, HasSnowflake;
+    use Notifiable, HasRoles;
 
     protected $table = 'users';
     protected $primaryKey = 'id';
-
-    // Snowflake IDs no incrementales
     public $incrementing = false;
     protected $keyType = 'string';
 
@@ -54,19 +31,35 @@ class User extends Authenticatable implements MustVerifyEmail
         'first_name',
         'last_name',
         'password',
-        'photo',
+        'profile_photo_url',
         'email',
-        'phone',
-        'country',
-        'time_zone',
+        'phone_number',
+        'country_id',
+        'time_zone_id',
         'referral_code',
-        'referred_by',
+        'referred_by_user_id',
         'email_verified_at',
+        'status',
     ];
 
     protected $hidden = ['password', 'remember_token'];
     protected $casts = ['email_verified_at' => 'datetime'];
     protected $appends = ['full_name'];
+
+    /* ========================
+     | Boot method
+     |======================== */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Generar ID con Snowflake antes de crear
+        static::creating(function ($user) {
+            if (!$user->id) {
+                $user->id = (new Snowflake())->id();
+            }
+        });
+    }
 
     /* ========================
      | Relaciones
@@ -79,17 +72,17 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function referredBy()
     {
-        return $this->belongsTo(User::class, 'referred_by');
+        return $this->belongsTo(User::class, 'referred_by_user_id');
     }
 
     public function referrals()
     {
-        return $this->hasMany(User::class, 'referred_by');
+        return $this->hasMany(User::class, 'referred_by_user_id');
     }
 
     public function country()
     {
-        return $this->belongsTo(Country::class, 'country');
+        return $this->belongsTo(Country::class, 'country_id');
     }
 
     public function commerce()
@@ -118,15 +111,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return trim("{$this->first_name} {$this->last_name}");
     }
 
-    /**
-     * Devuelve las entidades relacionadas según los roles asignados
-     *
-     * @return array<string, mixed>
-     */
     public function entities(): array
     {
         $entities = [];
-
         foreach ($this->roles as $role) {
             $entities[$role->prefix] = match ($role->prefix) {
                 'commerce_id' => $this->commerce,
@@ -134,7 +121,6 @@ class User extends Authenticatable implements MustVerifyEmail
                 default       => null,
             };
         }
-
         return $entities;
     }
 }

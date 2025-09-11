@@ -3,7 +3,7 @@
 namespace App\Models\Payments\Methods\Venezuela;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
+use App\Models\Users;
 use App\Models\Users\Shared\DocumentType;
 use App\Models\Banks\BankVenezuela;
 

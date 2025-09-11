@@ -22,7 +22,7 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PhoneNumbers;
 use App\Models\SellerCountriesCurrencies;
-use App\Models\User;
+use App\Models\Users;
 use App\Models\Role;
 use App\Models\Wallet;
 use App\Services\Games\Bingo\HandleBingoRooms;

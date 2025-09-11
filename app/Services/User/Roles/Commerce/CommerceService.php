@@ -2,7 +2,7 @@
 
 namespace App\Services\Commerce;
 
-use App\Models\User;
+use App\Models\Users;
 use App\Models\Wallet;
 use App\Models\PhoneNumbers;
 use App\Models\Commerce;

@@ -2,7 +2,7 @@
 
 namespace App\Models\Users\Shared;
 
-use App\Models\User\User;
+use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 
 class UniqueCode extends Model

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Currencies\Currency;
 use App\Models\Country;
-use App\Models\User;
+use App\Models\Users;
 use App\Models\Wallet;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;

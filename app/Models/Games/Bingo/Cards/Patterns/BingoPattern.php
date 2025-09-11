@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cartons\Patterns;
+namespace App\Models\Games\Bingo\Cards\Patterns;
 
 use Illuminate\Database\Eloquent\Model;
 

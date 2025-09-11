@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models\User\Roles\Commerce;
+namespace App\Models\Users\Roles\Commerce;
 
 use App\Models\Countries\Country;
-use App\Models\User\Roles\Seller\Seller;
-use App\Models\User\User;
+use App\Models\Users\Roles\Seller\Seller;
+use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;

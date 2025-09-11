@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo\Cartons;
+namespace App\Services\Games\Bingo\Cards;
 
 use App\Models\{BingoCardPrice, BingoCardPriceDraft};
 use Illuminate\Support\Facades\Log;

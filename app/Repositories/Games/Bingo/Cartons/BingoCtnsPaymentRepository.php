@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Cartons;
+namespace App\Repositories\Games\Bingo\Cards;
 
-use App\Models\Games\Bingo\Cartons\BingoCtnsPayment;
+use App\Models\Games\Bingo\Cards\BingoCtnsPayment;
 
 class BingoCtnsPaymentRepository
 {

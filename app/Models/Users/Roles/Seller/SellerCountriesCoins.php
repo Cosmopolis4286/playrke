@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\User\Roles\Seller;
+namespace App\Models\Users\Roles\Seller;
 
 use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;

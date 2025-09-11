@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cartons\CartonPrice;
+namespace App\Models\Games\Bingo\Cards\CartonPrice;
 
 use App\Models\Currencies\Currency;
 use Illuminate\Database\Eloquent\Model;

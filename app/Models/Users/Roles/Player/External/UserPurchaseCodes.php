@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\User\Roles\Player\External;
+namespace App\Models\Users\Roles\Player\External;
 
 use Illuminate\Database\Eloquent\Model;
 

@@ -44,8 +44,8 @@ use App\Models\PrizePoolType;
 use App\Models\Room;
 use App\Models\Seller;
 use App\Models\TimeZone;
-use App\Models\User;
-use App\Models\UserPurchaseCodes;
+use App\Models\Users;
+use App\Models\UsersPurchaseCodes;
 use App\Models\Role;
 use App\Models\UniqueCode;
 use App\Models\Wallet;
@@ -932,17 +932,17 @@ class BingoController extends Controller
         return $this->handleViewData($viewData, $creator['type']);
     }
 
-    private function hasPurchasedCartons($phone)
+    private function hasPurchasedCards($phone)
     {
         ExternalPlayers::where('phone', $phone)->first();
         return true;
     }
 
-    public function buyCartonsToTheCommerce(Request $request)
+    public function buyCardsToTheCommerce(Request $request)
     {
         // Commerce::
 
-        $hasCtns = $this->hasPurchasedCartons($request->phone);
+        $hasCtns = $this->hasPurchasedCards($request->phone);
 
         if ($hasCtns) return response()->json(['room' => [], 'config' => []]);
 

@@ -2,7 +2,7 @@
 
 namespace App\Repositories\User;
 
-use App\Models\{User, Role};
+use App\Models\Users\User;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Collection;
 

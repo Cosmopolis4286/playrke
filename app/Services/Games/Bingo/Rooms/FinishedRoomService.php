@@ -4,7 +4,7 @@ namespace App\Services\Games\Bingo\Rooms;
 
 use App\Models\{BingoRoom, BingoPrizeCtns, User};
 use App\Services\Games\Bingo\Rounds\RoundsService;
-use App\Services\Games\Bingo\Cartons\Customer\CustomerCartonService;
+use App\Services\Games\Bingo\Cards\Customer\CustomerCartonService;
 use Illuminate\Support\Facades\Log;
 use App\Enums\Games\Bingo\RoundStatus;
 use App\Enums\Games\GameStatus;

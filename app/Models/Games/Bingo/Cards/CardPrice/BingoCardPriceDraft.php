@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cartons\CartonPrice;
+namespace App\Models\Games\Bingo\Cards\CartonPrice;
 
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Bingo\Rooms\BingoRoomAutomatic;

@@ -3,7 +3,7 @@
 namespace App\Models\Games\Shared\Utils;
 
 use App\Models\Games\Shared\Game;
-use App\Models\User\User;
+use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 
 class GameRule extends Model

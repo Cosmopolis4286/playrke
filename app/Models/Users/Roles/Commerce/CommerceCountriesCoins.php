@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\User\Roles\Commerce;
+namespace App\Models\Users\Roles\Commerce;
 
 use App\Models\Countries\Country;
 use Illuminate\Database\Eloquent\Model;

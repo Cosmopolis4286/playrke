@@ -3,8 +3,8 @@
 namespace App\Models\ExchangeRate;
 
 use App\Models\Currencies\Currency;
-use App\Models\User\Roles\Commerce\Commerce;
-use App\Models\User\User;
+use App\Models\Users\Roles\Commerce\Commerce;
+use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 
 class ExchangeRateRelation extends Model

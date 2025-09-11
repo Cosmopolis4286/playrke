@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 
 // Models
 use App\Models\DocumentType;
-use App\Models\User;
+use App\Models\Users;
 
 // Traits
 use App\Traits\Users\UserValTrait;

@@ -3,7 +3,7 @@
 namespace App\Traits\Helpers;
 
 use App\Models\TimeZone;
-use App\Models\User;
+use App\Models\Users;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 

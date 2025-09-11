@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerUser;
 use App\Models\PhoneNumbers;
-use App\Models\User;
+use App\Models\Users;
 use App\Models\Role;
 use App\Models\UniqueCode;
 use App\Models\Wallet;

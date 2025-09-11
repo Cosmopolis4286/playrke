@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\User\Roles\Treasurer;
+namespace App\Models\Users\Roles\Treasurer;
 
 use Illuminate\Database\Eloquent\Model;
 
