@@ -15,9 +15,9 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="room in rooms" :key="room.encrypted">
+        <tr v-for="room in rooms" :key="room.id">
           <td class="align-middle">
-            <small>Modo: {{ room.Config?.GameMode?.description || 'N/A' }}</small>
+            <small>Tipo: {{ room.roomTypeDescription || 'N/A' }}</small>
             <a v-if="room.status > 1" :href="generateRoomRoute(room)" class="badge badge-dark" target="_blank"
               title="Ver Sala">
               <i class="fa-regular fa-eye"></i>
@@ -28,25 +28,25 @@
             </a>
           </td>
 
-          <td class="align-middle">{{ formatDate(room.Config?.date) }}</td>
-          <td class="align-middle">{{ room.Config?.time || 'N/A' }} H</td>
+          <td class="align-middle">{{ formatDate(room.publicationDate) }}</td>
+          <td class="align-middle">{{ formatDate(room.publicationDate) }}</td>
           <td class="align-middle">{{ currencySymbol }} {{ calculatePrice(room) }}</td>
 
           <td class="align-middle">
-            <i class="fa-solid fa-users mr-1"></i> {{ room.players ?? 0 }}<br />
-            <i class="fa-solid fa-trophy mr-1"></i> {{ room.winners ?? 0 }}
+            <i class="fa-solid fa-users mr-1"></i> {{ room.currentPlayers ?? 0 }}<br />
+            <i class="fa-solid fa-credit-card mr-1"></i> {{ room.currentCards ?? 0 }}
           </td>
 
           <td class="align-middle">{{ currencySymbol }} {{ calculateAllSale(room) }}</td>
 
           <td class="align-middle">
-            <small>{{ room.Config?.PrizePoolType?.description || 'N/A' }}</small><br />
+            <small>Bote</small><br />
             {{ currencySymbol }} {{ calculatePrizePool(room) }}
           </td>
 
           <td class="align-middle">
-            <span :class="`badge bg-${statusColor(room.Status?.id)}`">
-              {{ room.Status?.description || 'N/A' }}
+            <span :class="`badge bg-${statusColor(room.status)}`">
+              {{ BingoService.getRoomStatusText(room.status) }}
             </span>
           </td>
 
@@ -63,83 +63,76 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import dayjs from 'dayjs'
+import { BingoService, type BingoRoom } from '@/services/bingoService'
 
-const props = defineProps({
-  rooms: {
-    type: Array,
-    required: true,
-  },
-  creator: Object,
-  currencySymbol: {
-    type: String,
-    default: '',
-  },
-  currency: Number,
-  uuidCode: String,
-  exchangeRate: {
-    type: Number,
-    default: 1,
-  },
+interface Props {
+  rooms: BingoRoom[]
+  creator?: any
+  currencySymbol?: string
+  currency?: number
+  uuidCode?: string
+  exchangeRate?: number
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  currencySymbol: '$',
+  exchangeRate: 1,
 })
 
 // Formatea fechas con dayjs
-const formatDate = (date) => {
+const formatDate = (date: Date | string | null | undefined): string => {
   if (!date) return 'N/A'
   return dayjs(date).format('DD/MM/YY')
 }
 
-const truncate = (n) => Math.floor(n * 100) / 100
+const truncate = (n: number): number => Math.floor(n * 100) / 100
 
-const calculatePrice = (room) => {
-  const rate = room.GameExchangeRate?.[0]?.exchange_rate ?? props.exchangeRate
-  const price = (room.Config?.card_price ?? 0) * rate
+const calculatePrice = (room: BingoRoom): number => {
+  const price = room.cardPrice * props.exchangeRate
   return truncate(price)
 }
 
-const calculateAllSale = (room) => {
-  const rate = room.GameExchangeRate?.[0]?.exchange_rate ?? props.exchangeRate
-  const allSale = (room.all_sale ?? 0) * rate
+const calculateAllSale = (room: BingoRoom): string => {
+  // Calculamos la venta total basada en jugadores actuales y precio de cartón
+  const allSale = (room.currentCards * room.cardPrice) * props.exchangeRate
   return allSale.toFixed(2)
 }
 
-const calculatePrizePool = (room) => {
-  const rate = room.GameExchangeRate?.[0]?.exchange_rate ?? props.exchangeRate
-  const pool = (room.prize_pool ?? 0) * rate
+const calculatePrizePool = (room: BingoRoom): string => {
+  const pool = room.prizePool * props.exchangeRate
   return pool.toFixed(2)
 }
 
-const statusColor = (statusId) => {
+const statusColor = (statusId: number): string => {
   return {
-    1: 'gray',
-    2: 'primary',
-    3: 'navy',
-    4: 'success',
-    5: 'black',
+    1: 'gray',    // Abierta
+    2: 'primary', // En juego
+    3: 'navy',    // Pausada
+    4: 'success', // Finalizada
+    5: 'black',   // Cancelada
   }[statusId] ?? 'secondary'
 }
 
-const generateRoomRoute = (room) => {
+const generateRoomRoute = (room: BingoRoom): string => {
   const params = new URLSearchParams({
     room: room.encrypted,
-    currency: btoa(props.currencySymbol),
+    currency: btoa(props.currencySymbol || '$'),
   })
 
   if (props.creator?.type === 'customer') {
     params.set('customer', props.creator.id)
     return `/bingo/out-game-customer?${params}`
   } else {
-    params.set('uuidCode', props.uuidCode)
+    params.set('uuidCode', props.uuidCode || '')
     return `/bingo/out-game?${params}`
   }
 }
 
-const reportLink = (room) => {
-  return route('bingo.reportSalesByRoom', {
-    room: room.encrypted,
-    currency: btoa(1),
-  })
+const reportLink = (room: BingoRoom): string => {
+  // Para el reporte, necesitaríamos definir la ruta apropiada en el frontend
+  return `/bingo/reports/room/${room.encrypted}`
 }
 
 </script>

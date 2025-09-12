@@ -3,6 +3,8 @@ import { config } from '@/config/env.js'
 import { setupPlugins } from '@/config/plugins.js'
 import { setupRoutes } from '@/routes/index.js'
 import { logger } from '@/utils/logger.js'
+import { dbService } from '@/services/database.js'
+import { initializeWebSocket } from '@/websockets/index.js'
 
 const fastify = Fastify({
   logger: {
@@ -13,15 +15,25 @@ const fastify = Fastify({
   }
 })
 
+// Variables globales para WebSocket
+let webSocketManager: any = null
+
 // Graceful shutdown
 const gracefulShutdown = (signal: string) => {
   logger.info(`Received ${signal}. Graceful shutdown...`)
   
-  fastify.close().then(() => {
+  // Cerrar WebSocket primero
+  if (webSocketManager) {
+    webSocketManager.close()
+  }
+  
+  fastify.close().then(async () => {
+    await dbService.disconnect()
     logger.info('Server closed successfully')
     process.exit(0)
-  }).catch((err) => {
+  }).catch(async (err) => {
     logger.error('Error during graceful shutdown', err)
+    await dbService.disconnect()
     process.exit(1)
   })
 }
@@ -42,34 +54,36 @@ process.on('uncaughtException', (error) => {
 
 const start = async () => {
   try {
+    // Connect to database first
+    await dbService.connect()
+    
     // Setup plugins (CORS, JWT, etc.)
     await setupPlugins(fastify)
     
     // Setup routes
     await setupRoutes(fastify)
     
-    // Health check
-    fastify.get('/health', async () => ({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      version: '1.0.0',
-      environment: config.NODE_ENV
-    }))
-    
     // Start server
     await fastify.listen({ 
       port: config.PORT, 
       host: config.HOST 
     })
+
+    // Initialize WebSocket server
+    const httpServer = fastify.server
+    webSocketManager = initializeWebSocket(httpServer)
     
     logger.info(`🚀 PlayRKE Backend API running on http://${config.HOST}:${config.PORT}`)
     logger.info(`📚 Environment: ${config.NODE_ENV}`)
+    logger.info(`📄 API Docs: http://${config.HOST}:${config.PORT}/docs`)
     logger.info(`🔐 JWT enabled: ${!!config.JWT_SECRET}`)
     logger.info(`📧 Email enabled: ${!!config.MAIL_HOST}`)
+    logger.info(`🔌 WebSocket server initialized for real-time gaming`)
+    logger.info(`🎮 Bingo WebSocket namespace: /bingo`)
     
   } catch (err) {
     logger.error('Error starting server:', err)
+    await dbService.disconnect()
     process.exit(1)
   }
 }

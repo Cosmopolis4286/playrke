@@ -10,6 +10,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// === CORE MODELS ===
+
 model User {
   id                            String    @id @default(cuid()) // Compatible con Snowflake ID
   username                      String    @unique @db.VarChar(30)
@@ -55,10 +57,24 @@ model User {
   referredBy                    User?     @relation("UserReferrals", fields: [referredByUserId], references: [id])
   referrals                     User[]    @relation("UserReferrals")
   
+  // Auth & Security
   sessions                      UserSession[]
   passwordResets                PasswordReset[]
   emailVerifications            EmailVerification[]
   userRoles                     UserRole[]
+  
+  // Business Models
+  wallets                       Wallet[]
+  transactions                  Transaction[]
+  createdBingoRooms            BingoRoom[] @relation("CreatedBingoRooms")
+  bingoRoomParticipations      BingoRoomUser[] @relation("BingoRoomParticipations")
+  bingoRoundWins               BingoRound[] @relation("BingoRoundWins")
+  
+  // Profile Extensions
+  customer                     Customer?
+  commerce                     Commerce?
+  seller                       Seller?
+  treasurer                    Treasurer?
   
   @@index([countryId, status], map: "idx_country_status")
   @@index([email, status], map: "idx_email_status")
@@ -180,9 +196,327 @@ model EmailVerification {
   @@map("email_verifications")
 }
 
+// === GAMING & BUSINESS MODELS ===
+
+model Currency {
+  id            String   @id @default(cuid())
+  symbol        String   @unique @db.VarChar(10)
+  longName      String   @map("long_name") @db.VarChar(100)
+  shortName     String   @map("short_name") @db.VarChar(10)
+  countryId     String   @map("country_id")
+  exchangeRate  Float?   @map("exchange_rate")
+  isActive      Boolean  @default(true) @map("is_active")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  wallets       Wallet[]
+  transactions  Transaction[]
+  bingoRooms    BingoRoom[]
+  
+  @@index([countryId])
+  @@map("currencies")
+}
+
+model Wallet {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  currencyId      String   @map("currency_id")
+  balance         Float    @default(0)
+  lockedBalance   Float    @default(0) @map("locked_balance")
+  lastTransactionAt DateTime? @map("last_transaction_at")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency        Currency     @relation(fields: [currencyId], references: [id])
+  transactions    Transaction[]
+  
+  @@unique([userId, currencyId])
+  @@index([userId])
+  @@map("wallets")
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  userId          String            @map("user_id")
+  walletId        String?           @map("wallet_id")
+  type            TransactionType
+  amount          Float
+  currencyId      String            @map("currency_id")
+  referenceId     String?           @map("reference_id")
+  referenceType   String?           @map("reference_type")
+  paymentMethod   PaymentMethod?    @map("payment_method")
+  status          TransactionStatus @default(PENDING)
+  metadata        Json?
+  processedAt     DateTime?         @map("processed_at")
+  
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  
+  user            User              @relation(fields: [userId], references: [id])
+  wallet          Wallet?           @relation(fields: [walletId], references: [id])
+  currency        Currency          @relation(fields: [currencyId], references: [id])
+  
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model Game {
+  id            String     @id @default(cuid())
+  name          String     @db.VarChar(100)
+  description   String?
+  status        GameStatus @default(PENDING)
+  config        Json?
+  
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  
+  bingoRooms    BingoRoom[]
+  
+  @@map("games")
+}
+
+model BingoRoom {
+  id            String         @id @default(cuid())
+  name          String         @db.VarChar(100)
+  gameId        String         @map("game_id")
+  creatorId     String         @map("creator_id")
+  maxPlayers    Int            @map("max_players")
+  minPlayers    Int            @map("min_players")
+  status        GameStatus     @default(PENDING)
+  startTime     DateTime?      @map("start_time")
+  endTime       DateTime?      @map("end_time")
+  prizePool     Float?         @map("prize_pool")
+  currencyId    String         @map("currency_id")
+  config        Json?
+  
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  
+  game          Game           @relation(fields: [gameId], references: [id])
+  creator       User           @relation("CreatedBingoRooms", fields: [creatorId], references: [id])
+  currency      Currency       @relation(fields: [currencyId], references: [id])
+  players       BingoRoomUser[]
+  rounds        BingoRound[]
+  
+  @@index([gameId])
+  @@index([creatorId])
+  @@index([status])
+  @@index([startTime])
+  @@map("bingo_rooms")
+}
+
+model BingoRoomUser {
+  id              String    @id @default(cuid())
+  roomId          String    @map("room_id")
+  userId          String    @map("user_id")
+  cartonNumbers   Json?     @map("carton_numbers")
+  joinedAt        DateTime  @map("joined_at")
+  status          PlayerStatus @default(ACTIVE)
+  totalPaid       Float?    @map("total_paid")
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  room            BingoRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user            User      @relation("BingoRoomParticipations", fields: [userId], references: [id])
+  
+  @@unique([roomId, userId])
+  @@index([userId])
+  @@map("bingo_room_users")
+}
+
+model BingoRound {
+  id              String      @id @default(cuid())
+  roomId          String      @map("room_id")
+  roundNumber     Int         @map("round_number")
+  status          RoundStatus @default(WAITING)
+  startTime       DateTime?   @map("start_time")
+  endTime         DateTime?   @map("end_time")
+  drawnNumbers    Json?       @map("drawn_numbers")
+  winnerUserId    String?     @map("winner_user_id")
+  prizeAmount     Float?      @map("prize_amount")
+  
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  
+  room            BingoRoom   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  winner          User?       @relation("BingoRoundWins", fields: [winnerUserId], references: [id])
+  
+  @@unique([roomId, roundNumber])
+  @@index([status])
+  @@map("bingo_rounds")
+}
+
+// === USER PROFILE EXTENSIONS ===
+
+model Customer {
+  id                String    @id @default(cuid())
+  userId            String    @unique @map("user_id")
+  documentTypeId    String?   @map("document_type_id")
+  documentNumber    String?   @map("document_number")
+  birthDate         DateTime? @map("birth_date")
+  address           String?
+  isVerified        Boolean   @default(false) @map("is_verified")
+  verificationLevel Int       @default(0) @map("verification_level")
+  kycData           Json?     @map("kyc_data")
+  
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([isVerified])
+  @@map("customers")
+}
+
+model Commerce {
+  id              String    @id @default(cuid())
+  userId          String    @unique @map("user_id")
+  businessName    String    @map("business_name") @db.VarChar(200)
+  businessType    String?   @map("business_type")
+  taxId           String?   @map("tax_id")
+  address         String?
+  phone           String?
+  email           String?
+  isVerified      Boolean   @default(false) @map("is_verified")
+  commissionRate  Float?    @map("commission_rate")
+  settings        Json?
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sellers         Seller[]
+  
+  @@index([isVerified])
+  @@map("commerces")
+}
+
+model Seller {
+  id              String     @id @default(cuid())
+  userId          String     @unique @map("user_id")
+  commerceId      String?    @map("commerce_id")
+  employeeCode    String?    @map("employee_code")
+  commissionRate  Float?     @map("commission_rate")
+  salesLimit      Float?     @map("sales_limit")
+  isActive        Boolean    @default(true) @map("is_active")
+  settings        Json?
+  
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commerce        Commerce?  @relation(fields: [commerceId], references: [id])
+  
+  @@index([commerceId])
+  @@index([isActive])
+  @@map("sellers")
+}
+
+model Treasurer {
+  id                String    @id @default(cuid())
+  userId            String    @unique @map("user_id")
+  countriesAllowed  Json?     @map("countries_allowed")
+  currenciesAllowed Json?     @map("currencies_allowed")
+  dailyLimit        Float?    @map("daily_limit")
+  monthlyLimit      Float?    @map("monthly_limit")
+  isActive          Boolean   @default(true) @map("is_active")
+  settings          Json?
+  
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([isActive])
+  @@map("treasurers")
+}
+
+model Settings {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  value       String
+  type        SettingType @default(STRING)
+  description String?
+  isPublic    Boolean     @default(false) @map("is_public")
+  
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  @@index([key])
+  @@index([isPublic])
+  @@map("settings")
+}
+
+// === ENUMS ===
+
 enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
   PENDING_VERIFICATION
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  GAME_BET
+  GAME_WIN
+  TRANSFER
+  FEE
+  REFUND
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  PROCESSING
+}
+
+enum PaymentMethod {
+  PIX
+  TRANSBANK
+  PAGOMOVIL
+  BINANCE
+  MANUAL
+  BANK_TRANSFER
+  CRYPTO
+}
+
+enum GameStatus {
+  PENDING
+  ACTIVE
+  FINISHED
+  CANCELLED
+  PAUSED
+}
+
+enum RoundStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PlayerStatus {
+  ACTIVE
+  INACTIVE
+  WINNER
+  ELIMINATED
+}
+
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
 }

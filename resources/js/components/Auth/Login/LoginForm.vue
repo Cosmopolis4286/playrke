@@ -33,8 +33,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import { ref, reactive } from 'vue'
+import { AuthService } from '@/services/authService'
+import { router } from '@inertiajs/vue3'
 
 interface Props {
     register?: boolean
@@ -43,9 +44,12 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const form = useForm({
+// Usar reactive en lugar de useForm para mayor control
+const form = reactive({
     login: '',
     password: '',
+    remember_me: false,
+    errors: {} as Record<string, string>
 })
 
 const showPassword = ref(false)
@@ -56,8 +60,21 @@ function togglePassword() {
     showPassword.value = !showPassword.value
 }
 
+/** Limpiar errores del formulario */
+function clearErrors() {
+    form.errors = {}
+}
+
+/** Mostrar errores del servidor */
+function setErrors(errors: Array<{ field: string; message: string }>) {
+    form.errors = {}
+    errors.forEach(error => {
+        form.errors[error.field] = error.message
+    })
+}
+
 /** Enviar formulario de login */
-function submit() {
+async function submit() {
     if (!form.login || !form.password) {
         if (!document.querySelector('.notyf__toast')) {
             new Notyf().error({
@@ -71,11 +88,50 @@ function submit() {
     }
 
     loading.value = true
-    form.post('/login', {
-        onFinish: () => {
-            loading.value = false
-            form.reset('password')
-        },
-    })
+    clearErrors()
+
+    try {
+        const response = await AuthService.login({
+            login: form.login,
+            password: form.password,
+            remember_me: form.remember_me
+        })
+
+        if (response.success) {
+            // Login exitoso
+            new Notyf().success({
+                message: response.message || 'Inicio de sesión exitoso',
+                duration: 2000,
+                ripple: true,
+                position: { x: 'center', y: 'bottom' },
+            })
+
+            // Redirigir al dashboard
+            router.visit('/dashboard')
+        } else {
+            // Error en el login
+            if (response.errors) {
+                setErrors(response.errors)
+            }
+            
+            new Notyf().error({
+                message: response.message || 'Error en el inicio de sesión',
+                duration: 4000,
+                ripple: true,
+                position: { x: 'center', y: 'bottom' },
+            })
+        }
+    } catch (error) {
+        console.error('Error en login:', error)
+        new Notyf().error({
+            message: 'Error de conexión. Intenta nuevamente.',
+            duration: 4000,
+            ripple: true,
+            position: { x: 'center', y: 'bottom' },
+        })
+    } finally {
+        loading.value = false
+        form.password = '' // Limpiar contraseña
+    }
 }
 </script>

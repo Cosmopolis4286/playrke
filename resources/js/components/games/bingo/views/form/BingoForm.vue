@@ -130,15 +130,22 @@
       </div>
     </div>
 
-    <!-- Aquí irían otros campos similares (precio cartón, seriales, etc.) -->
+    <!-- Botón para crear la sala -->
+    <div class="form-group col-12 text-center">
+      <button type="button" @click="createRoom" class="btn btn-primary btn-lg">
+        <i class="fa-solid fa-plus mr-2"></i>
+        Crear Sala de Bingo
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed } from "vue";
+import { reactive, ref, computed, onMounted } from "vue";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import { BingoService } from '@/services/bingoService';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -183,24 +190,93 @@ const form = reactive({
 });
 
 /**
- * Opciones de selects
+ * Opciones de selects - cargadas dinámicamente
  */
-const roomTypeOptions = ref([
-  { value: "type1", label: "Tipo 1" },
-  { value: "type2", label: "Tipo 2" },
-]);
+const roomTypeOptions = ref<Array<{value: number, label: string}>>([]);
 const gameModeOptions = ref([
-  { value: "mode1", label: "Modo 1" },
-  { value: "mode2", label: "Modo 2" },
+  { value: "classic", label: "Clásico" },
+  { value: "speed", label: "Rápido" },
+  { value: "progressive", label: "Progresivo" },
 ]);
 const prizePoolTypeOptions = ref([
-  { value: "pool1", label: "Bote 1" },
-  { value: "pool2", label: "Bote 2" },
+  { value: "fixed", label: "Fijo" },
+  { value: "percentage", label: "Porcentaje" },
+  { value: "progressive", label: "Progresivo" },
 ]);
-const allowedCurrenciesOptions = ref([
-  { value: "coin1", label: "Moneda 1" },
-  { value: "coin2", label: "Moneda 2" },
-]);
+const allowedCurrenciesOptions = ref<Array<{value: string, label: string}>>([]);
+
+// Estados de carga
+const loadingRoomTypes = ref(false);
+const loadingCurrencies = ref(false);
+
+/**
+ * Cargar tipos de sala desde API
+ */
+async function loadRoomTypes() {
+  loadingRoomTypes.value = true;
+  try {
+    const response = await BingoService.getRoomTypes();
+    if (response.success && response.data) {
+      roomTypeOptions.value = response.data.map((type: any) => ({
+        value: type.id,
+        label: type.description || type.name
+      }));
+    }
+  } catch (error) {
+    console.error('Error cargando tipos de sala:', error);
+  } finally {
+    loadingRoomTypes.value = false;
+  }
+}
+
+/**
+ * Cargar monedas disponibles (esto vendría de WalletService en el futuro)
+ */
+async function loadCurrencies() {
+  loadingCurrencies.value = true;
+  try {
+    // Por ahora datos mock, después se conectará con WalletService
+    allowedCurrenciesOptions.value = [
+      { value: "USD", label: "Dólar USD" },
+      { value: "EUR", label: "Euro EUR" },
+      { value: "COP", label: "Peso Colombiano" },
+    ];
+  } catch (error) {
+    console.error('Error cargando monedas:', error);
+  } finally {
+    loadingCurrencies.value = false;
+  }
+}
+
+/**
+ * Crear nueva sala de bingo
+ */
+async function createRoom() {
+  try {
+    const roomData = {
+      roomType: form.roomType,
+      cardPrice: form.ctnPrice,
+      publicationDate: form.date ? new Date(`${form.date}T${form.time}:00`) : undefined,
+      rkeCommission: 5, // Valor por defecto
+      roomCommission: form.roomCommn,
+      sellerCommission: 15, // Valor por defecto
+      fullHousePrize: form.amountAddedPrizePool,
+      serialPrize: (form.amountAddedPrizePool || 0) * (form.serialsPct || 5) / 100,
+    };
+
+    const response = await BingoService.createRoom(roomData);
+    
+    if (response.success) {
+      console.log('Sala creada exitosamente:', response.data);
+      // Aquí podrías redirigir o mostrar mensaje de éxito
+    } else {
+      console.error('Error creando sala:', response.message);
+      // Mostrar errores al usuario
+    }
+  } catch (error) {
+    console.error('Error en createRoom:', error);
+  }
+}
 
 /**
  * Métodos para togglear configuraciones avanzadas
@@ -211,6 +287,16 @@ function toggleRoundsConfig() {
 function toggleCtnPriceConfig() {
   form.ctnPriceConfigActive = !form.ctnPriceConfigActive;
 }
+
+/**
+ * Inicializar componente
+ */
+onMounted(async () => {
+  await Promise.all([
+    loadRoomTypes(),
+    loadCurrencies(),
+  ]);
+});
 </script>
 
 <style scoped>
