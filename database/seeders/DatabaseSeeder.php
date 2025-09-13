@@ -28,8 +28,8 @@ class DatabaseSeeder extends Seeder
             GamePrizePoolTypeSeeder::class,
             BingoPatternSeeder::class,
             SettingSeeder::class,
+            RoleSeeder::class,
             UserSeeder::class,
-            RoleSeeder::class
         ]);
     }
 }

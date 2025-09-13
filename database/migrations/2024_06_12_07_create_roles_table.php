@@ -14,7 +14,9 @@ return new class extends Migration
         Schema::create('roles', function (Blueprint $table) {
             $table->snowflake('id')->primary(); // Snowflake en lugar de auto-increment
             $table->string('name')->unique();
+            $table->string('guard_name')->default('web');
             $table->string('prefix')->unique();
+            $table->enum('type', ['web', 'api'])->default('web')->comment('Tipo de rol: web o api');
             $table->string('description')->nullable();
             $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();

@@ -11,65 +11,64 @@ use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
+    /**
+     * Ejecuta el seeder de usuario admin
+     */
     public function run(): void
     {
         try {
-            // País Venezuela
-            $venezuelaCountry = \App\Models\Countries\Country::where('iso_code_2', 'VE')->first();
-
-            if (!$venezuelaCountry) {
-                $this->command->warn('País Venezuela no encontrado. Ejecute CountriesSeeder primero.');
+            // ========================
+            // Obtener país Venezuela
+            // ========================
+            $venezuela = \App\Models\Countries\Country::where('iso_code_2', 'VE')->first();
+            if (!$venezuela) {
+                $this->command->warn('País Venezuela no encontrado. Ejecute primero CountriesSeeder.');
                 return;
             }
 
-            // Verificar si el usuario admin ya existe
-            $existingAdmin = User::where('email', 'admin@playrke.com')->first();
+            // ========================
+            // Crear o recuperar usuario Admin
+            // ========================
+            $admin = User::firstOrCreate(
+                ['email' => 'admin@playrke.com'],
+                [
+                    'username' => 'admin',
+                    'first_name' => 'Play',
+                    'last_name' => 'RKE',
+                    'country_id' => $venezuela->id,
+                    'time_zone_id' => null,
+                    'profile_photo_url' => null,
+                    'phone_number' => null,
+                    'email_verified_at' => now(),
+                    'password' => Hash::make('EHC-4286-RKE'),
+                    'remember_token' => Str::random(10),
+                    'referral_code' => UserRepository::generateUniqueReferralCode(),
+                    'referred_by_user_id' => null,
+                    'status' => 'ACTIVE',
+                ]
+            );
 
-            if ($existingAdmin) {
-                $this->command->info('Usuario admin ya existe con ID: ' . $existingAdmin->id);
-                return;
-            }
-
-            // Crear usuario Admin
-            $admin = User::create([
-                'username' => 'admin',
-                'first_name' => 'Play',
-                'last_name' => 'RKE',
-                'country_id' => $venezuelaCountry->id,
-                'time_zone_id' => null,
-                'profile_photo_url' => null,
-                'phone_number' => null,
-                'email' => 'admin@playrke.com',
-                'email_verified_at' => now(),
-                'password' => Hash::make('EHC-4286-RKE'),
-                'remember_token' => Str::random(10),
-                'referral_code' => UserRepository::generateUniqueReferralCode(),
-                'referred_by_user_id' => null,
-                'status' => 'ACTIVE',
-            ]);
-
-            // Asignar rol Admin
-            try {
+            // ========================
+            // Asignar rol Admin si no lo tiene
+            // ========================
+            if (!$admin->hasRole('admin')) {
                 $admin->assignRole('admin');
                 $this->command->info('Rol admin asignado correctamente');
-            } catch (\Exception $e) {
-                $this->command->warn('No se pudo asignar el rol admin: ' . $e->getMessage());
             }
 
-            // Crear monedero VES
-            $currency = \App\Models\Currencies\Currency::where('iso_code', 'VES')->first();
-
-            if ($currency) {
-                Wallet::create([
-                    'currency_id' => $currency->id,
-                    'user_id' => $admin->id,
-                    'balance' => 0.00,
-                    'is_active' => true,
-                ]);
-
-                $this->command->info('Monedero VES creado para el usuario admin');
-            } else {
+            // ========================
+            // Crear monedero VES si no existe
+            // ========================
+            $currencyVES = \App\Models\Currencies\Currency::where('iso_code', 'VES')->first();
+            if (!$currencyVES) {
                 $this->command->warn('Moneda VES no encontrada. Ejecute CurrenciesSeeder primero.');
+            } elseif (!$admin->wallets()->where('currency_id', $currencyVES->id)->exists()) {
+                $admin->wallets()->create([
+                    'currency_id' => $currencyVES->id,
+                    'balance' => 0.00,
+                    'status' => 'ACTIVE',
+                ]);
+                $this->command->info('Monedero VES creado para el usuario admin');
             }
 
             $this->command->info("✅ Usuario Admin creado exitosamente con ID: {$admin->id}");

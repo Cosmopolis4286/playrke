@@ -7,38 +7,34 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Ejecutar la migración: crear tabla pivot 'role_user'.
+     * Crear tabla pivote role_user sin ID, solo relaciones y timestamps.
      */
     public function up(): void
     {
         Schema::create('role_user', function (Blueprint $table) {
-            // ID Snowflake para la tabla pivot (opcional, pero útil para referencia futura)
-            $table->snowflake('id')->primary()->comment('ID único de la relación user-role');
-
-            // Relación con usuario usando Snowflake
+            // Relación con usuario
             $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('ID del usuario');
 
-            // Relación con rol usando Snowflake
+            // Relación con rol
             $table->foreignSnowflake('role_id')
                 ->constrained('roles')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('ID del rol');
 
-            // Timestamps automáticos
             $table->timestamps();
 
-            // Constraint único para evitar duplicados
+            // Evitar duplicados
             $table->unique(['user_id', 'role_id']);
         });
     }
 
     /**
-     * Revertir la migración: eliminar tabla pivot 'role_user'.
+     * Eliminar tabla pivote
      */
     public function down(): void
     {

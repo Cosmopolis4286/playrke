@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('currencies', function (Blueprint $table) {
             $table->snowflake('id')->primary();
 
-            $table->string('code', 10)->unique()->comment('Código de la moneda (USD, BTC, CASINO)');
+            $table->string('iso_code', 10)->unique()->comment('Código de la moneda (USD, BTC, CASINO)');
             $table->string('symbol', 12)->nullable()->comment('Símbolo de la moneda ($, €, ₿, 🎰)');
             $table->string('name', 50)->comment('Nombre corto de la moneda (Dollar, Bitcoin, Casino Token)');
             $table->string('description', 100)->nullable()->comment('Nombre completo o descripción extendida');
