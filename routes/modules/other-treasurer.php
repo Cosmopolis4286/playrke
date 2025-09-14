@@ -13,8 +13,11 @@ require_once app_path('Helpers/RouteHelper.php');
 */
 
 // ====================================
-// DETALLES DE PAGO PARA OTROS TESOREROS
+// DETALLES DE PARA OTROS TESOREROS
 // ====================================
-Route::middleware('auth')
-    ->get('treasurer/payment-details/{treasurer}/{currency}', [OtherTreasurersController::class, 'getPaymentTreasurerDetails'])
-    ->name('treasurer.payment-details');
+Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'other-treasurers', 'as' => 'other-treasurers.'], function () {
+    Route::get('getInfo/{id}', [OtherTreasurersController::class, 'getInfo'])->name('getInfo');
+    Route::put('update/{id}', [OtherTreasurersController::class, 'update'])->name('update');
+    Route::delete('delete/{id}', [OtherTreasurersController::class, 'delete'])->name('delete');
+    Route::put('changeStatus/{id}', [OtherTreasurersController::class, 'changeStatus'])->name('changeStatus');
+});

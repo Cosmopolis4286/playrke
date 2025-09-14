@@ -12,7 +12,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use BradieTilley\Snowflake\Snowflake;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,19 +26,26 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable, HasRoles;
+    use Notifiable, HasRoles, HasSnowflakeId;
 
-    // ========================
-    // Configuración de la tabla
-    // ========================
+    /**
+     * Nombre de la tabla en la base de datos
+     */
     protected $table = 'users';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
 
-    // ========================
-    // Campos asignables
-    // ========================
+    /**
+     * Estados disponibles para usuarios
+     */
+    public const STATUSES = [
+        'ACTIVE' => 'Activo',
+        'INACTIVE' => 'Inactivo',
+        'SUSPENDED' => 'Suspendido',
+        'PENDING_VERIFICATION' => 'Pendiente de verificación',
+    ];
+
+    /**
+     * Campos que pueden ser asignados masivamente
+     */
     protected $fillable = [
         'username',
         'first_name',
@@ -53,42 +60,46 @@ class User extends Authenticatable implements MustVerifyEmail
         'referred_by_user_id',
         'email_verified_at',
         'status',
+        'last_login_at',
+        'last_login_ip',
+        'is_email_notifications_enabled',
+        'is_two_factor_enabled',
+        'user_preferences',
     ];
 
-    // ========================
-    // Campos ocultos y casts
-    // ========================
-    protected $hidden = ['password', 'remember_token'];
+    /**
+     * Campos ocultos en serialización JSON
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Campos que deben ser convertidos a tipos específicos
+     */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'last_login_at' => 'datetime',
+        'is_email_notifications_enabled' => 'boolean',
+        'is_two_factor_enabled' => 'boolean',
+        'user_preferences' => 'array',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
-    // ========================
-    // Accessors
-    // ========================
-    protected $appends = ['full_name'];
-
-    // ========================
-    // Boot method
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        // Generar ID con Snowflake antes de crear el registro
-        static::creating(function (User $user) {
-            if (!$user->id) {
-                $user->id = (new Snowflake())->id();
-            }
-        });
-    }
-
-    // ========================
-    // Relaciones
-    // ========================
+    /**
+     * Campos adicionales que se incluyen en las respuestas JSON
+     */
+    protected $appends = [
+        'full_name',
+        'status_description',
+    ];
 
     /**
      * Roles del usuario
+     *
+     * @return BelongsToMany<Role>
      */
     public function roles(): BelongsToMany
     {
@@ -107,6 +118,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Usuarios referidos por este usuario
+     *
+     * @return HasMany<User>
      */
     public function referrals(): HasMany
     {
@@ -126,23 +139,17 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Wallets del usuario
      *
-     * Un usuario puede tener múltiples wallets (por moneda).
+     * @return HasMany<Wallet>
      */
     public function wallets(): HasMany
     {
-        return $this->hasMany(Wallet::class, 'user_id', 'id');
-    }
-
-    /**
-     * Devuelve el wallet de una moneda específica
-     */
-    public function walletByCurrency(string $currencyCode): ?Wallet
-    {
-        return $this->wallets()->whereHas('currency', fn($q) => $q->where('iso_code', $currencyCode))->first();
+        return $this->hasMany(Wallet::class, 'user_id');
     }
 
     /**
      * Comercio asociado (si rol commerce)
+     *
+     * @return HasOne<Commerce>
      */
     public function commerce(): HasOne
     {
@@ -151,6 +158,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Vendedor asociado (si rol seller)
+     *
+     * @return HasOne<Seller>
      */
     public function seller(): HasOne
     {
@@ -159,6 +168,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Compañías asociadas (si aplica)
+     *
+     * @return BelongsToMany<Company>
      */
     public function companies(): BelongsToMany
     {
@@ -167,12 +178,20 @@ class User extends Authenticatable implements MustVerifyEmail
             ->withTimestamps();
     }
 
-    // ========================
-    // Accessors & Helpers
-    // ========================
+    /**
+     * Obtiene la descripción del estado
+     *
+     * @return string
+     */
+    public function getStatusDescriptionAttribute(): string
+    {
+        return self::STATUSES[$this->status] ?? $this->status;
+    }
 
     /**
      * Nombre completo del usuario
+     *
+     * @return string
      */
     public function getFullNameAttribute(): string
     {
@@ -180,7 +199,80 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Verifica si el usuario está activo
+     *
+     * @return bool
+     */
+    public function isActive(): bool
+    {
+        return $this->status === 'ACTIVE';
+    }
+
+    /**
+     * Verifica si el usuario está inactivo
+     *
+     * @return bool
+     */
+    public function isInactive(): bool
+    {
+        return $this->status === 'INACTIVE';
+    }
+
+    /**
+     * Verifica si el usuario está suspendido
+     *
+     * @return bool
+     */
+    public function isSuspended(): bool
+    {
+        return $this->status === 'SUSPENDED';
+    }
+
+    /**
+     * Verifica si el usuario está pendiente de verificación
+     *
+     * @return bool
+     */
+    public function isPendingVerification(): bool
+    {
+        return $this->status === 'PENDING_VERIFICATION';
+    }
+
+    /**
+     * Verifica si el email del usuario está verificado
+     *
+     * @return bool
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    /**
+     * Verifica si el usuario tiene autenticación de dos factores habilitada
+     *
+     * @return bool
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->is_two_factor_enabled;
+    }
+
+    /**
+     * Obtiene el wallet de una moneda específica
+     *
+     * @param string $currencyCode Código ISO de la moneda
+     * @return Wallet|null
+     */
+    public function walletByCurrency(string $currencyCode): ?Wallet
+    {
+        return $this->wallets()->whereHas('currency', fn($q) => $q->where('iso_code', $currencyCode))->first();
+    }
+
+    /**
      * Devuelve un array de entidades asociadas según los roles del usuario
+     *
+     * @return array
      */
     public function entities(): array
     {
@@ -198,10 +290,112 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Verifica si el usuario tiene un rol específico
+     * Verifica si el usuario tiene un rol específico por prefijo
+     *
+     * @param string $prefix Prefijo del rol
+     * @return bool
      */
     public function hasRolePrefix(string $prefix): bool
     {
         return $this->roles->contains('prefix', $prefix);
+    }
+
+    /**
+     * Scope para obtener solo usuarios activos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'ACTIVE');
+    }
+
+    /**
+     * Scope para obtener solo usuarios inactivos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('status', 'INACTIVE');
+    }
+
+    /**
+     * Scope para obtener usuarios por estado
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $status
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByStatus($query, string $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope para obtener usuarios por país
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $countryId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByCountry($query, string $countryId)
+    {
+        return $query->where('country_id', $countryId);
+    }
+
+    /**
+     * Scope para obtener usuarios con email verificado
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeEmailVerified($query)
+    {
+        return $query->whereNotNull('email_verified_at');
+    }
+
+    /**
+     * Scope para obtener usuarios con email no verificado
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeEmailNotVerified($query)
+    {
+        return $query->whereNull('email_verified_at');
+    }
+
+    /**
+     * Scope para obtener usuarios con rol específico
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $roleName
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithRole($query, string $roleName)
+    {
+        return $query->whereHas('roles', function($q) use ($roleName) {
+            $q->where('name', $roleName);
+        });
+    }
+
+    /**
+     * Scope para buscar usuarios por texto
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $search
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function($q) use ($search) {
+            $q->where('username', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%")
+              ->orWhere('first_name', 'like', "%{$search}%")
+              ->orWhere('last_name', 'like', "%{$search}%");
+        });
     }
 }

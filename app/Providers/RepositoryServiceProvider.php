@@ -15,6 +15,15 @@ use App\Repositories\Contracts\Currencies\CurrencyRepositoryContract;
 use App\Repositories\Contracts\Games\GameRepositoryContract;
 use App\Repositories\Contracts\Games\Utils\GameConfigRepositoryContract;
 use App\Repositories\Contracts\Wallets\Crypto\BinanceAccountsRepositoryContract;
+use App\Repositories\Contracts\Games\Bingo\Cards\BingoCardRepositoryContract;
+use App\Repositories\Contracts\Games\Bingo\Cards\BingoCardLotRepositoryContract;
+use App\Repositories\Contracts\Games\Bingo\Cards\BingoCardPaymentRepositoryContract;
+use App\Repositories\Contracts\Wallets\WalletRepositoryContract;
+use App\Repositories\Contracts\Games\Bingo\Cards\CardPrice\BingoCardPriceRepositoryContract;
+use App\Repositories\Contracts\Games\Bingo\Cards\CardPrice\BingoCardPriceDraftRepositoryContract;
+use App\Repositories\Contracts\Settings\SettingRepositoryContract;
+use App\Repositories\Contracts\Rewards\RewardRepositoryContract;
+use App\Repositories\Contracts\Games\Bingo\Cards\CardPrize\BingoCardPrizeRepositoryContract;
 
 // Implementaciones
 use App\Repositories\BaseRepository;
@@ -27,6 +36,15 @@ use App\Repositories\Currencies\CurrencyRepository;
 use App\Repositories\Games\GameRepository;
 use App\Repositories\Games\Utils\GameConfigRepository;
 use App\Repositories\Wallets\Crypto\BinanceAccountsRepository;
+use App\Repositories\Games\Bingo\Cards\BingoCardRepository;
+use App\Repositories\Games\Bingo\Cards\BingoCardLotRepository;
+use App\Repositories\Games\Bingo\Cards\BingoCardPaymentRepository;
+use App\Repositories\Wallets\WalletRepository;
+use App\Repositories\Games\Bingo\Cards\CardPrice\BingoCardPriceRepository;
+use App\Repositories\Games\Bingo\Cards\CardPrice\BingoCardPriceDraftRepository;
+use App\Repositories\Settings\SettingRepository;
+use App\Repositories\Rewards\RewardRepository;
+use App\Repositories\Games\Bingo\Cards\CardPrize\BingoCardPrizeRepository;
 
 /**
  * Service Provider para registrar los repositorios
@@ -66,6 +84,27 @@ class RepositoryServiceProvider extends ServiceProvider
         // Registrar repositorios de wallets
         $this->app->bind(BinanceAccountsRepositoryContract::class, BinanceAccountsRepository::class);
 
+        // Registrar repositorios de cartones de bingo
+        $this->app->bind(BingoCardRepositoryContract::class, BingoCardRepository::class);
+        $this->app->bind(BingoCardLotRepositoryContract::class, BingoCardLotRepository::class);
+        $this->app->bind(BingoCardPaymentRepositoryContract::class, BingoCardPaymentRepository::class);
+
+        // Registrar repositorios de wallets
+        $this->app->bind(WalletRepositoryContract::class, WalletRepository::class);
+
+        // Registrar repositorios de precios de cartones
+        $this->app->bind(BingoCardPriceRepositoryContract::class, BingoCardPriceRepository::class);
+        $this->app->bind(BingoCardPriceDraftRepositoryContract::class, BingoCardPriceDraftRepository::class);
+
+        // Registrar repositorios de configuraciones
+        $this->app->bind(SettingRepositoryContract::class, SettingRepository::class);
+
+        // Registrar repositorios de recompensas
+        $this->app->bind(RewardRepositoryContract::class, RewardRepository::class);
+
+        // Registrar repositorios de premios de cartones de bingo
+        $this->app->bind(BingoCardPrizeRepositoryContract::class, BingoCardPrizeRepository::class);
+
         // Registrar otros repositorios según se vayan creando
         // $this->app->bind(WalletRepositoryContract::class, WalletRepository::class);
     }
@@ -97,6 +136,15 @@ class RepositoryServiceProvider extends ServiceProvider
             GameRepositoryContract::class,
             GameConfigRepositoryContract::class,
             BinanceAccountsRepositoryContract::class,
+            BingoCardRepositoryContract::class,
+            BingoCardLotRepositoryContract::class,
+            BingoCardPaymentRepositoryContract::class,
+            WalletRepositoryContract::class,
+            BingoCardPriceRepositoryContract::class,
+            BingoCardPriceDraftRepositoryContract::class,
+            SettingRepositoryContract::class,
+            RewardRepositoryContract::class,
+            BingoCardPrizeRepositoryContract::class,
         ];
     }
 }

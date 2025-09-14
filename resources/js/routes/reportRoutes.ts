@@ -1,7 +1,7 @@
 // ======================================================
 // Archivo: resources/js/routes/reportRoutes.ts
 // Descripción: Rutas del módulo reportRoutes
-// Fecha de actualización (GMT): 2025-09-14T04:10:28Z
+// Fecha de actualización (GMT): 2025-09-14T05:40:45Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 

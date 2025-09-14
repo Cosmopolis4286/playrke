@@ -1,13 +1,15 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards;
+namespace App\Models\Games\Bingo\Cards\CardPrize;
 
 use App\Models\Currencies\Currency;
+use App\Models\Games\Bingo\Cards\BingoCard;
+use App\Models\Games\Bingo\Cards\BingoCardLot;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
-use App\Models\Users\Roles\Player\External\ExternalPlayers;
 use App\Models\Users\Roles\Seller\Seller;
-use App\Models\Users;
+use App\Models\Users\User;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -56,7 +58,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class BingoCardPrize extends Model
 {
-    use SoftDeletes;
+    use HasSnowflakeId, SoftDeletes;
 
     /**
      * Nombre de la tabla en la base de datos
@@ -255,20 +257,20 @@ class BingoCardPrize extends Model
 
     /**
      * Marcar el premio como reclamado
-     * 
+     *
      * @return bool
      */
     public function markAsClaimed(): bool
     {
         $this->prize_status = 'claimed';
         $this->claimed_at = now();
-        
+
         return $this->save();
     }
 
     /**
      * Activar el premio
-     * 
+     *
      * @return bool
      */
     public function activate(): bool
@@ -279,7 +281,7 @@ class BingoCardPrize extends Model
 
     /**
      * Desactivar el premio
-     * 
+     *
      * @return bool
      */
     public function deactivate(): bool
@@ -290,97 +292,60 @@ class BingoCardPrize extends Model
 
     /**
      * Generar código de verificación único
-     * 
+     *
      * @return string
      */
     public function generateVerificationCode(): string
     {
         $this->verification_code = strtoupper(substr(md5(uniqid()), 0, 8));
         $this->save();
-        
+
         return $this->verification_code;
     }
 
     /**
-     * Obtener premio por ID de cartón
-     * 
-     * @param string $cardId ID del cartón
-     * @param array $fields Campos a seleccionar
-     * @return BingoCardPrize|null
-     */
-    public static function getByCardId(string $cardId, array $fields = ['*']): ?BingoCardPrize
-    {
-        return self::select($fields)
-            ->where('winning_card_id', $cardId)
-            ->first();
-    }
-
-    /**
-     * Verificar si existe un premio para un cartón y ronda específicos
-     * 
-     * @param string $cardId ID del cartón
-     * @param string $round Ronda del juego
+     * Verifica si el premio ha sido cancelado
+     *
      * @return bool
      */
-    public static function existsPrizeForCardInRound(string $cardId, string $round): bool
+    public function isCancelled(): bool
     {
-        return self::where('winning_card_id', $cardId)
-            ->where('game_round', $round)
-            ->exists();
+        return $this->prize_status === 'cancelled';
     }
 
     /**
-     * Obtener IDs de ganadores por tipo de premio
-     * 
-     * @param string $roomId ID de la sala
-     * @param string $prizeType Tipo de premio
-     * @param string $column Columna a obtener
-     * @param bool $activeOnly Solo premios activos
-     * @return \Illuminate\Support\Collection
+     * Verifica si el premio está suspendido
+     *
+     * @return bool
      */
-    public static function getWinnerIdsByPrizeType(string $roomId, string $prizeType, string $column = 'winning_card_id', bool $activeOnly = true)
+    public function isSuspended(): bool
     {
-        $query = self::where('room_id', $roomId)
-            ->where('prize_type', $prizeType);
-            
-        if ($activeOnly) {
-            $query->where('is_active', true);
-        }
-        
-        return $query->pluck($column);
+        return $this->prize_status === 'suspended';
     }
 
     /**
-     * Contar ganadores por tipo de premio
-     * 
-     * @param string $roomId ID de la sala
-     * @param string $prizeType Tipo de premio
-     * @return int
+     * Obtiene el valor formateado en USD
+     *
+     * @return string
      */
-    public static function getWinnersCountByPrizeType(string $roomId, string $prizeType): int
+    public function getFormattedUsdAmount(): string
     {
-        return self::where('room_id', $roomId)
-            ->where('prize_type', $prizeType)
-            ->count();
+        return number_format($this->usd_amount, 2);
     }
 
     /**
-     * Contar pagos pendientes por creador
-     * 
-     * @param string $creatorUserId ID del usuario creador
-     * @return int
+     * Obtiene el valor formateado en moneda local
+     *
+     * @return string
      */
-    public static function getPendingPaymentsCountByCreator(string $creatorUserId): int
+    public function getFormattedLocalAmount(): string
     {
-        return self::where('creator_user_id', $creatorUserId)
-            ->where('is_active', true)
-            ->where('prize_status', 'waiting')
-            ->count();
+        return number_format($this->local_amount, 8);
     }
 
     /**
      * Scope para obtener solo premios activos
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -390,8 +355,19 @@ class BingoCardPrize extends Model
     }
 
     /**
+     * Scope para obtener solo premios inactivos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('is_active', false);
+    }
+
+    /**
      * Scope para obtener premios por estado
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $status
      * @return \Illuminate\Database\Eloquent\Builder
@@ -403,7 +379,7 @@ class BingoCardPrize extends Model
 
     /**
      * Scope para obtener premios por tipo
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $type
      * @return \Illuminate\Database\Eloquent\Builder
@@ -415,7 +391,7 @@ class BingoCardPrize extends Model
 
     /**
      * Scope para obtener premios esperando ser reclamados
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -426,12 +402,92 @@ class BingoCardPrize extends Model
 
     /**
      * Scope para obtener premios reclamados
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeClaimed($query)
     {
         return $query->where('prize_status', 'claimed');
+    }
+
+    /**
+     * Scope para obtener premios cancelados
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeCancelled($query)
+    {
+        return $query->where('prize_status', 'cancelled');
+    }
+
+    /**
+     * Scope para obtener premios suspendidos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeSuspended($query)
+    {
+        return $query->where('prize_status', 'suspended');
+    }
+
+    /**
+     * Scope para obtener premios por sala
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $roomId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByRoom($query, string $roomId)
+    {
+        return $query->where('room_id', $roomId);
+    }
+
+    /**
+     * Scope para obtener premios por creador
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $creatorUserId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByCreator($query, string $creatorUserId)
+    {
+        return $query->where('creator_user_id', $creatorUserId);
+    }
+
+    /**
+     * Scope para obtener premios por ronda
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $gameRound
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByGameRound($query, string $gameRound)
+    {
+        return $query->where('game_round', $gameRound);
+    }
+
+    /**
+     * Scope para obtener premios con código de verificación
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithVerificationCode($query)
+    {
+        return $query->whereNotNull('verification_code');
+    }
+
+    /**
+     * Scope para obtener premios sin código de verificación
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithoutVerificationCode($query)
+    {
+        return $query->whereNull('verification_code');
     }
 }

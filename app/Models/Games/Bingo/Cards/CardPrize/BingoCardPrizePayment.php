@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards;
+namespace App\Models\Games\Bingo\Cards\CardPrize;
 
 use App\Models\Currencies\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Users\Roles\Player\External\ExternalPlayers;
 use App\Models\Users\Roles\Seller\Seller;
-use App\Models\Users;
+use App\Models\Users\User;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -50,7 +51,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class BingoCardPrizePayment extends Model
 {
-    use SoftDeletes;
+    use HasSnowflakeId, SoftDeletes;
 
     /**
      * Nombre de la tabla en la base de datos
@@ -225,7 +226,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Verificar si el pago falló
-     * 
+     *
      * @return bool
      */
     public function isFailed(): bool
@@ -234,114 +235,120 @@ class BingoCardPrizePayment extends Model
     }
 
     /**
+     * Verificar si el pago fue cancelado
+     *
+     * @return bool
+     */
+    public function isCancelled(): bool
+    {
+        return $this->payment_status === 'cancelled';
+    }
+
+    /**
      * Marcar el pago como completado
-     * 
+     *
      * @return bool
      */
     public function markAsCompleted(): bool
     {
         $this->payment_status = 'completed';
         $this->processed_at = now();
-        
+
         return $this->save();
     }
 
     /**
      * Marcar el pago como fallido
-     * 
+     *
      * @return bool
      */
     public function markAsFailed(): bool
     {
         $this->payment_status = 'failed';
         $this->processed_at = now();
-        
+
         return $this->save();
     }
 
     /**
      * Marcar el pago como cancelado
-     * 
+     *
      * @return bool
      */
     public function markAsCancelled(): bool
     {
         $this->payment_status = 'cancelled';
         $this->processed_at = now();
-        
+
         return $this->save();
     }
 
     /**
      * Generar referencia de transacción única
-     * 
+     *
      * @return string
      */
     public function generateTransactionReference(): string
     {
         $this->transaction_reference = 'PRP-' . strtoupper(uniqid());
         $this->save();
-        
+
         return $this->transaction_reference;
     }
 
     /**
-     * Obtener pagos por premio y estado
-     * 
-     * @param string $prizeId ID del premio
-     * @param string $status Estado del pago
-     * @return \Illuminate\Database\Eloquent\Collection
+     * Verifica si el pago ha sido procesado
+     *
+     * @return bool
      */
-    public static function getByPrizeAndStatus(string $prizeId, string $status)
+    public function isProcessed(): bool
     {
-        return self::where('card_prize_id', $prizeId)
-            ->where('payment_status', $status)
-            ->get();
+        return !is_null($this->processed_at);
     }
 
     /**
-     * Obtener el total de pagos completados para un premio
-     * 
-     * @param string $prizeId ID del premio
-     * @return float
+     * Obtiene el monto formateado del pago
+     *
+     * @return string
      */
-    public static function getTotalCompletedPaymentsForPrize(string $prizeId): float
+    public function getFormattedAmount(): string
     {
-        return self::where('card_prize_id', $prizeId)
-            ->where('payment_status', 'completed')
-            ->sum('payment_amount');
+        return number_format($this->payment_amount, 8);
     }
 
     /**
-     * Obtener pagos por sala y método
-     * 
-     * @param string $roomId ID de la sala
-     * @param string $method Método de pago
-     * @return \Illuminate\Database\Eloquent\Collection
+     * Verifica si es un pago en efectivo del vendedor
+     *
+     * @return bool
      */
-    public static function getByRoomAndMethod(string $roomId, string $method)
+    public function isSellerCashPayment(): bool
     {
-        return self::where('room_id', $roomId)
-            ->where('payment_method', $method)
-            ->get();
+        return $this->payment_method === 'seller_cash';
     }
 
     /**
-     * Contar pagos pendientes por vendedor
-     * 
-     * @param string $sellerId ID del vendedor
-     * @return int
+     * Verifica si es un pago con tarjeta de crédito
+     *
+     * @return bool
      */
-    public static function getPendingPaymentsBySeller(string $sellerId): int
+    public function isCreditCardPayment(): bool
     {
-        return self::where('seller_id', $sellerId)
-            ->where('payment_status', 'pending')
-            ->count();
+        return $this->payment_method === 'credit_card';
+    }
+
+    /**
+     * Verifica si es un pago del sistema
+     *
+     * @return bool
+     */
+    public function isSystemPayment(): bool
+    {
+        return $this->payment_method === 'system_payment';
     }
 
     /**
      * Scope para obtener solo pagos completados
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -352,7 +359,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Scope para obtener solo pagos pendientes
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -362,8 +369,30 @@ class BingoCardPrizePayment extends Model
     }
 
     /**
+     * Scope para obtener solo pagos fallidos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFailed($query)
+    {
+        return $query->where('payment_status', 'failed');
+    }
+
+    /**
+     * Scope para obtener solo pagos cancelados
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeCancelled($query)
+    {
+        return $query->where('payment_status', 'cancelled');
+    }
+
+    /**
      * Scope para obtener pagos por método
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $method
      * @return \Illuminate\Database\Eloquent\Builder
@@ -375,7 +404,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Scope para obtener pagos por estado
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $status
      * @return \Illuminate\Database\Eloquent\Builder
@@ -387,7 +416,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Scope para obtener pagos procesados
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -397,8 +426,19 @@ class BingoCardPrizePayment extends Model
     }
 
     /**
+     * Scope para obtener pagos sin procesar
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeUnprocessed($query)
+    {
+        return $query->whereNull('processed_at');
+    }
+
+    /**
      * Scope para obtener pagos por vendedor
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $sellerId
      * @return \Illuminate\Database\Eloquent\Builder
@@ -407,4 +447,86 @@ class BingoCardPrizePayment extends Model
     {
         return $query->where('seller_id', $sellerId);
     }
+
+    /**
+     * Scope para obtener pagos por sala
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $roomId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByRoom($query, string $roomId)
+    {
+        return $query->where('room_id', $roomId);
+    }
+
+    /**
+     * Scope para obtener pagos por premio
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $prizeId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByPrize($query, string $prizeId)
+    {
+        return $query->where('card_prize_id', $prizeId);
+    }
+
+    /**
+     * Scope para obtener pagos por usuario receptor
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $userId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByUser($query, string $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope para obtener pagos por jugador externo
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $externalPlayerId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByExternalPlayer($query, string $externalPlayerId)
+    {
+        return $query->where('external_player_id', $externalPlayerId);
+    }
+
+    /**
+     * Scope para obtener pagos en efectivo del vendedor
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeSellerCash($query)
+    {
+        return $query->where('payment_method', 'seller_cash');
+    }
+
+    /**
+     * Scope para obtener pagos con tarjeta de crédito
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeCreditCard($query)
+    {
+        return $query->where('payment_method', 'credit_card');
+    }
+
+    /**
+     * Scope para obtener pagos del sistema
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeSystemPayment($query)
+    {
+        return $query->where('payment_method', 'system_payment');
+    }
+}
 }

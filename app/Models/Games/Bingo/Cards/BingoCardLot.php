@@ -1,14 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models\Games\Bingo\Cards;
 
 use App\Models\Currencies\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Bingo\Rooms\BingoRoomConfig;
 use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
-use App\Models\Users\Roles\Player\External\ExternalPlayers;
 use App\Models\Users\Roles\Seller\Seller;
-use App\Models\Users;
+use App\Models\User;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -51,7 +52,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class BingoCardLot extends Model
 {
-    use SoftDeletes;
+    use HasSnowflakeId, SoftDeletes;
 
     /**
      * Nombre de la tabla en la base de datos
@@ -160,44 +161,6 @@ class BingoCardLot extends Model
         return $this->hasMany(BingoCardPayment::class, 'card_lot_id');
     }
 
-    /**
-     * Obtener monedas únicas utilizadas en una sala específica
-     * 
-     * @param string $roomId ID de la sala
-     * @return \Illuminate\Support\Collection<int, string>
-     */
-    public static function getCurrenciesByRoom(string $roomId)
-    {
-        return self::where('room_id', $roomId)
-            ->distinct()
-            ->pluck('currency_id');
-    }
-
-    /**
-     * Obtener el total de cartones vendidos en una sala
-     * 
-     * @param string $roomId ID de la sala
-     * @return int
-     */
-    public static function getTotalCardsSoldInRoom(string $roomId): int
-    {
-        return self::where('room_id', $roomId)
-            ->where('is_active', true)
-            ->sum('card_count');
-    }
-
-    /**
-     * Obtener el monto total de ventas en una sala
-     * 
-     * @param string $roomId ID de la sala
-     * @return float
-     */
-    public static function getTotalSalesAmountInRoom(string $roomId): float
-    {
-        return self::where('room_id', $roomId)
-            ->where('is_active', true)
-            ->sum('sale_amount');
-    }
 
     /**
      * Calcular el monto total incluyendo comisiones
@@ -209,17 +172,6 @@ class BingoCardLot extends Model
         return $this->sale_amount + ($this->commission_amount ?? 0);
     }
 
-    /**
-     * Verificar si el lote tiene pagos pendientes
-     * 
-     * @return bool
-     */
-    public function hasPendingPayments(): bool
-    {
-        return $this->payments()
-            ->where('payment_status', 'pending')
-            ->exists();
-    }
 
     /**
      * Scope para obtener solo lotes activos

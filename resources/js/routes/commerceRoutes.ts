@@ -1,33 +1,51 @@
 // ======================================================
 // Archivo: resources/js/routes/commerceRoutes.ts
 // Descripción: Rutas del módulo commerceRoutes
-// Fecha de actualización (GMT): 2025-08-17T21:00:20Z
+// Fecha de actualización (GMT): 2025-09-14T05:40:44Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
 import { route as baseRoute } from './helper.js';
 
 export const commerceRoutes = {
-    "create": "/commerce/create",
-    "getInfo": "/commerce/getInfo/{id}",
-    "update": "/commerce/update/{id}",
-    "delete": "/commerce/delete/{id}",
-    "changePassw": "/commerce/changePassw/{id}",
-    "changeStatus": "/commerce/changeStatus/{id}",
-    "getPaymentCommerceDetails": "/commerce/getPaymentCommerceDetails/{commerce}/{currency}",
+    "create": "/commerce",
+    "show": "/commerce/{id}",
+    "update": "/commerce/{id}",
+    "destroy": "/commerce/{id}",
+    "changePassword": "/commerce/{id}/password",
+    "changeStatus": "/commerce/{id}/status",
     "rewards": "/commerce/rewards",
     "sellers": "/commerce/sellers",
-    "getCurrencyByCountry": "/commerce/seller/getCurrencyByCountry/{country}/{seller}",
-    "getSellerInfoByCtn": "/commerce/seller/getSellerInfoByCtn/{ctnId}",
-    "ctnsLotPayment": "/commerce/bingo/carton-lot/payment"
+    "currency-by-country": "/commerce/seller/currency/{country}/{seller}",
+    "seller-info-by-carton": "/commerce/seller/info/{ctnId}",
+    "carton-lot-payment": "/commerce/bingo/carton-lot/payment",
+    "payment-details-public": "/commerce/payment-details/{commerce}/{currency}",
+    "getPaymentCommerceDetails": "/commerce/getPaymentCommerceDetails/{commerce}/{currency}"
 } as const;
 
 /**
  * Retorna la URL de la ruta especificada usando las rutas del módulo.
  */
-export function route<K extends keyof typeof commerceRoutes>(
-    name: K,
-    params?: Record<string, string | number>
-): string {
+export function route(name, params) {
     return baseRoute(commerceRoutes, name, params);
+}
+
+/**
+ * Retorna la URL de una ruta específica dentro de commerceRoutes.
+ * Reemplaza los placeholders con los parámetros proporcionados.
+ * Elimina los opcionales que no tengan valor.
+ */
+export function getRoute(name, params) {
+    let url = commerceRoutes[name];
+
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            url = url.replace(new RegExp("{"+key+"\??}", "g"), String(value));
+        });
+    }
+
+    // Elimina cualquier placeholder opcional que no tenga valor
+    url = url.replace(/\/{[^}]+\?}/g, "");
+
+    return url;
 }

@@ -7,9 +7,9 @@ use App\Models\Users\Roles\Commerce\Commerce;
 use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 
-class ExchangeRateRelation extends Model
+class CommerceExchangeRate extends Model
 {
-    protected $table = "exchange_rate_relation";
+    protected $table = "commerces_exchange_rates";
 
     protected $fillable = [
         'currency_id',

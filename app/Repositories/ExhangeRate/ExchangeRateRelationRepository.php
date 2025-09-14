@@ -2,9 +2,9 @@
 
 namespace App\Repositories\ExchangeRate;
 
-use App\Models\ExchangeRate\ExchangeRateRelation;
+use App\Models\ExchangeRate\CommerceExchangeRate;
 
-class ExchangeRateRelationRepository
+class CommerceExchangeRateRepository
 {
     /**
      * Obtener las monedas permitidas para un usuario en un comercio.
@@ -15,7 +15,7 @@ class ExchangeRateRelationRepository
      */
     public function allowedCurrenciesByCommerce(int $userId, int $commerceId): array
     {
-        return ExchangeRateRelation::where('user_id', $userId)
+        return CommerceExchangeRate::where('user_id', $userId)
             ->where('commerce_id', $commerceId)
             ->distinct()
             ->pluck('currency_id')
@@ -26,11 +26,11 @@ class ExchangeRateRelationRepository
      * Crear una nueva relación entre usuario, comercio y moneda.
      *
      * @param array $data
-     * @return ExchangeRateRelation
+     * @return CommerceExchangeRate
      */
-    public function create(array $data): ExchangeRateRelation
+    public function create(array $data): CommerceExchangeRate
     {
-        return ExchangeRateRelation::create($data);
+        return CommerceExchangeRate::create($data);
     }
 
     /**
@@ -41,7 +41,7 @@ class ExchangeRateRelationRepository
      */
     public function getActiveByCommerce(int $commerceId)
     {
-        return ExchangeRateRelation::where('commerce_id', $commerceId)
+        return CommerceExchangeRate::where('commerce_id', $commerceId)
             ->where('status', 1)
             ->get();
     }
@@ -56,7 +56,7 @@ class ExchangeRateRelationRepository
      */
     public function hasAccessToCurrency(int $userId, int $commerceId, int $currencyId): bool
     {
-        return ExchangeRateRelation::where('user_id', $userId)
+        return CommerceExchangeRate::where('user_id', $userId)
             ->where('commerce_id', $commerceId)
             ->where('currency_id', $currencyId)
             ->exists();

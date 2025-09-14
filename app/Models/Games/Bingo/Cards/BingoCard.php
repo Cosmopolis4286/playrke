@@ -1,17 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models\Games\Bingo\Cards;
 
 use App\Models\Currencies\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
-use App\Models\Users\Roles\Player\External\ExternalPlayers;
 use App\Models\Users\Roles\Seller\Seller;
-use App\Models\Users;
+use App\Models\User;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Games\Bingo\Cards\CardPrize\BingoCardPrize;
 
 /**
  * Modelo para los cartones de bingo
@@ -74,7 +77,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class BingoCard extends Model
 {
-    use SoftDeletes;
+    use HasSnowflakeId, SoftDeletes;
 
     /**
      * Nombre de la tabla en la base de datos
@@ -288,81 +291,7 @@ class BingoCard extends Model
         return $this->card_status === 'winner';
     }
 
-    /**
-     * Marcar el cartón como ganador
-     * 
-     * @return bool
-     */
-    public function markAsWinner(): bool
-    {
-        $this->card_status = 'winner';
-        return $this->save();
-    }
 
-    /**
-     * Validar el cartón
-     * 
-     * @return bool
-     */
-    public function validate(): bool
-    {
-        $this->is_validated = true;
-        $this->validated_at = now();
-        return $this->save();
-    }
-
-    /**
-     * Obtener el último cartón creado en una sala
-     * 
-     * @param string $roomId ID de la sala
-     * @return BingoCard|null
-     */
-    public static function getLastCardCreatedInRoom(string $roomId): ?BingoCard
-    {
-        return self::where('room_id', $roomId)
-            ->orderByDesc('id')
-            ->first();
-    }
-
-    /**
-     * Obtener cartones por jugador en una sala
-     * 
-     * @param string $roomId ID de la sala
-     * @param string $roomUserId ID del usuario en la sala
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public static function getCardsByPlayerInRoom(string $roomId, string $roomUserId)
-    {
-        return self::where('room_id', $roomId)
-            ->where('room_user_id', $roomUserId)
-            ->select(['id', 'serial_number'] + self::ALL_POSITIONS)
-            ->get();
-    }
-
-    /**
-     * Contar cartones en una sala
-     * 
-     * @param string $roomId ID de la sala
-     * @return int
-     */
-    public static function getCardCountInRoom(string $roomId): int
-    {
-        return self::where('room_id', $roomId)->count();
-    }
-
-    /**
-     * Verificar si existe un hash de cartón en una sala
-     * 
-     * @param string $roomId ID de la sala
-     * @param string $hash Hash del cartón
-     * @return bool
-     */
-    public static function existsCardHashInRoom(string $roomId, string $hash): bool
-    {
-        return self::where('room_id', $roomId)
-            ->where('card_hash', $hash)
-            ->exists();
-    }
 
     /**
      * Scope para obtener solo cartones activos

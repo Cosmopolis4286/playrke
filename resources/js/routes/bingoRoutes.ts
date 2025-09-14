@@ -1,7 +1,7 @@
 // ======================================================
 // Archivo: resources/js/routes/bingoRoutes.ts
 // Descripción: Rutas del módulo bingoRoutes
-// Fecha de actualización (GMT): 2025-09-14T04:10:27Z
+// Fecha de actualización (GMT): 2025-09-14T05:40:44Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
@@ -10,16 +10,20 @@ import { route as baseRoute } from './helper.js';
 export const bingoRoutes = {
     "game-rooms-admin": "/bingo/game-rooms/admin/{user}/{currency?}",
     "activate-winner": "/bingo/activate-winner",
-    "game-rooms-commerce": "/bingo/{roomType}/game-rooms/{currency?}",
     "create": "/bingo/create",
-    "show": "/bingo/{id}/{startTime?}",
     "update": "/bingo/update/{id}",
-    "destroy": "/bingo/delete/{id}",
+    "delete": "/bingo/delete/{id}",
     "change-status": "/bingo/status/{id}",
     "replay": "/bingo/replay/{id}",
     "publish": "/bingo/publish/{id}",
     "refund": "/bingo/refund/{id}",
     "copy": "/bingo/copy/{id}",
+    "game-rooms-commerce": "/bingo/{roomType}/game-rooms/{currency?}",
+    "rewards": "/bingo/rewards",
+    "sellers": "/bingo/sellers",
+    "getCurrencyByCountry": "/bingo/seller/getCurrencyByCountry/{country}/{seller}",
+    "getSellerInfoByCtn": "/bingo/seller/getSellerInfoByCtn/{ctnId}",
+    "ctnsLotPayment": "/bingo/bingo/carton-lot/payment",
     "form": "/bingo/form/{roomId?}",
     "game-info": "/bingo/show-game-info",
     "configuration": "/bingo/configuration/{userToken?}",

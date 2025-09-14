@@ -1,61 +1,162 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards\CartonPrice;
+declare(strict_types=1);
+
+namespace App\Models\Games\Bingo\Cards\CardPrice;
 
 use App\Models\Currencies\Currency;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\User;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para los precios de cartones de bingo
+ *
+ * Representa el precio de un cartón de bingo en una sala y moneda específica.
+ * Cada precio está asociado a una sala, una moneda y tiene un usuario creador.
+ *
+ * @package App\Models\Games\Bingo\Cards\CardPrice
+ * @author Sistema de Gestión de Bingo
+ * @version 1.0
+ *
+ * @property string $id ID único del precio
+ * @property string $room_id ID de la sala de bingo
+ * @property string $creator_user_id ID del usuario creador
+ * @property string $currency_id ID de la moneda
+ * @property float $card_price Precio del cartón
+ * @property \Carbon\Carbon $created_at Fecha de creación
+ * @property \Carbon\Carbon $updated_at Fecha de actualización
+ *
+ * @property-read BingoRoom $room Sala de bingo asociada
+ * @property-read User $creatorUser Usuario creador del precio
+ * @property-read Currency $currency Moneda del precio
+ */
 class BingoCardPrice extends Model
 {
-    protected $table = 'bingo_card_prices';
-    protected $fillable = ['room', 'creator_user_id', 'currency_id', 'card_price', 'created_at', 'updated_at'];
+    use HasSnowflakeId;
 
-    public function Currency()
+    /**
+     * Nombre de la tabla en la base de datos
+     */
+    protected $table = 'bingo_card_prices';
+
+    /**
+     * Campos que pueden ser asignados masivamente
+     */
+    protected $fillable = [
+        'room_id',
+        'creator_user_id',
+        'currency_id',
+        'card_price',
+    ];
+
+    /**
+     * Campos que deben ser convertidos a tipos específicos
+     */
+    protected $casts = [
+        'card_price' => 'decimal:2',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    /**
+     * Relación con la sala de bingo
+     *
+     * @return BelongsTo<BingoRoom, BingoCardPrice>
+     */
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
+
+    /**
+     * Relación con el usuario creador del precio
+     *
+     * @return BelongsTo<User, BingoCardPrice>
+     */
+    public function creatorUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_user_id');
+    }
+
+    /**
+     * Relación con la moneda
+     *
+     * @return BelongsTo<Currency, BingoCardPrice>
+     */
+    public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }
 
-    public static function getById($id, $fields = ['*'])
+    /**
+     * Obtiene el precio formateado con símbolo de moneda
+     *
+     * @return string
+     */
+    public function getFormattedPrice(): string
     {
-        return self::select($fields)->where('id', $id)->first();
+        return $this->currency->symbol . ' ' . number_format($this->card_price, 2);
     }
 
-    public static function getValueById($id, $value)
+    /**
+     * Verifica si el precio es mayor a un monto específico
+     *
+     * @param float $amount Monto a comparar
+     * @return bool
+     */
+    public function isGreaterThan(float $amount): bool
     {
-        return self::where('id', $id)->value($value);
+        return $this->card_price > $amount;
     }
 
-    public static function getValueCtnPrice($room, $currencyId, $creatorUser)
+    /**
+     * Verifica si el precio es menor a un monto específico
+     *
+     * @param float $amount Monto a comparar
+     * @return bool
+     */
+    public function isLessThan(float $amount): bool
     {
-        return self::select('card_price')->where('room', $room)->where('currency_id', $currencyId)
-            ->where('creator_user_id', $creatorUser)->value('card_price');
+        return $this->card_price < $amount;
     }
 
-    public static function getAllCurrenciesCtnPrice($room, $creatorUser)
+    /**
+     * Scope para obtener precios por sala
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $roomId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByRoom($query, string $roomId)
     {
-        if (!$creatorUser) return collect();
-
-        return self::select('currency_id')->where('room', $room)
-            ->where('creator_user_id', $creatorUser)->distinct()->pluck('currency_id');
+        return $query->where('room_id', $roomId);
     }
 
-    public static function getOnlyCurrenciesCtnPrice($room, $creatorUser, string $creation)
+    /**
+     * Scope para obtener precios por moneda
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $currencyId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByCurrency($query, string $currencyId)
     {
-        if (!$creatorUser) return collect();
-
-        return self::select('currency_id', BingoCardPrice::raw('MAX(card_price) as card_price'))
-            ->where('room', $room)->where('creator_user_id', $creatorUser)->groupBy('currency_id')
-            ->pluck('card_price', 'currency_id');
+        return $query->where('currency_id', $currencyId);
     }
 
-    public static function getAllCtnPrice($room, $creatorUser)
+    /**
+     * Scope para obtener precios en un rango
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param float $minPrice
+     * @param float $maxPrice
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopePriceRange($query, float $minPrice, float $maxPrice)
     {
-        return self::with('Currency')->where('room', $room)->where('creator_user_id', $creatorUser)->get();
-    }
-
-    public static function getCtnPrice($room, $currencyId, $creatorUser, $fields = ['id', 'card_price'])
-    {
-        return self::select($fields)->where('room', $room)->where('currency_id', $currencyId)
-            ->where('creator_user_id', $creatorUser)->first();
+        return $query->whereBetween('card_price', [$minPrice, $maxPrice]);
     }
 }

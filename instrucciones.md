@@ -4,8 +4,9 @@
 
 ### 1. Idioma
 - **Comunicación**: Todos los comentarios, documentación y mensajes deben estar en español
-- **Variables y funciones**: Usar nombres descriptivos en español cuando sea apropiado
+- **Variables y funciones**: OBLIGATORIO - Usar nombres descriptivos en **INGLÉS** claro y entendible
 - **Commits**: Los mensajes de commit deben estar en español
+- **REGLA ESTRICTA**: Solo comentarios, PHPDoc y JSDoc van en español. Todo el código (funciones, variables, constantes, métodos) debe estar en inglés
 
 ### 2. Mejores Prácticas de Programación
 

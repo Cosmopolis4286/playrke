@@ -1,7 +1,7 @@
 // ======================================================
 // Archivo: resources/js/routes/bingocashRoutes.ts
 // Descripción: Rutas del módulo bingocashRoutes
-// Fecha de actualización (GMT): 2025-09-14T04:10:28Z
+// Fecha de actualización (GMT): 2025-09-14T05:40:44Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 

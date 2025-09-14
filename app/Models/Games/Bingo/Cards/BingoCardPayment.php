@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models\Games\Bingo\Cards;
 
 use App\Models\Currencies\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Users\Roles\Player\External\ExternalPlayers;
 use App\Models\Users\Roles\Seller\Seller;
-use App\Models\Users;
+use App\Models\User;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -50,7 +53,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class BingoCardPayment extends Model
 {
-    use SoftDeletes;
+    use HasSnowflakeId, SoftDeletes;
 
     /**
      * Nombre de la tabla en la base de datos
@@ -217,58 +220,7 @@ class BingoCardPayment extends Model
         return $this->payment_status === 'pending';
     }
 
-    /**
-     * Marcar el pago como completado
-     * 
-     * @return bool
-     */
-    public function markAsCompleted(): bool
-    {
-        $this->payment_status = 'completed';
-        $this->processed_at = now();
-        
-        return $this->save();
-    }
 
-    /**
-     * Marcar el pago como fallido
-     * 
-     * @return bool
-     */
-    public function markAsFailed(): bool
-    {
-        $this->payment_status = 'failed';
-        $this->processed_at = now();
-        
-        return $this->save();
-    }
-
-    /**
-     * Obtener pagos por sala y estado
-     * 
-     * @param string $roomId ID de la sala
-     * @param string $status Estado del pago
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public static function getByRoomAndStatus(string $roomId, string $status)
-    {
-        return self::where('room_id', $roomId)
-            ->where('payment_status', $status)
-            ->get();
-    }
-
-    /**
-     * Obtener el total de pagos completados en una sala
-     * 
-     * @param string $roomId ID de la sala
-     * @return float
-     */
-    public static function getTotalCompletedPaymentsInRoom(string $roomId): float
-    {
-        return self::where('room_id', $roomId)
-            ->where('payment_status', 'completed')
-            ->sum('payment_amount');
-    }
 
     /**
      * Scope para obtener solo pagos completados
