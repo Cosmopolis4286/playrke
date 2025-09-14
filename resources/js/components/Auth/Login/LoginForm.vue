@@ -26,25 +26,31 @@
         </div>
 
         <!-- Olvidé contraseña -->
-        <div class="login_form_item">
+        <div class="login_form_item" v-if="passwordRequestUrl">
             <a :href="passwordRequestUrl" class="forget_password">¿Olvidaste tu contraseña?</a>
+        </div>
+
+        <!-- Registro -->
+        <div class="login_form_item" v-if="register">
+            <a href="/register">¿No tienes una cuenta? Regístrate</a>
         </div>
     </form>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { useToast } from 'vue-toastification'
 import { AuthService } from '@/services/authService'
 import { router } from '@inertiajs/vue3'
 
 interface Props {
     register?: boolean
-    passwordRequestUrl: string
+    passwordRequestUrl?: string
 }
 
 const props = defineProps<Props>()
+const { register = false, passwordRequestUrl = '' } = props
 
-// Usar reactive en lugar de useForm para mayor control
 const form = reactive({
     login: '',
     password: '',
@@ -55,17 +61,16 @@ const form = reactive({
 const showPassword = ref(false)
 const loading = ref(false)
 
-/** Toggle mostrar/ocultar contraseña */
+const toast = useToast()
+
 function togglePassword() {
     showPassword.value = !showPassword.value
 }
 
-/** Limpiar errores del formulario */
 function clearErrors() {
     form.errors = {}
 }
 
-/** Mostrar errores del servidor */
 function setErrors(errors: Array<{ field: string; message: string }>) {
     form.errors = {}
     errors.forEach(error => {
@@ -73,17 +78,9 @@ function setErrors(errors: Array<{ field: string; message: string }>) {
     })
 }
 
-/** Enviar formulario de login */
 async function submit() {
     if (!form.login || !form.password) {
-        if (!document.querySelector('.notyf__toast')) {
-            new Notyf().error({
-                message: 'Toda la información es requerida',
-                duration: 3450,
-                ripple: true,
-                position: { x: 'center', y: 'bottom' },
-            })
-        }
+        toast.error('Toda la información es requerida', { timeout: 3500, position: 'bottom-center' })
         return
     }
 
@@ -98,40 +95,40 @@ async function submit() {
         })
 
         if (response.success) {
-            // Login exitoso
-            new Notyf().success({
-                message: response.message || 'Inicio de sesión exitoso',
-                duration: 2000,
-                ripple: true,
-                position: { x: 'center', y: 'bottom' },
-            })
-
-            // Redirigir al dashboard
+            toast.success(response.message || 'Inicio de sesión exitoso', { timeout: 2000, position: 'bottom-center' })
             router.visit('/dashboard')
         } else {
-            // Error en el login
-            if (response.errors) {
-                setErrors(response.errors)
-            }
-            
-            new Notyf().error({
-                message: response.message || 'Error en el inicio de sesión',
-                duration: 4000,
-                ripple: true,
-                position: { x: 'center', y: 'bottom' },
-            })
+            if (response.errors) setErrors(response.errors)
+            toast.error(response.message || 'Error en el inicio de sesión', { timeout: 4000, position: 'bottom-center' })
         }
     } catch (error) {
         console.error('Error en login:', error)
-        new Notyf().error({
-            message: 'Error de conexión. Intenta nuevamente.',
-            duration: 4000,
-            ripple: true,
-            position: { x: 'center', y: 'bottom' },
-        })
+        toast.error('Error de conexión. Intenta nuevamente.', { timeout: 4000, position: 'bottom-center' })
     } finally {
         loading.value = false
-        form.password = '' // Limpiar contraseña
+        form.password = ''
     }
 }
 </script>
+
+<style scoped>
+.login_form_item {
+    margin-bottom: 1rem;
+}
+
+.er_nw {
+    color: red;
+    font-size: 0.875rem;
+}
+
+.pass {
+    padding-right: 2rem;
+}
+
+.eye_mc {
+    position: absolute;
+    right: 0.5rem;
+    top: 0.75rem;
+    cursor: pointer;
+}
+</style>

@@ -24,7 +24,7 @@ class AuthenticatedSessionController extends Controller
     {
         $register = Settings::getStatus('REGISTER');
 
-        return Inertia::render('Auth/Login', [
+        return Inertia::render('auth/Login', [
             'register' => $register,
         ]);
     }

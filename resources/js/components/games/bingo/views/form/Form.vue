@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import BingoForm from "@/bingo/views/form/BingoForm.vue";
+import BingoForm from "@/components/games/bingo/views/form/BingoForm.vue";
 </script>
 
 <style scoped>

@@ -1,3 +1,4 @@
+//resources/js/helpers/toastNotify.ts
 import Swal, { SweetAlertIcon } from 'sweetalert2';
 
 const Toast = Swal.mixin({

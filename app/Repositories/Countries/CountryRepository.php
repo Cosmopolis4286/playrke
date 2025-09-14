@@ -37,7 +37,7 @@ class CountryRepository
      * @param string $column
      * @return mixed
      */
-    public function getValue(int $id, string $column)
+    public static function getValue(int $id, string $column)
     {
         return Country::where('id', $id)->value($column);
     }

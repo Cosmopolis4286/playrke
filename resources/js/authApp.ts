@@ -3,51 +3,62 @@
  *
  * Entrada principal de Vue 3 + Inertia.js para páginas de autenticación.
  * Funciona con Vite y TypeScript, usando lazy-loading de componentes.
+ * Incluye:
+ *   - Barra de progreso Inertia
+ *   - Resolución segura de rutas (Windows/Linux)
+ *   - Tipado correcto para TypeScript
+ *   - Manejo de errores con fallback
  */
 
-import { createApp, h } from 'vue'
+import { createApp, h, defineComponent, type DefineComponent } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
+import { InertiaProgress } from '@inertiajs/progress'
 
-type VueComponent = any
+// Inicializa barra de progreso
+InertiaProgress.init()
 
-// 🔹 Import dinámico de todas las páginas bajo ./Pages (lazy-loading)
-const pages = import.meta.glob('./Pages/**/*.vue') // glob de Vite
+// Import dinámico de todas las páginas bajo ./Pages
+const pages = import.meta.glob<{ default: DefineComponent }>('./Pages/**/*.vue')
 
+// Fallback para páginas no encontradas
+const PageNotFound: DefineComponent = defineComponent({
+  name: 'PageNotFound',
+  setup() {
+    return () =>
+      h(
+        'div',
+        { style: { padding: '2rem', color: 'red', fontWeight: 'bold' } },
+        'Página no encontrada'
+      )
+  },
+})
 
 createInertiaApp({
-    /**
-     * Resolve: recibe el nombre de la página solicitado por Inertia
-     * Ejemplo: 'Auth/Login' -> './Pages/Auth/Login.vue'
-     */
-    resolve: (name: string) => {
-        const path = `./Pages/${name}.vue`
-        const page = pages[path]
+  /**
+   * Resolver páginas dinámicamente
+   */
+  resolve: async (name: string): Promise<DefineComponent> => {
+    const keys = Object.keys(pages)
+    const matchedKey = keys.find(key => key.endsWith(`${name}.vue`))
 
-        if (!page) {
-            throw new Error(`Página no encontrada: ${path}`)
-        }
+    if (!matchedKey) {
+      console.error(`[Inertia] Página no encontrada: ${name}`)
+      return PageNotFound
+    }
 
-        // Retorna la promesa que carga el componente de manera diferida
-        // Tipamos el módulo como { default: VueComponent }
-        return page().then((module: { default: VueComponent }) => module.default)
-    },
+    const module = await pages[matchedKey]()
+    return module.default
+  },
 
-    /**
-     * Setup: crea la instancia de Vue
-     * @param el - Elemento donde se montará la app
-     * @param App - Componente raíz de Inertia
-     * @param props - Props que Inertia envía a la página
-     * @param plugin - Plugin de Inertia para Vue
-     */
-    setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
-            .use(plugin)
-            .mount(el)
-    },
+  /**
+   * Setup de la app Vue
+   */
+  setup({ el, App, props, plugin }) {
+    createApp({ render: () => h(App, props) }).use(plugin).mount(el)
+  },
 
-    /**
-     * Opcional: título dinámico
-     * Cada página puede definir props.title para modificar el document.title
-     */
-    title: title => (title ? `PlayRKE - ${title}` : 'PlayRKE'),
+  /**
+   * Título dinámico
+   */
+  title: title => (title ? `PlayRKE - ${title}` : 'PlayRKE'),
 })

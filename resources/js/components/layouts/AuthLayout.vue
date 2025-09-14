@@ -12,8 +12,8 @@
 </template>
 
 <script setup lang="ts">
-import AuthLogo from '@/Components/Auth/Shared/AuthLogo.vue'
-import AuthFooter from '@/Components/Auth/Shared/AuthFooter.vue'
+import AuthLogo from '@/components/auth/shared/AuthLogo.vue'
+import AuthFooter from '@/components/auth/shared/AuthFooter.vue'
 
 const bgImg = new URL('/img/body/wall9.jpg', import.meta.url).href
 </script>
