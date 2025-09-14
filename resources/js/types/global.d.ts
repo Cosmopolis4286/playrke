@@ -1,5 +1,6 @@
 // resources/js/types/global.d.ts
 import type { AppData } from '@/data/index';
+import type Echo from 'laravel-echo';
 
 export { };
 
@@ -11,9 +12,10 @@ declare global {
     appData: AppData;
     vueAppIsReady: () => void;
     _vueMounted?: boolean;
-    route?: (name: string, params?: any) => string;
+    route: (name: string, params?: any) => string;
     currentBingoView?: string;
     bingoProps?: Record<string, any>;
+    Echo: Echo;
   }
   interface HTMLElement {
     inert?: boolean;

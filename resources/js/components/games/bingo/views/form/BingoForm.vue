@@ -23,7 +23,7 @@
       <label for="room-type">Tipo de Sala*</label>
       <select id="room-type" v-model="form.roomType" name="room_type" class="form-control"
         aria-label="Seleccionar tipo de sala">
-        <option disabled value="">Selecciona tipo</option>
+        <option disabled :value="null">Selecciona tipo</option>
         <option v-for="option in roomTypeOptions" :key="option.value" :value="option.value">
           {{ option.label }}
         </option>
@@ -170,7 +170,7 @@ const minDate = computed(() => dayjs().tz(props.timeZone.name).format("YYYY-MM-D
 const form = reactive({
   date: minDate.value,
   time: dayjs().tz(props.timeZone.name).format("HH:mm"),
-  roomType: "",
+  roomType: null as number | null,
   gameMode: "",
   prizePoolType: "",
   allowedCurrencies: [] as string[],
@@ -253,6 +253,10 @@ async function loadCurrencies() {
  */
 async function createRoom() {
   try {
+    if (!form.roomType) {
+      throw new Error('Debe seleccionar un tipo de sala');
+    }
+
     const roomData = {
       roomType: form.roomType,
       cardPrice: form.ctnPrice,

@@ -3,24 +3,88 @@
 namespace App\Models\Banks;
 
 use Illuminate\Database\Eloquent\Model;
+use BradieTilley\Snowflake\Snowflake;
 
+/**
+ * Modelo BankBrazil refactorizado
+ *
+ * Solo contiene:
+ * - Configuración de la tabla y propiedades
+ * - Boot methods para Snowflake
+ * - Accessors y Mutators si es necesario
+ *
+ * NOTA: Las consultas complejas se han movido a BankBrazilRepository
+ */
 class BankBrazil extends Model
 {
-    protected $table = "banks_brazil";
-    protected $fillable = ['name', 'full_name', 'ispb'];
+    // ========================
+    // Configuración de la tabla
+    // ========================
+    protected $table = 'banks_brazil';
+    protected $primaryKey = 'id';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
-    public static function getByISPB($ispb, $fields = ['*'])
+    // ========================
+    // Campos asignables
+    // ========================
+    protected $fillable = [
+        'name',
+        'full_name',
+        'ispb',
+    ];
+
+    // ========================
+    // Casting de tipos
+    // ========================
+    protected $casts = [
+        'ispb' => 'string',
+    ];
+
+    // ========================
+    // Boot method para Snowflake
+    // ========================
+    protected static function boot(): void
     {
-        return self::select($fields)->where('ispb', $ispb)->first();
+        parent::boot();
+
+        static::creating(function (BankBrazil $bank) {
+            if (!$bank->id) {
+                $bank->id = (new Snowflake())->id();
+            }
+        });
     }
 
-    public static function getValueByISPB($ispb, $value)
+    // ========================
+    // Accessors
+    // ========================
+
+    /**
+     * Obtener nombre completo formateado
+     */
+    public function getDisplayNameAttribute(): string
     {
-        return self::where('ispb', $ispb)->value($value);
+        return $this->full_name ?: $this->name;
     }
 
-    public static function existsISPB($ispb)
+    // ========================
+    // Scopes útiles
+    // ========================
+
+    /**
+     * Scope para buscar por nombre
+     */
+    public function scopeByName($query, string $name)
     {
-        return self::where('ispb', $ispb)->exists();
+        return $query->where('name', 'like', "%{$name}%")
+                    ->orWhere('full_name', 'like', "%{$name}%");
+    }
+
+    /**
+     * Scope para ordenar por nombre
+     */
+    public function scopeOrderedByName($query)
+    {
+        return $query->orderBy('name');
     }
 }

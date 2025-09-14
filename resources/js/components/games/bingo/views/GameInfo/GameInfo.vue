@@ -26,10 +26,10 @@
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 
 import axios from '@/plugins/axios';
-import echo from "@/plugins/echo.js";
+import echo from "@/plugins/echo";
 
-import BingoBoard from "@/components/games/bingo/views/game-info/BingoBoard.vue";
-import NumberCaller from "@/components/games/bingo/views/game-info/NumberCaller.vue";
+import BingoBoard from "@/components/games/bingo/views/gameInfo/BingoBoard.vue";
+import NumberCaller from "@/components/games/bingo/views/gameInfo/NumberCaller.vue";
 
 const props = defineProps({
   data: {
@@ -83,7 +83,7 @@ const unsubscribeFromChannel = (id) => {
 
 onMounted(async () => {
   try {
-    const res = await axios.get(route("bingo.called-numbers", roomId.value));
+    const res = await axios.get(window.route("bingo.called-numbers", roomId.value));
     numbers.value = res.data ?? [];
   } catch (error) {
     console.error("❌ Error al cargar números anteriores:", error);
@@ -116,7 +116,7 @@ watch(
 
 async function callNumberFromInput(number) {
   try {
-    const res = await axios.post(route("bingo.callNumber", roomId.value), {
+    const res = await axios.post(window.route("bingo.callNumber", roomId.value), {
       number,
     });
     console.log("✅ Número enviado con éxito:", res.data);

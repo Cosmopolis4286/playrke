@@ -3,169 +3,387 @@
 namespace App\Repositories\Currencies;
 
 use App\Models\Currencies\Currency;
+use App\Repositories\BaseRepository;
+use App\Repositories\Contracts\Currencies\CurrencyRepositoryContract;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
-class CurrencyRepository
+/**
+ * Repositorio para operaciones con monedas
+ * Maneja todas las consultas complejas relacionadas con Currency
+ */
+class CurrencyRepository extends BaseRepository implements CurrencyRepositoryContract
 {
     /**
-     * Obtener moneda por ID.
+     * Crear instancia del modelo Currency
      *
-     * @param int $currencyId
-     * @param array $fields
+     * @return Model
+     */
+    protected function makeModel(): Model
+    {
+        return new Currency();
+    }
+
+    /**
+     * Buscar moneda por código ISO
+     *
+     * @param string $isoCode Código ISO de la moneda
+     * @param array $columns Columnas a seleccionar
      * @return Currency|null
      */
-    public static function getById(int $currencyId, array $fields = ['*'])
+    public function findByIsoCode(string $isoCode, array $columns = ['*']): ?Currency
     {
-        return Currency::select($fields)->find($currencyId);
+        return $this->model->where('iso_code', strtoupper($isoCode))->first($columns);
     }
 
     /**
-     * Obtener moneda por código ISO.
+     * Obtener monedas por tipo
      *
-     * @param string $isoCode
-     * @param array $fields
+     * @param string $type Tipo de moneda (FIAT/CRYPTO/TOKEN)
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getByType(string $type, array $columns = ['*']): Collection
+    {
+        return $this->model->where('type', strtoupper($type))
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener monedas activas
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getActive(array $columns = ['*']): Collection
+    {
+        return $this->model->where('is_active', true)
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener monedas inactivas
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getInactive(array $columns = ['*']): Collection
+    {
+        return $this->model->where('is_active', false)
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener monedas FIAT
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getFiat(array $columns = ['*']): Collection
+    {
+        return $this->getByType('FIAT', $columns);
+    }
+
+    /**
+     * Obtener monedas CRYPTO
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getCrypto(array $columns = ['*']): Collection
+    {
+        return $this->getByType('CRYPTO', $columns);
+    }
+
+    /**
+     * Obtener monedas TOKEN
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getTokens(array $columns = ['*']): Collection
+    {
+        return $this->getByType('TOKEN', $columns);
+    }
+
+    /**
+     * Buscar monedas por país
+     *
+     * @param string $countryId ID del país
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getByCountry(string $countryId, array $columns = ['*']): Collection
+    {
+        return $this->model->where('country_id', $countryId)
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Buscar monedas por nombre
+     *
+     * @param string $searchTerm Término de búsqueda
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function searchByName(string $searchTerm, array $columns = ['*']): Collection
+    {
+        return $this->model->where(function ($query) use ($searchTerm) {
+            $query->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('description', 'like', "%{$searchTerm}%")
+                  ->orWhere('iso_code', 'like', "%{$searchTerm}%");
+        })->orderBy('name')->get($columns);
+    }
+
+    /**
+     * Verificar si existe una moneda por código ISO
+     *
+     * @param string $isoCode Código ISO
+     * @return bool
+     */
+    public function existsByIsoCode(string $isoCode): bool
+    {
+        return $this->model->where('iso_code', strtoupper($isoCode))->exists();
+    }
+
+    /**
+     * Obtener monedas ordenadas por nombre
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getAllOrderedByName(array $columns = ['*']): Collection
+    {
+        return $this->model->orderBy('name')->get($columns);
+    }
+
+    /**
+     * Obtener monedas con tasa de cambio
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getWithExchangeRate(array $columns = ['*']): Collection
+    {
+        return $this->model->whereHas('exchangeRate')
+            ->with('exchangeRate')
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener monedas por múltiples códigos ISO
+     *
+     * @param array $isoCodes Array de códigos ISO
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function findByMultipleIsoCodes(array $isoCodes, array $columns = ['*']): Collection
+    {
+        $isoCodes = array_map('strtoupper', $isoCodes);
+
+        return $this->model->whereIn('iso_code', $isoCodes)
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener monedas por decimales específicos
+     *
+     * @param int $decimalPlaces Cantidad de decimales
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getByDecimalPlaces(int $decimalPlaces, array $columns = ['*']): Collection
+    {
+        return $this->model->where('decimal_places', $decimalPlaces)
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener monedas activas por tipo
+     *
+     * @param string $type Tipo de moneda
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getActiveByType(string $type, array $columns = ['*']): Collection
+    {
+        return $this->model->where('type', strtoupper($type))
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener monedas con país asociado
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getWithCountry(array $columns = ['*']): Collection
+    {
+        return $this->model->whereNotNull('country_id')
+            ->with('country')
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener monedas sin país asociado
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getWithoutCountry(array $columns = ['*']): Collection
+    {
+        return $this->model->whereNull('country_id')
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Contar monedas por tipo
+     *
+     * @return array Array con conteo por tipo
+     */
+    public function getCountByType(): array
+    {
+        $counts = $this->model->selectRaw('type, COUNT(*) as count')
+            ->groupBy('type')
+            ->pluck('count', 'type')
+            ->toArray();
+
+        return [
+            'FIAT' => $counts['FIAT'] ?? 0,
+            'CRYPTO' => $counts['CRYPTO'] ?? 0,
+            'TOKEN' => $counts['TOKEN'] ?? 0,
+            'total' => array_sum($counts)
+        ];
+    }
+
+    // =================================
+    // Métodos legacy mantenidos temporalmente
+    // =================================
+
+    /**
+     * Obtener moneda por código ISO (método legacy)
+     *
+     * @param string $isoCode Código ISO
+     * @param array $fields Campos a seleccionar
      * @return Currency|null
      */
-    public static function getByISOCode(string $isoCode, array $fields = ['*'])
+    public function getByISOCode(string $isoCode, array $fields = ['*']): ?Currency
     {
-        return Currency::select($fields)->where('iso_code', $isoCode)->first();
+        return $this->findByIsoCode($isoCode, $fields);
     }
 
     /**
-     * Listar monedas filtrando por estado.
+     * Obtener moneda por país (método legacy)
      *
-     * @param array $status [operador, valor] ej: ['>=', 0]
-     * @param array $fields
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public static function getByStatus(array $status = ['>=', 0], array $fields = ['*'])
-    {
-        return Currency::select($fields)->where('status', $status[0], $status[1])->get();
-    }
-
-    /**
-     * Obtener el valor de un campo por ID de moneda.
-     *
-     * @param int $currencyId
-     * @param string $field
-     * @return mixed
-     */
-    public static function getValue(int $currencyId, string $field)
-    {
-        return Currency::where('id', $currencyId)->value($field);
-    }
-
-    /**
-     * Obtener el valor de un campo por ISO Code.
-     *
-     * @param string $isoCode
-     * @param string $field
-     * @return mixed
-     */
-    public static function getValueByISOCode(string $isoCode, string $field)
-    {
-        return Currency::where('iso_code', $isoCode)->value($field);
-    }
-
-    /**
-     * Obtener la moneda de un país.
-     *
-     * @param int $countryId
-     * @param array $fields
+     * @param int|string $countryId ID del país
+     * @param array $fields Campos a seleccionar
      * @return Currency|null
      */
-    public static function getCurrencyByCountry(int $countryId, array $fields = ['*'])
+    public function getCurrencyByCountry($countryId, array $fields = ['*']): ?Currency
     {
-        return Currency::select($fields)->where('country_id', $countryId)->first();
+        return $this->model->where('country_id', $countryId)->first($fields);
     }
 
     /**
-     * Obtener valor de un campo según país.
+     * Obtener monedas disponibles (método legacy)
      *
-     * @param int $countryId
-     * @param string $field
+     * @param array $fields Campos a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getAvailableCurrencies(array $fields = ['*']): Collection
+    {
+        return $this->getActive($fields);
+    }
+
+    /**
+     * Obtener valor por código ISO (método legacy)
+     *
+     * @param string $isoCode Código ISO
+     * @param string $field Campo a obtener
      * @return mixed
      */
-    public static function getValueByCountry(int $countryId, string $field)
+    public function getValueByISOCode(string $isoCode, string $field): mixed
     {
-        return Currency::where('country_id', $countryId)->value($field);
+        return $this->model->where('iso_code', strtoupper($isoCode))->value($field);
     }
 
     /**
-     * Obtener valor de un campo por símbolo de moneda.
+     * Obtener valor por país (método legacy)
      *
-     * @param string $symbol
-     * @param string $field
+     * @param int|string $countryId ID del país
+     * @param string $field Campo a obtener
      * @return mixed
      */
-    public static function getValueBySymbol(string $symbol, string $field)
+    public function getValueByCountry($countryId, string $field): mixed
     {
-        return Currency::where('symbol', $symbol)->value($field);
+        return $this->model->where('country_id', $countryId)->value($field);
     }
 
     /**
-     * Obtener ID de la moneda de un país.
+     * Obtener valor por símbolo (método legacy)
      *
-     * @param int $countryId
-     * @return int|null
+     * @param string $symbol Símbolo de la moneda
+     * @param string $field Campo a obtener
+     * @return mixed
      */
-    public static function getIdByCountry(int $countryId)
+    public function getValueBySymbol(string $symbol, string $field): mixed
     {
-        return Currency::where('country_id', $countryId)->value('id');
+        return $this->model->where('symbol', $symbol)->value($field);
     }
 
     /**
-     * Obtener varias monedas por ID.
+     * Obtener ID por país (método legacy)
      *
-     * @param array $currencyIds
-     * @param array $fields
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @param int|string $countryId ID del país
+     * @return mixed
      */
-    public static function getByIds(array $currencyIds, array $fields = ['*'])
+    public function getIdByCountry($countryId): mixed
     {
-        return Currency::select($fields)->whereIn('id', $currencyIds)->get();
+        return $this->model->where('country_id', $countryId)->value('id');
     }
 
     /**
-     * Obtener IDs de monedas de varios países.
+     * Obtener monedas por IDs (método legacy)
      *
-     * @param array $countryIds
+     * @param array $currencyIds Array de IDs
+     * @param array $fields Campos a seleccionar
+     * @return Collection<Currency>
+     */
+    public function getByIds(array $currencyIds, array $fields = ['*']): Collection
+    {
+        return $this->model->whereIn('id', $currencyIds)->get($fields);
+    }
+
+    /**
+     * Obtener IDs de monedas por países (método legacy)
+     *
+     * @param array $countryIds Array de IDs de países
      * @return array
      */
-    public static function getCurrenciesByCountry(array $countryIds)
+    public function getCurrenciesByCountry(array $countryIds): array
     {
-        return Currency::whereIn('country_id', $countryIds)->pluck('id')->toArray();
+        return $this->model->whereIn('country_id', $countryIds)->pluck('id')->toArray();
     }
 
     /**
-     * Obtener países asociados a varias monedas.
+     * Obtener países por monedas (método legacy)
      *
-     * @param array $currencyIds
+     * @param array $currencyIds Array de IDs de monedas
      * @return array
      */
-    public static function getCountriesByCurrencies(array $currencyIds)
+    public function getCountriesByCurrencies(array $currencyIds): array
     {
-        return Currency::whereIn('id', $currencyIds)->pluck('country_id')->toArray();
-    }
-
-    /**
-     * Obtener el método de pago de una moneda.
-     *
-     * @param int $currencyId
-     * @return string|null
-     */
-    public static function getPaymentMethodByCurrency(int $currencyId)
-    {
-        return Currency::where('id', $currencyId)->value('payment_method');
-    }
-
-    /**
-     * Listar todas las monedas activas.
-     *
-     * @param array $fields
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public static function getAvailableCurrencies(array $fields = ['*'])
-    {
-        return Currency::select($fields)->where('status', 1)->get();
+        return $this->model->whereIn('id', $currencyIds)->pluck('country_id')->toArray();
     }
 }

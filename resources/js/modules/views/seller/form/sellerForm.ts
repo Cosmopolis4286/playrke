@@ -22,6 +22,7 @@ export const moduleId = 'seller';
 // ==========================
 const usernameInput = document.getElementById('username') as HTMLInputElement | null;
 const emailInput = document.getElementById('email') as HTMLInputElement | null;
+const modal = document.getElementById('modal-seller-form') as HTMLElement | null;
 
 // ==========================
 //   Flag de estado

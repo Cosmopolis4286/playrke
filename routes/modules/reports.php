@@ -24,5 +24,5 @@ route_group('reports', 'reports.', ['auth'], ReportsController::class, [
 // ====================================
 // REPORTES POR MÓDULOS
 // ====================================
-// Los reportes específicos de bingo están en gaming/bingo.php
+// Los reportes específicos de bingo están en games/bingo.php
 // Los reportes de pagos están en payments.php

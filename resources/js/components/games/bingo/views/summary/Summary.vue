@@ -3,7 +3,7 @@
     <div class="card">
       <!-- Header del card -->
       <CardHeader :subtitle="subtitle" :btnCardHeader="{
-        route: getRoute('configuration'),
+        route: getRoute('configuration', {}),
         icon: 'fa-solid fa-gear'
       }" />
 
@@ -48,9 +48,9 @@ const { subtitle = '', customer = null } = props
 // Estado reactivo
 const rooms = ref<BingoRoom[]>([])
 const currencies = ref([
-  { id: 'USD', name: 'USD', symbol: '$' },
-  { id: 'EUR', name: 'EUR', symbol: '€' },
-  { id: 'COP', name: 'COP', symbol: '$' }
+  { id: 'USD', name: 'USD', symbol: '$', encrypted: 'USD' },
+  { id: 'EUR', name: 'EUR', symbol: '€', encrypted: 'EUR' },
+  { id: 'COP', name: 'COP', symbol: '$', encrypted: 'COP' }
 ])
 const selectedCurrencyId = ref('USD')
 const loading = ref(false)

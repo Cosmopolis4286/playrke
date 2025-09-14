@@ -31,12 +31,13 @@ require __DIR__ . '/modules/admin.php';           // Administración del sistema
 require __DIR__ . '/modules/customer.php';        // Funciones de clientes
 require __DIR__ . '/modules/commerce.php';        // Gestión comercial
 require __DIR__ . '/modules/seller.php';          // Vendedores/Agencias
-require __DIR__ . '/modules/treasurer.php';       // Tesorería y pagos
+require __DIR__ . '/modules/treasurer.php';
+require __DIR__ . '/modules/other-treasurer.php';       // Tesorería y pagos
 
 // ====================================
 // RUTAS DE NEGOCIO ESPECÍFICAS
 // ====================================
-require __DIR__ . '/modules/gaming/bingo.php';    // Sistema de bingo
+require __DIR__ . '/modules/games/bingo.php';    // Sistema de bingo
 require __DIR__ . '/modules/payments.php';        // Métodos de pago
 require __DIR__ . '/modules/wallets.php';         // Billeteras y criptos
 require __DIR__ . '/modules/reports.php';         // Reportes y estadísticas

@@ -24,7 +24,7 @@ routes/
     ├── reports.php           # Reportes y estadísticas
     ├── api-public.php        # APIs públicas sin auth
     ├── dev.php               # Desarrollo y testing
-    └── gaming/
+    └── games/
         └── bingo.php         # Sistema completo de bingo
 ```
 
@@ -122,7 +122,7 @@ role_protected_routes(['admin', 'manager'], 'management', Controller::class, [..
 
 ## 🎮 Módulos de Negocio
 
-### 🎯 **Gaming** (`routes/modules/gaming/`)
+### 🎯 **Games** (`routes/modules/games/`)
 - **Bingo**: Sistema completo (salas, cartones, sorteos, premios)
 - Listo para agregar más juegos
 

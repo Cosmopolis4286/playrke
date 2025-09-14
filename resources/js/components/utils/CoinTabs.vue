@@ -9,33 +9,71 @@
   </ul>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  currencies: { type: Array, required: true }, // cada item debe tener id, encrypted, y label
-  currency: { type: [Number, String], required: true },
-  routeWithCurrency: {
-    type: Object,
-    required: true,
-    validator: val =>
-      typeof val.route === 'string' && typeof val.parameters === 'object'
-  }
-})
-
-// Funciones auxiliares
-const isActive = id => String(id) === String(props.currency)
-
-const tabId = item =>
-  `${item.id}-${item.iso_code ?? item.currency ?? item.short_name}`
-
-const getCurrencyLabel = item =>
-  item.iso_code ?? item.currency ?? item.short_name
-
-const tabLink = item => {
-  return $route(props.routeWithCurrency.route, {
-    ...props.routeWithCurrency.parameters,
-    currency: item.encrypted // <- usamos encrypted del backend
-  })
+/**
+ * Interfaz para un item de moneda
+ */
+interface CurrencyItem {
+  id: number | string;
+  encrypted: string;
+  iso_code?: string;
+  currency?: string;
+  short_name?: string;
 }
+
+/**
+ * Interfaz para la configuración de ruta con moneda
+ */
+interface RouteWithCurrency {
+  route: string;
+  parameters: Record<string, any>;
+}
+
+/**
+ * Props del componente CoinTabs
+ */
+interface Props {
+  currencies: CurrencyItem[];
+  currency: number | string;
+  routeWithCurrency: RouteWithCurrency;
+}
+
+const props = defineProps<Props>();
+
+/**
+ * Verifica si la moneda está activa
+ * @param id - ID de la moneda
+ * @returns true si la moneda está activa
+ */
+const isActive = (id: number | string): boolean => String(id) === String(props.currency);
+
+/**
+ * Genera el ID del tab para una moneda
+ * @param item - Item de moneda
+ * @returns ID del tab
+ */
+const tabId = (item: CurrencyItem): string =>
+  `${item.id}-${item.iso_code ?? item.currency ?? item.short_name}`;
+
+/**
+ * Obtiene la etiqueta de la moneda
+ * @param item - Item de moneda
+ * @returns Etiqueta de la moneda
+ */
+const getCurrencyLabel = (item: CurrencyItem): string =>
+  item.iso_code ?? item.currency ?? item.short_name ?? '';
+
+/**
+ * Genera el enlace para el tab de la moneda
+ * @param item - Item de moneda
+ * @returns URL del enlace
+ */
+const tabLink = (item: CurrencyItem): string => {
+  return window.route(props.routeWithCurrency.route, {
+    ...props.routeWithCurrency.parameters,
+    currency: item.encrypted
+  });
+};
 </script>

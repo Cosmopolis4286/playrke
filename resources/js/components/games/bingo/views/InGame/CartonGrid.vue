@@ -50,16 +50,29 @@
   </div>
 </template>
 
-<script setup>
-const props = defineProps({
-  cartons: {
-    type: Array,
-    required: true,
-  },
-  customerLogo: {
-    type: String,
-    default: "",
-  },
+<script setup lang="ts">
+/**
+ * Interfaz para un cartón de bingo
+ */
+interface BingoCarton {
+  serial: string;
+  B: number[];
+  I: number[];
+  N: number[];
+  G: number[];
+  O: number[];
+}
+
+/**
+ * Props del componente CartonGrid
+ */
+interface Props {
+  cartons: BingoCarton[];
+  customerLogo?: string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  customerLogo: '',
 });
 
 const defaultLogo = "/img/rke.png";

@@ -8,23 +8,40 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  buttons: {
-    type: Array,
-    required: true,
-    // Ejemplo esperado: [{ color: 'btn-primary', icon: 'fa fa-copy', dataType: 'copy', title: 'Copiar' }]
-  },
-  name: {
-    type: String,
-    required: true
-  },
-  dataId: {
-    type: [String, Number],
-    required: true
-  }
-})
+<script setup lang="ts">
+/**
+ * Interfaz para definir un botón del grupo
+ */
+interface ButtonConfig {
+  color: string;
+  icon: string;
+  dataType: string;
+  title?: string;
+}
 
-// También puedes usar defineEmits si deseas emitir un evento personalizado:
-defineEmits(['action'])
+/**
+ * Interfaz para el evento emitido al hacer click
+ */
+interface ActionEvent {
+  type: string;
+  id: string | number;
+}
+
+/**
+ * Props del componente BtnGroup
+ */
+interface Props {
+  buttons: ButtonConfig[];
+  name: string;
+  dataId: string | number;
+}
+
+defineProps<Props>();
+
+/**
+ * Eventos emitidos por el componente
+ */
+defineEmits<{
+  action: [event: ActionEvent];
+}>();
 </script>
