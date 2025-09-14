@@ -1,7 +1,7 @@
 // ======================================================
 // Archivo: resources/js/routes/infoRoutes.ts
 // Descripción: Rutas del módulo infoRoutes
-// Fecha de actualización (GMT): 2025-08-17T21:00:20Z
+// Fecha de actualización (GMT): 2025-09-14T04:10:28Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
@@ -9,8 +9,8 @@ import { route as baseRoute } from './helper.js';
 
 export const infoRoutes = {
     "terms": "/info/terms",
-    "about": "/info/about",
     "privacy": "/info/privacy",
+    "about": "/info/about",
     "help-center": "/info/help-center",
     "power-of-knowledge": "/info/power-of-knowledge"
 } as const;
@@ -18,9 +18,26 @@ export const infoRoutes = {
 /**
  * Retorna la URL de la ruta especificada usando las rutas del módulo.
  */
-export function route<K extends keyof typeof infoRoutes>(
-    name: K,
-    params?: Record<string, string | number>
-): string {
+export function route(name, params) {
     return baseRoute(infoRoutes, name, params);
+}
+
+/**
+ * Retorna la URL de una ruta específica dentro de infoRoutes.
+ * Reemplaza los placeholders con los parámetros proporcionados.
+ * Elimina los opcionales que no tengan valor.
+ */
+export function getRoute(name, params) {
+    let url = infoRoutes[name];
+
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            url = url.replace(new RegExp("{"+key+"\??}", "g"), String(value));
+        });
+    }
+
+    // Elimina cualquier placeholder opcional que no tenga valor
+    url = url.replace(/\/{[^}]+\?}/g, "");
+
+    return url;
 }

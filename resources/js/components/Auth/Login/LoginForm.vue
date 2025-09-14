@@ -39,9 +39,9 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { useToast } from 'vue-toastification'
-import { AuthService } from '@/services/authService'
 import { router } from '@inertiajs/vue3'
+import { showToast } from '@/helpers/toastNotify'
+import { AuthService } from '@/services/authService'
 
 interface Props {
     register?: boolean
@@ -61,8 +61,6 @@ const form = reactive({
 const showPassword = ref(false)
 const loading = ref(false)
 
-const toast = useToast()
-
 function togglePassword() {
     showPassword.value = !showPassword.value
 }
@@ -80,7 +78,7 @@ function setErrors(errors: Array<{ field: string; message: string }>) {
 
 async function submit() {
     if (!form.login || !form.password) {
-        toast.error('Toda la información es requerida', { timeout: 3500, position: 'bottom-center' })
+        showToast('Toda la información es requerida', 'error')
         return
     }
 
@@ -95,15 +93,15 @@ async function submit() {
         })
 
         if (response.success) {
-            toast.success(response.message || 'Inicio de sesión exitoso', { timeout: 2000, position: 'bottom-center' })
+            showToast(response.message || 'Inicio de sesión exitoso', 'success')
             router.visit('/dashboard')
         } else {
             if (response.errors) setErrors(response.errors)
-            toast.error(response.message || 'Error en el inicio de sesión', { timeout: 4000, position: 'bottom-center' })
+            showToast(response.message || 'Error en el inicio de sesión', 'error')
         }
     } catch (error) {
         console.error('Error en login:', error)
-        toast.error('Error de conexión. Intenta nuevamente.', { timeout: 4000, position: 'bottom-center' })
+        showToast('Error de conexión. Intenta nuevamente.', 'error')
     } finally {
         loading.value = false
         form.password = ''

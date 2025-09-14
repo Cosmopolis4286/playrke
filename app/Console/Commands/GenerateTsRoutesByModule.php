@@ -19,14 +19,12 @@ class GenerateTsRoutesByModule extends Command
         // Define módulos solo con prefijos
         $modules = [
             'admin',
-
             'binance',
             'bingo',
             'bingo-automatic-room',
             'bingocash',
             'bingo-patterns',
-            'commerce_id',
-            'customer',
+            'commerce',
             'customer',
             'directory',
             'exchange-rate',
@@ -78,9 +76,6 @@ class GenerateTsRoutesByModule extends Command
      * Ejemplo:
      *   'exchange-rate' => 'exchangeRate'
      *   'some-module-name' => 'someModuleName'
-     *
-     * @param string $string Cadena en kebab-case.
-     * @return string Cadena convertida a camelCase.
      */
     protected function kebabToCamelCase(string $string): string
     {
@@ -117,7 +112,7 @@ class GenerateTsRoutesByModule extends Command
     }
 
     /**
-     * Genera el contenido TypeScript para el archivo de rutas.
+     * Genera el contenido TypeScript para el archivo de rutas, incluyendo `getRoute`.
      */
     protected function generateTsFileContent(string $varName, array $routes): string
     {
@@ -139,11 +134,28 @@ class GenerateTsRoutesByModule extends Command
         /**
          * Retorna la URL de la ruta especificada usando las rutas del módulo.
          */
-        export function route<K extends keyof typeof {$varName}>(
-            name: K,
-            params?: Record<string, string | number>
-        ): string {
+        export function route(name, params) {
             return baseRoute({$varName}, name, params);
+        }
+
+        /**
+         * Retorna la URL de una ruta específica dentro de {$varName}.
+         * Reemplaza los placeholders con los parámetros proporcionados.
+         * Elimina los opcionales que no tengan valor.
+         */
+        export function getRoute(name, params) {
+            let url = {$varName}[name];
+
+            if (params) {
+                Object.entries(params).forEach(([key, value]) => {
+                    url = url.replace(new RegExp("{"+key+"\\??}", "g"), String(value));
+                });
+            }
+
+            // Elimina cualquier placeholder opcional que no tenga valor
+            url = url.replace(/\/{[^}]+\?}/g, "");
+
+            return url;
         }
         TS;
     }

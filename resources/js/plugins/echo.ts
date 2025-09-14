@@ -1,3 +1,4 @@
+// resources/js/plugins/echo.ts
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
 
@@ -9,16 +10,18 @@ declare global {
 }
 
 // Asignar Pusher al window
-window.Pusher = Pusher
+(window as any).Pusher = Pusher // Forzamos el tipo para evitar errores TS
 
-const APP_KEY = import.meta.env.VITE_REVERB_APP_KEY
+// Variables de entorno
+const APP_KEY = import.meta.env.VITE_REVERB_APP_KEY as string
 const HOST = import.meta.env.VITE_REVERB_HOST ?? window.location.hostname
 const PORT = Number(import.meta.env.VITE_REVERB_PORT) || 8080
 const SCHEME = import.meta.env.VITE_REVERB_SCHEME ?? window.location.protocol.replace(':', '')
 const IS_HTTPS = SCHEME === 'https'
 
+// Instancia de Echo
 const echo = new Echo({
-    broadcaster: 'reverb',
+    broadcaster: 'reverb', // o 'pusher' si usas Pusher oficial
     key: APP_KEY,
     wsHost: HOST,
     wsPort: PORT,
@@ -28,4 +31,5 @@ const echo = new Echo({
     disableStats: true,
 })
 
+// Exportar para usar en todo el proyecto
 export default echo

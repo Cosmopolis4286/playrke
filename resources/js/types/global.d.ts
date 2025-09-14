@@ -12,8 +12,13 @@ declare global {
     vueAppIsReady: () => void;
     _vueMounted?: boolean;
     route?: (name: string, params?: any) => string;
+    currentBingoView?: string;
+    bingoProps?: Record<string, any>;
   }
   interface HTMLElement {
     inert?: boolean;
+  }
+  interface JQuery {
+    DataTable(options?: any): any;
   }
 }

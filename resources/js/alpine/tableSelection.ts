@@ -73,7 +73,7 @@ export function tableSelection(allIds: string[] = [], tableId: string = 'default
      * Se puede conectar a tableSelectionListener para callbacks centralizados
      */
     emitSelectionUpdate: (() => {
-      let timeout: string;
+      let timeout: number;
       const debounceTime = 50; // ms
       return function () {
         clearTimeout(timeout);

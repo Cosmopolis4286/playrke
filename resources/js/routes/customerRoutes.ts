@@ -1,30 +1,47 @@
 // ======================================================
 // Archivo: resources/js/routes/customerRoutes.ts
 // Descripción: Rutas del módulo customerRoutes
-// Fecha de actualización (GMT): 2025-08-17T21:00:20Z
+// Fecha de actualización (GMT): 2025-09-14T04:10:28Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
 import { route as baseRoute } from './helper.js';
 
 export const customerRoutes = {
-    "create": "/customer/create",
-    "getInfo": "/customer/getInfo/{id}",
-    "update": "/customer/update/{id}",
-    "delete": "/customer/delete/{id}",
-    "changePassw": "/customer/changePassw/{id}",
-    "changeStatus": "/customer/changeStatus/{id}",
-    "getUserBalance": "/customer/getUserBalance/{userToken}",
-    "getUserId": "/customer/getUserId/{userToken}",
-    "increaseBalance": "/customer/increaseBalance/{userToken}/{balance?}"
+    "create": "/customer",
+    "show": "/customer/{id}",
+    "update": "/customer/{id}",
+    "destroy": "/customer/{id}",
+    "changePassword": "/customer/{id}/password",
+    "changeStatus": "/customer/{id}/status",
+    "balance": "/customer/balance/{userToken}",
+    "user-id": "/customer/user-id/{userToken}",
+    "increase-balance": "/customer/increase-balance/{userToken}/{balance?}"
 } as const;
 
 /**
  * Retorna la URL de la ruta especificada usando las rutas del módulo.
  */
-export function route<K extends keyof typeof customerRoutes>(
-    name: K,
-    params?: Record<string, string | number>
-): string {
+export function route(name, params) {
     return baseRoute(customerRoutes, name, params);
+}
+
+/**
+ * Retorna la URL de una ruta específica dentro de customerRoutes.
+ * Reemplaza los placeholders con los parámetros proporcionados.
+ * Elimina los opcionales que no tengan valor.
+ */
+export function getRoute(name, params) {
+    let url = customerRoutes[name];
+
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            url = url.replace(new RegExp("{"+key+"\??}", "g"), String(value));
+        });
+    }
+
+    // Elimina cualquier placeholder opcional que no tenga valor
+    url = url.replace(/\/{[^}]+\?}/g, "");
+
+    return url;
 }

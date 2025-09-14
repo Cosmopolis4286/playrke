@@ -1,7 +1,7 @@
 // ======================================================
 // Archivo: resources/js/routes/pagomovilRoutes.ts
 // Descripción: Rutas del módulo pagomovilRoutes
-// Fecha de actualización (GMT): 2025-08-17T21:00:20Z
+// Fecha de actualización (GMT): 2025-09-14T04:10:28Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
@@ -9,18 +9,35 @@ import { route as baseRoute } from './helper.js';
 
 export const pagomovilRoutes = {
     "index": "/pagomovil",
-    "create": "/pagomovil/create",
-    "update": "/pagomovil/update/{id}",
-    "delete": "/pagomovil/delete/{id}",
-    "getInfo": "/pagomovil/getInfo/{id}"
+    "create": "/pagomovil",
+    "show": "/pagomovil/{id}/info",
+    "update": "/pagomovil/{id}",
+    "destroy": "/pagomovil/{id}"
 } as const;
 
 /**
  * Retorna la URL de la ruta especificada usando las rutas del módulo.
  */
-export function route<K extends keyof typeof pagomovilRoutes>(
-    name: K,
-    params?: Record<string, string | number>
-): string {
+export function route(name, params) {
     return baseRoute(pagomovilRoutes, name, params);
+}
+
+/**
+ * Retorna la URL de una ruta específica dentro de pagomovilRoutes.
+ * Reemplaza los placeholders con los parámetros proporcionados.
+ * Elimina los opcionales que no tengan valor.
+ */
+export function getRoute(name, params) {
+    let url = pagomovilRoutes[name];
+
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            url = url.replace(new RegExp("{"+key+"\??}", "g"), String(value));
+        });
+    }
+
+    // Elimina cualquier placeholder opcional que no tenga valor
+    url = url.replace(/\/{[^}]+\?}/g, "");
+
+    return url;
 }

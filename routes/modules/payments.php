@@ -4,6 +4,7 @@ use App\Http\Controllers\{
     PaymentController, ExchangeRateController, PagoMovilController, 
     PixController, PaymentMethodsCOLController, ReportsController
 };
+use Illuminate\Support\Facades\Route;
 
 require_once app_path('Helpers/RouteHelper.php');
 

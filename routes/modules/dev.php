@@ -8,6 +8,9 @@
 */
 
 // Demo del nuevo frontend
+
+use Illuminate\Support\Facades\Route;
+
 Route::get('demo', function () {
     return view('demo');
 })->name('demo');

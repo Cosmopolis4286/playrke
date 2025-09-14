@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\{InformationController, DirectoryController};
+use Illuminate\Support\Facades\Route;
 
 require_once app_path('Helpers/RouteHelper.php');
 

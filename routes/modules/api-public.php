@@ -8,6 +8,9 @@
 */
 
 // API de ping para monitoreo
+
+use Illuminate\Support\Facades\Route;
+
 Route::get('api/ping', function () {
     return response()->json([
         'status' => 'ok',
