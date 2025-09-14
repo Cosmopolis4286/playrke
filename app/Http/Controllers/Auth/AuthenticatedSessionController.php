@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\Settings\Settings;
 use App\Repositories\Currencies\CurrencyRepository;
 use App\Repositories\Countries\CountryRepository;
+use App\Repositories\Settings\SettingRepository;
 use App\Repositories\User\Roles\RoleRepository;
 
 use Inertia\Inertia;
@@ -22,7 +22,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
-        $register = Settings::getStatus('REGISTER');
+        $register = (new SettingRepository())->getParameterStatus('REGISTER');
 
         return Inertia::render('auth/Login', [
             'register' => $register,
@@ -43,11 +43,12 @@ class AuthenticatedSessionController extends Controller
         $country = Auth::user()->country;
         $userType = RoleRepository::getValueById(Auth::user()->user_type, 'prefix');
 
-        $isoCode = CountryRepository::getValue($country, 'iso_code_2');
-        $currency = encrypt(CurrencyRepository::getValueByCountry($country, 'id'));
+        $countryIsoCode = (new CountryRepository())->find($country, ['iso_code_2'])?->iso_code_2;
+
+        $currency = encrypt((new CurrencyRepository())->getValueByCountry($country, 'id'));
 
         // Crear la variable de sesión 'countryCode'
-        $request->session()->put('countryCode', $isoCode);
+        $request->session()->put('countryCode', $countryIsoCode);
 
         // Crear la variable de sesión 'currency'
         $request->session()->put('currency', $currency);

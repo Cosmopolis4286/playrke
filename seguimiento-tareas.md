@@ -122,7 +122,7 @@
 13. **Game** - Modelo + Repository + Contract + ServiceProvider ✅
 14. **GameConfig** - Modelo + Repository + Contract + ServiceProvider ✅
 15. **Reward** - Modelo + Repository + Contract + ServiceProvider ✅
-16. **Settings** - Modelo + Repository + Contract + ServiceProvider ✅
+16. **Setting** - Modelo + Repository + Contract + ServiceProvider ✅
 17. **User** - Modelo + Repository + Contract + ServiceProvider ✅
 
 **SIGUIENTE MODELO**: 🔄 **BingoCardPrizePayment**
@@ -190,7 +190,7 @@
 57. Seller
 58. SellerCountriesCoins
 59. SellerRoomLimits
-60. Settings ✅
+60. Setting ✅
 61. TimeZone
 62. Transaction
 63. Treasurer

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Contracts\Settings;
 
-use App\Models\Settings\Settings;
+use App\Models\Settings\Setting;
 use App\Repositories\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos disponibles para gestionar parámetros de configuración,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
  *
- * @package App\Repositories\Contracts\Settings
+ * @package App\Repositories\Contracts\Setting
  * @author Sistema de Gestión de Configuraciones
  * @version 1.0
  */
@@ -45,45 +45,45 @@ interface SettingRepositoryContract extends BaseRepositoryContract
     /**
      * Obtiene todos los parámetros activos
      *
-     * @return Collection<Settings> Configuraciones activas
+     * @return Collection<Setting> Configuraciones activas
      *
      * @example
-     * $activeSettings = $repository->getActiveSettings();
+     * $activeSetting = $repository->getActiveSetting();
      */
-    public function getActiveSettings(): Collection;
+    public function getActiveSetting(): Collection;
 
     /**
      * Obtiene todos los parámetros inactivos
      *
-     * @return Collection<Settings> Configuraciones inactivas
+     * @return Collection<Setting> Configuraciones inactivas
      *
      * @example
-     * $inactiveSettings = $repository->getInactiveSettings();
+     * $inactiveSetting = $repository->getInactiveSetting();
      */
-    public function getInactiveSettings(): Collection;
+    public function getInactiveSetting(): Collection;
 
     /**
      * Obtiene configuraciones por estado
      *
      * @param string $status Estado ('ACTIVE', 'INACTIVE')
-     * @return Collection<Settings> Configuraciones con el estado especificado
+     * @return Collection<Setting> Configuraciones con el estado especificado
      *
      * @example
-     * $settings = $repository->getSettingsByStatus('ACTIVE');
+     * $Setting = $repository->getSettingByStatus('ACTIVE');
      */
-    public function getSettingsByStatus(string $status): Collection;
+    public function getSettingByStatus(string $status): Collection;
 
     /**
      * Busca parámetros por nombre parcial
      *
      * @param string $searchTerm Término de búsqueda
      * @param array $filters Filtros adicionales
-     * @return Collection<Settings> Configuraciones que coinciden
+     * @return Collection<Setting> Configuraciones que coinciden
      *
      * @example
-     * $settings = $repository->searchSettingsByParam('mail', ['status' => 'ACTIVE']);
+     * $Setting = $repository->searchSettingByParam('mail', ['status' => 'ACTIVE']);
      */
-    public function searchSettingsByParam(string $searchTerm, array $filters = []): Collection;
+    public function searchSettingByParam(string $searchTerm, array $filters = []): Collection;
 
     /**
      * Actualiza o crea un parámetro de configuración
@@ -91,12 +91,11 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @param string $param Nombre del parámetro
      * @param string $value Valor del parámetro
      * @param string $status Estado del parámetro
-     * @return Settings Configuración actualizada o creada
-     *
+     * @return Setting Configuración actualizada o creada
      * @example
      * $setting = $repository->updateOrCreateSetting('theme', 'dark', 'ACTIVE');
      */
-    public function updateOrCreateSetting(string $param, string $value, string $status = 'ACTIVE'): Settings;
+    public function updateOrCreateSetting(string $param, string $value, string $status = 'ACTIVE'): Setting;
 
     /**
      * Actualiza el estado de un parámetro
@@ -106,9 +105,9 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return bool True si se actualizó correctamente
      *
      * @example
-     * $updated = $repository->updateSettingStatus('maintenance_mode', 'INACTIVE');
+     * $updated = $repository->updateSettingtatus('maintenance_mode', 'INACTIVE');
      */
-    public function updateSettingStatus(string $param, string $newStatus): bool;
+    public function updateSettingtatus(string $param, string $newStatus): bool;
 
     /**
      * Actualiza el valor de un parámetro
@@ -161,12 +160,12 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @param string $startDate Fecha de inicio
      * @param string $endDate Fecha de fin
      * @param array $filters Filtros adicionales
-     * @return Collection<Settings> Configuraciones en el rango
+     * @return Collection<Setting> Configuraciones en el rango
      *
      * @example
-     * $settings = $repository->getSettingsByDateRange('2024-01-01', '2024-01-31');
+     * $Setting = $repository->getSettingByDateRange('2024-01-01', '2024-01-31');
      */
-    public function getSettingsByDateRange(string $startDate, string $endDate, array $filters = []): Collection;
+    public function getSettingByDateRange(string $startDate, string $endDate, array $filters = []): Collection;
 
     /**
      * Cuenta configuraciones por estado
@@ -174,10 +173,10 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return array Conteo por estado
      *
      * @example
-     * $counts = $repository->countSettingsByStatus();
+     * $counts = $repository->countSettingByStatus();
      * // ['ACTIVE' => 25, 'INACTIVE' => 5]
      */
-    public function countSettingsByStatus(): array;
+    public function countSettingByStatus(): array;
 
     /**
      * Obtiene estadísticas generales de configuraciones
@@ -185,9 +184,9 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return array Estadísticas generales
      *
      * @example
-     * $stats = $repository->getGeneralSettingStats();
+     * $stats = $repository->getGeneralSettingtats();
      */
-    public function getGeneralSettingStats(): array;
+    public function getGeneralSettingtats(): array;
 
     /**
      * Obtiene todas las configuraciones con paginación
@@ -197,31 +196,31 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator Configuraciones paginadas
      *
      * @example
-     * $paginatedSettings = $repository->getPaginatedSettings(20, ['status' => 'ACTIVE']);
+     * $paginatedSetting = $repository->getPaginatedSetting(20, ['status' => 'ACTIVE']);
      */
-    public function getPaginatedSettings(int $perPage = 15, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator;
+    public function getPaginatedSetting(int $perPage = 15, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
     /**
      * Actualiza múltiples configuraciones en lote
      *
-     * @param array $settings Array de configuraciones [param => [value, status]]
+     * @param array $Setting Array de configuraciones [param => [value, status]]
      * @return int Número de configuraciones actualizadas
      *
      * @example
-     * $updated = $repository->bulkUpdateSettings([
+     * $updated = $repository->bulkUpdateSetting([
      *     'theme' => ['dark', 'ACTIVE'],
      *     'language' => ['es', 'ACTIVE']
      * ]);
      */
-    public function bulkUpdateSettings(array $settings): int;
+    public function bulkUpdateSetting(array $Setting): int;
 
     /**
      * Obtiene configuraciones de sistema críticas
      *
-     * @return Collection<Settings> Configuraciones críticas del sistema
+     * @return Collection<Setting> Configuraciones críticas del sistema
      *
      * @example
-     * $criticalSettings = $repository->getCriticalSystemSettings();
+     * $criticalSetting = $repository->getCriticalSystemSetting();
      */
-    public function getCriticalSystemSettings(): Collection;
+    public function getCriticalSystemSetting(): Collection;
 }

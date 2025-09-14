@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Settings\Settings;
+use App\Repositories\Setting\SettingRepository as SettingSettingRepository;
+use App\Repositories\Settings\SettingRepository;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,7 +21,7 @@ class PublicController extends Controller
      */
     public function root(): Response
     {
-        $register = Settings::getStatus('REGISTER');
+        $register = (new SettingRepository())->getParameterStatus('REGISTER');
 
         // Renderiza la página Login como componente Vue/Inertia
         return Inertia::render('Auth/Login', [

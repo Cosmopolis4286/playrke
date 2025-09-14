@@ -1,105 +1,82 @@
 <template>
-    <form @submit.prevent="submit" id="form-login">
-        <!-- Email/Username -->
-        <div class="login_form_item">
-            <i class="e_mc fa-solid fa-user"></i>
-            <input v-model="form.login" type="text" placeholder="Email/Username"
-                aria-label="Email o Nombre de Usuario" />
-        </div>
-        <p v-if="form.errors.login" class="er_nw">{{ form.errors.login }}</p>
+    <AuthLayout :subtitle="'Tu Sitio Para Ganar'" :register="register">
+        <form @submit.prevent="handleSubmit" class="w-full" id="form-login">
+            <!-- Email/Username -->
+            <div class="login_form_item">
+                <i class="e_mc fa-solid fa-user"></i>
+                <input v-model="login" type="text" placeholder="Email/Username" aria-label="Email o Nombre de Usuario"
+                    :class="{ 'is-invalid': errors.login }" />
+            </div>
+            <span v-if="errors.login" class="er_nw">{{ errors.login }}</span>
 
-        <!-- Password -->
-        <div class="login_form_item">
-            <i class="e_mc fa-solid fa-lock"></i>
-            <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Contraseña"
-                aria-label="Contraseña" class="pass" />
-            <i class="eye_mc fa-solid" :class="showPassword ? 'fa-eye' : 'fa-eye-slash'" @click="togglePassword"
-                :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"></i>
-        </div>
+            <!-- Password -->
+            <div class="login_form_item relative">
+                <i class="e_mc fa-solid fa-lock"></i>
+                <input v-model="password" :type="showPassword ? 'text' : 'password'" class="pass"
+                    placeholder="Contraseña" aria-label="Contraseña" />
+                <i class="eye_mc fa-solid" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"
+                    @click="togglePassword"></i>
+            </div>
 
-        <!-- Botón login -->
-        <div class="login_form_item">
-            <button type="submit" id="Ingresar">
-                Iniciar Sesión
-                <span v-if="loading" id="loader-btn" class="spinner-border spinner-border-sm"></span>
-            </button>
-        </div>
+            <!-- Submit -->
+            <div class="login_form_item">
+                <button type="submit" id="Ingresar">
+                    Iniciar Sesión
+                    <span v-if="loading" id="loader-btn" class="spinner-border spinner-border-sm" role="status"
+                        aria-hidden="true"></span>
+                </button>
+            </div>
 
-        <!-- Olvidé contraseña -->
-        <div class="login_form_item">
-            <a :href="passwordRequestUrl" class="forget_password">¿Olvidaste tu contraseña?</a>
-        </div>
-    </form>
+            <!-- Forget password -->
+            <div class="login_form_item">
+                <inertia-link href="{{ route('password.request') }}" class="forget_password">
+                    ¿Olvidaste tu contraseña?
+                </inertia-link>
+            </div>
+        </form>
+    </AuthLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { AuthService } from '@/services/authService'
-import { router } from '@inertiajs/vue3'
-import { showToast } from '@/helpers/toastNotify'
+import { ref } from 'vue'
+import AuthLayout from '../../components/layout/auth/AuthLayout.vue'
+import { useForm } from '@inertiajs/vue3'
 
-interface Props {
-    register?: boolean
-    passwordRequestUrl: string
-}
+// Props del layout
+const props = defineProps<{
+    register: boolean
+}>()
 
-const props = defineProps<Props>()
-const { register, passwordRequestUrl } = props
-
-const form = reactive({
-    login: '',
-    password: '',
-    remember_me: false,
-    errors: {} as Record<string, string>
-})
-
+// Form state
+const login = ref('')
+const password = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
+const errors = ref<{ login?: string }>({})
 
-function togglePassword() {
+// Toggle password visibility
+const togglePassword = () => {
     showPassword.value = !showPassword.value
 }
 
-function clearErrors() {
-    form.errors = {}
-}
+// Handle form submit
+const handleSubmit = () => {
+    errors.value = {}
 
-function setErrors(errors: Array<{ field: string; message: string }>) {
-    form.errors = {}
-    errors.forEach(error => {
-        form.errors[error.field] = error.message
-    })
-}
-
-async function submit() {
-    if (!form.login || !form.password) {
-        showToast('Toda la información es requerida', 'error')
+    if (!login.value || !password.value) {
+        errors.value.login = 'Toda la información es requerida'
         return
     }
 
     loading.value = true
-    clearErrors()
 
-    try {
-        const response = await AuthService.login({
-            login: form.login,
-            password: form.password,
-            remember_me: form.remember_me
-        })
-
-        if (response.success) {
-            showToast(response.message || 'Inicio de sesión exitoso', 'success')
-            router.visit('/dashboard')
-        } else {
-            if (response.errors) setErrors(response.errors)
-            showToast(response.message || 'Error en el inicio de sesión', 'error')
-        }
-    } catch (error) {
-        console.error('Error en login:', error)
-        showToast('Error de conexión. Intenta nuevamente.', 'error')
-    } finally {
-        loading.value = false
-        form.password = ''
-    }
+    // Enviar formulario usando Inertia
+    // Esto reemplaza el form blade con acción post
+    // $inertia.post(route('login'), {
+    //     login: login.value,
+    //     password: password.value,
+    // }).finally(() => {
+    //     loading.value = false
+    // })
 }
 </script>

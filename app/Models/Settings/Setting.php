@@ -4,18 +4,15 @@ declare(strict_types=1);
 
 namespace App\Models\Settings;
 
-use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use BradieTilley\Snowflake\Snowflake;
 
 /**
  * Modelo para configuraciones del sistema
  *
  * Representa parámetros de configuración del sistema con sus valores y estados.
- * Permite gestionar configuraciones dinámicas sin necesidad de archivos.
  *
  * @package App\Models\Settings
- * @author Sistema de Gestión de Configuraciones
- * @version 1.0
  *
  * @property string $id ID único de la configuración
  * @property string $param Nombre del parámetro de configuración
@@ -24,10 +21,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
  */
-class Settings extends Model
+class Setting extends Model
 {
-    use HasSnowflakeId;
-
     /**
      * Nombre de la tabla en la base de datos
      */
@@ -59,9 +54,22 @@ class Settings extends Model
     ];
 
     /**
+     * Sobrescribe el boot del modelo para asignar Snowflake ID
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Generar ID con Snowflake antes de crear el registro
+        static::creating(function (Setting $setting) {
+            if (!$setting->id) {
+                $setting->id = (new Snowflake())->id();
+            }
+        });
+    }
+
+    /**
      * Obtiene la descripción del estado
-     *
-     * @return string
      */
     public function getStatusDescription(): string
     {
@@ -70,8 +78,6 @@ class Settings extends Model
 
     /**
      * Verifica si la configuración está activa
-     *
-     * @return bool
      */
     public function isActive(): bool
     {
@@ -80,8 +86,6 @@ class Settings extends Model
 
     /**
      * Verifica si la configuración está inactiva
-     *
-     * @return bool
      */
     public function isInactive(): bool
     {
@@ -90,8 +94,6 @@ class Settings extends Model
 
     /**
      * Obtiene el valor formateado de la configuración
-     *
-     * @return string
      */
     public function getFormattedValue(): string
     {
@@ -100,8 +102,6 @@ class Settings extends Model
 
     /**
      * Verifica si el parámetro es crítico del sistema
-     *
-     * @return bool
      */
     public function isCriticalSystemParam(): bool
     {
@@ -121,9 +121,6 @@ class Settings extends Model
 
     /**
      * Scope para obtener solo configuraciones activas
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActive($query)
     {
@@ -132,9 +129,6 @@ class Settings extends Model
 
     /**
      * Scope para obtener solo configuraciones inactivas
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeInactive($query)
     {
@@ -143,10 +137,6 @@ class Settings extends Model
 
     /**
      * Scope para buscar por parámetro
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $param
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeByParam($query, string $param)
     {
@@ -155,10 +145,6 @@ class Settings extends Model
 
     /**
      * Scope para buscar por valor
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $value
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeByValue($query, string $value)
     {
@@ -167,9 +153,6 @@ class Settings extends Model
 
     /**
      * Scope para configuraciones críticas del sistema
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeCriticalSystem($query)
     {

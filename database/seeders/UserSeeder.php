@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Users\User;
-use App\Models\Wallets\Wallet;
 use App\Repositories\User\UserRepository;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;

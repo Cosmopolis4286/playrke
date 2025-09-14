@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Settings\Settings;
+use App\Models\Settings\Setting;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 
@@ -25,7 +25,7 @@ class SettingSeeder extends Seeder
 
         // Inserción usando upsert para evitar duplicados
         foreach ($entries as $entry) {
-            Settings::updateOrCreate(
+            Setting::updateOrCreate(
                 ['param' => $entry['param']], // Condición única
                 $entry
             );
