@@ -12,7 +12,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use App\Traits\HasSnowflakeId;
+use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable, HasRoles, HasSnowflakeId;
+    use Notifiable, HasRoles;
 
     /**
      * Nombre de la tabla en la base de datos
@@ -95,6 +95,21 @@ class User extends Authenticatable implements MustVerifyEmail
         'full_name',
         'status_description',
     ];
+
+    /**
+     * Sobrescribe el boot del modelo para asignar Snowflake ID
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Generar ID con Snowflake antes de crear el registro
+        static::creating(function (User $user) {
+            if (!$user->id) {
+                $user->id = (new Snowflake())->id();
+            }
+        });
+    }
 
     /**
      * Roles del usuario
@@ -377,7 +392,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function scopeWithRole($query, string $roleName)
     {
-        return $query->whereHas('roles', function($q) use ($roleName) {
+        return $query->whereHas('roles', function ($q) use ($roleName) {
             $q->where('name', $roleName);
         });
     }
@@ -391,11 +406,11 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function scopeSearch($query, string $search)
     {
-        return $query->where(function($q) use ($search) {
+        return $query->where(function ($q) use ($search) {
             $q->where('username', 'like', "%{$search}%")
-              ->orWhere('email', 'like', "%{$search}%")
-              ->orWhere('first_name', 'like', "%{$search}%")
-              ->orWhere('last_name', 'like', "%{$search}%");
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%");
         });
     }
 }

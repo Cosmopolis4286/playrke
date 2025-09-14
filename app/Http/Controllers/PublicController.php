@@ -25,8 +25,9 @@ class PublicController extends Controller
 
         // Renderiza la página Login como componente Vue/Inertia
         return Inertia::render('Auth/Login', [
-            'register' => $register,
-            'passwordRequestUrl' => route('password.request'),
+            'register' => (bool)$register,  // Forzamos booleano
+            'loginUrl' => route('login'),   // URL POST para login
+            'passwordRequestUrl' => route('password.request'), // recuperación de contraseña
         ]);
     }
 

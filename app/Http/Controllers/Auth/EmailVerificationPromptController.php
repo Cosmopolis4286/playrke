@@ -8,14 +8,15 @@ use App\Models\Country;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class EmailVerificationPromptController extends Controller
 {
     /**
      * Display the email verification prompt.
      */
-    public function __invoke(Request $request): RedirectResponse|View
+    public function __invoke(Request $request): RedirectResponse|Response
     {
         if ($request->user()->hasVerifiedEmail()) {
 
@@ -30,7 +31,10 @@ class EmailVerificationPromptController extends Controller
 
             return redirect()->intended(route('dashboard', absolute: false));
         } else {
-            return view('auth.verify-email');
+            return Inertia::render('Auth/VerifyEmail', [
+                'verificationSendUrl' => route('verification.send'),
+                'logoutUrl' => route('logout'),
+            ]);
         }
     }
 }

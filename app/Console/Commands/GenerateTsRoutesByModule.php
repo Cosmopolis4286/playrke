@@ -19,6 +19,8 @@ class GenerateTsRoutesByModule extends Command
         // Define módulos solo con prefijos
         $modules = [
             'admin',
+            'auth',
+            'api',
             'binance',
             'bingo',
             'bingo-automatic-room',

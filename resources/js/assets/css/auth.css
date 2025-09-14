@@ -1,70 +1,704 @@
+/* Import Tabler Icons CSS */
+@import url('https://cdn.jsdelivr.net/npm/@tabler/icons@latest/tabler-icons.min.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
     :root {
+        /* Typography */
         --font-main: 'Poppins', sans-serif;
         --font-roboto: 'Roboto', Tahoma;
+
+        /* Color Palette - Electric Blue/Purple */
+        --color-primary: #0066ff;
+        --color-primary-electric: #007bff;
+        --color-primary-light: #338bff;
+        --color-primary-dark: #0052cc;
+        --color-primary-gradient: linear-gradient(135deg, #007bff 0%, #6366f1 100%);
+
+        --color-secondary: #6366f1;
+        --color-secondary-light: #8b5cf6;
+        --color-secondary-dark: #4f46e5;
+
+        --color-accent: #f59e0b;
+        --color-accent-light: #fbbf24;
+        --color-accent-dark: #d97706;
+
+        /* Background Colors */
+        --color-bg-primary: #020028;
+        --color-bg-secondary: #010006;
+        --color-bg-tertiary: #000413;
+        --color-bg-card: rgba(0, 4, 19, 0.95);
+        --color-bg-input: #00052b;
+        --color-bg-overlay: rgba(0, 0, 0, 0.4);
+
+        /* Border Colors */
+        --color-border-primary: rgba(35, 0, 63, 0.53);
+        --color-border-secondary: #3d0183;
+        --color-border-focus: #3d00a0;
+        --color-border-error: #ef4444;
+        --color-border-success: #10b981;
+
+        /* Text Colors */
+        --color-text-primary: #ffffff;
+        --color-text-secondary: #d1d5db;
+        --color-text-muted: #9ca3af;
+        --color-text-accent: #0066ff;
+        --color-text-error: #f87171;
+        --color-text-success: #34d399;
+
+        /* Shadow Colors */
+        --shadow-primary: 0 10px 25px -5px rgba(0, 102, 255, 0.1), 0 4px 6px -2px rgba(0, 102, 255, 0.05);
+        --shadow-card: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        --shadow-input: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+        /* Animation Variables */
+        --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-fast: all 0.15s ease-in-out;
     }
 
     body.auth {
-        @apply flex flex-col w-full h-full font-[var(--font-main)] bg-gradient-to-b from-[#020028] via-[#010006] to-[#010006];
+        @apply flex flex-col w-full min-h-screen font-[var(--font-main)];
+        background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 50%, var(--color-bg-tertiary) 100%);
     }
 }
 
 @layer components {
+    /* ==============================================
+       BEM: AUTH BLOCK - Main Container
+       ============================================== */
 
-    /* Ejemplo con BEM */
-    .auth__container {
-        @apply relative grid max-w-[372px] m-[2.25%] p-4 border border-[#23003f88] rounded-xl bg-[#000413f3];
+    .auth {
+        @apply relative min-h-screen overflow-hidden;
     }
 
+    .auth::before {
+        content: '';
+        @apply absolute inset-0 opacity-30;
+        background: radial-gradient(ellipse at center, var(--color-primary) 0%, transparent 70%);
+        animation: pulse 4s ease-in-out infinite alternate;
+    }
+
+    .auth__main {
+        @apply relative z-10 flex items-center justify-center min-h-screen px-4 py-8;
+    }
+
+    .auth__background {
+        @apply absolute inset-0 w-full h-full object-cover opacity-20;
+        filter: blur(1px);
+    }
+
+    /* ==============================================
+       BEM: AUTH CONTAINER - Card Container
+       ============================================== */
+
+    .auth__container {
+        @apply relative z-20 w-full max-w-sm;
+        background: rgba(0, 4, 19, 0.95);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 8px 32px -8px rgba(0, 102, 255, 0.08);
+        backdrop-filter: blur(10px);
+        transition: all 0.2s ease;
+    }
+
+    .auth__container:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 40px -8px rgba(0, 123, 255, 0.15);
+        border-color: rgba(0, 123, 255, 0.3);
+    }
+
+    /* ==============================================
+       BEM: AUTH LOGO
+       ============================================== */
+
     .auth__logo {
-        @apply flex justify-center mb-2 w-full;
+        @apply flex justify-center items-center mb-6 w-full;
     }
 
     .auth__logo img {
-        @apply w-4/5;
+        @apply w-20 h-auto transition-transform duration-300;
+        filter: brightness(1.1);
     }
+
+    .auth__logo img:hover {
+        @apply scale-105;
+        filter: brightness(1.2) drop-shadow(0 0 8px rgba(0, 123, 255, 0.2));
+    }
+
+    /* ==============================================
+       BEM: AUTH CONTENT
+       ============================================== */
 
     .auth__content {
-        @apply w-full;
+        @apply w-full space-y-4;
     }
 
-    .auth__content-text {
-        @apply text-base text-blue-600 font-light text-center leading-none mb-0;
+    .auth__subtitle {
+        @apply text-center font-light mb-6;
+        color: var(--color-text-accent);
+        font-size: 0.875rem;
+        line-height: 1.5;
     }
 
+    /* ==============================================
+       BEM: AUTH FORM ELEMENTS
+       ============================================== */
+
+    .auth__form {
+        @apply space-y-4;
+    }
+
+    /* Form Items */
     .auth__form-item {
-        @apply relative w-full my-2 flex justify-center items-center;
+        @apply relative w-full;
     }
 
+    .auth__form-item--error {
+        @apply mb-1;
+    }
+
+    .auth__form-item--success .auth__input {
+        border-color: var(--color-border-success);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    /* Input Styles - Minimalist Blue/Purple */
     .auth__input {
-        @apply w-full bg-[#00052b] border border-[#3d0183] rounded-lg text-sm text-gray-300 pl-3 h-10 transition-all;
+        @apply w-full h-9 px-4 pl-9 pr-10 text-sm rounded-lg transition-all;
+        background: rgba(0, 8, 43, 0.8);
+        border: 1.5px solid rgba(61, 1, 131, 0.3);
+        color: var(--color-text-secondary);
+        font-weight: 400;
+        font-size: 14px;
+    }
+
+    .auth__input::placeholder {
+        color: var(--color-text-muted);
+        opacity: 0.8;
     }
 
     .auth__input:hover {
-        @apply border-2 border-[#3d00a0];
+        border-color: rgba(0, 123, 255, 0.4);
+        background: rgba(0, 8, 43, 0.9);
     }
 
+    .auth__input:focus {
+        @apply outline-none;
+        border-color: var(--color-primary-electric);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+        background: rgba(0, 8, 43, 1);
+    }
+
+    .auth__input--error {
+        border-color: var(--color-border-error);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    .auth__input--error:focus {
+        border-color: var(--color-border-error);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    }
+
+    /* Input Icons - Electric Blue in Blue/Purple Palette */
+    .auth__input-icon {
+        @apply absolute left-2.5 top-1/2 transform -translate-y-1/2 text-sm pointer-events-none z-10;
+        color: var(--color-text-muted);
+        transition: all 0.2s ease;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+    }
+
+    .auth__input-icon i {
+        font-size: 14px;
+        line-height: 1;
+        width: 14px;
+        height: 14px;
+    }
+
+    /* Tabler Icons specific styles */
+    .auth__input-icon .ti {
+        font-size: 14px !important;
+        color: inherit;
+        stroke-width: 1.5;
+    }
+
+    /* Force icon visibility */
+    .auth__input-icon i[class*="ti-"] {
+        color: var(--color-text-muted) !important;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .auth__input:focus + .auth__input-icon i[class*="ti-"],
+    .auth__input:not(:placeholder-shown) + .auth__input-icon i[class*="ti-"] {
+        color: var(--color-primary-electric) !important;
+    }
+
+    .auth__input:focus + .auth__input-icon,
+    .auth__input:not(:placeholder-shown) + .auth__input-icon {
+        color: var(--color-primary-electric);
+        transform: translateY(-50%) scale(1.1);
+        filter: drop-shadow(0 0 4px rgba(0, 123, 255, 0.3));
+    }
+
+    .auth__input-icon--left {
+        left: 0.625rem;
+    }
+
+    .auth__input-toggle {
+        @apply absolute right-4 top-1/2 transform -translate-y-1/2 text-base cursor-pointer z-10 p-1;
+        color: var(--color-text-muted);
+        transition: var(--transition-fast);
+    }
+
+    .auth__input-toggle:hover {
+        color: var(--color-primary);
+    }
+
+    /* ==============================================
+       BEM: AUTH BUTTONS
+       ============================================== */
+
     .auth__button {
-        @apply w-full h-11 text-white text-lg uppercase tracking-wide border-2 border-[#02007ef5] rounded-lg bg-[#07001f];
+        @apply relative w-full h-12 rounded-xl font-semibold text-sm uppercase tracking-wider overflow-hidden;
+        background: var(--color-primary-gradient);
+        color: var(--color-text-primary);
+        border: none;
+        transition: var(--transition-base);
+        box-shadow: var(--shadow-primary);
+    }
+
+    .auth__button::before {
+        content: '';
+        @apply absolute inset-0 bg-white opacity-0 transition-opacity duration-300;
+    }
+
+    .auth__button:hover::before {
+        @apply opacity-10;
     }
 
     .auth__button:hover {
-        @apply border-[#0502c7f5];
+        transform: translateY(-1px);
+        box-shadow: 0 15px 35px -5px rgba(0, 102, 255, 0.2), 0 8px 10px -2px rgba(0, 102, 255, 0.1);
     }
 
+    .auth__button:active {
+        transform: translateY(0);
+    }
+
+    .auth__button:disabled {
+        @apply opacity-60 cursor-not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .auth__button:disabled::before {
+        @apply opacity-0;
+    }
+
+    /* Button Variants */
+    .auth__button--secondary {
+        background: transparent;
+        border: 2px solid var(--color-border-secondary);
+        color: var(--color-text-accent);
+        box-shadow: none;
+    }
+
+    .auth__button--secondary:hover {
+        border-color: var(--color-primary);
+        background: rgba(0, 102, 255, 0.05);
+    }
+
+    /* ==============================================
+       BEM: AUTH VALIDATION & FEEDBACK
+       ============================================== */
+
+    .auth__error {
+        @apply block text-xs mt-2 px-1;
+        color: var(--color-text-error);
+        animation: slideInDown 0.3s ease-out;
+    }
+
+    .auth__success {
+        @apply block text-xs mt-2 px-1;
+        color: var(--color-text-success);
+        animation: slideInDown 0.3s ease-out;
+    }
+
+    .auth__loading {
+        @apply inline-block w-4 h-4 ml-2 border-2 border-white border-t-transparent rounded-full;
+        animation: spin 1s linear infinite;
+    }
+
+    /* ==============================================
+       BEM: AUTH CHECKBOX & RADIO
+       ============================================== */
+
+    .auth__checkbox {
+        @apply flex items-start space-x-3 my-6;
+    }
+
+    .auth__checkbox-input {
+        @apply w-5 h-5 mt-0.5 rounded border-2 transition-all;
+        border-color: var(--color-border-secondary);
+        background: var(--color-bg-input);
+        appearance: none;
+        cursor: pointer;
+    }
+
+    .auth__checkbox-input:checked {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+    }
+
+    .auth__checkbox-input:checked::after {
+        content: '✓';
+        @apply block text-white text-xs font-bold text-center leading-4;
+    }
+
+    .auth__checkbox-label {
+        @apply text-sm leading-relaxed cursor-pointer;
+        color: var(--color-text-secondary);
+    }
+
+    .auth__checkbox-label a {
+        color: var(--color-text-accent);
+        text-decoration: none;
+        transition: var(--transition-fast);
+    }
+
+    .auth__checkbox-label a:hover {
+        color: var(--color-primary-light);
+        text-decoration: underline;
+    }
+
+    /* ==============================================
+       BEM: AUTH DROPDOWN
+       ============================================== */
+
+    .auth__dropdown {
+        @apply relative;
+    }
+
+    .auth__dropdown-trigger {
+        @apply w-full h-9 px-4 pl-9 pr-8 text-sm text-left rounded-lg cursor-pointer transition-all flex items-center justify-between;
+        background: rgba(0, 8, 43, 0.8);
+        border: 1.5px solid rgba(61, 1, 131, 0.3);
+        color: var(--color-text-secondary);
+        font-size: 14px;
+    }
+
+    .auth__dropdown-trigger:hover {
+        border-color: rgba(0, 123, 255, 0.4);
+        background: rgba(0, 8, 43, 0.9);
+    }
+
+    .auth__dropdown-trigger:focus,
+    .auth__dropdown-trigger--open {
+        border-color: var(--color-primary-electric);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+        background: rgba(0, 8, 43, 1);
+    }
+
+    .auth__dropdown-list {
+        @apply absolute top-full left-0 right-0 mt-2 py-2 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto;
+        background: rgba(0, 4, 19, 0.98);
+        border: 1.5px solid rgba(61, 1, 131, 0.3);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px -8px rgba(0, 102, 255, 0.12);
+    }
+
+    .auth__dropdown-item {
+        @apply px-4 py-2 text-sm cursor-pointer transition-colors;
+        color: var(--color-text-secondary);
+        font-size: 14px;
+    }
+
+    .auth__dropdown-item:hover {
+        background: rgba(0, 123, 255, 0.1);
+        color: var(--color-primary-electric);
+    }
+
+    /* ==============================================
+       BEM: AUTH ALERTS
+       ============================================== */
+
+    .auth__alert {
+        @apply p-4 mb-6 rounded-xl border-l-4 text-sm;
+    }
+
+    .auth__alert--success {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: var(--color-border-success);
+        color: var(--color-text-success);
+    }
+
+    .auth__alert--error {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: var(--color-border-error);
+        color: var(--color-text-error);
+    }
+
+    .auth__alert--info {
+        background: rgba(0, 102, 255, 0.1);
+        border-color: var(--color-primary);
+        color: var(--color-text-accent);
+    }
+
+    /* ==============================================
+       BEM: AUTH FOOTER
+       ============================================== */
+
     .auth__footer {
-        @apply flex flex-col items-center w-full;
+        @apply flex flex-col items-center mt-8 space-y-6;
     }
 
     .auth__footer-links {
-        @apply flex justify-center items-center w-full border-t border-b border-[#000c41] my-2;
+        @apply flex items-center justify-center space-x-6 py-4 border-t border-b;
+        border-color: rgba(255, 255, 255, 0.1);
     }
 
-    .auth__info {
-        @apply flex justify-center w-full text-xs;
+    .auth__footer-link {
+        @apply text-xs font-medium transition-colors;
+        color: var(--color-text-muted);
+        text-decoration: none;
+    }
+
+    .auth__footer-link:hover {
+        color: var(--color-text-accent);
+    }
+
+    .auth__social {
+        @apply flex items-center justify-center space-x-4;
+    }
+
+    .auth__copyright {
+        @apply text-xs mr-6;
+        color: var(--color-text-muted);
+    }
+
+    .auth__social-link {
+        @apply w-8 h-8 flex items-center justify-center text-sm rounded-full transition-all;
+        color: var(--color-text-muted);
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .auth__social-link:hover {
+        color: var(--color-text-primary);
+        background: var(--color-primary);
+        transform: translateY(-2px);
+    }
+
+    /* ==============================================
+       BEM: AUTH NAVIGATION
+       ============================================== */
+
+    .auth__nav {
+        @apply text-center mt-6;
+    }
+
+    .auth__nav-text {
+        @apply text-sm;
+        color: var(--color-text-muted);
+    }
+
+    .auth__nav-link {
+        @apply font-semibold ml-2 transition-colors;
+        color: var(--color-text-accent);
+        text-decoration: none;
+    }
+
+    .auth__nav-link:hover {
+        color: var(--color-primary-light);
+    }
+
+    /* Primary nav link (for register) */
+    .auth__nav-link--primary {
+        background: linear-gradient(135deg, var(--color-primary-electric) 0%, var(--color-secondary) 100%);
+        color: white !important;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        margin-left: 0.5rem;
+    }
+
+    .auth__nav-link--primary:hover {
+        transform: translateY(-1px) scale(1.02);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        color: white !important;
+    }
+
+    .auth__nav-separator {
+        @apply mx-3;
+        color: var(--color-text-muted);
+        opacity: 0.5;
+    }
+
+    /* ==============================================
+       ANIMATIONS & UTILITIES
+       ============================================== */
+
+    @keyframes pulse {
+        0% { opacity: 0.3; }
+        100% { opacity: 0.6; }
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes slideInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    /* ==============================================
+       RESPONSIVE DESIGN
+       ============================================== */
+
+    @screen sm {
+        .auth__container {
+            padding: 2.5rem;
+            max-width: 420px;
+        }
+
+        .auth__logo img {
+            @apply w-28;
+        }
+    }
+
+    @screen md {
+        .auth__container {
+            padding: 3rem;
+            max-width: 480px;
+        }
+
+        .auth__input {
+            @apply h-14 text-base;
+        }
+
+        .auth__button {
+            @apply h-14 text-base;
+        }
+    }
+
+    @screen lg {
+        .auth__main {
+            @apply px-8;
+        }
+    }
+
+    /* ==============================================
+       DARK MODE SUPPORT
+       ============================================== */
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --color-text-secondary: #e5e7eb;
+            --color-text-muted: #d1d5db;
+        }
+    }
+
+    /* ==============================================
+       LEGACY CLASSES COMPATIBILITY
+       ============================================== */
+
+    /* Mantenemos las clases existentes para compatibilidad */
+    .login_form_item {
+        @apply auth__form-item;
+    }
+
+    .e_mc {
+        @apply auth__input-icon;
+    }
+
+    .eye_mc {
+        @apply auth__input-toggle;
+    }
+
+    .er_nw {
+        @apply auth__error;
+    }
+
+    .formulario__input-error {
+        @apply auth__error;
+    }
+
+    .is-invalid {
+        @apply auth__input--error;
+    }
+
+    .login_form_item_check {
+        @apply auth__checkbox;
+    }
+
+    .dropdown_list_item {
+        @apply auth__dropdown-item;
+    }
+
+    .login_footer_ck {
+        @apply auth__nav;
+    }
+
+    .pre_tx_link {
+        @apply auth__nav-text;
+    }
+
+    .user_tx_link {
+        @apply auth__nav-link;
+    }
+
+    .sep_r {
+        @apply auth__nav-separator;
+    }
+}
+
+/* ==============================================
+   PRINT STYLES
+   ============================================== */
+
+@media print {
+    .auth__background,
+    .auth__social,
+    .auth__footer-links {
+        @apply hidden;
+    }
+
+    .auth__container {
+        @apply shadow-none border-2 border-gray-300;
+        background: white;
     }
 }

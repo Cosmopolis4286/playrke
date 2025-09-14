@@ -24,8 +24,11 @@ class AuthenticatedSessionController extends Controller
     {
         $register = (new SettingRepository())->getParameterStatus('REGISTER');
 
-        return Inertia::render('auth/Login', [
-            'register' => $register,
+        return Inertia::render('Auth/Login', [
+            'register' => (bool)$register,  // Forzamos booleano
+            'loginUrl' => route('login'),   // URL POST para login
+            'passwordRequestUrl' => route('password.request'), // recuperación de contraseña
+            'registerUrl' => route('register'), // URL para registro
         ]);
     }
 

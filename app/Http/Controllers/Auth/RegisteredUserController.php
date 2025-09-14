@@ -4,29 +4,35 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Currencies\Currency;
-use App\Models\Country;
-use App\Models\Users;
-use App\Models\Wallet;
+use App\Models\Users\User;
+use App\Models\Wallets\Wallet;
+use App\Repositories\Countries\CountryRepository;
+use App\Repositories\User\UserRepository;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(): Response
     {
-        $countries = Country::all(['id', 'name']);
-        return view('auth.register', compact("countries"));
+        $countries = (new CountryRepository())->all(['id', 'name']);
+
+        return Inertia::render('Auth/Register', [
+            'countries' => $countries,
+            'registerUrl' => route('register'),
+            'loginUrl' => route('login'),
+        ]);
     }
 
     /**
@@ -61,7 +67,7 @@ class RegisteredUserController extends Controller
                 'username' => $request->username,
                 'country' => $request->country,
                 'password' => Hash::make($request->password),
-                'referral_code' => User::getUniqueReferralCode(),
+                'referral_code' => UserRepository::generateUniqueReferralCode(),
                 'referred_by' => $this->getReferredBy(),
             ]);
 
@@ -69,10 +75,12 @@ class RegisteredUserController extends Controller
             $currency = Currency::getValueByCountry($user->country, 'id');
 
             // Crear un nuevo Wallet para el usuario
-            $wallet = new Wallet;
-            $wallet->currency = $currency;
-            $wallet->user = $user->id;
-            $wallet->save();
+            Wallet::create([
+                'user_id' => $user->id,
+                'currency_id' => $currency,
+                'balance' => 0.00,
+                'status' => 'ACTIVE',
+            ]);
 
             DB::commit();
 
@@ -87,14 +95,5 @@ class RegisteredUserController extends Controller
             // Lanzar nuevamente la excepción para manejarla a nivel superior si es necesario
             throw $e;
         }
-    }
-
-    private function getReferredBy()
-    {
-        $referralCode = Cookie::get('referral');
-        if ($referralCode) {
-            return User::where('referral_code', $referralCode)->value('id');
-        }
-        return null;
     }
 }
