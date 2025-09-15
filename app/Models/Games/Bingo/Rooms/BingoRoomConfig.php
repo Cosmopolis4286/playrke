@@ -4,63 +4,86 @@ namespace App\Models\Games\Bingo\Rooms;
 
 use App\Models\Games\Shared\GameMode\GameModes;
 use App\Models\Games\Shared\PrizePool\PrizePoolType;
+use App\Models\Users\User;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para configuraciones de salas de bingo
+ */
 class BingoRoomConfig extends Model
 {
-  protected $table = "bingo_rooms_config";
-  protected $fillable = [
-    'room',
-    'creation',
-    'creator_user_id',
-    'game_mode',
-    'in_live',
-    'date',
-    'time',
-    'unix_date',
-    'card_price',
-    'allowed_currencies',
-    'rke_commn',
-    'room_commn',
-    'prize_pool_type',
-    'amount_added_prize_pool',
-    'time_chip',
-    'rounds',
-    'rounds_pct',
-    'serials_pct',
-    'num_serials',
-    'jackpot_pct',
-    'plays_pct',
-    'bingo_patterns'
-  ];
+    use SnowflakeId;
 
-  protected $casts = [
-    'allowed_currencies' => 'array',
-    'bingo_patterns' => 'array'
-  ];
+    protected $table = 'bingo_rooms_config';
 
-  public function Room()
-  {
-    return $this->belongsTo(BingoRoom::class, 'room');
-  }
+    protected $fillable = [
+        'room_id',
+        'creation',
+        'creator_user_id',
+        'game_mode_id',
+        'in_live',
+        'date',
+        'time',
+        'unix_date',
+        'card_price',
+        'rke_commn',
+        'room_commn',
+        'prize_pool_type_id',
+        'amount_added_prize_pool',
+        'time_chip',
+        'rounds',
+        'rounds_pct',
+        'serials_pct',
+        'num_serials',
+        'jackpot_pct',
+        'plays_pct'
+    ];
 
-  public function GameMode()
-  {
-    return $this->belongsTo(GameModes::class, 'game_mode');
-  }
+    protected $casts = [
+        'date' => 'date',
+        'card_price' => 'decimal:2',
+        'rke_commn' => 'decimal:2',
+        'room_commn' => 'decimal:2',
+        'amount_added_prize_pool' => 'decimal:2',
+        'rounds_pct' => 'decimal:2',
+        'serials_pct' => 'decimal:2',
+        'jackpot_pct' => 'decimal:2',
+        'plays_pct' => 'decimal:2',
+        'unix_date' => 'integer',
+        'num_serials' => 'integer'
+    ];
 
-  public function PrizePoolType()
-  {
-    return $this->belongsTo(PrizePoolType::class, 'prize_pool_type');
-  }
+    /**
+     * Relación con la sala de bingo
+     */
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
 
-  static function getValueByRoom($room, $value)
-  {
-    return self::where('room', $room)->value($value);
-  }
+    /**
+     * Relación con el usuario creador
+     */
+    public function creatorUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_user_id');
+    }
 
-  static function getByRoom($room, $fields = ['*'])
-  {
-    return self::select($fields)->where('room', $room)->first();
-  }
+    /**
+     * Relación con el modo de juego
+     */
+    public function gameMode(): BelongsTo
+    {
+        return $this->belongsTo(GameModes::class, 'game_mode_id');
+    }
+
+    /**
+     * Relación con el tipo de pool de premios
+     */
+    public function prizePoolType(): BelongsTo
+    {
+        return $this->belongsTo(PrizePoolType::class, 'prize_pool_type_id');
+    }
 }

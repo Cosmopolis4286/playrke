@@ -21,18 +21,10 @@ abstract class BaseRepository implements BaseRepositoryContract
     /**
      * Constructor del repositorio base
      */
-    public function __construct()
+    public function __construct(Model $model)
     {
-        $this->model = $this->makeModel();
+        $this->model = $model;
     }
-
-    /**
-     * Crear instancia del modelo
-     * Este método debe ser implementado por cada repositorio específico
-     *
-     * @return Model
-     */
-    abstract protected function makeModel(): Model;
 
     /**
      * Obtener todos los registros
@@ -202,7 +194,7 @@ abstract class BaseRepository implements BaseRepositoryContract
      */
     protected function resetModel(): void
     {
-        $this->model = $this->makeModel();
+        $this->model = $this->model->newInstance();
     }
 
     /**

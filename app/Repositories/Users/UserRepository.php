@@ -4,9 +4,8 @@ namespace App\Repositories\Users;
 
 use App\Models\Users\User;
 use App\Repositories\BaseRepository;
-use App\Repositories\Contracts\Users\UserRepositoryContract;
+use App\Repositories\Users\Contracts\UserRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
 /**
@@ -15,14 +14,9 @@ use Carbon\Carbon;
  */
 class UserRepository extends BaseRepository implements UserRepositoryContract
 {
-    /**
-     * Crear instancia del modelo User
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(User $model)
     {
-        return new User();
+        parent::__construct($model);
     }
 
     /**

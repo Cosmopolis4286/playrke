@@ -14,14 +14,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class BankVenezuelaRepository extends BaseRepository implements BankVenezuelaRepositoryContract
 {
-    /**
-     * Crear instancia del modelo BankVenezuela
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(BankVenezuela $model)
     {
-        return new BankVenezuela();
+        parent::__construct($model);
     }
 
     /**

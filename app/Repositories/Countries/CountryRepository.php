@@ -14,14 +14,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CountryRepository extends BaseRepository implements CountryRepositoryContract
 {
-    /**
-     * Crear instancia del modelo Country
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(Country $model)
     {
-        return new Country();
+        parent::__construct($model);
     }
 
     /**

@@ -22,7 +22,7 @@ Route::middleware('auth')
 // ====================================
 // JUEGOS GENERALES
 // ====================================
-Route::put('games/handle-customer/{id?}', [GameController::class, 'handleCustomerGames'])
+Route::put('games/handle-customer/{id?}', [GameController::class, 'handleCustomerGame'])
     ->name('games.handle-customer');
 
 // ====================================

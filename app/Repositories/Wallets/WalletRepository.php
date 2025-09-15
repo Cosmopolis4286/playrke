@@ -23,14 +23,9 @@ use Illuminate\Support\Facades\DB;
  */
 class WalletRepository extends BaseRepository implements WalletRepositoryContract
 {
-    /**
-     * Crear instancia del modelo Wallet
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(Wallet $model)
     {
-        return new Wallet();
+        parent::__construct($model);
     }
 
     /**

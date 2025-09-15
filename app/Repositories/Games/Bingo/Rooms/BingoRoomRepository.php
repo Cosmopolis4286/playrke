@@ -15,14 +15,9 @@ use Carbon\Carbon;
  */
 class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryContract
 {
-    /**
-     * Crear instancia del modelo BingoRoom
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(BingoRoom $model)
     {
-        return new BingoRoom();
+        parent::__construct($model);
     }
 
     /**

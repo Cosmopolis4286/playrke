@@ -24,14 +24,9 @@ use Carbon\Carbon;
  */
 class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeRepositoryContract
 {
-    /**
-     * Crear instancia del modelo BingoCardPrize
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(BingoCardPrize $model)
     {
-        return new BingoCardPrize();
+        parent::__construct($model);
     }
 
     /**

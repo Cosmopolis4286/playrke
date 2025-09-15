@@ -33,7 +33,7 @@
             'moduleId' => 'customer-games',
             'size' => 'sm',
             'PUT' => true,
-            'action' => route('games.handleCustomerGames', ['id' => $customerGameID->id ?? null]),
+            'action' => route('games.handleCustomerGame', ['id' => $customerGameID->id ?? null]),
             'btnConfirm' => 'btn-confirm-game-id',
             'dataForm' => view('modules.customer.customer-games.form', [
                 'creatorId' => $creator['id'],

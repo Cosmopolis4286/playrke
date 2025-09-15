@@ -4,7 +4,7 @@ namespace App\Traits\Games;
 
 // Models
 use App\Models\Customer;
-use App\Models\CustomerGames;
+use App\Models\CustomerGame;
 use App\Models\CustomerUser;
 use App\Models\Games;
 use App\Models\Transactions;
@@ -207,7 +207,7 @@ trait SeamlessWallet
         }
 
         // Obtener Info del Juego con respecto al cliente
-        $game = CustomerGames::getByGameID($customerId, $transaction->game, ['customer_game_id', 'product']);
+        $game = CustomerGame::getByGameID($customerId, $transaction->game, ['customer_game_id', 'product']);
 
         if (!$game) {
             Log::error("No existe el ID de Juego del cliente [{$customerId}] para el juego [games.id={$transaction->game}]");

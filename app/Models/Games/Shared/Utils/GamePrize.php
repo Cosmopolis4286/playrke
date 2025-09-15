@@ -3,33 +3,27 @@
 namespace App\Models\Games\Shared\Utils;
 
 use App\Models\Games\Shared\Game;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GamePrize extends Model
 {
-    protected $table = "game_prizes";
-    protected $fillable = ['description', 'code', 'game_id', 'status'];
+    use SnowflakeId;
 
-    public function Game()
-    {
-        return $this->hasMany(Game::class, 'game_id');
-    }
+    protected $fillable = [
+        'description',
+        'code',
+        'game_id',
+        'is_active'
+    ];
 
-    public static function getValueByDescription($game, $description, $value = 'id')
-    {
-        $gameId = Game::getValueByName($game);
-        return self::where('game', $gameId)->where('description', $description)->value($value);
-    }
+    protected $casts = [
+        'is_active' => 'boolean'
+    ];
 
-    public static function getValueByCode($game, $code, $value = 'id')
+    public function game(): BelongsTo
     {
-        $gameId = Game::getValueByName($game);
-        return self::where('game', $gameId)->where('code', $code)->value($value);
-    }
-
-    public static function pluckGamePrizes($game, $value, $index = 'id')
-    {
-        $gameId = Game::getValueByName($game);
-        return self::where('game', $gameId)->pluck($value, $index);
+        return $this->belongsTo(Game::class, 'game_id');
     }
 }

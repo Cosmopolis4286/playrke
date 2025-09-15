@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CustomerGames;
+use App\Models\CustomerGame;
 use App\Http\Controllers\Controller;
 use App\Models\Games;
 use Illuminate\Http\Request;
@@ -11,13 +11,13 @@ use Illuminate\Support\Facades\Log;
 
 class GameController extends Controller
 {
-    public function handleCustomerGames(Request $request, $id = null)
+    public function handleCustomerGame(Request $request, $id = null)
     {
         DB::beginTransaction();
 
         try {
             // Verificar si existe un registro con el ID proporcionado
-            $customerGame = CustomerGames::find($id);
+            $customerGame = CustomerGame::find($id);
 
             // Obtener ID del juego
             $gameId = Game::getValueByName($request->game_id);
@@ -31,7 +31,7 @@ class GameController extends Controller
                 ]);
             } else {
                 // Crear un nuevo registro
-                CustomerGames::create([
+                CustomerGame::create([
                     'customer' => decrypt($request->customer),
                     'game' => $gameId,
                     'customer_game_id' => $request->customer_game_id,
@@ -43,7 +43,7 @@ class GameController extends Controller
             return redirect()->back()->with('message', 'Proceso exitoso')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error al crear o actualizar registro en CustomerGames: " . $e->getMessage());
+            Log::error("Error al crear o actualizar registro en CustomerGame: " . $e->getMessage());
             return redirect()->back()->with('message', 'Ha ocurrido un error')->with('type', 'warning');
         }
     }

@@ -2,50 +2,45 @@
 
 namespace App\Models\Users\Roles\Customer;
 
+use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Countries\Country;
+use App\Models\Currencies\Currency;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CustomerUser extends Model
 {
+    use SnowflakeId;
+
     protected $table = "customers_users";
-    protected $fillable = ['customer', 'user_id', 'brand', 'token', 'country', 'currency', 'last_activity'];
 
-    public static function getById($id, $fields = ['*'])
+    protected $fillable = [
+        'customer_id',
+        'user_id',
+        'brand',
+        'token',
+        'country_code',
+        'currency_id',
+        'last_activity'
+    ];
+
+    protected $casts = [
+        'last_activity' => 'datetime'
+    ];
+
+    public function customer(): BelongsTo
     {
-        return self::select($fields)->where('id', $id)->first();
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
 
-    public static function getValueById($id, $value)
+    public function country(): BelongsTo
     {
-        return self::where('id', $id)->value($value);
+        return $this->belongsTo(Country::class, 'country_code', 'iso_code');
     }
 
-    public static function getByUserId($customer, $userId, $fields = ['*'])
+    public function currency(): BelongsTo
     {
-        return self::select($fields)->where('customer', $customer)->where('user_id', $userId)->first();
-    }
-
-    public static function getValueByUserId($customer, $userId, $value)
-    {
-        return self::where('customer', $customer)->where('user_id', $userId)->value($value);
-    }
-
-    public static function getByToken($customer, $token, $fields = ['*'])
-    {
-        return self::select($fields)->where('customer', $customer)->where('token', $token)->first();
-    }
-
-    public static function getByCustomer($customer, $token, $fields = ['*'])
-    {
-        return self::select($fields)->where('customer', $customer)->where('token', $token)->first();
-    }
-
-    public static function getValueByToken($customer, $token, $value)
-    {
-        return self::where('customer', $customer)->where('token', $token)->value($value);
-    }
-
-    public static function existsUserByCustomer($customer, $userId)
-    {
-        return self::where('customer', $customer)->where('user_id', $userId)->exists();
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 }

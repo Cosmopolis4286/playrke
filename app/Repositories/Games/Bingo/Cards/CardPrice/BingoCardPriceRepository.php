@@ -23,14 +23,9 @@ use Illuminate\Support\Facades\DB;
  */
 class BingoCardPriceRepository extends BaseRepository implements BingoCardPriceRepositoryContract
 {
-    /**
-     * Crear instancia del modelo BingoCardPrice
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(BingoCardPrice $model)
     {
-        return new BingoCardPrice();
+        parent::__construct($model);
     }
 
     /**

@@ -6,24 +6,25 @@ use Illuminate\Support\ServiceProvider;
 
 // Contratos
 use App\Repositories\Contracts\BaseRepositoryContract;
-use App\Repositories\Contracts\Users\UserRepositoryContract;
-use App\Repositories\Contracts\Games\Bingo\BingoRoomRepositoryContract;
-use App\Repositories\Contracts\Commands\CommandLogRepositoryContract;
-use App\Repositories\Contracts\Banks\BankVenezuelaRepositoryContract;
-use App\Repositories\Contracts\Countries\CountryRepositoryContract;
-use App\Repositories\Contracts\Currencies\CurrencyRepositoryContract;
-use App\Repositories\Contracts\Games\GameRepositoryContract;
-use App\Repositories\Contracts\Games\Utils\GameConfigRepositoryContract;
-use App\Repositories\Contracts\Wallets\Crypto\BinanceAccountsRepositoryContract;
-use App\Repositories\Contracts\Games\Bingo\Cards\BingoCardRepositoryContract;
-use App\Repositories\Contracts\Games\Bingo\Cards\BingoCardLotRepositoryContract;
-use App\Repositories\Contracts\Games\Bingo\Cards\BingoCardPaymentRepositoryContract;
-use App\Repositories\Contracts\Wallets\WalletRepositoryContract;
-use App\Repositories\Contracts\Games\Bingo\Cards\CardPrice\BingoCardPriceRepositoryContract;
-use App\Repositories\Contracts\Games\Bingo\Cards\CardPrice\BingoCardPriceDraftRepositoryContract;
-use App\Repositories\Contracts\Settings\SettingRepositoryContract;
-use App\Repositories\Contracts\Rewards\RewardRepositoryContract;
-use App\Repositories\Contracts\Games\Bingo\Cards\CardPrize\BingoCardPrizeRepositoryContract;
+use App\Repositories\Users\Contracts\UserRepositoryContract;
+use App\Repositories\Games\Bingo\Contracts\BingoRoomRepositoryContract;
+use App\Repositories\Commands\Contracts\CommandLogRepositoryContract;
+use App\Repositories\Banks\Contracts\BankBrazilRepositoryContract;
+use App\Repositories\Banks\Contracts\BankVenezuelaRepositoryContract;
+use App\Repositories\Countries\Contracts\CountryRepositoryContract;
+use App\Repositories\Currencies\Contracts\CurrencyRepositoryContract;
+use App\Repositories\Games\Contracts\GameRepositoryContract;
+use App\Repositories\Games\Utils\Contracts\GameConfigRepositoryContract;
+use App\Repositories\Wallets\Crypto\Contracts\BinanceAccountsRepositoryContract;
+use App\Repositories\Games\Bingo\Cards\Contracts\BingoCardRepositoryContract;
+use App\Repositories\Games\Bingo\Cards\Contracts\BingoCardLotRepositoryContract;
+use App\Repositories\Games\Bingo\Cards\Contracts\BingoCardPaymentRepositoryContract;
+use App\Repositories\Wallets\Contracts\WalletRepositoryContract;
+use App\Repositories\Games\Bingo\Cards\CardPrice\Contracts\BingoCardPriceRepositoryContract;
+use App\Repositories\Games\Bingo\Cards\CardPrice\Contracts\BingoCardPriceDraftRepositoryContract;
+use App\Repositories\Settings\Contracts\SettingRepositoryContract;
+use App\Repositories\Rewards\Contracts\RewardRepositoryContract;
+use App\Repositories\Games\Bingo\Cards\CardPrize\Contracts\BingoCardPrizeRepositoryContract;
 use App\Repositories\Games\Bingo\Cards\CardPrize\Contracts\BingoCardPrizePaymentRepositoryContract;
 use App\Repositories\Games\Bingo\Creators\Contracts\BingoCreatorRepositoryContract;
 use App\Repositories\Games\Bingo\Creators\Contracts\BingoCreatorSaleRepositoryContract;
@@ -31,6 +32,26 @@ use App\Repositories\Games\Bingo\Draws\Contracts\BingoDrawRepositoryContract;
 use App\Repositories\Games\Bingo\Draws\Contracts\BingoDrawCodeRepositoryContract;
 use App\Repositories\Games\Bingo\Images\Contracts\BingoImageRepositoryContract;
 use App\Repositories\Games\Bingo\Cards\Patterns\Contracts\BingoPatternRepositoryContract;
+use App\Repositories\Games\Bingo\Rooms\Contracts\BingoRoomConfigRepositoryContract;
+use App\Repositories\Games\Bingo\Rooms\Contracts\BingoRoomUserRepositoryContract;
+use App\Repositories\Games\Bingo\Rooms\Contracts\BingoRoomUserWinnerRepositoryContract;
+use App\Repositories\Games\Bingo\Rounds\Contracts\BingoRoundRepositoryContract;
+use App\Repositories\Games\Bingo\Rounds\Contracts\BingoRoundDraftRepositoryContract;
+use App\Repositories\Games\Shared\GameRoom\Contracts\CurrencyGameRoomRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCountriesCurrencysRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceGameRepositoryContract;
+use App\Repositories\Users\Roles\Company\Contracts\CompanyRepositoryContract;
+use App\Repositories\Users\Roles\Customer\Contracts\CustomerRepositoryContract;
+use App\Repositories\Users\Roles\Customer\Contracts\CustomerExchangeRateRepositoryContract;
+use App\Repositories\Users\Roles\Customer\Contracts\CustomerGameRepositoryContract;
+use App\Repositories\Users\Roles\Customer\Contracts\CustomerUserRepositoryContract;
+use App\Repositories\Users\Shared\Contracts\DocumentTypeRepositoryContract;
+use App\Repositories\Payments\ExchangeRate\Contracts\ExchangeRateRepositoryContract;
+use App\Repositories\Users\Roles\Player\External\Contracts\ExternalPlayerRepositoryContract;
+use App\Repositories\Games\Shared\Utils\Contracts\GameExchangeRateRepositoryContract;
+use App\Repositories\Games\Shared\GameMode\Contracts\GameModeRepositoryContract;
 
 // Implementaciones
 use App\Repositories\BaseRepository;
@@ -59,6 +80,26 @@ use App\Repositories\Games\Bingo\Draws\BingoDrawRepository;
 use App\Repositories\Games\Bingo\Draws\BingoDrawCodeRepository;
 use App\Repositories\Games\Bingo\Images\BingoImageRepository;
 use App\Repositories\Games\Bingo\Cards\Patterns\BingoPatternRepository;
+use App\Repositories\Games\Bingo\Rooms\BingoRoomConfigRepository;
+use App\Repositories\Games\Bingo\Rooms\BingoRoomUserRepository;
+use App\Repositories\Games\Bingo\Rooms\BingoRoomUserWinnerRepository;
+use App\Repositories\Games\Bingo\Rounds\BingoRoundRepository;
+use App\Repositories\Games\Bingo\Rounds\BingoRoundDraftRepository;
+use App\Repositories\Games\Shared\GameRoom\CurrencyGameRoomRepository;
+use App\Repositories\Users\Roles\Commerce\CommerceRepository;
+use App\Repositories\Users\Roles\Commerce\CommerceCountriesCurrencysRepository;
+use App\Repositories\Users\Roles\Commerce\CommerceExchangeRateRepository;
+use App\Repositories\Users\Roles\Commerce\CommerceGameRepository;
+use App\Repositories\Users\Roles\Company\CompanyRepository;
+use App\Repositories\Users\Roles\Customer\CustomerRepository;
+use App\Repositories\Users\Roles\Customer\CustomerExchangeRateRepository;
+use App\Repositories\Users\Roles\Customer\CustomerGameRepository;
+use App\Repositories\Users\Roles\Customer\CustomerUserRepository;
+use App\Repositories\Users\Shared\DocumentTypeRepository;
+use App\Repositories\Payments\ExchangeRate\ExchangeRateRepository;
+use App\Repositories\Users\Roles\Player\External\ExternalPlayerRepository;
+use App\Repositories\Games\Shared\Utils\GameExchangeRateRepository;
+use App\Repositories\Games\Shared\GameMode\GameModeRepository;
 
 /**
  * Service Provider para registrar los repositorios
@@ -97,6 +138,50 @@ class RepositoryServiceProvider extends ServiceProvider
 
         // Registrar repositorios de wallets
         $this->app->bind(BinanceAccountsRepositoryContract::class, BinanceAccountsRepository::class);
+
+        // Registrar repositorios de configuraciones de bingo
+        $this->app->bind(BingoRoomConfigRepositoryContract::class, BingoRoomConfigRepository::class);
+
+        // Registrar repositorios de usuarios de salas de bingo
+        $this->app->bind(BingoRoomUserRepositoryContract::class, BingoRoomUserRepository::class);
+        $this->app->bind(BingoRoomUserWinnerRepositoryContract::class, BingoRoomUserWinnerRepository::class);
+
+        // Registrar repositorios de rondas de bingo
+        $this->app->bind(BingoRoundRepositoryContract::class, BingoRoundRepository::class);
+        $this->app->bind(BingoRoundDraftRepositoryContract::class, BingoRoundDraftRepository::class);
+
+        // Registrar repositorios de salas de juego
+        $this->app->bind(CurrencyGameRoomRepositoryContract::class, CurrencyGameRoomRepository::class);
+
+        // Registrar repositorios de comercios
+        $this->app->bind(CommerceRepositoryContract::class, CommerceRepository::class);
+        $this->app->bind(CommerceCountriesCurrencysRepositoryContract::class, CommerceCountriesCurrencysRepository::class);
+        $this->app->bind(CommerceExchangeRateRepositoryContract::class, CommerceExchangeRateRepository::class);
+        $this->app->bind(CommerceGameRepositoryContract::class, CommerceGameRepository::class);
+
+        // Registrar repositorios de empresas
+        $this->app->bind(CompanyRepositoryContract::class, CompanyRepository::class);
+
+        // Registrar repositorios de clientes
+        $this->app->bind(CustomerRepositoryContract::class, CustomerRepository::class);
+        $this->app->bind(CustomerExchangeRateRepositoryContract::class, CustomerExchangeRateRepository::class);
+        $this->app->bind(CustomerGameRepositoryContract::class, CustomerGameRepository::class);
+        $this->app->bind(CustomerUserRepositoryContract::class, CustomerUserRepository::class);
+
+        // Registrar repositorios de tipos de documento
+        $this->app->bind(DocumentTypeRepositoryContract::class, DocumentTypeRepository::class);
+
+        // Registrar repositorios de tipos de cambio
+        $this->app->bind(ExchangeRateRepositoryContract::class, ExchangeRateRepository::class);
+
+        // Registrar repositorios de jugadores externos
+        $this->app->bind(ExternalPlayerRepositoryContract::class, ExternalPlayerRepository::class);
+
+        // Registrar repositorios de tipos de cambio de juegos
+        $this->app->bind(GameExchangeRateRepositoryContract::class, GameExchangeRateRepository::class);
+
+        // Registrar repositorios de modos de juego
+        $this->app->bind(GameModeRepositoryContract::class, GameModeRepository::class);
 
         // Registrar repositorios de cartones de bingo
         $this->app->bind(BingoCardRepositoryContract::class, BingoCardRepository::class);

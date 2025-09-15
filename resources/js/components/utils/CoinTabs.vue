@@ -32,7 +32,7 @@ interface RouteWithCurrency {
 }
 
 /**
- * Props del componente CoinTabs
+ * Props del componente CurrencyTabs
  */
 interface Props {
   currencies: CurrencyItem[];

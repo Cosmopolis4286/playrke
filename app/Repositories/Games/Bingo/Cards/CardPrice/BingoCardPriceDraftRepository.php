@@ -24,14 +24,9 @@ use Carbon\Carbon;
  */
 class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardPriceDraftRepositoryContract
 {
-    /**
-     * Crear instancia del modelo BingoCardPriceDraft
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(BingoCardPriceDraft $model)
     {
-        return new BingoCardPriceDraft();
+        parent::__construct($model);
     }
 
     /**

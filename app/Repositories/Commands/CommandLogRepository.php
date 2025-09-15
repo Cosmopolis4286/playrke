@@ -15,14 +15,9 @@ use Carbon\Carbon;
  */
 class CommandLogRepository extends BaseRepository implements CommandLogRepositoryContract
 {
-    /**
-     * Crear instancia del modelo CommandLog
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(CommandLog $model)
     {
-        return new CommandLog();
+        parent::__construct($model);
     }
 
     /**

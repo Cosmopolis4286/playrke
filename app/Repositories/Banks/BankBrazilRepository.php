@@ -14,14 +14,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class BankBrazilRepository extends BaseRepository implements BankBrazilRepositoryContract
 {
-    /**
-     * Crear instancia del modelo BankBrazil
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(BankBrazil $model)
     {
-        return new BankBrazil();
+        parent::__construct($model);
     }
 
     /**

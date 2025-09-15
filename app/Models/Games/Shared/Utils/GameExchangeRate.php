@@ -2,37 +2,37 @@
 
 namespace App\Models\Games\Shared\Utils;
 
+use App\Models\Games\Shared\Game;
+use App\Models\Currencies\Currency;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GameExchangeRate extends Model
 {
-    protected $table = "game_exchange_rate";
-    protected $fillable = ['game', 'room', 'currency', 'exchange_rate'];
+    use SnowflakeId;
 
-    public function Game()
+    protected $table = "game_exchange_rates";
+
+    protected $fillable = [
+        'game_id',
+        'room',
+        'currency_id',
+        'exchange_rate'
+    ];
+
+    protected $casts = [
+        'exchange_rate' => 'decimal:8',
+        'room' => 'integer'
+    ];
+
+    public function game(): BelongsTo
     {
-        return $this->belongsTo(Game::class, 'game');
+        return $this->belongsTo(Game::class, 'game_id');
     }
 
-    public function Currency()
+    public function currency(): BelongsTo
     {
-        return $this->belongsTo(Currency::class, 'currency');
-    }
-
-    public static function getGameExchangeRateValue($gameName, $room, $currency, $value = 'exchange_rate')
-    {
-        $gameId = Game::getValueByName($gameName);
-
-        return self::where('game', $gameId)->where('room', $room)->where('currency', $currency)->value($value);
-    }
-
-    public static function getCountGameExchangeRate($game, $room)
-    {
-        return self::where('game', $game)->where('room', $room)->count();
-    }
-
-    public static function existsGameExchangeRate($game, $room, $currency)
-    {
-        return self::where('game', $game)->where('room', $room)->where('currency', $currency)->exists();
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 }

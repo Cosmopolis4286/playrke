@@ -1,56 +1,62 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Bingo\Rounds;
 
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
+use App\Models\Games\Bingo\Rooms\User\BingoRoomUserWinner;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Modelo para rondas de bingo
+ */
 class BingoRound extends Model
 {
+    use SnowflakeId;
+
     protected $table = 'bingo_rounds';
-    protected $fillable = ['room', 'round', 'start_time', 'last_chip', 'bingo_pattern_id', 'prize_type', 'prize_value', 'status'];
 
-    public static function getById($id, $fields = ['*'])
+    protected $fillable = [
+        'room_id',
+        'round',
+        'start_time',
+        'last_chip',
+        'bingo_pattern_id',
+        'prize_type',
+        'prize_value',
+        'status'
+    ];
+
+    protected $casts = [
+        'round' => 'integer',
+        'start_time' => 'datetime',
+        'prize_value' => 'decimal:6'
+    ];
+
+    /**
+     * Relación con la sala de bingo
+     */
+    public function room(): BelongsTo
     {
-        return self::select($fields)->where('id', $id)->first();
+        return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
-    public static function getValueById($id, $value)
+    /**
+     * Relación con el patrón de bingo
+     */
+    public function bingoPattern(): BelongsTo
     {
-        return self::where('id', $id)->value($value);
+        return $this->belongsTo(BingoPattern::class, 'bingo_pattern_id');
     }
 
-    public static function getByRoom($room, $round = '', $fields = ['*'])
+    /**
+     * Relación con los ganadores de esta ronda
+     */
+    public function winners(): HasMany
     {
-        $query = self::select($fields)->where('room', $room);
-
-        if ($round) {
-            $query->where('round', $round);
-        }
-
-        return $query->first();
-    }
-
-    public static function getValueByRoom($room, $round, $value)
-    {
-        return self::where('room', $room)->where('round', $round)->value($value);
-    }
-
-    public static function getRoundInProgress($room, $fields = ['*'])
-    {
-        return self::select($fields)->where('room', $room)
-            ->whereIn('status', ['IN PROGRESS', 'FINISHED'])
-            ->orderByDesc('id')->first();
-    }
-
-    public static function getValueByRoundInProgress($room, $value)
-    {
-        return self::where('room', $room)
-            ->whereIn('status', ['IN PROGRESS', 'FINISHED'])
-            ->orderByDesc('id')->value($value);
-    }
-
-    public static function existsRounds($room)
-    {
-        return self::where('room', $room)->exists();
+        return $this->hasMany(BingoRoomUserWinner::class, 'round_id');
     }
 }

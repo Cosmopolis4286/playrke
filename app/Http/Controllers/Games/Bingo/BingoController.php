@@ -32,7 +32,7 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
-use App\Models\CustomerGames;
+use App\Models\CustomerGame;
 use App\Models\CustomerUser;
 use App\Models\GameConfig;
 use App\Models\GameModes;
@@ -1112,7 +1112,7 @@ class BingoController extends Controller
 
                 $gameId = Game::getValueByName('BINGO');
 
-                $customerGameID = CustomerGames::getByGameID($creatorId, $gameId) ?? null;
+                $customerGameID = CustomerGame::getByGameID($creatorId, $gameId) ?? null;
 
                 $moreViewData = [
                     'customer' => true,

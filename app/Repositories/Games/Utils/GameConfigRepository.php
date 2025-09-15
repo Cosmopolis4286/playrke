@@ -14,14 +14,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class GameConfigRepository extends BaseRepository implements GameConfigRepositoryContract
 {
-    /**
-     * Crear instancia del modelo GameConfig
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(GameConfig $model)
     {
-        return new GameConfig();
+        parent::__construct($model);
     }
 
     /**

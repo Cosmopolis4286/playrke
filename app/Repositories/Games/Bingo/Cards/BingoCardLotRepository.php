@@ -23,14 +23,9 @@ use Illuminate\Support\Facades\DB;
  */
 class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepositoryContract
 {
-    /**
-     * Crear instancia del modelo BingoCardLot
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(BingoCardLot $model)
     {
-        return new BingoCardLot();
+        parent::__construct($model);
     }
 
     /**

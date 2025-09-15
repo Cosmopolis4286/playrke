@@ -3,27 +3,24 @@
 namespace App\Models\Games\Shared\GameMode;
 
 use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GameMode extends Model
 {
-    protected $table = 'game_modes';
+    use SnowflakeId;
 
-    // Solo los campos asignables masivamente
     protected $fillable = [
         'description',
         'is_active',
     ];
 
-    // Casts
     protected $casts = [
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Relación con GamePrizePoolType
-     */
-    public function prizePoolTypes()
+    public function prizePoolTypes(): HasMany
     {
         return $this->hasMany(GamePrizePoolType::class, 'game_mode_id');
     }

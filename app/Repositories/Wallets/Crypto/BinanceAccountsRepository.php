@@ -14,14 +14,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class BinanceAccountsRepository extends BaseRepository implements BinanceAccountsRepositoryContract
 {
-    /**
-     * Crear instancia del modelo BinanceAccounts
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(BinanceAccounts $model)
     {
-        return new BinanceAccounts();
+        parent::__construct($model);
     }
 
     /**

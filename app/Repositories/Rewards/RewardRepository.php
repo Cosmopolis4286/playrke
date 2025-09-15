@@ -24,14 +24,9 @@ use Carbon\Carbon;
  */
 class RewardRepository extends BaseRepository implements RewardRepositoryContract
 {
-    /**
-     * Crear instancia del modelo Reward
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(Reward $model)
     {
-        return new Reward();
+        parent::__construct($model);
     }
 
     /**

@@ -14,14 +14,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CurrencyRepository extends BaseRepository implements CurrencyRepositoryContract
 {
-    /**
-     * Crear instancia del modelo Currency
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(Currency $model)
     {
-        return new Currency();
+        parent::__construct($model);
     }
 
     /**

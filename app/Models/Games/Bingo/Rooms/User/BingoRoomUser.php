@@ -1,72 +1,49 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Bingo\Rooms\User;
 
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Users\User;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Modelo para usuarios de salas de bingo
+ */
 class BingoRoomUser extends Model
 {
-    protected $table = 'bingo_rooms_user';
+    use SnowflakeId;
+
+    protected $table = 'bingo_room_users';
+
     protected $fillable = [
-        'room',
+        'room_id',
         'creator_user_id',
         'ctns',
         'automarker',
         'winner'
     ];
 
-    public function Room()
+    protected $casts = [
+        'ctns' => 'integer',
+        'automarker' => 'decimal:2'
+    ];
+
+    /**
+     * Relación con la sala de bingo
+     */
+    public function room(): BelongsTo
     {
-        return $this->belongsTo(BingoRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
-    public function PrizeCtns()
+    /**
+     * Relación con el usuario creador/participante
+     */
+    public function creatorUser(): BelongsTo
     {
-        return $this->hasMany(BingoPrizeCtns::class, 'room_user', 'id');
-    }
-
-    public static function getValue($id, $value)
-    {
-        return self::where('id', $id)->value($value);
-    }
-
-    public static function getByPlayerUser($room, $creatorUser, $playerUser, $fields = ['*'])
-    {
-        return self::select($fields)->where('room', $room)->where('creator_user_id', $creatorUser)
-            ->where('player_user', $playerUser)->first();
-    }
-
-    public static function getValueByPlayerUser($room, $creatorUser, $playerUser, $value = 'id')
-    {
-        return self::where('room', $room)->where('creator_user_id', $creatorUser)
-            ->where('player_user', $playerUser)->value($value);
-    }
-
-    public static function getPlayerCountByRoom($room, $condition = ['!=', ''])
-    {
-        // Verifica que el formato de la condición sea válido
-        if (!is_array($condition) || count($condition) !== 2) {
-            throw new \InvalidArgumentException("La condición debe ser un arreglo con dos elementos: [operador, valor].");
-        }
-
-        list($operator, $value) = $condition;
-
-        return self::where('room', $room)->where('winner', $operator, $value)->count();
-    }
-
-    public static function getWinnersCountByRoom($room)
-    {
-        return self::where('room', $room)->where('winner', '!=', '0')->count();
-    }
-
-    public static function getNonWinnersCountByRoom($room)
-    {
-        return self::where('room', $room)->where('winner', '0')->count();
-    }
-
-    public static function existsPlayerInRoom($room, $creator, $player)
-    {
-        return self::where('room', $room)->where($creator[0], $creator[1])
-            ->where($player[0], $player[1])->exists();
+        return $this->belongsTo(User::class, 'creator_user_id');
     }
 }

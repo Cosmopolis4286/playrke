@@ -23,14 +23,9 @@ use Illuminate\Support\Facades\DB;
  */
 class SettingRepository extends BaseRepository implements SettingRepositoryContract
 {
-    /**
-     * Crear instancia del modelo Setting
-     *
-     * @return Model
-     */
-    protected function makeModel(): Model
+    public function __construct(Setting $model)
     {
-        return new Setting();
+        parent::__construct($model);
     }
 
     /**

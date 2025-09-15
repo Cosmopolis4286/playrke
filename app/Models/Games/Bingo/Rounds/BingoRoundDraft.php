@@ -1,13 +1,20 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Bingo\Rounds;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Rooms\BingoRoomAutomatic;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para drafts de rondas de bingo
+ */
 class BingoRoundDraft extends Model
 {
-    use HasFactory;
+    use HasFactory, SnowflakeId;
 
     protected $table = 'bingo_rounds_drafts';
 
@@ -18,32 +25,28 @@ class BingoRoundDraft extends Model
         'prize_types',
         'bingo_patterns',
         'prize_values',
-        'status',
+        'status'
     ];
 
     protected $casts = [
-        'prize_types'    => 'array',
+        'prize_types' => 'array',
         'bingo_patterns' => 'array',
-        'prize_values'   => 'array',
+        'prize_values' => 'array'
     ];
 
-    public static function getById(int $id, array $fields = ['*']): ?self
+    /**
+     * Relación con la sala de bingo
+     */
+    public function bingoRoom(): BelongsTo
     {
-        return self::select($fields)->find($id);
+        return $this->belongsTo(BingoRoom::class, 'bingo_room_id');
     }
 
-    public static function getValueById(int $id, string $column)
+    /**
+     * Relación con la sala automática de bingo
+     */
+    public function automaticBingoRoom(): BelongsTo
     {
-        return self::where('id', $id)->value($column);
-    }
-
-    public static function getByRoom(int $roomId, array $fields = ['*']): ?self
-    {
-        return self::select($fields)->where('bingo_room_id', $roomId)->first();
-    }
-
-    public static function getByAutomaticRoom(int $roomId, array $fields = ['*']): ?self
-    {
-        return self::select($fields)->where('automatic_bingo_room_id', $roomId)->first();
+        return $this->belongsTo(BingoRoomAutomatic::class, 'automatic_bingo_room_id');
     }
 }

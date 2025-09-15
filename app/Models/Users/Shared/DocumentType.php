@@ -3,11 +3,13 @@
 namespace App\Models\Users\Shared;
 
 use App\Models\Countries\Country;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocumentType extends Model
 {
-    protected $table = "document_types"; // convención plural
+    use SnowflakeId;
 
     protected $fillable = [
         'code',
@@ -16,10 +18,11 @@ class DocumentType extends Model
         'is_active'
     ];
 
-    /**
-     * Relación: un tipo de documento pertenece a un país.
-     */
-    public function country()
+    protected $casts = [
+        'is_active' => 'boolean'
+    ];
+
+    public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_id');
     }

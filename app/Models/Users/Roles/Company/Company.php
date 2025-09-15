@@ -3,7 +3,9 @@
 namespace App\Models\Users\Roles\Company;
 
 use App\Models\Users\User;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Company model
@@ -15,14 +17,14 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Company extends Model
 {
+    use SnowflakeId;
+
     protected $fillable = ['name', 'slug'];
 
     /**
      * Usuarios asociados a esta empresa
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
-    public function users()
+    public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
             ->withPivot('role_id')

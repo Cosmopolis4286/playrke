@@ -3,122 +3,89 @@
 namespace App\Models\Users\Roles\Commerce;
 
 use App\Models\Countries\Country;
+use App\Models\Currencies\Currency;
 use App\Models\Users\Roles\Seller\Seller;
 use App\Models\Users\User;
+use App\Models\Settings\UniqueCode;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Modelo para comercios
+ */
 class Commerce extends Model
 {
-  protected $table = "commerces";
+    use SnowflakeId;
 
-  /**
-   * Campos asignables masivamente
-   */
-  protected $fillable = [
-    'name',
-    'country_id',   // FK Country
-    'currency_id',
-    'phone',
-    'user_id',      // FK User
-    'commission',
-    'rke_code_id',
-    'status'
-  ];
+    protected $table = 'commerces';
 
-  /**
-   * Retorna el label de status con badge HTML
-   */
-  public function getStatusLabelAttribute(): string
-  {
-    if ($this->status == 1) {
-      return '<span class="badge badge-success">Activo</span>';
+    protected $fillable = [
+        'name',
+        'country_id',
+        'currency_id',
+        'phone',
+        'user_id',
+        'commission',
+        'unique_code_id',
+        'status'
+    ];
+
+    protected $casts = [
+        'commission' => 'decimal:2'
+    ];
+
+    /**
+     * Accessor para el label de status con badge HTML
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        return match($this->status) {
+            'ACTIVE' => '<span class="badge badge-success">Activo</span>',
+            'INACTIVE' => '<span class="badge badge-warning">Inactivo</span>',
+            'BLOCKED' => '<span class="badge badge-danger">Bloqueado</span>',
+            default => '<span class="badge badge-secondary">Desconocido</span>'
+        };
     }
-    return '<span class="badge badge-danger">Inactivo</span>';
-  }
 
-  /**
-   * Relación con Country
-   */
-  public function Country(): BelongsTo
-  {
-    return $this->belongsTo(Country::class, 'country_id');
-  }
+    /**
+     * Relación con el país
+     */
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
 
-  /**
-   * Relación con User
-   */
-  public function User(): BelongsTo
-  {
-    return $this->belongsTo(User::class, 'user_id');
-  }
+    /**
+     * Relación con la moneda
+     */
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
+    }
 
-  /**
-   * Relación con Sellers
-   */
-  public function Sellers(): HasMany
-  {
-    return $this->hasMany(Seller::class, 'commerce_id', 'id');
-  }
+    /**
+     * Relación con el usuario
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
-  // ---------------------------
-  // Métodos de búsqueda rápida
-  // ---------------------------
+    /**
+     * Relación con el código único
+     */
+    public function uniqueCode(): BelongsTo
+    {
+        return $this->belongsTo(UniqueCode::class, 'unique_code_id');
+    }
 
-  public static function getByUserId($user, $fields = ['*']): ?self
-  {
-    return self::select($fields)->where('user', $user)->first();
-  }
-
-  public static function getById($id, $fields = ['*']): ?self
-  {
-    return self::select($fields)->where('id', $id)->first();
-  }
-
-  public static function getValueById($id, $value)
-  {
-    return self::where('id', $id)->value($value);
-  }
-
-  public static function getValueByUserId($user, $value)
-  {
-    return self::where('user', $user)->value($value);
-  }
-
-  public static function getByCodeRKE($code, $fields = ['*']): ?self
-  {
-    return self::select($fields)->where('rke_code', $code)->first();
-  }
-
-  public static function getValueByCodeRKE($code, $value)
-  {
-    return self::where('rke_code', $code)->value($value);
-  }
-
-  public static function getByCodeUUID($code, $fields = ['*']): ?self
-  {
-    return self::select($fields)->where('uuid_code', $code)->first();
-  }
-
-  public static function getValueByCodeUUID($code, $value)
-  {
-    return self::where('uuid_code', $code)->value($value);
-  }
-
-  /**
-   * Verifica si existe un valor en alguna columna
-   */
-  public static function existsValue(string $column, $value): bool
-  {
-    return self::where($column, $value)->exists();
-  }
-
-  /**
-   * Retorna todos los comercios activos
-   */
-  public static function getActiveCommerces($fields = ['*'])
-  {
-    return self::where('status', 1)->get($fields);
-  }
+    /**
+     * Relación con los vendedores
+     */
+    public function sellers(): HasMany
+    {
+        return $this->hasMany(Seller::class, 'commerce_id');
+    }
 }

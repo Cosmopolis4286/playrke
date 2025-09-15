@@ -1,37 +1,50 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Bingo\Rooms\User;
 
 use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Rounds\BingoRound;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para ganadores de salas de bingo
+ */
 class BingoRoomUserWinner extends Model
 {
+    use SnowflakeId;
+
     protected $table = 'bingo_rooms_user_winners';
-    protected $fillable = ['room', 'room_user', 'round', 'status'];
 
-    public function Room()
+    protected $fillable = [
+        'room_id',
+        'room_user_id',
+        'round_id',
+        'award_status'
+    ];
+
+    /**
+     * Relación con la sala de bingo
+     */
+    public function room(): BelongsTo
     {
-        return $this->belongsTo(BingoRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
-    public function Player()
+    /**
+     * Relación con el jugador de la sala
+     */
+    public function roomUser(): BelongsTo
     {
-        return $this->belongsTo(BingoRoomUser::class, 'room_user');
+        return $this->belongsTo(BingoRoomUser::class, 'room_user_id');
     }
 
-    public function Round()
+    /**
+     * Relación con la ronda
+     */
+    public function round(): BelongsTo
     {
-        return $this->belongsTo(BingoRound::class, 'round');
-    }
-
-    public static function getById($room, $fields = ['*'])
-    {
-        return self::select($fields)->where('id', $room)->first();
-    }
-
-    public static function getValue($id, $value)
-    {
-        return self::where('id', $id)->value($value);
+        return $this->belongsTo(BingoRound::class, 'round_id');
     }
 }

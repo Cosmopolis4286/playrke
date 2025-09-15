@@ -4,94 +4,62 @@ namespace App\Models\Users\Roles\Player\External;
 
 use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;
-use App\Models\Users\Roles\Commerce\Commerce;
+use App\Models\Games\Shared\Game;
+use App\Models\Users\Roles\Player\External\UserPurchaseCode;
 use App\Models\Users\Roles\Seller\Seller;
 use App\Models\Users\User;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ExternalPlayer extends Model
 {
-  protected $table = "external_players";
-  protected $fillable = [
-    'game_id',
-    'room_id',
-    'creator_user_id',
-    'seller_id',
-    'room_user',
-    'link',
-    'country_id',
-    'currency_id',
-    'name',
-    'lastname',
-    'identification',
-    'phone',
-    'purchase_code'
-  ];
+    use SnowflakeId;
 
-  public function Game()
-  {
-    return $this->belongsTo(Game::class, 'game_id');
-  }
+    protected $fillable = [
+        'game_id',
+        'room',
+        'creator_user_id',
+        'seller_id',
+        'room_user',
+        'link',
+        'country_id',
+        'currency_id',
+        'first_name',
+        'last_name',
+        'identification',
+        'phone',
+        'purchase_code_id',
+        'status'
+    ];
 
-  public function CreatorUser()
-  {
-    return $this->belongsTo(User::class, 'creator_user_id');
-  }
+    public function game(): BelongsTo
+    {
+        return $this->belongsTo(Game::class, 'game_id');
+    }
 
-  public function Country()
-  {
-    return $this->belongsTo(Country::class, 'country');
-  }
+    public function creatorUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_user_id');
+    }
 
-  public function Currency()
-  {
-    return $this->belongsTo(Currency::class, 'currency_id');
-  }
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
 
-  public function Commerce()
-  {
-    return $this->belongsTo(Commerce::class, 'commerce_id');
-  }
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
+    }
 
-  public function Seller()
-  {
-    return $this->belongsTo(Seller::class, 'seller_id');
-  }
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(Seller::class, 'seller_id');
+    }
 
-  public function CtnsLot()
-  {
-    return $this->hasMany(BingoCtnsLot::class, 'room_user', 'room_user');
-  }
-
-  public static function getById($id, $fields = ['*'])
-  {
-    return self::select($fields)->where('id', $id)->first();
-  }
-
-  public static function getValueById($id, $value = 'id')
-  {
-    return self::where('id', $id)->value($value);
-  }
-
-  public static function getByLink($playerLink, $fields = ['*'])
-  {
-    return self::select($fields)->where('link', $playerLink)->first();
-  }
-
-  public static function getValueByLink($link, $value)
-  {
-    return self::where('link', $link)->value($value);
-  }
-
-  public static function getByRoomUser($game, $roomUser, $fields = ['*'])
-  {
-    $gameId = Game::getValueByName($game);
-    return self::select($fields)->where('game', $gameId)->where('room_user', $roomUser)->first();
-  }
-
-  public static function getValueByRoomUser($game, $roomUser, $value)
-  {
-    $gameId = Game::getValueByName($game);
-    return self::where('game', $gameId)->where('room_user', $roomUser)->value($value);
-  }
+    public function purchaseCode(): BelongsTo
+    {
+        return $this->belongsTo(UserPurchaseCode::class, 'purchase_code_id');
+    }
 }
