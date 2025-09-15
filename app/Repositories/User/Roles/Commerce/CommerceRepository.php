@@ -71,31 +71,31 @@ class CommerceRepository
      */
     public static function getUserTypePrefix(int $userId): ?string
     {
-        $userTypeId = self::getValueById($userId, 'user_type');
-        return $userTypeId ? Role::where('id', $userTypeId)->value('prefix') : null;
+        $userRoleId = self::getValueById($userId, 'user_type');
+        return $userRoleId ? Role::where('id', $userRoleId)->value('prefix') : null;
     }
 
     /**
      * Obtener el "creator" asociado a un usuario.
      *
      * @param int $userId
-     * @param string|bool|null $userType
+     * @param string|bool|null $userRole
      * @param bool $returnFull
      * @return int|array|null
      */
-    public static function getCreatorUser(int $userId, $userType = false, bool $returnFull = false): mixed
+    public static function getCreatorUser(int $userId, $userRole = false, bool $returnFull = false): mixed
     {
-        if (!$userType) {
-            $userType = self::getUserTypePrefix($userId);
+        if (!$userRole) {
+            $userRole = self::getUserTypePrefix($userId);
         }
 
-        $prefix = Role::where('id', $userType)->value('prefix');
-        $modelName = ucfirst(is_string($userType) ? $userType : $prefix);
+        $prefix = Role::where('id', $userRole)->value('prefix');
+        $modelName = ucfirst(is_string($userRole) ? $userRole : $prefix);
 
         $creatorId = app("App\\Models\\$modelName")::where('user', $userId)->value('id');
 
         return $returnFull
-            ? ['type' => $userType, 'id' => $creatorId, 'userId' => $userId]
+            ? ['type' => $userRole, 'id' => $creatorId, 'userId' => $userId]
             : $creatorId;
     }
 }

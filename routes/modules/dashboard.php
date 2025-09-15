@@ -1,6 +1,7 @@
 <?php
 
-use App\Http\Controllers\{CookieController, HomeController, InformationController};
+use App\Http\Controllers\CookieController;
+use App\Http\Controllers\Shared\{HomeController, InformationController};
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {

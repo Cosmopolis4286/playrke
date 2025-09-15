@@ -4,13 +4,12 @@ namespace App\Models\Users\Roles\Player\External;
 
 use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;
-use App\Models\Games\Shared\Games;
 use App\Models\Users\Roles\Commerce\Commerce;
 use App\Models\Users\Roles\Seller\Seller;
 use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 
-class ExternalPlayers extends Model
+class ExternalPlayer extends Model
 {
   protected $table = "external_players";
   protected $fillable = [

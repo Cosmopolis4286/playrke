@@ -1,56 +1,67 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Shared;
 
 use App\Http\Controllers\Controller;
-
-// Models
-use App\Models\Role;
-use App\Models\Wallet;
+use App\Models\Wallets\Wallet;
 use App\Repositories\User\Roles\RoleRepository;
-// Traits
-use App\Traits\Users\UserValTrait;
-
-// Otros
+use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * Controlador para la página principal / dashboard.
+ */
 class HomeController extends Controller
 {
-    use UserValTrait;
+    use UserTrait;
 
+    /**
+     * Mostrar el tablero principal del usuario.
+     *
+     * @return \Illuminate\View\View
+     */
     public function index()
     {
-        $user = $this->user(['user_type']);
+        $user = $this->user(); // Obtener usuario actual con toda la info
 
+        // Obtener rol principal (primer rol asignado) del usuario
+        $firstRoleId = $user->roles->first()?->id;
+        $userRole = $firstRoleId ? RoleRepository::getValueById($firstRoleId, 'prefix') : 'user';
+
+        // Datos base
         $data = [
             'title' => 'Tablero',
-            'exchangeRate' => $exchangeRate ?? 1,
-            'balance' => $this->getBalance(),
+            'exchangeRate' => 1, // Valor por defecto si no hay otro cálculo
+            'balance' => $this->getBalance($user->id),
         ];
 
-        $userType = RoleRepository::getValueById($user->user_type, 'prefix');
-
-        // Configuración de datos adicionales para cada tipo de usuario
+        // Configuración de datos adicionales según tipo de usuario
         $extraData = [
             'user' => [],
             'admin' => [],
-            'commerce_id' => [],
+            'commerce' => [],
             'seller' => [],
-            'seller' => []
         ];
 
         // Fusionar datos adicionales si existen para el tipo de usuario actual
-        $data = array_merge($data, $extraData[$userType] ?? []);
+        $data = array_merge($data, $extraData[$userRole] ?? []);
 
         // Construir la ruta de la vista dinámicamente
-        $view = "modules/{$userType}/widgets/index";
+        $view = "modules/users/roles/{$userRole}/widgets/index";
 
         return view($view)->with($data);
     }
 
-    public function getBalance()
+    /**
+     * Obtener el balance total del usuario.
+     *
+     * @param int|null $userId
+     * @return float
+     */
+    public function getBalance(?int $userId = null): float
     {
-        return Wallet::where('user', Auth::id())->sum('balance');
+        $userId ??= Auth::id();
+
+        return Wallet::where('user_id', $userId)->sum('balance');
     }
 }

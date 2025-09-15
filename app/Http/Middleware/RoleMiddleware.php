@@ -45,8 +45,8 @@ class RoleMiddleware
         }
 
         // Validar que el tipo de usuario exista
-        $userTypePrefix = $this->RoleRepository->getValueById($user->user_type, 'prefix');
-        if (!$userTypePrefix) {
+        $userRolePrefix = $this->RoleRepository->getValueById($user->user_type, 'prefix');
+        if (!$userRolePrefix) {
             Auth::logout(); // Cierra sesión si tipo inválido
             return redirect()->route('login')->with('error', 'Usuario inválido.');
         }

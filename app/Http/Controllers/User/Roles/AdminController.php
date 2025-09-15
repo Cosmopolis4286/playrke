@@ -13,13 +13,13 @@ use App\Models\OtherTreasurers;
 use App\Models\TimeZone;
 use App\Models\Treasurer;
 use App\Traits\Helpers\EncryptTrait;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
-    use UserValTrait, EncryptTrait;
+    use UserTrait, EncryptTrait;
 
     /**
      * Obtiene la vista de comercializadoras con datos relacionados.

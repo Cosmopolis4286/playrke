@@ -1,70 +1,90 @@
 <template>
-  <div class="auth__form-item" :class="itemClasses">
-    <!-- Left Icon -->
-    <div v-if="props.icon || props.fieldType || fieldIcon" class="auth__input-icon auth__input-icon--left" :style="iconStyle">
-      <i :class="buildIconClass(getCurrentIcon, 'transition-all duration-200')"></i>
-    </div>
-
-    <input
-      :id="inputId"
-      :ref="inputId"
-      v-model="inputValue"
-      :type="computedType"
-      :placeholder="placeholder"
-      :aria-label="ariaLabel"
-      :class="inputClasses"
-      :maxlength="maxlength"
-      :readonly="readonly"
-      :required="required"
-      :autocomplete="autocomplete"
-      @input="handleInput"
-      @blur="handleBlur"
-      @focus="handleFocus"
-      @keydown.enter="handleEnter"
-    />
-
-    <!-- Right Icons -->
-    <div v-if="showRightIcons" class="auth__input-icons-right">
-      <!-- Toggle Password Visibility -->
-      <button
-        v-if="showPasswordToggle && type === 'password'"
-        type="button"
-        class="auth__input-toggle"
-        @click="togglePasswordVisibility"
-        :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-        tabindex="-1"
-      >
-        <i :class="buildIconClass(getPasswordToggleIcon())"></i>
-      </button>
-
-      <!-- Loading Spinner -->
-      <div v-if="loading" class="auth__input-loading">
-        <i :class="buildIconClass(getIcon('loader'), 'animate-spin')"></i>
+  <div class="relative">
+    <!-- Input Container -->
+    <div class="relative">
+      <!-- Left Icon -->
+      <div v-if="props.icon || props.fieldType || fieldIcon"
+           class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+        <i :class="buildIconClass(getCurrentIcon, 'text-gray-400 text-lg transition-all duration-200')"
+           :style="iconStyle"></i>
       </div>
 
-      <!-- Validation Status Icons -->
-      <div v-else-if="showValidationIcon && (isValid || hasError)" class="auth__input-status">
-        <i v-if="isValid" :class="buildIconClass(getValidationIcon('valid'))" :style="buildIconStyle(getValidationIcon('valid'))"></i>
-        <i v-else-if="hasError" :class="buildIconClass(getValidationIcon('invalid'))" :style="buildIconStyle(getValidationIcon('invalid'))"></i>
+      <input
+        :id="inputId"
+        :ref="inputId"
+        v-model="inputValue"
+        :type="computedType"
+        :placeholder="placeholder"
+        :aria-label="ariaLabel"
+        :class="inputClasses"
+        :maxlength="maxlength"
+        :readonly="readonly"
+        :required="required"
+        :autocomplete="autocomplete"
+        @input="handleInput"
+        @blur="handleBlur"
+        @focus="handleFocus"
+        @keydown.enter="handleEnter"
+      />
+
+      <!-- Right Icons -->
+      <div v-if="showRightIcons" class="absolute inset-y-0 right-0 pr-4 flex items-center space-x-2">
+        <!-- Loading Spinner -->
+        <div v-if="loading" class="text-indigo-500">
+          <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+
+        <!-- Validation Status Icons -->
+        <div v-else-if="showValidationIcon && (isValid || hasError)">
+          <i v-if="isValid" class="fas fa-check-circle text-green-500 text-lg"></i>
+          <i v-else-if="hasError" class="fas fa-exclamation-circle text-red-500 text-lg"></i>
+        </div>
+
+        <!-- Toggle Password Visibility -->
+        <button
+          v-if="showPasswordToggle && type === 'password'"
+          type="button"
+          class="text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none"
+          @click="togglePasswordVisibility"
+          :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+          tabindex="-1"
+        >
+          <i class="fas text-lg" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+        </button>
       </div>
     </div>
+
+    <!-- Error Messages -->
+    <transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 transform -translate-y-2"
+      enter-to-class="opacity-100 transform translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 transform translate-y-0"
+      leave-to-class="opacity-0 transform -translate-y-2">
+      <div v-if="errorMessage" class="mt-2 text-red-400 text-sm flex items-center space-x-1">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+    </transition>
+
+    <!-- Help Text -->
+    <transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 transform -translate-y-2"
+      enter-to-class="opacity-100 transform translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 transform translate-y-0"
+      leave-to-class="opacity-0 transform -translate-y-2">
+      <div v-if="helpText && !hasError" class="mt-2 text-gray-400 text-sm flex items-center space-x-1">
+        <i class="fas fa-info-circle"></i>
+        <span>{{ helpText }}</span>
+      </div>
+    </transition>
   </div>
-
-  <!-- Error Messages -->
-  <transition name="slide-down">
-    <div v-if="errorMessage" class="auth__error">
-      <i :class="buildIconClass(getValidationIcon('invalid'))" :style="buildIconStyle(getValidationIcon('invalid'))"></i>
-      <span>{{ errorMessage }}</span>
-    </div>
-  </transition>
-
-  <!-- Help Text -->
-  <transition name="slide-down">
-    <div v-if="helpText && !hasError" class="auth__help-text">
-      <i :class="buildIconClass(getIcon('info'))" :style="buildIconStyle(getIcon('info'))"></i>
-      <span>{{ helpText }}</span>
-    </div>
-  </transition>
 </template>
 
 <script setup lang="ts">
@@ -227,39 +247,48 @@ const iconStyle = computed(() => {
 })
 
 const inputClasses = computed(() => {
-  const classes = ['auth__input']
+  const baseClasses = 'w-full py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none transition-all duration-200 backdrop-blur-sm'
 
-  // State classes
-  if (hasError.value) {
-    classes.push('auth__input--error')
-  } else if (isValid.value) {
-    classes.push('auth__input--success')
-  }
+  let classes = baseClasses
 
-  if (isFocused.value) {
-    classes.push('auth__input--focused')
-  }
-
-  if (props.readonly) {
-    classes.push('auth__input--readonly')
-  }
-
-  // Variant classes
-  classes.push(`auth__input--${props.variant}`)
-
-  // Size classes
-  classes.push(`auth__input--${props.size}`)
-
-  // Icon padding
+  // Padding based on icons
   if (props.icon || fieldIcon.value) {
-    classes.push('auth__input--with-left-icon')
+    classes += ' pl-12'
+  } else {
+    classes += ' pl-4'
   }
 
   if (showRightIcons.value) {
-    classes.push('auth__input--with-right-icon')
+    classes += ' pr-12'
+  } else {
+    classes += ' pr-4'
   }
 
-  return classes.join(' ')
+  // State classes
+  if (hasError.value) {
+    classes += ' border-red-400 focus:ring-red-500 focus:border-red-400'
+  } else if (isValid.value) {
+    classes += ' border-green-400 focus:ring-green-500 focus:border-green-400'
+  } else {
+    classes += ' focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+  }
+
+  if (isFocused.value) {
+    classes += ' transform scale-[1.02]'
+  }
+
+  if (props.readonly) {
+    classes += ' opacity-60 cursor-not-allowed'
+  }
+
+  // Size variants
+  if (props.size === 'sm') {
+    classes += ' py-3 text-sm'
+  } else if (props.size === 'lg') {
+    classes += ' py-5 text-lg'
+  }
+
+  return classes
 })
 
 
@@ -369,63 +398,51 @@ defineExpose({
 </script>
 
 <style scoped>
-/* Component-specific animations */
-.auth__input--focused {
-  transform: translateY(-1px);
+/* Custom focus ring for better visibility */
+.focus\:ring-2:focus {
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
 }
 
-.auth__input-loading {
-  @apply absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-500;
+.focus\:ring-red-500:focus {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5);
 }
 
-.auth__input-success {
-  @apply absolute right-3 top-1/2 transform -translate-y-1/2;
+.focus\:ring-green-500:focus {
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5);
 }
 
-.auth__help-text {
-  @apply text-xs mt-1 px-1 text-gray-400;
+/* Enhanced backdrop blur for input */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
 }
 
-/* Transitions */
-.slide-down-enter-active,
-.slide-down-leave-active {
-  transition: all 0.3s ease-out;
+/* Smooth transitions */
+input {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.slide-down-enter-from {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-.slide-down-leave-to {
-  opacity: 0;
-  transform: translateY(-5px);
-}
-
-/* Input focus animation */
-.auth__input {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.auth__input:focus {
-  transform: translateY(-1px);
-}
-
-/* Icon animation */
-.auth__input-icon {
+/* Icon animations */
+i {
   transition: all 0.2s ease-in-out;
 }
 
-/* Password toggle animation */
-.auth__input-toggle {
-  transition: all 0.2s ease-in-out;
-}
-
-.auth__input-toggle:hover {
+/* Hover effects for interactive elements */
+button:hover i {
   transform: scale(1.1);
 }
 
-.auth__input-toggle:active {
+button:active i {
   transform: scale(0.95);
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 </style>

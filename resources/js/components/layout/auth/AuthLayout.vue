@@ -1,142 +1,176 @@
 <!-- Enhanced Auth Layout with advanced slots and interactivity -->
 <template>
-  <div class="auth" :class="authClasses">
-    <!-- Background Layer -->
-    <slot name="background">
-      <div class="auth__background-layer">
-        <img class="auth__background" :src="bgImg" alt="Background" @load="onBackgroundLoad"
-          @error="onBackgroundError" />
-        <!-- Animated particles/shapes -->
-        <div v-if="showParticles" class="auth__particles">
-          <div v-for="i in particleCount" :key="`particle-${i}`" class="auth__particle" :style="getParticleStyle(i)">
-          </div>
+  <div class="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-indigo-900 relative overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0">
+      <!-- Gradient Overlay -->
+      <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-blue-800/20"></div>
+
+      <!-- Animated Background Shapes -->
+      <div class="absolute top-0 left-0 w-96 h-96 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-full blur-3xl animate-pulse"></div>
+      <div class="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+      <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 4s;"></div>
+
+      <!-- Floating Particles -->
+      <div v-if="showParticles" class="absolute inset-0 pointer-events-none">
+        <div v-for="i in particleCount" :key="`particle-${i}`"
+             class="absolute w-2 h-2 bg-white/20 rounded-full animate-float"
+             :style="getParticleStyle(i)">
         </div>
       </div>
-    </slot>
+    </div>
 
-    <main class="auth__main">
+    <!-- Main Content -->
+    <div class="relative z-10 min-h-screen flex items-center justify-center p-4">
       <!-- Header Slot -->
-      <header v-if="$slots.header" class="auth__header">
+      <header v-if="$slots.header" class="absolute top-0 left-0 right-0 z-20 p-6">
         <slot name="header" />
       </header>
 
-      <!-- Container -->
-      <div class="auth__container" :class="containerClasses" ref="containerRef">
-        <!-- Top Section -->
-        <div v-if="$slots.top" class="auth__top">
-          <slot name="top" />
-        </div>
+      <!-- Auth Container -->
+      <div class="w-full max-w-md" :class="containerClasses" ref="containerRef">
+        <!-- Glass Card Container -->
+        <div class="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl p-8 space-y-6">
+          <!-- Top Section -->
+          <div v-if="$slots.top" class="mb-6">
+            <slot name="top" />
+          </div>
 
-        <!-- Logo Section -->
-        <div class="auth__logo-section">
-          <slot name="logo">
-            <div class="auth__logo" :class="{ 'auth__logo--animate': animateLogo }">
-              <img :src="logo" alt="PlayRKE" @click="$emit('logo-click')"
-                :class="{ 'cursor-pointer': hasLogoClickListener }" />
+          <!-- Logo Section -->
+          <div class="text-center mb-8">
+            <slot name="logo">
+              <div class="relative inline-block">
+                <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-30 animate-pulse"></div>
+                <img :src="logo" alt="PlayRKE"
+                     class="relative h-16 w-auto mx-auto drop-shadow-2xl transition-transform duration-300 hover:scale-105"
+                     :class="{ 'cursor-pointer animate-bounce': hasLogoClickListener && animateLogo }"
+                     @click="$emit('logo-click')" />
+              </div>
+            </slot>
+
+            <!-- Progress Indicator -->
+            <div v-if="showProgress" class="mt-4 w-full bg-white/10 rounded-full h-1 overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500 ease-out"
+                   :style="{ width: `${progressValue}%` }"></div>
             </div>
-          </slot>
+          </div>
 
-          <!-- Progress Indicator -->
-          <div v-if="showProgress" class="auth__progress">
-            <div class="auth__progress-bar" :style="{ width: `${progressValue}%` }"></div>
+          <!-- Title & Subtitle Section -->
+          <div v-if="title || subtitle || $slots.title" class="text-center mb-8">
+            <slot name="title">
+              <h1 v-if="title" class="text-3xl font-bold text-white mb-2 tracking-tight">{{ title }}</h1>
+              <p v-if="subtitle" class="text-lg text-gray-300 font-light">{{ subtitle }}</p>
+            </slot>
+          </div>
+
+          <!-- Alert Section -->
+          <div v-if="$slots.alert" class="mb-6">
+            <slot name="alert" />
+          </div>
+
+          <!-- Main Content -->
+          <div class="space-y-6" :class="contentClasses">
+            <slot />
+          </div>
+
+          <!-- Actions Section -->
+          <div v-if="$slots.actions" class="mt-6">
+            <slot name="actions" />
+          </div>
+
+          <!-- Pre-footer Section -->
+          <div v-if="$slots['pre-footer']" class="mt-6 pt-6 border-t border-white/10">
+            <slot name="pre-footer" />
           </div>
         </div>
 
-        <!-- Title & Subtitle Section -->
-        <div v-if="title || subtitle || $slots.title" class="auth__title-section">
-          <slot name="title">
-            <h1 v-if="title" class="auth__title">{{ title }}</h1>
-            <p v-if="subtitle" class="auth__subtitle">{{ subtitle }}</p>
-          </slot>
-        </div>
-
-        <!-- Alert Section -->
-        <div v-if="$slots.alert" class="auth__alert-section">
-          <slot name="alert" />
-        </div>
-
-        <!-- Main Content -->
-        <div class="auth__content" :class="contentClasses">
-          <slot />
-        </div>
-
-        <!-- Actions Section -->
-        <div v-if="$slots.actions" class="auth__actions">
-          <slot name="actions" />
-        </div>
-
-        <!-- Pre-footer Section -->
-        <div v-if="$slots['pre-footer']" class="auth__pre-footer">
-          <slot name="pre-footer" />
-        </div>
-
         <!-- Footer -->
-        <footer class="auth__footer">
+        <footer class="mt-8 pt-6 border-t border-white/10">
           <slot name="footer">
             <!-- Legal Links -->
-            <div class="auth__footer-links">
-              <button type="button" @click="openInfoModal('terms')" class="auth__footer-link">
-                <i class="fas fa-file-contract mr-1"></i>
-                Términos
+            <div class="flex justify-center space-x-6 mb-4">
+              <button type="button" @click="openInfoModal('terms')"
+                      class="text-gray-400 hover:text-white transition-colors duration-200 text-sm flex items-center space-x-1">
+                <i class="fas fa-file-contract"></i>
+                <span>Términos</span>
               </button>
-              <button type="button" @click="openInfoModal('about')" class="auth__footer-link">
-                <i class="fas fa-users mr-1"></i>
-                Quiénes Somos
+              <button type="button" @click="openInfoModal('about')"
+                      class="text-gray-400 hover:text-white transition-colors duration-200 text-sm flex items-center space-x-1">
+                <i class="fas fa-users"></i>
+                <span>Quiénes Somos</span>
               </button>
-              <button type="button" @click="openInfoModal('privacy')" class="auth__footer-link">
-                <i class="fas fa-shield-alt mr-1"></i>
-                Privacidad
+              <button type="button" @click="openInfoModal('privacy')"
+                      class="text-gray-400 hover:text-white transition-colors duration-200 text-sm flex items-center space-x-1">
+                <i class="fas fa-shield-alt"></i>
+                <span>Privacidad</span>
               </button>
             </div>
 
             <!-- Social and Copyright -->
-            <div class="auth__social">
-              <span class="auth__copyright">
-                <i class="fas fa-copyright mr-1"></i>
-                PlayRKE © {{ year }}
-              </span>
-              <div class="auth__social-links">
-                <a class="auth__social-link" :href="social.facebook" target="_blank" rel="noopener noreferrer"
-                  :aria-label="'Seguir en Facebook'">
+            <div class="text-center space-y-4">
+              <div class="flex justify-center space-x-4">
+                <a :href="social.facebook" target="_blank" rel="noopener noreferrer"
+                   class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-all duration-200 hover:scale-110">
                   <i class="fab fa-facebook"></i>
                 </a>
-                <a class="auth__social-link" :href="social.instagram" target="_blank" rel="noopener noreferrer"
-                  :aria-label="'Seguir en Instagram'">
+                <a :href="social.instagram" target="_blank" rel="noopener noreferrer"
+                   class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-all duration-200 hover:scale-110">
                   <i class="fab fa-instagram"></i>
                 </a>
-                <a class="auth__social-link" :href="social.telegram" target="_blank" rel="noopener noreferrer"
-                  :aria-label="'Unirse al canal de Telegram'">
+                <a :href="social.telegram" target="_blank" rel="noopener noreferrer"
+                   class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-all duration-200 hover:scale-110">
                   <i class="fab fa-telegram"></i>
                 </a>
               </div>
+              <p class="text-gray-400 text-sm flex items-center justify-center space-x-1">
+                <i class="fas fa-copyright"></i>
+                <span>PlayRKE © {{ year }}</span>
+              </p>
             </div>
           </slot>
         </footer>
 
         <!-- Bottom Section -->
-        <div v-if="$slots.bottom" class="auth__bottom">
+        <div v-if="$slots.bottom" class="mt-6">
           <slot name="bottom" />
         </div>
       </div>
 
       <!-- Floating Elements -->
-      <div v-if="$slots.floating" class="auth__floating">
+      <div v-if="$slots.floating" class="fixed bottom-6 right-6 z-50">
         <slot name="floating" />
       </div>
-    </main>
+    </div>
 
     <!-- Modal for info content -->
     <teleport to="body">
-      <transition name="modal">
-        <div v-if="showInfoModal" class="auth__modal-overlay" @click="closeInfoModal" @keydown.escape="closeInfoModal">
-          <div class="auth__modal" @click.stop role="dialog" :aria-labelledby="modalId">
-            <div class="auth__modal-header">
-              <h3 :id="modalId" class="auth__modal-title">{{ modalTitle }}</h3>
-              <button type="button" @click="closeInfoModal" class="auth__modal-close" aria-label="Cerrar">
+      <transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95">
+        <div v-if="showInfoModal"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+             @click="closeInfoModal"
+             @keydown.escape="closeInfoModal">
+          <div class="relative max-w-2xl w-full max-h-[90vh] bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+               @click.stop
+               role="dialog"
+               :aria-labelledby="modalId">
+            <div class="flex items-center justify-between p-6 border-b border-white/10">
+              <h3 :id="modalId" class="text-xl font-semibold text-white">{{ modalTitle }}</h3>
+              <button type="button"
+                      @click="closeInfoModal"
+                      class="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors duration-200"
+                      aria-label="Cerrar">
                 <i class="fas fa-times"></i>
               </button>
             </div>
-            <div class="auth__modal-content" v-html="modalContent"></div>
+            <div class="p-6 text-gray-300 leading-relaxed overflow-y-auto"
+                 style="max-height: calc(90vh - 140px);"
+                 v-html="modalContent"></div>
           </div>
         </div>
       </transition>
@@ -147,8 +181,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 
-// Import CSS
-import '../../../assets/css/auth.css'
+// Removed CSS import as we're now using Tailwind
 
 // Types
 interface SocialProps {
@@ -361,230 +394,115 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Enhanced layout styles */
-
 /* Container size variants */
-.auth__container--sm {
-  max-width: 360px;
-}
-
-.auth__container--md {
-  max-width: 420px;
-}
-
-.auth__container--lg {
-  max-width: 480px;
-}
-
-.auth__container--xl {
-  max-width: 560px;
-}
+.max-w-sm { max-width: 360px; }
+.max-w-md { max-width: 420px; }
+.max-w-lg { max-width: 480px; }
+.max-w-xl { max-width: 560px; }
 
 /* Content spacing variants */
-.auth__content--tight {
-  @apply space-y-4;
-}
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-8 > * + * { margin-top: 2rem; }
 
-.auth__content--normal {
-  @apply space-y-6;
-}
-
-.auth__content--relaxed {
-  @apply space-y-8;
-}
-
-/* Enhanced sections */
-.auth__title-section {
-  @apply text-center mb-8;
-}
-
-.auth__title {
-  @apply text-2xl font-bold mb-2;
-  color: var(--color-text-primary);
-}
-
-.auth__alert-section {
-  @apply mb-6;
-}
-
-.auth__actions {
-  @apply mt-6;
-}
-
-.auth__pre-footer {
-  @apply mt-6 mb-4;
-}
-
-.auth__bottom {
-  @apply mt-4;
-}
-
-/* Logo animations */
-.auth__logo--animate img {
-  animation: logoFloat 3s ease-in-out infinite;
-}
-
-@keyframes logoFloat {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-/* Progress bar */
-.auth__progress {
-  @apply w-full h-1 bg-gray-600 rounded-full mt-4 overflow-hidden;
-}
-
-.auth__progress-bar {
-  @apply h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500 ease-out;
-}
-
-/* Particles */
-.auth__particles {
-  @apply absolute inset-0 pointer-events-none overflow-hidden;
-}
-
-.auth__particle {
-  @apply absolute bg-blue-400/20 rounded-full;
-  animation: float infinite linear;
+/* Floating particles animation */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
 
 @keyframes float {
-  from {
+  0%, 100% {
     transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
   }
+  10%, 90% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-10vh) rotate(180deg);
+  }
+}
 
+/* Entrance animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
   to {
-    transform: translateY(-10vh) rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Container entrance animation */
-.auth__container--entering {
-  opacity: 0;
-  transform: translateY(20px) scale(0.95);
+/* Glass morphism effect */
+.backdrop-blur-xl {
+  backdrop-filter: blur(24px);
 }
 
-.auth__container--entered {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+/* Glow effects */
+.glow-box {
+  box-shadow:
+    0 0 20px rgba(99, 102, 241, 0.3),
+    0 0 40px rgba(99, 102, 241, 0.2),
+    0 0 80px rgba(99, 102, 241, 0.1);
 }
 
-/* Enhanced footer */
-.auth__social-links {
-  @apply flex space-x-3;
+/* Hover effects */
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
-.auth__social-link {
-  @apply w-8 h-8 flex items-center justify-center text-sm rounded-full transition-all;
-  color: var(--color-text-muted);
-  background: rgba(255, 255, 255, 0.05);
-}
+/* Custom animations for different particle delays */
+.animate-float:nth-child(1) { animation-delay: 0s; }
+.animate-float:nth-child(2) { animation-delay: 1s; }
+.animate-float:nth-child(3) { animation-delay: 2s; }
+.animate-float:nth-child(4) { animation-delay: 3s; }
+.animate-float:nth-child(5) { animation-delay: 4s; }
+.animate-float:nth-child(6) { animation-delay: 5s; }
+.animate-float:nth-child(7) { animation-delay: 0.5s; }
+.animate-float:nth-child(8) { animation-delay: 1.5s; }
+.animate-float:nth-child(9) { animation-delay: 2.5s; }
+.animate-float:nth-child(10) { animation-delay: 3.5s; }
+.animate-float:nth-child(11) { animation-delay: 4.5s; }
+.animate-float:nth-child(12) { animation-delay: 5.5s; }
+.animate-float:nth-child(13) { animation-delay: 0.8s; }
+.animate-float:nth-child(14) { animation-delay: 1.8s; }
+.animate-float:nth-child(15) { animation-delay: 2.8s; }
 
-.auth__social-link:hover {
-  color: var(--color-text-primary);
-  background: var(--color-primary);
-  transform: translateY(-2px) scale(1.1);
-}
-
-/* Modal styles */
-.auth__modal-overlay {
-  @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4;
-  backdrop-filter: blur(8px);
-}
-
-.auth__modal {
-  @apply bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden;
-  max-height: 90vh;
-  border: 1px solid var(--color-border-secondary);
-}
-
-.auth__modal-header {
-  @apply flex items-center justify-between p-6 border-b border-gray-600;
-}
-
-.auth__modal-title {
-  @apply text-lg font-semibold text-white;
-}
-
-.auth__modal-close {
-  @apply p-2 rounded-full hover:bg-gray-700 transition-colors;
-  color: var(--color-text-muted);
-}
-
-.auth__modal-close:hover {
-  color: var(--color-text-primary);
-}
-
-.auth__modal-content {
-  @apply p-6 text-gray-300 text-sm leading-relaxed overflow-y-auto;
-  max-height: 24rem;
-}
-
-/* Modal transitions */
-.modal-enter-active,
-.modal-leave-active {
-  transition: all 0.3s ease-out;
-}
-
-.modal-enter-from {
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-.modal-leave-to {
-  opacity: 0;
-  transform: scale(1.1);
-}
-
-/* Floating section */
-.auth__floating {
-  @apply fixed top-4 right-4 z-40;
-}
-
-/* Header section */
-.auth__header {
-  @apply w-full max-w-4xl mx-auto mb-8;
+/* Enhanced modal backdrop */
+.modal-backdrop {
+  backdrop-filter: blur(8px) saturate(1.2);
 }
 
 /* Responsive adjustments */
 @media (max-width: 640px) {
-  .auth__container {
-    @apply mx-4;
-    max-width: calc(100vw - 2rem);
+  .backdrop-blur-xl {
+    backdrop-filter: blur(16px);
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none;
   }
 
-  .auth__modal {
-    @apply mx-4;
-    max-width: calc(100vw - 2rem);
+  .transition-all,
+  .transition-colors,
+  .transition-transform {
+    transition: none;
   }
 }
 
 /* High contrast mode */
 @media (prefers-contrast: high) {
-
-  .auth__footer-link,
-  .auth__social-link {
-    @apply border border-current;
-  }
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-
-  .auth__logo--animate img,
-  .auth__particle,
-  .auth__container--entering,
-  .auth__container--entered {
-    animation: none;
-    transition: none;
+  .backdrop-blur-xl {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: none;
   }
 }
 </style>

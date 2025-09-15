@@ -64,7 +64,7 @@ use App\Traits\Games\GameTrait;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Helpers\FiltersTrait;
 use App\Traits\Users\CustomerTrait;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 
 // Otros
 use Carbon\Carbon;
@@ -79,7 +79,7 @@ use Illuminate\Support\Facades\Validator;
 
 class BingoController extends Controller
 {
-    use BingoTrait, CustomerTrait, EncryptTrait, FiltersTrait, GameTrait, UserValTrait;
+    use BingoTrait, CustomerTrait, EncryptTrait, FiltersTrait, GameTrait, UserTrait;
 
     protected RoomTypeService $roomTypeService;
     protected RouteService $routeService;
@@ -1786,16 +1786,16 @@ class BingoController extends Controller
     public function configuration($userToken = false)
     {
         if ($userToken) {
-            $userType = 'customer';
+            $userRole = 'customer';
             $userToken = true;
             $user = Customer::getValueByToken($userToken, 'user');
         } else {
             $user = Auth::id();
-            $userTypeID = User::getValueById($user, 'user_type');
-            $userType = RoleRepository::getValueById($userTypeID, 'prefix');
+            $userRoleID = User::getValueById($user, 'user_type');
+            $userRole = RoleRepository::getValueById($userRoleID, 'prefix');
         }
 
-        if (!in_array($userType, ['admin', 'commerce_id', 'customer'])) {
+        if (!in_array($userRole, ['admin', 'commerce_id', 'customer'])) {
             return redirect()->back();
         }
 
@@ -1820,7 +1820,7 @@ class BingoController extends Controller
 
         $viewData = ['route' => 'modules.game.bingo.configuration.index', 'data' => $viewData];
 
-        return $this->handleViewData($viewData, $userType);
+        return $this->handleViewData($viewData, $userRole);
     }
 
     public function handleBingoRules(Request $request, $id = '')
@@ -2050,9 +2050,9 @@ class BingoController extends Controller
         $bingoCreator = true;
 
         $creatorUserID = BingoRoom::getValueById($roomId, 'creator_user_id');
-        $userType = User::getValueById($creatorUserID, 'user_type');
+        $userRole = User::getValueById($creatorUserID, 'user_type');
 
-        $creatorType = RoleRepository::getValueById($userType, 'prefix');
+        $creatorType = RoleRepository::getValueById($userRole, 'prefix');
 
         if ($creatorType === 'commerce_id') {
             $bingoCreator = BingoCreator::existsByRoomCreatorUser($roomId, $creatorUserID);
@@ -2189,16 +2189,16 @@ class BingoController extends Controller
     public function bingoPatterns($userToken = false)
     {
         if ($userToken) {
-            $userType = 'customer';
+            $userRole = 'customer';
             $userToken = true;
             $user = Customer::getValueByToken($userToken, 'user');
         } else {
             $user = Auth::id();
-            $userTypeID = User::getValueById($user, 'user_type');
-            $userType = RoleRepository::getValueById($userTypeID, 'prefix');
+            $userRoleID = User::getValueById($user, 'user_type');
+            $userRole = RoleRepository::getValueById($userRoleID, 'prefix');
         }
 
-        if (!in_array($userType, ['admin', 'commerce_id', 'customer'])) {
+        if (!in_array($userRole, ['admin', 'commerce_id', 'customer'])) {
             return redirect()->back();
         }
 
@@ -2214,7 +2214,7 @@ class BingoController extends Controller
 
         $viewData = ['route' => 'modules.game.bingo.configuration.handle-patterns', 'data' => $viewData];
 
-        return $this->handleViewData($viewData, $userType);
+        return $this->handleViewData($viewData, $userRole);
     }
 
     public function getInfoByEncrypt($id, $creatorUser, $currency)
@@ -3122,7 +3122,7 @@ class BingoController extends Controller
         ];
 
         $currency = $verifyCurrency;
-        $userType = $userData['type'];
+        $userRole = $userData['type'];
         $rooms = $this->getRoomsData($userData, $currency, $dateFilter);
         $currencies = $this->getUserCurrencies($userData, ['CtnsLot'], $dateFilter);
 
@@ -3157,7 +3157,7 @@ class BingoController extends Controller
             $totals['sales'] += $allSale;
             $totals['sellerCommn'] += $sellerCommn;
 
-            if ($userType === 'commerce_id') {
+            if ($userRole === 'commerce_id') {
                 $roomCommn = $allSale * ($room->Config->room_commn / 100);
                 $rkeCommn = $allSale * ($room->Config->rke_commn / 100);
                 $prizePool = $allSale - $roomCommn - $sellerCommn - $rkeCommn;
@@ -3181,7 +3181,7 @@ class BingoController extends Controller
             'sellerCommn' => number_format($totals['sellerCommn'], 2, '.', ','),
         ];
 
-        if ($userType === 'commerce_id') {
+        if ($userRole === 'commerce_id') {
             $totalsFormatted['roomCommn'] = number_format($totals['roomCommn'], 2, '.', ',');
             $totalsFormatted['sellerCommn'] = number_format($totals['sellerCommn'], 2, '.', ',');
             $totalsFormatted['prizePool'] = number_format($totals['prizePool'], 2, '.', ',');

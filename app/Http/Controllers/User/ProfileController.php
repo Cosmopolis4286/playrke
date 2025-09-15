@@ -9,7 +9,7 @@ use App\Models\DocumentType;
 use App\Models\Users;
 
 // Traits
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 
 // Otros
 use Intervention\Image\Facades\Image;
@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
-    use UserValTrait;
+    use UserTrait;
 
     public function index()
     {

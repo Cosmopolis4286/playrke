@@ -24,6 +24,13 @@ use App\Repositories\Contracts\Games\Bingo\Cards\CardPrice\BingoCardPriceDraftRe
 use App\Repositories\Contracts\Settings\SettingRepositoryContract;
 use App\Repositories\Contracts\Rewards\RewardRepositoryContract;
 use App\Repositories\Contracts\Games\Bingo\Cards\CardPrize\BingoCardPrizeRepositoryContract;
+use App\Repositories\Games\Bingo\Cards\CardPrize\Contracts\BingoCardPrizePaymentRepositoryContract;
+use App\Repositories\Games\Bingo\Creators\Contracts\BingoCreatorRepositoryContract;
+use App\Repositories\Games\Bingo\Creators\Contracts\BingoCreatorSaleRepositoryContract;
+use App\Repositories\Games\Bingo\Draws\Contracts\BingoDrawRepositoryContract;
+use App\Repositories\Games\Bingo\Draws\Contracts\BingoDrawCodeRepositoryContract;
+use App\Repositories\Games\Bingo\Images\Contracts\BingoImageRepositoryContract;
+use App\Repositories\Games\Bingo\Cards\Patterns\Contracts\BingoPatternRepositoryContract;
 
 // Implementaciones
 use App\Repositories\BaseRepository;
@@ -45,6 +52,13 @@ use App\Repositories\Games\Bingo\Cards\CardPrice\BingoCardPriceDraftRepository;
 use App\Repositories\Settings\SettingRepository;
 use App\Repositories\Rewards\RewardRepository;
 use App\Repositories\Games\Bingo\Cards\CardPrize\BingoCardPrizeRepository;
+use App\Repositories\Games\Bingo\Cards\CardPrize\BingoCardPrizePaymentRepository;
+use App\Repositories\Games\Bingo\Creators\BingoCreatorRepository;
+use App\Repositories\Games\Bingo\Creators\BingoCreatorSaleRepository;
+use App\Repositories\Games\Bingo\Draws\BingoDrawRepository;
+use App\Repositories\Games\Bingo\Draws\BingoDrawCodeRepository;
+use App\Repositories\Games\Bingo\Images\BingoImageRepository;
+use App\Repositories\Games\Bingo\Cards\Patterns\BingoPatternRepository;
 
 /**
  * Service Provider para registrar los repositorios
@@ -104,6 +118,21 @@ class RepositoryServiceProvider extends ServiceProvider
 
         // Registrar repositorios de premios de cartones de bingo
         $this->app->bind(BingoCardPrizeRepositoryContract::class, BingoCardPrizeRepository::class);
+        $this->app->bind(BingoCardPrizePaymentRepositoryContract::class, BingoCardPrizePaymentRepository::class);
+
+        // Registrar repositorios de creadores de bingo
+        $this->app->bind(BingoCreatorRepositoryContract::class, BingoCreatorRepository::class);
+        $this->app->bind(BingoCreatorSaleRepositoryContract::class, BingoCreatorSaleRepository::class);
+
+        // Registrar repositorios de sorteos de bingo
+        $this->app->bind(BingoDrawRepositoryContract::class, BingoDrawRepository::class);
+        $this->app->bind(BingoDrawCodeRepositoryContract::class, BingoDrawCodeRepository::class);
+
+        // Registrar repositorios de imágenes de bingo
+        $this->app->bind(BingoImageRepositoryContract::class, BingoImageRepository::class);
+
+        // Registrar repositorios de patrones de bingo
+        $this->app->bind(BingoPatternRepositoryContract::class, BingoPatternRepository::class);
 
         // Registrar otros repositorios según se vayan creando
         // $this->app->bind(WalletRepositoryContract::class, WalletRepository::class);
@@ -145,6 +174,13 @@ class RepositoryServiceProvider extends ServiceProvider
             SettingRepositoryContract::class,
             RewardRepositoryContract::class,
             BingoCardPrizeRepositoryContract::class,
+            BingoCardPrizePaymentRepositoryContract::class,
+            BingoCreatorRepositoryContract::class,
+            BingoCreatorSaleRepositoryContract::class,
+            BingoDrawRepositoryContract::class,
+            BingoDrawCodeRepositoryContract::class,
+            BingoImageRepositoryContract::class,
+            BingoPatternRepositoryContract::class,
         ];
     }
 }

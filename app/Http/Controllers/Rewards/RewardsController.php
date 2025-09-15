@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Rewards;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class RewardsController extends Controller
 {
-    use UserValTrait;
+    use UserTrait;
 
     public function index()
     {

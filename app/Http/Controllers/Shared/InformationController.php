@@ -1,18 +1,16 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Shared;
 
 use App\Http\Controllers\Controller;
 
-// Models
-use App\Models\Users;
 // Traits
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Auth;
 
 class InformationController extends Controller
 {
-    use UserValTrait;
+    use UserTrait;
 
     public function terms()
     {

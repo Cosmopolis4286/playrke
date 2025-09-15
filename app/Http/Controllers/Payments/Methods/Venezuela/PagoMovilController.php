@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 
 use App\Models\PagoMovil;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class PagoMovilController extends Controller
 {
-    use UserValTrait;
+    use UserTrait;
 
     public function index()
     {

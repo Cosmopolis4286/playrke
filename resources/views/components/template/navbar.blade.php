@@ -1,6 +1,6 @@
 @php
-    use App\Models\Wallet;
-    $wallet = Wallet::with('Currency')->where('user', Auth::id())->first();
+    use App\Models\Wallets\Wallet;
+    $wallet = Wallet::with('Currency')->where('user_id', Auth::id())->first();
     $user = auth()->user();
 @endphp
 
@@ -46,7 +46,11 @@
                     <i class="mr-1 fa-solid fa-lock"></i>
                     Contraseña
                 </button>
-                <button type="button" class="dropdown-item logout-btn">
+                <button type="button"
+                        class="dropdown-item logout-btn"
+                        data-logout-url="{{ route('logout') }}"
+                        data-login-redirect-url="{{ route('login') }}"
+                        data-show-confirmation="true">
                     <i class="mr-1 nav-icon fas fa-sign-out-alt"></i> Cerrar sesión
                 </button>
             </div>

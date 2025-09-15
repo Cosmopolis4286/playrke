@@ -5,6 +5,7 @@ import { loadModule } from '@/helpers/module/loadModule';
 import { initFormCrud } from '@/helpers/form/formCrudLoadModule';
 import { initAppData, getAppData, AppData } from '@/data/index';
 import { initGlobalSafe } from '@/helpers/global';
+import { initLogout } from '@/helpers/user/logout';
 
 let _bootstrapPromise: Promise<void> | null = null;
 let _logsShown = false; // 🔹 Nueva bandera para evitar logs repetidos
@@ -76,7 +77,8 @@ async function bootstrapApp() {
 
       initAlpine();
       await initGlobalSafe();
-      console.log('🟢 Helpers globales cargados');
+      initLogout(); // Inicializar sistema de logout
+      console.log('🟢 Helpers globales y logout cargados');
 
       if (appData.moduleFile) {
         await loadModule(appData.moduleFile);

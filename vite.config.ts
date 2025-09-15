@@ -12,7 +12,10 @@ import { visualizer } from 'rollup-plugin-visualizer';
 // ---------------------------------------------
 // Archivos CSS globales que siempre se incluyen
 // ---------------------------------------------
-const cssFiles = ['resources/css/shared/styles.css'];
+const cssFiles = [
+    'resources/css/global/styles.css',
+    'resources/css/global/loader.css'
+];
 
 // ---------------------------------------------
 // Función recursiva para recoger todos .ts y .js en resources/js y subcarpetas

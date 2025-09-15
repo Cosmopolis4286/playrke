@@ -2,19 +2,19 @@
 
 namespace App\Traits\Users;
 
-use App\Models\Games;
-use App\Models\ExternalPlayers;
-use App\Models\UsersPurchaseCodes;
+use App\Models\Games\Shared\Game;
+use App\Models\Users\Roles\Player\External\ExternalPlayer;
+use App\Models\Users\Roles\Player\External\UserPurchaseCode;
 use Illuminate\Support\Str;
 
-trait ExternalPlayersTrait
+trait ExternalPlayerTrait
 {
     public function createExternalPlayers($game, $room = '')
     {
         $gameId = Game::getValueByName($game);
         do {
             $code = Str::random(20);
-        } while (ExternalPlayers::where('game', $gameId)->where('link', $code)->exists());
+        } while (ExternalPlayer::where('game', $gameId)->where('link', $code)->exists());
         return $code;
     }
 
@@ -23,7 +23,7 @@ trait ExternalPlayersTrait
         $roomUser = $data['roomUser'] ?? null;
         $playerPhone = $data['playerPhone'] ?? null;
 
-        $player = ExternalPlayers::where('game', 1)->where('room', $data['room'])
+        $player = ExternalPlayer::where('game', 1)->where('room', $data['room'])
             ->where(function ($query) use ($playerPhone, $roomUser) {
                 $query->where('phone', $playerPhone)
                     ->orWhere('id', $roomUser);
@@ -37,7 +37,7 @@ trait ExternalPlayersTrait
             $country = $data['country'];
 
             // Crear código de compra
-            $purchaseCode = UserPurchaseCodes::create([
+            $purchaseCode = UserPurchaseCode::create([
                 'name' => $playerName,
                 'lastname' => $playerLastName,
                 'country' => $country,
@@ -69,7 +69,7 @@ trait ExternalPlayersTrait
             ];
 
             // Crear el nuevo registro
-            $player = ExternalPlayers::create($dataPlayer)->id;
+            $player = ExternalPlayer::create($dataPlayer)->id;
 
             if (!$player) {
                 throw new \Exception('Error al crear la información del jugador');
@@ -103,7 +103,7 @@ trait ExternalPlayersTrait
 
     public function getGameLinkByPlayer($playerLink)
     {
-        $playerLink = is_int($playerLink) ? ExternalPlayers::getValueById($playerLink, 'link') : $playerLink;
+        $playerLink = is_int($playerLink) ? ExternalPlayer::getValueById($playerLink, 'link') : $playerLink;
         return route('bingo.in-game', ['player' => $playerLink]);
     }
 }

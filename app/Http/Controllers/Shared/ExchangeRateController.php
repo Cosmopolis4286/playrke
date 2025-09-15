@@ -10,7 +10,7 @@ use App\Models\ExchangeRate;
 // Services
 use App\Services\Helpers\HandleExchangeRates;
 // Traits
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 // Otros
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Session;
 
 class ExchangeRateController extends Controller
 {
-    use UserValTrait;
+    use UserTrait;
 
     public function index($creatorType, $creatorId = '')
     {

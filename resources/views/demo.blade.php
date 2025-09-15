@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PlayRKE - Demo Frontend Moderno</title>
-    @vite(['resources/css/shared/styles.css'])
+    @vite(['resources/css/global/styles.css'])
     <style>
         /* Estilos inline temporales para la demo */
         .gradient-bg {

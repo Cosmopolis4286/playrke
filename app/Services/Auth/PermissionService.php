@@ -89,7 +89,7 @@ class PermissionService
      * Verificación unificada: por tipo, rol, prefix o callback.
      *
      * @param array{
-     *     userType?: int|int[],
+     *     userRole?: int|int[],
      *     roles?: string|string[],
      *     prefix?: string|string[],
      *     custom?: callable(User):bool
@@ -98,7 +98,7 @@ class PermissionService
      */
     public static function authorize(array $options): bool
     {
-        if (isset($options['userType']) && !self::checkUserType($options['userType'])) {
+        if (isset($options['userRole']) && !self::checkUserType($options['userRole'])) {
             return false;
         }
 

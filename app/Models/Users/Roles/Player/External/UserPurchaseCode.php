@@ -4,7 +4,7 @@ namespace App\Models\Users\Roles\Player\External;
 
 use Illuminate\Database\Eloquent\Model;
 
-class UserPurchaseCodes extends Model
+class UserPurchaseCode extends Model
 {
     protected $table = "user_purchase_codes";
     protected $fillable = ['name', 'lastname', 'country', 'phone', 'code', 'status'];

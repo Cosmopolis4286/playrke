@@ -8,11 +8,11 @@ use App\Models\Role;
 use App\Repositories\User\Roles\RoleRepository;
 // Traits
 use App\Traits\Users\CustomerTrait;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 
 class IframeController extends Controller
 {
-    use UserValTrait, CustomerTrait;
+    use UserTrait, CustomerTrait;
 
     public function index()
     {

@@ -12,7 +12,7 @@ use App\Models\UniqueCode;
 use App\Models\Wallet;
 use App\Traits\Games\SeamlessWallet;
 use App\Traits\Helpers\EncryptTrait;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 use Carbon\Carbon;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Storage;
 
 class CustomerController extends Controller
 {
-    use EncryptTrait, UserValTrait, SeamlessWallet;
+    use EncryptTrait, UserTrait, SeamlessWallet;
 
     private function validateRequest($request, $type = 1, $id = '')
     {

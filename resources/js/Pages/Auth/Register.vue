@@ -1,148 +1,213 @@
 <template>
     <AuthLayout :subtitle="'Registro'" :register="false">
-        <form @submit.prevent="handleSubmit" class="auth__form" id="form-register">
+        <form @submit.prevent="handleSubmit" class="space-y-6" id="form-register">
             <!-- Email -->
-            <div class="auth__form-item" :class="{ 'auth__form-item--error': errors.email }">
-                <i class="auth__input-icon fa-solid fa-envelope"></i>
-                <input
-                    v-model="form.email"
-                    type="email"
-                    placeholder="E-mail"
-                    aria-label="E-mail"
-                    class="auth__input"
-                    :class="{ 'auth__input--error': errors.email }"
-                    @input="validateEmail"
-                    required
-                />
+            <div class="relative">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                        <i class="fas fa-envelope text-gray-400 text-lg"></i>
+                    </div>
+                    <input
+                        v-model="form.email"
+                        type="email"
+                        placeholder="E-mail"
+                        aria-label="E-mail"
+                        class="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
+                        :class="{ 'border-red-400 focus:ring-red-500': errors.email || emailError }"
+                        @input="validateEmail"
+                        required
+                    />
+                </div>
+                <div v-if="errors.email || emailError" class="mt-2 text-red-400 text-sm flex items-center space-x-1">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{{ errors.email || 'Ingrese un E-mail válido.' }}</span>
+                </div>
             </div>
-            <span v-if="errors.email" class="auth__error">{{ errors.email }}</span>
-            <p v-if="emailError" class="auth__error">Ingrese un E-mail válido.</p>
 
             <!-- Username -->
-            <div class="auth__form-item" :class="{ 'auth__form-item--error': errors.username }">
-                <i class="auth__input-icon fa-solid fa-user"></i>
-                <input
-                    v-model="form.username"
-                    type="text"
-                    placeholder="Nombre de Usuario"
-                    aria-label="Nombre de Usuario"
-                    class="auth__input"
-                    :class="{ 'auth__input--error': errors.username }"
-                    @input="validateUsername"
-                    maxlength="40"
-                    required
-                />
+            <div class="relative">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                        <i class="fas fa-user text-gray-400 text-lg"></i>
+                    </div>
+                    <input
+                        v-model="form.username"
+                        type="text"
+                        placeholder="Nombre de Usuario"
+                        aria-label="Nombre de Usuario"
+                        class="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
+                        :class="{ 'border-red-400 focus:ring-red-500': errors.username || usernameError }"
+                        @input="validateUsername"
+                        maxlength="40"
+                        required
+                    />
+                </div>
+                <div v-if="errors.username || usernameError" class="mt-2 text-red-400 text-sm flex items-center space-x-1">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{{ errors.username || 'Su nombre de usuario debe tener de 4-16 caracteres' }}</span>
+                </div>
             </div>
-            <span v-if="errors.username" class="auth__error">{{ errors.username }}</span>
-            <p v-if="usernameError" class="auth__error">Su nombre de usuario debe tener de 4-16 caracteres</p>
 
             <!-- Country Dropdown -->
-            <div class="auth__form-item">
-                <div class="auth__dropdown">
-                    <i class="auth__input-icon fa-solid fa-earth-americas"></i>
-                    <div
-                        class="auth__dropdown-trigger"
+            <div class="relative">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                        <i class="fas fa-earth-americas text-gray-400 text-lg"></i>
+                    </div>
+                    <button
+                        type="button"
+                        class="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm flex items-center justify-between"
                         @click="toggleCountryDropdown"
                     >
-                        <span>{{ selectedCountryName || 'Seleccione su país' }}</span>
-                        <i class="fa-solid fa-chevron-down"></i>
-                    </div>
+                        <span :class="selectedCountryName ? 'text-white' : 'text-gray-400'">
+                            {{ selectedCountryName || 'Seleccione su país' }}
+                        </span>
+                        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+                           :class="{ 'transform rotate-180': showCountryDropdown }"></i>
+                    </button>
                     <input type="hidden" name="country" v-model="form.country" required>
-                    <div
-                        v-show="showCountryDropdown"
-                        class="auth__dropdown-list"
-                    >
+
+                    <!-- Dropdown List -->
+                    <transition
+                        enter-active-class="transition duration-200 ease-out"
+                        enter-from-class="opacity-0 scale-95 translate-y-2"
+                        enter-to-class="opacity-100 scale-100 translate-y-0"
+                        leave-active-class="transition duration-150 ease-in"
+                        leave-from-class="opacity-100 scale-100 translate-y-0"
+                        leave-to-class="opacity-0 scale-95 translate-y-2">
                         <div
-                            v-for="country in countries"
-                            :key="country.id"
-                            class="auth__dropdown-item"
-                            @click="selectCountry(country)"
+                            v-show="showCountryDropdown"
+                            class="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto"
                         >
-                            {{ country.name }}
+                            <div
+                                v-for="country in countries"
+                                :key="country.id"
+                                class="px-4 py-3 text-white hover:bg-white/10 cursor-pointer transition-colors duration-150 border-b border-white/5 last:border-b-0 flex items-center space-x-3"
+                                @click="selectCountry(country)"
+                            >
+                                <i class="fas fa-map-marker-alt text-gray-400 text-xs"></i>
+                                <span>{{ country.name }}</span>
+                            </div>
                         </div>
-                    </div>
+                    </transition>
                 </div>
             </div>
 
             <!-- Password -->
-            <div class="auth__form-item" :class="{ 'auth__form-item--error': errors.password }">
-                <i class="auth__input-icon fa-solid fa-lock"></i>
-                <input
-                    v-model="form.password"
-                    :type="showPassword ? 'text' : 'password'"
-                    class="auth__input"
-                    placeholder="Contraseña"
-                    aria-label="Contraseña"
-                    :class="{ 'auth__input--error': errors.password }"
-                    @input="validatePassword"
-                    required
-                />
+            <div class="relative">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                        <i class="fas fa-lock text-gray-400 text-lg"></i>
+                    </div>
+                    <input
+                        v-model="form.password"
+                        :type="showPassword ? 'text' : 'password'"
+                        class="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
+                        placeholder="Contraseña"
+                        aria-label="Contraseña"
+                        :class="{ 'border-red-400 focus:ring-red-500': errors.password || passwordError }"
+                        @input="validatePassword"
+                        required
+                    />
+                    <button
+                        type="button"
+                        class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors duration-200"
+                        @click="togglePassword"
+                    >
+                        <i class="fas" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+                    </button>
+                </div>
+                <div v-if="errors.password || passwordError" class="mt-2 text-red-400 text-sm flex items-center space-x-1">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{{ errors.password || 'Su contraseña tiene que ser mínimo de 8 caracteres.' }}</span>
+                </div>
             </div>
-            <span v-if="errors.password" class="auth__error">{{ errors.password }}</span>
-            <p v-if="passwordError" class="auth__error">Su contraseña tiene que ser mínimo de 8 caracteres.</p>
 
             <!-- Password Confirmation -->
-            <div class="auth__form-item">
-                <i class="auth__input-icon fa-solid fa-unlock"></i>
-                <i class="auth__input-toggle fa-solid"
-                   :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"
-                   @click="togglePassword"></i>
-                <input
-                    v-model="form.password_confirmation"
-                    :type="showPassword ? 'text' : 'password'"
-                    class="auth__input"
-                    placeholder="Repetir Contraseña"
-                    aria-label="Repetir Contraseña"
-                    @input="validatePasswordConfirmation"
-                    required
-                />
+            <div class="relative">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                        <i class="fas fa-unlock text-gray-400 text-lg"></i>
+                    </div>
+                    <input
+                        v-model="form.password_confirmation"
+                        :type="showPassword ? 'text' : 'password'"
+                        class="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
+                        placeholder="Repetir Contraseña"
+                        aria-label="Repetir Contraseña"
+                        :class="{ 'border-red-400 focus:ring-red-500': passwordConfirmationError }"
+                        @input="validatePasswordConfirmation"
+                        required
+                    />
+                </div>
+                <div v-if="passwordConfirmationError" class="mt-2 text-red-400 text-sm flex items-center space-x-1">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Las contraseñas no son iguales.</span>
+                </div>
             </div>
-            <p v-if="passwordConfirmationError" class="auth__error">Las contraseñas no son iguales.</p>
 
             <!-- Terms and Privacy -->
-            <div class="auth__checkbox">
-                <input
-                    type="checkbox"
-                    name="politicas"
-                    id="politicas"
-                    v-model="form.politicas"
-                    class="auth__checkbox-input"
-                    required
-                />
-                <label for="politicas" class="auth__checkbox-label">
-                    <div>
-                        Acepto los
-                        <a href="#" @click.prevent="$emit('open-info', 'terms')">
-                            Términos y Condiciones
-                        </a>
-                        y autorizo mis datos e información de acuerdo a la
-                        <a href="#" @click.prevent="$emit('open-info', 'privacy')">
-                            Política de Privacidad
-                        </a>
-                        de PlayRKE
-                    </div>
+            <div class="flex items-start space-x-3 p-4 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
+                <div class="flex items-center pt-1">
+                    <input
+                        type="checkbox"
+                        name="politicas"
+                        id="politicas"
+                        v-model="form.politicas"
+                        class="w-4 h-4 bg-white/10 border border-white/20 rounded focus:ring-indigo-500 focus:ring-2 text-indigo-600 transition-colors duration-200"
+                        required
+                    />
+                </div>
+                <label for="politicas" class="text-sm text-gray-300 leading-relaxed cursor-pointer">
+                    <span>Acepto los</span>
+                    <a href="#" @click.prevent="$emit('open-info', 'terms')"
+                       class="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 underline decoration-indigo-400/50 hover:decoration-indigo-300">
+                        Términos y Condiciones
+                    </a>
+                    <span>y autorizo mis datos e información de acuerdo a la</span>
+                    <a href="#" @click.prevent="$emit('open-info', 'privacy')"
+                       class="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 underline decoration-indigo-400/50 hover:decoration-indigo-300">
+                        Política de Privacidad
+                    </a>
+                    <span>de PlayRKE</span>
                 </label>
             </div>
 
             <!-- Submit -->
-            <div class="auth__form-item">
+            <div class="pt-2">
                 <button
                     type="submit"
-                    class="auth__button"
+                    class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+                    :class="{
+                        'hover:from-indigo-700 hover:to-purple-700': !processing && isFormValid,
+                        'opacity-50 cursor-not-allowed': processing || !isFormValid
+                    }"
                     :disabled="processing || !isFormValid"
                 >
-                    Registrarse
-                    <span v-if="processing" class="auth__loading"></span>
+                    <span v-if="!processing" class="flex items-center space-x-2">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Registrarse</span>
+                    </span>
+                    <span v-else class="flex items-center space-x-2">
+                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Registrando...</span>
+                    </span>
                 </button>
             </div>
         </form>
 
         <template #pre-footer>
-            <div class="auth__nav">
-                <a :href="loginUrl" class="flex items-center justify-center space-x-2">
-                    <span class="auth__nav-text">¿Ya tienes una cuenta?</span>
-                    <span class="auth__nav-separator">|</span>
-                    <span class="auth__nav-link">Inicia Sesión</span>
+            <div class="text-center">
+                <a :href="loginUrl" class="inline-flex items-center justify-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200 group">
+                    <span class="text-sm">¿Ya tienes una cuenta?</span>
+                    <span class="text-gray-500">|</span>
+                    <span class="text-sm text-indigo-400 group-hover:text-indigo-300 flex items-center space-x-1">
+                        <i class="fas fa-sign-in-alt text-xs"></i>
+                        <span>Inicia Sesión</span>
+                    </span>
                 </a>
             </div>
         </template>
@@ -209,7 +274,7 @@ const selectCountry = (country: { id: number; name: string }) => {
 // Click outside handler for country dropdown
 const handleClickOutside = (event: Event) => {
     const target = event.target as HTMLElement
-    if (!target.closest('#dropdown_list') && !target.closest('#dropdown_select')) {
+    if (!target.closest('.auth__dropdown')) {
         showCountryDropdown.value = false
     }
 }

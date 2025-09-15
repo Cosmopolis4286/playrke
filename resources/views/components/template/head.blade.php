@@ -22,7 +22,7 @@
     {{-- Animaciones CSS --}}
     <link rel="stylesheet" href="{{ asset('css/animate.min.css') }}" />
     {{-- Estilos compilados con Vite --}}
-    @vite(['resources/css/shared/styles.css', 'resources/css/shared/loader.css'])
+    @vite(['resources/css/global/styles.css', 'resources/css/global/loader.css'])
     {{-- Estilos específicos por vista --}}
     {{ $slot }}
     <title>PlayRKE - {{ $title }}</title>

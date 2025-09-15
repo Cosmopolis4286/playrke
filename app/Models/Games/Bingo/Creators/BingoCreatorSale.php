@@ -2,11 +2,51 @@
 
 namespace App\Models\Games\Bingo\Creators;
 
+use App\Models\Currencies\Currency;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Users\User;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para las ventas de creadores de salas de bingo
+ *
+ * Representa las ventas realizadas por creadores de salas de bingo.
+ * Incluye información sobre montos, comisiones y premios acumulados por sala y moneda.
+ *
+ * @package App\Models\Games\Bingo\Creators
+ * @author Sistema PlayRKE
+ * @version 1.0
+ *
+ * @property string $id ID único de la venta
+ * @property string $room ID de la sala de bingo
+ * @property string $creator_user_id ID del usuario creador
+ * @property string $currency ID de la moneda
+ * @property float $sale_amount Monto total de ventas
+ * @property float $rke_commn Comisión de RKE
+ * @property float $room_commn Comisión de la sala
+ * @property float $seller_commn Comisión del vendedor
+ * @property float $prize_pool_amount Monto del premio acumulado
+ * @property \Carbon\Carbon $created_at Fecha de creación
+ * @property \Carbon\Carbon $updated_at Fecha de actualización
+ *
+ * @property-read BingoRoom $room Sala de bingo asociada
+ * @property-read Currency $currency Moneda asociada
+ * @property-read User $creatorUser Usuario creador asociado
+ */
 class BingoCreatorSale extends Model
 {
+    use HasSnowflakeId;
+
+    /**
+     * Nombre de la tabla en la base de datos
+     */
     protected $table = 'bingo_creator_sales';
+
+    /**
+     * Campos que pueden ser asignados masivamente
+     */
     protected $fillable = [
         'room',
         'creator_user_id',
@@ -16,85 +56,164 @@ class BingoCreatorSale extends Model
         'room_commn',
         'seller_commn',
         'prize_pool_amount',
-        'created_at',
-        'updated_at'
     ];
 
-    public function Room()
+    /**
+     * Campos que deben ser convertidos a tipos específicos
+     */
+    protected $casts = [
+        'sale_amount' => 'decimal:8',
+        'rke_commn' => 'decimal:8',
+        'room_commn' => 'decimal:8',
+        'seller_commn' => 'decimal:8',
+        'prize_pool_amount' => 'decimal:8',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    /**
+     * Campos que se agregan automáticamente al modelo
+     */
+    protected $appends = ['total_commission', 'commission_percentage'];
+
+    /**
+     * Relación con la sala de bingo
+     *
+     * @return BelongsTo<BingoRoom, BingoCreatorSale>
+     */
+    public function room(): BelongsTo
     {
         return $this->belongsTo(BingoRoom::class, 'room');
     }
 
-    public function Currency()
+    /**
+     * Relación con la moneda
+     *
+     * @return BelongsTo<Currency, BingoCreatorSale>
+     */
+    public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency');
     }
 
-    public function CreatorUser()
+    /**
+     * Relación con el usuario creador
+     *
+     * @return BelongsTo<User, BingoCreatorSale>
+     */
+    public function creatorUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_user_id');
     }
 
-    public static function getById($id, $fields = ['*'])
+    /**
+     * Scope para obtener ventas por sala
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $roomId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByRoom($query, string $roomId)
     {
-        return self::select($fields)->where('id', $id)->first();
+        return $query->where('room', $roomId);
     }
 
-    public static function getValueById($id, $value)
+    /**
+     * Scope para obtener ventas por creador
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $creatorUserId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByCreator($query, string $creatorUserId)
     {
-        return self::where('id', $id)->value($value);
+        return $query->where('creator_user_id', $creatorUserId);
     }
 
-    public static function getByRoomCreatorUser($room, $creatorUser, $currency, $fields = ['*'])
+    /**
+     * Scope para obtener ventas por moneda
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $currency
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByCurrency($query, string $currency)
     {
-        return self::select($fields)->where('room', $room)->where('currency', $currency)
-            ->where('creator_user_id', $creatorUser)->first();
+        return $query->where('currency', $currency);
     }
 
-    public static function getValueByRoomCreatorUser($room, $creatorUser, $currency, $value)
+    /**
+     * Scope para obtener ventas por rango de montos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param float $minAmount
+     * @param float $maxAmount
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByAmountRange($query, float $minAmount, float $maxAmount)
     {
-        return self::where('room', $room)->where('currency', $currency)
-            ->where('creator_user_id', $creatorUser)->value($value);
+        return $query->whereBetween('sale_amount', [$minAmount, $maxAmount]);
     }
 
-    public static function existsByRoomCreatorUser($room, $creatorUser, $currency = '')
+    /**
+     * Scope para obtener ventas por rango de fechas
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $startDate
+     * @param string $endDate
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByDateRange($query, string $startDate, string $endDate)
     {
-        $query = self::where('room', $room)->where('creator_user_id', $creatorUser);
-        if ($currency)  $query->where('currency', $currency);
-        return $query->exists();
+        return $query->whereBetween('created_at', [$startDate, $endDate]);
     }
 
-    public static function getPrizePoolAmountByRoomAndCurrency($room, $currency)
+    /**
+     * Scope para obtener ventas con mayor volumen
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $limit
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeTopByVolume($query, int $limit = 10)
     {
-        return self::where('room', $room)->where('currency', $currency)->sum('prize_pool_amount');
+        return $query->orderByDesc('sale_amount')->limit($limit);
     }
 
-    public static function updateOrCreateSale($roomId, $creatorUser, $currency, $amount, $sellerCommn)
+    /**
+     * Accessor para obtener el total de comisiones
+     *
+     * @return float
+     */
+    public function getTotalCommissionAttribute(): float
     {
-        $roomConfig = BingoRoomConfig::getByRoom($roomId, ['rke_commn', 'room_commn']);
+        return $this->rke_commn + $this->room_commn + $this->seller_commn;
+    }
 
-        $rkeCommn =  round($amount * ($roomConfig->rke_commn / 100), 3);
-        $roomCommn = round($amount * ($roomConfig->room_commn / 100), 3);
-        $sellerCommn = round(($sellerCommn ?? 0), 3);
-        $prizePool = round(($amount - $rkeCommn - $roomCommn - $sellerCommn), 3);
-
-        $sale = self::firstOrCreate(
-            ['room' => $roomId, 'creator_user_id' => $creatorUser, 'currency' => $currency],
-            [
-                'sale_amount' => $amount,
-                'rke_commn' => $rkeCommn,
-                'room_commn' => $roomCommn,
-                'seller_commn' => $sellerCommn,
-                'prize_pool_amount' => $prizePool
-            ]
-        );
-
-        if (!$sale->wasRecentlyCreated && $amount) {
-            $sale->increment('sale_amount', $amount);
-            $sale->increment('rke_commn', $rkeCommn);
-            $sale->increment('room_commn', $roomCommn);
-            $sale->increment('seller_commn', $sellerCommn);
-            $sale->increment('prize_pool_amount', $prizePool);
+    /**
+     * Accessor para obtener el porcentaje de comisión
+     *
+     * @return float
+     */
+    public function getCommissionPercentageAttribute(): float
+    {
+        if ($this->sale_amount <= 0) {
+            return 0.0;
         }
+
+        return round(($this->total_commission / $this->sale_amount) * 100, 2);
+    }
+
+    /**
+     * Accessor para verificar la integridad de los datos
+     *
+     * @return bool
+     */
+    public function getIsValidAttribute(): bool
+    {
+        $calculatedTotal = $this->rke_commn + $this->room_commn + $this->seller_commn + $this->prize_pool_amount;
+        $tolerance = 0.01; // Tolerancia para errores de redondeo
+
+        return abs($this->sale_amount - $calculatedTotal) <= $tolerance;
     }
 }

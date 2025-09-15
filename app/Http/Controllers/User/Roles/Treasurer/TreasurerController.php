@@ -15,7 +15,7 @@ use App\Models\Role;
 use App\Models\UniqueCode;
 use App\Models\Wallet;
 use App\Traits\Helpers\FiltersTrait;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Validator;
 
 class TreasurerController extends Controller
 {
-    use EncryptTrait, UserValTrait, FiltersTrait;
+    use EncryptTrait, UserTrait, FiltersTrait;
 
     private function validateRequest($request, $type = 1, $id = '')
     {

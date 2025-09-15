@@ -28,6 +28,7 @@ class PublicController extends Controller
             'register' => (bool)$register,  // Forzamos booleano
             'loginUrl' => route('login'),   // URL POST para login
             'passwordRequestUrl' => route('password.request'), // recuperación de contraseña
+            'registerUrl' => route('register'), // URL para registro
         ]);
     }
 

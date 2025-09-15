@@ -12,19 +12,19 @@ use App\Models\PagoMovil;
 use App\Models\PaymentMethodsCOL;
 use App\Models\Pix;
 use App\Repositories\User\Roles\RoleRepository;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 
 class DirectoryController extends Controller
 {
-    use UserValTrait;
+    use UserTrait;
 
     public function index($countryCode)
     {
         $user = $this->user(['id', 'user_type']);
         $userId = $user->id;
-        $userType = RoleRepository::getValueById($user->user_type, 'prefix');
+        $userRole = RoleRepository::getValueById($user->user_type, 'prefix');
 
-        if ($userType === 'customer') {
+        if ($userRole === 'customer') {
             return redirect()->back();
         }
 
@@ -92,7 +92,7 @@ class DirectoryController extends Controller
                 break;
         }
 
-        if ($userType === 'commerce_id') {
+        if ($userRole === 'commerce_id') {
             $commerce = Commerce::getValueByUserId($userId, 'id');
 
             $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($commerce);

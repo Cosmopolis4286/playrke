@@ -38,8 +38,8 @@ use App\Services\Games\Bingo\HandleBingoRooms;
 use App\Services\Users\Customer\HandleTransactions;
 
 // Traits
-use App\Traits\Users\ExternalPlayersTrait;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\ExternalPlayerTrait;
+use App\Traits\Users\UserTrait;
 
 // Otros
 use Exception;
@@ -50,7 +50,7 @@ use Illuminate\Support\Facades\Log;
 
 trait BingoTrait
 {
-    use GameTrait, ExternalPlayersTrait, SeamlessWallet, UserValTrait;
+    use GameTrait, ExternalPlayerTrait, SeamlessWallet, UserTrait;
 
     private function encryptDraw($room)
     {
@@ -1326,9 +1326,9 @@ trait BingoTrait
         }
 
         // Validar transacciones si es customer
-        $userType = RoleRepository::getValueById(User::getValueById($room->creator_user, 'user_type'), 'prefix');
+        $userRole = RoleRepository::getValueById(User::getValueById($room->creator_user, 'user_type'), 'prefix');
 
-        if ($userType === 'customer') {
+        if ($userRole === 'customer') {
             $customerId = Customer::getValueByUserId($room->creator_user, 'id');
             app(HandleTransactions::class)->validateTransactions($customerId);
         }

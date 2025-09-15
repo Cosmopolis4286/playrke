@@ -28,8 +28,8 @@ use App\Models\Wallet;
 use App\Services\Games\Bingo\HandleBingoRooms;
 use App\Services\Helpers\HandleExchangeRates;
 use App\Traits\Helpers\FiltersTrait;
-use App\Traits\Users\ExternalPlayersTrait;
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\ExternalPlayerTrait;
+use App\Traits\Users\UserTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -41,7 +41,7 @@ use Illuminate\Support\Facades\Validator;
 
 class SellerController extends Controller
 {
-    use EncryptTrait, BingoTrait, ExternalPlayersTrait,  UserValTrait, FiltersTrait;
+    use EncryptTrait, BingoTrait, ExternalPlayerTrait,  UserTrait, FiltersTrait;
 
     /**
      * Valida la solicitud para crear o actualizar un vendedor (Seller).

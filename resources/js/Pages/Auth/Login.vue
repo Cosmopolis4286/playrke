@@ -17,72 +17,105 @@
         </template>
 
         <!-- Main login form -->
-        <form @submit.prevent="handleSubmit" class="auth__form" id="form-login">
+        <form @submit.prevent="handleSubmit" class="space-y-6" id="form-login">
             <!-- Email/Username Input -->
-            <AuthInput
-                v-model="form.login"
-                type="text"
-                field-type="username"
-                placeholder="Email/Username"
-                aria-label="Email o Nombre de Usuario"
-                :error="errors.login"
-                :validation="validateEmailOrUsername"
-                :maxlength="40"
-                :autofocus="true"
-                help-text="Ingresa tu email o nombre de usuario"
-                variant="default"
-                size="md"
-                @enter="handleSubmit"
-            />
+            <div class="relative">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                        <i class="fas fa-user text-gray-400 text-lg"></i>
+                    </div>
+                    <input
+                        v-model="form.login"
+                        type="text"
+                        placeholder="Email/Username"
+                        aria-label="Email o Nombre de Usuario"
+                        class="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
+                        :class="{ 'border-red-400 focus:ring-red-500': errors.login }"
+                        maxlength="40"
+                        required
+                        autofocus
+                    />
+                </div>
+                <div v-if="errors.login" class="mt-2 text-red-400 text-sm flex items-center space-x-1">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{{ errors.login }}</span>
+                </div>
+            </div>
 
             <!-- Password Input -->
-            <AuthInput
-                v-model="form.password"
-                type="password"
-                field-type="password"
-                placeholder="Contraseña"
-                aria-label="Contraseña"
-                :show-password-toggle="true"
-                :error="errors.password"
-                help-text="Tu contraseña debe tener al menos 8 caracteres"
-                variant="default"
-                size="md"
-                @enter="handleSubmit"
-            />
+            <div class="relative">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                        <i class="fas fa-lock text-gray-400 text-lg"></i>
+                    </div>
+                    <input
+                        v-model="form.password"
+                        :type="showPassword ? 'text' : 'password'"
+                        placeholder="Contraseña"
+                        aria-label="Contraseña"
+                        class="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
+                        :class="{ 'border-red-400 focus:ring-red-500': errors.password }"
+                        required
+                    />
+                    <button
+                        type="button"
+                        class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors duration-200"
+                        @click="togglePassword"
+                    >
+                        <i class="fas" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+                    </button>
+                </div>
+                <div v-if="errors.password" class="mt-2 text-red-400 text-sm flex items-center space-x-1">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{{ errors.password }}</span>
+                </div>
+            </div>
 
             <!-- Submit Button -->
-            <div class="auth__form-item">
-                <AuthButton
+            <div class="pt-2">
+                <button
                     type="submit"
-                    text="Iniciar Sesión"
-                    loading-text="Iniciando sesión..."
-                    :loading="processing"
-                    :disabled="!isFormValid"
-                    variant="primary"
-                    size="lg"
-                    :full-width="true"
-                    left-icon="login"
-                    :animate="true"
-                    @click="handleSubmit"
-                />
+                    class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+                    :class="{
+                        'hover:from-indigo-700 hover:to-purple-700': !processing && isFormValid,
+                        'opacity-50 cursor-not-allowed': processing || !isFormValid
+                    }"
+                    :disabled="processing || !isFormValid"
+                >
+                    <span v-if="!processing" class="flex items-center space-x-2">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Iniciar Sesión</span>
+                    </span>
+                    <span v-else class="flex items-center space-x-2">
+                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Iniciando sesión...</span>
+                    </span>
+                </button>
             </div>
 
-            <!-- Forgot Password Link -->
-            <div class="auth__nav">
-                <Link :href="passwordRequestUrl" class="auth__nav-link">
-                    <i class="ti ti-key mr-2"></i>
-                    ¿Olvidaste tu contraseña?
-                </Link>
-            </div>
-
-            <!-- Register Link -->
-            <div class="auth__nav">
-                <div class="flex items-center justify-center space-x-2 text-sm">
-                    <span class="auth__nav-text">¿No tienes una cuenta?</span>
-                    <Link :href="registerUrl" class="auth__nav-link auth__nav-link--primary">
-                        <i class="ti ti-user-plus mr-2"></i>
-                        Crear cuenta
+            <!-- Navigation Links -->
+            <div class="space-y-4 pt-4">
+                <!-- Forgot Password Link -->
+                <div class="text-center">
+                    <Link :href="passwordRequestUrl" class="inline-flex items-center space-x-2 text-gray-400 hover:text-white transition-colors duration-200 text-sm group">
+                        <i class="fas fa-key text-xs group-hover:scale-110 transition-transform duration-200"></i>
+                        <span>¿Olvidaste tu contraseña?</span>
                     </Link>
+                </div>
+
+                <!-- Register Link -->
+                <div class="text-center">
+                    <div class="flex items-center justify-center space-x-2 text-sm">
+                        <span class="text-gray-400">¿No tienes una cuenta?</span>
+                        <span class="text-gray-500">|</span>
+                        <Link :href="registerUrl" class="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center space-x-1 group">
+                            <i class="fas fa-user-plus text-xs group-hover:scale-110 transition-transform duration-200"></i>
+                            <span>Crear cuenta</span>
+                        </Link>
+                    </div>
                 </div>
             </div>
         </form>
@@ -197,6 +230,7 @@ const form = useForm({
 // State
 const processing = ref(false)
 const showHelpModal = ref(false)
+const showPassword = ref(false)
 const toastRef = ref<InstanceType<typeof AuthToast>>()
 
 // Computed
@@ -212,6 +246,11 @@ const validateEmailOrUsername = (value: string): boolean | string => {
     if (value.length < 3) return 'Debe tener al menos 3 caracteres'
     if (value.length > 40) return 'Máximo 40 caracteres permitidos'
     return true
+}
+
+// Toggle password visibility
+const togglePassword = () => {
+    showPassword.value = !showPassword.value
 }
 
 // Methods

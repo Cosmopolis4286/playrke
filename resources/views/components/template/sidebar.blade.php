@@ -1,11 +1,11 @@
-@props(['creatorTypePrefix' => null, 'userType' => ''])
+@props(['creatorTypePrefix' => null, 'userRole' => ''])
 <aside class="main-sidebar sidebar-dark-primary elevation-3" role="complementary" aria-label="Sidebar principal">
     <a href="{{ url('/dashboard') }}" class="menu-image-play cold" aria-label="Ir al dashboard">
         <img src="{{ asset('img/stam.png') }}" alt="Logo PlayRKE" class="brand-image">
     </a>
 
     <div class="cont-user-type">
-        <span class="tx-user-type">{{ $userType }}</span>
+        <span class="tx-user-type">{{ $userRole }}</span>
     </div>
 
     <section class="sidebar mt-2" role="navigation" aria-label="Menú lateral">
@@ -89,11 +89,16 @@
                     </ul>
                 </li>
 
-                <li class="nav-item has-treeview">
-                    <a href="/logout" class="nav-link logout-btn">
+                <li class="nav-item">
+                    <button type="button"
+                            class="nav-link logout-btn w-100 text-left border-0 bg-transparent"
+                            data-logout-url="{{ route('logout') }}"
+                            data-login-redirect-url="{{ route('login') }}"
+                            data-show-confirmation="true"
+                            style="background: none !important;">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
                         <p>Cerrar sesión</p>
-                    </a>
+                    </button>
                 </li>
             </ul>
         </nav>

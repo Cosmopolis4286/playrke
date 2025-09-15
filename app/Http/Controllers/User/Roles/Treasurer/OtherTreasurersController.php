@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 
 use App\Models\OtherTreasurers;
 
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class OtherTreasurersController extends Controller
 {
-    use UserValTrait;
+    use UserTrait;
 
     public function getInfo($id) // Obtener Info 
     {

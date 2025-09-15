@@ -111,12 +111,12 @@ class CommerceService
         ]);
     }
 
-    private function createUUID(string $uuid, int $userId, int $userType): void
+    private function createUUID(string $uuid, int $userId, int $userRole): void
     {
         UniqueCode::create([
             'uuid_code'  => $uuid,
             'user'       => $userId,
-            'user_type'  => $userType,
+            'user_type'  => $userRole,
         ]);
     }
 

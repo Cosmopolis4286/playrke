@@ -2,11 +2,57 @@
 
 namespace App\Models\Games\Bingo\Creators;
 
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Users\Roles\Role;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para los creadores de salas de bingo
+ *
+ * Representa la entidad que gestiona los creadores de salas de bingo.
+ * Incluye información sobre el usuario creador, tipo de creador, comisiones y configuraciones.
+ *
+ * @package App\Models\Games\Bingo\Creators
+ * @author Sistema PlayRKE
+ * @version 1.0
+ *
+ * @property string $id ID único del creador de sala
+ * @property string $room ID de la sala de bingo
+ * @property string $creator_user_id ID del usuario creador
+ * @property string $creator_type Tipo de creador
+ * @property string $creator_id ID del creador específico
+ * @property float $creator_commn Comisión del creador
+ * @property float $card_price Precio de las cartas
+ * @property array $allowed_currencies Monedas permitidas
+ * @property string $status Estado del creador (active, inactive)
+ * @property \Carbon\Carbon $created_at Fecha de creación
+ * @property \Carbon\Carbon $updated_at Fecha de actualización
+ *
+ * @property-read BingoRoom $room Sala de bingo asociada
+ * @property-read Role $creatorType Tipo de creador asociado
+ */
 class BingoCreator extends Model
 {
+    use HasSnowflakeId;
+
+    /**
+     * Nombre de la tabla en la base de datos
+     */
     protected $table = 'bingo_creator';
+
+    /**
+     * Estados disponibles para el creador
+     */
+    public const STATUSES = [
+        'active' => 'Activo',
+        'inactive' => 'Inactivo',
+    ];
+
+    /**
+     * Campos que pueden ser asignados masivamente
+     */
     protected $fillable = [
         'room',
         'creator_user_id',
@@ -16,69 +62,139 @@ class BingoCreator extends Model
         'card_price',
         'allowed_currencies',
         'status',
-        'created_at',
-        'updated_at'
     ];
 
-    protected $casts = ['allowed_currencies' => 'array'];
+    /**
+     * Campos que deben ser convertidos a tipos específicos
+     */
+    protected $casts = [
+        'allowed_currencies' => 'array',
+        'creator_commn' => 'decimal:8',
+        'card_price' => 'decimal:8',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
-    public function Room()
+    /**
+     * Relación con la sala de bingo
+     *
+     * @return BelongsTo<BingoRoom, BingoCreator>
+     */
+    public function room(): BelongsTo
     {
         return $this->belongsTo(BingoRoom::class, 'room');
     }
 
-    public function CreatorType()
+    /**
+     * Relación con el tipo de creador
+     *
+     * @return BelongsTo<Role, BingoCreator>
+     */
+    public function creatorType(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'creator_type');
     }
 
-    public static function getById($id, $fields = ['*'])
+    /**
+     * Scope para obtener solo creadores activos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
     {
-        return self::select($fields)->where('id', $id)->first();
+        return $query->where('status', 'active');
     }
 
-    public static function getValueById($id, $value)
+    /**
+     * Scope para obtener solo creadores inactivos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeInactive($query)
     {
-        return self::where('id', $id)->value($value);
+        return $query->where('status', 'inactive');
     }
 
-    public static function getByRoom($room, $fields = ['*'])
+    /**
+     * Scope para obtener creadores por tipo
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $type
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByType($query, string $type)
     {
-        return self::select($fields)->where('room', $room)->first();
+        return $query->where('creator_type', $type);
     }
 
-    public static function getValueByRoom($room, $value)
+    /**
+     * Scope para obtener creadores por sala
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $roomId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByRoom($query, string $roomId)
     {
-        return self::where('room', $room)->value($value);
+        return $query->where('room', $roomId);
     }
 
-    public static function getByRoomCreatorUser($room, $creatorUser, $fields = ['*'])
+    /**
+     * Scope para obtener creadores por usuario
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $userId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByUser($query, string $userId)
     {
-        return self::select($fields)->where('room', $room)->where('creator_user_id', $creatorUser)->first();
+        return $query->where('creator_user_id', $userId);
     }
 
-    public static function getByCreatorRoom($creator, $room, $fields = ['*'])
+    /**
+     * Scope para obtener creadores por rango de precios
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param float $minPrice
+     * @param float $maxPrice
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByPriceRange($query, float $minPrice, float $maxPrice)
     {
-        return self::select($fields)->where('creator_type', $creator['type'])
-            ->where('creator_id', $creator['id'])->where('room', $room)->first();
+        return $query->whereBetween('card_price', [$minPrice, $maxPrice]);
     }
 
-    public static function getValueByCreatorRoom($creator, $room, $value = 'id')
+    /**
+     * Scope para obtener creadores que soportan una moneda específica
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $currency
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByCurrency($query, string $currency)
     {
-        // Convertir $creatorType si es un string
-        if (is_string($creator['type'])) {
-            $creatorType = Role::getValueByPrefix($creator['type'], 'id');
-        } else {
-            $creatorType = $creator['type'];
-        }
-
-        return self::where('creator_type', $creatorType)
-            ->where('creator_id', $creator['id'])
-            ->where('room', $room)->value($value);
+        return $query->whereJsonContains('allowed_currencies', $currency);
     }
 
-    public static function existsByRoomCreatorUser($room, $creatorUser)
+    /**
+     * Accessor para obtener la descripción del estado
+     *
+     * @return string
+     */
+    public function getStatusDescriptionAttribute(): string
     {
-        return self::where('room', $room)->where('creator_user_id', $creatorUser)->exists();
+        return self::STATUSES[$this->status] ?? $this->status;
+    }
+
+    /**
+     * Accessor para verificar si el creador está activo
+     *
+     * @return bool
+     */
+    public function getIsActiveAttribute(): bool
+    {
+        return $this->status === 'active';
     }
 }

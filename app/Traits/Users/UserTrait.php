@@ -2,25 +2,25 @@
 
 namespace App\Traits\Users;
 
+use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
-use App\Models\Commerce;
-use App\Models\CommerceCountriesCurrencies;
-use App\Models\CommerceExchangeRate;
-use App\Models\Country;
-use App\Models\Customer;
-use App\Models\PagoMovil;
-use App\Models\Pix;
-use App\Models\Seller;
-use App\Models\SellerCountriesCurrencies;
-use App\Models\Treasurer;
-use App\Models\Users;
-use App\Models\Role;
-use App\Models\Wallet;
+use App\Models\ExchangeRate\CommerceExchangeRate;
+use App\Models\Payments\Methods\Brasil\PixKeys;
+use App\Models\Payments\Methods\Venezuela\PagoMovil;
+use App\Models\Users\Roles\Commerce\Commerce;
+use App\Models\Users\Roles\Commerce\CommerceCountriesCurrencies;
+use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Users\Roles\Seller\Seller;
+use App\Models\Users\Roles\Seller\SellerCountriesCurrencies;
+use App\Models\Users\Roles\Treasurer\Treasurer;
+use App\Models\Users\User;
+use App\Models\Wallets\Wallet;
+use App\Repositories\User\Roles\RoleRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-trait UserValTrait
+trait UserTrait
 {
     public function user(array $fields = ['*'])
     {
@@ -128,7 +128,7 @@ trait UserValTrait
         $currenciesWithoutDirectories = collect($currencyModels)->filter(function ($currency) use ($user) {
             return match ($currency->iso_code) {
                 'VES' => !PagoMovil::where('user', $user['userId'])->exists(),
-                'BRL' => !Pix::where('user', $user['userId'])->exists(),
+                'BRL' => !PixKeys::where('user', $user['userId'])->exists(),
                 'COP' => true,
                 default => throw new \InvalidArgumentException("Tipo de moneda no soportado: {$currency->iso_code}"),
             };
@@ -216,7 +216,7 @@ trait UserValTrait
 
                 case 'BR':
                     // R$ (Brasil) Pix
-                    $pix = Pix::where('user', $user)->first();
+                    $pix = PixKeys::where('user', $user)->first();
 
                     if (!$pix) $error = true;
 
@@ -244,9 +244,9 @@ trait UserValTrait
 
     public function getUserCurrencies($user, $relation = [], $dateFilter = 'today', $where = null)
     {
-        $userType = $user['type'];
-        $userId = $userType !== 'seller' ? $user['userId'] : $user['id'];
-        $userColumn = $userType !== 'seller' ? 'creator_user_id' : 'seller';
+        $userRole = $user['type'];
+        $userId = $userRole !== 'seller' ? $user['userId'] : $user['id'];
+        $userColumn = $userRole !== 'seller' ? 'creator_user_id' : 'seller';
 
         $primaryRelation = $relation[0] ?? null;
         $secondaryRelation = $relation[1] ?? null;
@@ -309,27 +309,27 @@ trait UserValTrait
         $user = $this->user(['id', 'user_type']);
         $userId = $user->id;
 
-        $userType = RoleRepository::getValueById($user->user_type, 'prefix');
+        $userRole = RoleRepository::getValueById($user->user_type, 'prefix');
 
-        switch ($userType) {
+        switch ($userRole) {
             case 'commerce_id':
                 $commerce = $this->commerce(['id', 'user']);
-                $userTypeId = $commerce->id;
+                $userRoleId = $commerce->id;
                 break;
             case 'customer':
                 $customer = $this->customer(['id', 'user']);
-                $userTypeId = $customer->id;
+                $userRoleId = $customer->id;
                 break;
             case 'seller':
                 $seller = $this->seller(['id', 'user']);
-                $userTypeId = $seller->id;
+                $userRoleId = $seller->id;
                 break;
             default:
                 # code...
                 break;
         }
 
-        return ['type' => $userType, 'id' => $userTypeId, 'userId' => $userId];
+        return ['type' => $userRole, 'id' => $userRoleId, 'userId' => $userId];
     }
 
     public function insertOtherCurrencies($creatorUser, $otherCurrencies)

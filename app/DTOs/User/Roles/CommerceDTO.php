@@ -21,7 +21,7 @@ class CommerceDTO
     public readonly string $phone;
     public readonly string $name;
     public readonly string $codeRke;
-    public readonly int $userType;
+    public readonly int $userRole;
     /** @var array<int,string>|null */
     public readonly ?array $allowedGames;
     /** @var array<int,string>|null */
@@ -42,7 +42,7 @@ class CommerceDTO
 
             if (in_array($property, $props, true)) {
                 // casteo especial
-                $this->$property = $property === 'userType' ? (int) $value : $value;
+                $this->$property = $property === 'userRole' ? (int) $value : $value;
             }
         }
     }

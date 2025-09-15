@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BanksBrasil;
 use App\Models\Pix;
 
-use App\Traits\Users\UserValTrait;
+use App\Traits\Users\UserTrait;
 
 use Exception;
 use Illuminate\Http\Request;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 class PixController extends Controller
 {
-    use UserValTrait;
+    use UserTrait;
 
     public function index()
     {
