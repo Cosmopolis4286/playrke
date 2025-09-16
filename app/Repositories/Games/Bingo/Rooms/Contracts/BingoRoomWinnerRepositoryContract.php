@@ -1,15 +1,14 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Rooms;
+namespace App\Repositories\Games\Bingo\Rooms\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Games\Bingo\Rooms\User\BingoRoomUserWinner;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de ganadores de salas de bingo
  */
-interface BingoRoomUserWinnerRepositoryContract extends BaseRepositoryContract
+interface BingoRoomWinnerRepositoryContract extends BaseRepositoryContract
 {
     /**
      * Obtiene ganadores por sala

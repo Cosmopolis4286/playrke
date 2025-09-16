@@ -6,7 +6,6 @@ use App\Models\Games\Shared\Game;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Contracts\GameRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Repositorio para operaciones con juegos

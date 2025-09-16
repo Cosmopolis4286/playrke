@@ -4,7 +4,7 @@ namespace App\Repositories\Users\Roles\Customer;
 
 use App\Models\Users\Roles\Customer\CustomerGame;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Games\Contracts\GameRepositoryContract;
+use App\Repositories\Users\Roles\Customer\Contracts\CustomerGameRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 class CustomerGameRepository extends BaseRepository implements CustomerGameRepositoryContract

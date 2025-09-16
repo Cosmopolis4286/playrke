@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Wallets\Crypto;
+namespace App\Repositories\Wallets\Crypto\Contracts;
 
 use App\Models\Wallets\Crypto\Binance\BinanceAccounts;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;

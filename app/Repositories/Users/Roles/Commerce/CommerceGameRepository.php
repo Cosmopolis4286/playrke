@@ -4,7 +4,7 @@ namespace App\Repositories\Users\Roles\Commerce;
 
 use App\Models\Users\Roles\Commerce\CommerceGame;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Games\Contracts\GameRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceGameRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

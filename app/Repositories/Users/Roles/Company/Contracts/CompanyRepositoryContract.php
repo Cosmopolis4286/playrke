@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Company;
+namespace App\Repositories\Users\Roles\Company\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Users\Roles\Company\Company;

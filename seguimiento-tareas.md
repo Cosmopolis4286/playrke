@@ -127,7 +127,7 @@
 18. **BingoRoomAutomatic** - Modelo + Repository + Contract + ServiceProvider ✅
 19. **BingoRoomConfig** - Modelo + Repository + Contract + ServiceProvider ✅
 20. **BingoRoomUser** - Modelo + Repository + Contract + ServiceProvider ✅
-21. **BingoRoomUserWinner** - Modelo + Repository + Contract + ServiceProvider ✅
+21. **BingoRoomWinner** - Modelo + Repository + Contract + ServiceProvider ✅
 22. **BingoRound** - Modelo + Repository + Contract + ServiceProvider ✅
 23. **BingoRoundDraft** - Modelo + Repository + Contract + ServiceProvider ✅
 24. **CommandLog** - Modelo + Repository + Contract + ServiceProvider ✅
@@ -198,7 +198,7 @@
 18. BingoRoomAutomatic ✅
 19. BingoRoomConfig ✅
 20. BingoRoomUser ✅
-21. BingoRoomUserWinner ✅
+21. BingoRoomWinner ✅
 22. BingoRound ✅
 23. BingoRoundDraft ✅
 24. CommandLog ✅

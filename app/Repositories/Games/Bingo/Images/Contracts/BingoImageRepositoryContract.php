@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Images;
+namespace App\Repositories\Games\Bingo\Images\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Games\Bingo\Images\BingoImage;

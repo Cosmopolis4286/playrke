@@ -4,7 +4,7 @@ namespace App\Models\Games\Bingo\Rounds;
 
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
-use App\Models\Games\Bingo\Rooms\User\BingoRoomUserWinner;
+use App\Models\Games\Bingo\Rooms\User\BingoRoomWinner;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -57,6 +57,6 @@ class BingoRound extends Model
      */
     public function winners(): HasMany
     {
-        return $this->hasMany(BingoRoomUserWinner::class, 'round_id');
+        return $this->hasMany(BingoRoomWinner::class, 'round_id');
     }
 }

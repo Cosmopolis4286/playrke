@@ -11,11 +11,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Modelo para ganadores de salas de bingo
  */
-class BingoRoomUserWinner extends Model
+class BingoRoomWinner extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'bingo_rooms_user_winners';
+    protected $table = 'bingo_rooms_winners';
 
     protected $fillable = [
         'room_id',

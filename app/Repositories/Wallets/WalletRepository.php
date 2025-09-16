@@ -6,6 +6,7 @@ namespace App\Repositories\Wallets;
 
 use App\Models\Wallets\Wallet;
 use App\Repositories\Base\BaseRepository;
+use App\Repositories\Wallets\Contracts\WalletRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 

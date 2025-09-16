@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Repositories\Games\Shared\GameRoom;
+namespace App\Repositories\Games\Shared\GameRoom\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Games\Shared\GameRoom\CurrencyGameRoom;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

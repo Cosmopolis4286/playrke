@@ -6,6 +6,7 @@ namespace App\Repositories\Rewards;
 
 use App\Models\Rewards\Reward;
 use App\Repositories\Base\BaseRepository;
+use App\Repositories\Rewards\Contracts\RewardRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;

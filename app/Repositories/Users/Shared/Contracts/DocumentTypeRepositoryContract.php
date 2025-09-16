@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Shared;
+namespace App\Repositories\Users\Shared\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Users\Shared\DocumentType;

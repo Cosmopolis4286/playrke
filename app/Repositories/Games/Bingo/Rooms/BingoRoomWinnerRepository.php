@@ -2,22 +2,22 @@
 
 namespace App\Repositories\Games\Bingo\Rooms;
 
-use App\Models\Games\Bingo\Rooms\User\BingoRoomUserWinner;
+use App\Models\Games\Bingo\Rooms\User\BingoRoomWinner;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Games\Bingo\Rooms\Contracts\BingoRoomUserWinnerRepositoryContract;
+use App\Repositories\Games\Bingo\Rooms\Contracts\BingoRoomWinnerRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de ganadores de salas de bingo
  */
-class BingoRoomUserWinnerRepository extends BaseRepository implements BingoRoomUserWinnerRepositoryContract
+class BingoRoomWinnerRepository extends BaseRepository implements BingoRoomWinnerRepositoryContract
 {
     /**
      * Constructor del repository
      *
-     * @param BingoRoomUserWinner $model
+     * @param BingoRoomWinner $model
      */
-    public function __construct(BingoRoomUserWinner $model)
+    public function __construct(BingoRoomWinner $model)
     {
         parent::__construct($model);
     }

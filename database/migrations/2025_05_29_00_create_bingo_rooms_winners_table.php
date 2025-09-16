@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bingo_rooms_user_winners', function (Blueprint $table) {
+        Schema::create('bingo_rooms_winners', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;
             $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->onDelete('cascade');
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bingo_rooms_user_winners');
+        Schema::dropIfExists('bingo_rooms_winners');
     }
 };

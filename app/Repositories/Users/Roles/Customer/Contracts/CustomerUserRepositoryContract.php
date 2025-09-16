@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Customer;
+namespace App\Repositories\Users\Roles\Customer\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Users\Roles\Customer\CustomerUser;
