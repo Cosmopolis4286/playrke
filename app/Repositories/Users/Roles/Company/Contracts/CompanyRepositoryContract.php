@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Company\Contracts;
+namespace App\Repositories\Users\Roles\Company;
 
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Users\Roles\Company\Company;
 use Illuminate\Database\Eloquent\Collection;
 

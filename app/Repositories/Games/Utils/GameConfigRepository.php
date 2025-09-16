@@ -3,10 +3,9 @@
 namespace App\Repositories\Games\Utils;
 
 use App\Models\Games\Shared\Utils\GameConfig;
-use App\Repositories\BaseRepository;
-use App\Repositories\Contracts\Games\Utils\GameConfigRepositoryContract;
+use App\Repositories\Base\BaseRepository;
+use App\Repositories\Games\Utils\Contracts\GameConfigRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Repositorio para operaciones con configuraciones de juego

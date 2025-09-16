@@ -3,8 +3,8 @@
 namespace App\Repositories\Currencies;
 
 use App\Models\Currencies\Currency;
-use App\Repositories\BaseRepository;
-use App\Repositories\Contracts\Currencies\CurrencyRepositoryContract;
+use App\Repositories\Base\BaseRepository;
+use App\Repositories\Currencies\Contracts\CurrencyRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 

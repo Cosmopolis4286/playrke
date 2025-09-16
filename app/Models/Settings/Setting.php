@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models\Settings;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use BradieTilley\Snowflake\Snowflake;
 
 /**
@@ -20,6 +21,12 @@ use BradieTilley\Snowflake\Snowflake;
  * @property string $status Estado de la configuración
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
+ *
+ * @method static Builder|Setting active()
+ * @method static Builder|Setting inactive()
+ * @method static Builder|Setting byParam(string $param)
+ * @method static Builder|Setting byValue(string $value)
+ * @method static Builder|Setting criticalSystem()
  */
 class Setting extends Model
 {
@@ -31,9 +38,26 @@ class Setting extends Model
     /**
      * Estados disponibles para configuraciones
      */
+    public const STATUS_ACTIVE   = 'ACTIVE';
+    public const STATUS_INACTIVE = 'INACTIVE';
+
     public const STATUSES = [
-        'ACTIVE' => 'Activo',
-        'INACTIVE' => 'Inactivo',
+        self::STATUS_ACTIVE   => 'Activo',
+        self::STATUS_INACTIVE => 'Inactivo',
+    ];
+
+    /**
+     * Parámetros críticos del sistema
+     */
+    public const CRITICAL_PARAMS = [
+        'app_env',
+        'app_debug',
+        'maintenance_mode',
+        'api_enabled',
+        'database_status',
+        'cache_enabled',
+        'queue_enabled',
+        'security_level',
     ];
 
     /**
@@ -56,11 +80,8 @@ class Setting extends Model
     /**
      * Sobrescribe el boot del modelo para asignar Snowflake ID
      */
-    protected static function boot(): void
+    protected static function booted(): void
     {
-        parent::boot();
-
-        // Generar ID con Snowflake antes de crear el registro
         static::creating(function (Setting $setting) {
             if (!$setting->id) {
                 $setting->id = (new Snowflake())->id();
@@ -81,7 +102,7 @@ class Setting extends Model
      */
     public function isActive(): bool
     {
-        return $this->status === 'ACTIVE';
+        return $this->status === self::STATUS_ACTIVE;
     }
 
     /**
@@ -89,7 +110,7 @@ class Setting extends Model
      */
     public function isInactive(): bool
     {
-        return $this->status === 'INACTIVE';
+        return $this->status === self::STATUS_INACTIVE;
     }
 
     /**
@@ -105,68 +126,58 @@ class Setting extends Model
      */
     public function isCriticalSystemParam(): bool
     {
-        $criticalParams = [
-            'app_env',
-            'app_debug',
-            'maintenance_mode',
-            'api_enabled',
-            'database_status',
-            'cache_enabled',
-            'queue_enabled',
-            'security_level'
-        ];
-
-        return in_array($this->param, $criticalParams);
+        return in_array($this->param, self::CRITICAL_PARAMS, true);
     }
 
     /**
      * Scope para obtener solo configuraciones activas
+     *
+     * @param Builder $query
      */
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
-        return $query->where('status', 'ACTIVE');
+        return $query->where('status', self::STATUS_ACTIVE);
     }
 
     /**
      * Scope para obtener solo configuraciones inactivas
+     *
+     * @param Builder $query
      */
-    public function scopeInactive($query)
+    public function scopeInactive(Builder $query): Builder
     {
-        return $query->where('status', 'INACTIVE');
+        return $query->where('status', self::STATUS_INACTIVE);
     }
 
     /**
      * Scope para buscar por parámetro
+     *
+     * @param Builder $query
+     * @param string $param
      */
-    public function scopeByParam($query, string $param)
+    public function scopeByParam(Builder $query, string $param): Builder
     {
         return $query->where('param', $param);
     }
 
     /**
      * Scope para buscar por valor
+     *
+     * @param Builder $query
+     * @param string $value
      */
-    public function scopeByValue($query, string $value)
+    public function scopeByValue(Builder $query, string $value): Builder
     {
         return $query->where('value', $value);
     }
 
     /**
      * Scope para configuraciones críticas del sistema
+     *
+     * @param Builder $query
      */
-    public function scopeCriticalSystem($query)
+    public function scopeCriticalSystem(Builder $query): Builder
     {
-        $criticalParams = [
-            'app_env',
-            'app_debug',
-            'maintenance_mode',
-            'api_enabled',
-            'database_status',
-            'cache_enabled',
-            'queue_enabled',
-            'security_level'
-        ];
-
-        return $query->whereIn('param', $criticalParams);
+        return $query->whereIn('param', self::CRITICAL_PARAMS);
     }
 }

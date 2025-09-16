@@ -3,10 +3,9 @@
 namespace App\Repositories\Wallets\Crypto;
 
 use App\Models\Wallets\Crypto\Binance\BinanceAccounts;
-use App\Repositories\BaseRepository;
-use App\Repositories\Contracts\Wallets\Crypto\BinanceAccountsRepositoryContract;
+use App\Repositories\Base\BaseRepository;
+use App\Repositories\Wallets\Crypto\Contracts\BinanceAccountsRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Repositorio para operaciones con cuentas Binance

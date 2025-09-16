@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Repositories\Wallets;
 
 use App\Models\Wallets\Wallet;
-use App\Repositories\Contracts\Wallets\WalletRepositoryContract;
-use App\Repositories\BaseRepository;
+use App\Repositories\Base\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -53,8 +51,8 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
         }
 
         return $query->with(['user', 'currency'])
-                    ->orderBy('balance', 'desc')
-                    ->get();
+            ->orderBy('balance', 'desc')
+            ->get();
     }
 
     /**
@@ -78,8 +76,8 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
         }
 
         return $query->with(['user', 'currency'])
-                    ->orderBy('balance', 'desc')
-                    ->get();
+            ->orderBy('balance', 'desc')
+            ->get();
     }
 
     /**
@@ -103,8 +101,8 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
         }
 
         return $query->with(['user', 'currency'])
-                    ->orderBy('balance', 'desc')
-                    ->get();
+            ->orderBy('balance', 'desc')
+            ->get();
     }
 
     /**
@@ -113,9 +111,9 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function findWalletByUserAndCurrency(string $userId, string $currencyId): ?Wallet
     {
         return $this->model->where('user_id', $userId)
-                          ->where('currency_id', $currencyId)
-                          ->with(['user', 'currency'])
-                          ->first();
+            ->where('currency_id', $currencyId)
+            ->with(['user', 'currency'])
+            ->first();
     }
 
     /**
@@ -124,11 +122,11 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function getActiveWalletsByUser(string $userId, array $columns = ['*']): Collection
     {
         return $this->model->where('user_id', $userId)
-                          ->where('status', 'ACTIVE')
-                          ->select($columns)
-                          ->with(['currency'])
-                          ->orderBy('balance', 'desc')
-                          ->get();
+            ->where('status', 'ACTIVE')
+            ->select($columns)
+            ->with(['currency'])
+            ->orderBy('balance', 'desc')
+            ->get();
     }
 
     /**
@@ -148,9 +146,9 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
         }
 
         return $query->select($columns)
-                    ->with(['user', 'currency'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->with(['user', 'currency'])
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -159,7 +157,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function updateBalance(string $walletId, float $newBalance): bool
     {
         return $this->model->where('id', $walletId)
-                          ->update(['balance' => $newBalance]) > 0;
+            ->update(['balance' => $newBalance]) > 0;
     }
 
     /**
@@ -168,7 +166,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function incrementBalance(string $walletId, float $amount): bool
     {
         return $this->model->where('id', $walletId)
-                          ->increment('balance', $amount) > 0;
+            ->increment('balance', $amount) > 0;
     }
 
     /**
@@ -177,7 +175,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function decrementBalance(string $walletId, float $amount): bool
     {
         return $this->model->where('id', $walletId)
-                          ->decrement('balance', $amount) > 0;
+            ->decrement('balance', $amount) > 0;
     }
 
     /**
@@ -186,7 +184,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function changeWalletStatus(string $walletId, string $newStatus): bool
     {
         return $this->model->where('id', $walletId)
-                          ->update(['status' => $newStatus]) > 0;
+            ->update(['status' => $newStatus]) > 0;
     }
 
     /**
@@ -195,7 +193,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function changeBulkWalletStatus(array $walletIds, string $newStatus): int
     {
         return $this->model->whereIn('id', $walletIds)
-                          ->update(['status' => $newStatus]);
+            ->update(['status' => $newStatus]);
     }
 
     /**
@@ -204,7 +202,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function getTotalBalanceByUser(string $userId, ?string $currencyId = null): float
     {
         $query = $this->model->where('user_id', $userId)
-                            ->where('status', 'ACTIVE');
+            ->where('status', 'ACTIVE');
 
         if ($currencyId) {
             $query->where('currency_id', $currencyId);
@@ -219,7 +217,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function getWalletStatsByUser(string $userId): array
     {
         $stats = $this->model->where('user_id', $userId)
-                            ->selectRaw('
+            ->selectRaw('
                                 COUNT(*) as total_wallets,
                                 SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_wallets,
                                 SUM(CASE WHEN status = "BLOCKED" THEN 1 ELSE 0 END) as blocked_wallets,
@@ -227,7 +225,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
                                 SUM(balance) as total_balance,
                                 AVG(balance) as avg_balance
                             ')
-                            ->first();
+            ->first();
 
         return [
             'total_wallets' => $stats->total_wallets ?? 0,
@@ -255,7 +253,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
                                 MAX(balance) as max_balance,
                                 MIN(balance) as min_balance
                             ')
-                            ->first();
+            ->first();
 
         return [
             'total_wallets' => $stats->total_wallets ?? 0,
@@ -290,8 +288,8 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
         }
 
         return $query->with(['user', 'currency'])
-                    ->orderBy('balance', 'desc')
-                    ->get();
+            ->orderBy('balance', 'desc')
+            ->get();
     }
 
     /**
@@ -315,8 +313,8 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
         }
 
         return $query->with(['user', 'currency'])
-                    ->orderBy('balance', 'asc')
-                    ->get();
+            ->orderBy('balance', 'asc')
+            ->get();
     }
 
     /**
@@ -336,9 +334,9 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
         }
 
         $counts = $query->select('status', DB::raw('count(*) as total'))
-                       ->groupBy('status')
-                       ->pluck('total', 'status')
-                       ->toArray();
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
 
         // Asegurar que todos los estados estén presentes
         $validStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED'];
@@ -372,8 +370,8 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
         }
 
         return $query->with(['user', 'currency'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -382,7 +380,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     public function userHasWalletForCurrency(string $userId, string $currencyId): bool
     {
         return $this->model->where('user_id', $userId)
-                          ->where('currency_id', $currencyId)
-                          ->exists();
+            ->where('currency_id', $currencyId)
+            ->exists();
     }
 }

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Repositories\Wallets\Contracts;
+namespace App\Repositories\Wallets;
 
 use App\Models\Wallets\Wallet;
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

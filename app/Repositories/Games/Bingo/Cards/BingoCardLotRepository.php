@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Repositories\Games\Bingo\Cards;
 
 use App\Models\Games\Bingo\Cards\BingoCardLot;
-use App\Repositories\Contracts\Games\Bingo\Cards\BingoCardLotRepositoryContract;
-use App\Repositories\BaseRepository;
+use App\Repositories\Games\Bingo\Cards\Contracts\BingoCardLotRepositoryContract;
+use App\Repositories\Base\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;

@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Repositories\Rewards;
 
 use App\Models\Rewards\Reward;
-use App\Repositories\Contracts\Rewards\RewardRepositoryContract;
-use App\Repositories\BaseRepository;
+use App\Repositories\Base\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 

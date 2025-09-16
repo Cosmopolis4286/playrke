@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Games\Shared\PrizePool\Contracts;
+namespace App\Repositories\Games\Shared\PrizePool;
 
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
 use Illuminate\Database\Eloquent\Collection;
 

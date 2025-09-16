@@ -3,7 +3,7 @@
 namespace App\Repositories\Banks\Contracts;
 
 use App\Models\Banks\BankBrazil;
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 
 /**
  * Contrato para el repositorio de bancos de Brasil

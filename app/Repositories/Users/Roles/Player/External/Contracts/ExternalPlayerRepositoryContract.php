@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Player\External\Contracts;
+namespace App\Repositories\Users\Roles\Player\External;
 
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Users\Roles\Player\External\ExternalPlayer;
 use Illuminate\Database\Eloquent\Collection;
 

@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Commerce;
 
 use App\Models\Users\Roles\Commerce\CommerceCountriesCurrencies;
-use App\Repositories\BaseRepository;
+use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCountriesCurrenciesRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

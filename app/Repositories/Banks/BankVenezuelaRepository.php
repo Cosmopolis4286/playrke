@@ -3,10 +3,9 @@
 namespace App\Repositories\Banks;
 
 use App\Models\Banks\BankVenezuela;
-use App\Repositories\BaseRepository;
-use App\Repositories\Contracts\Banks\BankVenezuelaRepositoryContract;
+use App\Repositories\Base\BaseRepository;
+use App\Repositories\Banks\Contracts\BankVenezuelaRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Repositorio para operaciones con bancos de Venezuela

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Payments\ExchangeRate\Contracts;
+namespace App\Repositories\Payments\ExchangeRate;
 
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Payments\ExchangeRate\ExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 

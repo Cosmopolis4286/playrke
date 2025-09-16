@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Commerce\Contracts;
+namespace App\Repositories\Users\Roles\Commerce;
 
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Users\Roles\Commerce\CommerceGame;
 use Illuminate\Database\Eloquent\Collection;
 

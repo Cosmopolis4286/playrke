@@ -3,17 +3,22 @@
 namespace App\Repositories\Banks;
 
 use App\Models\Banks\BankBrazil;
-use App\Repositories\BaseRepository;
-use App\Repositories\Contracts\Banks\BankBrazilRepositoryContract;
+use App\Repositories\Base\BaseRepository;
+use App\Repositories\Banks\Contracts\BankBrazilRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Repositorio para operaciones con bancos de Brasil
+ *
  * Maneja todas las consultas complejas relacionadas con BankBrazil
  */
 class BankBrazilRepository extends BaseRepository implements BankBrazilRepositoryContract
 {
+    /**
+     * Constructor
+     *
+     * @param BankBrazil $model
+     */
     public function __construct(BankBrazil $model)
     {
         parent::__construct($model);

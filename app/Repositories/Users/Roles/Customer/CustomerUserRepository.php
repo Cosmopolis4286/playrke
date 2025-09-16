@@ -3,8 +3,8 @@
 namespace App\Repositories\Users\Roles\Customer;
 
 use App\Models\Users\Roles\Customer\CustomerUser;
-use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Customer\Contracts\CustomerUserRepositoryContract;
+use App\Repositories\Base\BaseRepository;
+use App\Repositories\Users\Contracts\UserRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 use Carbon\Carbon;

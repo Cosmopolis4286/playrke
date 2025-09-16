@@ -3,8 +3,8 @@
 namespace App\Repositories\Games;
 
 use App\Models\Games\Shared\Game;
-use App\Repositories\BaseRepository;
-use App\Repositories\Contracts\Games\GameRepositoryContract;
+use App\Repositories\Base\BaseRepository;
+use App\Repositories\Games\Contracts\GameRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 

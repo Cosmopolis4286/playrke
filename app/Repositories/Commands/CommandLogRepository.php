@@ -3,10 +3,9 @@
 namespace App\Repositories\Commands;
 
 use App\Models\Commands\CommandLog;
-use App\Repositories\BaseRepository;
-use App\Repositories\Contracts\Commands\CommandLogRepositoryContract;
+use App\Repositories\Base\BaseRepository;
+use App\Repositories\Commands\Contracts\CommandLogRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
 /**

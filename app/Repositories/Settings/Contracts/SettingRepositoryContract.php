@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Settings\Contracts;
 
 use App\Models\Settings\Setting;
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
  *
  * @package App\Repositories\Contracts\Setting
  * @author Sistema de Gestión de Configuraciones
- * @version 1.0
+ * @version 1.1
  */
 interface SettingRepositoryContract extends BaseRepositoryContract
 {
@@ -69,7 +69,7 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return Collection<Setting> Configuraciones con el estado especificado
      *
      * @example
-     * $Setting = $repository->getSettingByStatus('ACTIVE');
+     * $settings = $repository->getSettingByStatus('ACTIVE');
      */
     public function getSettingByStatus(string $status): Collection;
 
@@ -81,7 +81,7 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return Collection<Setting> Configuraciones que coinciden
      *
      * @example
-     * $Setting = $repository->searchSettingByParam('mail', ['status' => 'ACTIVE']);
+     * $settings = $repository->searchSettingByParam('mail', ['status' => 'ACTIVE']);
      */
     public function searchSettingByParam(string $searchTerm, array $filters = []): Collection;
 
@@ -92,6 +92,7 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @param string $value Valor del parámetro
      * @param string $status Estado del parámetro
      * @return Setting Configuración actualizada o creada
+     *
      * @example
      * $setting = $repository->updateOrCreateSetting('theme', 'dark', 'ACTIVE');
      */
@@ -105,9 +106,9 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return bool True si se actualizó correctamente
      *
      * @example
-     * $updated = $repository->updateSettingtatus('maintenance_mode', 'INACTIVE');
+     * $updated = $repository->updateSettingStatus('maintenance_mode', 'INACTIVE');
      */
-    public function updateSettingtatus(string $param, string $newStatus): bool;
+    public function updateSettingStatus(string $param, string $newStatus): bool;
 
     /**
      * Actualiza el valor de un parámetro
@@ -163,7 +164,7 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return Collection<Setting> Configuraciones en el rango
      *
      * @example
-     * $Setting = $repository->getSettingByDateRange('2024-01-01', '2024-01-31');
+     * $settings = $repository->getSettingByDateRange('2024-01-01', '2024-01-31');
      */
     public function getSettingByDateRange(string $startDate, string $endDate, array $filters = []): Collection;
 
@@ -184,9 +185,9 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return array Estadísticas generales
      *
      * @example
-     * $stats = $repository->getGeneralSettingtats();
+     * $stats = $repository->getGeneralSettingStats();
      */
-    public function getGeneralSettingtats(): array;
+    public function getGeneralSettingStats(): array;
 
     /**
      * Obtiene todas las configuraciones con paginación
@@ -203,7 +204,7 @@ interface SettingRepositoryContract extends BaseRepositoryContract
     /**
      * Actualiza múltiples configuraciones en lote
      *
-     * @param array $Setting Array de configuraciones [param => [value, status]]
+     * @param array $settings Array de configuraciones [param => [value, status]]
      * @return int Número de configuraciones actualizadas
      *
      * @example
@@ -212,7 +213,7 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      *     'language' => ['es', 'ACTIVE']
      * ]);
      */
-    public function bulkUpdateSetting(array $Setting): int;
+    public function bulkUpdateSetting(array $settings): int;
 
     /**
      * Obtiene configuraciones de sistema críticas
@@ -220,7 +221,7 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return Collection<Setting> Configuraciones críticas del sistema
      *
      * @example
-     * $criticalSetting = $repository->getCriticalSystemSetting();
+     * $criticalSettings = $repository->getCriticalSystemSetting();
      */
     public function getCriticalSystemSetting(): Collection;
 }

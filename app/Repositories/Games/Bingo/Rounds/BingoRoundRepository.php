@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Bingo\Rounds;
 
 use App\Models\Games\Bingo\Rounds\BingoRound;
-use App\Repositories\BaseRepository;
+use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Bingo\Rounds\Contracts\BingoRoundRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

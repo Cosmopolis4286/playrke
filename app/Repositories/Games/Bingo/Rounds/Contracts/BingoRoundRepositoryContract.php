@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Rounds\Contracts;
+namespace App\Repositories\Games\Bingo\Rounds;
 
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Games\Bingo\Rounds\BingoRound;
 use Illuminate\Database\Eloquent\Collection;
 

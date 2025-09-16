@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Users\Contracts;
+namespace App\Repositories\Users;
 
 use App\Models\Users\User;
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

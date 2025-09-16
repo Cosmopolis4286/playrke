@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\Setting\SettingRepository as SettingSettingRepository;
-use App\Repositories\Settings\SettingRepository;
+use App\Repositories\Settings\Contracts\SettingRepositoryContract;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,28 +14,35 @@ use Inertia\Response;
 class PublicController extends Controller
 {
     /**
+     * @var SettingRepositoryContract
+     */
+    protected SettingRepositoryContract $settings;
+
+    /**
+     * Inyecta el repositorio en el constructor
+     */
+    public function __construct(SettingRepositoryContract $settings)
+    {
+        $this->settings = $settings;
+    }
+
+    /**
      * Página de inicio / login con estado de registro
-     *
-     * @return Response
      */
     public function root(): Response
     {
-        $register = (new SettingRepository())->getParameterStatus('REGISTER');
+        $register = $this->settings->getParameterStatus('REGISTER');
 
-        // Renderiza la página Login como componente Vue/Inertia
         return Inertia::render('Auth/Login', [
-            'register' => (bool)$register,  // Forzamos booleano
-            'loginUrl' => route('login'),   // URL POST para login
-            'passwordRequestUrl' => route('password.request'), // recuperación de contraseña
-            'registerUrl' => route('register'), // URL para registro
+            'register' => (bool)$register,
+            'loginUrl' => route('login'),
+            'passwordRequestUrl' => route('password.request'),
+            'registerUrl' => route('register'),
         ]);
     }
 
     /**
      * Páginas de información estática (terms, about, privacy)
-     *
-     * @param string $page
-     * @return Response
      */
     public function info(string $page): Response
     {
@@ -46,7 +52,6 @@ class PublicController extends Controller
             abort(404);
         }
 
-        // Renderiza página estática usando componente Vue/Inertia
         return Inertia::render('Info/StaticPage', [
             'page' => $page,
         ]);

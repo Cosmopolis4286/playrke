@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Users\Shared\Contracts;
+namespace App\Repositories\Users\Shared;
 
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Users\Shared\DocumentType;
 use Illuminate\Database\Eloquent\Collection;
 

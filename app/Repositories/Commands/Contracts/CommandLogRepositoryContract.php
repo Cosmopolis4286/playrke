@@ -3,7 +3,7 @@
 namespace App\Repositories\Commands\Contracts;
 
 use App\Models\Commands\CommandLog;
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

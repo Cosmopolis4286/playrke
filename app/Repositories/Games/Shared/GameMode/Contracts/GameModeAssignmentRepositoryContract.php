@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Games\Shared\GameMode\Contracts;
+namespace App\Repositories\Games\Shared\GameMode;
 
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use App\Models\Games\Shared\GameMode\GameModeAssignment;
 use Illuminate\Database\Eloquent\Collection;
 

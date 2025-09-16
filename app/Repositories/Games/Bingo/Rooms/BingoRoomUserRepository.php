@@ -3,8 +3,8 @@
 namespace App\Repositories\Games\Bingo\Rooms;
 
 use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
-use App\Repositories\BaseRepository;
-use App\Repositories\Games\Bingo\Rooms\Contracts\BingoRoomUserRepositoryContract;
+use App\Repositories\Base\BaseRepository;
+use App\Repositories\Users\Contracts\UserRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

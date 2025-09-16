@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Repositories\Games\Bingo\Cards\CardPrice\Contracts;
+namespace App\Repositories\Games\Bingo\Cards\CardPrice;
 
 use App\Models\Games\Bingo\Cards\CardPrice\BingoCardPriceDraft;
-use App\Repositories\Contracts\BaseRepositoryContract;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

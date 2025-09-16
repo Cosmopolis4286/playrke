@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\ExchangeRate;
+namespace App\Repositories\ExhangeRate;
 
 use App\Models\ExchangeRate\ExchangeRate;
 
