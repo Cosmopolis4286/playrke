@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PaymentMethodsCOL;
+use App\Models\ColombianPaymentAccount;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class PaymentMethodsCOLController extends Controller
+class ColombianPaymentAccountController extends Controller
 {
     public function create(Request $request)
     {
@@ -18,7 +18,7 @@ class PaymentMethodsCOLController extends Controller
         $accNumber = $request->acc_number;
         $documentNumber = $request->document_number;
 
-        if (PaymentMethodsCOL::existsRegister($gateway, $userName, $accNumber, $documentNumber)) {
+        if (ColombianPaymentAccount::existsRegister($gateway, $userName, $accNumber, $documentNumber)) {
             return redirect()->back()->with([
                 'message' => 'Esta Chave Pix ya se encuentra registrada',
                 'type' => 'warning'
@@ -28,7 +28,7 @@ class PaymentMethodsCOLController extends Controller
         DB::beginTransaction();
 
         try {
-            PaymentMethodsCOL::create([
+            ColombianPaymentAccount::create([
                 'gateway' => $gateway,
                 'user_name' => $userName,
                 'acc_number' => $accNumber,
@@ -58,7 +58,7 @@ class PaymentMethodsCOLController extends Controller
         $accNumber = $request->acc_number;
         $documentNumber = $request->document_number;
 
-        if (PaymentMethodsCOL::existsRegister($gateway, $userName, $accNumber, $documentNumber, Auth::id())) {
+        if (ColombianPaymentAccount::existsRegister($gateway, $userName, $accNumber, $documentNumber, Auth::id())) {
             return redirect()->back()->with([
                 'message' => 'Esta Chave Pix ya se encuentra registrada',
                 'type' => 'warning'
@@ -69,7 +69,7 @@ class PaymentMethodsCOLController extends Controller
 
         try {
 
-            $register = PaymentMethodsCOL::findOrFail(decrypt($id));
+            $register = ColombianPaymentAccount::findOrFail(decrypt($id));
 
             $register->update([
                 'gateway' => $gateway,
@@ -98,7 +98,7 @@ class PaymentMethodsCOLController extends Controller
         DB::beginTransaction();
 
         try {
-            PaymentMethodsCOL::destroy(decrypt($request->id));
+            ColombianPaymentAccount::destroy(decrypt($request->id));
             DB::commit();
             return redirect()->back()->with('message', 'El registro ha sido eliminado')->with('type', 'success');
         } catch (\Exception $e) {
@@ -109,6 +109,6 @@ class PaymentMethodsCOLController extends Controller
 
     public function getInfo($id)
     {
-        return PaymentMethodsCOL::getById(decrypt($id), ['gateway', 'acc_number', 'user_name', 'document_number']);
+        return ColombianPaymentAccount::getById(decrypt($id), ['gateway', 'acc_number', 'user_name', 'document_number']);
     }
 }

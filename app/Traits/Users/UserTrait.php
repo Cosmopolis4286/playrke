@@ -5,13 +5,13 @@ namespace App\Traits\Users;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
 use App\Models\ExchangeRate\CommerceExchangeRate;
-use App\Models\Payments\Methods\Brasil\PixKeys;
+use App\Models\Payments\Methods\Brasil\PixKey;
 use App\Models\Payments\Methods\Venezuela\PagoMovil;
 use App\Models\Users\Roles\Commerce\Commerce;
-use App\Models\Users\Roles\Commerce\CommerceCountriesCurrencies;
+use App\Models\Users\Roles\Commerce\CommerceCountryCurrency;
 use App\Models\Users\Roles\Customer\Customer;
 use App\Models\Users\Roles\Seller\Seller;
-use App\Models\Users\Roles\Seller\SellerCountriesCurrencies;
+use App\Models\Users\Roles\Seller\SellerCountryCurrency;
 use App\Models\Users\Roles\Treasurer\Treasurer;
 use App\Models\Users\User;
 use App\Models\Wallets\Wallet;
@@ -72,11 +72,11 @@ trait UserTrait
                 break;
             case 'commerce_id': // Comercio
                 $commerce = Commerce::getValueByUserId($user, 'id');
-                $countries = CommerceCountriesCurrencies::getAvailableCountries($commerce);
+                $countries = CommerceCountryCurrency::getAvailableCountries($commerce);
                 break;
             case 'seller': // Vendedor
                 $seller = Seller::getValueByUserId($user, 'id');
-                $countries = SellerCountriesCurrencies::getAvailableCountries($seller);
+                $countries = SellerCountryCurrency::getAvailableCountries($seller);
                 break;
             case 'customer': // Cliente
                 //$customer = Customer::getValueByUserId($user, 'id');
@@ -102,15 +102,15 @@ trait UserTrait
                 break;
             case 'commerce_id': // Comercio
                 $commerce = Commerce::getValueByUserId($user, 'id');
-                $currencies = CommerceCountriesCurrencies::getAvailableCurrencies($commerce);
+                $currencies = CommerceCountryCurrency::getAvailableCurrencies($commerce);
                 break;
             case 'seller': // Vendedor
                 $seller = Seller::getValueByUserId($user, 'id');
-                $currencies = SellerCountriesCurrencies::getAvailableCurrencies($seller);
+                $currencies = SellerCountryCurrency::getAvailableCurrencies($seller);
                 break;
             case 'customer': // Cliente
                 $seller = Seller::getValueByUserId($user, 'id');
-                $currencies = SellerCountriesCurrencies::getAvailableCurrencies($seller);
+                $currencies = SellerCountryCurrency::getAvailableCurrencies($seller);
                 break;
             default:
                 $currencies = [];
@@ -128,7 +128,7 @@ trait UserTrait
         $currenciesWithoutDirectories = collect($currencyModels)->filter(function ($currency) use ($user) {
             return match ($currency->iso_code) {
                 'VES' => !PagoMovil::where('user', $user['userId'])->exists(),
-                'BRL' => !PixKeys::where('user', $user['userId'])->exists(),
+                'BRL' => !PixKey::where('user', $user['userId'])->exists(),
                 'COP' => true,
                 default => throw new \InvalidArgumentException("Tipo de moneda no soportado: {$currency->iso_code}"),
             };
@@ -216,7 +216,7 @@ trait UserTrait
 
                 case 'BR':
                     // R$ (Brasil) Pix
-                    $pix = PixKeys::where('user', $user)->first();
+                    $pix = PixKey::where('user', $user)->first();
 
                     if (!$pix) $error = true;
 
@@ -256,7 +256,7 @@ trait UserTrait
         }
 
         // Construcción de la consulta principal
-        $query = CommerceCountriesCurrencies::select('id', 'currency')
+        $query = CommerceCountryCurrency::select('id', 'currency')
             ->with($primaryRelation)
             ->whereHas($primaryRelation, function ($subquery) use (
                 $userId,

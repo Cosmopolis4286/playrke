@@ -2,16 +2,20 @@
 
 namespace App\Models\Games\Shared\Utils;
 
-use App\Models\Games\Shared\Game;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
 class GameSound extends Model
 {
-    protected $table = "game_sounds";
-    protected $fillable = ['price', 'description', 'game_id', 'status'];
+    use SnowflakeId;
 
-    public function Game()
-    {
-        return $this->hasMany(Game::class, 'game_id');
-    }
+    protected $fillable = [
+        'file',
+        'description',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
 }

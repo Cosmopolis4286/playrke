@@ -22,7 +22,7 @@ class PixController extends Controller
     public function index()
     {
         $pixs = Pix::with('Bank')->where("user", Auth::id())->get();
-        $typeChave = Pix::getPixKeys();
+        $typeChave = Pix::getPixKey();
 
         return view('all.directory.br.index', compact('pixs', 'typeChave'));
     }

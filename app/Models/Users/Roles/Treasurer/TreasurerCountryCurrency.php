@@ -4,7 +4,7 @@ namespace App\Models\Users\Roles\Treasurer;
 
 use Illuminate\Database\Eloquent\Model;
 
-class TreasurerCountriesCurrencies extends Model
+class TreasurerCountryCurrency extends Model
 {
     protected $table = "treasurers_countries_currencies";
     protected $fillable = ['treasurer', 'country', 'currency', 'level', 'creator_user_id', 'status'];

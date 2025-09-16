@@ -104,9 +104,9 @@
   - **Muy Alto**: Transformación completa de la arquitectura de datos
   - **Beneficios**: Código consistente, arquitectura uniforme, facilita mantenimiento
 - **Tiempo estimado**: 345 minutos (5 min promedio × 69 modelos)
-- **Progreso**: 56.9% (41 de 72 modelos)
+- **Progreso**: 81.9% (59 de 72 modelos)
 
-**Modelos Completados** ✅ (41/72):
+**Modelos Completados** ✅ (59/72):
 1. **BankBrazil** - Modelo + Repository + Contract + ServiceProvider ✅
 2. **BankVenezuela** - Modelo + Repository + Contract + ServiceProvider ✅
 3. **BinanceAccounts** - Modelo + Repository + Contract + ServiceProvider ✅
@@ -132,7 +132,7 @@
 23. **BingoRoundDraft** - Modelo + Repository + Contract + ServiceProvider ✅
 24. **CommandLog** - Modelo + Repository + Contract + ServiceProvider ✅
 25. **Commerce** - Modelo + Repository + Contract + ServiceProvider ✅
-26. **CommerceCountriesCurrencies** - Modelo + Repository + Contract + ServiceProvider ✅
+26. **CommerceCountryCurrency** - Modelo + Repository + Contract + ServiceProvider ✅
 27. **CommerceExchangeRate** - Modelo + Repository + Contract + ServiceProvider ✅
 28. **CommerceGame** - Modelo + Repository + Contract + ServiceProvider ✅
 29. **Company** - Modelo + Repository + Contract + ServiceProvider ✅
@@ -150,11 +150,29 @@
 41. **GameConfig** - Modelo + Repository + Contract + ServiceProvider ✅
 42. **GameExchangeRate** - Modelo + Repository + Contract + ServiceProvider ✅
 43. **GameMode** - Modelo + Repository + Contract + ServiceProvider ✅
-44. **Reward** - Modelo + Repository + Contract + ServiceProvider ✅
-45. **Setting** - Modelo + Repository + Contract + ServiceProvider ✅
-46. **User** - Modelo + Repository + Contract + ServiceProvider ✅
+44. **GameModeAssignment** - Modelo + Repository + Contract + ServiceProvider ✅
+45. **GamePrize** - Modelo + Repository + Contract + ServiceProvider ✅
+46. **GamePrizePoolType** - Modelo + Repository + Contract + ServiceProvider ✅
+47. **GameRoomJackpot** - Modelo + Repository + Contract + ServiceProvider ✅
+48. **GameRule** - Modelo + Repository + Contract + ServiceProvider ✅
+49. **GameSound** - Modelo + Repository + Contract + ServiceProvider ✅
+50. **GameStatus** - Modelo + Repository + Contract + ServiceProvider ✅
+51. **OtherTreasurers** - Modelo + Repository + Contract + ServiceProvider ✅
+52. **PagoMovil** - Modelo + Repository + Contract + ServiceProvider ✅
+53. **ColombianPaymentAccount** - Modelo + Repository + Contract + ServiceProvider ✅
+54. **PhoneNumbers** - Modelo + Repository + Contract + ServiceProvider ✅
+55. **PixKeys** - Modelo + Repository + Contract + ServiceProvider ✅
+56. **PlayHistory** - Modelo + Repository + Contract + ServiceProvider ✅
+57. **PrizePoolType** - Modelo + Repository + Contract + ServiceProvider ✅
+58. **Reward** - Modelo + Repository + Contract + ServiceProvider ✅
+59. **Role** - Modelo + Repository + Contract + ServiceProvider ✅
+60. **Room** - Modelo + Repository + Contract + ServiceProvider ✅
+61. **Seller** - Modelo + Repository + Contract + ServiceProvider ✅
+62. **SellerCountryCurrency** - Modelo + Repository + Contract + ServiceProvider ✅
+63. **Setting** - Modelo + Repository + Contract + ServiceProvider ✅
+64. **User** - Modelo + Repository + Contract + ServiceProvider ✅
 
-**SIGUIENTE MODELO**: 🔄 **GameModeAssignment**
+**SIGUIENTE MODELO**: 🔄 **SellerRoomLimits**
 
 **Modelo Especial Completado**:
 - **Wallet** - Modelo + Repository + Contract + ServiceProvider ✅ (solicitado específicamente)
@@ -185,7 +203,7 @@
 23. BingoRoundDraft ✅
 24. CommandLog ✅
 25. Commerce ✅
-26. CommerceCountriesCurrencies ✅
+26. CommerceCountryCurrency ✅
 27. CommerceExchangeRate ✅
 28. CommerceGame ✅
 29. Company ✅
@@ -203,31 +221,31 @@
 41. GameConfig ✅
 42. GameExchangeRate ✅
 43. GameMode ✅
-44. GameModeAssignment 🔄
-45. GamePrize
-46. GamePrizePoolType
-47. GameRoomJackpot
-48. GameRule
-49. GameSound
-50. GameStatus
-51. OtherTreasurers
-52. PagoMovil
-53. PaymentMethodsCOL
-54. PhoneNumbers
-55. PixKeys
-56. PlayHistory
-57. PrizePoolType
+44. GameModeAssignment ✅
+45. GamePrize ✅
+46. GamePrizePoolType ✅
+47. GameRoomJackpot ✅
+48. GameRule ✅
+49. GameSound ✅
+50. GameStatus ✅
+51. OtherTreasurers ✅
+52. PagoMovil ✅
+53. ColombianPaymentAccount ✅
+54. PhoneNumbers ✅
+55. PixKeys ✅
+56. PlayHistory ✅
+57. PrizePoolType ✅
 58. Reward ✅
-59. Role
-60. Room
-61. Seller
-62. SellerCountriesCurrencies
+59. Role ✅
+60. Room ✅
+61. Seller ✅
+62. SellerCountryCurrency ✅
 63. SellerRoomLimits
 64. Setting ✅
 65. TimeZone
 66. Transaction
 67. Treasurer
-68. TreasurerCountriesCurrencies
+68. TreasurerCountryCurrency
 69. UniqueCode
 70. User ✅
 71. UserPurchaseCode

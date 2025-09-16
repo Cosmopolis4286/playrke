@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Models\OtherTreasurers;
 use App\Models\Treasurer;
-use App\Models\TreasurerCountriesCurrencies;
+use App\Models\TreasurerCountryCurrency;
 use App\Models\PhoneNumbers;
 use App\Models\Role;
 use App\Models\UniqueCode;
@@ -156,7 +156,7 @@ class TreasurerController extends Controller
             ]);
 
             // Registar moneda Principal
-            TreasurerCountriesCurrencies::create([
+            TreasurerCountryCurrency::create([
                 'treasurer' => $treasurer->id,
                 'country' => $treasurer->country,
                 'currency' => $treasurer->currency,
@@ -193,7 +193,7 @@ class TreasurerController extends Controller
     {
         $id = decrypt($id);
         $treasurer = Treasurer::getById($id, ['name', 'country', 'currency', 'phone']);
-        $otherCurrencies = TreasurerCountriesCurrencies::getAvailableCurrencies($id);
+        $otherCurrencies = TreasurerCountryCurrency::getAvailableCurrencies($id);
         $user = User::getById(Treasurer::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
 
         $data = [
@@ -255,7 +255,7 @@ class TreasurerController extends Controller
 
                 if ($currencyChange) {
                     // Actualizar moneda Principal
-                    TreasurerCountriesCurrencies::where('creator_user_id', $treasurer->user)
+                    TreasurerCountryCurrency::where('creator_user_id', $treasurer->user)
                         ->where('currency', $treasurer->currency)
                         ->update([
                             'country' => $treasurer->country,

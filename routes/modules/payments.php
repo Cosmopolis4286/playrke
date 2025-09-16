@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\{
     PaymentController, ExchangeRateController, PagoMovilController, 
-    PixController, PaymentMethodsCOLController, ReportsController
+    PixController, ColombianPaymentAccountController, ReportsController
 };
 use Illuminate\Support\Facades\Route;
 
@@ -60,10 +60,10 @@ Route::middleware('auth')->group(function () {
 // ====================================
 // MÉTODOS DE PAGO COLOMBIA
 // ====================================
-crud_routes('payment-method-col', PaymentMethodsCOLController::class, ['auth'], ['index', 'destroy']);
+crud_routes('payment-method-col', ColombianPaymentAccountController::class, ['auth'], ['index', 'destroy']);
 Route::middleware('auth')->group(function () {
-    Route::delete('payment-method-col/{id}', [PaymentMethodsCOLController::class, 'destroy'])->name('payment-method-col.destroy');
-    Route::get('payment-method-col/{id}/info', [PaymentMethodsCOLController::class, 'show'])->name('payment-method-col.show');
+    Route::delete('payment-method-col/{id}', [ColombianPaymentAccountController::class, 'destroy'])->name('payment-method-col.destroy');
+    Route::get('payment-method-col/{id}/info', [ColombianPaymentAccountController::class, 'show'])->name('payment-method-col.show');
 });
 
 // ====================================

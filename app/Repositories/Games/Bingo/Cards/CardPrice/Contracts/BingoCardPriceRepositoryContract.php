@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Repositories\Games\Bingo\Cards\CardPrice;
+namespace App\Repositories\Games\Bingo\Cards\CardPrice\Contracts;
 
 use App\Models\Games\Bingo\Cards\CardPrice\BingoCardPrice;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;

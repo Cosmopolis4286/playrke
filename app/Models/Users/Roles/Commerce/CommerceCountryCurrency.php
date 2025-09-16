@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Modelo para países y monedas de comercios
  */
-class CommerceCountriesCurrencies extends Model
+class CommerceCountryCurrency extends Model
 {
     use SnowflakeId;
 

@@ -3,45 +3,150 @@
 namespace App\Models\Users\Roles\Treasurer;
 
 use App\Models\Users\User;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para la gestión de otros tesoreros.
+ *
+ * Representa a los tesoreros adicionales con permisos específicos
+ * para juegos y monedas en el sistema.
+ */
 class OtherTreasurers extends Model
 {
-  protected $table = "other_treasurers";
-  protected $fillable = ['creator_user_id', 'allowed_games', 'allowed_currencies', 'status'];
+    use SnowflakeId;
 
-  public function User()
-  {
-    return $this->belongsTo(User::class, 'creator_user_id');
-  }
+    /**
+     * Los campos que se pueden asignar masivamente.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'creator_user_id',     // ID del usuario creador del tesorero
+        'allowed_games',       // Array JSON de IDs de juegos permitidos
+        'allowed_currencies',  // Array JSON de IDs de monedas permitidas
+        'status',             // Estado del tesorero (ACTIVE, INACTIVE, BLOCKED)
+    ];
 
-  public static function getById($id, $fields = ['*'])
-  {
-    return self::select($fields)->where('id', $id)->first();
-  }
+    /**
+     * Los atributos que deben ser casteados a tipos nativos.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'allowed_games' => 'array',
+        'allowed_currencies' => 'array',
+    ];
 
-  public static function getValueById($id, $value)
-  {
-    return self::where('id', $id)->value($value);
-  }
+    /**
+     * Relación con el usuario creador.
+     *
+     * @return BelongsTo
+     */
+    public function creatorUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_user_id');
+    }
 
-  public static function getByCreatorUser($creatorUser, $fields = ['*'])
-  {
-    return self::select($fields)->where('creator_user_id', $creatorUser)->first();
-  }
+    /**
+     * Scope para filtrar por estado.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $status
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByStatus($query, string $status)
+    {
+        return $query->where('status', $status);
+    }
 
-  public static function getValueByCreatorUser($creatorUser, $value)
-  {
-    return self::where('creator_user_id', $creatorUser)->value($value);
-  }
+    /**
+     * Scope para obtener tesoreros activos.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'ACTIVE');
+    }
 
-  public static function existsByCreatorUser($creatorUser)
-  {
-    return self::where('creator_user_id', $creatorUser)->exists();
-  }
+    /**
+     * Scope para filtrar por usuario creador.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $creatorUserId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByCreatorUser($query, string $creatorUserId)
+    {
+        return $query->where('creator_user_id', $creatorUserId);
+    }
 
-  public static function getAllCreatorUser()
-  {
-    return self::distinct()->pluck('creator_user_id');
-  }
+    /**
+     * Scope para tesoreros con acceso a un juego específico.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $gameId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithGameAccess($query, string $gameId)
+    {
+        return $query->whereJsonContains('allowed_games', $gameId);
+    }
+
+    /**
+     * Scope para tesoreros con acceso a una moneda específica.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $currencyId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithCurrencyAccess($query, string $currencyId)
+    {
+        return $query->whereJsonContains('allowed_currencies', $currencyId);
+    }
+
+    /**
+     * Verificar si el tesorero tiene acceso a un juego específico.
+     *
+     * @param string $gameId ID del juego
+     * @return bool
+     */
+    public function hasGameAccess(string $gameId): bool
+    {
+        return in_array($gameId, $this->allowed_games ?? []);
+    }
+
+    /**
+     * Verificar si el tesorero tiene acceso a una moneda específica.
+     *
+     * @param string $currencyId ID de la moneda
+     * @return bool
+     */
+    public function hasCurrencyAccess(string $currencyId): bool
+    {
+        return in_array($currencyId, $this->allowed_currencies ?? []);
+    }
+
+    /**
+     * Verificar si el tesorero está activo.
+     *
+     * @return bool
+     */
+    public function isActive(): bool
+    {
+        return $this->status === 'ACTIVE';
+    }
+
+    /**
+     * Verificar si el tesorero está bloqueado.
+     *
+     * @return bool
+     */
+    public function isBlocked(): bool
+    {
+        return $this->status === 'BLOCKED';
+    }
 }

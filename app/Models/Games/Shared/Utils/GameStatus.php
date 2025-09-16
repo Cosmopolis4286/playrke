@@ -2,16 +2,18 @@
 
 namespace App\Models\Games\Shared\Utils;
 
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo para la gestión de estados de juegos.
+ *
+ * Representa los diferentes estados que puede tener un juego
+ * (ej. DRAFT, ACTIVE, FINISHED, CANCELLED, etc.)
+ */
 class GameStatus extends Model
 {
-    /**
-     * Nombre de la tabla asociada al modelo.
-     *
-     * @var string
-     */
-    protected $table = 'game_status';
+    use SnowflakeId;
 
     /**
      * Los campos que se pueden asignar masivamente.
@@ -24,19 +26,40 @@ class GameStatus extends Model
     ];
 
     /**
-     * Indica que la tabla tiene timestamps (created_at y updated_at)
+     * Accessor para obtener el valor en mayúsculas.
      *
-     * @var bool
+     * Garantiza que el valor siempre se almacene en mayúsculas
+     * para mantener consistencia en la base de datos.
+     *
+     * @param string $value
+     * @return string
      */
-    public $timestamps = true;
+    public function setValueAttribute(string $value): void
+    {
+        $this->attributes['value'] = strtoupper($value);
+    }
 
     /**
-     * Retorna el estado como un array listo para usar en selects o enums dinámicos.
+     * Scope para buscar por valor de estado.
      *
-     * @return array<string, string>
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $value
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public static function toArrayForSelect(): array
+    public function scopeByValue($query, string $value)
     {
-        return self::all()->pluck('description', 'value')->toArray();
+        return $query->where('value', strtoupper($value));
+    }
+
+    /**
+     * Scope para buscar por descripción parcial.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $description
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByDescription($query, string $description)
+    {
+        return $query->where('description', 'LIKE', "%{$description}%");
     }
 }

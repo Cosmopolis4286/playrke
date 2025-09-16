@@ -8,7 +8,6 @@ use App\Models\Games\Bingo\Cards\CardPrice\BingoCardPrice;
 use App\Repositories\Games\Bingo\Cards\CardPrice\Contracts\BingoCardPriceRepositoryContract;
 use App\Repositories\Base\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 /**

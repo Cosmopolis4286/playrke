@@ -4,44 +4,34 @@ namespace App\Models\Games\Shared\Utils;
 
 use App\Models\Games\Shared\Game;
 use App\Models\Users\User;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GameRule extends Model
 {
-    protected $table = "game_rules";
-    protected $fillable = ['user', 'game', 'image', 'rules', 'encrypted', 'status'];
+    use SnowflakeId;
 
-    public function Game()
+    protected $fillable = [
+        'user_id',
+        'game_id',
+        'image',
+        'rules',
+        'encrypted',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Game::class, 'game');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function User()
+    public function game(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user');
-    }
-
-    public static function getByGame($game, $user = null, array $fields = ['*'])
-    {
-        $gameId = is_string($game) ? Game::getValueByName($game) : $game;
-
-        return self::select($fields)
-            ->where('game', $gameId)
-            ->when($user, fn($query) => $query->where('user', $user))
-            ->first();
-    }
-
-    public static function getValueByGame($game, $user = false, $value = 'rules')
-    {
-        $gameId = is_string($game) ? Game::getValueByName($game) : $game;
-
-        return self::where('game', $gameId)
-            ->when($user, fn($query) => $query->where('user', $user))
-            ->value($value);
-    }
-
-    public static function existsCode($encrypted)
-    {
-        return self::where('encrypted', $encrypted)->exists();
+        return $this->belongsTo(Game::class, 'game_id');
     }
 }

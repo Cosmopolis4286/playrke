@@ -66,7 +66,7 @@
         const name = '{{ $moduleId }}';
         const paymentType = '{{ $paymentType }}';
         const bank = $("#bank");
-        const arrPixKeys = @json($pixKeys);
+        const arrPixKey = @json($pixKeys);
         const pixKey = $("#pix-key");
         let banks = [];
 
@@ -139,7 +139,7 @@
             if (type == 1) pixKey.html(`<option value=""  disabled selected>Seleccionar:</option>`);
 
             /// Tipo Documento
-            $.each(arrPixKeys, function(index, item) {
+            $.each(arrPixKey, function(index, item) {
                 const isSelected = (type == 2 && item.id == data.pix_key) ? 'selected' : '';
                 pixKey.append(`<option value="${item.id}" ${isSelected}>${item.value}</option>`);
             });

@@ -9,7 +9,7 @@ use App\Models\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\DocumentType;
 use App\Models\PagoMovil;
-use App\Models\PaymentMethodsCOL;
+use App\Models\ColombianPaymentAccount;
 use App\Models\Pix;
 use App\Repositories\User\Roles\RoleRepository;
 use App\Traits\Users\UserTrait;
@@ -68,7 +68,7 @@ class DirectoryController extends Controller
                 $moduleId  = 'pix';
                 $additionalData = [
                     'pixs' => Pix::where('user', $userId)->get(),
-                    'pixKeys' => Pix::getPixKeys()
+                    'pixKeys' => Pix::getPixKey()
                 ];
                 break;
 
@@ -76,7 +76,7 @@ class DirectoryController extends Controller
                 $paymentType = 'Registro';
                 $moduleId  = 'payment-method-col';
                 $additionalData = [
-                    'paymentMethods' => PaymentMethodsCOL::where('user', $userId)->get(),
+                    'paymentMethods' => ColombianPaymentAccount::where('user', $userId)->get(),
                     'arrPaymentMethod' => ['B' => 'Bancolombia', 'D' => 'Daviplata', 'N' => 'Nequi']
                 ];
                 break;

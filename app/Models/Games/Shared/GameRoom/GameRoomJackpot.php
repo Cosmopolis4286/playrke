@@ -1,16 +1,28 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Games\Shared\GameRoom;
 
+use App\Models\Commerce\Currency;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GameRoomJackpot extends Model
 {
-    protected $table = "game_room_jackpots";
-    protected $fillable = ['game', 'room', 'currency', 'amount', 'status'];
+    use SnowflakeId;
 
-    public function Game()
+    protected $fillable = [
+        'currency_id',
+        'amount',
+        'status',
+    ];
+
+    protected $casts = [
+        'amount' => 'decimal:4',
+    ];
+
+    public function currency(): BelongsTo
     {
-        return $this->belongsTo(Game::class, 'game');
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 }
