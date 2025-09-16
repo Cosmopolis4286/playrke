@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Repositories\User\Roles\RoleRepository;
+use App\Repositories\Users\Roles\RoleRepository;
 use App\Services\Games\Room\RoomTypeService;
 use App\Services\RouteService;
 use Illuminate\Support\ServiceProvider;
@@ -88,7 +88,7 @@ class AppServiceProvider extends ServiceProvider
 
                 if ($firstRole !== null) {
                     // RoleRepository maneja la recuperación de datos del rol
-                    $prefix = RoleRepository::getValueById($firstRole->id, 'prefix');
+                    $prefix = RoleRepository::findOrFail($firstRole->id, 'prefix');
                 }
             }
 

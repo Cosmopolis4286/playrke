@@ -7,7 +7,7 @@ use App\Models\Currencies\Currency;
 use App\Models\Users\User;
 use App\Models\Wallets\Wallet;
 use App\Repositories\Countries\CountryRepository;
-use App\Repositories\User\UserRepository;
+use App\Repositories\Users\UserRepository;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +26,8 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
-        $countries = (new CountryRepository())->all(['id', 'name']);
+        // Obtener países activos con solo id y name
+        $countries = app(CountryRepository::class)->getActive()->all(['id', 'name']);
 
         return Inertia::render('Auth/Register', [
             'countries' => $countries,
@@ -67,7 +68,7 @@ class RegisteredUserController extends Controller
                 'username' => $request->username,
                 'country' => $request->country,
                 'password' => Hash::make($request->password),
-                'referral_code' => UserRepository::generateUniqueReferralCode(),
+                'referral_code' => app(UserRepository::class)->generateUniqueReferralCode(),
                 'referred_by' => $this->getReferredBy(),
             ]);
 

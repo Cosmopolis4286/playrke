@@ -6,20 +6,21 @@ use App\Models\Users\Roles\Role;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Contracts\RoleRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
  * Repositorio para la gestión de roles de usuario.
  *
- * Implementa las operaciones específicas para el modelo Role,
- * incluyendo gestión de estados, búsquedas y estadísticas de uso.
+ * Implementa todas las operaciones específicas para el modelo Role,
+ * incluyendo gestión de estados, búsquedas, estadísticas y validaciones.
  */
 class RoleRepository extends BaseRepository implements RoleRepositoryContract
 {
     /**
      * Constructor del repositorio.
      *
-     * @param Role $model Instancia del modelo Role
+     * @param Role $model
      */
     public function __construct(Role $model)
     {
@@ -27,7 +28,10 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Obtener roles por estado (activo/inactivo)
+     *
+     * @param bool $status
+     * @return Collection<Role>
      */
     public function getByStatus(bool $status): Collection
     {
@@ -35,7 +39,9 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Obtener roles activos
+     *
+     * @return Collection<Role>
      */
     public function getActiveRoles(): Collection
     {
@@ -43,7 +49,9 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Obtener roles inactivos
+     *
+     * @return Collection<Role>
      */
     public function getInactiveRoles(): Collection
     {
@@ -51,7 +59,10 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Buscar rol por nombre exacto
+     *
+     * @param string $name
+     * @return Role|null
      */
     public function getByName(string $name): ?Role
     {
@@ -59,7 +70,10 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Obtener roles por prefijo
+     *
+     * @param string $prefix
+     * @return Collection<Role>
      */
     public function getByPrefix(string $prefix): Collection
     {
@@ -67,7 +81,25 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Obtener el rol asignado a un usuario
+     *
+     * @param int $userId
+     * @return Role|null
+     */
+    public function getByUserId(int $userId): ?Role
+    {
+        return $this->model
+            ->select('roles.*')
+            ->join('role_user', 'roles.id', '=', 'role_user.role_id')
+            ->where('role_user.user_id', $userId)
+            ->first();
+    }
+
+    /**
+     * Buscar roles por descripción
+     *
+     * @param string $searchTerm
+     * @return Collection<Role>
      */
     public function searchByDescription(string $searchTerm): Collection
     {
@@ -75,21 +107,27 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Verificar existencia de rol por nombre
+     *
+     * @param string $name
+     * @param int|null $excludeId
+     * @return bool
      */
     public function existsByName(string $name, ?int $excludeId = null): bool
     {
         $query = $this->model->where('name', $name);
-
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
-        }
-
+        if ($excludeId) $query->where('id', '!=', $excludeId);
         return $query->exists();
     }
 
     /**
-     * {@inheritDoc}
+     * Crear un nuevo rol
+     *
+     * @param string $name
+     * @param string|null $prefix
+     * @param string|null $description
+     * @param bool $status
+     * @return Role
      */
     public function createRole(string $name, ?string $prefix = null, ?string $description = null, bool $status = true): Role
     {
@@ -97,58 +135,51 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
             'name' => $this->normalizeName($name),
             'prefix' => $prefix ? strtoupper(trim($prefix)) : null,
             'description' => $description ? trim($description) : null,
-            'status' => $status
+            'status' => $status,
         ]);
     }
 
     /**
-     * {@inheritDoc}
+     * Actualizar un rol
+     *
+     * @param int $roleId
+     * @param array $data
+     * @return bool
      */
     public function updateRole(int $roleId, array $data): bool
     {
-        // Normalizar datos si están presentes
-        if (isset($data['name'])) {
-            $data['name'] = $this->normalizeName($data['name']);
-        }
-
-        if (isset($data['prefix'])) {
-            $data['prefix'] = strtoupper(trim($data['prefix']));
-        }
-
-        if (isset($data['description'])) {
-            $data['description'] = trim($data['description']);
-        }
-
+        if (isset($data['name'])) $data['name'] = $this->normalizeName($data['name']);
+        if (isset($data['prefix'])) $data['prefix'] = strtoupper(trim($data['prefix']));
+        if (isset($data['description'])) $data['description'] = trim($data['description']);
         return $this->model->where('id', $roleId)->update($data) > 0;
     }
 
     /**
-     * {@inheritDoc}
+     * Actualizar estado de un rol
+     *
+     * @param int $roleId
+     * @param bool $status
+     * @return bool
      */
     public function updateStatus(int $roleId, bool $status): bool
     {
-        return $this->model->where('id', $roleId)
-            ->update(['status' => $status]) > 0;
+        return $this->model->where('id', $roleId)->update(['status' => $status]) > 0;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function activateRole(int $roleId): bool
     {
         return $this->updateStatus($roleId, true);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     public function deactivateRole(int $roleId): bool
     {
         return $this->updateStatus($roleId, false);
     }
 
     /**
-     * {@inheritDoc}
+     * Eliminar rol
+     *
+     * @param int $roleId
+     * @return bool
      */
     public function deleteRole(int $roleId): bool
     {
@@ -156,25 +187,30 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Actualizar estado de múltiples roles
+     *
+     * @param array $roleIds
+     * @param bool $status
+     * @return int Cantidad de registros afectados
      */
     public function bulkUpdateStatus(array $roleIds, bool $status): int
     {
-        return $this->model->whereIn('id', $roleIds)
-            ->update(['status' => $status]);
+        return $this->model->whereIn('id', $roleIds)->update(['status' => $status]);
     }
 
     /**
-     * {@inheritDoc}
+     * Obtener estadísticas de roles
+     *
+     * @return array
      */
     public function getRoleStatistics(): array
     {
         $total = $this->model->count();
         $active = $this->model->where('status', true)->count();
-        $inactive = $this->model->where('status', false)->count();
+        $inactive = $total - $active;
         $withPrefix = $this->model->whereNotNull('prefix')->count();
         $withDescription = $this->model->whereNotNull('description')->count();
-        $averageNameLength = $this->model->avg(\DB::raw('LENGTH(name)'));
+        $averageNameLength = $this->model->avg(DB::raw('LENGTH(name)'));
 
         return [
             'total_roles' => $total,
@@ -185,26 +221,28 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
             'with_description' => $withDescription,
             'prefix_percentage' => $total > 0 ? round(($withPrefix / $total) * 100, 2) : 0,
             'description_percentage' => $total > 0 ? round(($withDescription / $total) * 100, 2) : 0,
-            'average_name_length' => round($averageNameLength ?? 0, 2)
+            'average_name_length' => round($averageNameLength ?? 0, 2),
         ];
     }
 
     /**
-     * {@inheritDoc}
+     * Obtener roles ordenados por nombre
+     *
+     * @param bool $activeOnly
+     * @return Collection<Role>
      */
     public function getOrderedByName(bool $activeOnly = false): Collection
     {
         $query = $this->model->orderBy('name');
-
-        if ($activeOnly) {
-            $query->where('status', true);
-        }
-
+        if ($activeOnly) $query->where('status', true);
         return $query->get();
     }
 
     /**
-     * {@inheritDoc}
+     * Obtener roles más usados por cantidad de usuarios
+     *
+     * @param int $limit
+     * @return Collection<Role>
      */
     public function getMostUsedRoles(int $limit = 10): Collection
     {
@@ -218,7 +256,9 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Roles sin usuarios asignados
+     *
+     * @return Collection<Role>
      */
     public function getUnusedRoles(): Collection
     {
@@ -229,118 +269,60 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Verificar si un rol está en uso
+     *
+     * @param int $roleId
+     * @return bool
      */
     public function isRoleInUse(int $roleId): bool
     {
-        return \DB::table('role_user')
-            ->where('role_id', $roleId)
-            ->exists();
+        return DB::table('role_user')->where('role_id', $roleId)->exists();
     }
 
     /**
-     * {@inheritDoc}
+     * Contar usuarios por rol
+     *
+     * @param int $roleId
+     * @return int
      */
     public function getUserCountByRole(int $roleId): int
     {
-        return \DB::table('role_user')
-            ->where('role_id', $roleId)
-            ->count();
+        return DB::table('role_user')->where('role_id', $roleId)->count();
     }
 
     /**
-     * {@inheritDoc}
+     * Normalizar nombre de rol (título, espacios únicos)
+     *
+     * @param string $name
+     * @return string
      */
-    public function getRolesWithUsageStats(bool $activeOnly = true): Collection
+    public function normalizeName(string $name): string
     {
-        $query = $this->model->select('roles.*')
-            ->selectRaw('COUNT(role_user.user_id) as user_count')
-            ->leftJoin('role_user', 'roles.id', '=', 'role_user.role_id')
-            ->groupBy('roles.id')
-            ->orderBy('user_count', 'desc');
-
-        if ($activeOnly) {
-            $query->where('roles.status', true);
-        }
-
-        return $query->get();
+        $normalized = trim($name);
+        $normalized = Str::title($normalized);
+        return preg_replace('/\s+/', ' ', $normalized);
     }
 
     /**
-     * {@inheritDoc}
-     */
-    public function createBulkRoles(array $rolesData, bool $status = true): Collection
-    {
-        $roles = collect();
-
-        foreach ($rolesData as $roleData) {
-            $name = $roleData['name'] ?? '';
-            $prefix = $roleData['prefix'] ?? null;
-            $description = $roleData['description'] ?? null;
-
-            // Verificar si ya existe antes de crear
-            if (!$this->existsByName($name)) {
-                $role = $this->createRole($name, $prefix, $description, $status);
-                $roles->push($role);
-            }
-        }
-
-        return $roles;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getForSelect(bool $activeOnly = true): array
-    {
-        $query = $this->model->orderBy('name');
-
-        if ($activeOnly) {
-            $query->where('status', true);
-        }
-
-        return $query->pluck('name', 'id')->toArray();
-    }
-
-    /**
-     * {@inheritDoc}
+     * Validar nombre de rol
+     *
+     * @param string $name
+     * @return bool
      */
     public function isValidName(string $name): bool
     {
         $normalized = $this->normalizeName($name);
-
-        // Verificar longitud
-        if (strlen($normalized) < 2 || strlen($normalized) > 50) {
-            return false;
-        }
-
-        // Verificar caracteres válidos (letras, números, espacios, guiones)
-        if (!preg_match('/^[\p{L}\p{N}\s\-_]+$/u', $normalized)) {
-            return false;
-        }
-
-        return true;
+        return strlen($normalized) >= 2 &&
+            strlen($normalized) <= 50 &&
+            preg_match('/^[\p{L}\p{N}\s\-_]+$/u', $normalized);
     }
 
     /**
-     * {@inheritDoc}
-     */
-    public function normalizeName(string $name): string
-    {
-        // Limpiar espacios extra
-        $normalized = trim($name);
-
-        // Convertir a título (primera letra de cada palabra en mayúscula)
-        $normalized = Str::title($normalized);
-
-        // Reemplazar múltiples espacios con uno solo
-        $normalized = preg_replace('/\s+/', ' ', $normalized);
-
-        return $normalized;
-    }
-
-    /**
-     * {@inheritDoc}
+     * Obtener sugerencias de nombres de rol
+     *
+     * @param string $partialText
+     * @param int $limit
+     * @return Collection<Role>
      */
     public function getNameSuggestions(string $partialText, int $limit = 5): Collection
     {
@@ -352,7 +334,10 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Roles por tipo de usuario (prefix)
+     *
+     * @param string $userType
+     * @return Collection<Role>
      */
     public function getRolesByUserType(string $userType): Collection
     {
@@ -363,7 +348,10 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Verificar si un rol puede ser eliminado
+     *
+     * @param int $roleId
+     * @return bool
      */
     public function canBeDeleted(int $roleId): bool
     {
@@ -371,16 +359,37 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * {@inheritDoc}
+     * Obtener roles similares por prefijo
+     *
+     * @param string $prefix
+     * @param int|null $excludeId
+     * @return Collection<Role>
      */
     public function getSimilarRoles(string $prefix, ?int $excludeId = null): Collection
     {
         $query = $this->model->where('prefix', $prefix);
-
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
-        }
-
+        if ($excludeId) $query->where('id', '!=', $excludeId);
         return $query->orderBy('name')->get();
+    }
+
+    /**
+     * Crear múltiples roles de forma masiva
+     *
+     * @param array $rolesData
+     * @param bool $status
+     * @return Collection<Role>
+     */
+    public function createBulkRoles(array $rolesData, bool $status = true): Collection
+    {
+        return collect($rolesData)->reduce(function ($collection, $roleData) use ($status) {
+            $name = $roleData['name'] ?? '';
+            $prefix = $roleData['prefix'] ?? null;
+            $description = $roleData['description'] ?? null;
+
+            if (!$this->existsByName($name)) {
+                $collection->push($this->createRole($name, $prefix, $description, $status));
+            }
+            return $collection;
+        }, collect());
     }
 }

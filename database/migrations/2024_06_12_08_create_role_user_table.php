@@ -7,34 +7,57 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Crear tabla pivote role_user sin ID, solo relaciones y timestamps.
+     * Crear tabla pivote `role_user` extendida.
+     * Permite auditar asignaciones y agregar expiraciones de roles.
      */
     public function up(): void
     {
         Schema::create('role_user', function (Blueprint $table) {
-            // Relación con usuario
+            // -----------------------------
+            // Relaciones principales
+            // -----------------------------
             $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('ID del usuario');
 
-            // Relación con rol
             $table->foreignSnowflake('role_id')
                 ->constrained('roles')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('ID del rol');
 
+            // -----------------------------
+            // Auditoría
+            // -----------------------------
+            $table->foreignSnowflake('assigned_by')
+                ->nullable()
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->nullOnDelete()
+                ->comment('ID del usuario que asignó este rol');
+
+            // -----------------------------
+            // Expiración y control
+            // -----------------------------
+            $table->timestamp('assigned_at')->useCurrent()->comment('Fecha y hora de asignación');
+            $table->timestamp('expires_at')->nullable()->comment('Fecha de expiración del rol');
+
+            // -----------------------------
+            // Timestamps automáticos
+            // -----------------------------
             $table->timestamps();
 
-            // Evitar duplicados
-            $table->unique(['user_id', 'role_id']);
+            // -----------------------------
+            // Clave única
+            // -----------------------------
+            $table->unique(['user_id', 'role_id'], 'role_user_unique');
         });
     }
 
     /**
-     * Eliminar tabla pivote
+     * Eliminar tabla pivote `role_user`.
      */
     public function down(): void
     {

@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Users\User;
-use App\Repositories\User\UserRepository;
+use App\Repositories\Users\UserRepository;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -41,7 +41,7 @@ class UserSeeder extends Seeder
                     'email_verified_at' => now(),
                     'password' => Hash::make('EHC-4286-RKE'),
                     'remember_token' => Str::random(10),
-                    'referral_code' => UserRepository::generateUniqueReferralCode(),
+                    'referral_code' => app(UserRepository::class)->generateUniqueReferralCode(),
                     'referred_by_user_id' => null,
                     'status' => 'ACTIVE',
                 ]

@@ -6,7 +6,6 @@ use App\Models\Countries\Country;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Countries\Contracts\CountryRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Repositorio para operaciones con países

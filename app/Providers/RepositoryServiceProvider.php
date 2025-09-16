@@ -25,25 +25,17 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // ---------------------------------------------------------
         // 1. Repositorios críticos con inyección de dependencias
-        // ---------------------------------------------------------
         $this->app->bind(SettingRepositoryContract::class, function ($app) {
-            // Inyectamos el modelo Setting en el repositorio
             return new SettingRepository($app->make(Setting::class));
         });
 
-        // ---------------------------------------------------------
         // 2. Registro automático del resto de repositorios
-        // ---------------------------------------------------------
         $this->registerRepositoriesAutomatically(app_path('Repositories'));
     }
 
     /**
      * Registro automático de repositorios que implementen contratos
-     *
-     * Escanea un directorio de repositorios y vincula
-     * automáticamente cualquier clase que implemente un contrato.
      *
      * @param string $basePath
      * @return void
@@ -53,7 +45,18 @@ class RepositoryServiceProvider extends ServiceProvider
         $filesystem = new Filesystem();
 
         foreach ($filesystem->allFiles($basePath) as $file) {
+            // Saltar archivos dentro de Contracts/
+            if (str_contains($file->getPath(), 'Contracts')) {
+                continue;
+            }
+
             $namespace = $this->getClassNamespace($file->getPathname());
+
+            // Saltar si namespace no existe
+            if (empty($namespace)) {
+                continue;
+            }
+
             $className = $namespace . '\\' . $file->getFilenameWithoutExtension();
 
             if (!class_exists($className)) {
@@ -69,7 +72,7 @@ class RepositoryServiceProvider extends ServiceProvider
 
             // Detectar contratos implementados
             foreach ($reflection->getInterfaces() as $interface) {
-                if (str_contains($interface->getName(), 'Contract')) {
+                if ($interface->isInterface() && str_ends_with($interface->getShortName(), 'Contract')) {
                     // Evitar volver a registrar SettingRepository
                     if ($interface->getName() === SettingRepositoryContract::class) {
                         continue;
@@ -106,6 +109,6 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Por ahora no se requiere lógica en boot()
+        // No se requiere lógica adicional en boot()
     }
 }

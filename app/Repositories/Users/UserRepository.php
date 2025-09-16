@@ -7,6 +7,7 @@ use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * Repositorio para operaciones con usuarios
@@ -56,6 +57,25 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
+     * Genera un código de referido único para un usuario.
+     *
+     * @param int $length Longitud del código (default: 8)
+     * @return string Código único
+     */
+    public function generateUniqueReferralCode(int $length = 8): string
+    {
+        do {
+            // Genera un código alfanumérico en mayúsculas
+            $code = Str::upper(Str::random($length));
+
+            // Verifica si ya existe en la tabla users
+            $exists = $this->model->where('referral_code', $code)->exists();
+        } while ($exists);
+
+        return $code;
+    }
+
+    /**
      * Obtener usuarios por estado
      *
      * @param string $status Estado del usuario
@@ -100,7 +120,7 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
      */
     public function getUsersByRole(string $roleName, array $columns = ['*']): Collection
     {
-        return $this->model->whereHas('roles', function($query) use ($roleName) {
+        return $this->model->whereHas('roles', function ($query) use ($roleName) {
             $query->where('name', $roleName);
         })->get($columns);
     }
@@ -199,18 +219,18 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
         }
 
         if (isset($criteria['role'])) {
-            $query->whereHas('roles', function($q) use ($criteria) {
+            $query->whereHas('roles', function ($q) use ($criteria) {
                 $q->where('name', $criteria['role']);
             });
         }
 
         if (isset($criteria['search'])) {
             $search = $criteria['search'];
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('username', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%");
             });
         }
 
@@ -248,7 +268,7 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
      */
     public function getUsersWithActiveWallets(array $columns = ['*']): Collection
     {
-        return $this->model->whereHas('wallets', function($query) {
+        return $this->model->whereHas('wallets', function ($query) {
             $query->where('balance', '>', 0);
         })->get($columns);
     }
