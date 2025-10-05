@@ -11,7 +11,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint . --ext .vue,.ts,.js --fix",
-    "type-check": "nuxt typecheck"
+    "type-check": "nuxt typecheck",
+    "setup": "node setup-env.js",
+    "setup:prod": "node setup-env.js --production"
   },
   "dependencies": {
     "@nuxt/ui": "^2.18.7",
