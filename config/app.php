@@ -105,12 +105,6 @@ return [
         ),
     ],
 
-    'providers' => [
-        // Otros providers...
-         App\Providers\RepositoryServiceProvider::class,
-        App\Providers\SettingsConfigServiceProvider::class,
-    ],
-
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver
@@ -128,6 +122,15 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Version
+    |--------------------------------------------------------------------------
+    |
+    | Application version number
+    |
+    */
 
     'version' => env('APP_VERSION', '1.0'),
 ];

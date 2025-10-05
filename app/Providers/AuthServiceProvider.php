@@ -3,16 +3,18 @@
 namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Gate;
-use App\Repositories\User\Roles\RoleRepository;
-use Illuminate\Support\Facades\App;
 
+/**
+ * AuthServiceProvider
+ *
+ * Registra políticas de autorización y gates de la aplicación.
+ */
 class AuthServiceProvider extends ServiceProvider
 {
     /**
      * Políticas de autorización de los modelos.
      *
-     * @var array
+     * @var array<class-string, class-string>
      */
     protected $policies = [
         // 'App\Models\Model' => 'App\Policies\ModelPolicy',
@@ -23,18 +25,41 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Registrar políticas primero
         $this->registerPolicies();
 
-        // Definir Gates dinámicamente usando RoleRepository
-        $userRoleRepo = App::make(RoleRepository::class);
+        // Los Gates se definen después de que el servicio esté disponible
+        $this->app->booted(function () {
+            // Definir Gates para roles
+            \Illuminate\Support\Facades\Gate::define('admin', function ($user) {
+                $firstRole = $user->roles->first();
+                return $firstRole && $firstRole->prefix === 'admin';
+            });
 
-        // Gate para admin
-        Gate::define('admin', fn($user) => $userRoleRepo->getValueById($user->user_type, 'prefix') === 'admin');
+            \Illuminate\Support\Facades\Gate::define('commerce', function ($user) {
+                $firstRole = $user->roles->first();
+                return $firstRole && in_array($firstRole->prefix, ['commerce', 'admin']);
+            });
 
-        // Gate para commerce (incluye admin si quieres jerarquía)
-        Gate::define('commerce_id', fn($user) => in_array($userRoleRepo->getValueById($user->user_type, 'prefix'), ['commerce_id', 'admin']));
+            \Illuminate\Support\Facades\Gate::define('treasurer', function ($user) {
+                $firstRole = $user->roles->first();
+                return $firstRole && in_array($firstRole->prefix, ['treasurer', 'admin']);
+            });
 
-        // Puedes agregar más Gates aquí sin tocar el middleware
-        // Ejemplo: Gate::define('manager', fn($user) => $userRoleRepo->getValueById($user->user_type, 'prefix') === 'manager');
+            \Illuminate\Support\Facades\Gate::define('seller', function ($user) {
+                $firstRole = $user->roles->first();
+                return $firstRole && in_array($firstRole->prefix, ['seller', 'admin']);
+            });
+
+            \Illuminate\Support\Facades\Gate::define('customer', function ($user) {
+                $firstRole = $user->roles->first();
+                return $firstRole && $firstRole->prefix === 'customer';
+            });
+
+            \Illuminate\Support\Facades\Gate::define('player', function ($user) {
+                $firstRole = $user->roles->first();
+                return $firstRole && $firstRole->prefix === 'player';
+            });
+        });
     }
 }
