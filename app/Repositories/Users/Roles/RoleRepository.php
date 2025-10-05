@@ -392,4 +392,41 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
             return $collection;
         }, collect());
     }
+
+    /**
+     * Obtener roles con estadísticas de uso
+     *
+     * @param bool $activeOnly
+     * @return Collection<Role>
+     */
+    public function getRolesWithUsageStats(bool $activeOnly = true): Collection
+    {
+        $query = $this->model->select('roles.*')
+            ->selectRaw('COUNT(role_user.user_id) as users_count')
+            ->leftJoin('role_user', 'roles.id', '=', 'role_user.role_id')
+            ->groupBy('roles.id', 'roles.name', 'roles.prefix', 'roles.description', 'roles.status', 'roles.created_at', 'roles.updated_at');
+
+        if ($activeOnly) {
+            $query->where('roles.status', true);
+        }
+
+        return $query->orderBy('roles.name')->get();
+    }
+
+    /**
+     * Obtener roles para selects (id => name)
+     *
+     * @param bool $activeOnly
+     * @return array<int, string>
+     */
+    public function getForSelect(bool $activeOnly = true): array
+    {
+        $query = $this->model->select('id', 'name');
+
+        if ($activeOnly) {
+            $query->where('status', true);
+        }
+
+        return $query->orderBy('name')->pluck('name', 'id')->toArray();
+    }
 }

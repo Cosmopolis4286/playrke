@@ -13,7 +13,8 @@
     "lint": "eslint . --ext .vue,.ts,.js --fix",
     "type-check": "nuxt typecheck",
     "setup": "node setup-env.js",
-    "setup:prod": "node setup-env.js --production"
+    "setup:prod": "node setup-env.js --production",
+    "health": "node check-health.js"
   },
   "dependencies": {
     "@nuxt/ui": "^2.18.7",

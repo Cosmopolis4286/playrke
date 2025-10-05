@@ -1,0 +1,23 @@
+# Build outputs
+.nuxt
+.output
+dist
+.cache
+
+# Dependencies
+node_modules
+
+# Config files
+*.config.js
+*.config.ts
+!nuxt.config.ts
+
+# Generated files
+*.d.ts
+!env.d.ts
+
+# Logs
+*.log
+
+# OS
+.DS_Store

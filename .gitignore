@@ -1,21 +1,122 @@
+# ========================================
+# Laravel Backend
+# ========================================
+
+# PHP
 /.phpunit.cache
-/node_modules
+/vendor
+.phpactor.json
+.phpunit.result.cache
+auth.json
+
+# Storage & Cache
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
-/vendor
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
+/bootstrap/cache/*
+
+# Homestead
 Homestead.json
 Homestead.yaml
-auth.json
+
+# ========================================
+# Nuxt 3 Frontend
+# ========================================
+
+# Nuxt build outputs
+/frontend/.output
+/frontend/.nuxt
+/frontend/.nitro
+/frontend/.cache
+/frontend/dist
+
+# Frontend dependencies
+/frontend/node_modules
+
+# ========================================
+# Environment & Secrets
+# ========================================
+
+.env
+.env.*
+!.env.example
+.env.backup
+.env.production
+
+# ========================================
+# Dependencies (Root & Subprojects)
+# ========================================
+
+/node_modules
+/frontend/node_modules
+
+# ========================================
+# Logs
+# ========================================
+
+*.log
 npm-debug.log
 yarn-error.log
+/storage/logs/*.log
+
+# ========================================
+# IDEs & Editors
+# ========================================
+
 /.fleet
 /.idea
 /.vscode
 /.claude
+
+# Vim
+*.swp
+*.swo
+
+# Sublime
+*.sublime-workspace
+*.sublime-project
+
+# ========================================
+# OS Files
+# ========================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================================
+# Testing & Coverage
+# ========================================
+
+/coverage
+/.nyc_output
+/frontend/coverage
+
+# ========================================
+# Temporary & Backup Files
+# ========================================
+
+*.tmp
+*.bak
+*.backup
+*.swp
+temp/
+tmp/
+
+# ========================================
+# Build & Distribution
+# ========================================
+
+/public/dist
+/public/mix-manifest.json
+
+# ========================================
+# Lock Files (opcional - descomentar si no quieres commitear)
+# ========================================
+
+# composer.lock
+# package-lock.json
+# /frontend/package-lock.json
+# yarn.lock
+# pnpm-lock.yaml

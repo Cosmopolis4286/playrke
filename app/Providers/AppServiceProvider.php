@@ -77,23 +77,25 @@ class AppServiceProvider extends ServiceProvider
         // -------------------------------------------
         // Esto permite acceder a $creatorTypePrefix en cualquier componente
         // o vista Blade/Inertia, evitando repetir la lógica en cada controlador.
-        View::composer('*', function ($view): void {
-            $prefix = null;
+        if ($this->app->has('view')) {
+            View::composer('*', function ($view): void {
+                $prefix = null;
 
-            if (Auth::check()) {
-                $user = Auth::user();
+                if (Auth::check()) {
+                    $user = Auth::user();
 
-                // Obtener el primer rol asignado al usuario
-                $firstRole = $user->roles->first();
+                    // Obtener el primer rol asignado al usuario
+                    $firstRole = $user->roles->first();
 
-                if ($firstRole !== null) {
-                    // RoleRepository maneja la recuperación de datos del rol
-                    $prefix = RoleRepository::findOrFail($firstRole->id, 'prefix');
+                    if ($firstRole !== null) {
+                        // Obtener el prefijo directamente del rol
+                        $prefix = $firstRole->prefix;
+                    }
                 }
-            }
 
-            // Se comparte la variable con todas las vistas
-            $view->with('creatorTypePrefix', $prefix);
-        });
+                // Se comparte la variable con todas las vistas
+                $view->with('creatorTypePrefix', $prefix);
+            });
+        }
     }
 }

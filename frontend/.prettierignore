@@ -1,0 +1,23 @@
+# Build outputs
+.nuxt
+.output
+dist
+.cache
+
+# Dependencies
+node_modules
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+
+# Ignore specific files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
