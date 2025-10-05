@@ -2,53 +2,95 @@
  * Composable de autenticación compartido.
  *
  * Proporciona funcionalidad de autenticación común entre
- * las secciones admin y player, incluyendo login, logout,
- * verificación de sesión y manejo de tokens.
+ * las secciones admin y player, usando Laravel Sanctum
+ * para autenticación stateful con cookies.
  */
 
-import type { User, LoginCredentials, AuthResponse } from '../types/auth'
+import type { User, LoginCredentials, RegisterData } from '../types/auth'
 
 export const useAuth = () => {
-  // Estados reactivos
-  const user = ref<User | null>(null)
-  const token = ref<string | null>(null)
-  const isLoading = ref(false)
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const config = useRuntimeConfig()
+  const router = useRouter()
 
   // Store de Pinia para persistencia
   const authStore = useAuthStore()
+
+  // Estados reactivos del store
+  const user = computed(() => authStore.user)
+  const token = computed(() => authStore.token)
+  const isLoading = computed(() => authStore.isLoading)
+  const isAuthenticated = computed(() => authStore.isAuthenticated)
+
+  /**
+   * Obtiene el token CSRF de Laravel Sanctum.
+   */
+  const getCsrfToken = async (): Promise<void> => {
+    await $fetch(`${config.public.apiBase.replace('/api', '')}/sanctum/csrf-cookie`, {
+      credentials: 'include'
+    })
+  }
 
   /**
    * Realiza el login del usuario.
    *
    * @param credentials Credenciales de acceso
-   * @returns Respuesta de autenticación
    */
-  const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    isLoading.value = true
+  const login = async (credentials: LoginCredentials): Promise<void> => {
+    authStore.setLoading(true)
 
     try {
-      const data = await $fetch<AuthResponse>('/api/auth/login', {
+      // Obtener CSRF token primero
+      await getCsrfToken()
+
+      // Hacer login
+      const data = await $fetch<{ user: User }>(`${config.public.apiBase.replace('/api', '')}/login`, {
         method: 'POST',
-        body: credentials
+        body: credentials,
+        credentials: 'include'
       })
 
-      if (data.success && data.token && data.user) {
-        token.value = data.token
-        user.value = data.user
+      // Guardar usuario en store
+      authStore.setAuth('', data.user) // Token está en cookie, no lo necesitamos
 
-        // Persistir en store
-        authStore.setAuth(data.token, data.user)
-
-        // Configurar header de autorización
-        await setAuthHeader(data.token)
-      }
-
-      return data
+      // Redirigir según rol
+      await redirectByRole(data.user)
     } catch (error: any) {
-      throw new Error(error.data?.message || 'Error en el login')
+      console.error('Error en login:', error)
+      throw error
     } finally {
-      isLoading.value = false
+      authStore.setLoading(false)
+    }
+  }
+
+  /**
+   * Registra un nuevo usuario.
+   *
+   * @param data Datos de registro
+   */
+  const register = async (data: RegisterData): Promise<void> => {
+    authStore.setLoading(true)
+
+    try {
+      // Obtener CSRF token primero
+      await getCsrfToken()
+
+      // Hacer registro
+      const response = await $fetch<{ user: User }>(`${config.public.apiBase.replace('/api', '')}/register`, {
+        method: 'POST',
+        body: data,
+        credentials: 'include'
+      })
+
+      // Guardar usuario en store
+      authStore.setAuth('', response.user)
+
+      // Redirigir según rol
+      await redirectByRole(response.user)
+    } catch (error: any) {
+      console.error('Error en registro:', error)
+      throw error
+    } finally {
+      authStore.setLoading(false)
     }
   }
 
@@ -56,141 +98,115 @@ export const useAuth = () => {
    * Realiza el logout del usuario.
    */
   const logout = async (): Promise<void> => {
-    isLoading.value = true
+    authStore.setLoading(true)
 
     try {
       // Llamar endpoint de logout
-      await $fetch('/api/auth/logout', {
-        method: 'POST'
+      await $fetch(`${config.public.apiBase.replace('/api', '')}/logout`, {
+        method: 'POST',
+        credentials: 'include'
       })
     } catch (error) {
       console.warn('Error en logout:', error)
     } finally {
-      // Limpiar estado local independientemente del resultado
-      token.value = null
-      user.value = null
+      // Limpiar estado local
       authStore.clearAuth()
-      await clearAuthHeader()
-      isLoading.value = false
+      authStore.setLoading(false)
+
+      // Redirigir a login
+      await router.push('/auth/login')
     }
   }
 
   /**
-   * Verifica y renueva la sesión actual.
+   * Obtiene el usuario autenticado actual.
    */
-  const refreshSession = async (): Promise<boolean> => {
-    if (!token.value) return false
-
+  const fetchUser = async (): Promise<User | null> => {
     try {
-      const data = await $fetch<AuthResponse>('/api/auth/refresh', {
-        method: 'POST'
+      const data = await $fetch<User>(`${config.public.apiBase}/user`, {
+        credentials: 'include'
       })
 
-      if (data.success && data.token && data.user) {
-        token.value = data.token
-        user.value = data.user
-        authStore.setAuth(data.token, data.user)
-        await setAuthHeader(data.token)
-        return true
-      }
+      authStore.updateUser(data)
+      return data
     } catch (error) {
-      console.warn('Error renovando sesión:', error)
-      await logout()
+      console.error('Error obteniendo usuario:', error)
+      authStore.clearAuth()
+      return null
+    }
+  }
+
+  /**
+   * Verifica si el usuario está autenticado.
+   */
+  const checkAuth = async (): Promise<boolean> => {
+    try {
+      const userData = await fetchUser()
+      return !!userData
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Redirige al usuario según su rol principal.
+   */
+  const redirectByRole = async (userData: User): Promise<void> => {
+    const primaryRole = userData.roles?.[0] || 'player'
+
+    const roleRoutes: Record<string, string> = {
+      admin: '/admin/dashboard',
+      customer: '/customer/dashboard',
+      commerce: '/commerce/dashboard',
+      seller: '/seller/dashboard',
+      treasurer: '/treasurer/dashboard',
+      player: '/player/lobby'
     }
 
-    return false
+    const targetRoute = roleRoutes[primaryRole] || '/player/lobby'
+    await router.push(targetRoute)
   }
 
   /**
    * Verifica si el usuario tiene un rol específico.
-   *
-   * @param role Rol a verificar
-   * @returns True si el usuario tiene el rol
    */
   const hasRole = (role: string): boolean => {
-    return user.value?.roles?.includes(role) ?? false
+    return authStore.hasRole(role)
   }
 
   /**
    * Verifica si el usuario tiene un permiso específico.
-   *
-   * @param permission Permiso a verificar
-   * @returns True si el usuario tiene el permiso
    */
   const hasPermission = (permission: string): boolean => {
-    return user.value?.permissions?.includes(permission) ?? false
+    return authStore.hasPermission(permission)
   }
 
   /**
-   * Configura el header de autorización para las peticiones.
-   *
-   * @param authToken Token de autorización
+   * Verifica si el usuario tiene cualquiera de los roles especificados.
    */
-  const setAuthHeader = async (authToken: string): Promise<void> => {
-    // En Nuxt 3, configuramos headers globales via runtime config
-    const nuxtApp = useNuxtApp()
-    nuxtApp.ssrContext = nuxtApp.ssrContext || {}
-    nuxtApp.ssrContext.event = nuxtApp.ssrContext.event || {}
-  }
-
-  /**
-   * Limpia el header de autorización.
-   */
-  const clearAuthHeader = async (): Promise<void> => {
-    // Limpiar headers en Nuxt 3
-    const nuxtApp = useNuxtApp()
-    if (nuxtApp.ssrContext?.event) {
-      // Limpiar header de autorización
-    }
-  }
-
-  /**
-   * Inicializa la autenticación desde storage persistente.
-   */
-  const initAuth = async (): Promise<void> => {
-    const storedAuth = authStore.getAuth()
-
-    if (storedAuth.token && storedAuth.user) {
-      token.value = storedAuth.token
-      user.value = storedAuth.user
-      await setAuthHeader(storedAuth.token)
-
-      // Verificar que la sesión siga siendo válida
-      await refreshSession()
-    }
-  }
-
-  /**
-   * Actualiza los datos del usuario actual.
-   *
-   * @param userData Nuevos datos del usuario
-   */
-  const updateUser = (userData: Partial<User>): void => {
-    if (user.value) {
-      user.value = { ...user.value, ...userData }
-      authStore.updateUser(user.value)
-    }
-  }
-
-  // Auto-inicializar en el cliente
-  if (process.client) {
-    initAuth()
+  const hasAnyRole = (roles: string[]): boolean => {
+    return authStore.hasAnyRole(roles)
   }
 
   return {
     // Estados
-    user: readonly(user),
-    token: readonly(token),
-    isLoading: readonly(isLoading),
+    user,
+    token,
+    isLoading,
     isAuthenticated,
 
     // Métodos
     login,
+    register,
     logout,
-    refreshSession,
+    fetchUser,
+    checkAuth,
+    getCsrfToken,
+    redirectByRole,
+
+    // Helpers de roles
     hasRole,
     hasPermission,
-    updateUser,
-    initAuth
+    hasAnyRole
   }
 }

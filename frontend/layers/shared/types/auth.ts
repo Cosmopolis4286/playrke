@@ -7,16 +7,18 @@
 
 export interface User {
   id: string
-  name: string
+  username: string
+  first_name: string
+  last_name: string
   email: string
   avatar?: string
   roles: string[]
   permissions: string[]
-  preferences: UserPreferences
-  status: 'active' | 'inactive' | 'banned'
+  preferences?: UserPreferences
+  status?: 'active' | 'inactive' | 'banned'
   email_verified_at?: string
-  created_at: string
-  updated_at: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface UserPreferences {
@@ -37,18 +39,21 @@ export interface UserPreferences {
 }
 
 export interface LoginCredentials {
-  email: string
+  login: string // Email o username
   password: string
   remember?: boolean
-  device_name?: string
 }
 
-export interface RegisterCredentials extends LoginCredentials {
-  name: string
+export interface RegisterData {
+  first_name: string
+  last_name: string
+  username: string
+  email: string
+  password: string
   password_confirmation: string
   country?: string
   phone?: string
-  terms_accepted: boolean
+  terms_accepted?: boolean
 }
 
 export interface AuthResponse {
