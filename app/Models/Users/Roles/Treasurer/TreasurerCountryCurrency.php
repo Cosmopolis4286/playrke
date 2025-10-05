@@ -2,12 +2,31 @@
 
 namespace App\Models\Users\Roles\Treasurer;
 
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo para relaciones tesorero-país-moneda.
+ */
 class TreasurerCountryCurrency extends Model
 {
+    use HasSnowflakeId;
+
     protected $table = "treasurers_countries_currencies";
-    protected $fillable = ['treasurer', 'country', 'currency', 'level', 'creator_user_id', 'status'];
+
+    protected $fillable = [
+        'treasurer',
+        'country',
+        'currency',
+        'level',
+        'creator_user_id',
+        'status'
+    ];
+
+    protected $casts = [
+        'status' => 'boolean',
+        'level' => 'integer'
+    ];
 
     public function Treasurer()
     {

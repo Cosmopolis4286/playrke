@@ -4,20 +4,31 @@ namespace App\Models\Users\Roles\Treasurer;
 
 use App\Models\Countries\Country;
 use App\Models\Users\User;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo para tesoreros del sistema.
+ */
 class Treasurer extends Model
 {
-  protected $table = "treasurers";
-  protected $fillable = [
-    'name',
-    'country',
-    'currency',
-    'phone',
-    'user',
-    'uuid_code',
-    'status'
-  ];
+    use HasSnowflakeId;
+
+    protected $table = "treasurers";
+
+    protected $fillable = [
+        'name',
+        'country',
+        'currency',
+        'phone',
+        'user',
+        'uuid_code',
+        'status'
+    ];
+
+    protected $casts = [
+        'status' => 'boolean'
+    ];
 
   public function User()
   {

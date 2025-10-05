@@ -2,17 +2,31 @@
 
 namespace App\Models\Users\Roles\Player\External;
 
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo para códigos de compra de usuarios.
+ */
 class UserPurchaseCode extends Model
 {
-    protected $table = "user_purchase_codes";
-    protected $fillable = ['name', 'lastname', 'country', 'phone', 'code', 'status'];
+    use HasSnowflakeId;
 
-    public static function getValueById($id, $value)
-    {
-        return self::where('id', $id)->value($value);
-    }
+    protected $table = "user_purchase_codes";
+
+    protected $fillable = [
+        'name',
+        'lastname',
+        'country',
+        'phone',
+        'code',
+        'status'
+    ];
+
+    protected $casts = [
+        'status' => 'boolean'
+    ];
+}
 
     public static function existsPurchaseCode($code)
     {

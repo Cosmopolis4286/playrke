@@ -1,0 +1,429 @@
+/**
+ * Estilos principales de PlayRKE Frontend.
+ *
+ * Incluye Tailwind CSS, estilos base, componentes personalizados
+ * y configuraciones específicas para admin y player.
+ */
+
+/* Importar Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Importar fuentes gaming */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
+/* Variables CSS globales */
+:root {
+  /* Colores del sistema */
+  --color-background: 255 255 255;
+  --color-foreground: 15 23 42;
+  --color-muted: 248 250 252;
+  --color-muted-foreground: 100 116 139;
+  --color-border: 226 232 240;
+  --color-input: 255 255 255;
+  --color-primary: 14 165 233;
+  --color-primary-foreground: 255 255 255;
+  --color-secondary: 241 245 249;
+  --color-secondary-foreground: 15 23 42;
+  --color-accent: 241 245 249;
+  --color-accent-foreground: 15 23 42;
+  --color-destructive: 239 68 68;
+  --color-destructive-foreground: 255 255 255;
+  --color-ring: 14 165 233;
+
+  /* Espaciado y dimensiones */
+  --radius: 0.5rem;
+  --sidebar-width: 16rem;
+  --header-height: 4rem;
+
+  /* Sombras gaming */
+  --shadow-gaming: 0 0 20px rgba(59, 130, 246, 0.3);
+  --shadow-neon: 0 0 10px currentColor, 0 0 20px currentColor;
+
+  /* Transiciones */
+  --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-gaming: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Tema oscuro */
+.dark {
+  --color-background: 2 6 23;
+  --color-foreground: 248 250 252;
+  --color-muted: 30 41 59;
+  --color-muted-foreground: 148 163 184;
+  --color-border: 51 65 85;
+  --color-input: 30 41 59;
+  --color-primary: 56 189 248;
+  --color-primary-foreground: 2 6 23;
+  --color-secondary: 30 41 59;
+  --color-secondary-foreground: 248 250 252;
+  --color-accent: 30 41 59;
+  --color-accent-foreground: 248 250 252;
+  --color-destructive: 220 38 38;
+  --color-destructive-foreground: 248 250 252;
+  --color-ring: 56 189 248;
+}
+
+/* Estilos base */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    @apply selection:bg-primary/20;
+  }
+
+  /* Configuración de fuentes */
+  .font-gaming {
+    font-family: 'Orbitron', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Scrollbars personalizados */
+  ::-webkit-scrollbar {
+    @apply w-3 h-3;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+
+  /* Scrollbar para Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-muted-foreground) / 0.3) rgb(var(--color-muted));
+  }
+
+  /* Focus visible mejorado */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Desactivar outline por defecto */
+  :focus:not(:focus-visible) {
+    @apply outline-none;
+  }
+
+  /* Títulos con gradiente */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent;
+  }
+
+  /* Efectos de glassmorphism */
+  .glass {
+    @apply backdrop-blur-sm bg-background/80 border border-border/50;
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-md bg-background/90 border border-border/60;
+  }
+}
+
+/* Componentes personalizados */
+@layer components {
+  /* Botones base */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4;
+  }
+
+  .btn-secondary {
+    @apply btn bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 py-2 px-4;
+  }
+
+  .btn-ghost {
+    @apply btn hover:bg-accent hover:text-accent-foreground h-10 py-2 px-4;
+  }
+
+  .btn-destructive {
+    @apply btn bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 py-2 px-4;
+  }
+
+  /* Botones gaming con efectos especiales */
+  .btn-gaming {
+    @apply btn relative overflow-hidden font-gaming font-bold text-white;
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-size-200;
+    @apply hover:bg-position-right transform hover:scale-105 active:scale-95;
+    @apply shadow-lg hover:shadow-gaming transition-all duration-300;
+  }
+
+  .btn-gaming::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    @apply transform -translate-x-full hover:translate-x-full transition-transform duration-500;
+  }
+
+  .btn-neon {
+    @apply btn border-2 border-current text-gaming-neon hover:bg-gaming-neon hover:text-black;
+    @apply shadow-neon hover:shadow-[0_0_30px_currentColor] transition-all duration-300;
+  }
+
+  /* Cards y contenedores */
+  .card {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  }
+
+  .card-gaming {
+    @apply card bg-slate-800/90 border-slate-700 backdrop-blur-sm;
+    @apply hover:border-blue-500/50 hover:shadow-gaming transition-all duration-300;
+  }
+
+  .card-admin {
+    @apply card bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700;
+    @apply hover:shadow-lg transition-shadow duration-200;
+  }
+
+  .card-player {
+    @apply card bg-gradient-to-br from-slate-800/90 to-slate-900/90;
+    @apply border-slate-700/50 backdrop-blur-sm hover:border-red-500/30;
+    @apply hover:shadow-[0_8px_32px_rgba(239,68,68,0.2)] transition-all duration-300;
+  }
+
+  /* Efectos de texto */
+  .text-glow {
+    @apply drop-shadow-[0_0_10px_currentColor];
+  }
+
+  .text-neon {
+    @apply text-gaming-neon drop-shadow-[0_0_10px_currentColor];
+    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+  }
+
+  .text-gold {
+    @apply text-gaming-gold font-bold;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5), 0 0 10px rgba(255, 215, 0, 0.3);
+  }
+
+  /* Layouts específicos */
+  .admin-layout {
+    @apply min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100;
+  }
+
+  .player-layout {
+    @apply min-h-screen relative overflow-hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 25%, #1e40af 50%, #1e3a8a 75%, #0f172a 100%);
+  }
+
+  .player-layout::before {
+    content: '';
+    @apply absolute inset-0 opacity-10;
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(239, 68, 68, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.3) 0%, transparent 50%);
+    animation: float 20s ease-in-out infinite;
+  }
+
+  /* Utilidades de interacción */
+  .interactive {
+    @apply cursor-pointer transition-all duration-200 ease-in-out;
+  }
+
+  .interactive:hover {
+    @apply transform scale-105;
+  }
+
+  .interactive:active {
+    @apply transform scale-95;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+
+  .hover-glow:hover {
+    @apply shadow-neon;
+  }
+
+  /* Estados de carga */
+  .loading {
+    @apply pointer-events-none opacity-60 relative;
+  }
+
+  .loading::after {
+    content: '';
+    @apply absolute inset-0 bg-background/50 rounded-md;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  /* Animaciones de entrada */
+  .animate-in {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  /* Responsive helpers */
+  .mobile-only {
+    @apply block sm:hidden;
+  }
+
+  .desktop-only {
+    @apply hidden sm:block;
+  }
+}
+
+/* Utilidades personalizadas */
+@layer utilities {
+  /* Utilidades de posicionamiento */
+  .center {
+    @apply flex items-center justify-center;
+  }
+
+  .center-x {
+    @apply flex justify-center;
+  }
+
+  .center-y {
+    @apply flex items-center;
+  }
+
+  /* Utilidades de tamaño */
+  .size-full {
+    @apply w-full h-full;
+  }
+
+  .size-screen {
+    @apply w-screen h-screen;
+  }
+
+  /* Utilidades de texto */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Utilidades de gradientes */
+  .bg-size-200 {
+    background-size: 200% 200%;
+  }
+
+  .bg-position-right {
+    background-position: right center;
+  }
+
+  /* Utilidades gaming */
+  .gaming-cursor {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8" fill="%2300ff00"/></svg>') 16 16, auto;
+  }
+
+  /* Safe areas para móviles */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Estilos específicos para componentes */
+
+/* Notificaciones */
+.notification-enter-active,
+.notification-leave-active {
+  transition: all 0.3s ease;
+}
+
+.notification-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.notification-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+/* Modales */
+.modal-overlay {
+  @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-50;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Tooltips */
+.tooltip {
+  @apply absolute z-50 px-2 py-1 text-xs bg-slate-900 text-white rounded shadow-lg;
+  @apply opacity-0 pointer-events-none transition-opacity duration-200;
+}
+
+.tooltip.show {
+  @apply opacity-100;
+}
+
+/* Elementos específicos gaming */
+.bingo-ball {
+  @apply w-12 h-12 rounded-full center font-bold text-lg;
+  @apply bg-gradient-to-br from-yellow-400 to-yellow-600;
+  @apply shadow-lg hover:shadow-gaming transform hover:scale-110;
+  @apply transition-all duration-300 cursor-pointer;
+}
+
+.bingo-carton {
+  @apply grid grid-cols-5 gap-1 p-4 bg-white dark:bg-slate-800;
+  @apply border-2 border-slate-300 dark:border-slate-600 rounded-lg;
+  @apply shadow-lg hover:shadow-gaming transition-all duration-300;
+}
+
+.bingo-number {
+  @apply w-12 h-12 center text-lg font-bold rounded;
+  @apply bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900;
+  @apply border border-slate-300 dark:border-slate-600;
+  @apply cursor-pointer transition-all duration-200;
+}
+
+.bingo-number.marked {
+  @apply bg-blue-500 text-white border-blue-500;
+  @apply shadow-inner;
+}
+
+.bingo-number.winning {
+  @apply bg-green-500 text-white border-green-500;
+  @apply animate-pulse;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    @apply hidden;
+  }
+
+  * {
+    @apply text-black bg-white;
+  }
+}

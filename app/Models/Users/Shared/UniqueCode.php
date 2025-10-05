@@ -3,12 +3,29 @@
 namespace App\Models\Users\Shared;
 
 use App\Models\Users\User;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para códigos únicos del sistema.
+ */
 class UniqueCode extends Model
 {
+    use HasSnowflakeId;
+
     protected $table = "unique_codes";
-    protected $fillable = ['rke_code', 'uuid_code', 'user_id', 'status'];
+
+    protected $fillable = [
+        'rke_code',
+        'uuid_code',
+        'user_id',
+        'status'
+    ];
+
+    protected $casts = [
+        'status' => 'boolean'
+    ];
 
     public function User()
     {

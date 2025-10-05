@@ -3,27 +3,56 @@
 namespace App\Models\Users\Roles\Seller;
 
 use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Shared\Games;
+use App\Models\Games\Shared\Game;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para límites de salas de vendedores.
+ *
+ * Representa los límites y comisiones asignados a vendedores específicos
+ * para salas de juego particulares, gestionando el acceso y configuración
+ * de comisiones por vendedor.
+ */
 class SellerRoomLimits extends Model
 {
-    protected $table = "sellers_room_limits";
-    protected $fillable = ['game', 'room', 'seller', 'commission'];
+    use HasSnowflakeId;
 
-    public function Room()
+    protected $table = "sellers_room_limits";
+
+    protected $fillable = [
+        'game',
+        'room',
+        'seller',
+        'commission'
+    ];
+
+    protected $casts = [
+        'commission' => 'float'
+    ];
+
+    /**
+     * Relación con la sala de bingo.
+     */
+    public function room(): BelongsTo
     {
         return $this->belongsTo(BingoRoom::class, 'room');
     }
 
-    public function Seller()
+    /**
+     * Relación con el vendedor.
+     */
+    public function seller(): BelongsTo
     {
-        return $this->belongsTo(Seller::class, 'seller_id');
+        return $this->belongsTo(Seller::class, 'seller');
     }
 
-    public static function getGameRoomValueBySeller($gameId, $roomId, $sellerId, $value)
+    /**
+     * Relación con el juego.
+     */
+    public function game(): BelongsTo
     {
-        $gameId = Game::getValueByName($game);
-        return self::where('game_id', $gameId)->where('room_id', $room)->where('seller_id', $seller)->value($value);
+        return $this->belongsTo(Game::class, 'game');
     }
 }

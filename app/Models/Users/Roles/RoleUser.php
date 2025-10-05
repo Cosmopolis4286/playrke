@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models\Pivots;
+namespace App\Models\Users\Roles;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
+use App\Models\Users\User;
 use App\Models\Users\Roles\Role;
 
 /**
@@ -82,13 +82,4 @@ class RoleUser extends Pivot
         return $this->belongsTo(User::class, 'assigned_by');
     }
 
-    /**
-     * Verifica si el rol está activo según expires_at
-     *
-     * @return bool
-     */
-    public function isActive(): bool
-    {
-        return is_null($this->expires_at) || $this->expires_at->isFuture();
-    }
 }

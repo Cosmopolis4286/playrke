@@ -3,25 +3,39 @@
 namespace App\Models\Users\Shared;
 
 use App\Models\Countries\Country;
+use App\Traits\HasSnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Modelo para zonas horarias del sistema.
+ *
+ * Representa las zonas horarias disponibles en el sistema, incluyendo
+ * su configuración UTC, país asociado y estado de activación para
+ * su uso en la aplicación.
+ */
 class TimeZone extends Model
 {
-    protected $table = "time_zones";
-    protected $fillable = ['name', 'utc', 'country_id', 'status', 'created_at', 'updated_at'];
+    use HasSnowflakeId;
 
-    public function Country()
+    protected $table = "time_zones";
+
+    protected $fillable = [
+        'name',
+        'utc',
+        'country_id',
+        'status'
+    ];
+
+    protected $casts = [
+        'status' => 'boolean'
+    ];
+
+    /**
+     * Relación con el país.
+     */
+    public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_id');
-    }
-
-    public static function getById($id, $fields = ['*'])
-    {
-        return self::select($fields)->where('id', $id)->first();
-    }
-
-    public static function getValueById($id, $value = 'name')
-    {
-        return self::where('id', $id)->value($value);
     }
 }
