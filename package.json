@@ -21,7 +21,8 @@
     "clean": "pnpm --parallel clean && rm -rf node_modules",
     "lint": "pnpm --parallel lint",
     "test": "pnpm --parallel test",
-    "setup": "pnpm install:all && pnpm --filter playrke-frontend setup",
+    "setup": "pnpm install:all && node scripts/generate-secrets.js",
+    "generate:secrets": "node scripts/generate-secrets.js",
     "migrate": "cd backend && php artisan migrate",
     "migrate:fresh": "cd backend && php artisan migrate:fresh --seed"
   },

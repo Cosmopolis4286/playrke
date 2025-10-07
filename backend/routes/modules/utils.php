@@ -1,6 +1,7 @@
 <?php
 
-use App\Http\Controllers\{GameController, CookieController, RewardsController};
+use App\Http\Controllers\{GameController, RewardsController};
+// use App\Http\Controllers\CookieController;
 use Illuminate\Support\Facades\Route;
 
 require_once app_path('Helpers/RouteHelper.php');
@@ -15,9 +16,9 @@ require_once app_path('Helpers/RouteHelper.php');
 // ====================================
 // MANEJO DE COOKIES
 // ====================================
-Route::middleware('auth')
-    ->get('cookie/referral', [CookieController::class, 'getReferral'])
-    ->name('cookie.referral');
+// Route::middleware('auth')
+//     ->get('cookie/referral', [CookieController::class, 'getReferral'])
+//     ->name('cookie.referral');
 
 // ====================================
 // JUEGOS GENERALES
