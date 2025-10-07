@@ -1,0 +1,177 @@
+/**
+ * Estilos específicos para la interfaz de jugador
+ */
+
+/* Variables de color para player */
+:root {
+  --player-primary: #10b981;
+  --player-secondary: #059669;
+  --player-accent: #34d399;
+  --player-bg: #111827;
+  --player-card: #1f2937;
+  --player-text: #f9fafb;
+  --bingo-ball: #fbbf24;
+}
+
+/* Layout de player */
+.player-layout {
+  @apply min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900;
+}
+
+/* Cartones de bingo */
+.bingo-carton {
+  @apply bg-white rounded-xl shadow-2xl p-4 transform transition-transform hover:scale-105;
+}
+
+.bingo-cell {
+  @apply w-14 h-14 flex items-center justify-center text-xl font-bold border-2 border-gray-300 rounded-lg cursor-pointer transition-all;
+}
+
+.bingo-cell.marked {
+  @apply bg-green-500 text-white border-green-600;
+}
+
+.bingo-cell.free {
+  @apply bg-yellow-400 text-gray-900 border-yellow-500;
+}
+
+.bingo-cell:hover:not(.marked) {
+  @apply bg-gray-100 border-gray-400;
+}
+
+/* Bolillero */
+.bingo-ball {
+  @apply w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-4xl font-bold text-white shadow-2xl animate-bounce;
+}
+
+.bingo-ball-history {
+  @apply flex flex-wrap gap-2;
+}
+
+.bingo-ball-mini {
+  @apply w-10 h-10 rounded-full bg-gray-700 text-white flex items-center justify-center text-sm font-bold;
+}
+
+/* Sala de juego */
+.game-room {
+  @apply container mx-auto px-4 py-8;
+}
+
+.game-header {
+  @apply bg-gray-800 rounded-xl shadow-lg p-6 mb-6;
+}
+
+.game-info {
+  @apply text-gray-300 text-sm;
+}
+
+/* Lobby */
+.lobby-room-card {
+  @apply bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-2xl transition-all cursor-pointer transform hover:-translate-y-1;
+}
+
+.lobby-room-active {
+  @apply border-2 border-green-500;
+}
+
+.lobby-room-full {
+  @apply opacity-60 cursor-not-allowed;
+}
+
+/* Panel de jugador */
+.player-panel {
+  @apply bg-gray-800 rounded-xl shadow-lg p-6;
+}
+
+.player-stats {
+  @apply grid grid-cols-3 gap-4;
+}
+
+.player-stat-item {
+  @apply text-center;
+}
+
+.player-stat-value {
+  @apply text-3xl font-bold text-green-400;
+}
+
+.player-stat-label {
+  @apply text-sm text-gray-400 uppercase;
+}
+
+/* Botones de jugador */
+.player-btn {
+  @apply px-6 py-3 rounded-lg font-bold transition-all transform active:scale-95;
+}
+
+.player-btn-primary {
+  @apply player-btn bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700;
+}
+
+.player-btn-secondary {
+  @apply player-btn bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:from-gray-700 hover:to-gray-800;
+}
+
+.player-btn-bingo {
+  @apply player-btn bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 hover:from-yellow-500 hover:to-yellow-700 text-xl shadow-lg;
+}
+
+/* Efectos de animación */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.8);
+  }
+}
+
+.winning-pattern {
+  animation: pulse-glow 1s infinite;
+}
+
+/* Chat de juego */
+.game-chat {
+  @apply bg-gray-800 rounded-xl shadow-lg p-4 h-96 flex flex-col;
+}
+
+.game-chat-messages {
+  @apply flex-1 overflow-y-auto space-y-2;
+}
+
+.game-chat-message {
+  @apply bg-gray-700 rounded-lg p-2 text-sm text-gray-200;
+}
+
+.game-chat-input {
+  @apply mt-4 flex gap-2;
+}
+
+/* Notificaciones de juego */
+.game-notification {
+  @apply fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-2xl animate-slide-in-right;
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Premios */
+.prize-card {
+  @apply bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl p-6 text-center shadow-2xl;
+}
+
+.prize-amount {
+  @apply text-5xl font-bold text-white;
+}
+
+.prize-label {
+  @apply text-sm text-gray-900 uppercase tracking-wide;
+}

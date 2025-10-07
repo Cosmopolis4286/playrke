@@ -72,16 +72,18 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // Props del error
-const props = defineProps<{
+interface ErrorProps {
   error: {
     statusCode: number
     statusMessage: string
     url?: string
     stack?: string
   }
-}>()
+}
+
+const props = defineProps<ErrorProps>()
 
 // Configuración de la página
 definePageMeta({

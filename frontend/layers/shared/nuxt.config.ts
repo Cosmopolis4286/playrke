@@ -13,13 +13,13 @@ export default defineNuxtConfig({
 
   // CSS compartido
   css: [
-    '~/assets/css/shared.css'
+    './assets/css/shared.css'
   ],
 
   // Componentes compartidos
   components: [
     {
-      path: '~/components',
+      path: './components',
       pathPrefix: false,
       global: true
     }
@@ -28,17 +28,17 @@ export default defineNuxtConfig({
   // Auto-imports para composables compartidos
   imports: {
     dirs: [
-      'composables/**',
-      'utils/**',
-      'types/**'
+      './composables/**',
+      './utils/**',
+      './types/**'
     ]
   },
 
   // Plugins compartidos
   plugins: [
-    '~/plugins/api.client.ts',
-    '~/plugins/toast.client.ts',
-    '~/plugins/auth.client.ts'
+    './plugins/api.client.ts',
+    './plugins/toast.client.ts',
+    './plugins/auth.client.ts'
   ],
 
   // Módulos específicos para funcionalidad compartida

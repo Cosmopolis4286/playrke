@@ -14,13 +14,13 @@ export default defineNuxtConfig({
 
   // CSS específico para admin
   css: [
-    '~/assets/css/admin.css'
+    './assets/css/admin.css'
   ],
 
   // Componentes específicos de admin
   components: [
     {
-      path: '~/components',
+      path: './components',
       pathPrefix: false,
       global: true
     }
@@ -29,16 +29,16 @@ export default defineNuxtConfig({
   // Auto-imports para composables de admin
   imports: {
     dirs: [
-      'composables/**',
-      'utils/**'
+      './composables/**',
+      './utils/**'
     ]
   },
 
   // Plugins específicos de admin
   plugins: [
-    '~/plugins/admin-auth.client.ts',
-    '~/plugins/charts.client.ts',
-    '~/plugins/datatables.client.ts'
+    './plugins/admin-auth.client.ts',
+    './plugins/charts.client.ts',
+    './plugins/datatables.client.ts'
   ],
 
   // Middleware específico de admin

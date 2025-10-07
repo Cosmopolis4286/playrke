@@ -14,13 +14,13 @@ export default defineNuxtConfig({
 
   // CSS específico para player
   css: [
-    '~/assets/css/player.css'
+    './assets/css/player.css'
   ],
 
   // Componentes específicos de player
   components: [
     {
-      path: '~/components',
+      path: './components',
       pathPrefix: false,
       global: true
     }
@@ -29,16 +29,16 @@ export default defineNuxtConfig({
   // Auto-imports para composables de player
   imports: {
     dirs: [
-      'composables/**',
-      'utils/**'
+      './composables/**',
+      './utils/**'
     ]
   },
 
   // Plugins específicos de player
   plugins: [
-    '~/plugins/game-engine.client.ts',
-    '~/plugins/sound.client.ts',
-    '~/plugins/websocket.client.ts'
+    './plugins/game-engine.client.ts',
+    './plugins/sound.client.ts',
+    './plugins/websocket.client.ts'
   ],
 
   // Middleware específico de player
