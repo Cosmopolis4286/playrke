@@ -3,42 +3,41 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Countries\Country;
+use App\Models\Currencies\Currency;
+use App\Models\Settings\Setting;
 use App\Repositories\Currencies\CurrencyRepository;
 use App\Repositories\Countries\CountryRepository;
 use App\Repositories\Settings\SettingRepository;
-use App\Repositories\User\Roles\RoleRepository;
-
-use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Http\{RedirectResponse, Request, JsonResponse};
+use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\Auth;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
      * Display the login view.
+     * Ya no se usa - Nuxt maneja las vistas
      */
-    public function create(): Response
+    public function create(): JsonResponse
     {
-        $register = (new SettingRepository())->getParameterStatus('REGISTER');
+        $register = (new SettingRepository(new Setting()))->getParameterStatus('REGISTER');
 
-        return Inertia::render('Auth/Login', [
-            'register' => (bool)$register,  // Forzamos booleano
-            'loginUrl' => route('login'),   // URL POST para login
-            'passwordRequestUrl' => route('password.request'), // recuperación de contraseña
-            'registerUrl' => route('register'), // URL para registro
+        return response()->json([
+            'register' => (bool)$register,
+            'loginUrl' => route('login'),
+            'passwordRequestUrl' => route('password.request'),
+            'registerUrl' => route('register'),
         ]);
     }
 
     /**
-     * Maneja el login del usuario y configura variables de sesión.
+     * Maneja el login del usuario y retorna JSON para Nuxt.
      *
      * @param \App\Http\Requests\LoginRequest $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request): JsonResponse
     {
         // Autenticar al usuario
         $request->authenticate();
@@ -52,33 +51,55 @@ class AuthenticatedSessionController extends Controller
         $countryId = $user->country_id;
 
         // Obtener el rol principal del usuario (primer rol asignado)
-        $firstRoleId = $user->roles->first()?->id;
+        $firstRole = $user->roles->first();
 
         $userRole = null;
-        if ($firstRoleId !== null) {
-            // Obtener el prefijo del rol usando el repositorio
-            $userRole = RoleRepository::getValueById($firstRoleId, 'prefix');
+        if ($firstRole !== null) {
+            // Obtener el prefijo del rol directamente
+            $userRole = $firstRole->prefix;
         }
 
         // Obtener el código ISO del país
-        $countryIsoCode = (new CountryRepository())->find($countryId, ['iso_code_2'])?->iso_code_2;
+        $countryIsoCode = (new CountryRepository(new Country()))->find($countryId, ['iso_code_2'])?->iso_code_2;
 
         // Obtener el ID de la moneda asociada al país y encriptarlo
-        $currency = encrypt((new CurrencyRepository())->getValueByCountry($countryId, 'id'));
+        $currency = encrypt((new CurrencyRepository(new Currency()))->getValueByCountry($countryId, 'id'));
 
         // Crear las variables de sesión
         $request->session()->put('countryCode', $countryIsoCode);
         $request->session()->put('currency', $currency);
         $request->session()->put('userRole', $userRole);
 
-        // Redirigir al usuario a la ruta de destino
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Retornar JSON con datos del usuario para Nuxt
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => (string)$user->id,
+                'username' => $user->username,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'avatar' => $user->avatar ?? null,
+                'roles' => [$userRole], // Roles como array de strings
+                'permissions' => [], // TODO: obtener permisos reales
+                'status' => $user->status ?? 'active',
+                'email_verified_at' => $user->email_verified_at?->toISOString(),
+                'created_at' => $user->created_at?->toISOString(),
+                'updated_at' => $user->updated_at?->toISOString(),
+            ],
+            'session' => [
+                'countryCode' => $countryIsoCode,
+                'currency' => $currency,
+                'userRole' => $userRole,
+            ]
+        ]);
     }
 
     /**
      * Destroy an authenticated session.
+     * Retorna JSON para Nuxt frontend.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request): JsonResponse
     {
         Auth::guard('web')->logout();
 
@@ -86,16 +107,9 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        // Si es una petición AJAX/Inertia, retornar respuesta JSON
-        if ($request->expectsJson() || $request->header('X-Inertia')) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Sesión cerrada exitosamente',
-                'redirect' => route('login')
-            ]);
-        }
-
-        // Para peticiones normales, redirigir al login con Inertia
-        return redirect()->route('login');
+        return response()->json([
+            'success' => true,
+            'message' => 'Sesión cerrada exitosamente'
+        ]);
     }
 }

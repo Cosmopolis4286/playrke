@@ -75,27 +75,21 @@ class AppServiceProvider extends ServiceProvider
         // -------------------------------------------
         // Compartir prefijo del rol principal en todas las vistas
         // -------------------------------------------
-        // Esto permite acceder a $creatorTypePrefix en cualquier componente
-        // o vista Blade/Inertia, evitando repetir la lógica en cada controlador.
-        if ($this->app->has('view')) {
-            View::composer('*', function ($view): void {
-                $prefix = null;
-
-                if (Auth::check()) {
-                    $user = Auth::user();
-
-                    // Obtener el primer rol asignado al usuario
-                    $firstRole = $user->roles->first();
-
-                    if ($firstRole !== null) {
-                        // Obtener el prefijo directamente del rol
-                        $prefix = $firstRole->prefix;
-                    }
-                }
-
-                // Se comparte la variable con todas las vistas
-                $view->with('creatorTypePrefix', $prefix);
-            });
-        }
+        // DISABLED: Causing conflicts with Auth and View loading order
+        // This can be enabled later if needed, but must be loaded after
+        // all services are fully booted
+        // if ($this->app->has('view')) {
+        //     View::composer('*', function ($view): void {
+        //         $prefix = null;
+        //         if (Auth::check()) {
+        //             $user = Auth::user();
+        //             $firstRole = $user->roles->first();
+        //             if ($firstRole !== null) {
+        //                 $prefix = $firstRole->prefix;
+        //             }
+        //         }
+        //         $view->with('creatorTypePrefix', $prefix);
+        //     });
+        // }
     }
 }
