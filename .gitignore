@@ -1,24 +1,35 @@
 # ========================================
+# Monorepo - Root Level
+# ========================================
+
+# Root node_modules (pnpm workspace)
+/node_modules
+/.pnpm-store
+
+# ========================================
 # Laravel Backend
 # ========================================
 
 # PHP
-/.phpunit.cache
-/vendor
-.phpactor.json
-.phpunit.result.cache
-auth.json
+/backend/.phpunit.cache
+/backend/vendor
+/backend/.phpactor.json
+/backend/.phpunit.result.cache
+/backend/auth.json
+
+# Backend node_modules (para Vite)
+/backend/node_modules
 
 # Storage & Cache
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/bootstrap/cache/*
+/backend/public/build
+/backend/public/hot
+/backend/public/storage
+/backend/storage/*.key
+/backend/bootstrap/cache/*
 
 # Homestead
-Homestead.json
-Homestead.yaml
+/backend/Homestead.json
+/backend/Homestead.yaml
 
 # ========================================
 # Nuxt 3 Frontend
@@ -38,18 +49,22 @@ Homestead.yaml
 # Environment & Secrets
 # ========================================
 
+# Root
 .env
 .env.*
 !.env.example
-.env.backup
-.env.production
 
-# ========================================
-# Dependencies (Root & Subprojects)
-# ========================================
+# Backend
+/backend/.env
+/backend/.env.*
+!/backend/.env.example
+/backend/.env.backup
+/backend/.env.production
 
-/node_modules
-/frontend/node_modules
+# Frontend
+/frontend/.env
+/frontend/.env.*
+!/frontend/.env.example
 
 # ========================================
 # Logs
@@ -58,7 +73,8 @@ Homestead.yaml
 *.log
 npm-debug.log
 yarn-error.log
-/storage/logs/*.log
+pnpm-debug.log
+/backend/storage/logs/*.log
 
 # ========================================
 # IDEs & Editors
@@ -108,8 +124,9 @@ tmp/
 # Build & Distribution
 # ========================================
 
-/public/dist
-/public/mix-manifest.json
+/backend/public/dist
+/backend/public/mix-manifest.json
+build-stats.html
 
 # ========================================
 # Lock Files (opcional - descomentar si no quieres commitear)

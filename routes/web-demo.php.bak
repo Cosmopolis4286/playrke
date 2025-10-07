@@ -1,8 +1,0 @@
-<?php
-
-use Illuminate\Support\Facades\Route;
-
-// Ruta de demo para mostrar el nuevo frontend
-Route::get('/demo', function () {
-    return view('demo');
-})->name('demo');

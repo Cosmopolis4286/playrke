@@ -1,139 +1,228 @@
 # PlayRKE Bingo - Monorepo
 
-Sistema completo de bingo en línea con Laravel (backend) y Nuxt 3 (frontend).
+Sistema completo de bingo en línea con arquitectura monorepo: **Laravel (Backend)** + **Nuxt 3 (Frontend)**.
 
 ## 🏗️ Estructura del Proyecto
 
 ```
 playrke/
-├── app/                    # Laravel backend
-├── config/                 # Configuración Laravel
-├── database/               # Migraciones y seeders
-├── routes/                 # Rutas API Laravel
-├── resources/              # Assets Laravel (legacy)
-├── storage/                # Storage Laravel
-├── public/                 # Public assets Laravel
+├── backend/                # Laravel API + WebSockets
+│   ├── app/               # Código de aplicación
+│   ├── config/            # Configuración
+│   ├── database/          # Migraciones y seeders
+│   ├── routes/            # Rutas API
+│   ├── resources/         # Vistas Blade y assets
+│   ├── storage/           # Archivos y logs
+│   ├── tests/             # Tests PHPUnit
+│   ├── .env              # Variables de entorno backend
+│   ├── artisan           # CLI Laravel
+│   ├── composer.json     # Dependencias PHP
+│   ├── package.json      # Dependencias Node (Vite)
+│   └── vite.config.ts    # Configuración Vite
 │
-├── frontend/               # Nuxt 3 frontend (SPA)
-│   ├── layers/
-│   │   ├── admin/         # Panel administrativo
-│   │   ├── player/        # Panel de jugador
-│   │   └── shared/        # Código compartido
-│   ├── pages/             # Páginas públicas
-│   └── ...
+├── frontend/              # Nuxt 3 SPA
+│   ├── layers/           # Arquitectura en capas
+│   │   ├── admin/       # Panel administrativo
+│   │   ├── player/      # Panel de jugador
+│   │   └── shared/      # Componentes compartidos
+│   ├── pages/           # Páginas públicas
+│   ├── .env             # Variables de entorno frontend
+│   ├── nuxt.config.ts   # Configuración Nuxt
+│   └── package.json     # Dependencias Node
 │
-├── docs/                   # Documentación del proyecto
-│   ├── installation.md
-│   ├── quick-start.md
-│   ├── api-endpoints-required.md
-│   ├── checklist-verificacion.md
-│   └── migracion-completada.md
+├── docs/                 # Documentación
+├── scripts/              # Scripts de deployment
 │
-├── .env                    # Variables de entorno Laravel
-├── composer.json           # Dependencias PHP
-└── artisan                 # CLI Laravel
+├── .gitignore           # Git ignore (monorepo)
+├── pnpm-workspace.yaml  # Configuración pnpm workspace
+├── package.json         # Scripts principales del monorepo
+├── docker-compose.yml   # Orquestación Docker
+├── start-dev.bat        # Script inicio Windows
+└── start-dev.sh         # Script inicio Linux/Mac
 ```
 
 ## 🚀 Inicio Rápido
 
-### Prerequisitos
+### Opción 1: Script Automático (Recomendado)
 
-- PHP >= 8.1
-- Composer
-- Node.js >= 18.0.0
-- MySQL/PostgreSQL
-- Redis (opcional)
+#### Windows
+```bash
+start-dev.bat
+```
 
-### Instalación
+#### Linux/Mac
+```bash
+chmod +x start-dev.sh
+./start-dev.sh
+```
 
-#### 1. Backend Laravel
+El script:
+- ✅ Verifica dependencias (Node, pnpm, PHP, Composer)
+- ✅ Instala dependencias automáticamente
+- ✅ Configura archivos .env
+- ✅ Inicia todos los servicios en paralelo
+
+### Opción 2: Manual
+
+#### 1. Instalar Dependencias
 
 ```bash
-# Instalar dependencias PHP
-composer install
+# Instalar pnpm (si no lo tienes)
+npm install -g pnpm
 
-# Copiar archivo de entorno
+# Instalar todas las dependencias
+pnpm run install:all
+
+# O manualmente:
+pnpm install                    # Dependencias del workspace
+cd backend && composer install  # Dependencias PHP
+cd ../frontend && pnpm install  # Dependencias frontend
+```
+
+#### 2. Configurar Backend
+
+```bash
+cd backend
+
+# Copiar .env
 cp .env.example .env
 
-# Generar key de aplicación
+# Generar key
 php artisan key:generate
 
 # Configurar base de datos en .env
-# DB_CONNECTION=mysql
 # DB_DATABASE=playrke
 # DB_USERNAME=root
 # DB_PASSWORD=
 
-# Ejecutar migraciones
+# Migrar base de datos
 php artisan migrate
 
-# Ejecutar seeders (opcional)
+# Seeders (opcional)
 php artisan db:seed
-
-# Iniciar servidor
-php artisan serve
 ```
 
-El backend estará disponible en `http://localhost:8000`
-
-#### 2. Frontend Nuxt 3
+#### 3. Configurar Frontend
 
 ```bash
-# Navegar al directorio frontend
 cd frontend
-
-# Instalar dependencias
-npm install
-
-# Configurar variables de entorno
-npm run setup
-
-# Iniciar servidor de desarrollo
-npm run dev
+pnpm run setup
 ```
 
-El frontend estará disponible en `http://localhost:3000`
-
-#### 3. WebSockets (Laravel Reverb)
+#### 4. Iniciar Servicios
 
 ```bash
-# En una nueva terminal
-php artisan reverb:start
+# Desde la raíz del proyecto
+
+# Backend API (puerto 8000)
+cd backend && php artisan serve
+
+# Frontend (puerto 3000) - en otra terminal
+cd frontend && pnpm run dev
+
+# WebSockets (puerto 8080) - en otra terminal
+cd backend && php artisan reverb:start
 ```
 
-WebSockets estarán disponibles en `ws://localhost:6001`
+### Opción 3: Docker (Producción/Staging)
 
-## 📚 Documentación Completa
+```bash
+docker-compose up -d
+```
 
-- **[Guía de Instalación Completa](docs/installation.md)** - Instalación paso a paso del frontend
-- **[Quick Start](docs/quick-start.md)** - Inicio rápido en 5 minutos
-- **[API Endpoints](docs/api-endpoints-required.md)** - Documentación completa de la API
-- **[Checklist de Verificación](docs/checklist-verificacion.md)** - Verificar instalación
-- **[Resumen de Migración](docs/migracion-completada.md)** - Estado del proyecto
+Servicios disponibles:
+- **Backend API**: http://localhost:8000
+- **Frontend**: http://localhost:3000
+- **WebSockets**: ws://localhost:8080
+- **phpMyAdmin**: http://localhost:8081
 
-## 🛠️ Scripts Útiles
+## 📦 Gestión de Dependencias (pnpm)
+
+Este proyecto usa **pnpm workspaces** para gestión eficiente de dependencias.
+
+### Comandos Principales
+
+```bash
+# Instalar todo
+pnpm run install:all
+
+# Desarrollo (todos los servicios)
+pnpm run dev
+
+# Solo backend assets (Vite)
+pnpm run dev:assets
+
+# Solo frontend
+pnpm run dev:frontend
+
+# Build de producción
+pnpm run build
+
+# Limpiar todo
+pnpm run clean
+
+# Migraciones
+pnpm run migrate
+pnpm run migrate:fresh
+```
+
+### Agregar Dependencias
+
+```bash
+# Agregar al backend
+pnpm --filter backend add <paquete>
+
+# Agregar al frontend
+pnpm --filter playrke-frontend add <paquete>
+
+# Agregar dependencia PHP (backend)
+cd backend && composer require <paquete>
+```
+
+## 🛠️ Scripts Disponibles
+
+### Raíz del Proyecto
+
+| Comando | Descripción |
+|---------|-------------|
+| `pnpm run dev` | Inicia todos los servicios en paralelo |
+| `pnpm run dev:backend` | Solo Laravel API |
+| `pnpm run dev:frontend` | Solo Nuxt frontend |
+| `pnpm run dev:assets` | Solo Vite (assets backend) |
+| `pnpm run dev:reverb` | Solo WebSockets |
+| `pnpm run build` | Build de producción (todo) |
+| `pnpm run install:all` | Instala todas las dependencias |
+| `pnpm run clean` | Limpia node_modules |
+| `pnpm run lint` | Ejecuta linters |
+| `pnpm run test` | Ejecuta todos los tests |
 
 ### Backend (Laravel)
 
 ```bash
+cd backend
+
 # Desarrollo
-php artisan serve                    # Iniciar servidor
-php artisan reverb:start             # Iniciar WebSockets
+php artisan serve                    # Servidor dev
+php artisan reverb:start             # WebSockets
 php artisan queue:work               # Procesar colas
 
 # Base de datos
-php artisan migrate                  # Ejecutar migraciones
-php artisan migrate:fresh --seed    # Resetear DB con seeders
-php artisan db:seed                  # Ejecutar seeders
+php artisan migrate                  # Migraciones
+php artisan migrate:fresh --seed    # Resetear con datos
+php artisan db:seed                  # Solo seeders
 
 # Cache
-php artisan config:clear             # Limpiar cache de config
-php artisan cache:clear              # Limpiar cache general
-php artisan route:clear              # Limpiar cache de rutas
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
 
 # Testing
-php artisan test                     # Ejecutar tests
-php artisan test --coverage          # Tests con coverage
+php artisan test
+php artisan test --coverage
+
+# Assets (Vite)
+pnpm run dev                        # Desarrollo
+pnpm run build                      # Producción
 ```
 
 ### Frontend (Nuxt 3)
@@ -142,33 +231,34 @@ php artisan test --coverage          # Tests con coverage
 cd frontend
 
 # Desarrollo
-npm run dev                          # Servidor con hot-reload
-npm run setup                        # Configurar .env
+pnpm run dev                         # Servidor con hot-reload
+pnpm run setup                       # Configurar .env
 
 # Build
-npm run build                        # Build de producción
-npm run preview                      # Preview del build
+pnpm run build                       # Producción
+pnpm run preview                     # Preview del build
 
 # Calidad
-npm run lint                         # ESLint
-npm run type-check                   # TypeScript check
+pnpm run lint                        # ESLint
+pnpm run type-check                  # TypeScript check
 ```
 
 ## 🔑 Autenticación
 
-El sistema usa **Laravel Sanctum** para autenticación stateful:
+Sistema de autenticación con **Laravel Sanctum** (stateful):
 
 1. Frontend solicita token CSRF: `GET /sanctum/csrf-cookie`
 2. Login/Register con credenciales
 3. Laravel establece cookie de sesión
-4. Todas las peticiones posteriores incluyen cookie automáticamente
+4. Todas las peticiones incluyen cookie automáticamente
 
 ## 🌐 API
 
-### Base URL
+### URLs Base
 
-- **Desarrollo**: `http://localhost:8000/api`
-- **Producción**: `https://api.playrke.com/api`
+- **Desarrollo Backend**: `http://localhost:8000`
+- **Desarrollo Frontend**: `http://localhost:3000`
+- **Producción**: `https://api.playrke.com`
 
 ### Endpoints Principales
 
@@ -182,25 +272,23 @@ El sistema usa **Laravel Sanctum** para autenticación stateful:
 | POST | `/api/bingo/rooms/{id}/purchase` | Comprar cartones |
 | GET | `/api/admin/dashboard` | Dashboard admin |
 
-**Documentación completa**: [api-endpoints-required.md](docs/api-endpoints-required.md)
+📖 **Documentación completa**: [docs/api-endpoints-required.md](docs/api-endpoints-required.md)
 
 ## 🎯 Roles y Permisos
 
-El sistema maneja múltiples roles:
-
-- **Super Admin** - Acceso completo al sistema
+- **Super Admin** - Acceso completo
 - **Admin** - Gestión de salas, transacciones, reportes
-- **Customer** - Cliente con panel de administración limitado
-- **Treasurer** - Manejo de transacciones financieras
+- **Customer** - Cliente con panel limitado
+- **Treasurer** - Transacciones financieras
 - **Seller** - Venta de cartones
 - **Player** - Jugador estándar
 
-## 🔌 WebSockets
+## 🔌 WebSockets (Laravel Reverb)
 
-Eventos en tiempo real con Laravel Reverb/Pusher:
+Eventos en tiempo real:
 
 ```javascript
-// Frontend
+// Frontend (Nuxt)
 const { listenToChannel } = useWebSocket()
 
 listenToChannel('bingo.room.123', 'NumberCalled', (data) => {
@@ -214,116 +302,128 @@ listenToChannel('bingo.room.123', 'NumberCalled', (data) => {
 - `GameEnded` - Juego finalizado
 - `WinnerDeclared` - Ganador declarado
 
+**Puerto**: `ws://localhost:8080` (desarrollo)
+
 ## 🧪 Testing
 
-### Backend
+### Backend (PHPUnit)
 
 ```bash
+cd backend
 php artisan test
 php artisan test --filter=AuthTest
 php artisan test --coverage
 ```
 
-### Frontend
+### Frontend (Vitest)
 
 ```bash
 cd frontend
-npm run test              # Vitest (cuando esté configurado)
-npm run test:e2e          # E2E tests (cuando esté configurado)
+pnpm run test
+pnpm run test:e2e
 ```
 
-## 🚀 Deployment
+## 🐳 Docker
 
-### Backend (Laravel)
+### Desarrollo
 
-1. Configurar servidor (Apache/Nginx)
-2. Configurar `.env` de producción
-3. Ejecutar migraciones
-4. Configurar supervisor para queues
-5. SSL/HTTPS
+```bash
+docker-compose up -d
+```
 
-### Frontend (Nuxt 3)
+### Producción
 
-1. Build de producción:
-   ```bash
-   cd frontend
-   npm run build
-   ```
-2. Deploy a servidor Node.js o plataforma (Vercel/Netlify)
-3. Configurar variables de entorno de producción
-
-## 🔒 Seguridad
-
-- ✅ Laravel Sanctum para autenticación
-- ✅ CSRF protection
-- ✅ XSS protection
-- ✅ SQL injection prevention (Eloquent ORM)
-- ✅ Rate limiting en API
-- ✅ Validación de inputs
-- ✅ HTTPS en producción
+Crear `docker-compose.prod.yml` con configuraciones optimizadas.
 
 ## 📊 Stack Tecnológico
 
 ### Backend
-- Laravel 10.x
-- PHP 8.1+
-- MySQL/PostgreSQL
-- Redis
-- Laravel Reverb (WebSockets)
-- Laravel Sanctum (Auth)
+- **Laravel 11** - Framework PHP
+- **PHP 8.2+** - Lenguaje
+- **MySQL 8.0** - Base de datos
+- **Redis** - Cache y colas
+- **Laravel Reverb** - WebSockets
+- **Laravel Sanctum** - Autenticación
+- **Vite** - Build de assets
 
 ### Frontend
-- Nuxt 3
-- Vue 3 (Composition API)
-- TypeScript
-- Tailwind CSS
-- Pinia (State Management)
-- Laravel Echo (WebSockets)
+- **Nuxt 3** - Framework Vue
+- **Vue 3** - Framework JavaScript
+- **TypeScript** - Tipado estático
+- **Tailwind CSS** - Estilos
+- **Pinia** - State management
+- **VueUse** - Utilidades Vue
+- **Nuxt UI** - Componentes UI
+
+### DevOps
+- **pnpm** - Gestor de paquetes
+- **Docker** - Containerización
+- **Git** - Control de versiones
+
+## 🔒 Seguridad
+
+- ✅ Laravel Sanctum (autenticación)
+- ✅ CSRF protection
+- ✅ XSS protection
+- ✅ SQL injection prevention (Eloquent)
+- ✅ Rate limiting en API
+- ✅ Validación de inputs
+- ✅ HTTPS en producción
+- ✅ Encriptación de datos sensibles
+
+## 📚 Documentación Adicional
+
+- **[Instalación Completa](docs/installation.md)** - Guía detallada
+- **[Quick Start](docs/quick-start.md)** - Inicio en 5 minutos
+- **[API Endpoints](docs/api-endpoints-required.md)** - Documentación API
+- **[Checklist](docs/checklist-verificacion.md)** - Verificación
+- **[Migración](docs/migracion-completada.md)** - Estado del proyecto
 
 ## 🤝 Contribuir
 
 1. Fork el proyecto
-2. Crear rama feature: `git checkout -b feature/nueva-funcionalidad`
-3. Commit cambios: `git commit -m 'feat: agregar nueva funcionalidad'`
-4. Push a la rama: `git push origin feature/nueva-funcionalidad`
-5. Crear Pull Request
+2. Crear rama: `git checkout -b feature/nueva-funcionalidad`
+3. Commit: `git commit -m 'feat: agregar funcionalidad'`
+4. Push: `git push origin feature/nueva-funcionalidad`
+5. Pull Request
 
-## 📝 Convenciones de Código
+### Convenciones
 
-### Git Commits
-
-Seguir [Conventional Commits](https://www.conventionalcommits.org/):
-
+**Commits** (Conventional Commits):
 ```
-feat: agregar nueva funcionalidad
-fix: corregir bug
-docs: actualizar documentación
-style: formateo de código
+feat: nueva funcionalidad
+fix: corrección de bug
+docs: documentación
+style: formateo
 refactor: refactorización
-test: agregar tests
-chore: tareas de mantenimiento
+test: tests
+chore: mantenimiento
 ```
 
-### Code Style
-
-- **Backend**: PSR-12 (PHP)
-- **Frontend**: ESLint + Prettier
+**Code Style**:
+- Backend: PSR-12 (PHP)
+- Frontend: ESLint + Prettier
 
 ## 🐛 Troubleshooting
 
 ### Error: "CORS policy"
-- Verificar `config/cors.php` en Laravel
-- Asegurar `supports_credentials: true`
+Verificar `backend/config/cors.php` y `supports_credentials: true`
 
 ### Error: "CSRF token mismatch"
-- Verificar configuración de Sanctum
+- Verificar configuración Sanctum
 - Limpiar cookies del navegador
 
 ### Error: WebSocket no conecta
 - Verificar que Reverb esté corriendo
-- Verificar configuración en `.env`
+- Revisar configuración en `.env`
 
-Más soluciones en [installation.md](docs/installation.md)
+### Error: pnpm no funciona
+```bash
+npm install -g pnpm
+```
+
+### Más ayuda
+Ver [docs/installation.md](docs/installation.md)
 
 ## 📄 Licencia
 
@@ -342,11 +442,14 @@ Para soporte técnico, contactar al equipo de desarrollo.
 ## ✅ Estado del Proyecto
 
 - ✅ **Backend Laravel**: Funcional
-- ✅ **Frontend Nuxt 3**: Migración 100% completada
+- ✅ **Frontend Nuxt 3**: Funcional
 - ✅ **API Integration**: Lista
 - ✅ **WebSockets**: Implementado
 - ✅ **Autenticación**: Funcionando
+- ✅ **Monorepo**: Configurado
+- ✅ **pnpm Workspaces**: Activo
+- ✅ **Docker**: Disponible
 - ✅ **Documentación**: Completa
 
-**Versión**: 1.0.0
-**Última actualización**: 2025-10-05
+**Versión**: 2.0.0 (Monorepo)
+**Última actualización**: 2025-10-07
