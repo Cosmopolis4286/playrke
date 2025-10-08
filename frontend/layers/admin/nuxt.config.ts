@@ -14,7 +14,7 @@ export default defineNuxtConfig({
 
   // CSS específico para admin
   css: [
-    './assets/css/admin.css'
+    '~/layers/admin/assets/css/admin.css'
   ],
 
   // Componentes específicos de admin

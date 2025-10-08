@@ -14,7 +14,7 @@ export default defineNuxtConfig({
 
   // CSS específico para player
   css: [
-    './assets/css/player.css'
+    '~/layers/player/assets/css/player.css'
   ],
 
   // Componentes específicos de player
