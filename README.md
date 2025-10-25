@@ -124,17 +124,62 @@ cd frontend && pnpm run dev
 cd backend && php artisan reverb:start
 ```
 
-### Opción 3: Docker (Producción/Staging)
+### Opción 3: Docker (Desarrollo y Producción)
+
+Para instrucciones completas de Docker, consulta [DOCKER.md](./DOCKER.md)
+
+#### Inicio rápido con Docker
 
 ```bash
+# 1. Copiar variables de entorno
+cp .env.docker.example .env
+
+# 2. Iniciar todos los servicios
 docker-compose up -d
+
+# 3. Ver logs
+docker-compose logs -f
+
+# 4. Esperar a que MySQL esté listo (30s) y ejecutar migraciones
+docker-compose exec backend php artisan key:generate
+docker-compose exec backend php artisan migrate --seed
 ```
 
 Servicios disponibles:
 - **Backend API**: http://localhost:8000
 - **Frontend**: http://localhost:3000
-- **WebSockets**: ws://localhost:8080
+- **WebSockets (Reverb)**: ws://localhost:8080
 - **phpMyAdmin**: http://localhost:8081
+- **MySQL**: localhost:3306
+- **Redis**: localhost:6379
+
+Comandos útiles:
+```bash
+# Detener servicios
+docker-compose stop
+
+# Detener y eliminar contenedores
+docker-compose down
+
+# Rebuild servicios
+docker-compose up -d --build
+
+# Ver logs de un servicio
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Acceder a shell de un contenedor
+docker-compose exec backend sh
+docker-compose exec frontend sh
+
+# Ejecutar comandos Laravel
+docker-compose exec backend php artisan migrate
+docker-compose exec backend php artisan cache:clear
+
+# Ejecutar comandos npm/pnpm
+docker-compose exec frontend pnpm run build
+docker-compose exec frontend pnpm test
+```
 
 ## 📦 Gestión de Dependencias (pnpm)
 

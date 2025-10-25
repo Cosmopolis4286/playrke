@@ -1,35 +1,48 @@
+# ============================================
+# Docker Compose - PlayRKE Monorepo
+# Versión optimizada con healthchecks y build stages
+# ============================================
+
 version: '3.8'
 
 services:
+  # ==========================================
   # MySQL Database
+  # ==========================================
   mysql:
     image: mysql:8.0
     container_name: playrke-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: playrke
-      MYSQL_USER: playrke
-      MYSQL_PASSWORD: playrke
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_DATABASE:-playrke}
+      MYSQL_USER: ${DB_USERNAME:-playrke}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-playrke}
+      MYSQL_INITDB_SKIP_TZINFO: 1
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./backend/database/init:/docker-entrypoint-initdb.d
     networks:
       - playrke-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    command: --default-authentication-plugin=mysql_native_password
 
-  # Redis Cache
+  # ==========================================
+  # Redis Cache & Queue
+  # ==========================================
   redis:
     image: redis:7-alpine
     container_name: playrke-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -39,88 +52,217 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    command: redis-server --appendonly yes
 
+  # ==========================================
   # Laravel Backend
+  # ==========================================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
+      args:
+        - USER_ID=${USER_ID:-1000}
+        - GROUP_ID=${GROUP_ID:-1000}
     container_name: playrke-backend
     restart: unless-stopped
     working_dir: /var/www
     volumes:
       - ./backend:/var/www
-      - ./backend/storage:/var/www/storage
+      - backend_vendor:/var/www/vendor
+      - backend_node_modules:/var/www/node_modules
     ports:
-      - "8000:8000"
-      - "8080:8080"  # Laravel Reverb
+      - "${APP_PORT:-8000}:8000"
+      - "${REVERB_PORT:-8080}:8080"
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      APP_ENV: local
-      APP_DEBUG: "true"
+      APP_NAME: ${APP_NAME:-PlayRKE}
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_DATABASE: playrke
-      DB_USERNAME: playrke
-      DB_PASSWORD: playrke
+      DB_DATABASE: ${DB_DATABASE:-playrke}
+      DB_USERNAME: ${DB_USERNAME:-playrke}
+      DB_PASSWORD: ${DB_PASSWORD:-playrke}
+
       REDIS_HOST: redis
+      REDIS_PASSWORD: null
       REDIS_PORT: 6379
+
+      CACHE_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+
+      REVERB_APP_ID: ${REVERB_APP_ID:-local}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-local}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-local}
+      REVERB_HOST: 0.0.0.0
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
     networks:
       - playrke-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     command: >
-      sh -c "php artisan serve --host=0.0.0.0 --port=8000"
+      sh -c "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
 
+  # ==========================================
+  # Laravel Reverb (WebSocket Server)
+  # ==========================================
+  reverb:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: playrke-reverb
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+      - backend_vendor:/var/www/vendor
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      REVERB_APP_ID: ${REVERB_APP_ID:-local}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-local}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-local}
+      REVERB_HOST: 0.0.0.0
+      REVERB_PORT: 8080
+      REDIS_HOST: redis
+    networks:
+      - playrke-network
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+
+  # ==========================================
   # Nuxt Frontend
+  # ==========================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development
+      args:
+        - NODE_ENV=development
     container_name: playrke-frontend
     restart: unless-stopped
     working_dir: /app
     volumes:
       - ./frontend:/app
-      - /app/node_modules
-      - /app/.nuxt
+      - frontend_node_modules:/app/node_modules
+      - frontend_nuxt:/app/.nuxt
+      - frontend_output:/app/.output
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
       - backend
     environment:
-      NUXT_PUBLIC_API_BASE: http://localhost:8000/api
+      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://localhost:8000/api}
+      NUXT_PUBLIC_WS_URL: ${NUXT_PUBLIC_WS_URL:-ws://localhost:8080}
       NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 3000
     networks:
       - playrke-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     command: pnpm run dev
 
-  # PhpMyAdmin (opcional, para administrar la BD)
+  # ==========================================
+  # PhpMyAdmin (Administración BD)
+  # ==========================================
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: playrke-phpmyadmin
     restart: unless-stopped
     ports:
-      - "8081:80"
+      - "${PHPMYADMIN_PORT:-8081}:80"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
       PMA_USER: root
-      PMA_PASSWORD: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 100M
     networks:
       - playrke-network
 
+  # ==========================================
+  # Laravel Queue Worker (opcional)
+  # ==========================================
+  queue:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: playrke-queue
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+      - backend_vendor:/var/www/vendor
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+    networks:
+      - playrke-network
+    command: php artisan queue:work --tries=3 --timeout=90 --sleep=3
+
+# ==========================================
+# Volúmenes persistentes
+# ==========================================
 volumes:
   mysql_data:
     driver: local
   redis_data:
     driver: local
+  backend_vendor:
+    driver: local
+  backend_node_modules:
+    driver: local
+  frontend_node_modules:
+    driver: local
+  frontend_nuxt:
+    driver: local
+  frontend_output:
+    driver: local
 
+# ==========================================
+# Red compartida
+# ==========================================
 networks:
   playrke-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
