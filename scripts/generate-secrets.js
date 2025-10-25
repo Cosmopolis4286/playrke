@@ -3,15 +3,27 @@
 /**
  * PlayRKE - Generador de Secretos y Variables de Entorno
  *
+ * @description Script robusto para generar archivos .env con secretos seguros
+ * @version 2.0.0
+ * @author PlayRKE Team
+ *
  * Este script genera automáticamente:
- * - Archivos .env para backend y frontend
- * - Claves de encriptación seguras
- * - Credenciales de WebSockets
- * - Variables de configuración
+ * - Archivos .env para backend (Laravel) y frontend (Nuxt 3)
+ * - Claves de encriptación criptográficamente seguras
+ * - Credenciales de WebSockets (Laravel Reverb)
+ * - Variables de configuración para Docker y desarrollo local
+ *
+ * Uso:
+ *   node scripts/generate-secrets.js [--force] [--docker] [--production]
+ *
+ * Flags:
+ *   --force       Sobrescribir archivos .env existentes sin preguntar
+ *   --docker      Generar configuración para entorno Docker
+ *   --production  Generar configuración para producción
  */
 
 import { randomBytes } from 'crypto';
-import { writeFileSync, existsSync, readFileSync } from 'fs';
+import { writeFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -19,6 +31,15 @@ import { execSync } from 'child_process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
+
+// Parsear argumentos de línea de comandos
+const args = process.argv.slice(2);
+const flags = {
+    force: args.includes('--force'),
+    docker: args.includes('--docker'),
+    production: args.includes('--production'),
+    help: args.includes('--help') || args.includes('-h'),
+};
 
 // Colores para la consola
 const colors = {
@@ -39,11 +60,71 @@ const log = {
 };
 
 // ============================================
+// Funciones de Utilidad
+// ============================================
+
+/**
+ * Muestra ayuda del script
+ */
+function showHelp() {
+    console.log(`
+${colors.bright}PlayRKE - Generador de Secretos${colors.reset}
+
+${colors.blue}Uso:${colors.reset}
+  node scripts/generate-secrets.js [opciones]
+
+${colors.blue}Opciones:${colors.reset}
+  --force       Sobrescribir archivos .env existentes sin backup
+  --docker      Generar configuración para entorno Docker
+  --production  Generar configuración para producción
+  -h, --help    Mostrar esta ayuda
+
+${colors.blue}Ejemplos:${colors.reset}
+  node scripts/generate-secrets.js
+  node scripts/generate-secrets.js --docker
+  node scripts/generate-secrets.js --production --force
+`);
+    process.exit(0);
+}
+
+/**
+ * Asegura que un directorio existe
+ */
+function ensureDirectoryExists(dirPath) {
+    if (!existsSync(dirPath)) {
+        log.info(`Creando directorio: ${dirPath}`);
+        mkdirSync(dirPath, { recursive: true });
+    }
+}
+
+/**
+ * Valida que los directorios del proyecto existan
+ */
+function validateProjectStructure() {
+    const backendPath = join(rootDir, 'backend');
+    const frontendPath = join(rootDir, 'frontend');
+
+    if (!existsSync(backendPath)) {
+        log.error('No se encontró el directorio backend/');
+        log.error('Asegúrate de estar en la raíz del proyecto PlayRKE');
+        process.exit(1);
+    }
+
+    if (!existsSync(frontendPath)) {
+        log.error('No se encontró el directorio frontend/');
+        log.error('Asegúrate de estar en la raíz del proyecto PlayRKE');
+        process.exit(1);
+    }
+
+    return { backendPath, frontendPath };
+}
+
+// ============================================
 // Funciones de Generación de Secretos
 // ============================================
 
 /**
- * Genera una clave base64 de 32 bytes
+ * Genera una clave base64 de 32 bytes (criptográficamente segura)
  */
 function generateBase64Key() {
     return randomBytes(32).toString('base64');
@@ -64,34 +145,58 @@ function generateAppId() {
 }
 
 /**
- * Genera una clave alfanumérica aleatoria
+ * Genera una clave alfanumérica aleatoria criptográficamente segura
  */
 function generateAlphanumericKey(length = 20) {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    const charsLength = chars.length;
     let result = '';
+    const randomValues = randomBytes(length);
+
     for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
+        result += chars.charAt(randomValues[i] % charsLength);
     }
     return result;
 }
 
 /**
  * Genera una Laravel APP_KEY compatible
+ * Intenta usar artisan en Docker o localmente, con fallback manual
  */
 function generateLaravelKey() {
+    const backendPath = join(rootDir, 'backend');
+
+    // Intento 1: Docker
+    if (flags.docker) {
+        try {
+            log.info('Intentando generar clave con Docker...');
+            const key = execSync('docker-compose exec -T backend php artisan key:generate --show', {
+                cwd: rootDir,
+                encoding: 'utf-8',
+                timeout: 10000,
+            }).trim();
+            log.success('Clave generada usando Docker');
+            return key;
+        } catch (error) {
+            log.warning('Docker no disponible, intentando localmente...');
+        }
+    }
+
+    // Intento 2: PHP local
     try {
-        // Intenta usar artisan key:generate
-        const backendPath = join(rootDir, 'backend');
         const key = execSync('php artisan key:generate --show', {
             cwd: backendPath,
-            encoding: 'utf-8'
+            encoding: 'utf-8',
+            timeout: 10000,
         }).trim();
+        log.success('Clave generada usando PHP local');
         return key;
     } catch (error) {
-        // Fallback: genera manualmente
-        log.warning('No se pudo usar artisan, generando clave manualmente');
-        return `base64:${generateBase64Key()}`;
+        log.warning('PHP no disponible, generando clave manualmente');
     }
+
+    // Fallback: Generación manual compatible con Laravel
+    return `base64:${generateBase64Key()}`;
 }
 
 // ============================================
@@ -102,28 +207,42 @@ function generateLaravelKey() {
  * Genera el archivo .env para el backend (Laravel)
  */
 function generateBackendEnv(options = {}) {
+    // Determinar valores según entorno
+    const isDocker = flags.docker;
+    const isProduction = flags.production;
+
     const {
         appName = 'PlayRKE',
-        appEnv = 'local',
-        appUrl = 'http://localhost:8000',
+        appEnv = isProduction ? 'production' : 'local',
+        appUrl = isDocker ? 'http://backend:8000' : 'http://localhost:8000',
+        dbHost = isDocker ? 'mysql' : '127.0.0.1',
         dbDatabase = 'playrke',
-        dbUsername = 'root',
-        dbPassword = '',
-        useExisting = true,
+        dbUsername = isDocker ? 'playrke' : 'root',
+        dbPassword = isDocker ? 'playrke' : '',
+        redisHost = isDocker ? 'redis' : '127.0.0.1',
+        useExisting = !flags.force,
     } = options;
 
-    // Generar claves
+    // Generar claves criptográficamente seguras
+    log.info('Generando claves de encriptación...');
     const appKey = generateLaravelKey();
     const jsonEncryptionKey = generateBase64Key();
     const ctmerEncryptionKey = generateBase64Key();
     const reverbAppId = generateAppId();
-    const reverbAppKey = generateAlphanumericKey();
-    const reverbAppSecret = generateAlphanumericKey();
+    const reverbAppKey = generateAlphanumericKey(32);
+    const reverbAppSecret = generateAlphanumericKey(32);
 
-    const envContent = `APP_NAME="${appName}"
+    const envContent = `# ==========================================
+# PlayRKE Backend Configuration
+# Generated: ${new Date().toISOString()}
+# Environment: ${appEnv} ${isDocker ? '(Docker)' : '(Local)'}
+# ==========================================
+
+# Application
+APP_NAME="${appName}"
 APP_ENV=${appEnv}
 APP_KEY=${appKey}
-APP_DEBUG=true
+APP_DEBUG=${isProduction ? 'false' : 'true'}
 APP_TIMEZONE=America/Caracas
 APP_URL=${appUrl}
 ASSET_URL=${appUrl}
@@ -135,41 +254,46 @@ APP_FAKER_LOCALE=en_US
 APP_MAINTENANCE_DRIVER=file
 # APP_MAINTENANCE_STORE=database
 
-BCRYPT_ROUNDS=12
+BCRYPT_ROUNDS=${isProduction ? '12' : '10'}
 
+# Logging
 LOG_CHANNEL=stack
 LOG_STACK=single
 LOG_DEPRECATIONS_CHANNEL=null
-LOG_LEVEL=debug
+LOG_LEVEL=${isProduction ? 'error' : 'debug'}
 
+# Database Configuration
 DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
+DB_HOST=${dbHost}
 DB_PORT=3306
 DB_DATABASE=${dbDatabase}
 DB_USERNAME=${dbUsername}
 DB_PASSWORD=${dbPassword}
 
-SESSION_DRIVER=database
+# Session
+SESSION_DRIVER=${isDocker ? 'redis' : 'database'}
 SESSION_LIFETIME=120
 SESSION_ENCRYPT=false
 SESSION_PATH=/
 SESSION_DOMAIN=null
 
+# Broadcasting & Queue
 BROADCAST_CONNECTION=reverb
 FILESYSTEM_DISK=local
-QUEUE_CONNECTION=sync
+QUEUE_CONNECTION=${isDocker ? 'redis' : 'sync'}
 
-CACHE_STORE=database
+# Cache
+CACHE_STORE=${isDocker ? 'redis' : 'database'}
 CACHE_PREFIX=
 
-MEMCACHED_HOST=127.0.0.1
-
+# Redis Configuration
 REDIS_CLIENT=phpredis
-REDIS_HOST=127.0.0.1
+REDIS_HOST=${redisHost}
 REDIS_PASSWORD=null
 REDIS_PORT=6379
 
-MAIL_MAILER=log
+# Mail Configuration
+MAIL_MAILER=${isProduction ? 'smtp' : 'log'}
 MAIL_HOST=127.0.0.1
 MAIL_PORT=2525
 MAIL_USERNAME=null
@@ -178,26 +302,30 @@ MAIL_ENCRYPTION=null
 MAIL_FROM_ADDRESS="hello@example.com"
 MAIL_FROM_NAME="\${APP_NAME}"
 
+# AWS S3 (Optional)
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_DEFAULT_REGION=us-east-1
 AWS_BUCKET=
 AWS_USE_PATH_STYLE_ENDPOINT=false
 
+# Vite Asset Building
 VITE_APP_NAME="\${APP_NAME}"
 
+# Laravel Reverb (WebSockets)
 REVERB_APP_ID=${reverbAppId}
 REVERB_APP_KEY=${reverbAppKey}
 REVERB_APP_SECRET=${reverbAppSecret}
-REVERB_HOST="localhost"
+REVERB_HOST="${isDocker ? '0.0.0.0' : 'localhost'}"
 REVERB_PORT=8080
-REVERB_SCHEME=http
+REVERB_SCHEME=${isProduction ? 'https' : 'http'}
 
 VITE_REVERB_APP_KEY="\${REVERB_APP_KEY}"
-VITE_REVERB_HOST="\${REVERB_HOST}"
+VITE_REVERB_HOST="${isDocker ? 'localhost' : '\${REVERB_HOST}'}"
 VITE_REVERB_PORT="\${REVERB_PORT}"
 VITE_REVERB_SCHEME="\${REVERB_SCHEME}"
 
+# Custom Encryption Keys
 JSON_ENCRYPTION_KEY=${jsonEncryptionKey}
 CTMER_ENCRYPTION_KEY=${ctmerEncryptionKey}
 `;
@@ -315,46 +443,74 @@ function generateFrontendEnvExample() {
 // ============================================
 
 function main() {
-    log.title('🔐 PlayRKE - Generador de Secretos y Variables de Entorno');
+    log.title('🔐 PlayRKE - Generador de Secretos y Variables de Entorno v2.0');
 
-    log.info('Iniciando generación de archivos .env...');
+    // Mostrar ayuda si se solicita
+    if (flags.help) {
+        showHelp();
+    }
+
+    // Mostrar configuración
+    log.info(`Modo: ${flags.production ? 'Producción' : 'Desarrollo'}`);
+    log.info(`Entorno: ${flags.docker ? 'Docker' : 'Local'}`);
+    log.info(`Forzar sobrescritura: ${flags.force ? 'Sí' : 'No'}\n`);
 
     try {
+        // Validar estructura del proyecto
+        log.info('Validando estructura del proyecto...');
+        validateProjectStructure();
+        log.success('Estructura del proyecto válida\n');
+
         // Generar .env del backend
         log.info('Generando backend/.env...');
-        const reverbConfig = generateBackendEnv({
-            appName: 'PlayRKE',
-            appEnv: 'local',
-            appUrl: 'http://localhost:8000',
-            dbDatabase: 'playrke',
-            dbUsername: 'root',
-            dbPassword: '',
-            useExisting: true,
-        });
+        const reverbConfig = generateBackendEnv();
 
         // Generar .env del frontend
         log.info('Generando frontend/.env...');
-        generateFrontendEnv(reverbConfig, {
-            apiBase: 'http://localhost:8000/api',
-            appUrl: 'http://localhost:3000',
-            useExisting: true,
-        });
+        generateFrontendEnv(reverbConfig);
 
-        // Generar archivos .env.example
-        log.info('Generando archivos .env.example...');
-        generateBackendEnvExample();
-        generateFrontendEnvExample();
+        // Generar archivos .env.example si no existen
+        if (!flags.force) {
+            log.info('Generando archivos .env.example...');
+            generateBackendEnvExample();
+            generateFrontendEnvExample();
+        }
 
         log.success('\n✅ Todos los archivos .env fueron generados correctamente!\n');
 
+        // Mostrar próximos pasos según el entorno
         console.log(`${colors.bright}Próximos pasos:${colors.reset}`);
-        console.log('  1. Revisa los archivos .env generados');
-        console.log('  2. Configura tu base de datos MySQL');
-        console.log('  3. Ejecuta: cd backend && php artisan migrate');
-        console.log('  4. Inicia los servicios con: pnpm run dev\n');
+
+        if (flags.docker) {
+            console.log('  1. Revisa los archivos .env generados');
+            console.log('  2. Inicia Docker: docker-compose up -d');
+            console.log('  3. Espera a que los servicios estén listos (30s)');
+            console.log('  4. Ejecuta migraciones: docker-compose exec backend php artisan migrate --seed');
+            console.log('  5. Accede a: http://localhost:3000\n');
+        } else {
+            console.log('  1. Revisa los archivos .env generados');
+            console.log('  2. Configura tu base de datos MySQL local');
+            console.log('  3. Ejecuta: cd backend && php artisan migrate --seed');
+            console.log('  4. Inicia los servicios: pnpm run dev');
+            console.log('  5. Accede a: http://localhost:3000\n');
+        }
+
+        // Mostrar advertencias de seguridad en producción
+        if (flags.production) {
+            log.warning('\n⚠️  PRODUCCIÓN: Asegúrate de:');
+            console.log('  - Revisar todas las credenciales de base de datos');
+            console.log('  - Configurar HTTPS y certificados SSL');
+            console.log('  - Ajustar configuración de mail para SMTP real');
+            console.log('  - Configurar backups automáticos');
+            console.log('  - Revisar logs y monitoreo\n');
+        }
 
     } catch (error) {
-        log.error(`Error al generar archivos: ${error.message}`);
+        log.error(`\n❌ Error al generar archivos: ${error.message}`);
+        if (error.stack && !flags.production) {
+            console.log(`\n${colors.red}Stack trace:${colors.reset}`);
+            console.log(error.stack);
+        }
         process.exit(1);
     }
 }
