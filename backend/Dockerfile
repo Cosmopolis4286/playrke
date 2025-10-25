@@ -35,8 +35,11 @@ RUN docker-php-ext-install \
     zip \
     intl
 
-# Instalar Redis extension
-RUN pecl install redis && docker-php-ext-enable redis
+# Instalar Redis extension con dependencias de compilación
+RUN apk add --no-cache $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del $PHPIZE_DEPS
 
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
