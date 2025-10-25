@@ -52,7 +52,7 @@ WORKDIR /var/www
 # ============================================
 FROM base AS dependencies
 
-COPY composer.json composer.lock ./
+COPY composer.json composer.lock* ./
 
 # Instalar dependencias de Composer (sin autoload para aprovechar cache)
 RUN composer install \
@@ -62,9 +62,9 @@ RUN composer install \
     --prefer-dist \
     --optimize-autoloader
 
-# Copiar package.json para assets
-COPY package.json ./
-RUN pnpm install --frozen-lockfile
+# Copiar package.json para assets (si existe)
+COPY package.json* ./
+RUN if [ -f package.json ]; then pnpm install; fi
 
 # ============================================
 # Stage 3: Desarrollo

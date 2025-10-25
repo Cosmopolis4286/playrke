@@ -20,10 +20,10 @@ ENV NODE_ENV=development
 FROM base AS dependencies
 
 # Copiar archivos de configuración de dependencias
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
 
-# Instalar dependencias con frozen-lockfile para reproducibilidad
-RUN pnpm install --frozen-lockfile
+# Instalar dependencias (sin frozen-lockfile ya que estamos en monorepo)
+RUN pnpm install
 
 # ============================================
 # Stage 3: Desarrollo
