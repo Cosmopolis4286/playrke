@@ -19,7 +19,10 @@ use App\Http\Controllers\Api\Admin\AdminController;
 // ====================================
 // AUTHENTICATION ROUTES (Public)
 // ====================================
-Route::prefix('api/auth')->group(function () {
+// Check current user (public, returns 401 if not authenticated)
+Route::get('user', [AuthController::class, 'user'])->name('api.user');
+
+Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('api.auth.login');
     Route::post('register', [AuthController::class, 'register'])->name('api.auth.register');
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
@@ -29,7 +32,7 @@ Route::prefix('api/auth')->group(function () {
 // ====================================
 // AUTHENTICATED ROUTES
 // ====================================
-Route::middleware('auth:sanctum')->prefix('api')->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
 
     // Auth
     Route::prefix('auth')->group(function () {
