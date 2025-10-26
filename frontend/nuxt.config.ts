@@ -1,5 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // Compatibility date para Nitro
+  compatibilityDate: '2025-10-26',
+
   // Configuración de desarrollo
   devtools: { enabled: true },
 
