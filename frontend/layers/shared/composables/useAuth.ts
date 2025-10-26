@@ -7,6 +7,7 @@
  */
 
 import type { User, LoginCredentials, RegisterData } from '../types/auth'
+import { useAuthStore } from '../stores/auth'
 
 export const useAuth = () => {
   const config = useRuntimeConfig()
