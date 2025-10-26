@@ -12,13 +12,13 @@ export default defineNuxtPlugin(() => {
     // Solo verificar rutas de admin
     if (to.path.startsWith('/admin')) {
       if (!user.value) {
-        // Redirigir a login si no está autenticado
-        return next('/auth/login')
+        // Redirigir a login de admin si no está autenticado
+        return next('/admin/auth/login')
       }
 
       if (!hasRole(['admin', 'superadmin'])) {
-        // Redirigir a inicio si no tiene permisos
-        return next('/')
+        // Redirigir a inicio de player si no tiene permisos de admin
+        return next('/player')
       }
     }
 

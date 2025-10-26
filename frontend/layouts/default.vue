@@ -47,14 +47,14 @@
           <div class="flex items-center gap-3">
             <NuxtLink
               v-if="!isAuthenticated"
-              to="/auth/login"
+              to="/player/auth/login"
               class="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg backdrop-blur-sm border border-white/20 transition-all"
             >
               Iniciar Sesión
             </NuxtLink>
             <NuxtLink
               v-if="!isAuthenticated"
-              to="/auth/register"
+              to="/player/auth/register"
               class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg shadow-lg transition-all"
             >
               Registrarse
@@ -245,7 +245,7 @@ const currentYear = new Date().getFullYear()
 
 // Computed
 const dashboardRoute = computed(() => {
-  if (!user.value) return '/auth/login'
+  if (!user.value) return '/player/auth/login'
 
   const primaryRole = user.value.roles?.[0] || 'player'
   const roleRoutes: Record<string, string> = {

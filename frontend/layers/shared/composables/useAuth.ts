@@ -114,8 +114,13 @@ export const useAuth = () => {
       authStore.clearAuth()
       authStore.setLoading(false)
 
-      // Redirigir a login
-      await router.push('/auth/login')
+      // Determinar contexto para redirigir al login correspondiente
+      const currentPath = router.currentRoute.value.path
+      const isAdminRoute = currentPath.startsWith('/admin')
+      const loginPath = isAdminRoute ? '/admin/auth/login' : '/player/auth/login'
+
+      // Redirigir a login del contexto correspondiente
+      await router.push(loginPath)
     }
   }
 

@@ -45,7 +45,11 @@ export default defineNuxtPlugin(() => {
         case 401:
           // Token expirado o inválido
           logout()
-          navigateTo('/auth/login')
+          // Determinar contexto para login
+          const currentPath = window.location.pathname
+          const isAdminRoute = currentPath.startsWith('/admin')
+          const loginPath = isAdminRoute ? '/admin/auth/login' : '/player/auth/login'
+          navigateTo(loginPath)
           break
 
         case 403:

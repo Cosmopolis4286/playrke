@@ -199,7 +199,7 @@
               <Icon name="lucide:log-in" class="w-4 h-4 mr-2" />
               Iniciar Sesión
             </button>
-            <button class="btn-secondary w-full">
+            <button class="btn-secondary w-full" @click="openRegister">
               <Icon name="lucide:user-plus" class="w-4 h-4 mr-2" />
               Registrarse
             </button>
@@ -325,8 +325,13 @@ const joinRoom = (room) => {
 }
 
 const openLogin = () => {
-  // Abrir modal de login o redirigir
-  navigateTo('/auth/login')
+  // Redirigir a login de player
+  navigateTo('/player/auth/login')
+}
+
+const openRegister = () => {
+  // Redirigir a registro de player
+  navigateTo('/player/auth/register')
 }
 
 // Auto-actualización de salas

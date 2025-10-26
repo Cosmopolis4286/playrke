@@ -14,8 +14,12 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     const hasAuth = await checkAuth()
 
     if (!hasAuth) {
-      // No autenticado, redirigir a login
-      return navigateTo('/auth/login', {
+      // Determinar contexto basado en la ruta
+      const isAdminRoute = to.path.startsWith('/admin')
+      const loginPath = isAdminRoute ? '/admin/auth/login' : '/player/auth/login'
+
+      // No autenticado, redirigir a login del contexto correspondiente
+      return navigateTo(loginPath, {
         redirectCode: 302
       })
     }
