@@ -274,6 +274,7 @@
 
 <script setup lang="ts">
 import { formatCurrency, formatNumber } from '~/layers/shared/utils/formatters'
+import { useUIStore } from '~/layers/shared/stores/ui'
 
 definePageMeta({
   middleware: ['auth'],

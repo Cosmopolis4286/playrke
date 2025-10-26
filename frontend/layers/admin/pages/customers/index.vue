@@ -398,6 +398,7 @@
 <script setup lang="ts">
 import { formatDate } from '~/layers/shared/utils/formatters'
 import { debounce } from '~/layers/shared/utils/helpers'
+import { useUIStore } from '~/layers/shared/stores/ui'
 
 definePageMeta({
   middleware: ['auth'],

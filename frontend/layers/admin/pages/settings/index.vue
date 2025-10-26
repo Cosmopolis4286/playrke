@@ -415,6 +415,8 @@
 </template>
 
 <script setup lang="ts">
+import { useUIStore } from '~/layers/shared/stores/ui'
+
 definePageMeta({
   middleware: ['auth'],
   layout: 'admin'
