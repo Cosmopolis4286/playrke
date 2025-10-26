@@ -1,29 +1,32 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
     <div class="max-w-md w-full mx-4">
       <!-- Logo y título -->
       <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-white mb-2">PlayRKE</h1>
-        <p class="text-gray-300">Tu Sitio Para Ganar</p>
+        <div class="inline-block p-4 bg-slate-800 rounded-2xl border border-slate-700 shadow-lg mb-4">
+          <Icon name="lucide:shield-check" class="h-16 w-16 text-blue-500" />
+        </div>
+        <h1 class="text-3xl font-bold text-white mb-2">Panel Administrativo</h1>
+        <p class="text-slate-400">PlayRKE - Gestión y Control</p>
       </div>
 
       <!-- Formulario de login -->
-      <div class="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
+      <div class="bg-slate-800/50 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-slate-700">
         <form @submit.prevent="handleLogin" class="space-y-6">
           <!-- Email o Username -->
           <div>
-            <label for="login" class="block text-sm font-medium text-gray-200 mb-2">
+            <label for="login" class="block text-sm font-medium text-slate-300 mb-2">
               Email o Usuario
             </label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Icon name="lucide:user" class="h-5 w-5 text-gray-400" />
+                <Icon name="lucide:user" class="h-5 w-5 text-slate-400" />
               </div>
               <input
                 id="login"
                 v-model="form.login"
                 type="text"
-                class="block w-full pl-10 pr-3 py-3 border border-gray-600 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                class="block w-full pl-10 pr-3 py-3 border border-slate-600 rounded-lg bg-slate-900/50 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 placeholder="Email o nombre de usuario"
                 required
               >
@@ -33,18 +36,18 @@
 
           <!-- Contraseña -->
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-200 mb-2">
+            <label for="password" class="block text-sm font-medium text-slate-300 mb-2">
               Contraseña
             </label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Icon name="lucide:lock" class="h-5 w-5 text-gray-400" />
+                <Icon name="lucide:lock" class="h-5 w-5 text-slate-400" />
               </div>
               <input
                 id="password"
                 v-model="form.password"
                 :type="showPassword ? 'text' : 'password'"
-                class="block w-full pl-10 pr-12 py-3 border border-gray-600 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                class="block w-full pl-10 pr-12 py-3 border border-slate-600 rounded-lg bg-slate-900/50 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 placeholder="Contraseña"
                 required
               >
@@ -55,7 +58,7 @@
               >
                 <Icon
                   :name="showPassword ? 'lucide:eye-off' : 'lucide:eye'"
-                  class="h-5 w-5 text-gray-400 hover:text-gray-300 transition"
+                  class="h-5 w-5 text-slate-400 hover:text-slate-300 transition"
                 />
               </button>
             </div>
@@ -68,13 +71,13 @@
               <input
                 v-model="form.remember"
                 type="checkbox"
-                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-800"
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-600 rounded bg-slate-900"
               >
-              <span class="ml-2 text-sm text-gray-300">Recordar sesión</span>
+              <span class="ml-2 text-sm text-slate-300">Recordar sesión</span>
             </label>
 
             <NuxtLink
-              to="/auth/forgot-password"
+              to="/admin/auth/forgot-password"
               class="text-sm text-blue-400 hover:text-blue-300 transition"
             >
               ¿Olvidaste tu contraseña?
@@ -83,7 +86,10 @@
 
           <!-- Error general -->
           <div v-if="loginError" class="p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
-            <p class="text-sm text-red-400">{{ loginError }}</p>
+            <div class="flex items-start">
+              <Icon name="lucide:alert-triangle" class="h-5 w-5 text-red-400 mr-2 flex-shrink-0 mt-0.5" />
+              <p class="text-sm text-red-300">{{ loginError }}</p>
+            </div>
           </div>
 
           <!-- Botón de login -->
@@ -97,15 +103,22 @@
           </button>
         </form>
 
-        <!-- Registro -->
-        <div v-if="allowRegistration" class="mt-6 text-center">
-          <p class="text-sm text-gray-300">
-            ¿No tienes una cuenta?
-            <NuxtLink to="/auth/register" class="text-blue-400 hover:text-blue-300 font-medium transition">
-              Regístrate
-            </NuxtLink>
-          </p>
+        <!-- Información de seguridad -->
+        <div class="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+          <div class="flex items-start">
+            <Icon name="lucide:info" class="h-5 w-5 text-slate-400 mr-2 flex-shrink-0 mt-0.5" />
+            <div class="text-xs text-slate-400">
+              <p class="font-medium mb-1">Acceso restringido</p>
+              <p>Este panel es solo para personal autorizado. Todos los accesos son registrados.</p>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="mt-6 text-center text-xs text-slate-500">
+        <p>PlayRKE Admin Panel v1.0.0</p>
+        <p class="mt-1">© 2025 Todos los derechos reservados</p>
       </div>
     </div>
   </div>
@@ -113,10 +126,10 @@
 
 <script setup lang="ts">
 /**
- * Página de login de PlayRKE
+ * Página de login para administradores (Admin Context)
  *
- * Permite a los usuarios autenticarse en el sistema usando email/username y contraseña.
- * Integrado con Laravel Sanctum para autenticación stateful.
+ * Diseño profesional con colores slate/gray
+ * Sin registro público - solo para personal autorizado
  */
 
 definePageMeta({
@@ -126,7 +139,6 @@ definePageMeta({
 
 const { login } = useAuth()
 const router = useRouter()
-const config = useRuntimeConfig()
 
 // Estado del formulario
 const form = ref({
@@ -140,7 +152,6 @@ const showPassword = ref(false)
 const isLoading = ref(false)
 const errors = ref<Record<string, string>>({})
 const loginError = ref('')
-const allowRegistration = ref(true) // Configurar desde backend
 
 /**
  * Maneja el envío del formulario de login
@@ -171,20 +182,22 @@ async function handleLogin() {
       remember: form.value.remember
     })
 
-    // Redirigir según el rol del usuario
-    // El composable useAuth manejará la redirección
+    // Redirigir al dashboard de administración
+    await router.push('/admin')
 
   } catch (error: any) {
     // Manejar errores
     if (error.response?.status === 422) {
-      // Errores de validación
       errors.value = error.response.data.errors || {}
+      loginError.value = 'Por favor verifica los datos ingresados.'
     } else if (error.response?.status === 401) {
-      loginError.value = 'Credenciales incorrectas. Por favor verifica tu email/usuario y contraseña.'
+      loginError.value = 'Credenciales incorrectas. Acceso denegado.'
+    } else if (error.response?.status === 403) {
+      loginError.value = 'No tienes permisos para acceder al panel administrativo.'
     } else {
-      loginError.value = 'Ha ocurrido un error inesperado. Por favor intenta de nuevo.'
+      loginError.value = 'Error inesperado. Por favor intenta de nuevo.'
     }
-    console.error('Error en login:', error)
+    console.error('[Admin Login] Error:', error)
   } finally {
     isLoading.value = false
   }
@@ -192,9 +205,10 @@ async function handleLogin() {
 
 // SEO
 useHead({
-  title: 'Iniciar Sesión - PlayRKE',
+  title: 'Admin Login - PlayRKE',
   meta: [
-    { name: 'description', content: 'Inicia sesión en PlayRKE - Tu sitio para ganar' }
+    { name: 'description', content: 'Panel de administración de PlayRKE' },
+    { name: 'robots', content: 'noindex, nofollow' } // No indexar páginas admin
   ]
 })
 </script>
