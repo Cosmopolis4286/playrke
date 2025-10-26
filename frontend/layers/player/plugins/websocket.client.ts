@@ -17,10 +17,8 @@ export default defineNuxtPlugin(() => {
     }
   }, { immediate: true })
 
-  // Desconectar al salir
-  onUnmounted(() => {
-    disconnect()
-  })
+  // Nota: No usar onUnmounted en plugins, los plugins no son componentes
+  // La desconexión se maneja automáticamente cuando el usuario cierra sesión
 
   return {
     provide: {

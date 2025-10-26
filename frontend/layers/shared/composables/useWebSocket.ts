@@ -273,10 +273,12 @@ export const useWebSocket = () => {
     )
   }
 
-  // Limpiar al desmontar
-  onUnmounted(() => {
-    disconnect()
-  })
+  // Limpiar al desmontar (solo si estamos en un componente)
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      disconnect()
+    })
+  }
 
   return {
     // Estado
