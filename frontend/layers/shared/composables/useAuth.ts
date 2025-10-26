@@ -121,6 +121,12 @@ export const useAuth = () => {
 
   /**
    * Obtiene el usuario autenticado actual.
+   *
+   * Manejo de errores semántico:
+   * - 401: No autenticado (esperado, no es error)
+   * - 403: Sin permisos (log warning)
+   * - 5xx: Error del servidor (log error)
+   * - Network: Error de red (log error)
    */
   const fetchUser = async (): Promise<User | null> => {
     try {
@@ -130,8 +136,27 @@ export const useAuth = () => {
 
       authStore.updateUser(data)
       return data
-    } catch (error) {
-      console.error('Error obteniendo usuario:', error)
+    } catch (error: any) {
+      // 401 es esperado cuando no hay sesión - no es un error
+      if (error?.response?.status === 401 || error?.statusCode === 401) {
+        authStore.clearAuth()
+        return null
+      }
+
+      // 403 indica problema de permisos - warning
+      if (error?.response?.status === 403 || error?.statusCode === 403) {
+        console.warn('[Auth] Access forbidden - insufficient permissions')
+        authStore.clearAuth()
+        return null
+      }
+
+      // Otros errores son inesperados - log error
+      console.error('[Auth] Unexpected error fetching user:', {
+        status: error?.response?.status || error?.statusCode,
+        message: error?.message,
+        url: `${config.public.apiBase}/user`
+      })
+
       authStore.clearAuth()
       return null
     }
