@@ -3,7 +3,7 @@
 # ============================================
 
 # Stage 1: Base con PHP y extensiones necesarias
-FROM php:8.2-fpm-alpine AS base
+FROM php:8.4-fpm-alpine AS base
 
 # Instalar dependencias del sistema
 RUN apk add --no-cache \

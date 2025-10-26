@@ -3,8 +3,6 @@
 # Versión optimizada con healthchecks y build stages
 # ============================================
 
-version: '3.8'
-
 services:
   # ==========================================
   # MySQL Database
@@ -75,7 +73,6 @@ services:
       - backend_node_modules:/var/www/node_modules
     ports:
       - "${APP_PORT:-8000}:8000"
-      - "${REVERB_PORT:-8080}:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -134,7 +131,7 @@ services:
       - ./backend:/var/www
       - backend_vendor:/var/www/vendor
     ports:
-      - "8080:8080"
+      - "${REVERB_PORT:-8082}:8080"
     depends_on:
       redis:
         condition: service_healthy
@@ -230,10 +227,24 @@ services:
       redis:
         condition: service_healthy
     environment:
+      APP_NAME: ${APP_NAME:-PlayRKE}
       APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+
+      DB_CONNECTION: mysql
       DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-playrke}
+      DB_USERNAME: ${DB_USERNAME:-playrke}
+      DB_PASSWORD: ${DB_PASSWORD:-playrke}
+
       REDIS_HOST: redis
+      REDIS_PASSWORD: null
+      REDIS_PORT: 6379
+
+      CACHE_DRIVER: redis
       QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
     networks:
       - playrke-network
     command: php artisan queue:work --tries=3 --timeout=90 --sleep=3

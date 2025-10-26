@@ -5,6 +5,7 @@
 # Root node_modules (pnpm workspace)
 /node_modules
 /.pnpm-store
+/pnpm-lock.yaml
 
 # ========================================
 # Laravel Backend
@@ -44,6 +45,8 @@
 
 # Frontend dependencies
 /frontend/node_modules
+/frontend/.pnpm-store
+/frontend/pnpm-lock.yaml
 
 # ========================================
 # Environment & Secrets
@@ -127,6 +130,17 @@ tmp/
 /backend/public/dist
 /backend/public/mix-manifest.json
 build-stats.html
+
+# ========================================
+# Docker
+# ========================================
+
+# Docker volumes y datos persistentes
+docker-compose.override.yml
+.dockerignore
+
+# Documentación auto-generada
+README-GENERATE-SECRETS.md
 
 # ========================================
 # Lock Files (opcional - descomentar si no quieres commitear)

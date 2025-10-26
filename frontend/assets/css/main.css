@@ -5,13 +5,13 @@
  * y configuraciones específicas para admin y player.
  */
 
+/* Importar fuentes gaming (debe ir antes de @tailwind) */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
 /* Importar Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Importar fuentes gaming */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
 
 /* Variables CSS globales */
 :root {
@@ -68,7 +68,7 @@
 /* Estilos base */
 @layer base {
   * {
-    @apply border-border;
+    border-color: rgb(var(--color-border));
   }
 
   html {

@@ -204,6 +204,82 @@ function generateLaravelKey() {
 // ============================================
 
 /**
+ * Genera el archivo .env raíz para Docker Compose
+ */
+function generateRootEnv(reverbConfig) {
+    const envContent = `# ============================================
+# Configuración Docker - PlayRKE Monorepo
+# Generated: ${new Date().toISOString()}
+# ============================================
+# Copiar a .env para personalizar configuración local
+
+# ==========================================
+# General
+# ==========================================
+COMPOSE_PROJECT_NAME=playrke
+
+# ==========================================
+# MySQL Database
+# ==========================================
+DB_DATABASE=playrke
+DB_USERNAME=playrke
+DB_PASSWORD=playrke
+DB_PORT=3307
+MYSQL_ROOT_PASSWORD=root
+
+# ==========================================
+# Redis
+# ==========================================
+REDIS_PORT=6380
+
+# ==========================================
+# Backend Laravel
+# ==========================================
+APP_NAME=PlayRKE
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8001
+APP_PORT=8001
+
+# Laravel Reverb (WebSockets)
+REVERB_APP_ID=${reverbConfig.reverbAppId}
+REVERB_APP_KEY=${reverbConfig.reverbAppKey}
+REVERB_APP_SECRET=${reverbConfig.reverbAppSecret}
+REVERB_PORT=8082
+
+# ==========================================
+# Frontend Nuxt
+# ==========================================
+FRONTEND_PORT=3001
+NUXT_PUBLIC_API_BASE=http://localhost:8001/api
+NUXT_PUBLIC_WS_URL=ws://localhost:8082
+
+# ==========================================
+# PhpMyAdmin
+# ==========================================
+PHPMYADMIN_PORT=8083
+
+# ==========================================
+# Docker Build (Opcional)
+# ==========================================
+USER_ID=1000
+GROUP_ID=1000
+`;
+
+    const rootEnvPath = join(rootDir, '.env');
+
+    if (!flags.force && existsSync(rootEnvPath)) {
+        log.warning('El archivo .env raíz ya existe, respaldando como .env.backup');
+        const backupPath = join(rootDir, '.env.backup');
+        const existingContent = readFileSync(rootEnvPath, 'utf-8');
+        writeFileSync(backupPath, existingContent);
+    }
+
+    writeFileSync(rootEnvPath, envContent);
+    log.success('Archivo .env (raíz) generado correctamente');
+}
+
+/**
  * Genera el archivo .env para el backend (Laravel)
  */
 function generateBackendEnv(options = {}) {
@@ -214,12 +290,14 @@ function generateBackendEnv(options = {}) {
     const {
         appName = 'PlayRKE',
         appEnv = isProduction ? 'production' : 'local',
-        appUrl = isDocker ? 'http://backend:8000' : 'http://localhost:8000',
+        appUrl = isDocker ? 'http://backend:8000' : 'http://localhost:8001',
         dbHost = isDocker ? 'mysql' : '127.0.0.1',
+        dbPort = isDocker ? '3306' : '3307',
         dbDatabase = 'playrke',
         dbUsername = isDocker ? 'playrke' : 'root',
         dbPassword = isDocker ? 'playrke' : '',
         redisHost = isDocker ? 'redis' : '127.0.0.1',
+        redisPort = isDocker ? '6379' : '6380',
         useExisting = !flags.force,
     } = options;
 
@@ -265,7 +343,7 @@ LOG_LEVEL=${isProduction ? 'error' : 'debug'}
 # Database Configuration
 DB_CONNECTION=mysql
 DB_HOST=${dbHost}
-DB_PORT=3306
+DB_PORT=${dbPort}
 DB_DATABASE=${dbDatabase}
 DB_USERNAME=${dbUsername}
 DB_PASSWORD=${dbPassword}
@@ -290,7 +368,7 @@ CACHE_PREFIX=
 REDIS_CLIENT=phpredis
 REDIS_HOST=${redisHost}
 REDIS_PASSWORD=null
-REDIS_PORT=6379
+REDIS_PORT=${redisPort}
 
 # Mail Configuration
 MAIL_MAILER=${isProduction ? 'smtp' : 'log'}
@@ -343,10 +421,12 @@ CTMER_ENCRYPTION_KEY=${ctmerEncryptionKey}
     log.success('Archivo backend/.env generado correctamente');
 
     return {
+        reverbAppId,
         reverbAppKey,
-        reverbHost: 'localhost',
+        reverbAppSecret,
+        reverbHost: isDocker ? '0.0.0.0' : 'localhost',
         reverbPort: 8080,
-        reverbScheme: 'http',
+        reverbScheme: isProduction ? 'https' : 'http',
     };
 }
 
@@ -354,29 +434,37 @@ CTMER_ENCRYPTION_KEY=${ctmerEncryptionKey}
  * Genera el archivo .env para el frontend (Nuxt)
  */
 function generateFrontendEnv(reverbConfig, options = {}) {
+    const isDocker = flags.docker;
+    const isProduction = flags.production;
+
     const {
-        apiBase = 'http://localhost:8000/api',
-        appUrl = 'http://localhost:3000',
-        useExisting = true,
+        apiBase = isDocker ? 'http://localhost:8001/api' : 'http://localhost:8001/api',
+        appUrl = isDocker ? 'http://localhost:3001' : 'http://localhost:3001',
+        wsUrl = isDocker ? 'ws://localhost:8082' : 'ws://localhost:8082',
+        useExisting = !flags.force,
     } = options;
 
-    const envContent = `# PlayRKE Bingo - Frontend Environment Variables
-# Configuración de desarrollo local
+    const envContent = `# ==========================================
+# PlayRKE Frontend Configuration
+# Generated: ${new Date().toISOString()}
+# Environment: ${isProduction ? 'production' : 'development'} ${isDocker ? '(Docker)' : '(Local)'}
+# ==========================================
 
 # API Configuration
 NUXT_PUBLIC_API_BASE=${apiBase}
 
 # WebSocket Configuration (Laravel Reverb)
+NUXT_PUBLIC_WS_URL=${wsUrl}
 NUXT_PUBLIC_PUSHER_KEY=${reverbConfig.reverbAppKey}
-NUXT_PUBLIC_PUSHER_HOST=${reverbConfig.reverbHost}
-NUXT_PUBLIC_PUSHER_PORT=${reverbConfig.reverbPort}
+NUXT_PUBLIC_PUSHER_HOST=${isDocker ? 'localhost' : reverbConfig.reverbHost}
+NUXT_PUBLIC_PUSHER_PORT=${isDocker ? '8082' : reverbConfig.reverbPort}
 NUXT_PUBLIC_PUSHER_CLUSTER=mt1
-NUXT_PUBLIC_PUSHER_TLS=false
+NUXT_PUBLIC_PUSHER_TLS=${isProduction ? 'true' : 'false'}
 
 # App Configuration
 NUXT_PUBLIC_APP_NAME=PlayRKE Bingo
 NUXT_PUBLIC_APP_URL=${appUrl}
-NODE_ENV=development
+NODE_ENV=${isProduction ? 'production' : 'development'}
 `;
 
     const frontendEnvPath = join(rootDir, 'frontend', '.env');
@@ -465,6 +553,12 @@ function main() {
         log.info('Generando backend/.env...');
         const reverbConfig = generateBackendEnv();
 
+        // Generar .env raíz para Docker Compose
+        if (flags.docker) {
+            log.info('Generando .env (raíz) para Docker Compose...');
+            generateRootEnv(reverbConfig);
+        }
+
         // Generar .env del frontend
         log.info('Generando frontend/.env...');
         generateFrontendEnv(reverbConfig);
@@ -516,7 +610,10 @@ function main() {
 }
 
 // Ejecutar si se llama directamente
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Normalizar rutas para Windows y Unix
+const scriptPath = fileURLToPath(import.meta.url);
+const executedPath = process.argv[1];
+if (scriptPath === executedPath || scriptPath.replace(/\\/g, '/') === executedPath.replace(/\\/g, '/')) {
     main();
 }
 

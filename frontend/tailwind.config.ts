@@ -34,8 +34,37 @@ export default {
 
       // Paleta de colores extendida
       colors: {
+        // Colores del sistema de diseño
+        border: 'rgb(var(--color-border) / <alpha-value>)',
+        input: 'rgb(var(--color-input) / <alpha-value>)',
+        ring: 'rgb(var(--color-ring) / <alpha-value>)',
+        background: 'rgb(var(--color-background) / <alpha-value>)',
+        foreground: 'rgb(var(--color-foreground) / <alpha-value>)',
+        muted: {
+          DEFAULT: 'rgb(var(--color-muted) / <alpha-value>)',
+          foreground: 'rgb(var(--color-muted-foreground) / <alpha-value>)'
+        },
+        accent: {
+          DEFAULT: 'rgb(var(--color-accent) / <alpha-value>)',
+          foreground: 'rgb(var(--color-accent-foreground) / <alpha-value>)'
+        },
+        destructive: {
+          DEFAULT: 'rgb(var(--color-destructive) / <alpha-value>)',
+          foreground: 'rgb(var(--color-destructive-foreground) / <alpha-value>)'
+        },
+        card: {
+          DEFAULT: 'rgb(var(--color-background) / <alpha-value>)',
+          foreground: 'rgb(var(--color-foreground) / <alpha-value>)'
+        },
+        popover: {
+          DEFAULT: 'rgb(var(--color-background) / <alpha-value>)',
+          foreground: 'rgb(var(--color-foreground) / <alpha-value>)'
+        },
+
         // Colores principales del sistema
         primary: {
+          DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)',
+          foreground: 'rgb(var(--color-primary-foreground) / <alpha-value>)',
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
@@ -47,6 +76,10 @@ export default {
           800: '#075985',
           900: '#0c4a6e',
           950: '#082f49'
+        },
+        secondary: {
+          DEFAULT: 'rgb(var(--color-secondary) / <alpha-value>)',
+          foreground: 'rgb(var(--color-secondary-foreground) / <alpha-value>)'
         },
 
         // Colores para tema admin (azul corporativo)
