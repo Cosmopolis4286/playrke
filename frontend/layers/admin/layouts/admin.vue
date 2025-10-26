@@ -269,6 +269,8 @@
 </template>
 
 <script setup lang="ts">
+import { useUIStore } from '../../shared/stores/ui'
+
 const { user, logout } = useAuth()
 const uiStore = useUIStore()
 

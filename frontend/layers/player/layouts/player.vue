@@ -272,6 +272,9 @@
 </template>
 
 <script setup lang="ts">
+import { useWalletStore } from '../../shared/stores/wallet'
+import { useUIStore } from '../../shared/stores/ui'
+
 const { user, logout } = useAuth()
 const walletStore = useWalletStore()
 const uiStore = useUIStore()

@@ -3,6 +3,8 @@
  * Proporciona sistema de notificaciones visuales
  */
 
+import { useUIStore } from '../stores/ui'
+
 export default defineNuxtPlugin(() => {
   const uiStore = useUIStore()
 

@@ -10,6 +10,8 @@
  */
 
 import type { Channel, PresenceChannel } from 'laravel-echo'
+import { useUIStore } from '../stores/ui'
+import { useBingoStore } from '../stores/bingo'
 
 interface WebSocketConfig {
   broadcaster: 'pusher' | 'reverb'
