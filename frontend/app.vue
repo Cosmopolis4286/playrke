@@ -1,8 +1,5 @@
 <template>
   <div class="min-h-screen bg-background">
-    <!-- Indicador de carga global -->
-    <LoadingIndicator v-if="pending" />
-
     <!-- Contenido principal -->
     <NuxtLayout>
       <NuxtPage />
@@ -45,13 +42,6 @@ useHead({
   }
 })
 
-// Estado global de carga
-const { pending } = useLazyAsyncData('app-init', async () => {
-  // Inicialización de la aplicación
-  // Aquí puedes cargar datos globales, configuración, etc.
-  return true
-})
-
 // Configuración del color mode
 const colorMode = useColorMode()
 
@@ -71,20 +61,6 @@ useSeoMeta({
 
 // Configuración del JSON-LD estructurado para SEO
 // TODO: Instalar @nuxtjs/seo o nuxt-schema-org para habilitar useJsonld
-// useJsonld({
-//   '@context': 'https://schema.org',
-//   '@type': 'WebApplication',
-//   name: 'PlayRKE',
-//   description: 'Plataforma de bingo online con salas en tiempo real',
-//   url: 'https://playrke.com',
-//   applicationCategory: 'GameApplication',
-//   operatingSystem: 'Web',
-//   offers: {
-//     '@type': 'Offer',
-//     price: '0',
-//     priceCurrency: 'USD'
-//   }
-// })
 
 // Configuración de error handling global
 onErrorCaptured((error) => {
