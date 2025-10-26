@@ -51,9 +51,11 @@ export interface RegisterData {
   email: string
   password: string
   password_confirmation: string
+  country_id?: number
   country?: string
   phone?: string
   terms_accepted?: boolean
+  terms?: boolean  // Alias para compatibilidad con formularios
 }
 
 export interface AuthResponse {

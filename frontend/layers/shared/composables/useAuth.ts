@@ -43,8 +43,8 @@ export const useAuth = () => {
       // Obtener CSRF token primero
       await getCsrfToken()
 
-      // Hacer login
-      const data = await $fetch<{ user: User }>(`${config.public.apiBase.replace('/api', '')}/login`, {
+      // Hacer login usando la ruta correcta de la API
+      const data = await $fetch<{ success: boolean; user: User }>(`${config.public.apiBase}/auth/login`, {
         method: 'POST',
         body: credentials,
         credentials: 'include'
@@ -53,10 +53,11 @@ export const useAuth = () => {
       // Guardar usuario en store
       authStore.setAuth('', data.user) // Token está en cookie, no lo necesitamos
 
-      // Redirigir según rol
-      await redirectByRole(data.user)
+      console.log('[Auth] Login exitoso:', data.user.username)
+
+      // No redirigir automáticamente - dejamos que el componente maneje la redirección
     } catch (error: any) {
-      console.error('Error en login:', error)
+      console.error('[Auth] Error en login:', error)
       throw error
     } finally {
       authStore.setLoading(false)
@@ -75,20 +76,27 @@ export const useAuth = () => {
       // Obtener CSRF token primero
       await getCsrfToken()
 
-      // Hacer registro
-      const response = await $fetch<{ user: User }>(`${config.public.apiBase.replace('/api', '')}/register`, {
+      // Agregar country_id por defecto si no existe (requerido por backend)
+      const registerData = {
+        ...data,
+        country_id: data.country_id || 1 // Default country ID, ajustar según necesidad
+      }
+
+      // Hacer registro usando la ruta correcta de la API
+      const response = await $fetch<{ success: boolean; user: User }>(`${config.public.apiBase}/auth/register`, {
         method: 'POST',
-        body: data,
+        body: registerData,
         credentials: 'include'
       })
 
       // Guardar usuario en store
       authStore.setAuth('', response.user)
 
-      // Redirigir según rol
-      await redirectByRole(response.user)
+      console.log('[Auth] Registro exitoso:', response.user.username)
+
+      // No redirigir automáticamente - dejamos que el componente maneje la redirección
     } catch (error: any) {
-      console.error('Error en registro:', error)
+      console.error('[Auth] Error en registro:', error)
       throw error
     } finally {
       authStore.setLoading(false)
@@ -102,13 +110,15 @@ export const useAuth = () => {
     authStore.setLoading(true)
 
     try {
-      // Llamar endpoint de logout
-      await $fetch(`${config.public.apiBase.replace('/api', '')}/logout`, {
+      // Llamar endpoint de logout usando la ruta correcta de la API
+      await $fetch(`${config.public.apiBase}/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       })
+
+      console.log('[Auth] Logout exitoso')
     } catch (error) {
-      console.warn('Error en logout:', error)
+      console.warn('[Auth] Error en logout:', error)
     } finally {
       // Limpiar estado local
       authStore.clearAuth()
