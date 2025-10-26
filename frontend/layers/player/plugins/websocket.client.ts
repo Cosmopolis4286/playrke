@@ -19,6 +19,12 @@ export default defineNuxtPlugin(() => {
   // Obtener servicio dentro del contexto del plugin (contexto válido de Nuxt)
   const websocketService = useWebSocketService()
 
+  // Crear ref reactivo para estado de conexión usando Observer pattern
+  const isConnectedRef = ref(websocketService.isConnected)
+  const unsubscribe = websocketService.onConnectionChange((connected) => {
+    isConnectedRef.value = connected
+  })
+
   // Usar watch en lugar de lifecycle hooks para manejar conexión/desconexión
   // Los watchers funcionan perfectamente en plugins
   let stopWatcher: (() => void) | null = null
@@ -28,13 +34,13 @@ export default defineNuxtPlugin(() => {
       user,
       async (newUser, oldUser) => {
         // Usuario acaba de autenticarse
-        if (newUser && !oldUser && !websocketService.isConnected.value) {
+        if (newUser && !oldUser && !isConnectedRef.value) {
           console.log('[Plugin WebSocket] User authenticated, connecting...')
           await websocketService.connect()
         }
 
         // Usuario cerró sesión
-        if (!newUser && oldUser && websocketService.isConnected.value) {
+        if (!newUser && oldUser && isConnectedRef.value) {
           console.log('[Plugin WebSocket] User logged out, disconnecting...')
           websocketService.disconnect()
         }
@@ -50,7 +56,7 @@ export default defineNuxtPlugin(() => {
         // Métodos del servicio disponibles globalmente
         connect: () => websocketService.connect(),
         disconnect: () => websocketService.disconnect(),
-        isConnected: computed(() => websocketService.isConnected.value),
+        isConnected: readonly(isConnectedRef),
 
         // Acceso al servicio completo para casos avanzados
         service: websocketService
@@ -64,8 +70,10 @@ export default defineNuxtPlugin(() => {
         if (stopWatcher) {
           stopWatcher()
         }
+        // Desuscribirse del observer
+        unsubscribe()
         // Opcionalmente desconectar WebSocket al destruir la app
-        if (websocketService.isConnected.value) {
+        if (isConnectedRef.value) {
           console.log('[Plugin WebSocket] App unmounting, disconnecting...')
           websocketService.disconnect()
         }

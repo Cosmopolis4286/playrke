@@ -40,10 +40,11 @@ interface ConnectedUser {
 class WebSocketService {
   private static instance: WebSocketService | null = null
   private echo: any = null
-  private _isConnected = ref(false)
+  private _isConnected: boolean = false
   private activeChannels = new Map<string, Channel>()
   private connectedUsers = new Map<string, ConnectedUser[]>()
   private runtimeConfig: any = null
+  private connectionChangeListeners: Set<(connected: boolean) => void> = new Set()
 
   // Constructor privado - no se ejecuta hasta getInstance()
   private constructor(config: any) {
@@ -98,10 +99,35 @@ class WebSocketService {
   }
 
   /**
-   * Estado de conexión (readonly)
+   * Estado de conexión
+   * @returns boolean indicando si está conectado
    */
-  get isConnected() {
-    return readonly(this._isConnected)
+  get isConnected(): boolean {
+    return this._isConnected
+  }
+
+  /**
+   * Cambiar estado de conexión y notificar a listeners
+   */
+  private setConnected(value: boolean): void {
+    if (this._isConnected !== value) {
+      this._isConnected = value
+      this.connectionChangeListeners.forEach(listener => listener(value))
+    }
+  }
+
+  /**
+   * Suscribirse a cambios en el estado de conexión
+   * @returns función para desuscribirse
+   */
+  onConnectionChange(listener: (connected: boolean) => void): () => void {
+    this.connectionChangeListeners.add(listener)
+    // Llamar inmediatamente con el estado actual
+    listener(this._isConnected)
+    // Retornar función de cleanup
+    return () => {
+      this.connectionChangeListeners.delete(listener)
+    }
   }
 
   /**
@@ -145,11 +171,11 @@ class WebSocketService {
         authEndpoint: `${this.runtimeConfig.public.apiBase.replace('/api', '')}/broadcasting/auth`
       })
 
-      this._isConnected.value = true
+      this.setConnected(true)
       console.log('✅ [WebSocket] Connected successfully')
     } catch (error) {
       console.error('❌ [WebSocket] Connection error:', error)
-      this._isConnected.value = false
+      this.setConnected(false)
     }
   }
 
@@ -166,7 +192,7 @@ class WebSocketService {
 
     this.echo.disconnect()
     this.echo = null
-    this._isConnected.value = false
+    this.setConnected(false)
     this.activeChannels.clear()
     this.connectedUsers.clear()
 

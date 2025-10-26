@@ -34,6 +34,15 @@ export const useWebSocket = () => {
   // Obtener servicio dentro del contexto del composable (Nuxt context válido)
   const websocketService = useWebSocketService()
 
+  // Crear ref reactivo para el estado de conexión
+  // El servicio notificará cambios a través del patrón Observer
+  const isConnected = ref(websocketService.isConnected)
+
+  // Suscribirse a cambios en el estado de conexión
+  const unsubscribe = websocketService.onConnectionChange((connected) => {
+    isConnected.value = connected
+  })
+
   /**
    * Conectar a WebSocket
    */
@@ -70,15 +79,15 @@ export const useWebSocket = () => {
   const componentInstance = getCurrentInstance()
   if (componentInstance) {
     onUnmounted(() => {
-      // Solo desconectar si este es el único componente usando la conexión
-      // En una app real, podrías usar un contador de referencias
+      // Desuscribirse de cambios de conexión
+      unsubscribe()
       console.log('[WebSocket] Component unmounted, keeping connection for other components')
     })
   }
 
   return {
-    // Estado (readonly para prevenir mutaciones externas)
-    isConnected: websocketService.isConnected,
+    // Estado reactivo (computed)
+    isConnected,
 
     // Métodos de conexión
     connect,
