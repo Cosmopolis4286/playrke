@@ -268,12 +268,13 @@ export const useWalletStore = defineStore('wallet', {
       this.pendingTransactions = []
       this.totalBalance = {}
     }
-  },
-
-  persist: {
-    storage: persistedState.localStorage,
-    paths: ['wallets', 'totalBalance']
   }
+
+  // TODO: Configurar persistencia con @pinia-plugin-persistedstate cuando se instale
+  // persist: {
+  //   storage: localStorage,
+  //   paths: ['wallets', 'totalBalance']
+  // }
 })
 
 export type WalletStore = ReturnType<typeof useWalletStore>

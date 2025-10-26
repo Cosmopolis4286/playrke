@@ -247,12 +247,13 @@ export const useUIStore = defineStore('ui', {
     setLayout(layout: UIState['layout']) {
       this.layout = layout
     }
-  },
-
-  persist: {
-    storage: persistedState.localStorage,
-    paths: ['theme', 'isSidebarOpen']
   }
+
+  // TODO: Configurar persistencia con @pinia-plugin-persistedstate cuando se instale
+  // persist: {
+  //   storage: localStorage,
+  //   paths: ['theme', 'isSidebarOpen']
+  // }
 })
 
 export type UIStore = ReturnType<typeof useUIStore>

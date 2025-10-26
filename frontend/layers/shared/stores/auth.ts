@@ -192,10 +192,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    // Estados
-    user: readonly(user),
-    token: readonly(token),
-    isLoading: readonly(isLoading),
+    // Estados (devolver refs directamente, no readonly)
+    user,
+    token,
+    isLoading,
 
     // Getters
     isAuthenticated,
