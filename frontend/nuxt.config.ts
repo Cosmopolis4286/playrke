@@ -99,6 +99,8 @@ export default defineNuxtConfig({
 
   // Configuración experimental
   experimental: {
-    payloadExtraction: false
+    payloadExtraction: false,
+    // Desactivar preload de dev.json para evitar warning en desarrollo
+    buildCache: false
   }
 })
