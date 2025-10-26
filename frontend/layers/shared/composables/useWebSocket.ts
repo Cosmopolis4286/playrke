@@ -7,13 +7,14 @@
  * - Puede usarse tanto en componentes como en plugins
  *
  * Arquitectura:
- * - Usa Singleton Pattern a través de websocketService
+ * - Usa Singleton Pattern a través de useWebSocketService
  * - Separation of Concerns: lógica de conexión en service, reactivity en composable
  * - Safe Lifecycle Hooks: solo registra hooks si hay instancia de componente
+ * - Lazy Initialization: Service se inicializa dentro de contexto válido de Nuxt
  */
 
 import type { Channel, PresenceChannel } from 'laravel-echo'
-import { websocketService } from '../services/websocket'
+import { useWebSocketService } from '../services/websocket'
 
 export interface ConnectedUser {
   id: string
@@ -24,9 +25,14 @@ export interface ConnectedUser {
 /**
  * Composable principal de WebSocket
  * Puede usarse en componentes (con lifecycle) o en plugins (sin lifecycle)
+ *
+ * IMPORTANTE: Se inicializa dentro de un contexto válido de Nuxt (setup, plugin, etc.)
  */
 export const useWebSocket = () => {
   const { user } = useAuth()
+
+  // Obtener servicio dentro del contexto del composable (Nuxt context válido)
+  const websocketService = useWebSocketService()
 
   /**
    * Conectar a WebSocket

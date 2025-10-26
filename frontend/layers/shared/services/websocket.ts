@@ -1,13 +1,15 @@
 /**
- * WebSocket Service - Singleton Pattern
+ * WebSocket Service - Lazy Singleton Pattern con Nuxt Context
  *
  * Servicio centralizado para gestionar conexiones WebSocket.
- * No depende de lifecycle hooks de Vue, puede usarse en plugins.
+ * Implementa Lazy Singleton que se inicializa solo cuando se usa
+ * y dentro de un contexto válido de Nuxt.
  *
  * Principios aplicados:
- * - Singleton: Una única instancia de conexión
+ * - Lazy Singleton: Instancia creada solo cuando se necesita
+ * - Nuxt Context Safe: Se inicializa dentro de contexto válido
  * - Separation of Concerns: Lógica de conexión separada de Vue
- * - Lazy Initialization: Se conecta solo cuando es necesario
+ * - Framework Agnostic Core: Lógica pura, config inyectado
  */
 
 import type { Channel, PresenceChannel } from 'laravel-echo'
@@ -29,29 +31,70 @@ interface ConnectedUser {
   [key: string]: any
 }
 
+/**
+ * WebSocket Service - Singleton Lazy
+ *
+ * IMPORTANTE: No se inicializa hasta que se llama a getInstance()
+ * dentro de un contexto válido de Nuxt (plugin, composable en setup, etc.)
+ */
 class WebSocketService {
-  private static instance: WebSocketService
+  private static instance: WebSocketService | null = null
   private echo: any = null
   private _isConnected = ref(false)
   private activeChannels = new Map<string, Channel>()
   private connectedUsers = new Map<string, ConnectedUser[]>()
-  private config: any = null
+  private runtimeConfig: any = null
 
-  private constructor() {
-    // Constructor privado para Singleton
-    if (process.client) {
-      this.config = useRuntimeConfig()
-    }
+  // Constructor privado - no se ejecuta hasta getInstance()
+  private constructor(config: any) {
+    this.runtimeConfig = config
   }
 
   /**
-   * Obtener instancia única del servicio
+   * Obtener instancia única del servicio (Lazy Initialization)
+   *
+   * DEBE llamarse dentro de un contexto válido de Nuxt:
+   * - Plugin de Nuxt
+   * - Composable dentro de setup()
+   * - Middleware de Nuxt
+   * - Nuxt hook
+   *
+   * NO llamar en:
+   * - Scope global de módulo
+   * - Fuera de funciones setup()
+   * - Callbacks async fuera de contexto
    */
   static getInstance(): WebSocketService {
     if (!WebSocketService.instance) {
-      WebSocketService.instance = new WebSocketService()
+      // Obtener config AQUÍ (dentro del contexto donde se llama getInstance)
+      // No en el constructor global
+      if (!process.client) {
+        throw new Error('[WebSocket] Service can only be initialized on client side')
+      }
+
+      try {
+        const config = useRuntimeConfig()
+        WebSocketService.instance = new WebSocketService(config)
+      } catch (error) {
+        throw new Error(
+          '[WebSocket] getInstance() must be called within a valid Nuxt context ' +
+          '(plugin, composable in setup, middleware, or Nuxt hook). ' +
+          'Error: ' + (error as Error).message
+        )
+      }
     }
+
     return WebSocketService.instance
+  }
+
+  /**
+   * Reset de la instancia (útil para testing)
+   */
+  static resetInstance(): void {
+    if (WebSocketService.instance) {
+      WebSocketService.instance.disconnect()
+      WebSocketService.instance = null
+    }
   }
 
   /**
@@ -81,13 +124,13 @@ class WebSocketService {
 
       const wsConfig: WebSocketConfig = {
         broadcaster: 'pusher',
-        key: this.config.public.pusherKey || 'local',
-        wsHost: this.config.public.pusherHost || 'localhost',
-        wsPort: this.config.public.pusherPort || 6001,
-        wssPort: this.config.public.pusherPort || 6001,
-        forceTLS: this.config.public.pusherTLS || false,
+        key: this.runtimeConfig.public.pusherKey || 'local',
+        wsHost: this.runtimeConfig.public.pusherHost || 'localhost',
+        wsPort: this.runtimeConfig.public.pusherPort || 6001,
+        wssPort: this.runtimeConfig.public.pusherPort || 6001,
+        forceTLS: this.runtimeConfig.public.pusherTLS || false,
         enabledTransports: ['ws', 'wss'],
-        cluster: this.config.public.pusherCluster || 'mt1'
+        cluster: this.runtimeConfig.public.pusherCluster || 'mt1'
       }
 
       window.Pusher = Pusher
@@ -99,7 +142,7 @@ class WebSocketService {
             Accept: 'application/json'
           }
         },
-        authEndpoint: `${this.config.public.apiBase.replace('/api', '')}/broadcasting/auth`
+        authEndpoint: `${this.runtimeConfig.public.apiBase.replace('/api', '')}/broadcasting/auth`
       })
 
       this._isConnected.value = true
@@ -265,5 +308,23 @@ class WebSocketService {
   }
 }
 
-// Exportar instancia única
-export const websocketService = WebSocketService.getInstance()
+/**
+ * Helper function para obtener la instancia del servicio de forma segura
+ *
+ * Usar esta función en lugar de acceder directamente a WebSocketService.getInstance()
+ * para obtener mejor error handling
+ */
+export function useWebSocketService(): WebSocketService {
+  try {
+    return WebSocketService.getInstance()
+  } catch (error) {
+    throw new Error(
+      '[WebSocket] Failed to get service instance. ' +
+      'Make sure you are calling this within a valid Nuxt context. ' +
+      'Original error: ' + (error as Error).message
+    )
+  }
+}
+
+// NO exportar instancia directamente, exportar la clase y helper
+export { WebSocketService }

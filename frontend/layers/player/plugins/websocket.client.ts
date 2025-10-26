@@ -2,18 +2,22 @@
  * Plugin de WebSocket para el layer de player
  *
  * Este plugin gestiona la conexión WebSocket de forma global para el contexto de player.
- * Usa websocketService directamente (patrón Singleton) para evitar problemas con lifecycle hooks.
+ * Usa useWebSocketService() dentro del contexto del plugin (Lazy Singleton Pattern).
  *
  * Arquitectura:
- * - Singleton Pattern: Una única instancia de conexión WebSocket
+ * - Lazy Singleton Pattern: Instancia se crea al llamar useWebSocketService() dentro de contexto válido
  * - Plugin-Safe: No usa lifecycle hooks (onUnmounted), es seguro en plugins
  * - Auto-connect: Se conecta automáticamente cuando el usuario está autenticado
+ * - Nuxt Context Safe: Servicio se inicializa dentro de contexto válido del plugin
  */
 
-import { websocketService } from '~/layers/shared/services/websocket'
+import { useWebSocketService } from '~/layers/shared/services/websocket'
 
 export default defineNuxtPlugin(() => {
   const { user } = useAuth()
+
+  // Obtener servicio dentro del contexto del plugin (contexto válido de Nuxt)
+  const websocketService = useWebSocketService()
 
   // Usar watch en lugar de lifecycle hooks para manejar conexión/desconexión
   // Los watchers funcionan perfectamente en plugins
