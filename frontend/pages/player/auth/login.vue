@@ -1,5 +1,8 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-pink-900 to-red-900">
+    <!-- Demo Credentials Component -->
+    <AuthDemoCredentials @fill-credentials="fillForm" />
+
     <div class="max-w-md w-full mx-4">
       <!-- Logo y título -->
       <div class="text-center mb-8">
@@ -179,6 +182,15 @@ const showPassword = ref(false)
 const isLoading = ref(false)
 const errors = ref<Record<string, string>>({})
 const loginError = ref('')
+
+/**
+ * Llena el formulario con credenciales de demo
+ */
+function fillForm(credentials: { email: string; password: string; remember?: boolean }) {
+  form.value.login = credentials.email
+  form.value.password = credentials.password
+  form.value.remember = credentials.remember ?? true
+}
 
 /**
  * Maneja el envío del formulario de login

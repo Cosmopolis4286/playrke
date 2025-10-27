@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Users\Roles\Role;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 class RoleSeeder extends Seeder
 {
@@ -41,11 +42,26 @@ class RoleSeeder extends Seeder
         }
 
         // Creamos o actualizamos cada rol en la base de datos
+        // La tabla 'roles' incluye todos los campos (Spatie + custom)
         foreach ($roles as $role) {
-            Role::updateOrCreate(
-                ['prefix' => $role['prefix']], // clave única para no duplicar
-                $role                          // incluye id, description, is_active, guard_name y timestamps
-            );
+            $existingRole = SpatieRole::where('name', $role['prefix'])
+                ->where('guard_name', $role['guard_name'])
+                ->first();
+
+            if (!$existingRole) {
+                // Crear nuevo rol con Snowflake ID
+                $spatieRole = new SpatieRole();
+                $spatieRole->id = $snowflake->id();
+                $spatieRole->name = $role['prefix'];           // player, admin, etc
+                $spatieRole->guard_name = $role['guard_name']; // web o api
+                $spatieRole->prefix = $role['prefix'];
+                $spatieRole->type = $role['type'];
+                $spatieRole->description = $role['description'];
+                $spatieRole->is_active = $role['is_active'];
+                $spatieRole->save();
+            }
         }
+
+        $this->command->info('✅ Roles creados exitosamente');
     }
 }
