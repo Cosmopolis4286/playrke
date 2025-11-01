@@ -73,7 +73,7 @@
                   </div>
                   <div class="min-w-0">
                     <h3 class="text-base sm:text-lg font-bold text-gray-900 truncate">
-                      Demo Accounts
+                      Cuentas Demo
                     </h3>
                     <p class="text-xs sm:text-sm text-gray-600 truncate">
                       Acceso rápido de desarrollo
@@ -153,7 +153,7 @@
                       </div>
                       <div class="flex items-center gap-1">
                         <kbd class="px-2 py-1 bg-white border border-blue-200 rounded text-xs font-mono text-blue-700">Ctrl+1-2</kbd>
-                        <span class="text-xs text-blue-600">{{ autoLogin ? 'Auto-Login' : 'Llenar' }}</span>
+                        <span class="text-xs text-blue-600">Auto-Login</span>
                       </div>
                       <div class="flex items-center gap-1">
                         <kbd class="px-2 py-1 bg-white border border-blue-200 rounded text-xs font-mono text-blue-700">Esc</kbd>
@@ -256,14 +256,14 @@
                             config.hasSelector ? 'p-2' : 'p-3',
                             `hover:${config.bgColor}`,
                           ]"
-                          :title="autoLogin
-                            ? (config.hasSelector ? `Login automático como ${config.credentials.value?.firstName}` : 'Hacer login automáticamente')
-                            : (config.hasSelector ? `Usar credenciales de ${config.credentials.value?.firstName}` : 'Usar credenciales')
+                          :title="config.hasSelector
+                            ? `Iniciar sesión automáticamente como ${config.credentials.value?.firstName}`
+                            : 'Iniciar sesión automáticamente'
                           "
                           @click="config.fillMethod"
                         >
                           <SharedMediaIcon
-                            :name="autoLogin ? 'bolt' : 'arrow-right-on-rectangle'"
+                            name="bolt"
                             :class="[
                               config.hasSelector ? 'w-4 h-4' : 'w-5 h-5',
                               config.textColor,
@@ -496,15 +496,17 @@ const isDevelopment = ref(true)
 const hasCredentials = computed(() => isAvailable.value && totalCredentials.value > 0)
 const isReady = computed(() => !isLoadingCredentials.value && hasCredentials.value)
 
-// Auto login - Deshabilitado por ahora (solo llenar formulario)
+// Auto login - Ejecuta login real con el backend
 const performAutoLogin = async (credentials: DemoCredential) => {
+  const router = useRouter()
+  const { login } = useAuth()
+
   try {
     // Emitir evento de inicio de auto-login
     emit('autoLoginStart')
 
-    // TODO: Implementar auto-login cuando useAuth esté disponible
-    // Por ahora, solo llenamos el formulario
-    emit('fillCredentials', {
+    // Ejecutar login real con el backend
+    await login({
       login: credentials.email,  // Backend usa 'login' (email o username)
       password: credentials.password,
       remember: true,
@@ -512,6 +514,23 @@ const performAutoLogin = async (credentials: DemoCredential) => {
 
     // Emitir evento de completado exitoso
     emit('autoLoginComplete', true)
+
+    // Cerrar modal después de login exitoso
+    closeModal()
+
+    console.log('[DemoCredentials] Login exitoso, redirigiendo...')
+
+    // Pequeño delay para mostrar feedback visual
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Redirigir al lobby/dashboard correspondiente según contexto
+    const currentPath = router.currentRoute.value.path
+    if (currentPath.includes('/admin')) {
+      await router.push('/admin/dashboard')
+    } else {
+      await router.push('/player/lobby')
+    }
+
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error en auto-login:', error)
@@ -519,9 +538,9 @@ const performAutoLogin = async (credentials: DemoCredential) => {
     // Emitir evento de completado con error
     emit('autoLoginComplete', false)
 
-    // Si falla, fallback a fill credentials
+    // Si falla el auto-login, fallback a solo llenar el formulario
     emit('fillCredentials', {
-      login: credentials.email,  // Backend usa 'login' (email o username)
+      login: credentials.email,
       password: credentials.password,
       remember: true,
     })
@@ -540,15 +559,8 @@ const fillAdminCredentials = async () => {
 
     const adminCred = currentAdminCredentials.value
 
-    if (props.autoLogin) {
-      await performAutoLogin(adminCred)
-    } else {
-      emit('fillCredentials', {
-        login: adminCred.email,
-        password: adminCred.password,
-        remember: true,
-      })
-    }
+    // Siempre ejecutar auto-login al hacer click
+    await performAutoLogin(adminCred)
 
     saveStats('admin', usageCount, lastUsedRole)
 
@@ -571,15 +583,8 @@ const fillCommerceCredentials = async () => {
 
     const commerceCred = currentCommerceCredentials.value
 
-    if (props.autoLogin) {
-      await performAutoLogin(commerceCred)
-    } else {
-      emit('fillCredentials', {
-        login: commerceCred.email,
-        password: commerceCred.password,
-        remember: true,
-      })
-    }
+    // Siempre ejecutar auto-login al hacer click
+    await performAutoLogin(commerceCred)
 
     saveStats('commerce', usageCount, lastUsedRole)
     await new Promise(resolve => setTimeout(resolve, 200))
@@ -600,15 +605,8 @@ const fillCustomerCredentials = async () => {
 
     const customerCred = currentCustomerCredentials.value
 
-    if (props.autoLogin) {
-      await performAutoLogin(customerCred)
-    } else {
-      emit('fillCredentials', {
-        login: customerCred.email,
-        password: customerCred.password,
-        remember: true,
-      })
-    }
+    // Siempre ejecutar auto-login al hacer click
+    await performAutoLogin(customerCred)
 
     saveStats('customer', usageCount, lastUsedRole)
     await new Promise(resolve => setTimeout(resolve, 200))
@@ -629,15 +627,8 @@ const fillPlayerCredentials = async () => {
 
     const playerCred = currentPlayerCredentials.value
 
-    if (props.autoLogin) {
-      await performAutoLogin(playerCred)
-    } else {
-      emit('fillCredentials', {
-        login: playerCred.email,
-        password: playerCred.password,
-        remember: true,
-      })
-    }
+    // Siempre ejecutar auto-login al hacer click
+    await performAutoLogin(playerCred)
 
     saveStats(`player (${playerCred.firstName})`, usageCount, lastUsedRole)
     await new Promise(resolve => setTimeout(resolve, 200))
