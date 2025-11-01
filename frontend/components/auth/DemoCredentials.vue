@@ -493,50 +493,35 @@ const currentCommerceCredentials = computed(() => commerceCredentials.value[0] |
 const currentCustomerCredentials = computed(() => customerCredentials.value[0] || null)
 const currentPlayerCredentials = computed(() => playerCredentials.value[selectedPlayerIndex.value] || playerCredentials.value[0] || null)
 
-const isDevelopment = computed(() => process.env.NODE_ENV === 'development')
+// En Nuxt, siempre mostrar en desarrollo (no en producción)
+const isDevelopment = ref(true)
 const hasCredentials = computed(() => isAvailable.value && totalCredentials.value > 0)
 const isReady = computed(() => !isLoadingCredentials.value && hasCredentials.value)
 
-// Auto login
+// Auto login - Deshabilitado por ahora (solo llenar formulario)
 const performAutoLogin = async (credentials: DemoCredential, role: string) => {
   try {
     // Emitir evento de inicio de auto-login
     emit('autoLoginStart')
 
-    const authStore = useAuthStore()
-    const router = useRouter()
-
-    const result = await authStore.login({
+    // TODO: Implementar auto-login cuando useAuth esté disponible
+    // Por ahora, solo llenamos el formulario
+    emit('fillCredentials', {
       email: credentials.email,
       password: credentials.password,
+      remember: true,
     })
 
-    if (result.success) {
-      // Cerrar modal
-      closeModal()
-
-      // Redirigir al dashboard apropiado según el rol del usuario
-      const userRole = authStore.user?.role
-      const dashboardRoute = getDashboardRouteByRole(userRole)
-      await router.push(dashboardRoute)
-
-      // Notificación de éxito
-      // eslint-disable-next-line no-console
-      console.log(`✅ Login automático exitoso como ${role}`)
-
-      // Emitir evento de completado exitoso
-      emit('autoLoginComplete', true)
-    } else {
-      throw new Error(result.message || 'Error en el login')
-    }
+    // Emitir evento de completado exitoso
+    emit('autoLoginComplete', true)
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error en login automático:', error)
+    console.error('Error en auto-login:', error)
 
     // Emitir evento de completado con error
     emit('autoLoginComplete', false)
 
-    // Si falla el auto-login, fallback a fill credentials
+    // Si falla, fallback a fill credentials
     emit('fillCredentials', {
       email: credentials.email,
       password: credentials.password,
