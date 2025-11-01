@@ -12,12 +12,12 @@
       </div>
 
       <!-- Main Button -->
-      <BaseButton
+      <UiBaseButton
         class="relative bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg hover:shadow-2xl transition-all duration-300 rounded-full p-3 group-hover:scale-110"
         :title="isOpen ? 'Cerrar credenciales' : 'Abrir credenciales demo'"
         @click="toggleModal"
       >
-        <SharedIcon
+        <SharedMediaIcon
           :name="isOpen ? 'x-mark' : 'key'"
           class="w-5 h-5 transition-transform duration-200"
           :class="{ 'rotate-180': isOpen }"
@@ -25,7 +25,7 @@
 
         <!-- Notification Badge -->
         <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse border-2 border-white" />
-      </BaseButton>
+      </UiBaseButton>
     </div>
   </div>
 
@@ -69,7 +69,7 @@
               <div class="relative flex items-center justify-between gap-2">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
                   <div class="p-2 sm:p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg flex-shrink-0">
-                    <SharedIcon name="key" class="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    <SharedMediaIcon name="key" class="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                   <div class="min-w-0">
                     <h3 class="text-base sm:text-lg font-bold text-gray-900 truncate">
@@ -82,27 +82,27 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <BaseButton
+                  <UiBaseButton
                     variant="ghost"
                     size="sm"
                     class="p-2 hover:bg-white/60 rounded-xl transition-all duration-200 group"
                     :title="showPasswords ? 'Ocultar contraseñas' : 'Mostrar contraseñas'"
                     @click="togglePasswordVisibility"
                   >
-                    <SharedIcon
+                    <SharedMediaIcon
                       :name="showPasswords ? 'eye-slash' : 'eye'"
                       class="w-4 h-4 text-gray-600 group-hover:text-gray-800 transition-all duration-200"
                       :class="{ 'text-blue-600 group-hover:text-blue-700': showPasswords }"
                     />
-                  </BaseButton>
-                  <BaseButton
+                  </UiBaseButton>
+                  <UiBaseButton
                     variant="ghost"
                     size="sm"
                     class="p-2 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-200"
                     @click="closeModal"
                   >
-                    <SharedIcon name="x-mark" class="w-4 h-4" />
-                  </BaseButton>
+                    <SharedMediaIcon name="x-mark" class="w-4 h-4" />
+                  </UiBaseButton>
                 </div>
               </div>
             </div>
@@ -122,18 +122,18 @@
               <!-- Error State -->
               <div v-else-if="credentialsError" class="flex items-center justify-center py-8">
                 <div class="text-center">
-                  <SharedIcon name="exclamation-triangle" class="w-8 h-8 text-red-500 mx-auto mb-3" />
+                  <SharedMediaIcon name="exclamation-triangle" class="w-8 h-8 text-red-500 mx-auto mb-3" />
                   <p class="text-sm text-red-600 mb-3">
                     {{ credentialsError }}
                   </p>
-                  <BaseButton
+                  <UiBaseButton
                     variant="outline"
                     size="sm"
                     class="text-red-600 border-red-300 hover:bg-red-50"
                     @click="refreshCredentials"
                   >
                     Reintentar
-                  </BaseButton>
+                  </UiBaseButton>
                 </div>
               </div>
 
@@ -143,7 +143,7 @@
                 <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
                   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                     <div class="flex items-center gap-2">
-                      <SharedIcon name="terminal" class="w-4 h-4 text-blue-600" />
+                      <SharedMediaIcon name="terminal" class="w-4 h-4 text-blue-600" />
                       <span class="text-sm font-medium text-blue-900">Atajos de Teclado</span>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
@@ -187,7 +187,7 @@
                               config.gradientTo,
                             ]"
                           >
-                            <SharedIcon
+                            <SharedMediaIcon
                               :name="config.icon"
                               class="w-4 h-4 sm:w-5 sm:h-5 text-white"
                             />
@@ -247,7 +247,7 @@
                           config.hasSelector ? 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100',
                         ]"
                       >
-                        <BaseButton
+                        <UiBaseButton
                           variant="ghost"
                           size="sm"
                           :loading="loadingStates[config.id]"
@@ -262,14 +262,14 @@
                           "
                           @click="config.fillMethod"
                         >
-                          <SharedIcon
+                          <SharedMediaIcon
                             :name="autoLogin ? 'bolt' : 'arrow-right-on-rectangle'"
                             :class="[
                               config.hasSelector ? 'w-4 h-4' : 'w-5 h-5',
                               config.textColor,
                             ]"
                           />
-                        </BaseButton>
+                        </UiBaseButton>
                       </div>
                     </div>
 
