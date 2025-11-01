@@ -117,7 +117,7 @@ pnpm run setup
 # Backend API (puerto 8000)
 cd backend && php artisan serve
 
-# Frontend (puerto 3000) - en otra terminal
+# Frontend (puerto 3002) - en otra terminal
 cd frontend && pnpm run dev
 
 # WebSockets (puerto 8080) - en otra terminal
@@ -147,7 +147,7 @@ docker-compose exec backend php artisan migrate --seed
 
 Servicios disponibles:
 - **Backend API**: http://localhost:8000
-- **Frontend**: http://localhost:3000
+- **Frontend**: http://localhost:3002
 - **WebSockets (Reverb)**: ws://localhost:8080
 - **phpMyAdmin**: http://localhost:8081
 - **MySQL**: localhost:3306
@@ -302,7 +302,7 @@ Sistema de autenticación con **Laravel Sanctum** (stateful):
 ### URLs Base
 
 - **Desarrollo Backend**: `http://localhost:8000`
-- **Desarrollo Frontend**: `http://localhost:3000`
+- **Desarrollo Frontend**: `http://localhost:3002`
 - **Producción**: `https://api.playrke.com`
 
 ### Endpoints Principales

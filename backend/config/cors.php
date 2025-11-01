@@ -20,9 +20,11 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        env('FRONTEND_URL', 'http://localhost:3000'),
-        'http://localhost:3000',
-        'http://localhost:3001', // Puerto alternativo
+        env('FRONTEND_URL', 'http://localhost:3002'),
+        'http://localhost:3002',
+        'http://localhost:3003', // Puerto alternativo
+        'http://localhost:3000', // Compatibilidad legacy
+        'http://localhost:3001', // Compatibilidad legacy
     ],
 
     'allowed_origins_patterns' => [],

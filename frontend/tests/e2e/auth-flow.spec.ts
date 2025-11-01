@@ -10,14 +10,14 @@
  *
  * Requiere:
  * - Backend corriendo en http://localhost:8000
- * - Frontend corriendo en http://localhost:3001
+ * - Frontend corriendo en http://localhost:3002
  * - Usuario de prueba: player@test.com / password123
  */
 
 import { test, expect } from '@playwright/test'
 
 // Configuración
-const FRONTEND_URL = 'http://localhost:3001'
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3002'
 const TEST_USER = {
   email: 'player@test.com',
   password: 'password123',

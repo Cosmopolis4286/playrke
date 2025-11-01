@@ -250,9 +250,10 @@ REVERB_PORT=8082
 # ==========================================
 # Frontend Nuxt
 # ==========================================
-FRONTEND_PORT=3001
+FRONTEND_PORT=3002
 NUXT_PUBLIC_API_BASE=http://localhost:8001/api
 NUXT_PUBLIC_WS_URL=ws://localhost:8082
+FRONTEND_URL=http://localhost:3002
 
 # ==========================================
 # PhpMyAdmin
@@ -439,7 +440,7 @@ function generateFrontendEnv(reverbConfig, options = {}) {
 
     const {
         apiBase = isDocker ? 'http://localhost:8001/api' : 'http://localhost:8001/api',
-        appUrl = isDocker ? 'http://localhost:3001' : 'http://localhost:3001',
+        appUrl = isDocker ? 'http://localhost:3002' : 'http://localhost:3002',
         wsUrl = isDocker ? 'ws://localhost:8082' : 'ws://localhost:8082',
         useExisting = !flags.force,
     } = options;
@@ -580,13 +581,13 @@ function main() {
             console.log('  2. Inicia Docker: docker-compose up -d');
             console.log('  3. Espera a que los servicios estén listos (30s)');
             console.log('  4. Ejecuta migraciones: docker-compose exec backend php artisan migrate --seed');
-            console.log('  5. Accede a: http://localhost:3000\n');
+            console.log('  5. Accede a: http://localhost:3002\n');
         } else {
             console.log('  1. Revisa los archivos .env generados');
             console.log('  2. Configura tu base de datos MySQL local');
             console.log('  3. Ejecuta: cd backend && php artisan migrate --seed');
             console.log('  4. Inicia los servicios: pnpm run dev');
-            console.log('  5. Accede a: http://localhost:3000\n');
+            console.log('  5. Accede a: http://localhost:3002\n');
         }
 
         // Mostrar advertencias de seguridad en producción
