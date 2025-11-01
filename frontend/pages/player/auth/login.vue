@@ -186,8 +186,8 @@ const loginError = ref('')
 /**
  * Llena el formulario con credenciales de demo
  */
-function fillForm(credentials: { email: string; password: string; remember?: boolean }) {
-  form.value.login = credentials.email
+function fillForm(credentials: { login: string; password: string; remember?: boolean }) {
+  form.value.login = credentials.login
   form.value.password = credentials.password
   form.value.remember = credentials.remember ?? true
 }

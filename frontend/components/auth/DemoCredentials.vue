@@ -356,14 +356,13 @@ import { useDemoCredentials, type DemoCredential } from '~/composables/auth/useD
 import {
   copyCredentials as copyCredentialsHelper,
   copyAllCredentials as copyAllCredentialsHelper,
-  getDashboardRouteByRole,
   initStats,
   saveStats,
 } from '~/composables/auth/useDemoCredentialsHelpers'
 
 // Types
 interface DemoCredentials {
-  email: string
+  login: string  // Backend usa 'login' (email o username)
   password: string
   remember?: boolean
 }
@@ -376,7 +375,6 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   autoLogin: false,
-  modelValue: undefined,
 })
 
 const emit = defineEmits<{
@@ -499,7 +497,7 @@ const hasCredentials = computed(() => isAvailable.value && totalCredentials.valu
 const isReady = computed(() => !isLoadingCredentials.value && hasCredentials.value)
 
 // Auto login - Deshabilitado por ahora (solo llenar formulario)
-const performAutoLogin = async (credentials: DemoCredential, role: string) => {
+const performAutoLogin = async (credentials: DemoCredential) => {
   try {
     // Emitir evento de inicio de auto-login
     emit('autoLoginStart')
@@ -507,7 +505,7 @@ const performAutoLogin = async (credentials: DemoCredential, role: string) => {
     // TODO: Implementar auto-login cuando useAuth esté disponible
     // Por ahora, solo llenamos el formulario
     emit('fillCredentials', {
-      email: credentials.email,
+      login: credentials.email,  // Backend usa 'login' (email o username)
       password: credentials.password,
       remember: true,
     })
@@ -523,7 +521,7 @@ const performAutoLogin = async (credentials: DemoCredential, role: string) => {
 
     // Si falla, fallback a fill credentials
     emit('fillCredentials', {
-      email: credentials.email,
+      login: credentials.email,  // Backend usa 'login' (email o username)
       password: credentials.password,
       remember: true,
     })
@@ -543,10 +541,10 @@ const fillAdminCredentials = async () => {
     const adminCred = currentAdminCredentials.value
 
     if (props.autoLogin) {
-      await performAutoLogin(adminCred, 'admin')
+      await performAutoLogin(adminCred)
     } else {
       emit('fillCredentials', {
-        email: adminCred.email,
+        login: adminCred.email,
         password: adminCred.password,
         remember: true,
       })
@@ -574,10 +572,10 @@ const fillCommerceCredentials = async () => {
     const commerceCred = currentCommerceCredentials.value
 
     if (props.autoLogin) {
-      await performAutoLogin(commerceCred, 'commerce')
+      await performAutoLogin(commerceCred)
     } else {
       emit('fillCredentials', {
-        email: commerceCred.email,
+        login: commerceCred.email,
         password: commerceCred.password,
         remember: true,
       })
@@ -603,10 +601,10 @@ const fillCustomerCredentials = async () => {
     const customerCred = currentCustomerCredentials.value
 
     if (props.autoLogin) {
-      await performAutoLogin(customerCred, 'customer')
+      await performAutoLogin(customerCred)
     } else {
       emit('fillCredentials', {
-        email: customerCred.email,
+        login: customerCred.email,
         password: customerCred.password,
         remember: true,
       })
@@ -632,10 +630,10 @@ const fillPlayerCredentials = async () => {
     const playerCred = currentPlayerCredentials.value
 
     if (props.autoLogin) {
-      await performAutoLogin(playerCred, `player (${playerCred.firstName})`)
+      await performAutoLogin(playerCred)
     } else {
       emit('fillCredentials', {
-        email: playerCred.email,
+        login: playerCred.email,
         password: playerCred.password,
         remember: true,
       })
