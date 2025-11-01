@@ -82,15 +82,31 @@ export default defineNuxtConfig({
     }
   },
 
-  // Configuración de componentes
+  // Configuración de componentes (orden de prioridad)
   components: [
+    // 1. Componentes UI base (máxima prioridad)
+    {
+      path: '~/components/ui/base',
+      prefix: 'UiBase',
+      priority: 10
+    },
+    // 2. Componentes compartidos
+    {
+      path: '~/components/shared',
+      prefix: 'Shared',
+      priority: 5
+    },
+    // 3. Componentes auth
+    {
+      path: '~/components/auth',
+      prefix: 'Auth',
+      priority: 5
+    },
+    // 4. Resto de componentes sin prefijo
     {
       path: '~/components',
-      pathPrefix: false
-    },
-    {
-      path: '~/layers/shared/components',
-      pathPrefix: false
+      pathPrefix: false,
+      priority: 0
     }
   ],
 
