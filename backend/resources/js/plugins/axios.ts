@@ -1,8 +1,8 @@
 import axios from 'axios';
 import type { Method } from 'axios';
 
-// Configuración para el backend Node.js
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Configuración para el backend Laravel
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Crear instancia de axios para el API Node.js
 export const apiClient = axios.create({

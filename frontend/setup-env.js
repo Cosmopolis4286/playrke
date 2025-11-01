@@ -43,7 +43,7 @@ const defaultConfig = {
     NUXT_PUBLIC_PUSHER_CLUSTER: 'mt1',
     NUXT_PUBLIC_PUSHER_TLS: 'false',
     NUXT_PUBLIC_APP_NAME: 'PlayRKE Bingo',
-    NUXT_PUBLIC_APP_URL: 'http://localhost:3000',
+    NUXT_PUBLIC_APP_URL: 'http://localhost:3002',
     NODE_ENV: 'development'
   },
   production: {
