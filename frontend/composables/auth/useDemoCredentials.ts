@@ -67,7 +67,7 @@ export function useDemoCredentials() {
   const customerCredentials = computed(() => [] as DemoCredential[])
 
   const totalCredentials = computed(() => credentials.value.length)
-  const isAvailable = computed(() => process.env.NODE_ENV === 'development')
+  const isAvailable = computed(() => import.meta.dev)
 
   const refresh = async () => {
     // No hace nada ya que las credenciales son estáticas
