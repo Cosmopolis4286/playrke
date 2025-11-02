@@ -30,11 +30,8 @@ RUN pnpm install
 # ============================================
 FROM base AS development
 
-# Copiar dependencias desde stage anterior
-COPY --from=dependencies /app/node_modules ./node_modules
-
-# Copiar el código de la aplicación
-COPY . .
+# Crear directorios necesarios
+RUN mkdir -p node_modules .nuxt .output
 
 # Exponer puerto de Nuxt (3000 por defecto)
 EXPOSE 3000
@@ -43,7 +40,7 @@ EXPOSE 3000
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# Comando de desarrollo con hot reload
+# Comando de desarrollo - Las dependencias se instalan en runtime via docker-compose command
 CMD ["pnpm", "run", "dev"]
 
 # ============================================

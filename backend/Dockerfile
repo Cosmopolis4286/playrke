@@ -74,33 +74,24 @@ RUN if [ -f package.json ]; then pnpm install; fi
 # ============================================
 FROM base AS development
 
-# Copiar dependencias desde stage anterior
-COPY --from=dependencies /var/www/vendor ./vendor
-COPY --from=dependencies /var/www/node_modules ./node_modules
-
-# Copiar el código de la aplicación
-COPY . .
-
-# Generar autoload optimizado
-RUN composer dump-autoload --optimize
-
 # Crear directorios necesarios con permisos correctos
 RUN mkdir -p \
     storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
-    bootstrap/cache
+    bootstrap/cache \
+    vendor
 
 # Establecer permisos
-RUN chown -R www-data:www-data storage bootstrap/cache
-RUN chmod -R 775 storage bootstrap/cache
+RUN chown -R www-data:www-data storage bootstrap/cache vendor
+RUN chmod -R 775 storage bootstrap/cache vendor
 
 # Exponer puertos (8000 para Laravel, 8080 para Reverb)
 EXPOSE 8000 8080
 
-# Script de inicio
-CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=8000"]
+# Script de inicio - Las dependencias se instalan en runtime via docker-compose command
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
 
 # ============================================
 # Stage 4: Producción
