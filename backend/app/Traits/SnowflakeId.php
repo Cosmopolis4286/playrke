@@ -4,23 +4,33 @@ namespace App\Traits;
 
 use BradieTilley\Snowflake\Snowflake;
 
-/**
- * Trait SnowflakeId
- *
- * Añade soporte para generar IDs únicos usando Snowflake
- * en modelos de Eloquent.
- */
 trait SnowflakeId
 {
-    /**
-     * Boot del trait para generar Snowflake IDs
-     */
-    protected static function bootSnowflakeId(): void
+    protected static function bootSnowflakeId()
     {
         static::creating(function ($model) {
-            if (!$model->id) {
-                $model->id = (new Snowflake())->id();
+            if (empty($model->{$model->getKeyName()})) {
+                $model->{$model->getKeyName()} = self::generateSnowflakeId();
             }
         });
+    }
+
+    public function getIncrementing()
+    {
+        return false;
+    }
+
+    public function getKeyType()
+    {
+        return 'string';
+    }
+
+    /**
+     * Genera un ID único usando Snowflake (API real de tu paquete).
+     */
+    public static function generateSnowflakeId(): string
+    {
+        $snowflake = new Snowflake();
+        return (string) $snowflake->id();
     }
 }

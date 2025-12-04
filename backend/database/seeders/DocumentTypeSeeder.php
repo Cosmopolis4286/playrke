@@ -9,26 +9,23 @@ use BradieTilley\Snowflake\Snowflake;
 
 class DocumentTypeSeeder extends Seeder
 {
-    /**
-     * Ejecuta el seeder para poblar la tabla 'document_types' con tipos de documento.
-     */
     public function run(): void
     {
-        $countryRepo = new CountryRepository();
-        $documentRepo = new DocumentTypeRepository();
+        // Resolver repositorios usando IoC
+        $countryRepo  = app(CountryRepository::class);
+        $documentRepo = app(DocumentTypeRepository::class);
 
-        // Instanciar Snowflake
         $snowflake = new Snowflake();
 
         // Obtener países por ISO
         $brasil    = $countryRepo->getCountryByIsoCode('BR');
         $venezuela = $countryRepo->getCountryByIsoCode('VE');
 
-        // Validar existencia antes de asignar
-        $brasilId    = $brasil?->id ?? null;
-        $venezuelaId = $venezuela?->id ?? null;
+        // IDs (si existen)
+        $brasilId    = $brasil?->id;
+        $venezuelaId = $venezuela?->id;
 
-        // Lista de tipos de documento predefinidos
+        // Datos a insertar o actualizar
         $documentTypes = [
             ['value' => 'CPF', 'description' => 'CPF',        'country_id' => $brasilId,    'is_active' => true],
             ['value' => 'V',   'description' => 'Venezolano', 'country_id' => $venezuelaId, 'is_active' => true],
@@ -36,18 +33,23 @@ class DocumentTypeSeeder extends Seeder
             ['value' => 'J',   'description' => 'Comercio',   'country_id' => $venezuelaId, 'is_active' => true],
         ];
 
-        // Inserta o actualiza registros evitando duplicados
+        // upsert manual evitando duplicados
         foreach ($documentTypes as $type) {
-            if ($type['country_id']) { // solo si existe el país
-                $documentRepo->updateOrCreate(
-                    ['code' => $type['value'], 'country_id' => $type['country_id']], // clave compuesta
-                    [
-                        'id' => $snowflake->id(), // Generar ID Snowflake
-                        'description' => $type['description'],
-                        'is_active' => $type['is_active']
-                    ]
-                );
+            if (! $type['country_id']) {
+                continue;
             }
+
+            $documentRepo->updateOrCreate(
+                [
+                    'code'       => $type['value'],
+                    'country_id' => $type['country_id'],
+                ],
+                [
+                    'id'          => $snowflake->id(),
+                    'description' => $type['description'],
+                    'is_active'   => $type['is_active'],
+                ]
+            );
         }
     }
 }

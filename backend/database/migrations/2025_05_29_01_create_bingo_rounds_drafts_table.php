@@ -15,7 +15,7 @@ return new class extends Migration
             // PK con Snowflake
             $table->snowflake('id')->primary();;
             $table->foreignSnowflake('bingo_room_id')->unique()->nullable()->constrained('bingo_rooms');
-            $table->foreignSnowflake('automatic_bingo_room_id')->unique()->nullable()->constrained('automatic_bingo_rooms');
+            $table->foreignSnowflake('automatic_bingo_room_id')->unique()->nullable()->constrained('bingo_rooms_automatic');
             $table->string('rounds', 2);
             $table->json('prize_types');
             $table->json('bingo_patterns');

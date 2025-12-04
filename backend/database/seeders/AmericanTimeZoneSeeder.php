@@ -4,18 +4,17 @@ namespace Database\Seeders;
 
 use App\Models\Countries\Country;
 use App\Models\Users\Shared\TimeZone;
-use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 
 class AmericanTimeZoneSeeder extends Seeder
 {
     public function run()
     {
-        $timezones = [
-            'Venezuela' => ['America/Caracas'],
-            'Colombia'  => ['America/Bogota'],
-            'Chile'     => ['America/Santiago', 'Pacific/Easter'],
-            'Brazil'    => [
+        $countryTimezones = [
+            'VE' => ['America/Caracas'],                     // Venezuela
+            'CO' => ['America/Bogota'],                      // Colombia
+            'CL' => ['America/Santiago', 'Pacific/Easter'],  // Chile
+            'BR' => [
                 'America/Sao_Paulo',
                 'America/Manaus',
                 'America/Belem',
@@ -31,27 +30,46 @@ class AmericanTimeZoneSeeder extends Seeder
             ],
         ];
 
-        $snowflake = new Snowflake();
-        $data = [];
+        $now = now();
 
-        foreach ($timezones as $countryName => $zones) {
-            $countryId = Country::where('name', $countryName)->value('id');
+        foreach ($countryTimezones as $isoCode2 => $zones) {
+
+            $countryId = Country::where('iso_code_2', $isoCode2)->value('id');
+
+            if (!$countryId) {
+                $this->command->warn("País no encontrado: {$isoCode2}");
+                continue;
+            }
 
             foreach ($zones as $zone) {
-                $offset = (new \DateTimeZone($zone))->getOffset(new \DateTime('now'));
-                $utc = 'UTC' . ($offset < 0 ? '-' : '+') . str_pad(floor(abs($offset) / 3600), 2, '0', STR_PAD_LEFT);
 
-                $data[] = [
-                    'id'         => $snowflake->id(), // ID Snowflake
-                    'name'       => $zone,
-                    'utc'        => $utc,
-                    'country_id' => $countryId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                // Calcular offset dinámico
+                $offset = (new \DateTimeZone($zone))
+                    ->getOffset(new \DateTime());
+
+                $utc = 'UTC' . ($offset < 0 ? '-' : '+')
+                    . str_pad(floor(abs($offset) / 3600), 2, '0', STR_PAD_LEFT);
+
+                /**
+                 * updateOrCreate evita duplicados.
+                 *
+                 * El trait SnowflakeId generará el ID automáticamente
+                 * solo cuando el registro NO exista.
+                 */
+                TimeZone::updateOrCreate(
+                    [
+                        'name' => $zone,              // clave única lógica
+                    ],
+                    [
+                        'utc'        => $utc,
+                        'country_id' => $countryId,
+                        'is_active'  => true,
+                        'updated_at' => $now,
+                    ]
+                );
             }
         }
 
-        TimeZone::insert($data);
+        $this->command->info('Zonas horarias americanas registradas sin duplicación.');
     }
 }

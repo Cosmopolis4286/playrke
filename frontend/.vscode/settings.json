@@ -1,66 +1,7 @@
 {
-  // Editor
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
-  },
-  "editor.tabSize": 2,
-  "editor.insertSpaces": true,
-  "editor.detectIndentation": false,
-
-  // Files
-  "files.eol": "\n",
-  "files.trimTrailingWhitespace": true,
-  "files.insertFinalNewline": true,
-
-  // ESLint
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact",
-    "vue"
-  ],
-
-  // TypeScript
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-
-  // Vue
-  "volar.autoCompleteRefs": true,
-  "volar.codeLens.pugTools": false,
-  "volar.codeLens.scriptSetupTools": true,
-
-  // Tailwind CSS
-  "tailwindCSS.experimental.classRegex": [
-    ["class:\\s*?[\"'`]([^\"'`]*).*?[\"'`]", "[\"'`]([^\"'`]*).*?[\"'`]"],
-    [":class=\"([^\"]*)", "'([^']*)'"]
-  ],
-  "tailwindCSS.includeLanguages": {
-    "vue": "html",
-    "vue-html": "html"
-  },
-
-  // File Nesting
-  "explorer.fileNesting.enabled": true,
-  "explorer.fileNesting.patterns": {
-    "*.ts": "${capture}.js",
-    "*.vue": "${capture}.vue.ts, ${capture}.vue.js, ${capture}.spec.ts, ${capture}.test.ts",
-    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml"
-  },
-
-  // Exclude from search
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/.nuxt": true,
-    "**/.output": true,
-    "**/dist": true,
-    "**/.cache": true
-  },
-
-  // File associations
-  "files.associations": {
-    "*.css": "tailwindcss"
-  }
+  "volar.tsPlugin": true,
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "editor.formatOnSave": false
 }

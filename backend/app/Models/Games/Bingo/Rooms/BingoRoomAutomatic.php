@@ -59,7 +59,7 @@ class BingoRoomAutomatic extends Model
     /**
      * Nombre de la tabla en la base de datos
      */
-    protected $table = 'automatic_bingo_rooms';
+    protected $table = 'bingo_rooms_automatic';
 
     /**
      * Estados disponibles para las salas

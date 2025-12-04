@@ -5,21 +5,19 @@ namespace App\Models\Banks;
 use App\Models\Payments\Methods\Venezuela\PagoMovil;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use BradieTilley\Snowflake\Snowflake;
+use App\Traits\SnowflakeId;
 
 /**
- * Modelo BankVenezuela refactorizado
+ * Modelo BankVenezuela
  *
- * Solo contiene:
- * - Configuración de la tabla y propiedades
- * - Relaciones Eloquent
- * - Boot methods para Snowflake
- * - Accessors y Mutators si es necesario
- *
- * NOTA: Las consultas complejas se han movido a BankVenezuelaRepository
+ * - Usa Snowflake mediante trait
+ * - Sin lógica de negocio
+ * - Relaciones, scopes, casts y fillables
  */
 class BankVenezuela extends Model
 {
+    use SnowflakeId;
+
     // ========================
     // Configuración de la tabla
     // ========================
@@ -37,33 +35,15 @@ class BankVenezuela extends Model
     ];
 
     // ========================
-    // Casting de tipos
+    // Casting
     // ========================
     protected $casts = [
         'code' => 'string',
     ];
 
     // ========================
-    // Boot method para Snowflake
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (BankVenezuela $bank) {
-            if (!$bank->id) {
-                $bank->id = (new Snowflake())->id();
-            }
-        });
-    }
-
-    // ========================
     // Relaciones
     // ========================
-
-    /**
-     * Relación con los pagos móviles asociados a este banco
-     */
     public function pagoMoviles(): HasMany
     {
         return $this->hasMany(PagoMovil::class, 'bank_id');
@@ -72,38 +52,24 @@ class BankVenezuela extends Model
     // ========================
     // Accessors
     // ========================
-
-    /**
-     * Obtener nombre para mostrar
-     */
     public function getDisplayNameAttribute(): string
     {
         return $this->name;
     }
 
     // ========================
-    // Scopes útiles
+    // Scopes
     // ========================
-
-    /**
-     * Scope para buscar por nombre
-     */
     public function scopeByName($query, string $name)
     {
         return $query->where('name', 'like', "%{$name}%");
     }
 
-    /**
-     * Scope para ordenar por nombre
-     */
     public function scopeOrderedByName($query)
     {
         return $query->orderBy('name');
     }
 
-    /**
-     * Scope para bancos con pagos móviles
-     */
     public function scopeWithPagoMovil($query)
     {
         return $query->whereHas('pagoMoviles');

@@ -19,7 +19,7 @@ return new class extends Migration
 
             $table->foreignSnowflake('automatic_bingo_room_id')
                 ->nullable()
-                ->constrained('automatic_bingo_rooms')
+                ->constrained('bingo_rooms_automatic')
                 ->nullOnDelete();
 
             $table->foreignSnowflake('creator_user_id')

@@ -493,7 +493,12 @@ const currentPlayerCredentials = computed(() => playerCredentials.value[selected
 
 // En Nuxt, siempre mostrar en desarrollo (no en producción)
 const isDevelopment = ref(true)
-const hasCredentials = computed(() => isAvailable.value && totalCredentials.value > 0)
+const hasCredentials = computed(() => {
+  const available = isAvailable.value
+  const total = totalCredentials.value
+  console.log('[DemoCredentials] isAvailable:', available, 'totalCredentials:', total, 'hasCredentials:', available && total > 0)
+  return available && total > 0
+})
 const isReady = computed(() => !isLoadingCredentials.value && hasCredentials.value)
 
 // Auto login - Ejecuta login real con el backend

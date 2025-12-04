@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Countries\Country;
 use Illuminate\Database\Seeder;
-use BradieTilley\Snowflake\Snowflake; // Importar Snowflake
+use BradieTilley\Snowflake\Snowflake;
 
 class CountrySeeder extends Seeder
 {
@@ -16,22 +16,27 @@ class CountrySeeder extends Seeder
             ['name' => 'Venezuela', 'iso_code_2' => 'VE', 'iso_code_3' => 'VEN', 'status' => 'ACTIVE'],
         ];
 
-        // Instanciar Snowflake
         $snowflake = new Snowflake();
+        $now = now();
 
-        // Agregar ID Snowflake a cada registro
-        $countries = array_map(function ($country) use ($snowflake) {
-            $country['id'] = $snowflake->id(); // Usar ->id() en vez de generate()
-            $country['created_at'] = now();
-            $country['updated_at'] = now();
-            return $country;
+        // Preparar registros con ID y timestamps
+        $payload = array_map(function ($country) use ($snowflake, $now) {
+            return [
+                'id'         => $snowflake->id(),
+                'name'       => $country['name'],
+                'iso_code_2' => $country['iso_code_2'],
+                'iso_code_3' => $country['iso_code_3'],
+                'status'     => $country['status'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
         }, $countries);
 
-        // Inserción usando upsert para no duplicar
+        // upsert evita duplicados y actualiza si existe
         Country::upsert(
-            $countries,
-            ['iso_code_2'], // clave única
-            ['name', 'iso_code_3', 'status', 'updated_at'] // campos que se actualizan si ya existe
+            $payload,
+            ['iso_code_2'],                       // columna única
+            ['name', 'iso_code_3', 'status', 'updated_at']
         );
     }
 }
