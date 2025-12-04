@@ -2,7 +2,7 @@
 
 namespace App\Models\Users\Roles\Treasurer;
 
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class TreasurerCountryCurrency extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     protected $table = "treasurers_countries_currencies";
 

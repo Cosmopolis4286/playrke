@@ -2,7 +2,7 @@
 
 namespace App\Models\Users\Roles\Player\External;
 
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class UserPurchaseCode extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     protected $table = "user_purchase_codes";
 

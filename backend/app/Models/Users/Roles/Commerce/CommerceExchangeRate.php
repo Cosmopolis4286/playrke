@@ -4,7 +4,7 @@ namespace App\Models\Users\Roles\Commerce;
 
 use App\Models\Currencies\Currency;
 use App\Models\Users\Roles\Commerce\Commerce;
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class CommerceExchangeRate extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     protected $table = 'commerces_exchange_rates';
 

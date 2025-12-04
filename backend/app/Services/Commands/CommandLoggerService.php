@@ -4,7 +4,7 @@ namespace App\Services\Commands;
 
 use App\Models\CommandLog;
 
-class HandleCommands
+class CommandLoggerService
 {
     /**
      * Registra la ejecución del comando en la base de datos.

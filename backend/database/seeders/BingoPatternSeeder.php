@@ -4,8 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
 use Illuminate\Database\Seeder;
-use Carbon\Carbon;
-use BradieTilley\Snowflake\Snowflake;
 
 class BingoPatternSeeder extends Seeder
 {
@@ -14,8 +12,6 @@ class BingoPatternSeeder extends Seeder
      */
     public function run(): void
     {
-        $now = Carbon::now();
-
         $patterns = [
             ['type_pattern' => 'UNIQUE', 'name' => 'FULL HOUSE', 'boxes' => 'ALL', 'status' => 'ACTIVE'],
             ['type_pattern' => 'UNIQUE', 'name' => 'LINEA B1-B5', 'boxes' => 'B1;B2;B3;B4;B5', 'status' => 'ACTIVE'],
@@ -36,17 +32,16 @@ class BingoPatternSeeder extends Seeder
             ['type_pattern' => 'GROUP', 'name' => 'DIAGONALES', 'boxes' => '15;16', 'status' => 'ACTIVE'],
         ];
 
-        // Instanciar Snowflake
-        $snowflake = new Snowflake();
-
-        // Agregar ID Snowflake y timestamps
-        foreach ($patterns as &$pattern) {
-            $pattern['id'] = $snowflake->id();
-            $pattern['created_at'] = $now;
-            $pattern['updated_at'] = $now;
+        // Insertar o actualizar cada patrón de forma idempotente
+        foreach ($patterns as $pattern) {
+            BingoPattern::updateOrCreate(
+                ['name' => $pattern['name']],
+                [
+                    'type_pattern' => $pattern['type_pattern'],
+                    'boxes' => $pattern['boxes'],
+                    'status' => $pattern['status']
+                ]
+            );
         }
-
-        // Insertar en la base de datos
-        BingoPattern::insert($patterns);
     }
 }

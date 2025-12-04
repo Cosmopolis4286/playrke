@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Banks\BankVenezuela;
 use Illuminate\Database\Seeder;
-use BradieTilley\Snowflake\Snowflake;
 
 class BankVenezuelaSeeder extends Seeder
 {
@@ -39,21 +38,12 @@ class BankVenezuelaSeeder extends Seeder
             ['name' => 'Banfanb', 'code' => '0177'],
         ];
 
-        // Ordenar por código
-        $banks = collect($banks)->sortBy('code')->values()->toArray();
-
-        // Instanciar Snowflake
-        $snowflake = new Snowflake();
-
-        // Agregar ID Snowflake a cada registro
-        $banks = array_map(function ($bank) use ($snowflake) {
-            $bank['id'] = $snowflake->id();
-            $bank['created_at'] = now();
-            $bank['updated_at'] = now();
-            return $bank;
-        }, $banks);
-
-        // Insertar en la base de datos
-        BankVenezuela::insert($banks);
+        // Insertar o actualizar cada banco de forma idempotente
+        foreach ($banks as $bank) {
+            BankVenezuela::updateOrCreate(
+                ['code' => $bank['code']],
+                ['name' => $bank['name']]
+            );
+        }
     }
 }

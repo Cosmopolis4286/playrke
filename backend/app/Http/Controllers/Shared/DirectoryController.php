@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Shared;
 
 use App\Models\BankVenezuela;
 use App\Models\BinanceAccounts;
 use App\Models\Commerce;
-use App\Models\CommerceExchangeRate;
+use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\DocumentType;
-use App\Models\PagoMovil;
-use App\Models\ColombianPaymentAccount;
+use App\Models\Payments\Methods\Venezuela\PagoMovil;
+use App\Models\Payments\Methods\Colombia\ColombianPaymentAccount;
 use App\Models\Pix;
 use App\Repositories\User\Roles\RoleRepository;
 use App\Traits\Users\UserTrait;

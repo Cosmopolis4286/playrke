@@ -7,7 +7,7 @@ use App\Models\Users\Roles\Player\External\ExternalPlayer;
 use App\Models\Users\Roles\Player\External\UserPurchaseCode;
 use Illuminate\Support\Str;
 
-trait ExternalPlayerTrait
+trait PlayerLinkTrait
 {
     public function createExternalPlayers($game, $room = '')
     {

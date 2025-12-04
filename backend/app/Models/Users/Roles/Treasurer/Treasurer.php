@@ -4,7 +4,7 @@ namespace App\Models\Users\Roles\Treasurer;
 
 use App\Models\Countries\Country;
 use App\Models\Users\User;
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Treasurer extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     protected $table = "treasurers";
 

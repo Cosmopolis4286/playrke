@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\ExchangeRate;
+namespace App\Models\Payments\ExchangeRate\Users\Roles;
 
 use App\Models\Currencies\Currency;
 use App\Models\Users\Roles\Commerce\Commerce;

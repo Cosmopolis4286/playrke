@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Games\Bingo;
 
 use App\Http\Controllers\Controller;
 
 // Events
-use App\Events\BingoNumberCalled;
+use App\Events\Games\Bingo\BingoNumberCalled;
 
 // Models
-use App\Models\BingoCardPrice;
-use App\Models\BingoCardPriceDraft;
+use App\Models\Games\Bingo\Cards\CardPrice\BingoCardPrice;
+use App\Models\Games\Bingo\Cards\CardPrice\BingoCardPriceDraft;
 use App\Models\BingoCtns;
 use App\Models\BingoCtnsLot;
 use App\Models\BingoDraw;
@@ -28,7 +28,7 @@ use App\Models\BingoPatterns;
 use App\Models\Currencies\Currency;
 use App\Models\Commerce;
 use App\Models\CommerceCountryCurrency;
-use App\Models\CommerceExchangeRate;
+use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;
@@ -249,7 +249,7 @@ class BingoController extends Controller
 
     public function gamesRoomsCommerce($roomType = 'private', $currency = '')
     {
-        // Vista para todas las salas disponibles o en juego de un comercio 
+        // Vista para todas las salas disponibles o en juego de un comercio
 
         // Obtner ID d Comercio a traves del ID de usuario
         $commerce = Commerce::getValueByUserId(Auth::id(), 'id');
@@ -280,13 +280,13 @@ class BingoController extends Controller
         );
 
 
-        // Retorna a vista con la informacion 
+        // Retorna a vista con la informacion
         return $this->handleViewData($viewData, $creator['type']);
     }
 
     public function gamesRoomsCustomer($customerId, $userToken, $currency = '')
     {
-        // Si el token de usuario es diferente de 'available-rooms' 
+        // Si el token de usuario es diferente de 'available-rooms'
         if ($userToken !== 'available-rooms') {
             $customer = $this->validateCustomer($customerId, $userToken);
 
@@ -611,7 +611,7 @@ class BingoController extends Controller
                     ->where('encrypted', $data['room'])
                     ->whereIn('status', [2, 3, 4])->first();
 
-                // Si la sala no existe 
+                // Si la sala no existe
                 if (!$room) return ['error' => 'Sala no disponible'];
 
                 $roomId = $room->id;
@@ -708,7 +708,7 @@ class BingoController extends Controller
                 ];
 
                 $bingoCreatorUser = BingoCreator::getValueByCreatorRoom($creator, $roomId, 'creator_user_id');
-                // Definir precio del carton 
+                // Definir precio del carton
                 $bingoCtnPrice = BingoCardPrice::getValueCtnPrice($roomId, $currencyId, $bingoCreatorUser)
                     ?? CommerceExchangeRate::getCommerceCurrencyValue($creatorId, $currencyId);
 
@@ -849,7 +849,7 @@ class BingoController extends Controller
             'currency' => $player->currency
         ]);
 
-        // Retorna a vista con la informacion 
+        // Retorna a vista con la informacion
         return $this->handleViewData($viewData, $creator['type']);
     }
 
@@ -873,7 +873,7 @@ class BingoController extends Controller
         // Obtener informacion de la vista del cliente
         $viewData = self::getGameInfo($creator, ['room' => $room, 'userToken' => $userToken]);
 
-        // Retorna a vista con la informacion 
+        // Retorna a vista con la informacion
         return $this->handleViewData($viewData, $creator['type']);
     }
 
@@ -892,7 +892,7 @@ class BingoController extends Controller
 
         $viewData = self::getGameInfo($creator, ['room' => $room, 'currency' => decrypt($currency)]);
 
-        // Retorna a vista con la informacion 
+        // Retorna a vista con la informacion
         return $this->handleViewData($viewData, $creator['type']);
     }
 
@@ -901,7 +901,7 @@ class BingoController extends Controller
         // Vista del el juego para un comercio especifico solo para comprar
         $commerce = Commerce::getValueByCodeUUID($commerce, 'id') ?? decrypt($commerce);
 
-        // Redireccionar al Login si no hay coincidencia    
+        // Redireccionar al Login si no hay coincidencia
         if (!$commerce) return redirect()->back();
 
         $creator = [
@@ -912,7 +912,7 @@ class BingoController extends Controller
 
         $viewData = self::getGameInfo($creator, ['room' => $room, 'currency' => decrypt($currency)]);
 
-        // Retorna a vista con la informacion 
+        // Retorna a vista con la informacion
         return $this->handleViewData($viewData, $creator['type']);
     }
 
@@ -921,14 +921,14 @@ class BingoController extends Controller
         // Vista del el juego para un cliente especifico para comprar y/o visualizar
         $customer = Customer::getById(decrypt($customer), ['id', 'user']);
 
-        // Redireccionar a la vista anterior   
+        // Redireccionar a la vista anterior
         if (!$customer) return redirect()->back();
 
         $creator = ['type' => 'customer', 'id' => $customer->id, 'userId' => $customer->user];
 
         $viewData = self::getGameInfo($creator, ['room' => $room, 'currency' => decrypt($currency)]);
 
-        // Retorna a vista con la informacion 
+        // Retorna a vista con la informacion
         return $this->handleViewData($viewData, $creator['type']);
     }
 

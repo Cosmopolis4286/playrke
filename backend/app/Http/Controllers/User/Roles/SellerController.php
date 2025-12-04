@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\User\Roles;
 
 use App\Models\BingoRoom;
 use App\Models\BingoCtns;
@@ -13,12 +13,12 @@ use App\Traits\Games\BingoTrait;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
-use App\Models\BingoCardPrice;
+use App\Models\Games\Bingo\Cards\CardPrice\BingoCardPrice;
 use App\Models\BingoCtnsPayment;
 use App\Models\BingoPrizeCtns;
 use App\Models\Currencies\Currency;
 use App\Models\Commerce;
-use App\Models\CommerceExchangeRate;
+use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PhoneNumbers;
 use App\Models\SellerCountryCurrency;

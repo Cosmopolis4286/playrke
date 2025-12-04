@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Commerce;
+namespace App\Services\User\Roles\Commerce;
 
 use App\Models\Users;
 use App\Models\Wallet;

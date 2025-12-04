@@ -69,8 +69,8 @@ export function useDemoCredentials() {
   const totalCredentials = computed(() => credentials.value.length)
   const isAvailable = computed(() => {
     // En desarrollo siempre debe estar disponible
-    const isDev = import.meta.dev
-    console.log('[useDemoCredentials] import.meta.dev:', isDev)
+    const isDev = import.meta.env.DEV || process.env.NODE_ENV === 'development'
+    console.log('[useDemoCredentials] isDev:', isDev, 'import.meta.env.DEV:', import.meta.env.DEV, 'NODE_ENV:', process.env.NODE_ENV)
     return isDev
   })
 

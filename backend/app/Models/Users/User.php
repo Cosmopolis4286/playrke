@@ -34,6 +34,21 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $table = 'users';
 
     /**
+     * Clave primaria del modelo
+     */
+    protected $primaryKey = 'id';
+
+    /**
+     * Indica si el ID es auto-incremental
+     */
+    public $incrementing = false;
+
+    /**
+     * Tipo de la clave primaria
+     */
+    protected $keyType = 'string';
+
+    /**
      * Estados disponibles para usuarios
      */
     public const STATUSES = [

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Events\Games;
+namespace App\Events\Games\Bingo;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\PrivateChannel;

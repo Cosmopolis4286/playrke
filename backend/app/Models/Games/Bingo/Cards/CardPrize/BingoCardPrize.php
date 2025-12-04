@@ -9,7 +9,7 @@ use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
 use App\Models\Users\Roles\Seller\Seller;
 use App\Models\Users\User;
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -58,7 +58,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class BingoCardPrize extends Model
 {
-    use HasSnowflakeId, SoftDeletes;
+    use SnowflakeId, SoftDeletes;
 
     /**
      * Nombre de la tabla en la base de datos

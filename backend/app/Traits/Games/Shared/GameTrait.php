@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Traits\Games;
+namespace App\Traits\Games\Shared;
 
 use App\Models\BingoCreator;
 use App\Models\BingoRoom;
 use App\Models\BingoRoomConfig;
 use App\Models\Currencies\CurrencyGameRoom;
-use App\Models\CommerceExchangeRate;
+use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
 use App\Models\GameExchangeRate;
 use App\Models\Games;

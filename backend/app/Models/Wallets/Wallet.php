@@ -40,6 +40,21 @@ class Wallet extends Model
     protected $table = 'wallets';
 
     /**
+     * Clave primaria del modelo
+     */
+    protected $primaryKey = 'id';
+
+    /**
+     * Indica si el ID es auto-incremental
+     */
+    public $incrementing = false;
+
+    /**
+     * Tipo de la clave primaria
+     */
+    protected $keyType = 'string';
+
+    /**
      * Estados de wallet disponibles
      */
     public const STATUSES = [

@@ -1,6 +1,7 @@
 <template>
   <!-- Modal Toggle Button - Solo mostrar si NO está controlado externamente -->
-  <div v-if="isDevelopment && hasCredentials && props.modelValue === undefined" class="fixed bottom-4 right-4 z-50">
+  <ClientOnly>
+    <div v-if="isDevelopment && hasCredentials && props.modelValue === undefined" class="fixed bottom-4 right-4 z-50">
     <div class="relative group">
       <!-- Tooltip -->
       <div
@@ -28,10 +29,12 @@
       </UiBaseButton>
     </div>
   </div>
+  </ClientOnly>
 
   <!-- Modal Overlay -->
-  <Teleport to="body">
-    <Transition
+  <ClientOnly>
+    <Teleport to="body">
+      <Transition
       enter-active-class="duration-300 ease-out"
       enter-from-class="opacity-0"
       enter-to-class="opacity-100"
@@ -347,18 +350,19 @@
         </Transition>
       </div>
     </Transition>
-  </Teleport>
+    </Teleport>
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive, readonly, onMounted, onUnmounted } from 'vue'
-import { useDemoCredentials, type DemoCredential } from '~/composables/auth/useDemoCredentials'
+import { useDemoCredentials, type DemoCredential } from '~/composables/auth/useDemoCredentials.ts'
 import {
   copyCredentials as copyCredentialsHelper,
   copyAllCredentials as copyAllCredentialsHelper,
   initStats,
   saveStats,
-} from '~/composables/auth/useDemoCredentialsHelpers'
+} from '~/composables/auth/useDemoCredentialsHelpers.ts'
 
 // Types
 interface DemoCredentials {
@@ -496,7 +500,8 @@ const isDevelopment = ref(true)
 const hasCredentials = computed(() => {
   const available = isAvailable.value
   const total = totalCredentials.value
-  console.log('[DemoCredentials] isAvailable:', available, 'totalCredentials:', total, 'hasCredentials:', available && total > 0)
+  const hasProps = props.modelValue === undefined
+  console.log('[DemoCredentials] isAvailable:', available, 'totalCredentials:', total, 'hasCredentials:', available && total > 0, 'isDevelopment:', isDevelopment.value, 'props.modelValue:', props.modelValue, 'shouldShow:', isDevelopment.value && available && total > 0 && hasProps)
   return available && total > 0
 })
 const isReady = computed(() => !isLoadingCredentials.value && hasCredentials.value)

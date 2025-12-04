@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Traits\Users;
+namespace App\Traits\Users\Roles\Customer;
 
 use App\Models\Customer;
 use App\Models\CustomerUser;
-use App\Services\Users\Customer\CustomerSessionService;
+use App\Services\User\Roles\Customer\CustomerSessionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 

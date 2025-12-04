@@ -21,6 +21,11 @@
 # Backend node_modules (para Vite)
 /backend/node_modules
 
+# IDE Helper files (auto-generated)
+/backend/_ide_helper.php
+/backend/_ide_helper_models.php
+/backend/.phpstorm.meta.php
+
 # Storage & Cache
 /backend/public/build
 /backend/public/hot

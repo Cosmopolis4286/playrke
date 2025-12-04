@@ -24,11 +24,14 @@
                 id="first_name"
                 v-model="form.first_name"
                 type="text"
+                minlength="2"
+                maxlength="100"
                 class="block w-full px-4 py-3 border border-pink-400/30 rounded-lg bg-black/30 text-white placeholder-pink-300/50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
+                :class="{ 'border-red-400': errors.first_name }"
                 placeholder="Tu nombre"
                 required
               >
-              <p v-if="errors.first_name" class="mt-2 text-sm text-red-300">{{ errors.first_name }}</p>
+              <p v-if="errors.first_name" class="mt-2 text-sm text-red-300">{{ getErrorMessage('first_name') }}</p>
             </div>
 
             <!-- Apellido -->
@@ -40,11 +43,14 @@
                 id="last_name"
                 v-model="form.last_name"
                 type="text"
+                minlength="2"
+                maxlength="100"
                 class="block w-full px-4 py-3 border border-pink-400/30 rounded-lg bg-black/30 text-white placeholder-pink-300/50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
+                :class="{ 'border-red-400': errors.last_name }"
                 placeholder="Tu apellido"
                 required
               >
-              <p v-if="errors.last_name" class="mt-2 text-sm text-red-300">{{ errors.last_name }}</p>
+              <p v-if="errors.last_name" class="mt-2 text-sm text-red-300">{{ getErrorMessage('last_name') }}</p>
             </div>
 
             <!-- Username -->
@@ -56,11 +62,17 @@
                 id="username"
                 v-model="form.username"
                 type="text"
+                minlength="3"
+                maxlength="50"
+                pattern="[a-zA-Z0-9_]+"
                 class="block w-full px-4 py-3 border border-pink-400/30 rounded-lg bg-black/30 text-white placeholder-pink-300/50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
-                placeholder="Usuario único"
+                :class="{ 'border-red-400': errors.username }"
+                placeholder="usuario_123"
                 required
+                @blur="validateUsername"
               >
-              <p v-if="errors.username" class="mt-2 text-sm text-red-300">{{ errors.username }}</p>
+              <p v-if="errors.username" class="mt-2 text-sm text-red-300">{{ getErrorMessage('username') }}</p>
+              <p v-else class="mt-1 text-xs text-pink-300/70">Solo letras, números y guión bajo (_)</p>
             </div>
 
             <!-- Email -->
@@ -72,11 +84,13 @@
                 id="email"
                 v-model="form.email"
                 type="email"
+                maxlength="255"
                 class="block w-full px-4 py-3 border border-pink-400/30 rounded-lg bg-black/30 text-white placeholder-pink-300/50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
+                :class="{ 'border-red-400': errors.email }"
                 placeholder="tu@email.com"
                 required
               >
-              <p v-if="errors.email" class="mt-2 text-sm text-red-300">{{ errors.email }}</p>
+              <p v-if="errors.email" class="mt-2 text-sm text-red-300">{{ getErrorMessage('email') }}</p>
             </div>
 
             <!-- Contraseña -->
@@ -90,9 +104,11 @@
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
                   class="block w-full px-4 py-3 pr-12 border border-pink-400/30 rounded-lg bg-black/30 text-white placeholder-pink-300/50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
+                  :class="{ 'border-red-400': errors.password }"
                   placeholder="Mínimo 8 caracteres"
                   required
                   minlength="8"
+                  @input="validatePassword"
                 >
                 <button
                   type="button"
@@ -105,7 +121,8 @@
                   />
                 </button>
               </div>
-              <p v-if="errors.password" class="mt-2 text-sm text-red-300">{{ errors.password }}</p>
+              <p v-if="errors.password" class="mt-2 text-sm text-red-300">{{ getErrorMessage('password') }}</p>
+              <p v-else class="mt-1 text-xs text-pink-300/70">Mínimo 8 caracteres con letras y números</p>
             </div>
 
             <!-- Confirmar contraseña -->
@@ -119,6 +136,7 @@
                   v-model="form.password_confirmation"
                   :type="showPasswordConfirm ? 'text' : 'password'"
                   class="block w-full px-4 py-3 pr-12 border border-pink-400/30 rounded-lg bg-black/30 text-white placeholder-pink-300/50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
+                  :class="{ 'border-red-400': errors.password_confirmation }"
                   placeholder="Confirma tu contraseña"
                   required
                   minlength="8"
@@ -134,7 +152,7 @@
                   />
                 </button>
               </div>
-              <p v-if="errors.password_confirmation" class="mt-2 text-sm text-red-300">{{ errors.password_confirmation }}</p>
+              <p v-if="errors.password_confirmation" class="mt-2 text-sm text-red-300">{{ getErrorMessage('password_confirmation') }}</p>
             </div>
           </div>
 
@@ -155,7 +173,7 @@
                 <span class="text-yellow-400">*</span>
               </span>
             </label>
-            <p v-if="errors.terms" class="mt-2 text-sm text-red-300">{{ errors.terms }}</p>
+            <p v-if="errors.terms" class="mt-2 text-sm text-red-300">{{ getErrorMessage('terms') }}</p>
           </div>
 
           <!-- Edad mínima -->
@@ -172,7 +190,7 @@
                 <span class="text-yellow-400">*</span>
               </span>
             </label>
-            <p v-if="errors.age_confirm" class="mt-2 text-sm text-red-300">{{ errors.age_confirm }}</p>
+            <p v-if="errors.age_confirm" class="mt-2 text-sm text-red-300">{{ getErrorMessage('age_confirm') }}</p>
           </div>
 
           <!-- Error general -->
@@ -243,8 +261,64 @@ const form = ref({
 const showPassword = ref(false)
 const showPasswordConfirm = ref(false)
 const isLoading = ref(false)
-const errors = ref<Record<string, string>>({})
+const errors = ref<Record<string, string | string[]>>({})
 const registerError = ref('')
+
+/**
+ * Valida el nombre de usuario en tiempo real
+ */
+function validateUsername() {
+  const username = form.value.username
+  const usernameRegex = /^[a-zA-Z0-9_]+$/
+
+  if (username.length < 3) {
+    errors.value.username = 'El nombre de usuario debe tener al menos 3 caracteres'
+    return false
+  }
+
+  if (!usernameRegex.test(username)) {
+    errors.value.username = 'Solo puedes usar letras, números y guión bajo (_)'
+    return false
+  }
+
+  delete errors.value.username
+  return true
+}
+
+/**
+ * Valida la contraseña
+ */
+function validatePassword() {
+  const password = form.value.password
+
+  if (password.length < 8) {
+    errors.value.password = 'La contraseña debe tener al menos 8 caracteres'
+    return false
+  }
+
+  // Verificar que tenga al menos una letra y un número
+  const hasLetter = /[a-zA-Z]/.test(password)
+  const hasNumber = /[0-9]/.test(password)
+
+  if (!hasLetter || !hasNumber) {
+    errors.value.password = 'La contraseña debe contener letras y números'
+    return false
+  }
+
+  delete errors.value.password
+  return true
+}
+
+/**
+ * Obtiene el mensaje de error formateado
+ */
+function getErrorMessage(field: string): string {
+  const error = errors.value[field]
+  if (Array.isArray(error)) {
+    return error[0]
+  }
+  return error || ''
+}
 
 /**
  * Maneja el envío del formulario de registro
@@ -271,6 +345,16 @@ async function handleRegister() {
     return
   }
 
+  // Validar username
+  if (!validateUsername()) {
+    return
+  }
+
+  // Validar password
+  if (!validatePassword()) {
+    return
+  }
+
   isLoading.value = true
 
   try {
@@ -288,15 +372,24 @@ async function handleRegister() {
     await router.push('/player/lobby')
 
   } catch (error: any) {
-    // Manejar errores
-    if (error.response?.status === 422) {
-      // Errores de validación del backend
-      errors.value = error.response.data.errors || {}
-      registerError.value = 'Por favor verifica los datos ingresados.'
-    } else {
-      registerError.value = 'Error al crear la cuenta. Por favor intenta de nuevo.'
-    }
     console.error('[Player Register] Error:', error)
+
+    // Manejar errores
+    if (error.response?.status === 422 || error.statusCode === 422) {
+      // Errores de validación del backend
+      const backendErrors = error.response?.data?.errors || error.data?.errors || {}
+
+      // Convertir errores del backend al formato esperado
+      Object.keys(backendErrors).forEach(key => {
+        errors.value[key] = backendErrors[key]
+      })
+
+      registerError.value = error.response?.data?.message || 'Por favor verifica los datos ingresados.'
+    } else if (error.response?.status === 500 || error.statusCode === 500) {
+      registerError.value = 'Error del servidor. Por favor intenta de nuevo más tarde.'
+    } else {
+      registerError.value = error.response?.data?.message || 'Error al crear la cuenta. Por favor intenta de nuevo.'
+    }
   } finally {
     isLoading.value = false
   }

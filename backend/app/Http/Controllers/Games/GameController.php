@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Games;
 
 use App\Models\CustomerGame;
 use App\Http\Controllers\Controller;

@@ -4,7 +4,7 @@ namespace App\Models\Users\Roles\Seller;
 
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Shared\Game;
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class SellerRoomLimits extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     protected $table = "sellers_room_limits";
 

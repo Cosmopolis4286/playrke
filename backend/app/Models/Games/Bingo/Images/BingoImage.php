@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Bingo\Images;
 
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
 
@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\File;
  */
 class BingoImage extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     /**
      * Nombre de la tabla en la base de datos

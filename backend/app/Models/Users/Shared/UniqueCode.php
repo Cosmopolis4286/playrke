@@ -3,7 +3,7 @@
 namespace App\Models\Users\Shared;
 
 use App\Models\Users\User;
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class UniqueCode extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     protected $table = "unique_codes";
 

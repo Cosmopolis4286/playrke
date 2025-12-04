@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Payments\Methods\Colombia;
 
-use App\Models\ColombianPaymentAccount;
+use App\Models\Payments\Methods\Colombia\ColombianPaymentAccount;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

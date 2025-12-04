@@ -34,11 +34,13 @@ use App\Models\Role;
 use App\Models\Wallet;
 
 // Services
-use App\Services\Games\Bingo\HandleBingoRooms;
-use App\Services\Users\Customer\HandleTransactions;
+use App\Services\Games\Bingo\HandleBingoRoomsService;
+use App\Services\User\Roles\Customer\HandleTransactions;
 
 // Traits
-use App\Traits\Users\ExternalPlayerTrait;
+use App\Traits\Games\Shared\GameTrait;
+use App\Traits\Games\Shared\SeamlessWallet;
+use App\Traits\Users\PlayerLinkTrait;
 use App\Traits\Users\UserTrait;
 
 // Otros
@@ -50,7 +52,7 @@ use Illuminate\Support\Facades\Log;
 
 trait BingoTrait
 {
-    use GameTrait, ExternalPlayerTrait, SeamlessWallet, UserTrait;
+    use GameTrait, PlayerLinkTrait, SeamlessWallet, UserTrait;
 
     private function encryptDraw($room)
     {

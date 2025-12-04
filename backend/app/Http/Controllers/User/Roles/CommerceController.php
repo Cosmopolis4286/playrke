@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\User\Roles;
 
 use App\Http\Controllers\Controller;
 
-use App\Http\Requests\CommerceRequest;
+use App\Http\Requests\User\Roles\CommerceRequest;
 
 use App\Services\Commerce\CommerceService;
 use App\Services\Commerce\CommerceUpdateService;

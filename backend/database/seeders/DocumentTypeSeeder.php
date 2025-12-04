@@ -3,19 +3,15 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Repositories\User\Shared\DocumentTypeRepository;
+use App\Models\Users\Shared\DocumentType;
 use App\Repositories\Countries\CountryRepository;
-use BradieTilley\Snowflake\Snowflake;
 
 class DocumentTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        // Resolver repositorios usando IoC
-        $countryRepo  = app(CountryRepository::class);
-        $documentRepo = app(DocumentTypeRepository::class);
-
-        $snowflake = new Snowflake();
+        // Resolver repositorio de países usando IoC
+        $countryRepo = app(CountryRepository::class);
 
         // Obtener países por ISO
         $brasil    = $countryRepo->getCountryByIsoCode('BR');
@@ -33,19 +29,18 @@ class DocumentTypeSeeder extends Seeder
             ['value' => 'J',   'description' => 'Comercio',   'country_id' => $venezuelaId, 'is_active' => true],
         ];
 
-        // upsert manual evitando duplicados
+        // Insertar o actualizar cada tipo de documento de forma idempotente
         foreach ($documentTypes as $type) {
-            if (! $type['country_id']) {
+            if (!$type['country_id']) {
                 continue;
             }
 
-            $documentRepo->updateOrCreate(
+            DocumentType::updateOrCreate(
                 [
                     'code'       => $type['value'],
                     'country_id' => $type['country_id'],
                 ],
                 [
-                    'id'          => $snowflake->id(),
                     'description' => $type['description'],
                     'is_active'   => $type['is_active'],
                 ]

@@ -4,15 +4,11 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Games\Shared\GameMode\GameMode;
-use BradieTilley\Snowflake\Snowflake;
 
 class GameModeSeeder extends Seeder
 {
     public function run(): void
     {
-        $snowflake = new Snowflake();
-        $now = now();
-
         $gameModes = [
             ['description' => 'Online',  'is_active' => true],
             ['description' => 'Offline', 'is_active' => true],
@@ -20,13 +16,12 @@ class GameModeSeeder extends Seeder
             ['description' => 'Demo',    'is_active' => true],
         ];
 
-        // Agregar ID Snowflake y timestamps
-        $gameModes = array_map(fn($mode) => array_merge($mode, [
-            'id' => $snowflake->id(),
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]), $gameModes);
-
-        GameMode::insert($gameModes);
+        // Insertar o actualizar cada modo de forma idempotente
+        foreach ($gameModes as $mode) {
+            GameMode::updateOrCreate(
+                ['description' => $mode['description']],
+                ['is_active' => $mode['is_active']]
+            );
+        }
     }
 }

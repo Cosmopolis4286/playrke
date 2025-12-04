@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo\Cards;
+namespace App\Services\Games\Bingo\Cartons;
 
 use App\Models\{BingoCardPrice, BingoCardPriceDraft};
 

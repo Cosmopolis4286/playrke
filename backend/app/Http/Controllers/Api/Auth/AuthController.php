@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -73,50 +74,113 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'username' => ['required', 'string', 'max:255', 'unique:users'],
+            'username' => ['required', 'string', 'min:3', 'max:50', 'unique:users', 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-            'country_id' => ['required', 'exists:countries,id'],
-            'terms' => ['required', 'accepted'],
+            'first_name' => ['required', 'string', 'min:2', 'max:100'],
+            'last_name' => ['required', 'string', 'min:2', 'max:100'],
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+            'country_id' => ['nullable', 'exists:countries,id'],
+        ], [
+            'username.required' => 'El nombre de usuario es requerido.',
+            'username.min' => 'El nombre de usuario debe tener al menos 3 caracteres.',
+            'username.max' => 'El nombre de usuario no puede exceder 50 caracteres.',
+            'username.unique' => 'Este nombre de usuario ya está en uso.',
+            'username.regex' => 'El nombre de usuario solo puede contener letras, números y guiones bajos.',
+            'email.required' => 'El email es requerido.',
+            'email.email' => 'El email debe ser una dirección válida.',
+            'email.unique' => 'Este email ya está registrado.',
+            'first_name.required' => 'El nombre es requerido.',
+            'first_name.min' => 'El nombre debe tener al menos 2 caracteres.',
+            'last_name.required' => 'El apellido es requerido.',
+            'last_name.min' => 'El apellido debe tener al menos 2 caracteres.',
+            'password.required' => 'La contraseña es requerida.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'country_id.exists' => 'El país seleccionado no es válido.',
         ]);
 
-        $user = User::create([
-            'username' => $validated['username'],
-            'email' => $validated['email'],
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'password' => Hash::make($validated['password']),
-            'country_id' => $validated['country_id'],
-        ]);
+        // Usar país por defecto si no se proporciona (Venezuela)
+        $countryId = $validated['country_id'] ?? \App\Models\Countries\Country::where('iso_code_2', 'VE')->value('id');
 
-        // Assign default player role
-        $user->assignRole('player');
+        DB::beginTransaction();
 
-        // Login the user
-        Auth::login($user);
+        try {
+            // Crear usuario
+            $user = User::create([
+                'username' => $validated['username'],
+                'email' => $validated['email'],
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'password' => Hash::make($validated['password']),
+                'country_id' => $countryId,
+                'status' => 'ACTIVE',
+                'referral_code' => app(\App\Repositories\Users\UserRepository::class)->generateUniqueReferralCode(),
+            ]);
 
-        // Load relationships
-        $user->load(['roles', 'country']);
+            // Asignar rol de player por defecto
+            $user->assignRole('player');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Usuario registrado exitosamente',
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'full_name' => $user->first_name . ' ' . $user->last_name,
-                'country_code' => $user->country?->iso_code_2,
-                'role' => 'player',
-                'roles' => ['player'],
-                'verified' => false,
-                'created_at' => $user->created_at,
-            ],
-        ], 201);
+            // Obtener la moneda del país del usuario
+            $currency = \App\Models\Currencies\Currency::where('country_id', $countryId)->first();
+
+            // Si no hay moneda específica para el país, usar VES por defecto
+            if (!$currency) {
+                $currency = \App\Models\Currencies\Currency::where('iso_code', 'VES')->first();
+            }
+
+            // Crear wallet para el usuario
+            if ($currency) {
+                \App\Models\Wallets\Wallet::create([
+                    'user_id' => $user->id,
+                    'currency_id' => $currency->id,
+                    'balance' => 0.00,
+                    'status' => 'ACTIVE',
+                ]);
+            }
+
+            DB::commit();
+
+            // Hacer login automático
+            Auth::login($user);
+
+            // Regenerar sesión
+            $request->session()->regenerate();
+
+            // Cargar relaciones
+            $user->load(['roles', 'country', 'wallets.currency']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario registrado exitosamente',
+                'user' => [
+                    'id' => $user->id,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'full_name' => $user->first_name . ' ' . $user->last_name,
+                    'country_code' => $user->country?->iso_code_2,
+                    'role' => 'player',
+                    'roles' => ['player'],
+                    'verified' => false,
+                    'created_at' => $user->created_at,
+                ],
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            \Log::error('Error en registro de usuario', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar usuario. Por favor intenta nuevamente.',
+                'errors' => ['general' => ['Ocurrió un error inesperado. Por favor contacta al soporte.']],
+            ], 500);
+        }
     }
 
     /**

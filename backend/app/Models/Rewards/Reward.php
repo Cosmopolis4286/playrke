@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Models\Rewards;
 
 use App\Models\User;
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -36,7 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Reward extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     /**
      * Nombre de la tabla en la base de datos

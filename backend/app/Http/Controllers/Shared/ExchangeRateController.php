@@ -1,17 +1,24 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Shared;
+
+// Base Controller
+use App\Http\Controllers\Controller;
+
 // Models
 use App\Models\Currencies\Currency;
-use App\Models\CommerceExchangeRate;
-use App\Models\Customer;
-use App\Models\CustomerExchangeRate;
-use App\Models\ExchangeRate;
+use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
+use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Payments\ExchangeRate\Users\Roles\CustomerExchangeRate;
+use App\Models\Payments\ExchangeRate\ExchangeRate;
+
 // Services
-use App\Services\Helpers\HandleExchangeRates;
+use App\Services\ExchangeRate\ExchangeRateService;
+
 // Traits
 use App\Traits\Users\UserTrait;
-// Otros
+
+// Laravel
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -380,7 +387,7 @@ class ExchangeRateController extends Controller
 
     public function getExchangeRates($checkUpdate = false)
     {
-        $res = app(HandleExchangeRates::class)->updateExchangeRates(Auth::id(), $checkUpdate);
+        $res = app(ExchangeRateService::class)->updateExchangeRates(Auth::id(), $checkUpdate);
 
         if ($checkUpdate) return;
 

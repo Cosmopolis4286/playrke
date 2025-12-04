@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Users\Customer;
+namespace App\Services\User\Roles\Customer;
 
 use App\Models\CustomerUser;
 use App\Traits\SeamlessWallet;

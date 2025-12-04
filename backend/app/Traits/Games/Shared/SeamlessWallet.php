@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits\Games;
+namespace App\Traits\Games\Shared;
 
 // Models
 use App\Models\Customer;

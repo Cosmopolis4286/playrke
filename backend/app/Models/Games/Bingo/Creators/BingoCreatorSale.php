@@ -5,7 +5,7 @@ namespace App\Models\Games\Bingo\Creators;
 use App\Models\Currencies\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Users\User;
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -37,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class BingoCreatorSale extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     /**
      * Nombre de la tabla en la base de datos

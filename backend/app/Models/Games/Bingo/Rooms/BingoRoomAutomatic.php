@@ -5,7 +5,7 @@ namespace App\Models\Games\Bingo\Rooms;
 use App\Models\Games\Shared\GameMode\GameModes;
 use App\Models\Games\Shared\PrizePool\PrizePoolType;
 use App\Models\Users\User;
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -54,7 +54,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class BingoRoomAutomatic extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     /**
      * Nombre de la tabla en la base de datos

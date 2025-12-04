@@ -16,6 +16,13 @@ class GameStatus extends Model
     use SnowflakeId;
 
     /**
+     * Nombre de la tabla en la base de datos.
+     *
+     * @var string
+     */
+    protected $table = 'game_status';
+
+    /**
      * Los campos que se pueden asignar masivamente.
      *
      * @var array<int, string>
@@ -42,11 +49,11 @@ class GameStatus extends Model
     /**
      * Scope para buscar por valor de estado.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \Illuminate\Database\Eloquent\Builder<static> $query
      * @param string $value
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \Illuminate\Database\Eloquent\Builder<static>
      */
-    public function scopeByValue($query, string $value)
+    public function scopeByValue(\Illuminate\Database\Eloquent\Builder $query, string $value): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('value', strtoupper($value));
     }
@@ -54,11 +61,11 @@ class GameStatus extends Model
     /**
      * Scope para buscar por descripción parcial.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \Illuminate\Database\Eloquent\Builder<static> $query
      * @param string $description
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \Illuminate\Database\Eloquent\Builder<static>
      */
-    public function scopeByDescription($query, string $description)
+    public function scopeByDescription(\Illuminate\Database\Eloquent\Builder $query, string $description): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('description', 'LIKE', "%{$description}%");
     }

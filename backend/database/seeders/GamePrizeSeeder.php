@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Games\Shared\Game;
 use App\Models\Games\Shared\Utils\GamePrize;
-use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 
 class GamePrizeSeeder extends Seeder
@@ -25,18 +24,12 @@ class GamePrizeSeeder extends Seeder
             ['description' => 'Canto',       'code' => 'SONG', 'game_id' => $gameId, 'is_active' => true],
         ];
 
-        // Crear instancia de Snowflake
-        $snowflake = new Snowflake();
-
-        // Agregar ID Snowflake a cada registro
-        $prizes = array_map(function ($prize) use ($snowflake) {
-            $prize['id'] = $snowflake->id();
-            $prize['created_at'] = now();
-            $prize['updated_at'] = now();
-            return $prize;
-        }, $prizes);
-
-        // Inserción masiva
-        GamePrize::insert($prizes);
+        // Insertar o actualizar cada premio de forma idempotente
+        foreach ($prizes as $prize) {
+            GamePrize::updateOrCreate(
+                ['code' => $prize['code'], 'game_id' => $prize['game_id']],
+                ['description' => $prize['description'], 'is_active' => $prize['is_active']]
+            );
+        }
     }
 }

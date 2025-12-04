@@ -1,5 +1,5 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Wallets;
 
 class WalletController extends Controller {}

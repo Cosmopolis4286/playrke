@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\User\Roles;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Services\Auth\PermissionService;
-use App\DTOs\CommerceDTO;
+use App\DTOs\User\Roles\CommerceDTO;
 
 /**
  * Request para validar datos de una Comercializadora (Commerce).

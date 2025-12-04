@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Shared\Transactions;
 
-use App\Traits\HasSnowflakeId;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Transaction extends Model
 {
-    use HasSnowflakeId;
+    use SnowflakeId;
 
     protected $table = "transactions";
 
