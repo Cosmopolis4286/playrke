@@ -1,9 +1,9 @@
 # ============================================
 # Docker Compose - PlayRKE Monorepo
-# Versión optimizada con healthchecks y build stages
 # ============================================
 
 services:
+
   # ==========================================
   # MySQL Database
   # ==========================================
@@ -32,6 +32,7 @@ services:
       start_period: 30s
     command: --default-authentication-plugin=mysql_native_password
 
+
   # ==========================================
   # Redis Cache & Queue
   # ==========================================
@@ -52,6 +53,7 @@ services:
       retries: 5
       start_period: 10s
     command: redis-server --appendonly yes
+
 
   # ==========================================
   # Laravel Backend
@@ -78,10 +80,10 @@ services:
       redis:
         condition: service_healthy
     environment:
-      APP_NAME: ${APP_NAME:-PlayRKE}
+      APP_NAME: PlayRKE
       APP_ENV: ${APP_ENV:-local}
       APP_DEBUG: ${APP_DEBUG:-true}
-      APP_URL: ${APP_URL:-http://localhost:8000}
+      APP_URL: http://localhost:8000
 
       DB_CONNECTION: mysql
       DB_HOST: mysql
@@ -91,7 +93,6 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-playrke}
 
       REDIS_HOST: redis
-      REDIS_PASSWORD: null
       REDIS_PORT: 6379
 
       CACHE_DRIVER: redis
@@ -101,35 +102,29 @@ services:
       REVERB_APP_ID: ${REVERB_APP_ID:-local}
       REVERB_APP_KEY: ${REVERB_APP_KEY:-local}
       REVERB_APP_SECRET: ${REVERB_APP_SECRET:-local}
-      REVERB_HOST: 0.0.0.0
+      REVERB_HOST: backend
       REVERB_PORT: 8080
       REVERB_SCHEME: http
     networks:
       - playrke-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
+      interval: 20s
       timeout: 10s
       retries: 5
-      start_period: 180s
+      start_period: 120s
     command: >
       sh -c "
-      echo '🔍 Verificando dependencias de Composer...';
-      if [ ! -f 'vendor/autoload.php' ]; then
-        echo '📦 Instalando dependencias de Composer...';
-        composer install --no-interaction --prefer-dist --optimize-autoloader || exit 1;
-        echo '✅ Dependencias instaladas correctamente';
-      else
-        echo '✅ Dependencias ya instaladas';
-      fi &&
-      echo '🔄 Ejecutando migraciones...';
-      php artisan migrate --force &&
-      echo '🚀 Iniciando servidor Laravel...';
-      php artisan serve --host=0.0.0.0 --port=8000
+        if [ ! -f vendor/autoload.php ]; then
+          composer install --no-interaction --prefer-dist --optimize-autoloader;
+        fi;
+        php artisan migrate --force;
+        php artisan serve --host=0.0.0.0 --port=8000
       "
 
+
   # ==========================================
-  # Laravel Reverb (WebSocket Server)
+  # Laravel Reverb Server
   # ==========================================
   reverb:
     build:
@@ -161,13 +156,13 @@ services:
       - playrke-network
     command: >
       sh -c "
-      echo '⏳ Esperando que backend instale dependencias...';
-      sleep 10;
-      php artisan reverb:start --host=0.0.0.0 --port=8080
+        sleep 5;
+        php artisan reverb:start --host=0.0.0.0 --port=8080
       "
 
+
   # ==========================================
-  # Nuxt Frontend
+  # Nuxt 4 Frontend
   # ==========================================
   frontend:
     build:
@@ -195,30 +190,24 @@ services:
       NODE_ENV: development
       HOST: 0.0.0.0
       PORT: 3000
+      NUXT_TELEMETRY_DISABLED: 1
     networks:
       - playrke-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 30s
+      interval: 20s
       timeout: 10s
       retries: 5
-      start_period: 240s
+      start_period: 180s
     command: >
       sh -c "
-      echo '🔍 Verificando dependencias de pnpm...';
-      if [ ! -d 'node_modules/.pnpm' ]; then
-        echo '📦 Instalando dependencias con pnpm...';
-        pnpm install || exit 1;
-        echo '✅ Dependencias instaladas correctamente';
-      else
-        echo '✅ Dependencias ya instaladas';
-      fi &&
-      echo '🚀 Iniciando Nuxt dev server...';
-      pnpm run dev
+        if [ ! -d node_modules/.pnpm ]; then pnpm install; fi;
+        pnpm run dev --hostname 0.0.0.0
       "
 
+
   # ==========================================
-  # PhpMyAdmin (Administración BD)
+  # PhpMyAdmin
   # ==========================================
   phpmyadmin:
     image: phpmyadmin:latest
@@ -235,12 +224,12 @@ services:
       PMA_USER: root
       PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       PMA_ARBITRARY: 1
-      UPLOAD_LIMIT: 100M
     networks:
       - playrke-network
 
+
   # ==========================================
-  # Laravel Queue Worker (opcional)
+  # Queue Worker
   # ==========================================
   queue:
     build:
@@ -256,57 +245,39 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
-      APP_NAME: ${APP_NAME:-PlayRKE}
-      APP_ENV: ${APP_ENV:-local}
-      APP_DEBUG: ${APP_DEBUG:-true}
-
+      APP_ENV: local
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_DATABASE: ${DB_DATABASE:-playrke}
-      DB_USERNAME: ${DB_USERNAME:-playrke}
-      DB_PASSWORD: ${DB_PASSWORD:-playrke}
-
+      DB_DATABASE: playrke
+      DB_USERNAME: playrke
+      DB_PASSWORD: playrke
       REDIS_HOST: redis
-      REDIS_PASSWORD: null
       REDIS_PORT: 6379
-
-      CACHE_DRIVER: redis
       QUEUE_CONNECTION: redis
-      SESSION_DRIVER: redis
     networks:
       - playrke-network
     command: >
       sh -c "
-      echo '⏳ Esperando que backend instale dependencias...';
-      sleep 10;
-      php artisan queue:work --tries=3 --timeout=90 --sleep=3
+        sleep 5;
+        php artisan queue:work --tries=3 --timeout=90 --sleep=3
       "
 
+
 # ==========================================
-# Volúmenes persistentes
+# Volumes
 # ==========================================
 volumes:
   mysql_data:
-    driver: local
   redis_data:
-    driver: local
   backend_vendor:
-    driver: local
   frontend_node_modules:
-    driver: local
   frontend_nuxt:
-    driver: local
   frontend_output:
-    driver: local
 
 # ==========================================
-# Red compartida
+# Network
 # ==========================================
 networks:
   playrke-network:

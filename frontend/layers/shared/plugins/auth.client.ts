@@ -6,20 +6,16 @@
 export default defineNuxtPlugin(async () => {
   const { checkAuth } = useAuth()
 
-  // Verificar autenticación al cargar la app
-  if (process.client) {
-    try {
-      await checkAuth()
-    } catch (error) {
-      console.error('Error verificando autenticación:', error)
-    }
+  // Ejecutar solo en cliente (forma recomendada en Nuxt)
+  if (import.meta.client) {
+    checkAuth().catch((err) => {
+      console.error('Error al verificar autenticación:', err)
+    })
   }
 
   return {
     provide: {
-      auth: {
-        checkAuth
-      }
+      auth: { checkAuth }
     }
   }
 })

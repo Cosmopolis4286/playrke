@@ -356,13 +356,13 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, readonly, onMounted, onUnmounted } from 'vue'
-import { useDemoCredentials, type DemoCredential } from '~/composables/auth/useDemoCredentials.ts'
+import { useDemoCredentials, type DemoCredential } from '~/composables/auth/useDemoCredentials'
 import {
   copyCredentials as copyCredentialsHelper,
   copyAllCredentials as copyAllCredentialsHelper,
   initStats,
   saveStats,
-} from '~/composables/auth/useDemoCredentialsHelpers.ts'
+} from '~/composables/auth/useDemoCredentialsHelpers'
 
 // Types
 interface DemoCredentials {

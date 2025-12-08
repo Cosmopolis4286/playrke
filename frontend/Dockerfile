@@ -1,91 +1,86 @@
 # ============================================
-# Dockerfile Multi-Stage para Nuxt 3 Frontend
+# Base con Node.js + pnpm
 # ============================================
-
-# Stage 1: Base con Node.js
 FROM node:20-alpine AS base
 
-# Instalar pnpm
-RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
-
-# Configurar directorio de trabajo
 WORKDIR /app
 
-# Configurar variables de entorno de Node
-ENV NODE_ENV=development
+RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
+
+ENV HOST=0.0.0.0
+ENV PORT=3000
 
 # ============================================
-# Stage 2: Dependencias (para cache)
+# Copy Workspace (para PNPM Workspaces)
 # ============================================
-FROM base AS dependencies
+FROM base AS workspace
 
-# Copiar archivos de configuración de dependencias
-COPY package.json ./
+# Copiar archivos necesarios del monorepo
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 
-# Instalar dependencias (sin frozen-lockfile ya que estamos en monorepo)
-RUN pnpm install
+# Copiar package.json del frontend
+COPY frontend/package.json ./frontend/package.json
 
 # ============================================
-# Stage 3: Desarrollo
+# Dependencias
+# ============================================
+FROM workspace AS dependencies
+
+WORKDIR /app/frontend
+
+# Instalar SOLO dependencias del frontend dentro del workspace
+RUN pnpm install --frozen-lockfile --filter ./frontend...
+
+# ============================================
+# Desarrollo
 # ============================================
 FROM base AS development
 
-# Crear directorios necesarios
-RUN mkdir -p node_modules .nuxt .output
+WORKDIR /app/frontend
 
-# Exponer puerto de Nuxt (3000 por defecto)
+COPY --from=dependencies /app/frontend/node_modules ./node_modules
+COPY frontend ./
+
 EXPOSE 3000
+ENV NODE_ENV=development
 
-# Variables de entorno para desarrollo
-ENV HOST=0.0.0.0
-ENV PORT=3000
-
-# Comando de desarrollo - Las dependencias se instalan en runtime via docker-compose command
-CMD ["pnpm", "run", "dev"]
+CMD ["pnpm", "dev", "--host"]
 
 # ============================================
-# Stage 4: Builder (compilación)
+# Builder (Nuxt 4)
 # ============================================
 FROM base AS builder
 
-# Copiar dependencias
-COPY --from=dependencies /app/node_modules ./node_modules
+WORKDIR /app/frontend
 
-# Copiar código fuente
-COPY . .
+COPY --from=dependencies /app/frontend/node_modules ./node_modules
+COPY frontend ./
 
-# Configurar para producción
 ENV NODE_ENV=production
 
-# Build de la aplicación
-RUN pnpm run build
+RUN pnpm build
 
 # ============================================
-# Stage 5: Producción
+# Producción
 # ============================================
 FROM base AS production
 
-# Cambiar a producción
+WORKDIR /app/frontend
+
 ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=3000
 
-# Copiar solo lo necesario para ejecutar
-COPY --from=builder /app/.output /app/.output
-COPY --from=builder /app/package.json /app/package.json
+# Copiar artefactos
+COPY --from=builder /app/frontend/.output .output
 
-# Crear usuario no-root para seguridad
+# Copiar package.json para poder ejecutar en producción
+COPY frontend/package.json ./
+
+# Crear usuario seguro
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nuxt -u 1001
 
-# Cambiar ownership
-RUN chown -R nuxt:nodejs /app
-
-# Usar usuario no-root
 USER nuxt
 
-# Exponer puerto
 EXPOSE 3000
 
-# Comando de inicio para producción
 CMD ["node", ".output/server/index.mjs"]

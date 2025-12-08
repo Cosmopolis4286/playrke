@@ -10,16 +10,27 @@ export interface User {
   username: string
   first_name: string
   last_name: string
+  full_name: string
   email: string
-  avatar?: string
+
+  avatar?: string | null
+  country_code?: string | null
+
+  role?: string
   roles: string[]
-  permissions: string[]
+
+  verified: boolean
+
+  permissions?: string[] // Opcional, tu backend no lo envía
   preferences?: UserPreferences
+
   status?: 'active' | 'inactive' | 'banned'
-  email_verified_at?: string
+
+  email_verified_at?: string | null
   created_at?: string
   updated_at?: string
 }
+
 
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system'
