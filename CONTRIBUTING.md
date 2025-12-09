@@ -98,7 +98,7 @@ php artisan reverb:start
 
 namespace App\Services;
 
-use App\Models\User;
+use App\Models\Users\User;
 use Illuminate\Support\Facades\Hash;
 
 class UserService
@@ -427,7 +427,7 @@ Cómo esta funcionalidad beneficiaría al proyecto.
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Models\Users\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

@@ -148,31 +148,53 @@ class WebSocketService {
       const { default: Echo } = await import('laravel-echo')
       const Pusher = (await import('pusher-js')).default
 
-      const wsConfig: WebSocketConfig = {
-        broadcaster: 'pusher',
-        key: this.runtimeConfig.public.pusherKey || 'local',
-        wsHost: this.runtimeConfig.public.pusherHost || 'localhost',
-        wsPort: this.runtimeConfig.public.pusherPort || 6001,
-        wssPort: this.runtimeConfig.public.pusherPort || 6001,
-        forceTLS: this.runtimeConfig.public.pusherTLS || false,
-        enabledTransports: ['ws', 'wss'],
-        cluster: this.runtimeConfig.public.pusherCluster || 'mt1'
-      }
+      // Leer config desde runtimeConfig (fallbacks seguros)
+      const publicCfg = this.runtimeConfig?.public ?? {}
+      const pusherKey = publicCfg.pusherKey ?? 'local'
+      const pusherHost = publicCfg.pusherHost ?? 'localhost'
+      const pusherPort = Number(publicCfg.pusherPort ?? 8082)
+      const pusherTLS = publicCfg.pusherTLS === 'true' || publicCfg.pusherTLS === true ? true : false
+      const forceTLS = pusherTLS
+      const wsProtocol = forceTLS ? 'wss' : 'ws'
+      const wsHost = pusherHost.replace(/\/$/, '')
 
       window.Pusher = Pusher
 
+      // Construir authEndpoint
+      const apiBase = (publicCfg.apiBase ?? '').replace(/\/$/, '')
+      const authEndpoint = `${apiBase}/api/broadcasting/auth`
+
+      // Debug: loguear valores reales
+      console.debug('[WebSocket] Config loaded:', {
+        pusherKey,
+        wsHost,
+        pusherPort,
+        forceTLS,
+        wsProtocol,
+        authEndpoint
+      })
+
       this.echo = new Echo({
-        ...wsConfig,
+        broadcaster: 'pusher',
+        key: pusherKey,
+        wsHost,
+        wsPort: pusherPort,
+        wssPort: pusherPort,
+        forceTLS,
+        enabledTransports: ['ws', 'wss'],
+        cluster: publicCfg.pusherCluster ?? undefined,
         auth: {
           headers: {
             Accept: 'application/json'
-          }
+          },
+          // @ts-ignore
+          withCredentials: true
         },
-        authEndpoint: `${this.runtimeConfig.public.apiBase.replace('/api', '')}/broadcasting/auth`
+        authEndpoint
       })
 
       this.setConnected(true)
-      console.log('✅ [WebSocket] Connected successfully')
+      console.log('✅ [WebSocket] Connected successfully to', `${wsProtocol}://${wsHost}:${pusherPort}`)
     } catch (error) {
       console.error('❌ [WebSocket] Connection error:', error)
       this.setConnected(false)

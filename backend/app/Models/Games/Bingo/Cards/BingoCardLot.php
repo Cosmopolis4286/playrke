@@ -8,7 +8,7 @@ use App\Models\Currencies\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
 use App\Models\Users\Roles\Seller\Seller;
-use App\Models\User;
+use App\Models\Users\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,15 +17,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Modelo para los lotes de cartones de bingo
- * 
+ *
  * Representa un lote de cartones comprados por un jugador en una sala de bingo.
  * Cada lote contiene información sobre la cantidad de cartones, precios, comisiones
  * y está asociado a una sala específica y un jugador.
- * 
+ *
  * @package App\Models\Games\Bingo\Cards
  * @author Sistema PlayRKE
  * @version 1.0
- * 
+ *
  * @property int $id ID único del lote
  * @property string $room_id ID de la sala de bingo
  * @property string $creator_user_id ID del usuario creador
@@ -41,7 +41,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
  * @property \Carbon\Carbon|null $deleted_at Fecha de eliminación suave
- * 
+ *
  * @property-read BingoRoom $room Sala de bingo asociada
  * @property-read User $creatorUser Usuario creador del lote
  * @property-read Seller|null $seller Vendedor asociado
@@ -93,7 +93,7 @@ class BingoCardLot extends Model
 
     /**
      * Relación con la sala de bingo
-     * 
+     *
      * @return BelongsTo<BingoRoom, BingoCardLot>
      */
     public function room(): BelongsTo
@@ -103,7 +103,7 @@ class BingoCardLot extends Model
 
     /**
      * Relación con el usuario creador del lote
-     * 
+     *
      * @return BelongsTo<User, BingoCardLot>
      */
     public function creatorUser(): BelongsTo
@@ -113,7 +113,7 @@ class BingoCardLot extends Model
 
     /**
      * Relación con el vendedor (opcional)
-     * 
+     *
      * @return BelongsTo<Seller, BingoCardLot>
      */
     public function seller(): BelongsTo
@@ -123,7 +123,7 @@ class BingoCardLot extends Model
 
     /**
      * Relación con el usuario en la sala
-     * 
+     *
      * @return BelongsTo<BingoRoomUser, BingoCardLot>
      */
     public function roomUser(): BelongsTo
@@ -133,7 +133,7 @@ class BingoCardLot extends Model
 
     /**
      * Relación con la moneda utilizada
-     * 
+     *
      * @return BelongsTo<Currency, BingoCardLot>
      */
     public function currency(): BelongsTo
@@ -143,7 +143,7 @@ class BingoCardLot extends Model
 
     /**
      * Relación con los cartones del lote
-     * 
+     *
      * @return HasMany<BingoCard>
      */
     public function cards(): HasMany
@@ -153,7 +153,7 @@ class BingoCardLot extends Model
 
     /**
      * Relación con los pagos del lote
-     * 
+     *
      * @return HasMany<BingoCardPayment>
      */
     public function payments(): HasMany
@@ -164,7 +164,7 @@ class BingoCardLot extends Model
 
     /**
      * Calcular el monto total incluyendo comisiones
-     * 
+     *
      * @return float
      */
     public function getTotalAmountWithCommission(): float
@@ -175,7 +175,7 @@ class BingoCardLot extends Model
 
     /**
      * Scope para obtener solo lotes activos
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -186,7 +186,7 @@ class BingoCardLot extends Model
 
     /**
      * Scope para obtener lotes por vendedor
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $sellerId
      * @return \Illuminate\Database\Eloquent\Builder

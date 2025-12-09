@@ -1,13 +1,12 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-pink-900 to-red-900">
-    <!-- Demo Credentials Component -->
-    <AuthDemoCredentials @fill-credentials="fillForm" />
+    <!-- Demo Credentials Component (visible en dev por defecto) -->
+    <AuthDemoCredentials v-model:modelValue="demoVisible" @fill-credentials="fillForm" />
 
     <div class="max-w-md w-full mx-4">
       <!-- Logo y título -->
       <div class="text-center mb-8">
         <div class="inline-block p-4 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 mb-4">
-          <Icon name="lucide:trophy" class="h-16 w-16 text-yellow-400" />
         </div>
         <h1 class="text-4xl font-bold text-white mb-2 font-gaming">PlayRKE</h1>
         <p class="text-pink-200 text-lg">¡Bienvenido de vuelta, Jugador!</p>
@@ -170,6 +169,9 @@ definePageMeta({
 const { login } = useAuth()
 const router = useRouter()
 
+// Control de visibilidad del demo credentials (mostrar en dev)
+const demoVisible = ref(import.meta.env.DEV ?? false)
+
 // Estado del formulario
 const form = ref({
   login: '',
@@ -233,6 +235,8 @@ async function handleLogin() {
       loginError.value = 'Por favor verifica los datos ingresados.'
     } else if (error.response?.status === 401) {
       loginError.value = 'Credenciales incorrectas. Verifica tu email/usuario y contraseña.'
+    } else if (error.response?.status === 404) {
+      loginError.value = 'El servidor no pudo ser encontrado. Por favor intenta más tarde.'
     } else {
       loginError.value = 'Error inesperado. Por favor intenta de nuevo.'
     }

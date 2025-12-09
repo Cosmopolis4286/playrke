@@ -38,6 +38,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('api.auth.logout');
         Route::get('user', [AuthController::class, 'user'])->name('api.auth.user');
+        // Alias para compatibilidad con frontend que consulta /api/auth/me
+        Route::get('me', [AuthController::class, 'me'])->name('api.auth.me');
     });
 
     // User Profile

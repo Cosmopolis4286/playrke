@@ -8,7 +8,7 @@ use App\Models\Currencies\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Users\Roles\Player\External\ExternalPlayers;
 use App\Models\Users\Roles\Seller\Seller;
-use App\Models\User;
+use App\Models\Users\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,14 +16,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Modelo para los pagos de cartones de bingo
- * 
+ *
  * Representa un pago realizado por la compra de cartones de bingo.
  * Incluye información sobre el método de pago, monto, comprobante y estado.
- * 
+ *
  * @package App\Models\Games\Bingo\Cards
  * @author Sistema PlayRKE
  * @version 1.0
- * 
+ *
  * @property int $id ID único del pago
  * @property string $payment_method Método de pago utilizado
  * @property string|null $description Descripción opcional del pago
@@ -42,7 +42,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
  * @property \Carbon\Carbon|null $deleted_at Fecha de eliminación suave
- * 
+ *
  * @property-read BingoRoom $room Sala de bingo asociada
  * @property-read User $creatorUser Usuario creador del pago
  * @property-read Seller|null $seller Vendedor asociado
@@ -112,7 +112,7 @@ class BingoCardPayment extends Model
 
     /**
      * Relación con la sala de bingo
-     * 
+     *
      * @return BelongsTo<BingoRoom, BingoCardPayment>
      */
     public function room(): BelongsTo
@@ -122,7 +122,7 @@ class BingoCardPayment extends Model
 
     /**
      * Relación con el usuario creador del pago
-     * 
+     *
      * @return BelongsTo<User, BingoCardPayment>
      */
     public function creatorUser(): BelongsTo
@@ -132,7 +132,7 @@ class BingoCardPayment extends Model
 
     /**
      * Relación con el vendedor (opcional)
-     * 
+     *
      * @return BelongsTo<Seller, BingoCardPayment>
      */
     public function seller(): BelongsTo
@@ -142,7 +142,7 @@ class BingoCardPayment extends Model
 
     /**
      * Relación con el usuario que realizó el pago
-     * 
+     *
      * @return BelongsTo<User, BingoCardPayment>
      */
     public function user(): BelongsTo
@@ -152,7 +152,7 @@ class BingoCardPayment extends Model
 
     /**
      * Relación con el jugador externo
-     * 
+     *
      * @return BelongsTo<ExternalPlayers, BingoCardPayment>
      */
     public function externalPlayer(): BelongsTo
@@ -162,7 +162,7 @@ class BingoCardPayment extends Model
 
     /**
      * Relación con la moneda utilizada
-     * 
+     *
      * @return BelongsTo<Currency, BingoCardPayment>
      */
     public function currency(): BelongsTo
@@ -172,7 +172,7 @@ class BingoCardPayment extends Model
 
     /**
      * Relación con el lote de cartones
-     * 
+     *
      * @return BelongsTo<BingoCardLot, BingoCardPayment>
      */
     public function cardLot(): BelongsTo
@@ -182,7 +182,7 @@ class BingoCardPayment extends Model
 
     /**
      * Obtener la descripción del método de pago
-     * 
+     *
      * @return string
      */
     public function getPaymentMethodDescription(): string
@@ -192,7 +192,7 @@ class BingoCardPayment extends Model
 
     /**
      * Obtener la descripción del estado del pago
-     * 
+     *
      * @return string
      */
     public function getPaymentStatusDescription(): string
@@ -202,7 +202,7 @@ class BingoCardPayment extends Model
 
     /**
      * Verificar si el pago está completado
-     * 
+     *
      * @return bool
      */
     public function isCompleted(): bool
@@ -212,7 +212,7 @@ class BingoCardPayment extends Model
 
     /**
      * Verificar si el pago está pendiente
-     * 
+     *
      * @return bool
      */
     public function isPending(): bool
@@ -224,7 +224,7 @@ class BingoCardPayment extends Model
 
     /**
      * Scope para obtener solo pagos completados
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -235,7 +235,7 @@ class BingoCardPayment extends Model
 
     /**
      * Scope para obtener solo pagos pendientes
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -246,7 +246,7 @@ class BingoCardPayment extends Model
 
     /**
      * Scope para obtener pagos por método
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $method
      * @return \Illuminate\Database\Eloquent\Builder

@@ -1,4 +1,4 @@
-<template>
+<template>ffff
   <!-- Modal Toggle Button - Solo mostrar si NO está controlado externamente -->
   <ClientOnly>
     <div v-if="isDevelopment && hasCredentials && props.modelValue === undefined" class="fixed bottom-4 right-4 z-50">

@@ -8,7 +8,7 @@ use App\Models\Currencies\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
 use App\Models\Users\Roles\Seller\Seller;
-use App\Models\User;
+use App\Models\Users\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,14 +18,14 @@ use App\Models\Games\Bingo\Cards\CardPrize\BingoCardPrize;
 
 /**
  * Modelo para los cartones de bingo
- * 
+ *
  * Representa un cartón individual de bingo con su matriz de números 5x5.
  * Cada cartón pertenece a un lote y contiene los números del juego BINGO.
- * 
+ *
  * @package App\Models\Games\Bingo\Cards
  * @author Sistema PlayRKE
  * @version 1.0
- * 
+ *
  * @property int $id ID único del cartón
  * @property string $room_id ID de la sala de bingo
  * @property string $creator_user_id ID del usuario creador
@@ -66,7 +66,7 @@ use App\Models\Games\Bingo\Cards\CardPrize\BingoCardPrize;
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
  * @property \Carbon\Carbon|null $deleted_at Fecha de eliminación suave
- * 
+ *
  * @property-read BingoRoom $room Sala de bingo asociada
  * @property-read User $creatorUser Usuario creador del cartón
  * @property-read Seller|null $seller Vendedor asociado
@@ -145,7 +145,7 @@ class BingoCard extends Model
 
     /**
      * Relación con la sala de bingo
-     * 
+     *
      * @return BelongsTo<BingoRoom, BingoCard>
      */
     public function room(): BelongsTo
@@ -155,7 +155,7 @@ class BingoCard extends Model
 
     /**
      * Relación con el usuario creador del cartón
-     * 
+     *
      * @return BelongsTo<User, BingoCard>
      */
     public function creatorUser(): BelongsTo
@@ -165,7 +165,7 @@ class BingoCard extends Model
 
     /**
      * Relación con el vendedor (opcional)
-     * 
+     *
      * @return BelongsTo<Seller, BingoCard>
      */
     public function seller(): BelongsTo
@@ -175,7 +175,7 @@ class BingoCard extends Model
 
     /**
      * Relación con el usuario en la sala
-     * 
+     *
      * @return BelongsTo<BingoRoomUser, BingoCard>
      */
     public function roomUser(): BelongsTo
@@ -185,7 +185,7 @@ class BingoCard extends Model
 
     /**
      * Relación con el lote de cartones
-     * 
+     *
      * @return BelongsTo<BingoCardLot, BingoCard>
      */
     public function cardLot(): BelongsTo
@@ -195,7 +195,7 @@ class BingoCard extends Model
 
     /**
      * Relación con la moneda utilizada
-     * 
+     *
      * @return BelongsTo<Currency, BingoCard>
      */
     public function currency(): BelongsTo
@@ -205,7 +205,7 @@ class BingoCard extends Model
 
     /**
      * Relación con los premios del cartón
-     * 
+     *
      * @return HasMany<BingoCardPrize>
      */
     public function prizes(): HasMany
@@ -215,7 +215,7 @@ class BingoCard extends Model
 
     /**
      * Obtener la matriz completa del cartón como array
-     * 
+     *
      * @return array<string, int|null>
      */
     public function getCardMatrix(): array
@@ -229,7 +229,7 @@ class BingoCard extends Model
 
     /**
      * Obtener los números de una columna específica
-     * 
+     *
      * @param string $letter Letra de la columna (B, I, N, G, O)
      * @return array<int, int|null>
      */
@@ -247,7 +247,7 @@ class BingoCard extends Model
 
     /**
      * Verificar si el cartón tiene un número específico
-     * 
+     *
      * @param int $number Número a buscar
      * @return bool
      */
@@ -263,7 +263,7 @@ class BingoCard extends Model
 
     /**
      * Obtener la descripción del estado del cartón
-     * 
+     *
      * @return string
      */
     public function getCardStatusDescription(): string
@@ -273,7 +273,7 @@ class BingoCard extends Model
 
     /**
      * Verificar si el cartón está activo
-     * 
+     *
      * @return bool
      */
     public function isActive(): bool
@@ -283,7 +283,7 @@ class BingoCard extends Model
 
     /**
      * Verificar si el cartón es ganador
-     * 
+     *
      * @return bool
      */
     public function isWinner(): bool
@@ -295,7 +295,7 @@ class BingoCard extends Model
 
     /**
      * Scope para obtener solo cartones activos
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -306,7 +306,7 @@ class BingoCard extends Model
 
     /**
      * Scope para obtener solo cartones ganadores
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -317,7 +317,7 @@ class BingoCard extends Model
 
     /**
      * Scope para obtener cartones validados
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */

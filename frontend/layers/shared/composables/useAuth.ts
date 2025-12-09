@@ -1,28 +1,30 @@
+import { computed } from 'vue'
+import { useRuntimeConfig } from '#app'
 import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth'
 import { useAuthStore } from '../stores/auth'
+import { useToast } from '#imports' // auto-import from /composables/useToast.ts
 
 export const useAuth = () => {
   const auth = useAuthStore()
   const config = useRuntimeConfig()
+  const toast = useToast() 
 
   const api = $fetch.create({
-    baseURL: config.public.apiBase,
-
-    // -----------------------------
-    // FIX: Headers deben ser Record<string, string>
-    // -----------------------------
-    onRequest({ options }) {
-      options.headers = options.headers ?? {}
+    baseURL: (config.public?.apiBase ?? '').replace(/\/$/, ''),
+    credentials: 'include',
+    onRequest({ options }: { options: any }) {
+      options.headers = {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(options.headers ?? {}) as Record<string, string>
+      }
 
       if (auth.token) {
-        options.headers = {
-          ...options.headers as Record<string, string>,
-          Authorization: `Bearer ${auth.token}`
-        }
+        options.headers.Authorization = `Bearer ${auth.token}`
       }
     },
 
-    onResponseError({ response }) {
+    onResponseError({ response }: { response: any }) {
       console.error('[Auth API Error]', response)
     }
   })
@@ -34,27 +36,30 @@ export const useAuth = () => {
     auth.setLoading(true)
 
     try {
-      const res = await api<AuthResponse>('/auth/login', {
+      const response = await api<AuthResponse>('/auth/login', {
         method: 'POST',
-
-        // -----------------------------
-        // FIX: body debe ser tipo unknown
-        // $fetch lo convierte a JSON
-        // -----------------------------
-        body: credentials as unknown
+        body: credentials
       })
 
-      if (res.success && res.user) {
-        auth.setAuth(res.user)
-      }
-
-      return res
+      auth.setUser(response.user)
+      auth.setToken(response.token)
+      auth.setAuthenticated(true)
+      
+      toast.add({
+        title: 'Éxito',
+        description: 'Sesión iniciada correctamente',
+        color: 'green'
+      })
+      return response
     } catch (error: any) {
+      const message = error.data?.message || error.message || 'Error al iniciar sesión'
+      toast.add({
+        title: 'Error',
+        description: message,
+        color: 'red'
+      })
       console.error('[Auth] Error en login:', error)
-      return {
-        success: false,
-        message: error?.response?._data?.message || 'Error al iniciar sesión'
-      }
+      throw error
     } finally {
       auth.setLoading(false)
     }
@@ -67,22 +72,30 @@ export const useAuth = () => {
     auth.setLoading(true)
 
     try {
-      const res = await api<AuthResponse>('/auth/register', {
+      const response = await api<AuthResponse>('/auth/register', {
         method: 'POST',
-        body: data as unknown
+        body: data
       })
 
-      if (res.success && res.user) {
-        auth.setAuth(res.user)
-      }
-
-      return res
+      auth.setUser(response.user)
+      auth.setToken(response.token)
+      auth.setAuthenticated(true)
+      
+      toast.add({
+        title: 'Éxito',
+        description: 'Registro completado correctamente',
+        color: 'green'
+      })
+      return response
     } catch (error: any) {
+      const message = error.data?.message || error.message || 'Error en el registro'
+      toast.add({
+        title: 'Error',
+        description: message,
+        color: 'red'
+      })
       console.error('[Auth] Error en registro:', error)
-      return {
-        success: false,
-        message: error?.response?._data?.message || 'Error al registrarse'
-      }
+      throw error
     } finally {
       auth.setLoading(false)
     }
@@ -94,17 +107,59 @@ export const useAuth = () => {
   const logout = async (): Promise<void> => {
     try {
       await api('/auth/logout', { method: 'POST' })
-    } finally {
       auth.clearAuth()
+      toast.add({
+        title: 'Sesión cerrada',
+        description: 'Has cerrado sesión correctamente',
+        color: 'blue'
+      })
+    } catch (error: any) {
+      const message = error.data?.message || 'Error al cerrar sesión'
+      toast.add({
+        title: 'Error',
+        description: message,
+        color: 'red'
+      })
+      console.error('[Auth] Error en logout:', error)
+      throw error
     }
   }
 
+  // -----------------------------------------------------
+  // CHECK AUTH (sin toast, solo log)
+  // -----------------------------------------------------
+  const checkAuth = async (): Promise<boolean> => {
+    try {
+      const user = await api<User>('/auth/me')
+      auth.setUser(user)
+      auth.setAuthenticated(true)
+      return true
+    } catch (error: any) {
+      if (error.status === 401 || error.status === 500) {
+        console.warn('[Auth] Usuario no autenticado:', error.message)
+        return false
+      }
+      console.error('[Auth] Error verificando autenticación:', error)
+      return false
+    }
+  }
+
+  // -----------------------------------------------------
+  // RELOAD USER
+  // -----------------------------------------------------
   const reloadUser = async (): Promise<User | null> => {
     try {
       const user = await api<User>('/auth/me')
-      auth.updateUser(user)
+      auth.setUser(user)
       return user
-    } catch {
+    } catch (error: any) {
+      const message = error.data?.message || 'Error al recargar usuario'
+      toast.add({
+        title: 'Error',
+        description: message,
+        color: 'red'
+      })
+      console.error('[Auth] Error en reloadUser:', error)
       return null
     }
   }
@@ -118,6 +173,7 @@ export const useAuth = () => {
     register,
     logout,
     reloadUser,
+    checkAuth,
 
     hasRole: auth.hasRole,
     hasPermission: auth.hasPermission,

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\User;
+use App\Models\Users\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -225,23 +225,33 @@ class AuthController extends Controller
         // Get user's primary role
         $role = $user->roles->first();
 
+        // Devuelve directamente el objeto user (compatibilidad con frontend que espera User)
         return response()->json([
-            'success' => true,
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'full_name' => $user->first_name . ' ' . $user->last_name,
-                'avatar' => $user->avatar_url ?? null,
-                'country_code' => $user->country?->iso_code_2,
-                'role' => $role?->prefix,
-                'roles' => $user->roles->pluck('prefix'),
-                'verified' => !is_null($user->email_verified_at),
-                'created_at' => $user->created_at,
-            ],
+            'id' => $user->id,
+            'username' => $user->username,
+            'email' => $user->email,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'full_name' => $user->first_name . ' ' . $user->last_name,
+            'avatar' => $user->avatar_url ?? null,
+            'country_code' => $user->country?->iso_code_2,
+            'role' => $role?->prefix,
+            'roles' => $user->roles->pluck('prefix'),
+            'verified' => !is_null($user->email_verified_at),
+            'created_at' => $user->created_at,
         ]);
+    }
+
+    /**
+     * Alias específico para /api/auth/me
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function me(Request $request): JsonResponse
+    {
+        // Reutiliza la lógica existente en user() para consistencia
+        return $this->user($request);
     }
 
     /**

@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Default Reverb Server
@@ -27,7 +26,6 @@ return [
     */
 
     'servers' => [
-
         'reverb' => [
             'host' => env('REVERB_SERVER_HOST', '0.0.0.0'),
             'port' => env('REVERB_SERVER_PORT', 8080),
@@ -51,7 +49,6 @@ return [
             'pulse_ingest_interval' => env('REVERB_PULSE_INGEST_INTERVAL', 15),
             'telescope_ingest_interval' => env('REVERB_TELESCOPE_INGEST_INTERVAL', 15),
         ],
-
     ],
 
     /*
@@ -66,26 +63,21 @@ return [
     */
 
     'apps' => [
-
-        'provider' => 'config',
-
-        'apps' => [
-            [
-                'key' => env('REVERB_APP_KEY'),
-                'secret' => env('REVERB_APP_SECRET'),
-                'app_id' => env('REVERB_APP_ID'),
-                'options' => [
-                    'host' => env('REVERB_HOST'),
-                    'port' => env('REVERB_PORT', 443),
-                    'scheme' => env('REVERB_SCHEME', 'https'),
-                    'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
-                ],
-                'allowed_origins' => ['*'],
-                'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
-                'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
+        [
+            'id' => env('REVERB_APP_ID', '330541'),
+            'name' => env('APP_NAME'),
+            'key' => env('REVERB_APP_KEY', 'hiwfwth0zvo7py29p90gots55krklv27'),
+            'secret' => env('REVERB_APP_SECRET', 'nwmhg3jgo2al1ptjiw40kfl40k1svcby'),
+            'path' => '/app',
+            'options' => [
+                'host' => env('REVERB_HOST'),
+                'port' => env('REVERB_PORT', 443),
+                'scheme' => env('REVERB_SCHEME', 'https'),
+                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
             ],
+            'allowed_origins' => ['*'],
+            'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
+            'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
         ],
-
     ],
-
 ];

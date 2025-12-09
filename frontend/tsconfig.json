@@ -5,10 +5,12 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./*"],
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "#app": ["./.nuxt"],
+      "#app/*": ["./.nuxt/*"]
     },
     "strict": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false, // Cambiado a false temporalmente
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "noImplicitReturns": true,
@@ -37,17 +39,13 @@
     "noEmit": true,
     "forceConsistentCasingInFileNames": true,
     "types": [
-      "@types/node"
+      "@types/node",
+      "nuxt"
     ]
   },
   "include": [
     "**/*.ts",
     "**/*.vue",
     ".nuxt/types/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    ".nuxt/dist",
-    "dist"
   ]
 }

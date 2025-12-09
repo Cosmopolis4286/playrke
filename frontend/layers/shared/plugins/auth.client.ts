@@ -6,10 +6,10 @@
 export default defineNuxtPlugin(async () => {
   const { checkAuth } = useAuth()
 
-  // Ejecutar solo en cliente (forma recomendada en Nuxt)
   if (import.meta.client) {
-    checkAuth().catch((err) => {
-      console.error('Error al verificar autenticación:', err)
+    // No esperar a que checkAuth complete - dejar que se ejecute en background
+    checkAuth().catch((err: Error) => {
+      console.warn('[Auth] Error al verificar sesión (no crítico):', err.message)
     })
   }
 

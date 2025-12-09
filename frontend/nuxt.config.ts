@@ -67,12 +67,17 @@ export default defineNuxtConfig({
 
   // Variables de entorno públicas
   runtimeConfig: {
-    // Públicas (cliente y servidor)
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api',
-      appName: 'PlayRKE',
-      appDescription: 'Plataforma de Bingo Online'
-    }
+      // apuntar al puerto mapeado en host (docker 8001:8000)
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8001',
+      // WebSocket / Reverb
+      pusherKey: process.env.NUXT_PUBLIC_PUSHER_KEY || 'local',
+      pusherHost: process.env.NUXT_PUBLIC_PUSHER_HOST || 'localhost',
+      pusherPort: Number(process.env.NUXT_PUBLIC_PUSHER_PORT || 8082),
+      pusherTLS: process.env.NUXT_PUBLIC_PUSHER_TLS === 'true' ? true : false,
+       appName: 'PlayRKE',
+       appDescription: 'Plataforma de Bingo Online'
+     }
   },
 
   // Configuración de Vite
