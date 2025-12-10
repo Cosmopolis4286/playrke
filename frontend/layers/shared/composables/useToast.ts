@@ -1,21 +1,44 @@
-export const useToast = () => {
-  const nuxtApp = useNuxtApp()
-  // preferenciable: nuxt injecto/prop $toast
-  const toast = nuxtApp.$toast ?? nuxtApp._context?.provides?.toast
+// layers/shared/composables/useToast.ts
+import { useToast } from '#ui'
 
-  const raw = (toast ?? { open: () => {} }) as any
+type ToastType = 'success' | 'error' | 'info' | 'warning'
 
-  const success = (message: string, opts: Record<string, any> = {}) =>
-    raw.open?.({ message, type: 'success', ...opts })
-  const error = (message: string, opts: Record<string, any> = {}) =>
-    raw.open?.({ message, type: 'error', ...opts })
-  const info = (message: string, opts: Record<string, any> = {}) =>
-    raw.open?.({ message, type: 'info', ...opts })
+export function useAppToast() {
+  const toast = useToast()
+
+  const notify = (
+    type: ToastType,
+    message: string,
+    description?: string
+  ) => {
+    toast.add({
+      title: message,
+      description,
+      color:
+        type === 'success' ? 'green' :
+        type === 'error'   ? 'red' :
+        type === 'warning' ? 'yellow' :
+        'blue'
+    })
+  }
+
+  const success = (msg: string, desc?: string) =>
+    notify('success', msg, desc)
+
+  const error = (msg: string, desc?: string) =>
+    notify('error', msg, desc)
+
+  const info = (msg: string, desc?: string) =>
+    notify('info', msg, desc)
+
+  const warning = (msg: string, desc?: string) =>
+    notify('warning', msg, desc)
 
   return {
-    raw,
+    notify,
     success,
     error,
-    info
+    info,
+    warning
   }
 }

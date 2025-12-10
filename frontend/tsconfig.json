@@ -4,48 +4,42 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./*"],
-      "@/*": ["./*"],
-      "#app": ["./.nuxt"],
-      "#app/*": ["./.nuxt/*"]
+      "~/*": [
+        "./*"
+      ],
+      "@/*": [
+        "./*"
+      ]
     },
     "strict": true,
-    "noImplicitAny": false, // Cambiado a false temporalmente
+    "noImplicitAny": false,
     "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
     "allowJs": true,
-    "checkJs": false,
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
     "skipLibCheck": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
-    "declaration": false,
-    "declarationMap": false,
-    "sourceMap": true,
-    "removeComments": false,
-    "noEmit": true,
-    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "types": [
-      "@types/node",
-      "nuxt"
-    ]
+      "nuxt",
+      "@types/node"
+    ],
+    "noEmit": true
   },
   "include": [
-    "**/*.ts",
-    "**/*.vue",
-    ".nuxt/types/**/*"
+    "app.vue",
+    "nuxt.config.ts",
+    "layers/**/*.ts",
+    "layers/**/*.vue",
+    "components/**/*.vue",
+    "composables/**/*.ts",
+    "plugins/**/*.ts",
+    "types/**/*.d.ts",
+    ".nuxt/**/*.ts"
   ]
 }

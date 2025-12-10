@@ -1,40 +1,50 @@
 import { computed } from 'vue'
-import { useRuntimeConfig } from '#app'
+import { useRuntimeConfig } from '#imports'
 import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth'
 import { useAuthStore } from '../stores/auth'
-import { useToast } from '#imports' // auto-import from /composables/useToast.ts
 
 export const useAuth = () => {
   const auth = useAuthStore()
   const config = useRuntimeConfig()
-  const toast = useToast() 
+  const { $toast } = useNuxtApp()
 
+  // ----------------------------
+  // Helper de notificaciones
+  // ----------------------------
+  const notifySuccess = (msg: string, title?: string) =>
+    $toast.success(msg, title)
+
+  const notifyError = (msg: string, title?: string) =>
+    $toast.error(msg, title)
+
+  // ----------------------------
+  // API instance
+  // ----------------------------
   const api = $fetch.create({
     baseURL: (config.public?.apiBase ?? '').replace(/\/$/, ''),
     credentials: 'include',
-    onRequest({ options }: { options: any }) {
-      options.headers = {
-        Accept: 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        ...(options.headers ?? {}) as Record<string, string>
-      }
 
-      if (auth.token) {
-        options.headers.Authorization = `Bearer ${auth.token}`
-      }
+    onRequest({ options }) {
+      const headers = new Headers(options.headers)
+
+      headers.set('accept', 'application/json')
+      headers.set('X-Requested-With', 'XMLHttpRequest')
+
+      options.headers = headers
     },
 
-    onResponseError({ response }: { response: any }) {
+    onResponseError({ response }) {
+      const msg = response?._data?.message ?? `Error ${response?.status ?? 'desconocido'}`
+      notifyError(msg)
       console.error('[Auth API Error]', response)
     }
   })
 
-  // -----------------------------------------------------
+  // ----------------------------
   // LOGIN
-  // -----------------------------------------------------
+  // ----------------------------
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     auth.setLoading(true)
-
     try {
       const response = await api<AuthResponse>('/auth/login', {
         method: 'POST',
@@ -44,20 +54,12 @@ export const useAuth = () => {
       auth.setUser(response.user)
       auth.setToken(response.token)
       auth.setAuthenticated(true)
-      
-      toast.add({
-        title: 'Éxito',
-        description: 'Sesión iniciada correctamente',
-        color: 'green'
-      })
+
+      notifySuccess('Sesión iniciada correctamente', 'Éxito')
+
       return response
     } catch (error: any) {
-      const message = error.data?.message || error.message || 'Error al iniciar sesión'
-      toast.add({
-        title: 'Error',
-        description: message,
-        color: 'red'
-      })
+      notifyError(error.data?.message || 'Error al iniciar sesión')
       console.error('[Auth] Error en login:', error)
       throw error
     } finally {
@@ -65,12 +67,11 @@ export const useAuth = () => {
     }
   }
 
-  // -----------------------------------------------------
+  // ----------------------------
   // REGISTER
-  // -----------------------------------------------------
+  // ----------------------------
   const register = async (data: RegisterData): Promise<AuthResponse> => {
     auth.setLoading(true)
-
     try {
       const response = await api<AuthResponse>('/auth/register', {
         method: 'POST',
@@ -80,54 +81,37 @@ export const useAuth = () => {
       auth.setUser(response.user)
       auth.setToken(response.token)
       auth.setAuthenticated(true)
-      
-      toast.add({
-        title: 'Éxito',
-        description: 'Registro completado correctamente',
-        color: 'green'
-      })
+
+      notifySuccess('Registro completado correctamente', 'Éxito')
+
       return response
     } catch (error: any) {
-      const message = error.data?.message || error.message || 'Error en el registro'
-      toast.add({
-        title: 'Error',
-        description: message,
-        color: 'red'
-      })
-      console.error('[Auth] Error en registro:', error)
+      notifyError(error.data?.message || 'Error en el registro')
+      console.error('[Auth] Error en register:', error)
       throw error
     } finally {
       auth.setLoading(false)
     }
   }
 
-  // -----------------------------------------------------
+  // ----------------------------
   // LOGOUT
-  // -----------------------------------------------------
+  // ----------------------------
   const logout = async (): Promise<void> => {
     try {
       await api('/auth/logout', { method: 'POST' })
       auth.clearAuth()
-      toast.add({
-        title: 'Sesión cerrada',
-        description: 'Has cerrado sesión correctamente',
-        color: 'blue'
-      })
+      notifySuccess('Has cerrado sesión correctamente', 'Sesión cerrada')
     } catch (error: any) {
-      const message = error.data?.message || 'Error al cerrar sesión'
-      toast.add({
-        title: 'Error',
-        description: message,
-        color: 'red'
-      })
+      notifyError(error.data?.message || 'Error al cerrar sesión')
       console.error('[Auth] Error en logout:', error)
       throw error
     }
   }
 
-  // -----------------------------------------------------
-  // CHECK AUTH (sin toast, solo log)
-  // -----------------------------------------------------
+  // ----------------------------
+  // CHECK AUTH
+  // ----------------------------
   const checkAuth = async (): Promise<boolean> => {
     try {
       const user = await api<User>('/auth/me')
@@ -135,30 +119,22 @@ export const useAuth = () => {
       auth.setAuthenticated(true)
       return true
     } catch (error: any) {
-      if (error.status === 401 || error.status === 500) {
-        console.warn('[Auth] Usuario no autenticado:', error.message)
-        return false
-      }
+      if (error.status === 401 || error.status === 500) return false
       console.error('[Auth] Error verificando autenticación:', error)
       return false
     }
   }
 
-  // -----------------------------------------------------
+  // ----------------------------
   // RELOAD USER
-  // -----------------------------------------------------
+  // ----------------------------
   const reloadUser = async (): Promise<User | null> => {
     try {
       const user = await api<User>('/auth/me')
       auth.setUser(user)
       return user
     } catch (error: any) {
-      const message = error.data?.message || 'Error al recargar usuario'
-      toast.add({
-        title: 'Error',
-        description: message,
-        color: 'red'
-      })
+      notifyError(error.data?.message || 'Error al recargar usuario')
       console.error('[Auth] Error en reloadUser:', error)
       return null
     }
@@ -175,6 +151,7 @@ export const useAuth = () => {
     reloadUser,
     checkAuth,
 
+    // helpers de roles del store
     hasRole: auth.hasRole,
     hasPermission: auth.hasPermission,
     isAdmin: auth.isAdmin,
