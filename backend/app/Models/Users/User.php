@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Modelo User con Snowflake IDs
- * 
+ *
  * Este modelo representa los usuarios del sistema, incluyendo roles,
  * referencias, entidades relacionadas y helpers de acceso.
  */
@@ -75,6 +75,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'referred_by_user_id',
         'email_verified_at',
         'status',
+        'is_demo_user',
         'last_login_at',
         'last_login_ip',
         'is_email_notifications_enabled',
@@ -94,6 +95,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
+        'is_demo_user' => 'boolean',
         'email_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
         'is_email_notifications_enabled' => 'boolean',

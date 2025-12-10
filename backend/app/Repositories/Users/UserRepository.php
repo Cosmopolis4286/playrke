@@ -45,6 +45,35 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
+     * Obtener usuarios demo (is_demo_user = true) con campos específicos
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    public function getDemoUsers(): \Illuminate\Support\Collection
+    {
+        return $this->model
+            ->where('is_demo_user', true)
+            ->get([
+                'id',
+                'email',
+                'password',
+                'first_name',
+                'last_name',
+            ])
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'password' => $user->password,
+                    'firstName' => $user->first_name,
+                    'lastName' => $user->last_name,
+                    'role' => 'player', // Asumido fijo o puedes obtener del primer rol si quieres
+                    'description' => 'Jugador de prueba',
+                ];
+            });
+    }
+
+    /**
      * Buscar usuario por código de referido
      *
      * @param string $referralCode Código de referido

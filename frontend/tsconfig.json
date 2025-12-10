@@ -1,45 +1,42 @@
 {
   "extends": "./.nuxt/tsconfig.json",
+
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
-    "paths": {
-      "~/*": [
-        "./*"
-      ],
-      "@/*": [
-        "./*"
-      ]
-    },
+
     "strict": true,
     "noImplicitAny": false,
-    "strictNullChecks": true,
-    "noUnusedLocals": true,
     "allowJs": true,
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
+
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "types": [
-      "nuxt",
-      "@types/node"
-    ],
+
+    "types": ["nuxt", "@types/node"],
+
     "noEmit": true
   },
+
   "include": [
-    "app.vue",
-    "nuxt.config.ts",
-    "layers/**/*.ts",
-    "layers/**/*.vue",
-    "components/**/*.vue",
-    "composables/**/*.ts",
-    "plugins/**/*.ts",
-    "types/**/*.d.ts",
-    ".nuxt/**/*.ts"
+    "./app.vue",
+    "./nuxt.config.ts",
+    "./.nuxt/**/*.ts",
+    "./components/**/*.vue",
+    "./composables/**/*.ts",
+    "./pages/**/*.vue",
+    "./layouts/**/*.vue",
+    "./plugins/**/*.ts",
+    "./stores/**/*.ts",
+    "./utils/**/*.ts",
+    "./types/**/*.d.ts",
+    "./layers/**/*.ts",
+    "./layers/**/*.vue"
   ]
 }

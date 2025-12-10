@@ -1,12 +1,12 @@
 <?php
-
-use Illuminate\Http\Request;
+// backend/routes/api.php
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\BingoController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\Admin\AdminController;
+use App\Http\Controllers\Api\Auth\DemoCredentialsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +28,9 @@ Route::prefix('auth')->group(function () {
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
     Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('api.auth.reset-password');
 });
+
+// Ruta pública demo-credentials
+Route::get('demo-credentials', [DemoCredentialsController::class, 'index'])->name('api.demo-credentials');
 
 // ====================================
 // AUTHENTICATED ROUTES

@@ -31,6 +31,13 @@ interface UserRepositoryContract extends BaseRepositoryContract
     public function findByUsername(string $username, array $columns = ['*']): ?User;
 
     /**
+     * Obtener usuarios demo (is_demo_user = true) con campos específicos
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    public function getDemoUsers(): \Illuminate\Support\Collection;
+
+    /**
      * Buscar usuario por código de referido
      *
      * @param string $referralCode Código de referido

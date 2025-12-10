@@ -1,34 +1,27 @@
-/**
- * Plugin global de Toast usando Nuxt UI
- * - Reemplaza vue-toast-notification por useToast() de @nuxt/ui
- * - API compatible con el wrapper previo ($toast)
- */
-
 import { useUIStore } from '../stores/ui'
 
 export default defineNuxtPlugin((nuxtApp) => {
   const uiStore = useUIStore()
+  const { add: addToast } = useToast()
 
-  // Instancia del Toast nativo de Nuxt UI
-  const uiToast = useToast()
+  type ToastType = 'success' | 'error' | 'info' | 'warning'
 
-  const getColor = (type: string) =>
-    type === 'success'
-      ? 'green'
-      : type === 'error'
-      ? 'red'
-      : type === 'warning'
-      ? 'yellow'
-      : 'blue'
+  interface ToastOptions {
+    duration?: number
+    [key: string]: any
+  }
+
+  const getColor = (type: ToastType): string =>
+    ({ success: 'green', error: 'red', warning: 'yellow', info: 'blue' }[type])
 
   const send = (
-    type: 'success' | 'error' | 'info' | 'warning',
+    type: ToastType,
     message: string,
     title?: string,
-    opts: Record<string, any> = {}
+    opts: ToastOptions = {}
   ) => {
-    if (uiToast) {
-      uiToast.add({
+    if (addToast) {
+      addToast({
         title: title ?? message,
         description: title ? message : undefined,
         color: getColor(type),
@@ -47,52 +40,29 @@ export default defineNuxtPlugin((nuxtApp) => {
   }
 
   const wrapper = {
-    success: (msg: string, title?: string, opts = {}) =>
+    success: (msg: string, title?: string, opts: ToastOptions = {}) =>
       send('success', msg, title, opts),
 
-    error: (msg: string, title?: string, opts = {}) =>
+    error: (msg: string, title?: string, opts: ToastOptions = {}) =>
       send('error', msg, title, opts),
 
-    info: (msg: string, title?: string, opts = {}) =>
+    info: (msg: string, title?: string, opts: ToastOptions = {}) =>
       send('info', msg, title, opts),
 
-    warning: (msg: string, title?: string, opts = {}) =>
+    warning: (msg: string, title?: string, opts: ToastOptions = {}) =>
       send('warning', msg, title, opts),
 
-    custom(options: {
-      type?: 'success' | 'error' | 'warning' | 'info'
+    custom: (options: {
+      type?: ToastType
       title?: string
       message: string
       duration?: number
       [key: string]: any
-    }) {
+    }) => {
       const { type = 'info', title, message, duration, ...rest } = options
-
-      if (uiToast) {
-        uiToast.add({
-          title: title ?? message,
-          description: title ? message : undefined,
-          color: getColor(type),
-          timeout: duration ?? 5000,
-          ...rest
-        })
-        return
-      }
-
-      uiStore.notify({
-        type,
-        title,
-        message,
-        duration
-      })
+      send(type, message, title, { duration, ...rest })
     }
   }
 
-  // Inyectar globalmente
-  nuxtApp.provide('toast', wrapper)
-  ;(nuxtApp.vueApp.config.globalProperties as any).$toast = wrapper
-
-  return {
-    provide: { toast: wrapper }
-  }
+  return { provide: { toast: wrapper } }
 })

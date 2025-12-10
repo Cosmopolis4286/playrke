@@ -26,7 +26,7 @@ return new class extends Migration
                 ->onUpdate('cascade')
                 ->onDelete('restrict')
                 ->comment('País del usuario');
-            
+
             $table->foreignSnowflake('time_zone_id')
                 ->nullable()
                 ->constrained('time_zones')
@@ -39,7 +39,7 @@ return new class extends Migration
             $table->string('phone_number', 25)->nullable()->comment('Número de teléfono');
             $table->string('email', 320)->unique()->comment('Correo electrónico único');
             $table->timestamp('email_verified_at')->nullable()->comment('Fecha de verificación del email');
-            
+
             // Seguridad y autenticación
             $table->string('password', 255)->comment('Contraseña hasheada');
             $table->rememberToken();
@@ -58,6 +58,8 @@ return new class extends Migration
                 ->default('PENDING_VERIFICATION')
                 ->index()
                 ->comment('Estado del usuario');
+
+            $table->boolean('is_demo_user')->default(false)->comment('Indica si es un usuario de demostración');
 
             $table->timestamp('last_login_at')->nullable()->comment('Última fecha de inicio de sesión');
             $table->ipAddress('last_login_ip')->nullable()->comment('Última IP de inicio de sesión');
