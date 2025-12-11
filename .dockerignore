@@ -1,8 +1,6 @@
 # ============================================
-# .dockerignore - Archivos excluidos del contexto Docker
+# DOCUMENTACIÓN / META
 # ============================================
-
-# Documentación y archivos de proyecto
 *.md
 *.txt
 LICENSE
@@ -10,83 +8,106 @@ CHANGELOG.md
 CONTRIBUTING.md
 REORGANIZACION.md
 
-# Git
+# ============================================
+# CONTROL DE VERSIONES
+# ============================================
 .git
 .gitignore
 .gitattributes
+.github
+.gitlab-ci.yml
+.travis.yml
+circle.yml
 
-# IDE y editores
+# ============================================
+# EDITORES / SISTEMA
+# ============================================
 .vscode
 .idea
 *.swp
 *.swo
 *~
 .DS_Store
+Thumbs.db
+Desktop.ini
 
-# Dependencias (se instalan en el Dockerfile)
+# ============================================
+# NODE / DEPENDENCIAS
+# ============================================
 **/node_modules
-**/vendor
 **/bower_components
 
-# Logs y archivos temporales
-**/*.log
+# PNPM / NPM / YARN LOGS
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Build artifacts
-**/dist
-**/build
-**/.nuxt
-**/.output
-**/.next
-**/.cache
-
-# Tests
-**/coverage
-**/.nyc_output
-**/test-results
-
-# CI/CD
-.github
-.gitlab-ci.yml
-.travis.yml
-circle.yml
-
-# Docker
-docker-compose*.yml
-Dockerfile*
-.dockerignore
-
-# Environment files (copiar manualmente si es necesario)
-**/.env
-**/.env.*
-!**/.env.example
-
-# Sistema operativo
-Thumbs.db
-Desktop.ini
-
-# Monorepo específico
+# PNPM / LOCK FILES (se usan sólo en local)
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
-# Backend Laravel específico
-backend/storage/logs/*
-backend/storage/framework/cache/*
+# ============================================
+# PHP / LARAVEL DEPENDENCIAS Y ARTIFACTOS
+# ============================================
+**/vendor/
+
+# Laravel runtime
+backend/storage/app/*
+backend/storage/framework/cache/data/*
 backend/storage/framework/sessions/*
 backend/storage/framework/views/*
-backend/bootstrap/cache/*
+backend/storage/logs/*
+
+# Mantener estructura
+!backend/storage/app/.gitignore
+!backend/storage/framework/.gitignore
+!backend/storage/framework/cache/.gitignore
+!backend/storage/logs/.gitignore
+
+# Laravel cache
+backend/bootstrap/cache/*.php
+backend/bootstrap/cache/packages.php
+backend/bootstrap/cache/services.php
+
+# Tests / Herramientas
 backend/.phpunit.result.cache
 backend/_ide_helper.php
 backend/.php_cs.cache
 
-# Frontend específico
+# ============================================
+# FRONTEND ARTIFACTS (NUXT 3/4)
+# ============================================
 frontend/.nuxt
 frontend/.output
 frontend/dist
 frontend/.nitro
 frontend/.cache
+
+# ============================================
+# ARTIFACTOS DE BUILD Y TEMPORALES
+# ============================================
+**/*.log
+**/dist
+**/build
+**/.next
+**/.cache
+**/coverage
+**/.nyc_output
+**/test-results
+
+# ============================================
+# DOCKER
+# ============================================
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# ============================================
+# ENVIRONMENT (SE COPIAN MANUALMENTE)
+# ============================================
+**/.env
+**/.env.*
+!**/.env.example

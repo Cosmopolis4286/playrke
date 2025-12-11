@@ -7,135 +7,205 @@ use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Contrato específico para el repositorio de usuarios
- * Define métodos específicos para operaciones con User
+ * Interface UserRepositoryContract
+ *
+ * Define las operaciones avanzadas disponibles para el manejo de usuarios.
+ * Extiende BaseRepositoryContract para incluir métodos CRUD estándar.
  */
 interface UserRepositoryContract extends BaseRepositoryContract
 {
+    /* -----------------------------------------------------------------
+     | Búsquedas básicas
+     ----------------------------------------------------------------- */
+
     /**
-     * Buscar usuario por email
+     * Buscar un usuario por su email.
      *
-     * @param string $email Email del usuario
-     * @param array $columns Columnas a seleccionar
+     * @param string $email   Email del usuario.
+     * @param array  $columns Columnas a seleccionar.
+     *
      * @return User|null
      */
     public function findByEmail(string $email, array $columns = ['*']): ?User;
 
     /**
-     * Buscar usuario por username
+     * Buscar un usuario por su username.
      *
-     * @param string $username Username del usuario
-     * @param array $columns Columnas a seleccionar
+     * @param string $username Username del usuario.
+     * @param array  $columns  Columnas a seleccionar.
+     *
      * @return User|null
      */
     public function findByUsername(string $username, array $columns = ['*']): ?User;
 
     /**
-     * Obtener usuarios demo (is_demo_user = true) con campos específicos
+     * Buscar un usuario por su código de referido.
      *
-     * @return \Illuminate\Support\Collection
-     */
-    public function getDemoUsers(): \Illuminate\Support\Collection;
-
-    /**
-     * Buscar usuario por código de referido
+     * @param string $referralCode Código de referido.
+     * @param array  $columns      Columnas a seleccionar.
      *
-     * @param string $referralCode Código de referido
-     * @param array $columns Columnas a seleccionar
      * @return User|null
      */
     public function findByReferralCode(string $referralCode, array $columns = ['*']): ?User;
 
+
+    /* -----------------------------------------------------------------
+     | Usuarios Demo
+     ----------------------------------------------------------------- */
+
     /**
-     * Obtener usuarios por estado
+     * Obtener usuarios cuyo flag is_demo_user = true.
      *
-     * @param string $status Estado del usuario
-     * @param array $columns Columnas a seleccionar
+     * @param array $columns Columnas a seleccionar.
+     *
+     * @return Collection<User>
+     */
+    public function getDemoUsers(array $columns = ['*']): Collection;
+
+    /**
+     * Obtener usuarios demo formateados para uso en frontend.
+     *
+     * Ejemplo de retorno esperado:
+     * [
+     *     [
+     *         'id'          => 'player-1',
+     *         'email'       => 'player@test.com',
+     *         'password'    => 'password123',
+     *         'firstName'   => 'Juan',
+     *         'lastName'    => 'Pérez',
+     *         'role'        => 'player',
+     *         'description' => 'Jugador de prueba'
+     *     ]
+     * ]
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    public function getDemoUsersForFrontend(): \Illuminate\Support\Collection;
+
+
+    /* -----------------------------------------------------------------
+     | Filtros específicos
+     ----------------------------------------------------------------- */
+
+    /**
+     * Obtener usuarios filtrados por estado.
+     *
+     * @param string $status Estado del usuario.
+     * @param array  $columns Columnas a seleccionar.
+     *
      * @return Collection<User>
      */
     public function getUsersByStatus(string $status, array $columns = ['*']): Collection;
 
     /**
-     * Obtener usuarios por país
+     * Obtener usuarios filtrados por país.
      *
-     * @param string $countryId ID del país
-     * @param array $columns Columnas a seleccionar
+     * @param string $countryId ID del país.
+     * @param array  $columns   Columnas a seleccionar.
+     *
      * @return Collection<User>
      */
     public function getUsersByCountry(string $countryId, array $columns = ['*']): Collection;
 
     /**
-     * Obtener usuarios referidos por un usuario
+     * Obtener usuarios referidos por un usuario específico.
      *
-     * @param string $userId ID del usuario referidor
-     * @param array $columns Columnas a seleccionar
+     * @param string $userId  ID del usuario referidor.
+     * @param array  $columns Columnas a seleccionar.
+     *
      * @return Collection<User>
      */
     public function getReferredUsers(string $userId, array $columns = ['*']): Collection;
 
     /**
-     * Obtener usuarios con rol específico
+     * Obtener usuarios por rol.
      *
-     * @param string $roleName Nombre del rol
-     * @param array $columns Columnas a seleccionar
+     * @param string $roleName Nombre del rol.
+     * @param array  $columns  Columnas a seleccionar.
+     *
      * @return Collection<User>
      */
     public function getUsersByRole(string $roleName, array $columns = ['*']): Collection;
 
+
+    /* -----------------------------------------------------------------
+     | Verificación de existencia
+     ----------------------------------------------------------------- */
+
     /**
-     * Verificar si existe usuario por email
+     * Verificar si existe un usuario con un email dado.
      *
-     * @param string $email Email a verificar
+     * @param string $email Email a verificar.
+     *
      * @return bool
      */
     public function existsByEmail(string $email): bool;
 
     /**
-     * Verificar si existe usuario por username
+     * Verificar si existe un usuario con un username dado.
      *
-     * @param string $username Username a verificar
+     * @param string $username Username a verificar.
+     *
      * @return bool
      */
     public function existsByUsername(string $username): bool;
 
     /**
-     * Verificar si existe código de referido
+     * Verificar si existe un usuario con un código de referido.
      *
-     * @param string $referralCode Código a verificar
+     * @param string $referralCode Código de referido.
+     *
      * @return bool
      */
     public function existsByReferralCode(string $referralCode): bool;
 
+
+    /* -----------------------------------------------------------------
+     | Utilidades
+     ----------------------------------------------------------------- */
+
     /**
-     * Actualizar último login
+     * Actualizar el campo last_login_at y last_login_ip del usuario.
      *
-     * @param string $userId ID del usuario
-     * @param string $ip IP del login
+     * @param string $userId ID del usuario.
+     * @param string $ip     Dirección IP desde donde inició sesión.
+     *
      * @return bool
      */
     public function updateLastLogin(string $userId, string $ip): bool;
 
     /**
-     * Obtener estadísticas de usuario
+     * Obtener estadísticas del usuario (personalizadas por el sistema).
      *
-     * @param string $userId ID del usuario
+     * @param string $userId ID del usuario.
+     *
      * @return array
      */
     public function getUserStats(string $userId): array;
 
     /**
-     * Buscar usuarios por múltiples criterios
+     * Buscar usuarios aplicando múltiples criterios.
      *
-     * @param array $criteria Criterios de búsqueda
+     * Ejemplo de $criteria:
+     * [
+     *     'role'     => 'player',
+     *     'status'   => 'ACTIVE',
+     *     'country'  => 'BR',
+     *     'search'   => 'juan'
+     * ]
+     *
+     * @param array $criteria Criterios dinámicos de búsqueda.
+     *
      * @return Collection<User>
      */
     public function searchUsers(array $criteria): Collection;
 
     /**
-     * Obtener usuarios activos recientes
+     * Obtener usuarios con actividad reciente.
      *
-     * @param int $days Días de actividad reciente
-     * @param int $limit Límite de resultados
+     * @param int $days  Cantidad de días hacia atrás.
+     * @param int $limit Límite de resultados.
+     *
      * @return Collection<User>
      */
     public function getRecentActiveUsers(int $days = 30, int $limit = 50): Collection;

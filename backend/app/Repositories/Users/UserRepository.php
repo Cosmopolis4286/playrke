@@ -10,8 +10,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * Repositorio para operaciones con usuarios
- * Maneja todas las consultas complejas relacionadas con User
+ * Repositorio para operaciones avanzadas relacionadas con usuarios.
+ * Encapsula consultas complejas y lógica asociada al modelo User.
  */
 class UserRepository extends BaseRepository implements UserRepositoryContract
 {
@@ -21,10 +21,10 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Buscar usuario por email
+     * Buscar usuario por email.
      *
-     * @param string $email Email del usuario
-     * @param array $columns Columnas a seleccionar
+     * @param string $email
+     * @param array $columns
      * @return User|null
      */
     public function findByEmail(string $email, array $columns = ['*']): ?User
@@ -33,10 +33,10 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Buscar usuario por username
+     * Buscar usuario por username.
      *
-     * @param string $username Username del usuario
-     * @param array $columns Columnas a seleccionar
+     * @param string $username
+     * @param array $columns
      * @return User|null
      */
     public function findByUsername(string $username, array $columns = ['*']): ?User
@@ -45,39 +45,48 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Obtener usuarios demo (is_demo_user = true) con campos específicos
+     * Obtener usuarios demo con datos internos (incluye password bcrypt).
+     * Usado para procesos internos, NUNCA enviado al frontend.
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
-    public function getDemoUsers(): \Illuminate\Support\Collection
+    public function getDemoUsers(array $columns = ['*']): Collection
     {
         return $this->model
             ->where('is_demo_user', true)
-            ->get([
-                'id',
-                'email',
-                'password',
-                'first_name',
-                'last_name',
-            ])
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'email' => $user->email,
-                    'password' => $user->password,
-                    'firstName' => $user->first_name,
-                    'lastName' => $user->last_name,
-                    'role' => 'player', // Asumido fijo o puedes obtener del primer rol si quieres
-                    'description' => 'Jugador de prueba',
-                ];
-            });
+            ->get($columns);
     }
 
     /**
-     * Buscar usuario por código de referido
+     * Obtener usuarios demo formateados para ser enviados al frontend.
+     * IMPORTANTE: Nunca envía passwords bcrypt del modelo.
      *
-     * @param string $referralCode Código de referido
-     * @param array $columns Columnas a seleccionar
+     * @return array
+     */
+    public function getDemoUsersForFrontend(): array
+    {
+        return $this->model
+            ->where('is_demo_user', true)
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id'          => $user->id,
+                    'email'       => $user->email,
+                    'password'    => $user->demo_password ?? 'password123',
+                    'firstName'   => $user->first_name,
+                    'lastName'    => $user->last_name,
+                    'role'        => $user->role ?? 'player',
+                    'description' => $user->description ?? 'Usuario de prueba',
+                ];
+            })
+            ->toArray();
+    }
+
+    /**
+     * Buscar usuario por código de referido.
+     *
+     * @param string $referralCode
+     * @param array $columns
      * @return User|null
      */
     public function findByReferralCode(string $referralCode, array $columns = ['*']): ?User
@@ -86,30 +95,26 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Genera un código de referido único para un usuario.
+     * Genera un código de referido único.
      *
-     * @param int $length Longitud del código (default: 8)
-     * @return string Código único
+     * @param int $length
+     * @return string
      */
     public function generateUniqueReferralCode(int $length = 8): string
     {
         do {
-            // Genera un código alfanumérico en mayúsculas
             $code = Str::upper(Str::random($length));
-
-            // Verifica si ya existe en la tabla users
-            $exists = $this->model->where('referral_code', $code)->exists();
-        } while ($exists);
+        } while ($this->model->where('referral_code', $code)->exists());
 
         return $code;
     }
 
     /**
-     * Obtener usuarios por estado
+     * Obtener usuarios por estado.
      *
-     * @param string $status Estado del usuario
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<User>
+     * @param string $status
+     * @param array $columns
+     * @return Collection
      */
     public function getUsersByStatus(string $status, array $columns = ['*']): Collection
     {
@@ -117,11 +122,11 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Obtener usuarios por país
+     * Obtener usuarios por país.
      *
-     * @param string $countryId ID del país
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<User>
+     * @param string $countryId
+     * @param array $columns
+     * @return Collection
      */
     public function getUsersByCountry(string $countryId, array $columns = ['*']): Collection
     {
@@ -129,11 +134,11 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Obtener usuarios referidos por un usuario
+     * Obtener usuarios referidos por otro usuario.
      *
-     * @param string $userId ID del usuario referidor
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<User>
+     * @param string $userId
+     * @param array $columns
+     * @return Collection
      */
     public function getReferredUsers(string $userId, array $columns = ['*']): Collection
     {
@@ -141,23 +146,25 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Obtener usuarios con rol específico
+     * Obtener usuarios con un rol específico.
      *
-     * @param string $roleName Nombre del rol
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<User>
+     * @param string $roleName
+     * @param array $columns
+     * @return Collection
      */
     public function getUsersByRole(string $roleName, array $columns = ['*']): Collection
     {
-        return $this->model->whereHas('roles', function ($query) use ($roleName) {
-            $query->where('name', $roleName);
-        })->get($columns);
+        return $this->model
+            ->whereHas('roles', function ($query) use ($roleName) {
+                $query->where('name', $roleName);
+            })
+            ->get($columns);
     }
 
     /**
-     * Verificar si existe usuario por email
+     * Verificar si existe un email registrado.
      *
-     * @param string $email Email a verificar
+     * @param string $email
      * @return bool
      */
     public function existsByEmail(string $email): bool
@@ -166,9 +173,9 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Verificar si existe usuario por username
+     * Verificar si existe un username registrado.
      *
-     * @param string $username Username a verificar
+     * @param string $username
      * @return bool
      */
     public function existsByUsername(string $username): bool
@@ -177,9 +184,9 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Verificar si existe código de referido
+     * Verificar si existe un código de referido.
      *
-     * @param string $referralCode Código a verificar
+     * @param string $referralCode
      * @return bool
      */
     public function existsByReferralCode(string $referralCode): bool
@@ -188,10 +195,10 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Actualizar último login
+     * Actualizar el último login del usuario.
      *
-     * @param string $userId ID del usuario
-     * @param string $ip IP del login
+     * @param string $userId
+     * @param string $ip
      * @return bool
      */
     public function updateLastLogin(string $userId, string $ip): bool
@@ -203,9 +210,9 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Obtener estadísticas de usuario
+     * Obtener estadísticas del usuario.
      *
-     * @param string $userId ID del usuario
+     * @param string $userId
      * @return array
      */
     public function getUserStats(string $userId): array
@@ -225,15 +232,15 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
             'total_referrals' => $user->referrals->count(),
             'active_wallets' => $user->wallets->count(),
             'last_login' => $user->last_login_at,
-            'account_age_days' => $user->created_at->diffInDays(Carbon::now()),
+            'account_age_days' => $user->created_at->diffInDays(now()),
         ];
     }
 
     /**
-     * Buscar usuarios por múltiples criterios
+     * Buscar usuarios con criterios múltiples.
      *
-     * @param array $criteria Criterios de búsqueda
-     * @return Collection<User>
+     * @param array $criteria
+     * @return Collection
      */
     public function searchUsers(array $criteria): Collection
     {
@@ -255,6 +262,7 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
 
         if (isset($criteria['search'])) {
             $search = $criteria['search'];
+
             $query->where(function ($q) use ($search) {
                 $q->where('username', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
@@ -275,25 +283,26 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Obtener usuarios activos recientes
+     * Obtener usuarios activos recientemente.
      *
-     * @param int $days Días de actividad reciente
-     * @param int $limit Límite de resultados
-     * @return Collection<User>
+     * @param int $days
+     * @param int $limit
+     * @return Collection
      */
     public function getRecentActiveUsers(int $days = 30, int $limit = 50): Collection
     {
-        return $this->model->where('last_login_at', '>=', Carbon::now()->subDays($days))
+        return $this->model
+            ->where('last_login_at', '>=', now()->subDays($days))
             ->orderBy('last_login_at', 'desc')
             ->limit($limit)
             ->get();
     }
 
     /**
-     * Obtener usuarios con wallets activos
+     * Obtener usuarios con wallets activos.
      *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<User>
+     * @param array $columns
+     * @return Collection
      */
     public function getUsersWithActiveWallets(array $columns = ['*']): Collection
     {
@@ -303,9 +312,9 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Contar referidos por usuario
+     * Contar referidos de un usuario.
      *
-     * @param string $userId ID del usuario
+     * @param string $userId
      * @return int
      */
     public function countReferrals(string $userId): int
@@ -314,15 +323,15 @@ class UserRepository extends BaseRepository implements UserRepositoryContract
     }
 
     /**
-     * Verificar email del usuario
+     * Verificar el email del usuario.
      *
-     * @param string $userId ID del usuario
+     * @param string $userId
      * @return bool
      */
     public function verifyUserEmail(string $userId): bool
     {
         return $this->model->where('id', $userId)->update([
-            'email_verified_at' => Carbon::now(),
+            'email_verified_at' => now(),
             'status' => 'ACTIVE',
         ]) > 0;
     }
