@@ -74,7 +74,7 @@
                 class="flex items-center gap-2 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
               >
                 <img
-                  :src="user?.avatar || '/images/default-avatar.png'"
+                  :src="user?.avatar || '/images/default-avatar.svg'"
                   alt="Avatar"
                   class="w-8 h-8 rounded-full"
                 />

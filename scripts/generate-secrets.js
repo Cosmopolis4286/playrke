@@ -245,14 +245,14 @@ APP_PORT=8001
 REVERB_APP_ID=${reverbConfig.reverbAppId}
 REVERB_APP_KEY=${reverbConfig.reverbAppKey}
 REVERB_APP_SECRET=${reverbConfig.reverbAppSecret}
-REVERB_PORT=8082
+REVERB_PORT=8080
 
 # ==========================================
 # Frontend Nuxt
 # ==========================================
 FRONTEND_PORT=3002
 NUXT_PUBLIC_API_BASE=http://localhost:8001/api
-NUXT_PUBLIC_WS_URL=ws://localhost:8082
+NUXT_PUBLIC_WS_URL=ws://localhost:8080
 FRONTEND_URL=http://localhost:3002
 
 # ==========================================
@@ -441,7 +441,7 @@ function generateFrontendEnv(reverbConfig, options = {}) {
     const {
         apiBase = isDocker ? 'http://localhost:8001/api' : 'http://localhost:8001/api',
         appUrl = isDocker ? 'http://localhost:3002' : 'http://localhost:3002',
-        wsUrl = isDocker ? 'ws://localhost:8082' : 'ws://localhost:8082',
+        wsUrl = isDocker ? 'ws://localhost:8080' : 'ws://localhost:8080',
         useExisting = !flags.force,
     } = options;
 
@@ -458,8 +458,8 @@ NUXT_PUBLIC_API_BASE=${apiBase}
 NUXT_PUBLIC_WS_URL=${wsUrl}
 NUXT_PUBLIC_PUSHER_KEY=${reverbConfig.reverbAppKey}
 NUXT_PUBLIC_PUSHER_HOST=${isDocker ? 'localhost' : reverbConfig.reverbHost}
-NUXT_PUBLIC_PUSHER_PORT=${isDocker ? '8082' : reverbConfig.reverbPort}
-NUXT_PUBLIC_PUSHER_CLUSTER=mt1
+NUXT_PUBLIC_PUSHER_PORT=${isDocker ? '8080' : reverbConfig.reverbPort}
+# NUXT_PUBLIC_PUSHER_CLUSTER=mt1  # Solo para Pusher Cloud, NO para Reverb
 NUXT_PUBLIC_PUSHER_TLS=${isProduction ? 'true' : 'false'}
 
 # App Configuration

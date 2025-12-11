@@ -244,6 +244,7 @@ definePageMeta({
 
 const { register } = useAuth()
 const router = useRouter()
+const { $toast } = useNuxtApp()
 
 // Estado del formulario
 const form = ref({
@@ -368,6 +369,9 @@ async function handleRegister() {
       password_confirmation: form.value.password_confirmation
     })
 
+    // Notificación de éxito
+    $toast.success('¡Cuenta creada exitosamente!', `Bienvenido ${form.value.first_name} a PlayRKE`)
+
     // Redirigir al lobby
     await router.push('/player/lobby')
 
@@ -385,10 +389,13 @@ async function handleRegister() {
       })
 
       registerError.value = error.response?.data?.message || 'Por favor verifica los datos ingresados.'
+      $toast.error('Error de validación', registerError.value)
     } else if (error.response?.status === 500 || error.statusCode === 500) {
       registerError.value = 'Error del servidor. Por favor intenta de nuevo más tarde.'
+      $toast.error('Error del servidor', registerError.value)
     } else {
       registerError.value = error.response?.data?.message || 'Error al crear la cuenta. Por favor intenta de nuevo.'
+      $toast.error('Error', registerError.value)
     }
   } finally {
     isLoading.value = false

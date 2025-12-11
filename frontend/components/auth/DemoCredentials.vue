@@ -1,7 +1,7 @@
 <template>
-  <!-- Modal Toggle Button - Solo mostrar si NO está controlado externamente -->
+  <!-- Modal Toggle Button - Mostrar cuando el modal está cerrado -->
   <ClientOnly>
-    <div v-if="isDevelopment && hasCredentials && props.modelValue === undefined" class="fixed bottom-4 right-4 z-50">
+    <div v-if="isDevelopment && hasCredentials && !isOpen" class="fixed bottom-4 right-4 z-50">
     <div class="relative group">
       <!-- Tooltip -->
       <div
@@ -16,7 +16,7 @@
       <UiBaseButton
         class="relative bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg hover:shadow-2xl transition-all duration-300 rounded-full p-3 group-hover:scale-110"
         :title="isOpen ? 'Cerrar credenciales' : 'Abrir credenciales demo'"
-        @click="toggleModal"
+        @click.stop="toggleModal"
       >
         <SharedMediaIcon
           :name="isOpen ? 'x-mark' : 'key'"
@@ -33,7 +33,12 @@
 
   <!-- Modal Overlay -->
   <ClientOnly>
-    <Teleport to="body">
+    <Teleport to="body" :disabled="false">
+      <!-- Debug: Modal state -->
+      <div v-if="isDevelopment" style="position: fixed; top: 0; left: 0; background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; font-size: 10px; z-index: 9999;">
+        Modal: {{ isOpen ? 'OPEN' : 'CLOSED' }} | Dev: {{ isDevelopment }} | HasCreds: {{ hasCredentials }}
+      </div>
+
       <Transition
       enter-active-class="duration-300 ease-out"
       enter-from-class="opacity-0"
@@ -355,7 +360,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, readonly, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, readonly, onMounted, onUnmounted, watch } from 'vue'
 import { useDemoCredentials, type DemoCredential } from '~/layers/shared/composables/auth/useDemoCredentials'
 import {
   copyCredentials as copyCredentialsHelper,
@@ -657,11 +662,19 @@ const updateSelectedPlayer = () => {
 // Funciones del modal
 const toggleModal = () => {
   const newValue = !isOpen.value
+  console.log('[DemoCredentials] toggleModal:', {
+    currentIsOpen: isOpen.value,
+    newValue,
+    propsModelValue: props.modelValue,
+    internalIsOpen: internalIsOpen.value,
+    isDevelopment: isDevelopment.value,
+  })
   if (props.modelValue !== undefined) {
     emit('update:modelValue', newValue)
   } else {
     internalIsOpen.value = newValue
   }
+  console.log('[DemoCredentials] After toggle, isOpen:', isOpen.value)
 }
 
 const closeModal = () => {
@@ -740,7 +753,27 @@ onMounted(() => {
   if (import.meta.client) {
     document.addEventListener('keydown', handleKeyboardShortcuts)
   }
+
+  // Debug: log initial state
+  console.log('[DemoCredentials] Mounted:', {
+    isDevelopment: isDevelopment.value,
+    hasCredentials: hasCredentials.value,
+    isOpen: isOpen.value,
+    totalCredentials: totalCredentials.value,
+    isLoadingCredentials: isLoadingCredentials.value,
+    propsModelValue: props.modelValue,
+  })
 })
+
+// Debug: watch isOpen changes
+watch(isOpen, (newVal, oldVal) => {
+  console.log('[DemoCredentials] isOpen changed:', { oldVal, newVal })
+})
+
+// Debug: watch credentials
+watch(credentials, (newVal) => {
+  console.log('[DemoCredentials] credentials changed:', newVal.length, 'items')
+}, { deep: true })
 
 // Limpiar event listeners
 onUnmounted(() => {

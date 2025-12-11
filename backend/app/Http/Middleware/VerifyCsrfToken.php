@@ -30,7 +30,7 @@ class VerifyCsrfToken extends Middleware
      * @param  \Illuminate\Http\Request  $request
      * @return bool
      */
-    protected function tokensMatch(Request $request): bool
+    protected function tokensMatch($request): bool
     {
         // Primero, aplicar la verificación estándar de Laravel
         $valid = parent::tokensMatch($request);
@@ -48,7 +48,7 @@ class VerifyCsrfToken extends Middleware
      *
      * Esto asegura que las cabeceras coincidan si quieres un nivel extra de seguridad.
      */
-    protected function isReading(Request $request): bool
+    protected function isReading($request): bool
     {
         return in_array($request->method(), ['HEAD', 'GET', 'OPTIONS']);
     }

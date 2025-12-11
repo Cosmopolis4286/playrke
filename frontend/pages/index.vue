@@ -46,34 +46,44 @@ useHead({
 })
 
 // Lógica de redirección automática
-onMounted(() => {
+const { checkAuth } = useAuth()
+
+onMounted(async () => {
   // Detectar contexto basado en el dominio
   const host = window.location.hostname
   const subdomain = host.split('.')[0]
 
-  // Configuración de dominios
+  // Determinar si es contexto admin
   const isAdmin = [
     'admin.playrke.local',
     'admin.playrke.com'
   ].includes(host) || subdomain === 'admin'
 
-  const isPlayer = [
-    'play.playrke.local',
-    'play.playrke.com',
-    'playrke.local',
-    'playrke.com',
-    'www.playrke.local',
-    'www.playrke.com'
-  ].includes(host) || ['play', 'www'].includes(subdomain)
+  // Verificar autenticación para redirección inteligente
+  let targetPath = '/player/auth/login'
 
-  // Redirección con pequeño delay para mostrar el loading
-  setTimeout(() => {
-    if (isAdmin) {
-      navigateTo('/admin', { replace: true })
+  try {
+    const user = await checkAuth()
+
+    if (user) {
+      // Usuario autenticado: redirigir según rol
+      const userRole = user.roles?.[0]?.name || 'player'
+
+      if (isAdmin || userRole === 'admin') {
+        targetPath = '/admin/dashboard'
+      } else {
+        targetPath = '/player/lobby'
+      }
     } else {
-      // Por defecto ir a player
-      navigateTo('/player', { replace: true })
+      // Usuario no autenticado: redirigir a login
+      targetPath = isAdmin ? '/admin/auth/login' : '/player/auth/login'
     }
-  }, 1500)
+  } catch (error) {
+    // Error al verificar auth: ir a login
+    targetPath = isAdmin ? '/admin/auth/login' : '/player/auth/login'
+  }
+
+  // Redirección inmediata (sin delay artificial)
+  await navigateTo(targetPath, { replace: true })
 })
 </script>

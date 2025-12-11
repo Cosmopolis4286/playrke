@@ -149,7 +149,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <img
-                    :src="treasurer.avatar || '/images/default-avatar.png'"
+                    :src="treasurer.avatar || '/images/default-avatar.svg'"
                     :alt="treasurer.name"
                     class="w-10 h-10 rounded-full"
                   />

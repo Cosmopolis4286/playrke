@@ -2,7 +2,12 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-10-26',
 
-  devtools: { enabled: true },
+  devtools: {
+    enabled: true,
+    timeline: {
+      enabled: true
+    }
+  },
 
   extends: [
     './layers/shared',
@@ -41,6 +46,11 @@ export default defineNuxtConfig({
       reverbHost: process.env.REVERB_HOST || 'localhost',
       reverbPort: Number(process.env.REVERB_PORT || 8082),
       reverbTLS: process.env.REVERB_TLS === 'true' || false,
+      pusherKey: process.env.NUXT_PUBLIC_PUSHER_KEY || 'local',
+      pusherHost: process.env.NUXT_PUBLIC_PUSHER_HOST || 'localhost',
+      pusherPort: Number(process.env.NUXT_PUBLIC_PUSHER_PORT || 8082),
+      pusherCluster: process.env.NUXT_PUBLIC_PUSHER_CLUSTER || undefined,
+      pusherTLS: process.env.NUXT_PUBLIC_PUSHER_TLS === 'true' || false,
       appName: 'PlayRKE',
       appDescription: 'Plataforma de Bingo Online'
     }
@@ -49,6 +59,11 @@ export default defineNuxtConfig({
   vite: {
     define: {
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
+    },
+    server: {
+      fs: {
+        strict: false
+      }
     }
   },
 

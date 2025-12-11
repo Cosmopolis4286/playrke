@@ -23,6 +23,13 @@ return Application::configure(
             'multiRole' => App\Http\Middleware\MultiRoleMiddleware::class,
             'role' => App\Http\Middleware\RoleMiddleware::class,
         ]);
+
+        /**
+         * Habilitar sesiones en rutas API para autenticación SPA con Sanctum
+         * Esto permite que las rutas con middleware 'web' en api.php
+         * tengan acceso a la sesión
+         */
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         /**
@@ -37,13 +44,29 @@ return Application::configure(
             // Puedes usar Log::channel('slack')->error($e->getMessage());
         });
 
-        // Ejemplo: respuesta JSON para APIs en modo producción
+        // Respuesta JSON para APIs
         $exceptions->render(function (Throwable $e, $request) {
-            if ($request->expectsJson()) {
+            // Para peticiones API, siempre devolver JSON
+            if ($request->is('api/*') || $request->expectsJson()) {
+                // Determinar el status code según el tipo de excepción
+                $status = 500;
+
+                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    $status = 401;
+                } elseif ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                    $status = 403;
+                } elseif ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                    $status = 404;
+                } elseif ($e instanceof \Illuminate\Validation\ValidationException) {
+                    $status = 422;
+                } elseif ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+                    $status = $e->getStatusCode();
+                }
+
                 return response()->json([
                     'success' => false,
                     'message' => $e->getMessage(),
-                ], 500);
+                ], $status);
             }
         });
     })

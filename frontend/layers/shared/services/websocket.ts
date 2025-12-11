@@ -153,7 +153,7 @@ class WebSocketService {
         authEndpoint
       })
 
-      this.echo = new Echo({
+      const echoConfig: any = {
         broadcaster: 'pusher',
         key: pusherKey,
         wsHost,
@@ -161,7 +161,6 @@ class WebSocketService {
         wssPort: pusherPort,
         forceTLS,
         enabledTransports: ['ws', 'wss'],
-        cluster: publicCfg.pusherCluster ?? undefined,
         auth: {
           headers: { Accept: 'application/json' },
           // Ignorar TS error, es aceptado por laravel-echo/pusher internamente
@@ -169,7 +168,14 @@ class WebSocketService {
           withCredentials: true
         },
         authEndpoint
-      })
+      }
+
+      // Solo agregar cluster si está definido (para Pusher Cloud, no Reverb)
+      if (publicCfg.pusherCluster) {
+        echoConfig.cluster = publicCfg.pusherCluster
+      }
+
+      this.echo = new Echo(echoConfig)
 
       this.setConnected(true)
       console.log('✅ [WebSocket] Connected successfully to', `${wsProtocol}://${wsHost}:${pusherPort}`)

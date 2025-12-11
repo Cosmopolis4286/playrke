@@ -56,7 +56,7 @@
                 class="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-white/20 transition-colors"
               >
                 <img
-                  :src="user?.avatar || '/images/default-avatar.png'"
+                  :src="user?.avatar || '/images/default-avatar.svg'"
                   alt="Avatar"
                   class="w-8 h-8 rounded-full"
                 />

@@ -1,20 +1,38 @@
-import { NuxtApp } from '#app'
+/**
+ * Toast System Type Definitions
+ * Sistema de notificaciones basado en Nuxt UI Toast
+ */
+
+export interface ToastOptions {
+  duration?: number
+  [key: string]: any
+}
+
+export interface CustomToastOptions {
+  type?: 'success' | 'error' | 'info' | 'warning'
+  title?: string
+  message: string
+  duration?: number
+  [key: string]: any
+}
+
+export interface ToastInstance {
+  success(msg: string, title?: string, opts?: ToastOptions): void
+  error(msg: string, title?: string, opts?: ToastOptions): void
+  info(msg: string, title?: string, opts?: ToastOptions): void
+  warning(msg: string, title?: string, opts?: ToastOptions): void
+  custom(options: CustomToastOptions): void
+}
 
 declare module '#app' {
   interface NuxtApp {
-    $toast: {
-      success(msg: string, title?: string, opts?: any): void
-      error(msg: string, title?: string, opts?: any): void
-      info(msg: string, title?: string, opts?: any): void
-      warning(msg: string, title?: string, opts?: any): void
-      custom(options: any): void
-    }
+    $toast: ToastInstance
   }
 }
 
 declare module 'vue' {
   interface ComponentCustomProperties {
-    $toast: NuxtApp['$toast']
+    $toast: ToastInstance
   }
 }
 

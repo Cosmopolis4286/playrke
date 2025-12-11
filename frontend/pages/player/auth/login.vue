@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-pink-900 to-red-900">
     <!-- Demo Credentials Component (visible en dev por defecto) -->
-    <AuthDemoCredentials v-model:modelValue="demoVisible" @fill-credentials="fillForm" />
+    <AuthDemoCredentials @fill-credentials="fillForm" />
 
     <div class="max-w-md w-full mx-4">
       <!-- Logo y título -->
@@ -130,8 +130,7 @@ definePageMeta({
 
 const { login } = useAuth()
 const router = useRouter()
-
-const demoVisible = ref(import.meta.env.DEV ?? false)
+const { $toast } = useNuxtApp()
 
 const form = ref({
   login: '',
@@ -182,6 +181,9 @@ async function handleLogin() {
       remember: form.value.remember
     })
 
+    // Notificación de éxito
+    $toast.success('¡Bienvenido de vuelta!', 'Inicio de sesión exitoso')
+
     await router.push('/player/lobby')
 
   } catch (error: any) {
@@ -198,17 +200,20 @@ async function handleLogin() {
         errors.value[key] = data.errors[key][0]
       })
       loginError.value = data?.message ?? 'Por favor verifica los datos ingresados.'
+      $toast.error('Error de validación', loginError.value)
       return
     }
 
     // Credenciales incorrectas (401 o 422 sin errors[] )
     if (error?.status === 401 || data?.message === 'Credenciales inválidas') {
       loginError.value = 'Credenciales incorrectas. Verifica tus datos.'
+      $toast.error('Error de autenticación', loginError.value)
       return
     }
 
     // Otros errores
     loginError.value = data?.message || 'Error inesperado. Por favor intenta de nuevo.'
+    $toast.error('Error', loginError.value)
     console.error('[Player Login] Error:', error)
 
   } finally {
