@@ -7,21 +7,17 @@ import { useApi } from './useApi'
 export const useAuth = () => {
   const auth = useAuthStore()
   const { $toast } = useNuxtApp()
+  const api = useApi()
 
   // Helpers de notificaciones
-  const notifySuccess = (msg: string, title?: string) =>
-    $toast.success(msg, title)
-
-  const notifyError = (msg: string, title?: string) =>
-    $toast.error(msg, title)
-
-  // API helper
-  const api = useApi()
+  const notifySuccess = (msg: string, title?: string) => $toast.success(msg, title)
+  const notifyError = (msg: string, title?: string) => $toast.error(msg, title)
 
   // LOGIN
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     auth.setLoading(true)
     try {
+      await api.csrfCookie()  // <-- aquí usas directamente la función exportada
       const response = await api.post<AuthResponse>('/auth/login', credentials)
 
       if (!response.success || !response.token || !response.user) {
@@ -44,6 +40,7 @@ export const useAuth = () => {
   const register = async (data: RegisterData): Promise<AuthResponse> => {
     auth.setLoading(true)
     try {
+      await api.csrfCookie()
       const response = await api.post<AuthResponse>('/auth/register', data)
 
       if (!response.success || !response.token || !response.user) {
@@ -65,6 +62,7 @@ export const useAuth = () => {
   // LOGOUT
   const logout = async (): Promise<void> => {
     try {
+      await api.csrfCookie()
       await api.post('/auth/logout', {})  // body vacío obligatorio
       auth.clearAuth()
       notifySuccess('Has cerrado sesión')

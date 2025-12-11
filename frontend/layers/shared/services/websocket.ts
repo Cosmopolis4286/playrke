@@ -46,7 +46,6 @@ class WebSocketService {
   private runtimeConfig: any = null
   private connectionChangeListeners: Set<(connected: boolean) => void> = new Set()
 
-  // Constructor privado - no se ejecuta hasta getInstance()
   private constructor(config: any) {
     this.runtimeConfig = config
   }
@@ -67,12 +66,9 @@ class WebSocketService {
    */
   static getInstance(): WebSocketService {
     if (!WebSocketService.instance) {
-      // Obtener config AQUÍ (dentro del contexto donde se llama getInstance)
-      // No en el constructor global
       if (!process.client) {
         throw new Error('[WebSocket] Service can only be initialized on client side')
       }
-
       try {
         const config = useRuntimeConfig()
         WebSocketService.instance = new WebSocketService(config)
@@ -84,13 +80,9 @@ class WebSocketService {
         )
       }
     }
-
     return WebSocketService.instance
   }
 
-  /**
-   * Reset de la instancia (útil para testing)
-   */
   static resetInstance(): void {
     if (WebSocketService.instance) {
       WebSocketService.instance.disconnect()
@@ -98,17 +90,12 @@ class WebSocketService {
     }
   }
 
-  /**
-   * Estado de conexión
-   * @returns boolean indicando si está conectado
-   */
+  /** Estado de conexión */
   get isConnected(): boolean {
     return this._isConnected
   }
 
-  /**
-   * Cambiar estado de conexión y notificar a listeners
-   */
+  /** Cambiar estado de conexión y notificar a listeners */
   private setConnected(value: boolean): void {
     if (this._isConnected !== value) {
       this._isConnected = value
@@ -118,53 +105,45 @@ class WebSocketService {
 
   /**
    * Suscribirse a cambios en el estado de conexión
+   * @param listener Callback con el nuevo estado de conexión
    * @returns función para desuscribirse
    */
   onConnectionChange(listener: (connected: boolean) => void): () => void {
     this.connectionChangeListeners.add(listener)
-    // Llamar inmediatamente con el estado actual
     listener(this._isConnected)
-    // Retornar función de cleanup
     return () => {
       this.connectionChangeListeners.delete(listener)
     }
   }
 
-  /**
-   * Conectar a WebSocket
-   */
+  /** Conectar a WebSocket */
   async connect(): Promise<void> {
     if (this.echo) {
       console.warn('[WebSocket] Already connected')
       return
     }
-
     if (!process.client) {
       console.warn('[WebSocket] Cannot connect on server side')
       return
     }
-
     try {
       const { default: Echo } = await import('laravel-echo')
       const Pusher = (await import('pusher-js')).default
-
-      // Leer config desde runtimeConfig (fallbacks seguros)
       const publicCfg = this.runtimeConfig?.public ?? {}
+
       const pusherKey = publicCfg.pusherKey ?? 'local'
       const pusherHost = publicCfg.pusherHost ?? 'localhost'
       const pusherPort = Number(publicCfg.pusherPort ?? 8082)
-      const pusherTLS = publicCfg.pusherTLS === 'true' || publicCfg.pusherTLS === true ? true : false
+      const pusherTLS = publicCfg.pusherTLS === 'true' || publicCfg.pusherTLS === true
       const forceTLS = pusherTLS
       const wsProtocol = forceTLS ? 'wss' : 'ws'
       const wsHost = pusherHost.replace(/\/$/, '')
 
       window.Pusher = Pusher
 
-      // Construir authEndpoint
       const apiBase = (publicCfg.apiBase ?? '').replace(/\/$/, '')
       const authEndpoint = `${apiBase}/api/broadcasting/auth`
 
-      // Debug: loguear valores reales
       console.debug('[WebSocket] Config loaded:', {
         pusherKey,
         wsHost,
@@ -184,9 +163,8 @@ class WebSocketService {
         enabledTransports: ['ws', 'wss'],
         cluster: publicCfg.pusherCluster ?? undefined,
         auth: {
-          headers: {
-            Accept: 'application/json'
-          },
+          headers: { Accept: 'application/json' },
+          // Ignorar TS error, es aceptado por laravel-echo/pusher internamente
           // @ts-ignore
           withCredentials: true
         },
@@ -201,14 +179,11 @@ class WebSocketService {
     }
   }
 
-  /**
-   * Desconectar de WebSocket
-   */
+  /** Desconectar de WebSocket */
   disconnect(): void {
     if (!this.echo) return
 
-    // Desconectar de todos los canales
-    this.activeChannels.forEach((channel, channelName) => {
+    this.activeChannels.forEach((_channel, channelName) => {
       this.leaveChannel(channelName)
     })
 
@@ -223,12 +198,11 @@ class WebSocketService {
 
   /**
    * Suscribirse a un canal público
+   * @param channelName Nombre del canal
+   * @param eventName Nombre del evento
+   * @param callback Callback con datos recibidos
    */
-  listenToChannel(
-    channelName: string,
-    eventName: string,
-    callback: (data: any) => void
-  ): void {
+  listenToChannel(channelName: string, eventName: string, callback: (data: any) => void): void {
     if (!this.echo) {
       console.error('[WebSocket] Not connected. Call connect() first.')
       return
@@ -238,21 +212,23 @@ class WebSocketService {
 
     if (!channel) {
       channel = this.echo.channel(channelName)
-      this.activeChannels.set(channelName, channel)
+      this.activeChannels.set(channelName, channel!)
     }
 
-    channel.listen(eventName, callback)
-    console.log(`👂 [WebSocket] Listening to ${channelName} for ${eventName}`)
+    if (channel) {
+      channel.listen(eventName, callback)
+    } else {
+      console.error(`[WebSocket] Channel ${channelName} no está definido para escuchar ${eventName}`)
+    }
   }
 
   /**
    * Suscribirse a un canal privado
+   * @param channelName Nombre del canal privado
+   * @param eventName Nombre del evento
+   * @param callback Callback con datos recibidos
    */
-  listenToPrivateChannel(
-    channelName: string,
-    eventName: string,
-    callback: (data: any) => void
-  ): void {
+  listenToPrivateChannel(channelName: string, eventName: string, callback: (data: any) => void): void {
     if (!this.echo) {
       console.error('[WebSocket] Not connected. Call connect() first.')
       return
@@ -262,15 +238,20 @@ class WebSocketService {
 
     if (!channel) {
       channel = this.echo.private(channelName)
-      this.activeChannels.set(`private-${channelName}`, channel)
+      this.activeChannels.set(`private-${channelName}`, channel!)
     }
 
-    channel.listen(eventName, callback)
-    console.log(`🔒 [WebSocket] Listening to private-${channelName} for ${eventName}`)
+    if (channel) {
+      channel.listen(eventName, callback)
+    } else {
+      console.error(`[WebSocket] Private-Channel ${channelName} no está definido para escuchar ${eventName}`)
+    }
   }
 
   /**
    * Suscribirse a un canal de presencia
+   * @param channelName Nombre del canal de presencia
+   * @param callbacks Callbacks para eventos de usuario
    */
   listenToPresenceChannel(
     channelName: string,
@@ -285,7 +266,7 @@ class WebSocketService {
       return
     }
 
-    let channel = this.activeChannels.get(`presence-${channelName}`) as PresenceChannel
+    let channel = this.activeChannels.get(`presence-${channelName}`) as PresenceChannel | undefined
 
     if (!channel) {
       channel = this.echo.join(channelName) as PresenceChannel
@@ -301,9 +282,7 @@ class WebSocketService {
         users.push(joiningUser)
         this.connectedUsers.set(channelName, users)
 
-        if (callbacks.onJoin) {
-          callbacks.onJoin(joiningUser)
-        }
+        callbacks.onJoin?.(joiningUser)
 
         console.log(`➕ [WebSocket] User joined ${channelName}:`, joiningUser)
       })
@@ -313,9 +292,7 @@ class WebSocketService {
         const filtered = users.filter(u => u.id !== leavingUser.id)
         this.connectedUsers.set(channelName, filtered)
 
-        if (callbacks.onLeave) {
-          callbacks.onLeave(leavingUser)
-        }
+        callbacks.onLeave?.(leavingUser)
 
         console.log(`➖ [WebSocket] User left ${channelName}:`, leavingUser)
       })
@@ -326,6 +303,7 @@ class WebSocketService {
 
   /**
    * Abandonar un canal
+   * @param channelName Nombre del canal a abandonar
    */
   leaveChannel(channelName: string): void {
     if (!this.echo) return
@@ -342,25 +320,28 @@ class WebSocketService {
 
   /**
    * Obtener usuarios conectados en un canal
+   * @param channelName Nombre del canal
+   * @returns Array de usuarios conectados
    */
   getUsersInChannel(channelName: string): ConnectedUser[] {
-    return this.connectedUsers.get(channelName) || []
+    return this.connectedUsers.get(channelName) ?? []
   }
 
   /**
    * Verificar si un usuario está en un canal
+   * @param channelName Nombre del canal
+   * @param userId ID del usuario
+   * @returns true si el usuario está en el canal
    */
   isUserInChannel(channelName: string, userId: string): boolean {
-    const users = this.connectedUsers.get(channelName) || []
+    const users = this.connectedUsers.get(channelName) ?? []
     return users.some(u => u.id === userId)
   }
 }
 
 /**
- * Helper function para obtener la instancia del servicio de forma segura
- *
- * Usar esta función en lugar de acceder directamente a WebSocketService.getInstance()
- * para obtener mejor error handling
+ * Helper para obtener la instancia del WebSocketService de forma segura
+ * @returns instancia única de WebSocketService
  */
 export function useWebSocketService(): WebSocketService {
   try {
@@ -374,5 +355,4 @@ export function useWebSocketService(): WebSocketService {
   }
 }
 
-// NO exportar instancia directamente, exportar la clase y helper
 export { WebSocketService }

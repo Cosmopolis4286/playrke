@@ -75,6 +75,7 @@ export const useApi = () => {
     post,
     put,
     delete: del,
-    patch
+    patch, 
+    csrfCookie
   }
 }
