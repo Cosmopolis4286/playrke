@@ -61,6 +61,8 @@ return new class extends Migration
 
             $table->boolean('is_demo_user')->default(false)->comment('Indica si es un usuario de demostración');
 
+            $table->string('demo_password')->nullable()->comment('Contraseña para usuario de demostración');
+
             $table->timestamp('last_login_at')->nullable()->comment('Última fecha de inicio de sesión');
             $table->ipAddress('last_login_ip')->nullable()->comment('Última IP de inicio de sesión');
 

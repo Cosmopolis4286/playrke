@@ -9,9 +9,20 @@ export const useApi = () => {
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBase
 
-  /**
-   * Hace una petición GET a la API
-   */
+  let csrfLastFetched = 0
+  const csrfCacheDuration = 10 * 60 * 1000 // 10 minutos en ms
+
+  const csrfCookie = async () => {
+    const now = Date.now()
+    if (now - csrfLastFetched > csrfCacheDuration) {
+      await $fetch(`${baseURL.replace('/api', '')}/sanctum/csrf-cookie`, {
+        method: 'GET',
+        credentials: 'include',
+      })
+      csrfLastFetched = now
+    }
+  }
+
   const get = async <T>(endpoint: string, options: any = {}): Promise<T> => {
     return await $fetch<T>(`${baseURL}${endpoint}`, {
       method: 'GET',
@@ -20,10 +31,8 @@ export const useApi = () => {
     })
   }
 
-  /**
-   * Hace una petición POST a la API
-   */
   const post = async <T>(endpoint: string, body: any, options: any = {}): Promise<T> => {
+    await csrfCookie()
     return await $fetch<T>(`${baseURL}${endpoint}`, {
       method: 'POST',
       body,
@@ -32,10 +41,8 @@ export const useApi = () => {
     })
   }
 
-  /**
-   * Hace una petición PUT a la API
-   */
   const put = async <T>(endpoint: string, body: any, options: any = {}): Promise<T> => {
+    await csrfCookie()
     return await $fetch<T>(`${baseURL}${endpoint}`, {
       method: 'PUT',
       body,
@@ -44,10 +51,8 @@ export const useApi = () => {
     })
   }
 
-  /**
-   * Hace una petición DELETE a la API
-   */
   const del = async <T>(endpoint: string, options: any = {}): Promise<T> => {
+    await csrfCookie()
     return await $fetch<T>(`${baseURL}${endpoint}`, {
       method: 'DELETE',
       credentials: 'include',
@@ -55,10 +60,8 @@ export const useApi = () => {
     })
   }
 
-  /**
-   * Hace una petición PATCH a la API
-   */
   const patch = async <T>(endpoint: string, body: any, options: any = {}): Promise<T> => {
+    await csrfCookie()
     return await $fetch<T>(`${baseURL}${endpoint}`, {
       method: 'PATCH',
       body,

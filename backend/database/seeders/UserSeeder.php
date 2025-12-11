@@ -95,6 +95,7 @@ class UserSeeder extends Seeder
                         'referral_code' => $userRepo->generateUniqueReferralCode(),
                         'status' => 'ACTIVE',
                         'is_demo_user' => true,
+                        'demo_password' => $playerData['password'],
                     ]
                 );
 

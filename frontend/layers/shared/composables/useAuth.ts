@@ -2,7 +2,7 @@ import { computed } from 'vue'
 import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth'
 import { useAuthStore } from '../stores/auth'
 import { parseLaravelError } from '../utils/parseLaravelError'
-import { useApi } from './useApi' 
+import { useApi } from './useApi'
 
 export const useAuth = () => {
   const auth = useAuthStore()
@@ -23,9 +23,12 @@ export const useAuth = () => {
     auth.setLoading(true)
     try {
       const response = await api.post<AuthResponse>('/auth/login', credentials)
-      auth.setUser(response.user)
-      auth.setToken(response.token)
-      auth.setAuthenticated(true)
+
+      if (!response.success || !response.token || !response.user) {
+        throw new Error(response.message || 'Error en autenticación')
+      }
+
+      auth.setAuth(response.token, response.user)
       notifySuccess('Sesión iniciada correctamente')
       return response
     } catch (error: any) {
@@ -42,9 +45,12 @@ export const useAuth = () => {
     auth.setLoading(true)
     try {
       const response = await api.post<AuthResponse>('/auth/register', data)
-      auth.setUser(response.user)
-      auth.setToken(response.token)
-      auth.setAuthenticated(true)
+
+      if (!response.success || !response.token || !response.user) {
+        throw new Error(response.message || 'Error en registro')
+      }
+
+      auth.setAuth(response.token, response.user)
       notifySuccess('Registro completado correctamente')
       return response
     } catch (error: any) {
@@ -59,7 +65,7 @@ export const useAuth = () => {
   // LOGOUT
   const logout = async (): Promise<void> => {
     try {
-      await api.post('/auth/logout', {})
+      await api.post('/auth/logout', {})  // body vacío obligatorio
       auth.clearAuth()
       notifySuccess('Has cerrado sesión')
     } catch (error: any) {
@@ -72,8 +78,7 @@ export const useAuth = () => {
   const checkAuth = async (): Promise<boolean> => {
     try {
       const user = await api.get<User>('/auth/me')
-      auth.setUser(user)
-      auth.setAuthenticated(true)
+      auth.updateUser(user)
       return true
     } catch {
       return false
@@ -84,7 +89,7 @@ export const useAuth = () => {
   const reloadUser = async (): Promise<User | null> => {
     try {
       const user = await api.get<User>('/auth/me')
-      auth.setUser(user)
+      auth.updateUser(user)
       return user
     } catch (error: any) {
       notifyError(parseLaravelError(error))
@@ -106,6 +111,6 @@ export const useAuth = () => {
     hasRole: auth.hasRole,
     hasPermission: auth.hasPermission,
     isAdmin: auth.isAdmin,
-    isPlayer: auth.isPlayer
+    isPlayer: auth.isPlayer,
   }
 }

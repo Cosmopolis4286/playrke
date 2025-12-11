@@ -40,8 +40,10 @@ export function useDemoCredentials() {
     error.value = null
 
     try {
-      const data = await api.get<DemoCredential[]>('/demo-credentials')
-      credentials.value = data
+      const response = await api.get('/demo-credentials')
+
+      // 👇 Acceso correcto a los datos
+      credentials.value = response.data ?? []
     } catch (err: any) {
       error.value = err.message || 'Error desconocido'
     } finally {

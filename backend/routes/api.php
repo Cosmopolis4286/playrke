@@ -1,5 +1,5 @@
 <?php
-// backend/routes/api.php
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\UserController;
@@ -12,40 +12,57 @@ use App\Http\Controllers\Api\Auth\DemoCredentialsController;
 |--------------------------------------------------------------------------
 | API Routes - PlayRKE Bingo API
 |--------------------------------------------------------------------------
-| API RESTful para frontend Nuxt 3
-| Autenticación: Laravel Sanctum (stateful cookies)
+| API REST para el frontend Nuxt
+| Autenticación basada en cookies de sesión con Sanctum.
+|
+| IMPORTANTE para SPA:
+| - Antes de cualquier login, el frontend debe llamar:
+|   GET /sanctum/csrf-cookie
+|
+| - Las rutas de login, logout, user y cualquier
+|   área que requiera sesión DEBEN tener middleware web.
+|
 */
 
-// ====================================
-// AUTHENTICATION ROUTES (Public)
-// ====================================
-// Check current user (public, returns 401 if not authenticated)
-Route::get('user', [AuthController::class, 'user'])->name('api.user');
+//
+// PUBLIC ROUTES
+//
 
-Route::prefix('auth')->group(function () {
+// Información del usuario actual (si está autenticado)
+Route::middleware('web')->get('user', [AuthController::class, 'user'])
+    ->name('api.user');
+
+// Auth (Login / Register / Reset)
+Route::middleware('web')->prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('api.auth.login');
     Route::post('register', [AuthController::class, 'register'])->name('api.auth.register');
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
     Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('api.auth.reset-password');
 });
 
-// Ruta pública demo-credentials
-Route::get('demo-credentials', [DemoCredentialsController::class, 'index'])->name('api.demo-credentials');
+// Demo credentials (solo en local)
+Route::middleware('web')->get('demo-credentials', [DemoCredentialsController::class, 'index'])
+    ->name('api.demo-credentials');
 
-// ====================================
-// AUTHENTICATED ROUTES
-// ====================================
-Route::middleware('auth:sanctum')->group(function () {
 
-    // Auth
+//
+// PROTECTED ROUTES (auth:sanctum)
+//
+
+Route::middleware(['web', 'auth:sanctum'])->group(function () {
+
+    //
+    // AUTH
+    //
     Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('api.auth.logout');
         Route::get('user', [AuthController::class, 'user'])->name('api.auth.user');
-        // Alias para compatibilidad con frontend que consulta /api/auth/me
         Route::get('me', [AuthController::class, 'me'])->name('api.auth.me');
     });
 
-    // User Profile
+    //
+    // USER PROFILE
+    //
     Route::prefix('user')->group(function () {
         Route::get('profile', [UserController::class, 'profile'])->name('api.user.profile');
         Route::put('profile', [UserController::class, 'updateProfile'])->name('api.user.update-profile');
@@ -57,8 +74,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('stats', [UserController::class, 'getStats'])->name('api.user.stats');
     });
 
-    // Bingo Games
+    //
+    // BINGO
+    //
     Route::prefix('bingo')->group(function () {
+
         // Rooms
         Route::get('rooms', [BingoController::class, 'getRooms'])->name('api.bingo.rooms');
         Route::get('rooms/{id}', [BingoController::class, 'getRoom'])->name('api.bingo.room');
@@ -78,7 +98,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('history/{id}/notify-payment', [BingoController::class, 'notifyPrizePayment'])->name('api.bingo.notify-payment');
     });
 
-    // Wallet
+    //
+    // WALLET
+    //
     Route::prefix('wallet')->group(function () {
         Route::get('/', [WalletController::class, 'getWallets'])->name('api.wallet.list');
         Route::get('balance', [WalletController::class, 'getBalance'])->name('api.wallet.balance');
@@ -88,8 +110,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('transactions/{id}', [WalletController::class, 'getTransaction'])->name('api.wallet.transaction');
     });
 
-    // Admin Routes
+    //
+    // ADMIN ROUTES
+    //
     Route::middleware('role:admin')->prefix('admin')->group(function () {
+
         // Dashboard
         Route::get('dashboard', [AdminController::class, 'dashboard'])->name('api.admin.dashboard');
 
@@ -114,7 +139,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('sellers/{id}', [AdminController::class, 'updateSeller'])->name('api.admin.update-seller');
         Route::delete('sellers/{id}', [AdminController::class, 'deleteSeller'])->name('api.admin.delete-seller');
 
-        // Rooms Management
+        // Rooms
         Route::get('rooms', [AdminController::class, 'getRooms'])->name('api.admin.rooms');
         Route::get('rooms/{id}', [AdminController::class, 'getRoom'])->name('api.admin.room');
         Route::post('rooms', [AdminController::class, 'createRoom'])->name('api.admin.create-room');
@@ -138,10 +163,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-// ====================================
-// HEALTH CHECK (Public)
-// ====================================
-Route::get('api/ping', function () {
+
+//
+// HEALTH CHECK
+//
+Route::get('ping', function () {
     return response()->json([
         'status' => 'ok',
         'timestamp' => now()->toISOString(),

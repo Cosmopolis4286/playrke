@@ -69,13 +69,20 @@ export interface RegisterData {
   terms?: boolean  // Alias para compatibilidad con formularios
 }
 
-export interface AuthResponse {
-  success: boolean
-  message?: string
-  token?: string
-  user?: User
+export interface AuthResponseSuccess {
+  success: true
+  token: string
+  user: User
   expires_at?: string
+  message?: string
 }
+
+export interface AuthResponseFailure {
+  success: false
+  message: string
+}
+
+export type AuthResponse = AuthResponseSuccess | AuthResponseFailure
 
 export interface AuthState {
   user: User | null
