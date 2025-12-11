@@ -52,8 +52,8 @@ class Kernel extends HttpKernel
             \Illuminate\Session\Middleware\StartSession::class,
             // Compartir errores de sesión con vistas
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            // Protección CSRF
-            \App\Http\Middleware\VerifyCsrfToken::class,
+            // Protección CSRF (usando el middleware por defecto de Laravel)
+            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
             // Binding de rutas
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],

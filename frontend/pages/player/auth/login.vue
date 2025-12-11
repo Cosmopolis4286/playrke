@@ -130,7 +130,7 @@ definePageMeta({
 
 const { login } = useAuth()
 const router = useRouter()
-const { $toast } = useNuxtApp()
+const toast = useAppToast()
 
 const form = ref({
   login: '',
@@ -182,7 +182,7 @@ async function handleLogin() {
     })
 
     // Notificación de éxito
-    $toast.success('¡Bienvenido de vuelta!', 'Inicio de sesión exitoso')
+    toast.success('¡Bienvenido de vuelta!', 'Inicio de sesión exitoso')
 
     await router.push('/player/lobby')
 
@@ -200,20 +200,20 @@ async function handleLogin() {
         errors.value[key] = data.errors[key][0]
       })
       loginError.value = data?.message ?? 'Por favor verifica los datos ingresados.'
-      $toast.error('Error de validación', loginError.value)
+      toast.error('Error de validación', loginError.value)
       return
     }
 
     // Credenciales incorrectas (401 o 422 sin errors[] )
     if (error?.status === 401 || data?.message === 'Credenciales inválidas') {
       loginError.value = 'Credenciales incorrectas. Verifica tus datos.'
-      $toast.error('Error de autenticación', loginError.value)
+      toast.error('Error de autenticación', loginError.value)
       return
     }
 
     // Otros errores
     loginError.value = data?.message || 'Error inesperado. Por favor intenta de nuevo.'
-    $toast.error('Error', loginError.value)
+    toast.error('Error', loginError.value)
     console.error('[Player Login] Error:', error)
 
   } finally {

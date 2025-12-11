@@ -419,14 +419,13 @@ const showPasswords = ref(false)
 const isCollapsed = ref(false)
 const internalIsOpen = ref(false)
 
+// Usar siempre el estado interno para controlar el modal
 const isOpen = computed({
-  get: () => props.modelValue !== undefined ? props.modelValue : internalIsOpen.value,
+  get: () => internalIsOpen.value,
   set: (value) => {
-    if (props.modelValue !== undefined) {
-      emit('update:modelValue', value)
-    } else {
-      internalIsOpen.value = value
-    }
+    internalIsOpen.value = value
+    // Emitir el evento para mantener sincronización si alguien está escuchando
+    emit('update:modelValue', value)
   },
 })
 
@@ -513,12 +512,15 @@ const isReady = computed(() => !isLoadingCredentials.value && hasCredentials.val
 
 // Auto login - Ejecuta login real con el backend
 const performAutoLogin = async (credentials: DemoCredential) => {
+  console.log('[DemoCredentials] performAutoLogin called with:', credentials)
+
   const router = useRouter()
   const { login } = useAuth()
 
   try {
     // Emitir evento de inicio de auto-login
     emit('autoLoginStart')
+    console.log('[DemoCredentials] Starting login with backend...')
 
     // Ejecutar login real con el backend
     await login({
@@ -526,6 +528,8 @@ const performAutoLogin = async (credentials: DemoCredential) => {
       password: credentials.password,
       remember: true,
     })
+
+    console.log('[DemoCredentials] Login successful!')
 
     // Emitir evento de completado exitoso
     emit('autoLoginComplete', true)
@@ -634,13 +638,23 @@ const fillCustomerCredentials = async () => {
 }
 
 const fillPlayerCredentials = async () => {
-  if (loadingStates.player || !currentPlayerCredentials.value) { return }
+  console.log('[DemoCredentials] fillPlayerCredentials called', {
+    isLoading: loadingStates.player,
+    hasCredentials: !!currentPlayerCredentials.value,
+    credentials: currentPlayerCredentials.value,
+  })
+
+  if (loadingStates.player || !currentPlayerCredentials.value) {
+    console.log('[DemoCredentials] fillPlayerCredentials early return')
+    return
+  }
 
   try {
     loadingStates.player = true
     await new Promise(resolve => setTimeout(resolve, 300))
 
     const playerCred = currentPlayerCredentials.value
+    console.log('[DemoCredentials] Starting auto-login for player:', playerCred.email)
 
     // Siempre ejecutar auto-login al hacer click
     await performAutoLogin(playerCred)
@@ -665,24 +679,15 @@ const toggleModal = () => {
   console.log('[DemoCredentials] toggleModal:', {
     currentIsOpen: isOpen.value,
     newValue,
-    propsModelValue: props.modelValue,
     internalIsOpen: internalIsOpen.value,
     isDevelopment: isDevelopment.value,
   })
-  if (props.modelValue !== undefined) {
-    emit('update:modelValue', newValue)
-  } else {
-    internalIsOpen.value = newValue
-  }
+  isOpen.value = newValue
   console.log('[DemoCredentials] After toggle, isOpen:', isOpen.value)
 }
 
 const closeModal = () => {
-  if (props.modelValue !== undefined) {
-    emit('update:modelValue', false)
-  } else {
-    internalIsOpen.value = false
-  }
+  isOpen.value = false
 }
 
 const togglePasswordVisibility = () => {

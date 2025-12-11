@@ -12,6 +12,24 @@ export const useApi = () => {
   let csrfLastFetched = 0
   const csrfCacheDuration = 10 * 60 * 1000 // 10 minutos en ms
 
+  /**
+   * Obtiene el token CSRF de la cookie
+   */
+  const getCsrfToken = (): string | null => {
+    if (process.server) return null
+
+    const cookies = document.cookie.split(';')
+    const xsrfCookie = cookies.find(c => c.trim().startsWith('XSRF-TOKEN='))
+
+    if (!xsrfCookie) return null
+
+    const token = xsrfCookie.split('=')[1]
+    return decodeURIComponent(token)
+  }
+
+  /**
+   * Solicita una nueva cookie CSRF al backend
+   */
   const csrfCookie = async () => {
     const now = Date.now()
     if (now - csrfLastFetched > csrfCacheDuration) {
@@ -23,10 +41,33 @@ export const useApi = () => {
     }
   }
 
+  /**
+   * Obtiene los headers comunes incluyendo el token CSRF
+   */
+  const getHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    }
+
+    // Agregar Referer para Sanctum
+    if (!process.server && typeof window !== 'undefined') {
+      headers['Referer'] = window.location.origin
+    }
+
+    const csrfToken = getCsrfToken()
+    if (csrfToken) {
+      headers['X-XSRF-TOKEN'] = csrfToken
+    }
+
+    return headers
+  }
+
   const get = async <T>(endpoint: string, options: any = {}): Promise<T> => {
     return await $fetch<T>(`${baseURL}${endpoint}`, {
       method: 'GET',
       credentials: 'include',
+      headers: getHeaders(),
       ...options
     })
   }
@@ -37,6 +78,7 @@ export const useApi = () => {
       method: 'POST',
       body,
       credentials: 'include',
+      headers: getHeaders(),
       ...options
     })
   }
@@ -47,6 +89,7 @@ export const useApi = () => {
       method: 'PUT',
       body,
       credentials: 'include',
+      headers: getHeaders(),
       ...options
     })
   }
@@ -56,6 +99,7 @@ export const useApi = () => {
     return await $fetch<T>(`${baseURL}${endpoint}`, {
       method: 'DELETE',
       credentials: 'include',
+      headers: getHeaders(),
       ...options
     })
   }
@@ -66,6 +110,7 @@ export const useApi = () => {
       method: 'PATCH',
       body,
       credentials: 'include',
+      headers: getHeaders(),
       ...options
     })
   }
@@ -75,7 +120,7 @@ export const useApi = () => {
     post,
     put,
     delete: del,
-    patch, 
+    patch,
     csrfCookie
   }
 }

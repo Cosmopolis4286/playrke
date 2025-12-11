@@ -207,7 +207,7 @@
             :disabled="isLoading"
             class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-bold text-white bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:scale-105"
           >
-            <Icon v-if="isLoading" name="lucide:loader-2" class="animate-spin h-5 w-5 mr-2" />
+            <Icon v-if="isLoading" name="lucide:loader" class="animate-spin h-5 w-5 mr-2" />
             <span>{{ isLoading ? 'Creando cuenta...' : '🎉 Crear Cuenta' }}</span>
           </button>
         </form>
@@ -244,7 +244,7 @@ definePageMeta({
 
 const { register } = useAuth()
 const router = useRouter()
-const { $toast } = useNuxtApp()
+const toast = useAppToast()
 
 // Estado del formulario
 const form = ref({
@@ -316,9 +316,10 @@ function validatePassword() {
 function getErrorMessage(field: string): string {
   const error = errors.value[field]
   if (Array.isArray(error)) {
-    return error[0]
+    const firstError = error[0]
+    return firstError ? String(firstError) : ''
   }
-  return error || ''
+  return error ? String(error) : ''
 }
 
 /**
@@ -370,7 +371,7 @@ async function handleRegister() {
     })
 
     // Notificación de éxito
-    $toast.success('¡Cuenta creada exitosamente!', `Bienvenido ${form.value.first_name} a PlayRKE`)
+    toast.success('¡Cuenta creada exitosamente!', `Bienvenido ${form.value.first_name} a PlayRKE`)
 
     // Redirigir al lobby
     await router.push('/player/lobby')
@@ -389,13 +390,13 @@ async function handleRegister() {
       })
 
       registerError.value = error.response?.data?.message || 'Por favor verifica los datos ingresados.'
-      $toast.error('Error de validación', registerError.value)
+      toast.error('Error de validación', registerError.value)
     } else if (error.response?.status === 500 || error.statusCode === 500) {
       registerError.value = 'Error del servidor. Por favor intenta de nuevo más tarde.'
-      $toast.error('Error del servidor', registerError.value)
+      toast.error('Error del servidor', registerError.value)
     } else {
       registerError.value = error.response?.data?.message || 'Error al crear la cuenta. Por favor intenta de nuevo.'
-      $toast.error('Error', registerError.value)
+      toast.error('Error', registerError.value)
     }
   } finally {
     isLoading.value = false

@@ -23,17 +23,3 @@ export interface ToastInstance {
   warning(msg: string, title?: string, opts?: ToastOptions): void
   custom(options: CustomToastOptions): void
 }
-
-declare module '#app' {
-  interface NuxtApp {
-    $toast: ToastInstance
-  }
-}
-
-declare module 'vue' {
-  interface ComponentCustomProperties {
-    $toast: ToastInstance
-  }
-}
-
-export {}
