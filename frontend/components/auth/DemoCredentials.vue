@@ -542,13 +542,33 @@ const performAutoLogin = async (credentials: DemoCredential) => {
     // Pequeño delay para mostrar feedback visual
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    // Redirigir al lobby/dashboard correspondiente según contexto
-    const currentPath = router.currentRoute.value.path
-    if (currentPath.includes('/admin')) {
-      await router.push('/admin/dashboard')
-    } else {
-      await router.push('/player/lobby')
+    // Redirigir según el rol del usuario autenticado
+    const { user } = useAuth()
+    const userRole = user.value?.roles?.[0] || 'player'
+
+    const roleRoutes: Record<string, string> = {
+      admin: '/admin/dashboard',
+      super_admin: '/admin/dashboard',
+      moderator: '/admin/dashboard',
+      support: '/admin/dashboard',
+      player: '/player/lobby',
+      vip_player: '/player/lobby',
+      customer: '/customer/dashboard',
+      commerce: '/commerce/dashboard',
+      seller: '/seller/dashboard',
+      treasurer: '/treasurer/dashboard'
     }
+
+    const targetRoute = roleRoutes[userRole] || '/player/lobby'
+
+    console.log('[DemoCredentials] Redirección automática:', {
+      userRole,
+      targetRoute,
+      userRoles: user.value?.roles,
+      userName: user.value?.username
+    })
+
+    await router.push(targetRoute)
 
   } catch (error) {
     // eslint-disable-next-line no-console

@@ -230,6 +230,9 @@
       </main>
     </div>
 
+    <!-- Nuxt UI Toast Notifications -->
+    <UNotifications />
+
     <!-- Global notifications -->
     <div class="fixed top-20 right-4 z-50 space-y-2 max-w-sm">
       <TransitionGroup

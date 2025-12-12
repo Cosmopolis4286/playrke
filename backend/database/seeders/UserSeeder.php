@@ -38,11 +38,12 @@ class UserSeeder extends Seeder
                     'last_name' => 'RKE',
                     'country_id' => $venezuela->id,
                     'email_verified_at' => now(),
-                    'password' => Hash::make('EHC-4286-RKE'),
+                    'password' => Hash::make('password123'),
                     'remember_token' => Str::random(10),
                     'referral_code' => $userRepo->generateUniqueReferralCode(),
                     'status' => 'ACTIVE',
                     'is_demo_user' => true,
+                    'demo_password' => 'password123',
                 ]
             );
 

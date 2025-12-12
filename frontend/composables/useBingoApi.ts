@@ -21,22 +21,21 @@ export const useBingoApi = () => {
     if (params?.currency) query.append('currency', params.currency)
     if (params?.roomType) query.append('roomType', params.roomType)
 
-    return api.get<{ data: BingoRoom[] }>(`/bingo/game-rooms?${query.toString()}`)
+    return api.get<{ data: BingoRoom[] }>(`/bingo/rooms?${query.toString()}`)
   }
 
   /**
    * Obtiene información de una sala específica
    */
   const getRoom = async (roomId: string) => {
-    return api.get<{ data: BingoRoom }>(`/bingo/room/${roomId}`)
+    return api.get<{ data: BingoRoom }>(`/bingo/rooms/${roomId}`)
   }
 
   /**
    * Compra un cartón de bingo
    */
   const purchaseCard = async (roomId: string, quantity: number = 1) => {
-    return api.post<{ data: BingoCard[] }>('/bingo/carton/generate/store', {
-      room_id: roomId,
+    return api.post<{ data: BingoCard[] }>(`/bingo/rooms/${roomId}/purchase`, {
       quantity
     })
   }
@@ -45,30 +44,28 @@ export const useBingoApi = () => {
    * Obtiene los cartones del jugador en una sala
    */
   const getPlayerCards = async (roomId: string) => {
-    return api.get<{ data: BingoCard[] }>(`/bingo/room/${roomId}/my-cards`)
+    return api.get<{ data: BingoCard[] }>(`/bingo/rooms/${roomId}/cards`)
   }
 
   /**
    * Obtiene el sorteo actual de una sala
    */
   const getDraw = async (roomId: string) => {
-    return api.get<{ data: BingoDraw }>(`/bingo/get-draw/${roomId}`)
+    return api.get<{ data: BingoDraw }>(`/bingo/rooms/${roomId}/draw`)
   }
 
   /**
    * Obtiene los números cantados
    */
-  const getCalledNumbers = async (roomId: string) => {
-    return api.get<{ data: number[] }>(`/bingo/get/chips/${roomId}`)
+  const getCalledNumbers = async (drawId: string) => {
+    return api.get<{ data: number[] }>(`/bingo/draw/${drawId}/numbers`)
   }
 
   /**
    * Verifica si un jugador ganó (para marcar bingo)
    */
-  const checkWinner = async (roomId: string, cardId: string, patternId: string) => {
-    return api.post<{ data: { isWinner: boolean; prize?: number } }>('/bingo/check-winner', {
-      room_id: roomId,
-      card_id: cardId,
+  const checkWinner = async (cardId: string, patternId?: string) => {
+    return api.post<{ data: { isWinner: boolean; prize?: number } }>(`/bingo/cards/${cardId}/check-winner`, {
       pattern_id: patternId
     })
   }
@@ -77,7 +74,7 @@ export const useBingoApi = () => {
    * Obtiene los ganadores de una sala
    */
   const getWinners = async (roomId: string) => {
-    return api.get<{ data: any[] }>(`/bingo/winners/room/${roomId}`)
+    return api.get<{ data: any[] }>(`/bingo/rooms/${roomId}/winners`)
   }
 
   /**
@@ -91,15 +88,14 @@ export const useBingoApi = () => {
     if (params?.currency) query.append('currency', params.currency)
     if (params?.dateFilter) query.append('dateFilter', params.dateFilter)
 
-    return api.get<{ data: any[] }>(`/bingo/cartons-sold?${query.toString()}`)
+    return api.get<{ data: any[] }>(`/bingo/history?${query.toString()}`)
   }
 
   /**
    * Notifica pago de premio
    */
-  const notifyPrizePayment = async (cardId: string, paymentInfo: any) => {
-    return api.post('/bingo/carton/notify/payment/win-ctn', {
-      card_id: cardId,
+  const notifyPrizePayment = async (historyId: string, paymentInfo: any) => {
+    return api.post(`/bingo/history/${historyId}/notify-payment`, {
       ...paymentInfo
     })
   }

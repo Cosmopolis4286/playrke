@@ -265,6 +265,9 @@
         <slot />
       </main>
     </div>
+
+    <!-- Nuxt UI Toast Notifications -->
+    <UNotifications />
   </div>
 </template>
 

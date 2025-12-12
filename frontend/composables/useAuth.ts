@@ -17,7 +17,7 @@ export const useAuth = () => {
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     auth.setLoading(true)
     try {
-      await api.csrfCookie()  // <-- aquí usas directamente la función exportada
+      await api.csrfCookie()
       const response = await api.post<AuthResponse>('/auth/login', credentials)
 
       // Validar respuesta del backend
@@ -47,11 +47,15 @@ export const useAuth = () => {
       await api.csrfCookie()
       const response = await api.post<AuthResponse>('/auth/register', data)
 
-      if (!response.success || !response.token || !response.user) {
+      // Validar respuesta del backend
+      if (!response.success || !response.user) {
         throw new Error(response.message || 'Error en registro')
       }
 
-      auth.setAuth(response.token, response.user)
+      // El backend usa sesiones, no tokens - usar 'session' como placeholder
+      const sessionToken = response.token || 'session'
+
+      auth.setAuth(sessionToken, response.user)
       notifySuccess('Registro completado correctamente')
       return response
     } catch (error: any) {

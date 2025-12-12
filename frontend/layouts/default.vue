@@ -132,6 +132,9 @@
       <slot />
     </main>
 
+    <!-- Toast Notifications -->
+    <UNotifications />
+
     <!-- Footer -->
     <footer class="bg-black/40 backdrop-blur-lg border-t border-white/10 mt-20">
       <div class="container mx-auto px-4 py-12">

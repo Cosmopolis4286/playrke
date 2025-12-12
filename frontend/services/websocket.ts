@@ -150,30 +150,44 @@ class WebSocketService {
         pusherPort,
         forceTLS,
         wsProtocol,
-        authEndpoint
+        authEndpoint,
+        pusherCluster: publicCfg.pusherCluster
       })
 
-      const echoConfig: any = {
-        broadcaster: 'pusher',
-        key: pusherKey,
+      // Configuración específica de Pusher para Reverb
+      // IMPORTANTE: No incluir 'cluster' para servidores locales como Reverb
+      const pusherOptions: any = {
         wsHost,
         wsPort: pusherPort,
         wssPort: pusherPort,
         forceTLS,
+        disableStats: true, // Deshabilitar estadísticas de Pusher Cloud
         enabledTransports: ['ws', 'wss'],
+        authEndpoint,
         auth: {
           headers: { Accept: 'application/json' },
-          // Ignorar TS error, es aceptado por laravel-echo/pusher internamente
           // @ts-ignore
           withCredentials: true
-        },
-        authEndpoint
+        }
       }
 
       // Solo agregar cluster si está definido y no es vacío (para Pusher Cloud, no Reverb)
       if (publicCfg.pusherCluster && publicCfg.pusherCluster.trim() !== '') {
-        echoConfig.cluster = publicCfg.pusherCluster
+        pusherOptions.cluster = publicCfg.pusherCluster
+        console.debug('[WebSocket] Cluster added:', publicCfg.pusherCluster)
+      } else {
+        console.debug('[WebSocket] No cluster configured (Reverb mode)')
       }
+
+      console.debug('[WebSocket] Pusher options:', JSON.stringify(pusherOptions, null, 2))
+
+      const echoConfig: any = {
+        broadcaster: 'pusher',
+        key: pusherKey,
+        ...pusherOptions
+      }
+
+      console.debug('[WebSocket] Final Echo config:', JSON.stringify(echoConfig, null, 2))
 
       this.echo = new Echo(echoConfig)
 

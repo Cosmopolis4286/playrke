@@ -19,7 +19,7 @@ export interface User {
 }
 
 export interface LoginCredentials {
-  username: string
+  login: string  // Backend acepta email o username
   password: string
   remember?: boolean
 }
