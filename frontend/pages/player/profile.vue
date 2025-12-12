@@ -295,13 +295,13 @@
     </main>
 
     <!-- Modal de subida de avatar (placeholder) -->
-    <Modal v-model="showAvatarUpload" title="Cambiar Avatar" size="sm">
+    <UiBaseModal v-model="showAvatarUpload" title="Cambiar Avatar" size="sm">
       <div class="text-center py-8">
         <Icon name="lucide:upload" class="h-16 w-16 text-gray-400 mx-auto mb-4" />
         <p class="text-gray-600">Funcionalidad de subida de avatar</p>
         <p class="text-sm text-gray-500 mt-2">Próximamente disponible</p>
       </div>
-    </Modal>
+    </UiBaseModal>
   </div>
 </template>
 

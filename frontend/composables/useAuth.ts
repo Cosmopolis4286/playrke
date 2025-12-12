@@ -116,6 +116,8 @@ export const useAuth = () => {
 
     hasRole: auth.hasRole,
     hasPermission: auth.hasPermission,
+    hasAnyRole: auth.hasAnyRole,
+    hasAllRoles: auth.hasAllRoles,
     isAdmin: auth.isAdmin,
     isPlayer: auth.isPlayer,
   }

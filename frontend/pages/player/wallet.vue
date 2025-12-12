@@ -199,7 +199,7 @@
     </main>
 
     <!-- Modal de depósito -->
-    <Modal
+    <UiBaseModal
       v-model="showDepositModal"
       title="Depositar Fondos"
       size="md"
@@ -252,10 +252,10 @@
           </p>
         </div>
       </div>
-    </Modal>
+    </UiBaseModal>
 
     <!-- Modal de retiro -->
-    <Modal
+    <UiBaseModal
       v-model="showWithdrawalModal"
       title="Retirar Fondos"
       size="md"
@@ -306,7 +306,7 @@
           </p>
         </div>
       </div>
-    </Modal>
+    </UiBaseModal>
   </div>
 </template>
 
@@ -376,7 +376,7 @@ const totalPages = computed(() => Math.ceil(filteredTransactions.value.length / 
 const loadWallets = async () => {
   try {
     const response = await getWallets()
-    wallets.value = response.data || []
+    wallets.value = response.wallets || []
     if (wallets.value.length > 0 && !selectedWallet.value) {
       selectedWallet.value = wallets.value[0]
     }
@@ -391,7 +391,7 @@ const loadTransactions = async () => {
   isLoadingTransactions.value = true
   try {
     const response = await getTransactions(selectedWallet.value.id)
-    transactions.value = response.data || []
+    transactions.value = response.transactions || []
   } catch (error) {
     console.error('Error cargando transacciones:', error)
   } finally {

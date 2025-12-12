@@ -24,7 +24,7 @@ class BingoController extends Controller
     public function getRooms(Request $request): JsonResponse
     {
         $query = BingoRoom::query()
-            ->with(['currency', 'creator'])
+            ->with(['creator', 'status'])
             ->orderBy('created_at', 'desc');
 
         // Filter by status
@@ -32,14 +32,9 @@ class BingoController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Filter by currency
-        if ($request->has('currency')) {
-            $query->where('currency_id', $request->currency);
-        }
-
         // Filter by type
         if ($request->has('type')) {
-            $query->where('type', $request->type);
+            $query->where('room_type', $request->type);
         }
 
         // Search
@@ -54,17 +49,25 @@ class BingoController extends Controller
             'rooms' => $rooms->map(function ($room) {
                 return [
                     'id' => $room->id,
-                    'name' => $room->name,
-                    'description' => $room->description,
-                    'status' => $room->status,
-                    'type' => $room->type,
-                    'currency' => $room->currency->code ?? 'USD',
-                    'card_price' => $room->card_price,
-                    'max_players' => $room->max_players,
-                    'current_players' => $room->current_players ?? 0,
-                    'prize_pool' => $room->prize_pool,
-                    'start_time' => $room->start_time,
-                    'created_at' => $room->created_at,
+                    'encrypted_code' => $room->encrypted_code,
+                    'status' => $room->status?->name ?? 'UNKNOWN',
+                    'room_type' => $room->room_type,
+                    'creator' => [
+                        'id' => $room->creator?->id,
+                        'username' => $room->creator?->username,
+                        'first_name' => $room->creator?->first_name,
+                        'last_name' => $room->creator?->last_name,
+                    ],
+                    'total_players' => $room->total_players,
+                    'total_cards' => $room->total_cards,
+                    'total_sales' => (float) $room->total_sales,
+                    'prize_pool' => (float) $room->prize_pool,
+                    'full_house_prize' => (float) $room->full_house_prize,
+                    'serial_prize' => (float) $room->serial_prize,
+                    'prizes_paid' => $room->prizes_paid === 'Y',
+                    'publication_date' => $room->publication_date?->toISOString(),
+                    'closed_at' => $room->closed_at?->toISOString(),
+                    'created_at' => $room->created_at->toISOString(),
                 ];
             }),
             'pagination' => [
@@ -84,26 +87,33 @@ class BingoController extends Controller
      */
     public function getRoom(int $id): JsonResponse
     {
-        $room = BingoRoom::with(['currency', 'creator', 'players'])
+        $room = BingoRoom::with(['creator', 'status', 'players'])
             ->findOrFail($id);
 
         return response()->json([
             'success' => true,
             'room' => [
                 'id' => $room->id,
-                'name' => $room->name,
-                'description' => $room->description,
-                'status' => $room->status,
-                'type' => $room->type,
-                'currency' => $room->currency->code ?? 'USD',
-                'card_price' => $room->card_price,
-                'max_players' => $room->max_players,
+                'encrypted_code' => $room->encrypted_code,
+                'status' => $room->status?->name ?? 'UNKNOWN',
+                'room_type' => $room->room_type,
+                'creator' => [
+                    'id' => $room->creator?->id,
+                    'username' => $room->creator?->username,
+                    'first_name' => $room->creator?->first_name,
+                    'last_name' => $room->creator?->last_name,
+                ],
+                'total_players' => $room->total_players,
                 'current_players' => $room->players->count(),
-                'prize_pool' => $room->prize_pool,
-                'start_time' => $room->start_time,
-                'patterns' => $room->patterns ?? [],
-                'rules' => $room->rules ?? [],
-                'created_at' => $room->created_at,
+                'total_cards' => $room->total_cards,
+                'total_sales' => (float) $room->total_sales,
+                'prize_pool' => (float) $room->prize_pool,
+                'full_house_prize' => (float) $room->full_house_prize,
+                'serial_prize' => (float) $room->serial_prize,
+                'prizes_paid' => $room->prizes_paid === 'Y',
+                'publication_date' => $room->publication_date?->toISOString(),
+                'closed_at' => $room->closed_at?->toISOString(),
+                'created_at' => $room->created_at->toISOString(),
             ],
         ]);
     }
