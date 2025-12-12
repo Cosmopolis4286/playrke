@@ -34,7 +34,7 @@
     "./pages/**/*.vue",
     "./layouts/**/*.vue",
     "./plugins/**/*.ts",
-    "./stores/**/*.ts",
+    "stores/**/*.ts",
     "./utils/**/*.ts",
     "./types/**/*.d.ts",
     "./layers/**/*.ts",

@@ -1,7 +1,7 @@
 import { computed } from 'vue'
-import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth'
-import { useAuthStore } from '../stores/auth'
-import { parseLaravelError } from '../utils/parseLaravelError'
+import type { LoginCredentials, RegisterData, AuthResponse, User } from '~/layers/shared/types/auth'
+import { useAuthStore } from '~/layers/shared/stores/auth'
+import { parseLaravelError } from '~/layers/shared/utils/parseLaravelError'
 import { useApi } from './useApi'
 
 export const useAuth = () => {
