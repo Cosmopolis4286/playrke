@@ -244,7 +244,6 @@ definePageMeta({
 
 const { register } = useAuth()
 const router = useRouter()
-const toast = useAppToast()
 
 // Estado del formulario
 const form = ref({

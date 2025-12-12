@@ -1,7 +1,7 @@
 import { computed } from 'vue'
-import type { LoginCredentials, RegisterData, AuthResponse, User } from '~/layers/shared/types/auth'
-import { useAuthStore } from '~/layers/shared/stores/auth'
-import { parseLaravelError } from '~/layers/shared/utils/parseLaravelError'
+import type { LoginCredentials, RegisterData, AuthResponse, User } from '~/types/auth'
+import { useAuthStore } from '~/stores/auth'
+import { parseLaravelError } from '~/utils/parseLaravelError'
 import { useApi } from './useApi'
 
 export const useAuth = () => {
@@ -20,11 +20,15 @@ export const useAuth = () => {
       await api.csrfCookie()  // <-- aquí usas directamente la función exportada
       const response = await api.post<AuthResponse>('/auth/login', credentials)
 
-      if (!response.success || !response.token || !response.user) {
+      // Validar respuesta del backend
+      if (!response.success || !response.user) {
         throw new Error(response.message || 'Error en autenticación')
       }
 
-      auth.setAuth(response.token, response.user)
+      // El backend usa sesiones, no tokens - usar 'session' como placeholder
+      const sessionToken = response.token || 'session'
+
+      auth.setAuth(sessionToken, response.user)
       notifySuccess('Sesión iniciada correctamente')
       return response
     } catch (error: any) {

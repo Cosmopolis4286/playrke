@@ -170,8 +170,8 @@ class WebSocketService {
         authEndpoint
       }
 
-      // Solo agregar cluster si está definido (para Pusher Cloud, no Reverb)
-      if (publicCfg.pusherCluster) {
+      // Solo agregar cluster si está definido y no es vacío (para Pusher Cloud, no Reverb)
+      if (publicCfg.pusherCluster && publicCfg.pusherCluster.trim() !== '') {
         echoConfig.cluster = publicCfg.pusherCluster
       }
 

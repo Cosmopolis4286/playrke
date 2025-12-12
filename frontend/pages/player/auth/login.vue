@@ -130,7 +130,6 @@ definePageMeta({
 
 const { login } = useAuth()
 const router = useRouter()
-const toast = useAppToast()
 
 const form = ref({
   login: '',
