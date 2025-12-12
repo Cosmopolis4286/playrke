@@ -14,7 +14,7 @@
  */
 
 import type { Channel, PresenceChannel } from 'laravel-echo'
-import { useWebSocketService } from '~/layers/shared/services/websocket'
+import { useWebSocketService } from '~/services/websocket'
 
 export interface ConnectedUser {
   id: string

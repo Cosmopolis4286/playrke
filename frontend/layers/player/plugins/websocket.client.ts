@@ -11,7 +11,7 @@
  * - Nuxt Context Safe: Servicio se inicializa dentro de contexto válido del plugin
  */
 
-import { useWebSocketService } from '~/layers/shared/services/websocket'
+import { useWebSocketService } from '~/services/websocket'
 
 export default defineNuxtPlugin(() => {
   const { user } = useAuth()
