@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\BingoRoom;
-use App\Models\BingoCtns;
-use App\Models\BingoDraw;
-use App\Models\PlayHistory;
+
+use App\Models\Games\Bingo\Cards\BingoCard;
+use App\Models\Games\Bingo\Draws\BingoDraw;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Shared\Historical\PlayHistory;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -147,7 +149,7 @@ class BingoController extends Controller
                 $card = $this->generateBingoCard();
 
                 // Store card in database
-                $bingoCard = BingoCtns::create([
+                $bingoCard = BingoCard::create([
                     'room_id' => $roomId,
                     'user_id' => $user->id,
                     'numbers' => json_encode($card),
@@ -191,7 +193,7 @@ class BingoController extends Controller
     {
         $user = $request->user();
 
-        $cards = BingoCtns::where('room_id', $roomId)
+        $cards = BingoCard::where('room_id', $roomId)
             ->where('user_id', $user->id)
             ->where('status', 'active')
             ->get();
@@ -268,7 +270,7 @@ class BingoController extends Controller
      */
     public function checkWinner(Request $request, int $cardId): JsonResponse
     {
-        $card = BingoCtns::findOrFail($cardId);
+        $card = BingoCard::findOrFail($cardId);
         $user = $request->user();
 
         // Verify card belongs to user

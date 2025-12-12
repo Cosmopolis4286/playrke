@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Games;
 
-use App\Models\CustomerGame;
 use App\Http\Controllers\Controller;
-use App\Models\Games;
+use App\Models\Games\Shared\Game;
+use App\Models\Users\Roles\Customer\CustomerGame;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
