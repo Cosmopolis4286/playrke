@@ -285,7 +285,9 @@ const uiStore = useUIStore()
 // Estados locales
 const showUserMenu = ref(false)
 const showNotifications = ref(false)
-const isSidebarOpen = ref(true)
+// IMPORTANTE: Inicializar en false para evitar mismatch de hidratación
+// Se ajustará correctamente en onMounted según el tamaño de pantalla
+const isSidebarOpen = ref(false)
 const unreadNotifications = ref(3)
 
 // Player stats (ejemplo - deberían venir de una API)

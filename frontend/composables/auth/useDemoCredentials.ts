@@ -51,7 +51,8 @@ export function useDemoCredentials() {
     }
   }
 
-  refresh()
+  // No ejecutar refresh() automáticamente - debe ser llamado manualmente
+  // refresh()
 
   return {
     credentials,

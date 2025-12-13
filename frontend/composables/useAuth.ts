@@ -74,6 +74,17 @@ export const useAuth = () => {
       await api.post('/auth/logout', {})  // body vacío obligatorio
       auth.clearAuth()
       notifySuccess('Has cerrado sesión')
+
+      // Redirigir a la página de login correspondiente
+      const router = useRouter()
+      const route = useRoute()
+      const isAdminRoute = route.path.startsWith('/admin')
+      const loginPath = isAdminRoute ? '/admin/auth/login' : '/player/auth/login'
+
+      await navigateTo(loginPath, {
+        replace: true,
+        redirectCode: 302
+      })
     } catch (error: any) {
       notifyError(parseLaravelError(error))
       throw error

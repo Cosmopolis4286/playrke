@@ -21,17 +21,10 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     return
   }
 
-  const authStore = useAuthStore()
   const { isAuthenticated, checkAuth } = useAuth()
 
-  // IMPORTANTE: Inicializar desde localStorage si no hay sesión activa
-  // Esto resuelve el problema de "pierde sesión al recargar"
-  if (!isAuthenticated.value && process.client) {
-    const stored = authStore.getAuth()
-    if (stored.token && stored.user) {
-      authStore.setAuth(stored.token, stored.user)
-    }
-  }
+  // NOTA: La restauración desde localStorage ahora se hace en el plugin 01.restore-auth.client.ts
+  // No es necesario duplicar la lógica aquí
 
   // Verificar autenticación
   if (!isAuthenticated.value) {

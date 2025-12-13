@@ -49,7 +49,7 @@ export default defineNuxtConfig({
       pusherKey: process.env.NUXT_PUBLIC_PUSHER_KEY || 'local',
       pusherHost: process.env.NUXT_PUBLIC_PUSHER_HOST || 'localhost',
       pusherPort: Number(process.env.NUXT_PUBLIC_PUSHER_PORT || 8082),
-      pusherCluster: process.env.NUXT_PUBLIC_PUSHER_CLUSTER || '',
+      pusherCluster: process.env.NUXT_PUBLIC_PUSHER_CLUSTER || undefined,
       pusherTLS: process.env.NUXT_PUBLIC_PUSHER_TLS === 'true' || false,
       appName: 'PlayRKE',
       appDescription: 'Plataforma de Bingo Online'

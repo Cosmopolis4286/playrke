@@ -461,10 +461,11 @@ const paginatedGames = computed(() => {
 const loadHistory = async () => {
   isLoading.value = true
   try {
-    const data = await getPlayerHistory()
-    games.value = data
+    const response = await getPlayerHistory()
+    games.value = response.data || []
   } catch (error) {
     console.error('Error cargando historial:', error)
+    games.value = []
   } finally {
     isLoading.value = false
   }

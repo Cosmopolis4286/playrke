@@ -25,7 +25,7 @@
                 name="spinner"
                 :size="loadingSize"
                 color="primary"
-                spinning
+                spin
                 :aria-hidden="false"
                 :aria-label="loadingText"
               />

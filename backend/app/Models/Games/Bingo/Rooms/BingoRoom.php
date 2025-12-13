@@ -14,7 +14,6 @@ use App\Models\Sellers\SellerRoomLimits;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use BradieTilley\Snowflake\Snowflake;
 
 /**
@@ -30,7 +29,6 @@ use BradieTilley\Snowflake\Snowflake;
  */
 class BingoRoom extends Model
 {
-    use SoftDeletes;
 
     // ========================
     // Configuración de la tabla

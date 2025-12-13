@@ -99,12 +99,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = loading
   }
 
-  // Inicializar desde localStorage
-  if (process.client) {
-    const stored = getAuth()
-    if (stored.user) user.value = stored.user
-    if (stored.token) token.value = stored.token
-  }
+  // NOTA: La inicialización desde localStorage ahora se hace en el plugin 01.restore-auth.client.ts
+  // para garantizar el orden correcto de ejecución y evitar race conditions
 
   return {
     // State
