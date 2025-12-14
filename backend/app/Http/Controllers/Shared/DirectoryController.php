@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Shared;
 
+use App\Http\Controllers\Controller;
 use App\Models\BankVenezuela;
 use App\Models\BinanceAccounts;
 use App\Models\Commerce;

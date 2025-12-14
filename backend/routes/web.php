@@ -21,13 +21,13 @@ require __DIR__ . '/modules/api-public.php';      // APIs públicas
 // RUTAS PROTEGIDAS (requieren login)
 // ====================================
 require __DIR__ . '/modules/dashboard.php';       // TODO: Crear controllers faltantes
-// require __DIR__ . '/modules/user-profile.php';    // TODO: Crear ProfileController
-// require __DIR__ . '/modules/content.php';         // TODO: Crear InformationController
+require __DIR__ . '/modules/user-profile.php';    // TODO: Crear ProfileController
+require __DIR__ . '/modules/content.php';         // TODO: Crear InformationController
 
 // ====================================
 // RUTAS POR ROLES DE USUARIO
 // ====================================
-// require __DIR__ . '/modules/admin.php';           // TODO: Crear AdminController
+require __DIR__ . '/modules/admin.php';           // TODO: Crear AdminController
 // require __DIR__ . '/modules/customer.php';        // TODO: Revisar controllers
 // require __DIR__ . '/modules/commerce.php';        // TODO: Revisar controllers
 // require __DIR__ . '/modules/seller.php';          // TODO: Revisar controllers

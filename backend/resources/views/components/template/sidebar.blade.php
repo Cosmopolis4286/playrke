@@ -1,4 +1,4 @@
-@props(['creatorTypePrefix' => null, 'userRole' => ''])
+@props(['userRolePrefix' => null, 'userRole' => ''])
 <aside class="main-sidebar sidebar-dark-primary elevation-3" role="complementary" aria-label="Sidebar principal">
     <a href="{{ url('/dashboard') }}" class="menu-image-play cold" aria-label="Ir al dashboard">
         <img src="{{ asset('img/stam.png') }}" alt="Logo PlayRKE" class="brand-image">
@@ -63,7 +63,7 @@
                                 <p>Acerca de PlayRKE</p>
                             </a>
                         </li>
-                        @if ($creatorTypePrefix === 'user')
+                        @if ($userRolePrefix === 'user')
                             <li class="nav-item">
                                 <a href="{{ route('info.power-of-knowledge') }}"
                                     class="{{ Route::is('info.pds') ? 'nav-link active' : 'nav-link' }}">

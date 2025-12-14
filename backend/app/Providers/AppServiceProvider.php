@@ -15,7 +15,7 @@ use Illuminate\Filesystem\Filesystem;
  * AppServiceProvider
  *
  * Proveedor principal de la aplicación.
- * 
+ *
  * Funciones principales:
  *  - Registrar singletons y bindings necesarios
  *  - Forzar HTTPS en producción
@@ -78,18 +78,18 @@ class AppServiceProvider extends ServiceProvider
         // DISABLED: Causing conflicts with Auth and View loading order
         // This can be enabled later if needed, but must be loaded after
         // all services are fully booted
-        // if ($this->app->has('view')) {
-        //     View::composer('*', function ($view): void {
-        //         $prefix = null;
-        //         if (Auth::check()) {
-        //             $user = Auth::user();
-        //             $firstRole = $user->roles->first();
-        //             if ($firstRole !== null) {
-        //                 $prefix = $firstRole->prefix;
-        //             }
-        //         }
-        //         $view->with('creatorTypePrefix', $prefix);
-        //     });
-        // }
+        if ($this->app->has('view')) {
+            View::composer('*', function ($view): void {
+            $prefix = null;
+                if (Auth::check()) {
+                    $user = Auth::user();
+                    $firstRole = $user->roles->first();
+                    if ($firstRole !== null) {
+                        $prefix = $firstRole->prefix;
+                    }
+                }
+                $view->with('userRolePrefix', $prefix);
+            });
+        }
     }
 }

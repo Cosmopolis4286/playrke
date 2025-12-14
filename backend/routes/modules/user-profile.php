@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\{ProfileController, ReferralController};
+use App\Http\Controllers\User\{ProfileController, ReferralController};
 
 require_once app_path('Helpers/RouteHelper.php');
 

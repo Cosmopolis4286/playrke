@@ -1,8 +1,8 @@
 @php
-    $creatorTypePrefix = $creatorTypePrefix ?? '';
+    $userRolePrefix = $userRolePrefix ?? '';
 @endphp
 
-@switch($creatorTypePrefix)
+@switch($userRolePrefix)
     @case('admin')
         <x-template.sidebar.admin />
     @break

@@ -19,6 +19,7 @@ class InformationController extends Controller
 
     public function about()
     {
+        dd();
         return view('modules.shared.info.about');
     }
 

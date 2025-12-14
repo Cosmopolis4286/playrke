@@ -7,6 +7,7 @@ use App\Models\Wallets\Wallet;
 use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
 /**
  * Controlador para la página principal / dashboard.
@@ -21,16 +22,13 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index(): JsonResponse
+    public function index(): View
     {
         $user = Auth::user();
-
-        // Obtener rol principal (primer rol asignado) del usuario
         $firstRole = $user->roles->first();
         $userRole = $firstRole?->prefix ?? 'user';
 
-        // Datos del dashboard
-        return response()->json([
+        $data = [
             'title' => 'Dashboard',
             'exchangeRate' => 1,
             'balance' => $this->getBalance($user->id),
@@ -45,7 +43,11 @@ class HomeController extends Controller
                 'roles' => [$userRole],
                 'permissions' => [],
             ],
-        ]);
+        ];
+
+        $view = "modules/users/roles/{$userRole}/widgets/index";
+
+        return view($view, $data);
     }
 
     /**

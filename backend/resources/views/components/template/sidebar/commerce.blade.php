@@ -2,7 +2,7 @@
     $countryCode = strtolower(session('countryCode'));
 @endphp
 
-<x-template.sidebar :creatorTypePrefix="$creatorTypePrefix" userRole="Comercializadora">
+<x-template.sidebar :userRolePrefix="$userRolePrefix" userRole="Comercializadora">
     {{-- Slot de navegación específica para Comercializadora --}}
     <li class="nav-item has-treeview">
         <a href="{{ route('directory.index', ['countryCode' => $countryCode]) }}" title="Directorio"
