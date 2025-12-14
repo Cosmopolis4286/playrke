@@ -7,6 +7,7 @@ namespace App\Repositories\Settings\Contracts;
 use App\Models\Settings\Setting;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Contrato para el repositorio de configuraciones del sistema
@@ -14,9 +15,8 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos disponibles para gestionar parámetros de configuración,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
  *
- * @package App\Repositories\Contracts\Setting
- * @author Sistema de Gestión de Configuraciones
- * @version 1.1
+ * @package App\Repositories\Settings\Contracts
+ * @version 1.2
  */
 interface SettingRepositoryContract extends BaseRepositoryContract
 {
@@ -94,9 +94,13 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @return Setting Configuración actualizada o creada
      *
      * @example
-     * $setting = $repository->updateOrCreateSetting('theme', 'dark', 'ACTIVE');
+     * $setting = $repository->updateOrCreateSetting('theme', 'dark');
      */
-    public function updateOrCreateSetting(string $param, string $value, string $status = 'ACTIVE'): Setting;
+    public function updateOrCreateSetting(
+        string $param,
+        string $value,
+        string $status = Setting::STATUS_ACTIVE
+    ): Setting;
 
     /**
      * Actualiza el estado de un parámetro
@@ -166,12 +170,16 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      * @example
      * $settings = $repository->getSettingByDateRange('2024-01-01', '2024-01-31');
      */
-    public function getSettingByDateRange(string $startDate, string $endDate, array $filters = []): Collection;
+    public function getSettingByDateRange(
+        string $startDate,
+        string $endDate,
+        array $filters = []
+    ): Collection;
 
     /**
      * Cuenta configuraciones por estado
      *
-     * @return array Conteo por estado
+     * @return array<string,int> Conteo por estado
      *
      * @example
      * $counts = $repository->countSettingByStatus();
@@ -182,7 +190,7 @@ interface SettingRepositoryContract extends BaseRepositoryContract
     /**
      * Obtiene estadísticas generales de configuraciones
      *
-     * @return array Estadísticas generales
+     * @return array<string,int> Estadísticas generales
      *
      * @example
      * $stats = $repository->getGeneralSettingStats();
@@ -194,12 +202,15 @@ interface SettingRepositoryContract extends BaseRepositoryContract
      *
      * @param int $perPage Elementos por página
      * @param array $filters Filtros adicionales
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator Configuraciones paginadas
+     * @return LengthAwarePaginator Configuraciones paginadas
      *
      * @example
      * $paginatedSetting = $repository->getPaginatedSetting(20, ['status' => 'ACTIVE']);
      */
-    public function getPaginatedSetting(int $perPage = 15, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator;
+    public function getPaginatedSetting(
+        int $perPage = 15,
+        array $filters = []
+    ): LengthAwarePaginator;
 
     /**
      * Actualiza múltiples configuraciones en lote

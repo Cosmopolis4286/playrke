@@ -73,6 +73,7 @@ class Setting extends Model
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
+        'status'     => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

@@ -8,6 +8,7 @@ use App\Models\Settings\Setting;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Settings\Contracts\SettingRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -16,9 +17,8 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de base de datos relacionadas con
  * los parámetros de configuración del sistema.
  *
- * @package App\Repositories\Setting
- * @author Sistema de Gestión de Configuraciones
- * @version 1.1
+ * @package App\Repositories\Settings
+ * @version 1.2
  */
 class SettingRepository extends BaseRepository implements SettingRepositoryContract
 {
@@ -32,7 +32,11 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function getParameterValue(string $param): ?string
     {
-        return $this->model->where('param', $param)->value('value');
+        return $this->model
+            ->select('value')
+            ->where('param', $param)
+            ->first()
+            ?->value;
     }
 
     /**
@@ -40,7 +44,11 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function getParameterStatus(string $param): ?string
     {
-        return $this->model->where('param', $param)->value('status');
+        return $this->model
+            ->select('status')
+            ->where('param', $param)
+            ->first()
+            ?->status;
     }
 
     /**
@@ -48,7 +56,8 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function getActiveSetting(): Collection
     {
-        return $this->model->where('status', Setting::STATUS_ACTIVE)
+        return $this->model
+            ->where('status', Setting::STATUS_ACTIVE)
             ->orderBy('param')
             ->get();
     }
@@ -58,7 +67,8 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function getInactiveSetting(): Collection
     {
-        return $this->model->where('status', Setting::STATUS_INACTIVE)
+        return $this->model
+            ->where('status', Setting::STATUS_INACTIVE)
             ->orderBy('param')
             ->get();
     }
@@ -68,7 +78,8 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function getSettingByStatus(string $status): Collection
     {
-        return $this->model->where('status', $status)
+        return $this->model
+            ->where('status', $status)
             ->orderBy('param')
             ->get();
     }
@@ -78,7 +89,8 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function searchSettingByParam(string $searchTerm, array $filters = []): Collection
     {
-        $query = $this->model->where('param', 'LIKE', "%{$searchTerm}%");
+        $query = $this->model
+            ->where('param', 'LIKE', "%{$searchTerm}%");
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -90,12 +102,15 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
     /**
      * Actualiza o crea un parámetro de configuración
      */
-    public function updateOrCreateSetting(string $param, string $value, string $status = Setting::STATUS_ACTIVE): Setting
-    {
+    public function updateOrCreateSetting(
+        string $param,
+        string $value,
+        string $status = Setting::STATUS_ACTIVE
+    ): Setting {
         return $this->model->updateOrCreate(
             ['param' => $param],
             [
-                'value' => $value,
+                'value'  => $value,
                 'status' => $status,
             ]
         );
@@ -106,7 +121,8 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function updateSettingStatus(string $param, string $newStatus): bool
     {
-        return $this->model->where('param', $param)
+        return $this->model
+            ->where('param', $param)
             ->update(['status' => $newStatus]) > 0;
     }
 
@@ -115,7 +131,8 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function updateSettingValue(string $param, string $newValue): bool
     {
-        return $this->model->where('param', $param)
+        return $this->model
+            ->where('param', $param)
             ->update(['value' => $newValue]) > 0;
     }
 
@@ -124,7 +141,9 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function deleteSetting(string $param): bool
     {
-        return $this->model->where('param', $param)->delete() > 0;
+        return $this->model
+            ->where('param', $param)
+            ->delete() > 0;
     }
 
     /**
@@ -132,7 +151,9 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function settingExists(string $param): bool
     {
-        return $this->model->where('param', $param)->exists();
+        return $this->model
+            ->where('param', $param)
+            ->exists();
     }
 
     /**
@@ -140,7 +161,8 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function isSettingActive(string $param): bool
     {
-        return $this->model->where('param', $param)
+        return $this->model
+            ->where('param', $param)
             ->where('status', Setting::STATUS_ACTIVE)
             ->exists();
     }
@@ -148,15 +170,21 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
     /**
      * Obtiene configuraciones por rango de fechas de creación
      */
-    public function getSettingByDateRange(string $startDate, string $endDate, array $filters = []): Collection
-    {
-        $query = $this->model->whereBetween('created_at', [$startDate, $endDate]);
+    public function getSettingByDateRange(
+        string $startDate,
+        string $endDate,
+        array $filters = []
+    ): Collection {
+        $query = $this->model
+            ->whereBetween('created_at', [$startDate, $endDate]);
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        return $query->orderBy('created_at', 'desc')->get();
+        return $query
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -164,16 +192,14 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function countSettingByStatus(): array
     {
-        $counts = $this->model->select('status', DB::raw('count(*) as total'))
+        $counts = $this->model
+            ->select('status', DB::raw('COUNT(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status')
             ->toArray();
 
-        $validStatuses = [Setting::STATUS_ACTIVE, Setting::STATUS_INACTIVE];
-        foreach ($validStatuses as $status) {
-            if (!isset($counts[$status])) {
-                $counts[$status] = 0;
-            }
+        foreach ([Setting::STATUS_ACTIVE, Setting::STATUS_INACTIVE] as $status) {
+            $counts[$status] = $counts[$status] ?? 0;
         }
 
         return $counts;
@@ -184,25 +210,29 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function getGeneralSettingStats(): array
     {
-        $stats = $this->model->selectRaw('
-                                COUNT(*) as total,
-                                SUM(CASE WHEN status = "' . Setting::STATUS_ACTIVE . '" THEN 1 ELSE 0 END) as active,
-                                SUM(CASE WHEN status = "' . Setting::STATUS_INACTIVE . '" THEN 1 ELSE 0 END) as inactive
-                            ')
+        $stats = $this->model
+            ->selectRaw(
+                'COUNT(*) as total,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as active,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as inactive',
+                [Setting::STATUS_ACTIVE, Setting::STATUS_INACTIVE]
+            )
             ->first();
 
         return [
-            'total' => $stats->total ?? 0,
-            'active' => $stats->active ?? 0,
-            'inactive' => $stats->inactive ?? 0,
+            'total'    => (int) ($stats->total ?? 0),
+            'active'   => (int) ($stats->active ?? 0),
+            'inactive' => (int) ($stats->inactive ?? 0),
         ];
     }
 
     /**
      * Obtiene todas las configuraciones con paginación
      */
-    public function getPaginatedSetting(int $perPage = 15, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
-    {
+    public function getPaginatedSetting(
+        int $perPage = 15,
+        array $filters = []
+    ): LengthAwarePaginator {
         $query = $this->model->newQuery();
 
         if (isset($filters['status'])) {
@@ -213,7 +243,9 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
             $query->where('param', 'LIKE', "%{$filters['search']}%");
         }
 
-        return $query->orderBy('param')->paginate($perPage);
+        return $query
+            ->orderBy('param')
+            ->paginate($perPage);
     }
 
     /**
@@ -225,17 +257,22 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
 
         DB::transaction(function () use ($settings, &$updatedCount) {
             foreach ($settings as $param => $config) {
-                [$value, $status] = $config;
+                $value  = $config[0] ?? null;
+                $status = $config[1] ?? Setting::STATUS_ACTIVE;
 
-                $updated = $this->model->updateOrCreate(
+                if ($value === null) {
+                    continue;
+                }
+
+                $setting = $this->model->updateOrCreate(
                     ['param' => $param],
                     [
-                        'value' => $value,
+                        'value'  => $value,
                         'status' => $status,
                     ]
                 );
 
-                if ($updated->wasRecentlyCreated || $updated->wasChanged()) {
+                if ($setting->wasRecentlyCreated || $setting->wasChanged()) {
                     $updatedCount++;
                 }
             }
@@ -249,18 +286,8 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function getCriticalSystemSetting(): Collection
     {
-        $criticalParams = [
-            'app_env',
-            'app_debug',
-            'maintenance_mode',
-            'api_enabled',
-            'database_status',
-            'cache_enabled',
-            'queue_enabled',
-            'security_level'
-        ];
-
-        return $this->model->whereIn('param', $criticalParams)
+        return $this->model
+            ->whereIn('param', Setting::CRITICAL_PARAMS)
             ->where('status', Setting::STATUS_ACTIVE)
             ->orderBy('param')
             ->get();
@@ -269,15 +296,18 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
     /**
      * Obtiene configuraciones más recientes
      */
-    public function getRecentSetting(int $limit = 10, array $filters = []): Collection
-    {
+    public function getRecentSetting(
+        int $limit = 10,
+        array $filters = []
+    ): Collection {
         $query = $this->model->newQuery();
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        return $query->orderBy('updated_at', 'desc')
+        return $query
+            ->orderBy('updated_at', 'desc')
             ->limit($limit)
             ->get();
     }
@@ -287,13 +317,16 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function searchSettingByValue(string $searchTerm, array $filters = []): Collection
     {
-        $query = $this->model->where('value', 'LIKE', "%{$searchTerm}%");
+        $query = $this->model
+            ->where('value', 'LIKE', "%{$searchTerm}%");
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        return $query->orderBy('param')->get();
+        return $query
+            ->orderBy('param')
+            ->get();
     }
 
     /**
@@ -301,12 +334,14 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
      */
     public function getDuplicatedValueSetting(): Collection
     {
-        $duplicates = $this->model->select('value')
+        $duplicates = $this->model
+            ->select('value')
             ->groupBy('value')
             ->havingRaw('COUNT(*) > 1')
             ->pluck('value');
 
-        return $this->model->whereIn('value', $duplicates)
+        return $this->model
+            ->whereIn('value', $duplicates)
             ->orderBy('param')
             ->get();
     }
@@ -330,7 +365,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryContr
 
         DB::transaction(function () use ($backup, &$restoredCount) {
             foreach ($backup as $param => $value) {
-                $this->updateOrCreateSetting($param, $value, Setting::STATUS_ACTIVE);
+                $this->updateOrCreateSetting($param, (string) $value);
                 $restoredCount++;
             }
         });

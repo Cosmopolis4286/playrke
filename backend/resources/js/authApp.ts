@@ -1,60 +1,81 @@
 /**
  * authApp.ts
  *
- * Entrada principal de Vue 3 + Inertia.js para páginas de autenticación.
- * Funciona con Vite y TypeScript, usando lazy-loading de componentes.
- * Incluye:
- *   - Barra de progreso Inertia
- *   - Resolución segura de rutas (Windows/Linux)
- *   - Tipado correcto para TypeScript
- *   - Manejo de errores con fallback
+ * Entry point Vue 3 + Inertia.js para autenticación
+ * Laravel + Blade + Vite + TypeScript (estricto)
  */
 
 import { createApp, h, defineComponent, type DefineComponent } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { InertiaProgress } from '@inertiajs/progress'
+import '../css/global/styles.css'
+import '../css/global/auth-pages.css'
 
-// Inicializa barra de progreso
-InertiaProgress.init()
+// ─────────────────────────────────────────────────────────────
+// Inertia Progress
+// ─────────────────────────────────────────────────────────────
+InertiaProgress.init({
+  color: '#8b5cf6',
+  showSpinner: false,
+})
 
-// Import dinámico de todas las páginas bajo ./Pages
-const pages = import.meta.glob<{ default: DefineComponent }>('./Pages/**/*.vue')
+// ─────────────────────────────────────────────────────────────
+// Pages (TIPADO EXACTO)
+// ─────────────────────────────────────────────────────────────
+const pages = import.meta.glob<{ default: DefineComponent }>(
+  './Pages/**/*.vue'
+)
 
-// Fallback para páginas no encontradas
+// ─────────────────────────────────────────────────────────────
+// Page Not Found (TIPO FIJO)
+// ─────────────────────────────────────────────────────────────
 const PageNotFound: DefineComponent = defineComponent({
   name: 'PageNotFound',
   setup() {
     return () =>
       h(
         'div',
-        { style: { padding: '2rem', color: 'red', fontWeight: 'bold' } },
+        {
+          style: {
+            padding: '2rem',
+            color: '#ef4444',
+            fontWeight: 'bold',
+          },
+        },
         'Página no encontrada'
       )
   },
 })
 
+// ─────────────────────────────────────────────────────────────
+// Inertia App
+// ─────────────────────────────────────────────────────────────
 createInertiaApp({
   /**
-   * Resolver páginas dinámicamente
+   * Resolver dinámico de páginas
+   * ✔ async
+   * ✔ siempre retorna DefineComponent
    */
-  resolve: async (name: string): Promise<DefineComponent> => {
-    const keys = Object.keys(pages)
-    const matchedKey = keys.find(key => key.endsWith(`${name}.vue`))
+  resolve: async (name): Promise<DefineComponent> => {
+    const path = `./Pages/${name}.vue`
+    const loader = pages[path]
 
-    if (!matchedKey) {
+    if (!loader) {
       console.error(`[Inertia] Página no encontrada: ${name}`)
       return PageNotFound
     }
 
-    const module = await pages[matchedKey]()
+    const module = await loader()
     return module.default
   },
 
   /**
-   * Setup de la app Vue
+   * Bootstrap Vue
    */
   setup({ el, App, props, plugin }) {
-    createApp({ render: () => h(App, props) }).use(plugin).mount(el)
+    createApp({ render: () => h(App, props) })
+      .use(plugin)
+      .mount(el)
   },
 
   /**
