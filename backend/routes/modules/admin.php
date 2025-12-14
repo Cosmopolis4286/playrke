@@ -17,7 +17,7 @@ require_once app_path('Helpers/RouteHelper.php');
 // ====================================
 // PANEL ADMINISTRATIVO PRINCIPAL
 // ====================================
-role_protected_routes(['admin'], 'admin', AdminController::class, [
+role_protected_routes(['role:admin'], 'admin', AdminController::class, [
     'dashboard' => ['method' => 'get', 'uri' => ''],
     'customers' => ['method' => 'get', 'uri' => 'customers'],
     'commerces' => ['method' => 'get', 'uri' => 'commerces'],

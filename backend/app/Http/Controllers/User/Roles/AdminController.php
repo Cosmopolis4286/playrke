@@ -28,6 +28,7 @@ class AdminController extends Controller
      */
     public function commerces()
     {
+        dd();
         $currencies = Currency::getByIdForStatus(['=', 1]);
         $commerces = Commerce::with(['Country:id,name', 'User:id,email'])->get();
         $countries = Country::getAllAvailableCountries();

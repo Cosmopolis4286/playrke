@@ -29,8 +29,7 @@ use App\Http\Controllers\Api\Auth\DemoCredentialsController;
 //
 
 // Información del usuario actual (si está autenticado)
-Route::middleware('web')->get('user', [AuthController::class, 'user'])
-    ->name('api.user');
+Route::middleware('web')->get('user', [AuthController::class, 'user'])->name('api.user');
 
 // Auth (Login / Register / Reset)
 Route::middleware('web')->prefix('auth')->group(function () {
@@ -43,8 +42,6 @@ Route::middleware('web')->prefix('auth')->group(function () {
 // Demo credentials (solo en local)
 Route::middleware('web')->get('demo-credentials', [DemoCredentialsController::class, 'index'])
     ->name('api.demo-credentials');
-
-
 //
 // PROTECTED ROUTES (auth:sanctum)
 //
@@ -162,6 +159,8 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
         Route::put('settings', [AdminController::class, 'updateSettings'])->name('api.admin.update-settings');
     });
 });
+
+require __DIR__ . '/modules/content.php';         // TODO: Crear InformationController
 
 
 //

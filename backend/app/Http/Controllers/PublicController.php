@@ -31,21 +31,21 @@ class PublicController extends Controller
      * Página de inicio / login con estado de registro
      */
     public function root(): Response
-{
-    $register = $this->settings->getParameterStatus('REGISTER');
+    {
+        $register = $this->settings->getParameterStatus('REGISTER');
 
-    return Inertia::render('auth/LoginLegacy', [
-        'register' => (bool) $register,
-        'loginUrl' => route('login'),
-        'passwordRequestUrl' => route('password.request'),
-        'registerUrl' => route('register'),
+        return Inertia::render('auth/LoginLegacy', [
+            'register' => (bool) $register,
+            'loginUrl' => route('login'),
+            'passwordRequestUrl' => route('password.request'),
+            'registerUrl' => route('register'),
 
-        // Blade renderizado
-        'html' => View::make('auth.login', [
-            'register' => $register,
-        ])->render(),
-    ]);
-}
+            // Blade renderizado
+            'html' => View::make('auth.login', [
+                'register' => $register,
+            ])->render(),
+        ]);
+    }
 
     /**
      * Páginas de información estática (terms, about, privacy)
