@@ -20,11 +20,14 @@ class InformationController extends Controller
         return view('modules.shared.utils.info.terms');
     }
 
-    public function about(): Response
+    public function about()
     {
-        return Inertia::render('shared/utils/info/About', [
-            'html' => View::make('modules.shared.utils.info.about')->render(),
-        ]);
+        return view('modules.shared.utils.info.about');
+
+        //return Inertia::render('shared/utils/info/About', [
+        //    'title' => 'Quiénes Somos',
+        //    'html' => View::make('modules.shared.utils.info.about')->render(),
+        //]);
     }
 
     public function privacy()

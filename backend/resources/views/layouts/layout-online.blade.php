@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<x-template.head :title="$title" />
+<x-template.head :title="$title ?? 'Título por defecto'" />
 
 <body
     class="d-flex flex-column min-vh-100 hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
@@ -17,8 +17,8 @@
         {{-- Contenido principal --}}
         <main class="content-wrapper">
             <div class="content-header">
-                <div class="container-fluid">
-                    @yield('content')
+                <div id="app-inertia" class="container-fluid">
+                    @inertia
                 </div>
             </div>
         </main>

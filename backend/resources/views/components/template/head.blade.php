@@ -25,5 +25,5 @@
     @vite(['resources/css/global/styles.css', 'resources/css/global/loader.css'])
     {{-- Estilos específicos por vista --}}
     {{ $slot }}
-    <title>PlayRKE - {{ $title }}</title>
+    <title>PlayRKE{{ $title ? ' - ' . $title : '' }}</title>
 </head>
