@@ -16,11 +16,14 @@
         @include('sweetalert::alert')
         {{-- Contenido principal --}}
         <main class="content-wrapper">
-            <div class="content-header">
-                <div id="app-inertia" class="container-fluid">
-                    @inertia
-                </div>
-            </div>
+            {{-- Header (opcional, títulos/breadcrumbs) --}}
+            <section class="content-header">
+                {{-- aquí SOLO títulos si los necesitas --}}
+            </section>
+            {{-- Contenido real --}}
+            <section class="content">
+                <div id="app-inertia" class="container-fluid"></div>
+            </section>
         </main>
         {{-- Modal para cambiar de contraseña --}}
         <x-shared.modal id="change-password" title="Cambiar Contraseña" :form-view="'components.form.change-password-form'" />

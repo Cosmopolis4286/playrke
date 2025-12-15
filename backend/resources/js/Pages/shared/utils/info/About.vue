@@ -1,36 +1,27 @@
+<script setup lang="ts">
+import { Head } from '@inertiajs/vue3'
+import { aboutContent } from '@/components/aboutContent'
+
+defineProps<{
+    title: string
+}>()
+</script>
+
 <template>
+
     <Head :title="title" />
 
-    <div class="col-lg-9 m-auto">
-        <div class="card mb-3">
-            <div class="card-body">
-                <h2>QUIENES SOMOS</h2>
-                <p>PlayRKE es una plataforma de videojuegos, donde puedes ganar dinero digital que recibes en
-                    criptomonedas Tether USDT, así como en tu moneda local (si existe disponibilidad). Nuestro enfoque
-                    es desarrollar juegos y/o servicios de fácil comprensión para todo público. Más que arriesgarte a la
-                    suerte, apostaras a tí, a tu alcance y poder para ganar.</p>
-                <p>¿Quieres ganar? Únete ahora a nuestras salas de juego y demuestra de lo que eres capaz. Transforma tu
-                    conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas en un entorno seguro para
-                    invertir, con un estándar de precios muy accesibles a comparación de otras plataformas. Aquí, podrás
-                    obtener premios realmente increíbles y en tan sólo unos pocos minutos.</p>
-                <p>En PlayRKE cada logro es individual, cada esfuerzo recompensado y todo usuario es consciente de sus
-                    propias decisiones, siendo así el responsable de sus méritos, ganancias y pérdidas. En este sitio
-                    web "no se publican señales ni datos", aquí el usuario es quien controla su rumbo y se prueba así
-                    mismo para poder ganar.</p>
-                <p>Mientras mayor sea la cantidad de jugadores, mejores serán los premios a repartir. Sin embargo, no
-                    ofrecemos fantasías ni una inversión sin riesgo, pues en todo juego existen perdedores y ganadores.
-                    Por lo tanto, está en ustedes demostrar hasta dónde son capaces de llegar.</p>
-                <p>¿Entonces para qué seguir arriesgándose en sitios web de dudosa confiabilidad? No seas víctima de
-                    estafas por páginas scam, estas ofrecen todo un sistema de ensueño para generar dinero fácil, usando
-                    el clásico esquema Ponzi. Muchas veces lo que fácil se obtiene, rápido se pierde.</p>
-                <p>¡No esperes más, ingresa a PlayRKE y demuestra tu poder ante el resto, en un sitio donde solo los
-                    mejores ganan!</p>
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h2 class="mb-3">{{ aboutContent.title }}</h2>
+
+                    <p v-for="(paragraph, index) in aboutContent.paragraphs" :key="index" class="mb-3">
+                        {{ paragraph }}
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 </template>
-
-<script setup lang="ts">
-import { Head } from '@inertiajs/vue3'
-defineProps<{ html: string; title: string }>();
-</script>

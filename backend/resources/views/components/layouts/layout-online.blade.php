@@ -6,7 +6,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
-    <x-template.head :title="$title" />
+<x-template.head :title="$title" />
 
 <body
     class="d-flex flex-column min-vh-100 hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
@@ -23,11 +23,12 @@
         @include('sweetalert::alert')
         {{-- Contenido principal --}}
         <main class="content-wrapper">
-            <div class="content-header">
+            <section class="content-header"></section>
+            <section class="content">
                 <div id="app-inertia" class="container-fluid">
                     {{ $slot }}
                 </div>
-            </div>
+            </section>
         </main>
         {{-- Pie de página --}}
         <x-template.footer />

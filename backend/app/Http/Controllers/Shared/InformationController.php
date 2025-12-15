@@ -22,12 +22,9 @@ class InformationController extends Controller
 
     public function about()
     {
-        return view('modules.shared.utils.info.about');
-
-        //return Inertia::render('shared/utils/info/About', [
-        //    'title' => 'Quiénes Somos',
-        //    'html' => View::make('modules.shared.utils.info.about')->render(),
-        //]);
+        return Inertia::render('shared/utils/info/About', [
+            'title' => 'Quiénes Somos',
+        ]);
     }
 
     public function privacy()

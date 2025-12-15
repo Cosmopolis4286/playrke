@@ -12,7 +12,7 @@
             </a>
         </li>
         <li class="nav-item" title="Monedero">
-            <a href="#" title="Monedero" class="d-flex align-items-center">
+            @if ($wallet)
                 @if (isset($USDT))
                     <img src="{{ asset('imgSystem/tether.svg') }}" alt="PlayRKE" class="mb-1 brand-image"
                         style="max-height:13.5px;">
@@ -28,7 +28,12 @@
                         {{ number_format($wallet->balance, 2, ',', '.') }}
                     </span>
                 @endif
-            </a>
+            @else
+                <span class="info-box-number" style="color:#BCB9C6;">
+                    No hay datos de monedero
+                </span>
+            @endif
+
         </li>
     </ul>
     <ul class="navbar-nav">
@@ -46,11 +51,8 @@
                     <i class="mr-1 fa-solid fa-lock"></i>
                     Contraseña
                 </button>
-                <button type="button"
-                        class="dropdown-item logout-btn"
-                        data-logout-url="{{ route('logout') }}"
-                        data-login-redirect-url="{{ route('login') }}"
-                        data-show-confirmation="true">
+                <button type="button" class="dropdown-item logout-btn" data-logout-url="{{ route('logout') }}"
+                    data-login-redirect-url="{{ route('login') }}" data-show-confirmation="true">
                     <i class="mr-1 nav-icon fas fa-sign-out-alt"></i> Cerrar sesión
                 </button>
             </div>
