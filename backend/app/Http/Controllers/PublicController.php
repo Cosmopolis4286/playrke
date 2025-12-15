@@ -41,7 +41,7 @@ class PublicController extends Controller
             'registerUrl' => route('register'),
 
             // Blade renderizado
-            'layout' => 'layouts.auth',
+            'layout' => 'layouts.layout-auth',
             'html' => View::make('auth.login', [
                 'register' => $register,
             ])->render(),

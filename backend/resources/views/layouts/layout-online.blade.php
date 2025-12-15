@@ -22,7 +22,7 @@
             </section>
             {{-- Contenido real --}}
             <section class="content">
-                <div id="app-inertia" class="container-fluid"></div>
+                <div id="app-iwnertia" class="container-fluid"></div>
             </section>
         </main>
         {{-- Modal para cambiar de contraseña --}}

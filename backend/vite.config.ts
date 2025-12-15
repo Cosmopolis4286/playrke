@@ -116,7 +116,7 @@ export default defineConfig(({ mode }) => {
         resolve: {
             alias: {
                 '@': path.resolve(__dirname, 'resources/js'),
-                vue: 'vue/dist/vue.esm-bundler.js',
+                vue: 'vue/dist/vue.esm-bundler.js', // Si usas Vue 3, esta versión está bien
             },
         },
 

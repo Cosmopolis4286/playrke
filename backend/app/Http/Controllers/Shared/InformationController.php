@@ -15,12 +15,14 @@ class InformationController extends Controller
 {
     use UserTrait;
 
-    public function terms()
+    public function terms(): Response
     {
-        return view('modules.shared.utils.info.terms');
+        return Inertia::render('shared/utils/info/Terms', [
+            'title' => 'Términos y Condiciones',
+        ]);
     }
 
-    public function about()
+    public function about(): Response
     {
         return Inertia::render('shared/utils/info/About', [
             'title' => 'Quiénes Somos',

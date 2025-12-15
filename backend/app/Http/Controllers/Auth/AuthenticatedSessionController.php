@@ -6,28 +6,61 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
-use App\Models\Settings\Setting;
 use App\Repositories\Currencies\CurrencyRepository;
 use App\Repositories\Countries\CountryRepository;
-use App\Repositories\Settings\SettingRepository;
+use App\Repositories\Settings\Contracts\SettingRepositoryContract;
+
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Inertia\Response;
+use Illuminate\Support\Facades\View;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Display the login view.
-     * Ya no se usa - Nuxt maneja las vistas
+     * @var SettingRepositoryContract
      */
-    public function create(): JsonResponse
-    {
-        $register = (new SettingRepository(new Setting()))->getParameterStatus('REGISTER');
+    protected SettingRepositoryContract $settings;
 
-        return response()->json([
-            'register' => (bool)$register,
+    /**
+     * Inyecta el repositorio en el constructor
+     */
+    public function __construct(SettingRepositoryContract $settings)
+    {
+        $this->settings = $settings;
+    }
+
+    // /**
+    //  * Display the login view.
+    //  * Ya no se usa - Nuxt maneja las vistas
+    //  */
+    // public function create(): JsonResponse
+    // {
+    //     $register = (new SettingRepository(new Setting()))->getParameterStatus('REGISTER');
+
+    //     return response()->json([
+    //         'register' => (bool)$register,
+    //         'loginUrl' => route('login'),
+    //         'passwordRequestUrl' => route('password.request'),
+    //         'registerUrl' => route('register'),
+    //     ]);
+    // }
+
+    /**
+     * Página de inicio / login con estado de registro
+     */
+    public function create(): Response
+    {
+        $register = $this->settings->getParameterStatus('REGISTER');
+
+        return Inertia::render('auth/Login', [
+            'register' => (bool) $register,
             'loginUrl' => route('login'),
             'passwordRequestUrl' => route('password.request'),
             'registerUrl' => route('register'),
+            // Blade renderizado
+            'layout' => 'layouts.layout-auth',
         ]);
     }
 

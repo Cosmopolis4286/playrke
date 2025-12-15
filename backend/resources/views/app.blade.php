@@ -9,15 +9,17 @@
 </head>
 
 <body class="antialiased">
-    @isset($layout)
+    @php
+        $layout = $page['props']['layout'] ?? 'layouts.layout-online'; // Default layout
+    @endphp
+
+    @if ($layout === 'layouts.layout-auth')
+        @inertia
+    @else
         <x-dynamic-component :component="$layout" :title="$title ?? null" :loadDataTables="$loadDataTables ?? true" :loadSelect2="$loadSelect2 ?? false">
             @inertia
         </x-dynamic-component>
-    @else
-        <x-layouts.layout-online :title="$title ?? null" :loadDataTables="$loadDataTables ?? true" :loadSelect2="$loadSelect2 ?? false">
-            @inertia
-        </x-layouts.layout-online>
-    @endisset
+    @endif
 </body>
 
 </html>
