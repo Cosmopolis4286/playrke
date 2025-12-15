@@ -32,13 +32,12 @@
 <script setup lang="ts">
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import { ref } from 'vue';
-import axios from '@/plugins/axios';  // Tu instancia de axios personalizada
-import { getCsrfToken } from '@/plugins/axios';  // Asegúrate de importar el método getCsrfToken
+import { apiClient, getCsrfToken } from '@/plugins/axios'; // Usa apiClient y getCsrfToken importados
 
 const login = ref('');
 const password = ref('');
 
-// Definir las propiedades para el componente
+// Props del componente
 defineProps<{
     register: boolean;
     loginUrl: string;
@@ -46,24 +45,23 @@ defineProps<{
     registerUrl: string;
 }>();
 
-// Método de envío del formulario
 const submitForm = async () => {
     try {
-        // Obtener el token CSRF antes de realizar la solicitud
+        // Obtener token CSRF antes de login
         await getCsrfToken();
 
-        // Realizar la solicitud de login después de obtener el token CSRF
-        const response = await axios.post('/login', {
+        // Llamada al endpoint de login usando apiClient configurado
+        const response = await apiClient.post('/auth/login', {
             email: login.value,
-            password: password.value
+            password: password.value,
         });
 
-        // Redirigir después de iniciar sesión
-        window.location.href = response.data.redirectUrl || '/dashboard'; // Puedes cambiar '/dashboard' por la ruta a la que deseas redirigir
+        // Redirigir al dashboard o url que venga en la respuesta
+        window.location.href = response.data.redirectUrl || '/dashboard';
 
     } catch (error) {
         console.error('Error al iniciar sesión:', error);
-        // Manejo de errores (puedes mostrar un mensaje en la interfaz de usuario)
+        // Aquí puedes manejar el error para mostrar mensaje en UI
     }
 };
 </script>

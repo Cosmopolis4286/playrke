@@ -18,7 +18,7 @@ useHead({
         { name: 'description', content: 'Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online. Gana rápido y retira seguro con PlayRKE.' }
     ],
     link: [
-        { rel: 'icon', href: '/img/fav.ico', sizes: '192x192' }
+        { rel: 'icon', href: './img/fav.ico', sizes: '192x192' }
     ]
 });
 </script>

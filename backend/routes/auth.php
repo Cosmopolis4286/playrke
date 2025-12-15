@@ -19,6 +19,10 @@ use Illuminate\Support\Facades\Route;
 | Aquí se maneja el registro, login y recuperación de contraseña.
 */
 
+Route::get('/sanctum/csrf-cookie', function () {
+    return response()->json(['message' => 'CSRF cookie set']);
+});
+
 Route::middleware('guest')->group(function () {
     // Registro de usuario
     Route::post('register', [RegisteredUserController::class, 'store']);  // Usamos POST para registro

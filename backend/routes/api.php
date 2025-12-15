@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BingoController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Auth\DemoCredentialsController;
+use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,7 +34,7 @@ Route::middleware('web')->get('user', [AuthController::class, 'user'])->name('ap
 
 // Auth (Login / Register / Reset)
 Route::middleware('web')->prefix('auth')->group(function () {
-   // Route::post('login', [AuthController::class, 'login'])->name('api.auth.login');
+    Route::post('login', [AuthController::class, 'login'])->name('api.auth.login');
     Route::post('register', [AuthController::class, 'register'])->name('api.auth.register');
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
     Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('api.auth.reset-password');
@@ -42,12 +43,13 @@ Route::middleware('web')->prefix('auth')->group(function () {
 // Demo credentials (solo en local)
 Route::middleware('web')->get('demo-credentials', [DemoCredentialsController::class, 'index'])
     ->name('api.demo-credentials');
+
+Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
+
 //
 // PROTECTED ROUTES (auth:sanctum)
 //
-
 Route::middleware(['web', 'auth:sanctum'])->group(function () {
-
     //
     // AUTH
     //
