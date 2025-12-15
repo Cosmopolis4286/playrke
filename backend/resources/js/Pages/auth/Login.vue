@@ -52,7 +52,7 @@ const submitForm = async () => {
 
         // Llamada al endpoint de login usando apiClient configurado
         const response = await apiClient.post('/auth/login', {
-            email: login.value,
+            login: login.value,
             password: password.value,
         });
 

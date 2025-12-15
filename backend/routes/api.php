@@ -7,7 +7,6 @@ use App\Http\Controllers\Api\BingoController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Auth\DemoCredentialsController;
-use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,8 +42,6 @@ Route::middleware('web')->prefix('auth')->group(function () {
 // Demo credentials (solo en local)
 Route::middleware('web')->get('demo-credentials', [DemoCredentialsController::class, 'index'])
     ->name('api.demo-credentials');
-
-Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
 
 //
 // PROTECTED ROUTES (auth:sanctum)

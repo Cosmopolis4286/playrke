@@ -53,7 +53,7 @@ class AuthenticatedSessionController extends Controller
     public function create(): Response
     {
         $register = $this->settings->getParameterStatus('REGISTER');
-dd(11);
+
         return Inertia::render('auth/Login', [
             'register' => (bool) $register,
             'loginUrl' => route('login'),
