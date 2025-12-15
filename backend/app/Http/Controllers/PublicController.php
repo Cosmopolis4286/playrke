@@ -33,6 +33,7 @@ class PublicController extends Controller
     public function root(): Response
     {
         $register = $this->settings->getParameterStatus('REGISTER');
+        dd(117);
 
         return Inertia::render('auth/LoginLegacy', [
             'register' => (bool) $register,

@@ -1,13 +1,7 @@
-/**
- * renderApp.ts
- *
- * Entry point Vue 3 + Inertia.js para redenderizar la aplicación principal.
- * Laravel + Blade + Vite + TypeScript (estricto)
- */
-
 import { createApp, h, defineComponent, type DefineComponent } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { InertiaProgress } from '@inertiajs/progress'
+import { createHead } from '@vueuse/head' // Importar createHead
 
 // ─────────────────────────────────────────────────────────────
 // Inertia Progress
@@ -58,7 +52,7 @@ createInertiaApp({
         const path = `./Pages/${name}.vue`
         const loader = pages[path]
 
-        console.log(path);
+        console.log(path)
         if (!loader) {
             console.error(`[Inertia] Página no encontrada: ${name}`)
             return PageNotFound
@@ -72,13 +66,15 @@ createInertiaApp({
      * Bootstrap Vue
      */
     setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
+        const head = createHead() // Crear la instancia de createHead
+        const app = createApp({ render: () => h(App, props) })
             .use(plugin)
+            .use(head) // Usar createHead como plugin de Vue
             .mount(el)
     },
 
     /**
      * Título dinámico
      */
-    title: title => (title ? `PlayRKE - ${title}` : 'PlayRKE'),
+    title: (title) => (title ? `PlayRKE - ${title}` : 'PlayRKE'),
 })

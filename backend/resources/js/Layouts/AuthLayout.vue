@@ -1,35 +1,37 @@
 <script setup lang="ts">
-defineProps<{
+import { useHead } from '@vueuse/head';
+
+// Definir las props con sus tipos explícitos
+const props = defineProps<{
     title?: string;
     bgImg?: string;
     logo?: string;
 }>();
+
+// Usamos useHead para manejar el título y los metadatos
+useHead({
+    title: `PlayRKE - ${props.title ?? ''}`,
+    meta: [
+        { property: 'og:type', content: 'website' },
+        { property: 'og:url', content: 'https://www.playrke.com/' },
+        { property: 'og:site_name', content: 'PlayRKE' },
+        { name: 'description', content: 'Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online. Gana rápido y retira seguro con PlayRKE.' }
+    ],
+    link: [
+        { rel: 'icon', href: '/img/fav.ico', sizes: '192x192' }
+    ]
+});
 </script>
 
 <template>
-    <!-- Título y Meta -->
-    <title>PlayRKE - {{ title ?? '' }}</title>
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.playrke.com/" />
-    <meta property="og:site_name" content="PlayRKE" />
-    <meta name="description"
-        content="Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online. Gana rápido y retira seguro con PlayRKE." />
-
-    <link rel="icon" href="/img/fav.ico" sizes="192x192" />
-    <!-- Agregar Vite para manejar CSS -->
-    <link rel="stylesheet" href="/css/notyf.min.css" />
-    <link rel="stylesheet" href="/template/plugins/fontawesome/css/all.min.css" />
-    <link rel="stylesheet" href="/resources/css/global/styles.css" />
-    <link rel="stylesheet" href="/resources/css/global/auth-pages.css" />
-
     <main id="containerFirst">
         <!-- Background Image -->
-        <img id="bgImg" :src="bgImg || '/img/body/wall9.jpg'" alt="Background" />
+        <img id="bgImg" :src="'./img/background/bg_6.jpg'" alt="Background" />
 
         <div id="containerRKE">
             <!-- Logo -->
             <div class="login_logo">
-                <img :src="logo || '/img/log.png'" alt="PlayRKE" />
+                <img :src="'./img/logo.png'" alt="PlayRKE" />
                 <p class="login_content_text">
                     <slot name="logo-text" />
                 </p>

@@ -1,5 +1,5 @@
 <template>
-    <AuthLayout :title="'Iniciar sesión'" :logo="logoUrl">
+    <AuthLayout :title="'Iniciar sesión'">
         <!-- Contenido para el slot "logo-text" -->
         <template #logo-text>
             Ingresa a tu cuenta
@@ -32,11 +32,11 @@
 <script setup lang="ts">
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import { ref } from 'vue';
-import axios from 'axios';  // Asegúrate de importar axios
+import axios from '@/plugins/axios';  // Tu instancia de axios personalizada
+import { getCsrfToken } from '@/plugins/axios';  // Asegúrate de importar el método getCsrfToken
 
 const login = ref('');
 const password = ref('');
-const logoUrl = ref('/path/to/logo.png');  // Asegúrate de definirla
 
 // Definir las propiedades para el componente
 defineProps<{
@@ -49,6 +49,10 @@ defineProps<{
 // Método de envío del formulario
 const submitForm = async () => {
     try {
+        // Obtener el token CSRF antes de realizar la solicitud
+        await getCsrfToken();
+
+        // Realizar la solicitud de login después de obtener el token CSRF
         const response = await axios.post('/login', {
             email: login.value,
             password: password.value

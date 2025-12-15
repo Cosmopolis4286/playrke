@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Shared;
 
 use App\Http\Controllers\Controller;
-
+use App\Repositories\Users\Roles\RoleRepository;
 // Traits
 use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +44,7 @@ class InformationController extends Controller
 
     public function powerOfKnowledge()
     {
-        $creatorType = User::getValueById(Auth::id(), 'user_type');
+        $creatorType = RoleRepository::getValueById(Auth::id(), 'user_type');
 
         if ($creatorType != 1) return redirect()->back();
 

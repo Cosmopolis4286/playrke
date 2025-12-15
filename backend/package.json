@@ -16,6 +16,7 @@
         "@tailwindcss/typography": "^0.5.19",
         "@types/crypto-js": "^4.2.2",
         "@vueuse/core": "^12.8.2",
+        "@vueuse/head": "^2.0.0",
         "alpinejs": "^3.15.2",
         "axios": "^1.13.2",
         "crypto-js": "^4.2.0",
@@ -31,6 +32,7 @@
         "socket.io-client": "^4.8.1",
         "sweetalert2": "^11.26.10",
         "vue": "^3.5.25",
+        "vue-meta": "^2.4.0",
         "vue-router": "^4.6.4",
         "vue-toastification": "2.0.0-rc.5"
     },

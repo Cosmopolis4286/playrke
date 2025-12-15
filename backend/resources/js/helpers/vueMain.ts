@@ -1,4 +1,3 @@
-// resources/js/games/bingo/bingo.main.js
 import { createApp } from 'vue';
 import '@/helpers/mounApp'; // Se asegura de ejecutar el control visual
 
