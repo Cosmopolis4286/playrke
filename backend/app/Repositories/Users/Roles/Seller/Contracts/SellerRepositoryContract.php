@@ -244,15 +244,6 @@ interface SellerRepositoryContract extends BaseRepositoryContract
     public function getCurrencyByIdId(string $sellerId): ?string;
 
     /**
-     * Obtener valor específico por ID de vendedor.
-     *
-     * @param string $sellerId ID del vendedor
-     * @param string $field Campo a obtener
-     * @return mixed Valor del campo o null
-     */
-    public function getValueById(string $sellerId, string $field): mixed;
-
-    /**
      * Obtener valor específico por ID de usuario.
      *
      * @param string $userId ID del usuario

@@ -150,7 +150,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
         $total = $this->model->count();
         $active = $this->model->where('is_active', true)->count();
         $inactive = $this->model->where('is_active', false)->count();
-        $averageDescriptionLength = $this->model->avg(\DB::raw('LENGTH(description)'));
+        $averageDescriptionLength = $this->model->avg(DB::raw('LENGTH(description)'));
         $longestDescription = $this->model->orderByRaw('LENGTH(description) DESC')->first();
         $shortestDescription = $this->model->orderByRaw('LENGTH(description) ASC')->first();
 
@@ -221,7 +221,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function isTypeInUse(string $typeId): bool
     {
-        return \DB::table('game_prize_pool_types')
+        return DB::table('game_prize_pool_types')
             ->where('prize_pool_type_id', $typeId)
             ->exists();
     }
@@ -231,7 +231,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function getGameCountByType(string $typeId): int
     {
-        return \DB::table('game_prize_pool_types')
+        return DB::table('game_prize_pool_types')
             ->where('prize_pool_type_id', $typeId)
             ->count();
     }

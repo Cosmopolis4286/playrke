@@ -108,8 +108,8 @@ class GameStatusRepository extends BaseRepository implements GameStatusRepositor
     public function getStatusStatistics(): array
     {
         $total = $this->model->count();
-        $averageDescriptionLength = $this->model->avg(\DB::raw('LENGTH(description)'));
-        $averageValueLength = $this->model->avg(\DB::raw('LENGTH(value)'));
+        $averageDescriptionLength = $this->model->avg(DB::raw('LENGTH(description)'));
+        $averageValueLength = $this->model->avg(DB::raw('LENGTH(value)'));
         $longestDescription = $this->model->orderByRaw('LENGTH(description) DESC')->first();
         $shortestDescription = $this->model->orderByRaw('LENGTH(description) ASC')->first();
 

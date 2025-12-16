@@ -38,14 +38,6 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
     /**
      * {@inheritDoc}
      */
-    public function getValueById(string $id, string $field = 'name'): mixed
-    {
-        return $this->model->where('id', $id)->value($field);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getByCountry(string $countryId): Collection
     {
         return $this->model->where('country_id', $countryId)->get();

@@ -421,18 +421,6 @@ class Seller extends Model
     }
 
     /**
-     * Obtener valor específico por ID (método heredado).
-     *
-     * @param string $id ID del vendedor
-     * @param string $field Campo a obtener
-     * @return mixed
-     */
-    public static function getValueById(string $id, string $field): mixed
-    {
-        return self::where('id', $id)->value($field);
-    }
-
-    /**
      * Obtener valor específico por ID de usuario (método heredado).
      *
      * @param string $userId ID del usuario

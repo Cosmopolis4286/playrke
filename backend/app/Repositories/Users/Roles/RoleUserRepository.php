@@ -412,7 +412,7 @@ class RoleUserRepository extends BaseRepository implements RoleUserRepositoryCon
      */
     public function getRoleDistribution(): array
     {
-        return $this->model->select('roles.name', \DB::raw('COUNT(role_user.id) as assignment_count'))
+        return $this->model->select('roles.name', DB::raw('COUNT(role_user.id) as assignment_count'))
             ->leftJoin('roles', 'role_user.role_id', '=', 'roles.id')
             ->groupBy('roles.id', 'roles.name')
             ->pluck('assignment_count', 'roles.name')

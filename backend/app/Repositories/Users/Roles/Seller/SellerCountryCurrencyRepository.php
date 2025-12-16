@@ -405,7 +405,7 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
      */
     public function getCountryDistribution(): array
     {
-        return $this->model->select('countries.name', \DB::raw('COUNT(sellers_countries_currencies.id) as count'))
+        return $this->model->select('countries.name', DB::raw('COUNT(sellers_countries_currencies.id) as count'))
             ->leftJoin('countries', 'sellers_countries_currencies.country_id', '=', 'countries.id')
             ->groupBy('countries.id', 'countries.name')
             ->pluck('count', 'countries.name')
@@ -417,7 +417,7 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
      */
     public function getCurrencyDistribution(): array
     {
-        return $this->model->select('currencies.code', \DB::raw('COUNT(sellers_countries_currencies.id) as count'))
+        return $this->model->select('currencies.code', DB::raw('COUNT(sellers_countries_currencies.id) as count'))
             ->leftJoin('currencies', 'sellers_countries_currencies.currency_id', '=', 'currencies.id')
             ->groupBy('currencies.id', 'currencies.code')
             ->pluck('count', 'currencies.code')
@@ -482,7 +482,7 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
      */
     private function getMostPopularCountry(): ?string
     {
-        $result = $this->model->select('countries.name', \DB::raw('COUNT(*) as count'))
+        $result = $this->model->select('countries.name', DB::raw('COUNT(*) as count'))
             ->leftJoin('countries', 'sellers_countries_currencies.country_id', '=', 'countries.id')
             ->groupBy('countries.id', 'countries.name')
             ->orderBy('count', 'desc')
@@ -498,7 +498,7 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
      */
     private function getMostPopularCurrency(): ?string
     {
-        $result = $this->model->select('currencies.code', \DB::raw('COUNT(*) as count'))
+        $result = $this->model->select('currencies.code', DB::raw('COUNT(*) as count'))
             ->leftJoin('currencies', 'sellers_countries_currencies.currency_id', '=', 'currencies.id')
             ->groupBy('currencies.id', 'currencies.code')
             ->orderBy('count', 'desc')

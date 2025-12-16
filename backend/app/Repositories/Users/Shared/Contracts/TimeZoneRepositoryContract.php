@@ -24,15 +24,6 @@ interface TimeZoneRepositoryContract extends BaseRepositoryContract
     public function getByIdWithFields(string $id, array $fields = ['*']): mixed;
 
     /**
-     * Obtiene un valor específico de una zona horaria por ID.
-     *
-     * @param string $id ID de la zona horaria
-     * @param string $field Campo a obtener
-     * @return mixed Valor del campo solicitado
-     */
-    public function getValueById(string $id, string $field = 'name'): mixed;
-
-    /**
      * Obtiene todas las zonas horarias por país.
      *
      * @param string $countryId ID del país

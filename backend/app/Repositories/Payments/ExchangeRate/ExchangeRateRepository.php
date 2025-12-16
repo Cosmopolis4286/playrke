@@ -293,7 +293,7 @@ class ExchangeRateRepository extends BaseRepository implements ExchangeRateRepos
      */
     public function getCurrenciesWithoutExchangeRate(): Collection
     {
-        return \DB::table('currencies')
+        return DB::table('currencies')
             ->leftJoin('exchange_rates', 'currencies.id', '=', 'exchange_rates.currency_id')
             ->whereNull('exchange_rates.currency_id')
             ->select('currencies.*')

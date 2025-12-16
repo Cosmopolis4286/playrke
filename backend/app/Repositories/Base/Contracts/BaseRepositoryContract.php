@@ -40,6 +40,15 @@ interface BaseRepositoryContract
     public function findOrFail(string|int $id, array $columns = ['*']): Model;
 
     /**
+     * Obtener valor específico por ID del registro.
+     *
+     * @param string|int $id ID del vendedor
+     * @param string $field Campo a obtener
+     * @return mixed Valor del campo o null
+     */
+    public function getValueById(string|int $id, string $field): mixed;
+
+    /**
      * Crear un nuevo registro
      *
      * @param array $data Datos para crear el registro

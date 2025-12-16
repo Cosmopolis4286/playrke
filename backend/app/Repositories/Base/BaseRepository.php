@@ -63,6 +63,14 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function getValueById(string|int $id, string $field): mixed
+    {
+        return $this->model->where('id', $id)->value($field);
+    }
+
+    /**
      * Crear un nuevo registro
      *
      * @param array $data Datos para crear el registro

@@ -15,16 +15,16 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class RoleMiddleware
 {
-    protected RoleRepository $RoleRepository;
+    protected RoleRepository $roleRepository;
 
     /**
      * Constructor del middleware.
      *
-     * @param RoleRepository $RoleRepository
+     * @param RoleRepository $roleRepository
      */
-    public function __construct(RoleRepository $RoleRepository)
+    public function __construct(RoleRepository $roleRepository)
     {
-        $this->RoleRepository = $RoleRepository;
+        $this->roleRepository = $roleRepository;
     }
 
     /**
@@ -45,7 +45,7 @@ class RoleMiddleware
         }
 
         // Validar que el tipo de usuario exista
-        $userRolePrefix = $this->RoleRepository->getValueById($user->user_type, 'prefix');
+        $userRolePrefix = $this->roleRepository->getValueById('ff', 'prefix');
         if (!$userRolePrefix) {
             Auth::logout(); // Cierra sesión si tipo inválido
             return redirect()->route('login')->with('error', 'Usuario inválido.');
@@ -54,7 +54,7 @@ class RoleMiddleware
         // Definir Gates dinámicamente si no existen aún
         foreach ($roles as $role) {
             if (!Gate::has($role)) {
-                Gate::define($role, fn($user) => $this->RoleRepository->getValueById($user->user_type, 'prefix') === $role);
+                Gate::define($role, fn($user) => $this->roleRepository->getValueById($user->user_type, 'prefix') === $role);
             }
         }
 

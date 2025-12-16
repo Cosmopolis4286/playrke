@@ -6,6 +6,7 @@ use App\Models\Users\Roles\Seller\Seller;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Seller\Contracts\SellerRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Repositorio para la gestión de vendedores.
@@ -257,11 +258,11 @@ class SellerRepository extends BaseRepository implements SellerRepositoryContrac
     public function isSellerInUse(string $sellerId): bool
     {
         // Verificar si el vendedor tiene ventas registradas
-        $hasRoomUsers = \DB::table('bingo_room_users')
+        $hasRoomUsers = DB::table('bingo_room_users')
             ->where('seller', $sellerId)
             ->exists();
 
-        $hasCartones = \DB::table('bingo_ctns')
+        $hasCartones = DB::table('bingo_ctns')
             ->where('seller', $sellerId)
             ->exists();
 
@@ -273,7 +274,7 @@ class SellerRepository extends BaseRepository implements SellerRepositoryContrac
      */
     public function getSalesCountBySeller(string $sellerId): int
     {
-        return \DB::table('bingo_room_users')
+        return DB::table('bingo_room_users')
             ->where('seller', $sellerId)
             ->count();
     }
@@ -384,14 +385,6 @@ class SellerRepository extends BaseRepository implements SellerRepositoryContrac
     /**
      * {@inheritDoc}
      */
-    public function getValueById(string $sellerId, string $field): mixed
-    {
-        return $this->model->where('id', $sellerId)->value($field);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getValueByUserId(string $userId, string $field = 'id'): mixed
     {
         return $this->model->where('user', $userId)->value($field);
@@ -423,7 +416,7 @@ class SellerRepository extends BaseRepository implements SellerRepositoryContrac
      */
     public function getCountryDistribution(): array
     {
-        return $this->model->select('countries.name', \DB::raw('COUNT(sellers.id) as count'))
+        return $this->model->select('countries.name', DB::raw('COUNT(sellers.id) as count'))
             ->leftJoin('countries', 'sellers.country', '=', 'countries.id')
             ->groupBy('countries.id', 'countries.name')
             ->pluck('count', 'countries.name')
@@ -435,7 +428,7 @@ class SellerRepository extends BaseRepository implements SellerRepositoryContrac
      */
     public function getCurrencyDistribution(): array
     {
-        return $this->model->select('currencies.code', \DB::raw('COUNT(sellers.id) as count'))
+        return $this->model->select('currencies.code', DB::raw('COUNT(sellers.id) as count'))
             ->leftJoin('currencies', 'sellers.currency', '=', 'currencies.id')
             ->groupBy('currencies.id', 'currencies.code')
             ->pluck('count', 'currencies.code')
