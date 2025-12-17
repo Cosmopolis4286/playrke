@@ -116,4 +116,14 @@ interface BaseRepositoryContract
      * @return Model|null
      */
     public function first(array $conditions, array $columns = ['*']): ?Model;
+
+    /**
+     * Obtiene todos los registros con relaciones cargadas.
+     *
+     * @param array $relations Relaciones Eloquent a cargar (ej: ['country:id,name', 'user:id,email'])
+     * @param array $fields Campos a seleccionar en la tabla principal
+     *
+     * @return Collection
+     */
+    public function getAllWithRelations(array $relations = [], array $fields = ['*']): Collection;
 }

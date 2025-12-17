@@ -214,4 +214,20 @@ abstract class BaseRepository implements BaseRepositoryContract
     {
         return $this->model;
     }
+
+    /**
+     * Obtiene todos los registros con relaciones cargadas.
+     *
+     * @param array $relations Relaciones Eloquent a cargar (ej: ['country:id,name', 'user:id,email'])
+     * @param array $fields Campos a seleccionar en la tabla principal
+     *
+     * @return Collection
+     */
+    public function getAllWithRelations(array $relations = [], array $fields = ['*']): Collection
+    {
+        return $this->model
+            ->select($fields)
+            ->with($relations)
+            ->get();
+    }
 }

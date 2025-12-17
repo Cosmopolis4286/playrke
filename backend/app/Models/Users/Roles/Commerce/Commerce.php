@@ -5,8 +5,8 @@ namespace App\Models\Users\Roles\Commerce;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
 use App\Models\Users\Roles\Seller\Seller;
+use App\Models\Users\Shared\UniqueCode;
 use App\Models\Users\User;
-use App\Models\Settings\UniqueCode;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -41,7 +41,7 @@ class Commerce extends Model
      */
     public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'ACTIVE' => '<span class="badge badge-success">Activo</span>',
             'INACTIVE' => '<span class="badge badge-warning">Inactivo</span>',
             'BLOCKED' => '<span class="badge badge-danger">Bloqueado</span>',

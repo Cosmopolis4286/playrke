@@ -2,78 +2,98 @@
 
 namespace App\Http\Middleware;
 
-use App\Repositories\Users\Roles\RoleRepository;
+use App\Repositories\Users\Roles\RoleUserRepository;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Middleware para validar roles de usuario de manera segura.
- * Combina la verificación de existencia del tipo de usuario en BD con Gates/Policies.
+ * Middleware para validar roles activos del usuario.
+ *
+ * Verifica que el usuario autenticado posea al menos uno
+ * de los roles permitidos y que la asignación esté activa
+ * (sin expiración o con expiración futura).
  */
 class RoleMiddleware
 {
-    protected RoleRepository $roleRepository;
+    protected RoleUserRepository $roleUserRepository;
 
     /**
      * Constructor del middleware.
      *
-     * @param RoleRepository $roleRepository
+     * @param RoleUserRepository $roleUserRepository
      */
-    public function __construct(RoleRepository $roleRepository)
+    public function __construct(RoleUserRepository $roleUserRepository)
     {
-        $this->roleRepository = $roleRepository;
+        $this->roleUserRepository = $roleUserRepository;
     }
 
     /**
      * Maneja la petición entrante.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param \Closure $next
-     * @param mixed ...$roles Lista de roles permitidos
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @param Request $request
+     * @param Closure $next
+     * @param mixed ...$roles Prefijos o nombres de roles permitidos
+     * @return Response
      */
     public function handle(Request $request, Closure $next, mixed ...$roles): Response
     {
         $user = Auth::user();
 
-        // Verificar si el usuario está autenticado
+        // Usuario no autenticado
         if (!$user) {
-            return redirect()->route('login')->with('error', 'Por favor, inicie sesión para continuar.');
+            return $this->unauthorizedResponse($request);
         }
 
-        // Validar que el tipo de usuario exista
-        $userRolePrefix = $this->roleRepository->getValueById('ff', 'prefix');
-        if (!$userRolePrefix) {
-            Auth::logout(); // Cierra sesión si tipo inválido
-            return redirect()->route('login')->with('error', 'Usuario inválido.');
-        }
+        // Obtener roles activos del usuario
+        $userRoles = $this->roleUserRepository
+            ->getActiveByUser($user->id)
+            ->load('role');
 
-        // Definir Gates dinámicamente si no existen aún
-        foreach ($roles as $role) {
-            if (!Gate::has($role)) {
-                Gate::define($role, fn($user) => $this->roleRepository->getValueById($user->user_type, 'prefix') === $role);
+
+        // Verificar si posee alguno de los roles requeridos
+        foreach ($userRoles as $assignment) {
+            if (
+                $assignment->role &&
+                in_array($assignment->role->prefix, $roles, true)
+            ) {
+                return $next($request);
             }
         }
 
-        // Verificar si el usuario tiene alguno de los roles permitidos
-        $hasAccess = false;
-        foreach ($roles as $role) {
-            if (Gate::allows($role, $user)) {
-                $hasAccess = true;
-                break;
-            }
+        return $this->forbiddenResponse($request);
+    }
+
+    /**
+     * Respuesta para usuario no autenticado.
+     */
+    protected function unauthorizedResponse(Request $request): Response
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'No autenticado.'
+            ], 401);
         }
 
-        if (!$hasAccess) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'Acceso denegado.'], 403);
-            }
-            return redirect()->route('dashboard')->with('error', 'Acceso denegado.');
+        return redirect()
+            ->route('login')
+            ->with('error', 'Debe iniciar sesión para continuar.');
+    }
+
+    /**
+     * Respuesta para acceso denegado.
+     */
+    protected function forbiddenResponse(Request $request): Response
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Acceso denegado.'
+            ], 403);
         }
 
-        return $next($request);
+        return redirect()
+            ->route('dashboard')
+            ->with('error', 'No tiene permisos para acceder a este recurso.');
     }
 }

@@ -48,7 +48,7 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
      */
     public function getActive(): Collection
     {
-        return $this->model->where('status', true)->get();
+        return $this->model->where('is_active', true)->get();
     }
 
     /**
@@ -56,7 +56,7 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
      */
     public function getInactive(): Collection
     {
-        return $this->model->where('status', false)->get();
+        return $this->model->where('is_active', false)->get();
     }
 
     /**
@@ -64,7 +64,7 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
      */
     public function getByStatus(bool $status): Collection
     {
-        return $this->model->where('status', $status)->get();
+        return $this->model->where('is_active', $status)->get();
     }
 
     /**
@@ -133,7 +133,7 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
     public function updateStatus(string $timeZoneId, bool $status): bool
     {
         return $this->model->where('id', $timeZoneId)
-            ->update(['status' => $status]) > 0;
+            ->update(['is_active' => $status]) > 0;
     }
 
     /**
@@ -166,8 +166,8 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
     public function getTimeZoneStats(): array
     {
         $total = $this->model->count();
-        $active = $this->model->where('status', true)->count();
-        $inactive = $this->model->where('status', false)->count();
+        $active = $this->model->where('is_active', true)->count();
+        $inactive = $this->model->where('is_active', false)->count();
         $withCountry = $this->model->whereNotNull('country_id')->count();
         $uniqueUtc = $this->model->distinct('utc')->count();
 
@@ -188,7 +188,7 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
     public function getCountryTimeZoneStats(string $countryId): array
     {
         $timeZones = $this->getByCountry($countryId);
-        $active = $timeZones->where('status', true);
+        $active = $timeZones->where('is_active', true);
 
         return [
             'total_time_zones' => $timeZones->count(),
@@ -272,7 +272,7 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
         $query = $this->model->orderBy('name', $direction);
 
         if ($activeOnly) {
-            $query->where('status', true);
+            $query->where('is_active', true);
         }
 
         return $query->get();
@@ -286,7 +286,7 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
         $query = $this->model->orderBy('utc', $direction);
 
         if ($activeOnly) {
-            $query->where('status', true);
+            $query->where('is_active', true);
         }
 
         return $query->get();
@@ -311,8 +311,8 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
             $query->where('country_id', $criteria['country_id']);
         }
 
-        if (isset($criteria['status'])) {
-            $query->where('status', $criteria['status']);
+        if (isset($criteria['is_active'])) {
+            $query->where('is_active', $criteria['is_active']);
         }
 
         return $query->get();
@@ -326,7 +326,7 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
         $query = $this->model->select('id', 'name', 'utc');
 
         if ($activeOnly) {
-            $query->where('status', true);
+            $query->where('is_active', true);
         }
 
         if ($countryFilter) {

@@ -14,7 +14,7 @@ const moduleCache: Record<string, Promise<any>> = {};
  * desde cualquier archivo que llame a loadModule, evitando problemas de rutas relativas y duplicación de imports.
  *
  * @template T - Tipo del módulo que se importa
- * @param modulePath - Ruta relativa al directorio /resources/js (ej: 'views/modules/commerce/form/commerceForm.ts')
+ * @param modulePath - Ruta relativa al directorio /resources/js (ej: 'modules/commerce/form/commerceForm.ts')
  * @param initFunction - Nombre de la función de inicialización a ejecutar en el módulo (opcional)
  * @returns Módulo importado como promesa
  */

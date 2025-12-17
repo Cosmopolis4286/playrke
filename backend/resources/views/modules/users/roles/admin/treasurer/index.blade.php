@@ -72,7 +72,7 @@
     @include('includes.modal-form', [
         'moduleId' => $moduleId,
         'size' => 'md',
-        'dataForm' => view('modules.admin.treasurer.form')->render(),
+        'dataForm' => view('modules.users.roles.admin.treasurer.form')->render(),
     ])
     @include('includes.modal-copy-info', [
         'moduleId' => 'copy-passw',

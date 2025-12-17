@@ -76,7 +76,7 @@
     @include('includes.modal-form', [
         'moduleId' => $moduleId,
         'size' => 'md',
-        'dataForm' => view('modules.admin.customer.form')->render(),
+        'dataForm' => view('modules.users.roles.admin.customer.form')->render(),
     ])
     @include('includes.modal-copy-info', [
         'moduleId' => 'copy-passw',

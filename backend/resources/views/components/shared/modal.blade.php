@@ -13,8 +13,8 @@
 
             {{-- Body --}}
             <div class="modal-body">
-                @if ($dataForm)
-                    {!! $dataForm !!}
+                @if ($formData)
+                    {!! $formData !!}
                 @else
                     {{ $slot }}
                 @endif
@@ -26,7 +26,7 @@
                     {{ $footer }}
                 @else
                     <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cerrar</button>
-                    @if ($dataForm)
+                    @if ($formData)
                         <button type="submit" class="btn btn-sm btn-primary" id="btn-confirm">Guardar</button>
                     @endif
                 @endisset

@@ -7,22 +7,40 @@ use Illuminate\Support\Facades\View;
 
 class Modal extends Component
 {
+    /**
+     * Identificador único del modal
+     */
     public string $id;
+
+    /**
+     * Título del modal
+     */
     public string $title;
+
+    /**
+     * Tamaño del modal (sm, md, lg)
+     */
     public string $size;
+
+    /**
+     * Estilos o atributos adicionales del modal-dialog
+     */
     public ?string $style;
-    public ?string $dataForm;
-    public array $formData;
+
+    /**
+     * Contenido HTML del formulario renderizado
+     */
+    public ?string $formData;
 
     /**
      * Constructor del componente Modal
      *
-     * @param string      $id       Identificador único del modal
-     * @param string|null $title    Título del modal
-     * @param string      $size     Tamaño del modal ('sm', 'md', 'lg', 'big', 'small')
-     * @param string|null $style    Clases CSS adicionales
-     * @param string|null $formView Ruta de la vista a renderizar dentro del modal
-     * @param array       $formData Datos a pasar a la vista del formulario
+     * @param string      $id        Identificador único del modal
+     * @param string|null $title     Título del modal
+     * @param string      $size      Tamaño del modal ('sm', 'md', 'lg', 'big', 'small')
+     * @param string|null $style     Clases o atributos adicionales
+     * @param string|null $formView  Ruta de la vista Blade a renderizar dentro del modal
+     * @param array       $formVars  Variables opcionales para la vista del formulario
      */
     public function __construct(
         string $id,
@@ -30,21 +48,22 @@ class Modal extends Component
         string $size = 'md',
         ?string $style = null,
         ?string $formView = null,
-        array $formData = []
+        array $formVars = []
     ) {
         $this->id = $id;
         $this->title = $title ?? 'SIN TÍTULO';
+
         $this->size = match ($size) {
             'big'   => 'lg',
             'small' => 'sm',
-            default => $size
+            default => $size,
         };
-        $this->style = $style;
-        $this->formData = $formData;
 
-        // Renderiza el contenido del formulario solo si la vista existe
-        $this->dataForm = ($formView && View::exists($formView))
-            ? View::make($formView, $formData)->render()
+        $this->style = $style;
+
+        // Renderiza el formulario solo si la vista existe
+        $this->formData = ($formView && View::exists($formView))
+            ? View::make($formView, $formVars)->render()
             : null;
     }
 

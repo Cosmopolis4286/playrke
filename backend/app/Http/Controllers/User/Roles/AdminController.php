@@ -2,169 +2,206 @@
 
 namespace App\Http\Controllers\User\Roles;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\Currencies\Currency;
-use App\Models\Commerce;
-use App\Models\Country;
-use App\Models\Customer;
-use App\Models\Games;
-use App\Models\OtherTreasurers;
-use App\Models\TimeZone;
-use App\Models\Treasurer;
+use App\Repositories\Countries\Contracts\CountryRepositoryContract;
+use App\Repositories\Currencies\Contracts\CurrencyRepositoryContract;
+use App\Repositories\Games\Contracts\GameRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
+use App\Repositories\Users\Shared\Contracts\TimeZoneRepositoryContract;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Users\UserTrait;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class AdminController extends Controller
 {
     use UserTrait, EncryptTrait;
 
     /**
-     * Obtiene la vista de comercializadoras con datos relacionados.
-     *
-     * @return \Illuminate\View\View
+     * Repositorio de monedas
      */
-    public function commerces()
-    {
-        dd();
-        $currencies = Currency::getByIdForStatus(['=', 1]);
-        $commerces = Commerce::with(['Country:id,name', 'User:id,email'])->get();
-        $countries = Country::getAllAvailableCountries();
-        $games = Game::getAvailableGames();
-        $timeZones = TimeZone::where('status', 1)->get();
+    public function __construct(
+        protected CommerceRepositoryContract $commerces,
+        protected CountryRepositoryContract $countries,
+        protected CurrencyRepositoryContract $currencies,
+        protected GameRepositoryContract $games,
+        protected TimeZoneRepositoryContract $timeZones
+    ) {}
 
-        return view('modules.admin.commerce.index', [
+    /**
+     * Vista de comercializadoras
+     */
+    public function commerces(): View
+    {
+        return view('modules.users.roles.admin.commerce.index', [
             'title' => 'Comercializadoras',
             'pageData' => [
-                'currencies' => $currencies,
-                'commerces' => $commerces,
-                'countries' => $countries,
+                'currencies' => $this->currencies->getActive(),
+                'commerces'  => $this->commerces->getAllWithRelations([
+                    'country:id,name',
+                    'user:id,email',
+                ]),
+                'countries' => $this->countries->getActive(),
+                'games'     => $this->games->getActive(),
+                'timeZones' => $this->timeZones->getActive(),
                 'enableFormCrud' => true,
-                'games' => $games,
-                'moduleFile' => 'views/modules/commerce/form/commerceForm.ts',
-                'timeZones' => $timeZones,
+                'moduleFile' => 'modules/users/roles/admin/commerce/form/commerceForm.ts',
             ]
         ]);
     }
 
-    public function customers()
+    /**
+     * Vista de clientes
+     */
+    public function customers(): View
     {
-        $customers = Customer::with(['Country:id,name', 'User:id,email'])->get();
-
-        $countries = Country::getAllAvailableCountries();
-        $currencies = Currency::getByIdForStatus(['=', 1]);
-        $timeZones = TimeZone::where('status', 1)->get();
-
-        return view('modules/admin/customer/index')->with([
-            'title' => 'Clientes',
-            'name' => 'admin-customer',
-            'customers' => $customers,
-            'countries' => $countries,
-            'timeZones' => $timeZones,
-            'currencies' => $currencies
+        return view('modules/admin/customer/index', [
+            'title'     => 'Clientes',
+            'name'      => 'admin-customer',
+            'customers' => Customer::with([
+                'Country:id,name',
+                'User:id,email'
+            ])->get(),
+            'countries' => Country::getAllAvailableCountries(),
+            'timeZones' => $this->getActiveTimeZones(),
+            'currencies' => Currency::getActive(),
         ]);
     }
 
-    public function treasurers()
+    /**
+     * Vista de tesoreros
+     */
+    public function treasurers(): View
     {
-        $treasurers = Treasurer::with(['Country:id,name', 'User:id,email'])->get();
-
-        $countries = Country::getAllAvailableCountries();
-        $currencies = Currency::getByIdForStatus(['=', 1]);
-        $timeZones = TimeZone::where('status', 1)->get();
-
-        return view('modules/admin/treasurer/index')->with([
-            'title' => 'Tesoreros',
-            'others' => false,
-            'name' => 'admin-treasurer',
-            'treasurers' => $treasurers,
-            'countries' => $countries,
-            'timeZones' => $timeZones,
-            'currencies' => $currencies,
-            'games' => Game::getAvailableGames()
+        return view('modules/admin/treasurer/index', [
+            'title'      => 'Tesoreros',
+            'name'       => 'admin-treasurer',
+            'others'     => false,
+            'treasurers' => Treasurer::with([
+                'Country:id,name',
+                'User:id,email'
+            ])->get(),
+            'countries' => Country::getAllAvailableCountries(),
+            'timeZones' => $this->getActiveTimeZones(),
+            'currencies' => Currency::getActive(),
+            'games'     => Game::getAvailableGames(),
         ]);
     }
 
-    public function otherTreasurers()
+    /**
+     * Vista de otros tesoreros
+     */
+    public function otherTreasurers(): View
     {
-        $otherTreasurers = OtherTreasurers::with([
-            'User:id,user_type,country,username',
-            'User.Country:id,name'
-        ])->get();
-
-        $currencies = Currency::getByIdForStatus(['=', 1]);
-        $games = Game::getAvailableGames();
-
-        return view('modules/admin/treasurer/other-treasurers')->with([
-            'title' => 'Otros Tesoreros',
-            'others' => true,
-            'name' => 'admin-other-treasurers',
-            'otherTreasurers' => $otherTreasurers,
-            'currencies' => $currencies,
-            'games' => $games
+        return view('modules/admin/treasurer/other-treasurers', [
+            'title'           => 'Otros Tesoreros',
+            'name'            => 'admin-other-treasurers',
+            'others'          => true,
+            'otherTreasurers' => OtherTreasurers::with([
+                'User:id,user_type,country,username',
+                'User.Country:id,name'
+            ])->get(),
+            'currencies' => Currency::getActive(),
+            'games'      => Game::getAvailableGames(),
         ]);
     }
 
+    /**
+     * Convierte un usuario existente en comercializadora
+     */
     public function promoteUserToCommerce(Request $request)
-    { // Convierte un usuario ya registrado en Comercializadora
-        $codeRKE = $request->rke_code;
-        $existsCodeRKE = Commerce::existsValue('rke_code', $codeRKE);
+    {
+        $request->validate([
+            'rke_code' => 'required|string',
+            'name'     => 'required|string',
+            'user_id'  => 'required|integer',
+        ]);
 
-        if ($existsCodeRKE) {
-            return redirect()->back()->with('message', 'El código RKE ya existe')->with('type', 'warning');
+        if (Commerce::existsValue('rke_code', $request->rke_code)) {
+            return back()
+                ->with('message', 'El código RKE ya existe')
+                ->with('type', 'warning');
         }
-
-        DB::beginTransaction();
 
         try {
-            Commerce::create([
-                'name' => $request->name,
-                'phone' => $request->phone,
-                'currency' => $request->currency,
-                'country' => $request->country,
-                'status' => 1,
-                'user' => $request->user_id,
-                'rke_code' => $this->replaceLettersWithNumbers($codeRKE),
-                'uuid_code' => $this->getCodeUUID('Commerce')
+            DB::transaction(function () use ($request) {
+                Commerce::create([
+                    'name'      => $request->name,
+                    'phone'     => $request->phone,
+                    'currency'  => $request->currency,
+                    'country'   => $request->country,
+                    'status'    => 1,
+                    'user'      => $request->user_id,
+                    'rke_code'  => $this->replaceLettersWithNumbers($request->rke_code),
+                    'uuid_code' => $this->getCodeUUID('Commerce'),
+                ]);
+            });
+
+            return back()->with('message', 'Usuario promovido correctamente');
+        } catch (\Throwable $e) {
+            Log::error('Error promoviendo usuario a commerce', [
+                'exception' => $e
             ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al promover usuario a tipo comercializadora: ' . $e->getMessage());
+
+            return back()
+                ->with('message', 'Error interno al promover el usuario')
+                ->with('type', 'error');
         }
     }
 
-    public function getUserInfo($userRole, $exclude = '')
+    /**
+     * Obtiene información de usuarios según rol
+     *
+     * @param string $userRole
+     * @param string $exclude
+     * @return \Illuminate\Support\Collection|array
+     */
+    public function getUserInfo(string $userRole, string $exclude = '')
     {
-        $creatorUserToExclude = [];
-
-        // Obtener lista de usuarios a excluir si se proporciona un modelo
-        if (!empty($exclude)) {
-            $model = app("App\\Models\\$exclude");
-
-            if (method_exists($model, 'getAllCreatorUser')) {
-                $creatorUserToExclude = $model::getAllCreatorUser();
-            }
-        }
-
-        // Si es admin, retorna arreglo vacío
         if ($userRole === 'admin') {
             return [];
         }
 
-        // Si es comercio, obtiene la lista de comercios activos
+        $excludedUsers = $this->resolveExcludedCreators($exclude);
+
         if ($userRole === 'commerce_id') {
-            $query = Commerce::where('status', 1);
-
-            if (!empty($creatorUserToExclude)) {
-                $query->whereNotIn('user', $creatorUserToExclude);
-            }
-
-            return $query->get(['name', 'user']);
+            return Commerce::where('status', 1)
+                ->when(
+                    $excludedUsers,
+                    fn($q) =>
+                    $q->whereNotIn('user', $excludedUsers)
+                )
+                ->get(['name', 'user']);
         }
 
-        // Por defecto retorna vacío si no cumple ninguna condición
+        return [];
+    }
+
+    /**
+     * Timezones activos
+     */
+    protected function getActiveTimeZones()
+    {
+        return TimeZone::where('status', 1)->get();
+    }
+
+    /**
+     * Obtiene usuarios creadores a excluir dinámicamente
+     */
+    protected function resolveExcludedCreators(string $model): array
+    {
+        if (!$model) {
+            return [];
+        }
+
+        $modelClass = "App\\Models\\{$model}";
+
+        if (class_exists($modelClass) && method_exists($modelClass, 'getAllCreatorUser')) {
+            return $modelClass::getAllCreatorUser();
+        }
+
         return [];
     }
 }
