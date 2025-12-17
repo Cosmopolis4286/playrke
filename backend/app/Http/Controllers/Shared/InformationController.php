@@ -31,6 +31,10 @@ class InformationController extends Controller
 
     public function privacy()
     {
+        // return Inertia::render('shared/utils/info/Privacy', [
+        //     'title' => 'Política de Privacidad',
+        // ]);
+
         return view('modules.shared.utils.info.privacy');
     }
 
