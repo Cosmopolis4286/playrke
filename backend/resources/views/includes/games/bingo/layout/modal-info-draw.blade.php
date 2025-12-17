@@ -72,12 +72,12 @@
                                                 <option value="" disabled selected>Seleccionar</option>
                                                 @foreach ($currenciesAvailable as $item)
                                                     <option value="{{ encrypt($item->id) }}">
-                                                        {{ $item->long_name }} ({{ $item->symbol }})
+                                                        {{ $item->description }} ({{ $item->symbol }})
                                                     </option>
                                                 @endforeach
                                             </select>
                                         @else
-                                            <div class="form-control text-left">{{ $currenciesAvailable->long_name }}
+                                            <div class="form-control text-left">{{ $currenciesAvailable->description }}
                                                 ({{ $currenciesAvailable->symbol }})</div>
                                             <input type="hidden" id="currency" value="{{ encrypt($currenciesAvailable->id) }}">
                                         @endif

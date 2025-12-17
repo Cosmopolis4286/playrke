@@ -673,7 +673,7 @@ class BingoController extends Controller
                     $currencyId = $currency->id;
                     $currencySym = $currency->symbol;
 
-                    $currenciesAvailable = Currency::getById($currencyId, ['id', 'symbol', 'long_name']);
+                    $currenciesAvailable = Currency::getById($currencyId, ['id', 'symbol', 'description']);
                 } else {
                     $roomId = BingoRoom::getValueByEncrypted($data['room'], 'id');
 
@@ -688,7 +688,7 @@ class BingoController extends Controller
                         $currencyId = Wallet::getValue($player, 'currency') ?? 1;
                         $currencySym = Currency::getValue($currencyId, 'symbol');
 
-                        $currenciesAvailable = Currency::getById($currencyId, ['id', 'symbol', 'long_name']);
+                        $currenciesAvailable = Currency::getById($currencyId, ['id', 'symbol', 'description']);
 
                         $roomUser =  BingoRoomUser::getValueByColumn($roomId, 'player_user', $player, 'id');
                     } else {
@@ -697,7 +697,7 @@ class BingoController extends Controller
                         $currencySym = Currency::getValue($currencyId, 'symbol');
 
                         $commerceCurrenciesAvailable = CommerceExchangeRate::getCurrenciesByCommerce($creatorId, 1);
-                        $currenciesAvailable = Currency::getCurrenciesById($commerceCurrenciesAvailable, ['id', 'symbol', 'long_name']);
+                        $currenciesAvailable = Currency::getCurrenciesById($commerceCurrenciesAvailable, ['id', 'symbol', 'description']);
                     }
                 }
 
@@ -1060,7 +1060,7 @@ class BingoController extends Controller
 
                 $currencies = Currency::getCurrenciesById(
                     [...CommerceExchangeRate::getCurrenciesByCommerce($creatorId), 1],
-                    ['id', 'iso_code', 'short_name']
+                    ['id', 'iso_code', 'name']
                 );
 
                 $routeWithCurrency = [
@@ -2686,7 +2686,7 @@ class BingoController extends Controller
                 break;
         }
 
-        $currencyData = Currency::getById($currency, ['symbol', 'short_name', 'iso_code']);
+        $currencyData = Currency::getById($currency, ['symbol', 'name', 'iso_code']);
 
         $currencies = Currency::getCurrenciesById([...CommerceExchangeRate::getCurrenciesByCommerce($userData['id']), 1]);
 
@@ -3126,7 +3126,7 @@ class BingoController extends Controller
         $rooms = $this->getRoomsData($userData, $currency, $dateFilter);
         $currencies = $this->getUserCurrencies($userData, ['CtnsLot'], $dateFilter);
 
-        $currencyData = Currency::getById($currency, ['symbol', 'short_name', 'iso_code']);
+        $currencyData = Currency::getById($currency, ['symbol', 'name', 'iso_code']);
 
         $totals = collect([
             'ctns' => 0,
@@ -3233,7 +3233,7 @@ class BingoController extends Controller
         $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
 
         $currency = $verifyCurrency;
-        $currencyData = Currency::getById($currency, ['symbol', 'short_name', 'iso_code']);
+        $currencyData = Currency::getById($currency, ['symbol', 'name', 'iso_code']);
 
         $where = collect([
             (object)[
@@ -3355,7 +3355,7 @@ class BingoController extends Controller
         ];
 
         $currency = $verifyCurrency;
-        $currencyData = Currency::getById($currency, ['symbol', 'short_name', 'iso_code']);
+        $currencyData = Currency::getById($currency, ['symbol', 'name', 'iso_code']);
         $currencies = $this->getUserCurrencies($userData, ['CtnsLot'], $dateFilter);
 
         switch ($userData['type']) {
@@ -3477,7 +3477,7 @@ class BingoController extends Controller
         $moduleId = 'bingo-winners';
 
         $currency = $verifyCurrency;
-        $currencyData = Currency::getById($currency, ['symbol', 'short_name', 'iso_code']);
+        $currencyData = Currency::getById($currency, ['symbol', 'name', 'iso_code']);
 
         switch ($userData['type']) {
 
@@ -3620,7 +3620,7 @@ class BingoController extends Controller
         $cardTitle = "<span> Reporte de Sala </span> <span class='badge badge-secondary'>{$room->encrypted}</span>";
 
         $currency = $verifyCurrency;
-        $currencyData = Currency::getById($currency, ['symbol', 'short_name', 'iso_code']);
+        $currencyData = Currency::getById($currency, ['symbol', 'name', 'iso_code']);
 
         switch ($userData['type']) {
 

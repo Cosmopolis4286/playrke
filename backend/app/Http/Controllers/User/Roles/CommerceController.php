@@ -5,12 +5,7 @@ namespace App\Http\Controllers\User\Roles;
 use App\Http\Controllers\Controller;
 
 use App\Http\Requests\User\Roles\CommerceRequest;
-
-use App\Services\Commerce\CommerceService;
-use App\Services\Commerce\CommerceUpdateService;
-use App\Services\Commerce\CommerceDeleteService;
-use App\Services\Commerce\CommerceStatusService;
-
+use App\Services\User\Roles\Commerce\CommerceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;

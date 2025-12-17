@@ -67,7 +67,7 @@ class ExchangeRateController extends Controller
                 $currencies = Currency::whereIn('id', $array)
                     ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($creatorId) {
                         $query->where('commerce_id', $creatorId);
-                    })->get(['id', 'symbol', 'long_name']);
+                    })->get(['id', 'symbol', 'description']);
 
 
                 $exchangeRates = CommerceExchangeRate::getAvailableExchangeRates($creatorId);
@@ -231,7 +231,7 @@ class ExchangeRateController extends Controller
 
                 // Calcular el promedio solo si hay más de una tasa, si no usar la única tasa disponible
                 // En otra version, divides el bote entre la cantidad de cartones para obtener la tasa
-                // con respecto a todas las tasas de cambio de los comercios 
+                // con respecto a todas las tasas de cambio de los comercios
                 $averageExchangeRate = $exchangeRates->count() > 1 ? $exchangeRates->avg() : $exchangeRates->first();
 
                 ExchangeRate::updateOrCreate(

@@ -38,7 +38,7 @@
                                                     {{ $win->ExternalPlayers->Country->name }}
                                                 @endif
                                             </td>
-                                            <td>{{ $currencyData->short_name }} ({{ $currencyData->iso_code }})</td>
+                                            <td>{{ $currencyData->name }} ({{ $currencyData->iso_code }})</td>
                                             <td>{{ $currencyData->iso_code }} {{ $win->amount }}</td>
                                             <td>{{ $win->prize_type_description }}</td>
                                             <td>

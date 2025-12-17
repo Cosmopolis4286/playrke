@@ -39,7 +39,7 @@
                                             <td>{{ $room['date'] }}
                                             </td>
                                             <td>{{ $room['time'] }}h</td>
-                                            <td>{{ $currencyData->short_name }} ({{ $currencyData->iso_code }})</td>
+                                            <td>{{ $currencyData->name }} ({{ $currencyData->iso_code }})</td>
                                             <td>{{ $room['ctns'] }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ $room['sales'] }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ $room['sellerCommn'] }}</td>

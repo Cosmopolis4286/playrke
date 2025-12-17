@@ -39,7 +39,7 @@
                                             </td>
                                             <td>{{ $ctn->ExternalPlayers->name }} {{ $ctn->ExternalPlayers->lastname }}</td>
                                             <td>{{ $ctn->ExternalPlayers->Country->name }}</td>
-                                            <td>{{ $currencyData->short_name }} ({{ $currencyData->iso_code }})</td>
+                                            <td>{{ $currencyData->name }} ({{ $currencyData->iso_code }})</td>
                                             <td>{{ $ctn->ctns }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ $ctn->sale_amount }}</td>
                                             <td>{{ $ctn->created_at->format('d/m/y H:i:s') }}<small
@@ -96,7 +96,7 @@
     <script>
         const name = '{{ $moduleId }}';
         const currency = '{{ encrypt($currency) }}';
-        const currencyName = '{{ $currencyData->short_name }}';
+        const currencyName = '{{ $currencyData->name }}';
         const allPendingCtnSale = '{{ $allPendingCtnSale }}';
         const commerceName = '{{ $commerceName }}';
         let allNotifyCtns = false;

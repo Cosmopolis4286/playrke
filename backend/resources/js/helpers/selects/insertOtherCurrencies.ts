@@ -43,10 +43,10 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
     arrCurrencies
         .filter(c => c.id !== mainCurrencyId)
         .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' }))
-        .forEach(({ id, symbol, long_name }) => {
+        .forEach(({ id, symbol, description }) => {
             const option = document.createElement('option');
             option.value = String(id);
-            option.textContent = `(${symbol}) ${long_name}`;
+            option.textContent = `(${symbol}) ${description}`;
             if (selectedCurrencies.includes(id)) option.selected = true;
             otherCurrencies.appendChild(option);
         });
@@ -54,13 +54,14 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
     containerOtherCurrencies?.classList.remove('d-none');
 }
 
-/** Actualiza la moneda principal y el texto según el país seleccionado */
+/** Actualiza la moneda principal y según el país seleccionado */
 function updateMainCurrencyByCountry(selectedCountry: number): void {
-    const matchingCurrency = arrCurrencies.find(c => c.country === selectedCountry);
-    if (!matchingCurrency || !currency || !currencyText) return;
+    const matchingCurrency = arrCurrencies.find(c => c.country_id === selectedCountry);
+
+    if (!matchingCurrency) return;
 
     currency.value = String(matchingCurrency.id);
-    currencyText.textContent = `(${matchingCurrency.symbol}) ${matchingCurrency.short_name}`;
+    currencyText.textContent = `(${matchingCurrency.symbol}) ${matchingCurrency.name}`;
 
     containerCurrency?.classList.remove('d-none');
     containerTimeZone?.classList.remove('d-none');
@@ -80,6 +81,7 @@ function resetCurrencySelection(): void {
 // ==========================
 /** Inicializa el selector de moneda en función del país */
 export function initCurrencySelector(): void {
+    console.log('Inicializando selector de moneda por país', country);
     if (!country) return;
 
     containerOtherCurrencies?.classList.add('d-none');

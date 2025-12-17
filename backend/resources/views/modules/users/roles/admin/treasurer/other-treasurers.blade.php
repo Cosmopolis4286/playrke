@@ -107,7 +107,7 @@
             $.each(currencies, function(index, item) {
                 const isSelected = selectedCurrencies.some(val => val == item.id) ? 'selected' : '';
                 otherCurrencies.append(
-                    `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
+                    `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.description}</option>`
                 );
             });
 

@@ -38,7 +38,7 @@
                                             </td>
                                             <td>{{ $ctn->Room->room_type_description }}</td>
                                             <td>{{ $ctn->Seller->name }}</td>
-                                            <td>{{ $currencyData->short_name }} ({{ $currencyData->iso_code }})</td>
+                                            <td>{{ $currencyData->name }} ({{ $currencyData->iso_code }})</td>
                                             <td>{{ $ctn->ctns }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ number_format($ctn->sale_amount, 2, '.') }}
                                             </td>

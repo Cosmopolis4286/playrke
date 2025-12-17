@@ -38,7 +38,7 @@
                                                     {{ $win->ExternalPlayers->Country->name }}
                                                 @endif
                                             </td>
-                                            <td>{{ $win->Currency->long_name }}</td>
+                                            <td>{{ $win->Currency->description }}</td>
                                             <td>{{ $win->Currency->symbol }}&nbsp{{ $win->amount }}</td>
                                             <td>{{ $win->prize_type_description }}</td>
                                             <td>

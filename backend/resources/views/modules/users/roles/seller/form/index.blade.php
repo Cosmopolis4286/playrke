@@ -31,14 +31,14 @@
                                     <td>{{ $seller->phone }}</td>
                                     <td>{{ $seller->Country->name }}</td>
                                     <td>
-                                        {{ $seller->Currency->short_name }} ({{ $seller->Currency->symbol }})
+                                        {{ $seller->Currency->name }} ({{ $seller->Currency->symbol }})
                                         @if ($seller->CountriesCurrencies->count() > 1)
                                             <a tabindex="0" class="badge btn-sm btn-primary" role="button"
                                                 data-toggle="popover" data-trigger="focus" title="Otras Monedas"
                                                 data-content="
                                                     @foreach ($seller->CountriesCurrencies as $item)
                                                         @if ($item->currency != $seller->currency)
-                                                            <span>{{ $item->Currency->long_name }} ({{ $item->Currency->symbol }})</span><br>
+                                                            <span>{{ $item->Currency->description }} ({{ $item->Currency->symbol }})</span><br>
                                                         @endif @endforeach
                                                 ">
                                                 <i class="fa-solid fa-coins mr-1"></i>Ver

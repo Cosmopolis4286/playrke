@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\CommerceController;
+use App\Http\Controllers\User\Roles\CommerceController;
 use Illuminate\Support\Facades\Route;
 
 require_once app_path('Helpers/RouteHelper.php');

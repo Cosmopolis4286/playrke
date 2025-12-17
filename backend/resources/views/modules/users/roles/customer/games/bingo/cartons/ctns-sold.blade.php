@@ -44,7 +44,7 @@
                                                 </a>
                                             </td>
                                             <td>{{ $ctn->Seller->name }}</td>
-                                            <td>{{ $ctn->Currency->long_name }} ({{ $currencySym }})</td>
+                                            <td>{{ $ctn->Currency->description }} ({{ $currencySym }})</td>
                                             <td>{{ $ctn->ctns }}</td>
                                             <td>{{ $currencySym }} {{ $ctn->sale_amount }}</td>
                                             <td>

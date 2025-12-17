@@ -20,7 +20,7 @@ interface CurrencyItem {
   encrypted: string;
   iso_code?: string;
   currency?: string;
-  short_name?: string;
+  name?: string;
 }
 
 /**
@@ -55,7 +55,7 @@ const isActive = (id: number | string): boolean => String(id) === String(props.c
  * @returns ID del tab
  */
 const tabId = (item: CurrencyItem): string =>
-  `${item.id}-${item.iso_code ?? item.currency ?? item.short_name}`;
+  `${item.id}-${item.iso_code ?? item.currency ?? item.name}`;
 
 /**
  * Obtiene la etiqueta de la moneda
@@ -63,7 +63,7 @@ const tabId = (item: CurrencyItem): string =>
  * @returns Etiqueta de la moneda
  */
 const getCurrencyLabel = (item: CurrencyItem): string =>
-  item.iso_code ?? item.currency ?? item.short_name ?? '';
+  item.iso_code ?? item.currency ?? item.name ?? '';
 
 /**
  * Genera el enlace para el tab de la moneda

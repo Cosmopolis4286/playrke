@@ -147,16 +147,42 @@ async function getInfo(encryptId: string) {
  */
 export function submitForm(formId: string, fields: string[] = []) {
     const form = document.getElementById(formId) as HTMLFormElement | null;
-    if (!form) return console.warn(`Formulario no encontrado para submit: ${formId}`);
+    if (!form) {
+        console.warn(`Formulario no encontrado para submit: ${formId}`);
+        return;
+    }
 
     if (!fields.length) {
-        fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[required], select[required]'))
+        fields = Array.from(
+            form.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+                'input[required], select[required]'
+            )
+        )
             .map(el => el.id)
             .filter(Boolean);
     }
 
-    const missing = fields.some(id => !(document.getElementById(id) as HTMLInputElement | HTMLSelectElement)?.value);
-    if (missing) return showToast('Todos los campos son requeridos', 'warning');
+    console.log('Campos requeridos a validar:', fields);
+
+    const missingFields = fields.filter(id => {
+        const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
+        return !el || !el.value?.trim();
+    });
+
+    if (missingFields.length) {
+        console.warn('Campos faltantes o vacíos:', missingFields);
+
+        // Opcional: marcar visualmente los campos
+        missingFields.forEach(id => {
+            const el = document.getElementById(id);
+            el?.classList.add('border-red-500');
+        });
+
+        return showToast(
+            `Campos requeridos faltantes: ${missingFields.join(', ')}`,
+            'warning'
+        );
+    }
 
     ajaxStart();
     form.submit();

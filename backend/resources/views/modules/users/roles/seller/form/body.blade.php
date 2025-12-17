@@ -34,7 +34,7 @@
 
         <!-- Otras Monedas -->
         <x-form.select containerId="other-currencies" label="Otras Monedas" id="other-currencies" name="other_currencies" multiple
-            select2 placeholder="Seleccionar otras monedas" data-source="currencies" data-value="id" data-label="long_name"
+            select2 placeholder="Seleccionar otras monedas" data-source="currencies" data-value="id" data-label="description"
             col="col-sm d-none" />
 
         <!-- Juegos Permitidos -->

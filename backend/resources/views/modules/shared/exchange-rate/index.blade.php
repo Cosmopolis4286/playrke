@@ -39,7 +39,7 @@
                                         </td>
                                     @endif
                                     <td>
-                                        {{ $creator['type'] === 'customer' ? $item->currency : $item->Currency->long_name }}
+                                        {{ $creator['type'] === 'customer' ? $item->currency : $item->Currency->description }}
                                     </td>
                                     <td>
                                         @if ($creator['type'] === 'customer')
@@ -224,9 +224,9 @@
                     currencyName = currentCurrency;
                 } else {
                     currency.append(
-                        `<option value="${currentCurrency.id}" selected>${currentCurrency.long_name} (${currentCurrency.symbol})</option>`
+                        `<option value="${currentCurrency.id}" selected>${currentCurrency.description} (${currentCurrency.symbol})</option>`
                     );
-                    currencyName = `${currentCurrency.long_name} (${currentCurrency.symbol})`;
+                    currencyName = `${currentCurrency.description} (${currentCurrency.symbol})`;
                 }
 
                 exchange-rate.val(data.exchange_rate);
@@ -240,7 +240,7 @@
 
             if (arrCurrencies.length && creatorType !== 'customer') {
                 $.each(arrCurrencies, function(index, item) {
-                    currency.append(`<option value="${item.id}">${item.long_name} (${item.symbol})</option>`);
+                    currency.append(`<option value="${item.id}">${item.description} (${item.symbol})</option>`);
                 });
             }
 

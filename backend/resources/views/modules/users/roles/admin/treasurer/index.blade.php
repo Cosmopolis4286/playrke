@@ -149,7 +149,7 @@
             if (selectedCountry) {
                 $.each(currencies, function(index, item) {
                     if (item.country == selectedCountry) {
-                        currencyText.val(`(${item.symbol}) ${item.short_name}`);
+                        currencyText.val(`(${item.symbol}) ${item.name}`);
                         currency.val(item.id);
                     }
                 });
@@ -167,7 +167,7 @@
                 if (item.id != currency.val()) {
                     const isSelected = selectedCurrencies.includes(item.id) ? 'selected' : '';
                     otherCurrencies.append(
-                        `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.long_name}</option>`
+                        `<option value="${item.id}" ${isSelected}>(${item.symbol}) ${item.description}</option>`
                     );
                 }
             });

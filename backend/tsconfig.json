@@ -1,41 +1,46 @@
 {
-  "compilerOptions": {
-    // Permitir analizar y validar archivos .js además de .ts
-    "allowJs": true,
-    // Revisar errores también en archivos .js (útil si usas JSDoc para tipos)
-    "checkJs": true,
-    // Permitir imports por default de módulos CommonJS sin error
-    "esModuleInterop": true,
-    // Usar módulos ES modernos
-    "module": "esnext",
-    // Generar código moderno compatible con navegadores actuales
-    "target": "esnext",
-    // Resolver imports como Node.js (busca en node_modules, index.js, etc.)
-    "moduleResolution": "node",
-    // Incluir tipados para el DOM y todas las APIs modernas de JavaScript
-    "lib": [
-      "dom",
-      "esnext"
+    "compilerOptions": {
+        // 🔕 Silencia advertencias deprecadas de TS 6.x (requerido por VS Code actual)
+        "ignoreDeprecations": "6.0",
+        // Permitir analizar y validar archivos .js además de .ts
+        "allowJs": true,
+        // Revisar errores también en archivos .js (útil si usas JSDoc para tipos)
+        "checkJs": true,
+        // Permitir imports por default de módulos CommonJS sin error
+        "esModuleInterop": true,
+        // Usar módulos ES modernos
+        "module": "esnext",
+        // Generar código moderno compatible con navegadores actuales
+        "target": "esnext",
+        // 🔁 Reemplaza node/node10 (deprecated) por resolución moderna compatible con bundlers (Vite / Nuxt)
+        "moduleResolution": "bundler",
+        // Incluir tipados para el DOM y todas las APIs modernas de JavaScript
+        "lib": [
+            "dom",
+            "esnext"
+        ],
+        // No verificar tipados internos de librerías externas (acelera el build)
+        "skipLibCheck": true,
+        // Desactivar chequeo estricto de tipos (puedes poner true si quieres máxima seguridad)
+        "strict": false,
+        // No emitir archivos compilados; solo verificar tipos (Vite se encarga de compilar)
+        "noEmit": true,
+        // Alias @ configurado para apuntar a resources/js
+        // (TS 6 marca baseUrl como future-deprecated, pero sigue siendo válido)
+        "baseUrl": "./resources/js",
+        "paths": {
+            "@/*": [
+                "*"
+            ]
+        }
+    },
+    // Archivos y carpetas que TypeScript debe analizar
+    "include": [
+        "resources/js/**/*"
     ],
-    // No verificar tipados internos de librerías externas (acelera el build)
-    "skipLibCheck": true,
-    // Desactivar chequeo estricto de tipos (puedes poner true si quieres máxima seguridad)
-    "strict": false,
-    // No emitir archivos compilados; solo verificar tipos (Vite se encarga de compilar)
-    "noEmit": true,
-    // **Alias @ configurado para apuntar a resources/js**
-    "baseUrl": "./resources/js",
-    "paths": {
-      "@/*": ["*"]
-    }
-  },
-  // Archivos y carpetas que TypeScript debe analizar
-  "include": [
-    "resources/js/**/*"
-  ],
-  // Carpetas que TypeScript debe ignorar
-  "exclude": [
-    "node_modules",
-    "public"
-  ]
+    // Carpetas que TypeScript debe ignorar
+    "exclude": [
+        "node_modules",
+        "public"
+    ]
 }

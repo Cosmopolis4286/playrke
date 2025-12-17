@@ -6,9 +6,9 @@
 export interface Currency {
     id: number;
     symbol: string;
-    long_name: string;
-    short_name: string;
-    country: number; // ID del país asociado
+    description: string;
+    name: string;
+    country_id: number; // ID del país asociado
 }
 
 /**

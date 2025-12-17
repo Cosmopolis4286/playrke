@@ -27,7 +27,7 @@
                     <td>{{ $room['roomType'] }}</td>
                     <td>{{ $room['date'] }}</td>
                     <td>{{ $room['time'] }}h</td>
-                    <td>{{ $currencyData->short_name }}</td>
+                    <td>{{ $currencyData->name }}</td>
                     <td>{{ $room['ctns'] }}</td>
                     <td>{{ $currencyData->iso_code }} {{ $room['sales'] }}</td>
                     <td>{{ $currencyData->iso_code }} {{ $room['sellerCommn'] }}</td>
