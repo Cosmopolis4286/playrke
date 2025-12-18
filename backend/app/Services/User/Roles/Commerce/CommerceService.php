@@ -80,7 +80,6 @@ class CommerceService
             'country'   => $data['country'],
             'status'    => 1,
             'user'      => $userId,
-            'rke_code'  => $data['rke_code'],
             'uuid_code' => $this->generateUUID(),
         ]);
     }

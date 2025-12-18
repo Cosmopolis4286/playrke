@@ -31,11 +31,9 @@ class InformationController extends Controller
 
     public function privacy()
     {
-        // return Inertia::render('shared/utils/info/Privacy', [
-        //     'title' => 'Política de Privacidad',
-        // ]);
-
-        return view('modules.shared.utils.info.privacy');
+        return Inertia::render('shared/utils/info/Privacy', [
+            'title' => 'Política de Privacidad',
+        ]);
     }
 
     public function helpCenter()
@@ -48,16 +46,11 @@ class InformationController extends Controller
 
     public function powerOfKnowledge()
     {
-        $creatorType = RoleRepository::getValueById(Auth::id(), 'user_type');
+        return redirect()->back();
 
-        if ($creatorType != 1) return redirect()->back();
-
-        return view('modules.shared.utils.info.power-of-knowledge');
-    }
-
-    public function getTimeServer($timeZone = 'America/Caracas')
-    {
-        date_default_timezone_set($timeZone);
-        return time();
+        return view(
+            'modules.shared.utils.info.power-of-knowledge',
+            with(['title' => 'El Poder del Saber'])
+        );
     }
 }

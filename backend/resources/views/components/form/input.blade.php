@@ -1,7 +1,7 @@
 @props([
     'containerId' => false,
     'id' => null,
-    'label',
+    'label' => null,
     'name',
     'type' => 'text',
     'value' => null,
@@ -10,13 +10,17 @@
     'minlength' => null,
     'maxlength' => null,
     'col' => 'col-sm-6',
+    'class' => '',
 ])
 
-<div @if ($containerId) id="container-{{ $id ?? $name }}" @endif class="form-group {{ $col }}">
-    <label for="{{ $id ?? $name }}">{{ $label }}{{ $required ? '*' : '' }}</label>
-
+<div @if ($containerId) id="container-{{ $id ?? $name }}" @endif
+    class="form-group {{ $col }} {{ $class }}">
+    @if ($label)
+        <label for="{{ $id ?? $name }}">{{ $label }}{{ $required ? '*' : '' }}</label>
+    @endif
     <input type="{{ $type }}" id="{{ $id ?? $name }}" name="{{ $name }}" value="{{ old($name, $value) }}"
-        @class(['form-control', 'is-invalid' => $errors->has($name)]) @if ($required) required @endif @if($readonly ?? false) readonly @endif
+        @class(['form-control', 'is-invalid' => $errors->has($name)]) @if ($readonly) readonly @endif
+        @if ($required) required @endif
         @isset($minlength) minlength="{{ $minlength }}" @endisset
         @isset($maxlength) maxlength="{{ $maxlength }}" @endisset>
 

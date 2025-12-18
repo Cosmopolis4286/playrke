@@ -49,32 +49,6 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryCon
     }
 
     /**
-     * Obtiene comercio por código RKE
-     *
-     * @param string $code Código RKE
-     * @param array $fields Campos a seleccionar
-     * @return Commerce|null
-     */
-    public function getByCodeRKE(string $code, array $fields = ['*']): ?Commerce
-    {
-        return $this->model->select($fields)
-            ->where('rke_code_id', $code)
-            ->first();
-    }
-
-    /**
-     * Obtiene valor por código RKE
-     *
-     * @param string $code Código RKE
-     * @param string $field Campo a obtener
-     * @return mixed
-     */
-    public function getValueByCodeRKE(string $code, string $field)
-    {
-        return $this->model->where('rke_code_id', $code)->value($field);
-    }
-
-    /**
      * Obtiene comercio por código UUID
      *
      * @param string $code Código UUID

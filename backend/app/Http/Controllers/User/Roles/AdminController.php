@@ -114,16 +114,9 @@ class AdminController extends Controller
     public function promoteUserToCommerce(Request $request)
     {
         $request->validate([
-            'rke_code' => 'required|string',
             'name'     => 'required|string',
             'user_id'  => 'required|integer',
         ]);
-
-        if (Commerce::existsValue('rke_code', $request->rke_code)) {
-            return back()
-                ->with('message', 'El código RKE ya existe')
-                ->with('type', 'warning');
-        }
 
         try {
             DB::transaction(function () use ($request) {
@@ -134,8 +127,6 @@ class AdminController extends Controller
                     'country'   => $request->country,
                     'status'    => 1,
                     'user'      => $request->user_id,
-                    'rke_code'  => $this->replaceLettersWithNumbers($request->rke_code),
-                    'uuid_code' => $this->getCodeUUID('Commerce'),
                 ]);
             });
 

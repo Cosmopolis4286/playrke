@@ -30,24 +30,6 @@ interface CommerceRepositoryContract extends BaseRepositoryContract
     public function getValueByUserId($userId, string $field);
 
     /**
-     * Obtiene comercio por código RKE
-     *
-     * @param string $code Código RKE
-     * @param array $fields Campos a seleccionar
-     * @return Commerce|null
-     */
-    public function getByCodeRKE(string $code, array $fields = ['*']): ?Commerce;
-
-    /**
-     * Obtiene valor por código RKE
-     *
-     * @param string $code Código RKE
-     * @param string $field Campo a obtener
-     * @return mixed
-     */
-    public function getValueByCodeRKE(string $code, string $field);
-
-    /**
      * Obtiene comercio por código UUID
      *
      * @param string $code Código UUID
