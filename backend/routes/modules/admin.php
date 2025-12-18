@@ -1,8 +1,15 @@
 <?php
 
-use App\Http\Controllers\User\Roles\{AdminController, CustomerController};
-use App\Http\Controllers\User\Roles\Treasurer\{TreasurerController, OtherTreasurersController};
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\User\Roles\{
+    AdminController,
+    CommerceController,
+    CustomerController
+};
+use App\Http\Controllers\User\Roles\Treasurer\{
+    TreasurerController,
+    OtherTreasurersController
+};
 
 require_once app_path('Helpers/RouteHelper.php');
 
@@ -10,60 +17,121 @@ require_once app_path('Helpers/RouteHelper.php');
 |--------------------------------------------------------------------------
 | Rutas de Administración del Sistema
 |--------------------------------------------------------------------------
-| Todas las funciones administrativas: gestión de usuarios, comercios,
-| tesoreros, y configuraciones del sistema.
+| Gestión completa del panel administrativo, usuarios, comercios,
+| clientes y tesorería. Todas protegidas por rol admin salvo excepciones.
 */
 
-// ====================================
-// PANEL ADMINISTRATIVO PRINCIPAL
-// ====================================
-role_protected_routes(['role:admin'], 'admin', AdminController::class, [
-    'dashboard' => ['method' => 'get', 'uri' => ''],
-    'customers' => ['method' => 'get', 'uri' => 'customers'],
-    'commerces' => ['method' => 'get', 'uri' => 'commerces'],
-    'sellers' => ['method' => 'get', 'uri' => 'sellers'],
-    'treasurers' => ['method' => 'get', 'uri' => 'treasurers'],
-    'other-treasurers' => ['method' => 'get', 'uri' => 'other-treasurers'],
-    'subsidiaries' => ['method' => 'get', 'uri' => 'subsidiaries'],
-    'users' => ['method' => 'get', 'uri' => 'users'],
-    'getUserInfo' => ['method' => 'get', 'uri' => 'get-user-info/{userRole}/{exclude?}'],
-]);
+/**
+ * =========================================================
+ * PANEL ADMINISTRATIVO PRINCIPAL
+ * =========================================================
+ */
+role_protected_routes(
+    ['role:admin'],
+    'admin',
+    AdminController::class,
+    [
+        'dashboard' => [
+            'method' => 'get',
+            'uri'    => '',
+            'action' => 'dashboard',
+        ],
+        'customers' => [
+            'method' => 'get',
+            'uri'    => 'customers',
+            'action' => 'customers',
+        ],
+        'commerces' => [
+            'method' => 'get',
+            'uri'    => 'commerces',
+            'action' => 'commerces',
+        ],
+        'sellers' => [
+            'method' => 'get',
+            'uri'    => 'sellers',
+            'action' => 'sellers',
+        ],
+        'treasurers' => [
+            'method' => 'get',
+            'uri'    => 'treasurers',
+            'action' => 'treasurers',
+        ],
+        'other-treasurers' => [
+            'method' => 'get',
+            'uri'    => 'other-treasurers',
+            'action' => 'otherTreasurers',
+        ],
+        'subsidiaries' => [
+            'method' => 'get',
+            'uri'    => 'subsidiaries',
+            'action' => 'subsidiaries',
+        ],
+        'users' => [
+            'method' => 'get',
+            'uri'    => 'users',
+            'action' => 'users',
+        ],
+        'getUserInfo' => [
+            'method' => 'get',
+            'uri'    => 'get-user-info/{userRole}/{exclude?}',
+            'action' => 'getUserInfo',
+        ],
+    ]
+);
 
-// ====================================
-// GESTIÓN DE CLIENTES (CRUD COMPLETO)
-// ====================================
-role_protected_routes(['admin'], 'customer', CustomerController::class, [
-    'create' => ['method' => 'post', 'uri' => ''],
-    'show' => ['method' => 'get', 'uri' => '{id}'],
-    'update' => ['method' => 'put', 'uri' => '{id}'],
-    'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-    'changePassword' => ['method' => 'put', 'uri' => '{id}/password'],
-    'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
-]);
+/**
+ * =========================================================
+ * CRUDs ADMINISTRATIVOS ESTÁNDAR
+ * =========================================================
+ * Incluye: store, show, update, destroy, password y status
+ */
+$adminCrudRoutes = [
+    'store' => [
+        'method' => 'post',
+        'uri'    => '',
+        'action' => 'store',
+    ],
+    'show' => [
+        'method' => 'get',
+        'uri'    => '{id}',
+        'action' => 'show',
+    ],
+    'update' => [
+        'method' => 'put',
+        'uri'    => '{id}',
+        'action' => 'update',
+    ],
+    'destroy' => [
+        'method' => 'delete',
+        'uri'    => '{id}',
+        'action' => 'destroy',
+    ],
+    'changePassword' => [
+        'method' => 'put',
+        'uri'    => '{id}/password',
+        'action' => 'changePassword',
+    ],
+    'changeStatus' => [
+        'method' => 'put',
+        'uri'    => '{id}/status',
+        'action' => 'changeStatus',
+    ],
+];
 
-// ====================================
-// GESTIÓN DE TESOREROS (CRUD COMPLETO)
-// ====================================
-role_protected_routes(['admin'], 'treasurer', TreasurerController::class, [
-    'create' => ['method' => 'post', 'uri' => ''],
-    'show' => ['method' => 'get', 'uri' => '{id}'],
-    'update' => ['method' => 'put', 'uri' => '{id}'],
-    'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-    'changePassword' => ['method' => 'put', 'uri' => '{id}/password'],
-    'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
-]);
+role_protected_routes(['role:admin'], 'commerce', CommerceController::class, $adminCrudRoutes);
+role_protected_routes(['role:admin'], 'customer', CustomerController::class, $adminCrudRoutes);
+role_protected_routes(['role:admin'], 'treasurer', TreasurerController::class, $adminCrudRoutes);
+role_protected_routes(['role:admin'], 'other-treasurer', OtherTreasurersController::class, $adminCrudRoutes);
 
-// Ruta especial de tesorero sin middleware admin
+/**
+ * =========================================================
+ * RUTA ESPECIAL TESORERO (SIN ROL ADMIN)
+ * =========================================================
+ * Necesaria para consultas operativas autenticadas
+ */
 Route::middleware('auth')
-    ->get('treasurer/payment-details/{treasurer}/{currency}', [TreasurerController::class, 'getPaymentTreasurerDetails'])
+    ->get(
+        'treasurer/payment-details/{treasurer}/{currency}',
+        [TreasurerController::class, 'getPaymentTreasurerDetails']
+    )
     ->name('treasurer.payment-details');
-
-// ====================================
-// GESTIÓN DE OTROS TESOREROS
-// ====================================
-role_protected_routes(['admin'], 'other-treasurer', OtherTreasurersController::class, [
-    'show' => ['method' => 'get', 'uri' => '{id}'],
-    'update' => ['method' => 'put', 'uri' => '{id}'],
-    'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-    'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
-]);

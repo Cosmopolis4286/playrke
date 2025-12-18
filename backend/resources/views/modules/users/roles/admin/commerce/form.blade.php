@@ -10,7 +10,7 @@
         <x-form.input label="Username" name="username" minlength="5" maxlength="20" required col="col-sm-6" />
 
         <!-- Código RKE -->
-        <x-form.input label="Código RKE" name="rke_code" minlength="4" maxlength="15" required col="col-sm-6" />
+        <x-form.input label="Código RKE" name="rke_code" minlength="4" maxlength="15" readonly col="col-sm-6" />
 
         <!-- País -->
         <x-form.select label="País" name="country" required placeholder="Seleccionar país" data-source="countries"

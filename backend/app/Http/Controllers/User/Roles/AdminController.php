@@ -166,7 +166,7 @@ class AdminController extends Controller
 
         $excludedUsers = $this->resolveExcludedCreators($exclude);
 
-        if ($userRole === 'commerce_id') {
+        if ($userRole === 'commerce') {
             return Commerce::where('status', 1)
                 ->when(
                     $excludedUsers,

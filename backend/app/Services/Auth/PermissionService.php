@@ -2,9 +2,9 @@
 
 namespace App\Services\Auth;
 
-use App\Models\Users;
+use App\Models\Users\User;
+use App\Repositories\Users\Roles\RoleRepository;
 use Illuminate\Support\Facades\Auth;
-use App\Repositories\User\Roles\RoleRepository;
 
 /**
  * Servicio centralizado para validar permisos de usuario.
@@ -26,6 +26,7 @@ class PermissionService
     public static function checkUserType(int|array $requiredUserType): bool
     {
         $user = Auth::user();
+
         if (!$user instanceof User) {
             return false;
         }
@@ -44,6 +45,7 @@ class PermissionService
     public static function checkRole(string|array $roles): bool
     {
         $user = Auth::user();
+
         if (!$user instanceof User || !property_exists($user, 'role')) {
             return false;
         }
@@ -54,7 +56,8 @@ class PermissionService
     }
 
     /**
-     * Verifica si el usuario actual pertenece a un UserType con el prefijo especificado.
+     * Verifica si el usuario actual pertenece a un UserType
+     * cuyo prefijo coincide con el especificado.
      *
      * @param string|string[] $prefixes
      * @return bool
@@ -62,11 +65,22 @@ class PermissionService
     public static function checkPrefix(string|array $prefixes): bool
     {
         $user = Auth::user();
+
         if (!$user instanceof User) {
             return false;
         }
 
-        $userPrefix = RoleRepository::getValueById($user->user_type, 'prefix');
+        try {
+            /** @var RoleRepository $roleRepository */
+            $roleRepository = app(RoleRepository::class);
+
+            $userPrefix = $roleRepository->getValueById(
+                $user->user_type,
+                'prefix'
+            );
+        } catch (\Throwable) {
+            return false;
+        }
 
         return is_array($prefixes)
             ? in_array($userPrefix, $prefixes, true)
@@ -82,7 +96,10 @@ class PermissionService
     public static function checkCustom(callable $callback): bool
     {
         $user = Auth::user();
-        return $user instanceof User ? (bool) $callback($user) : false;
+
+        return $user instanceof User
+            ? (bool) $callback($user)
+            : false;
     }
 
     /**

@@ -28,7 +28,7 @@ require __DIR__ . '/modules/content.php';         // TODO: Crear InformationCont
 // RUTAS POR ROLES DE USUARIO
 // ====================================
 require __DIR__ . '/modules/admin.php';           // TODO: Crear AdminController
-require __DIR__ . '/modules/customer.php';        // TODO: Revisar controllers
+// require __DIR__ . '/modules/customer.php';        // TODO: Revisar controllers
 require __DIR__ . '/modules/commerce.php';        // TODO: Revisar controllers
 // require __DIR__ . '/modules/seller.php';          // TODO: Revisar controllers
 // require __DIR__ . '/modules/treasurer.php';       // TODO: Revisar controllers

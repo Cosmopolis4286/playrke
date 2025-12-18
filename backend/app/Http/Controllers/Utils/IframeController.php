@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Utils;
 
 // Models
-use App\Models\Customer;
-use App\Models\Role;
+
+use App\Http\Controllers\Controller;
 use App\Repositories\User\Roles\RoleRepository;
+use App\Traits\Users\Roles\Customer\CustomerTrait;
 // Traits
-use App\Traits\Users\CustomerTrait;
 use App\Traits\Users\UserTrait;
 
 class IframeController extends Controller

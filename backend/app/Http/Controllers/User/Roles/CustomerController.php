@@ -6,11 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerUser;
 use App\Models\PhoneNumbers;
-use App\Models\Users;
 use App\Models\Role;
 use App\Models\UniqueCode;
 use App\Models\Wallet;
-use App\Traits\Games\SeamlessWallet;
+use App\Traits\Games\Shared\SeamlessWallet;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Users\UserTrait;
 use Carbon\Carbon;
@@ -216,7 +215,7 @@ class CustomerController extends Controller
         $user = User::getById(Customer::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
 
         $keys = Customer::getById($id, ['customer_key', 'security_key']);
-        // Desencriptar clave de seguridad 
+        // Desencriptar clave de seguridad
         $encryptedKey = decrypt($keys->security_key, env('CTMER_ENCRYPTION_KEY'));
         // Desencriptar la clave de seguridad del cliente usando la clave específica
         $customerKey = decrypt($keys->customer_key, $encryptedKey);
@@ -281,7 +280,7 @@ class CustomerController extends Controller
                     'link_route' => $request->api_route
                 ];
 
-                // Desencriptar clave de seguridad 
+                // Desencriptar clave de seguridad
                 $encryptedKey = decrypt($customer->security_key, env('CTMER_ENCRYPTION_KEY'));
                 // Desencriptar la clave de seguridad del cliente usando la clave específica
                 $customerKey = decrypt($customer->customer_key, $encryptedKey);

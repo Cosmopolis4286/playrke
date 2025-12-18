@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Route;
  * =======================================================
  * Permiten definir grupos de rutas, CRUDs, API y rutas
  * con middleware de manera consistente y DRY.
+ *
+ * Convención:
+ * - Key del array        → nombre de la ruta (kebab-case permitido)
+ * - action (opcional)   → método real del controlador (camelCase)
  */
 
 /**
@@ -17,10 +21,23 @@ use Illuminate\Support\Facades\Route;
  * @param string $name Prefijo de nombres de rutas
  * @param array $middleware Middlewares a aplicar
  * @param string $controller Controlador de las rutas
- * @param array $routes Lista de rutas [name => ['method' => 'get', 'uri' => 'foo', 'middleware' => []]]
+ * @param array $routes Lista de rutas
+ *   [
+ *     'route-name' => [
+ *        'method' => 'get',
+ *        'uri' => 'foo',
+ *        'action' => 'methodName', // opcional
+ *        'middleware' => []
+ *     ]
+ *   ]
  */
-function route_group(string $prefix, string $name, array $middleware, string $controller, array $routes): void
-{
+function route_group(
+    string $prefix,
+    string $name,
+    array $middleware,
+    string $controller,
+    array $routes
+): void {
     Route::prefix($prefix)
         ->as($name)
         ->middleware($middleware)
@@ -29,9 +46,10 @@ function route_group(string $prefix, string $name, array $middleware, string $co
             foreach ($routes as $routeName => $config) {
                 $method = strtolower($config['method'] ?? 'get');
                 $uri = $config['uri'] ?? $routeName;
+                $action = $config['action'] ?? $routeName;
                 $routeMiddlewares = $config['middleware'] ?? [];
 
-                $route = Route::$method($uri, $routeName)->name($routeName);
+                $route = Route::$method($uri, $action)->name($routeName);
 
                 if (!empty($routeMiddlewares)) {
                     $route->middleware($routeMiddlewares);
@@ -41,21 +59,25 @@ function route_group(string $prefix, string $name, array $middleware, string $co
 }
 
 /**
- * Define un CRUD estándar para un controlador
+ * Define un CRUD estándar para un controlador (convención Laravel)
  *
  * @param string $prefix Prefijo de la URI
  * @param string $controller Nombre del controlador
  * @param array $middleware Middlewares a aplicar
- * @param array $except Rutas a excluir ['index', 'create', ...]
+ * @param array $except Rutas a excluir ['index', 'store', ...]
  */
-function crud_routes(string $prefix, string $controller, array $middleware = ['auth'], array $except = []): void
-{
+function crud_routes(
+    string $prefix,
+    string $controller,
+    array $middleware = ['auth'],
+    array $except = []
+): void {
     $routes = [
-        'index' => ['method' => 'get', 'uri' => ''],
-        'create' => ['method' => 'post', 'uri' => ''],
-        'show' => ['method' => 'get', 'uri' => '{id}'],
-        'update' => ['method' => 'put', 'uri' => '{id}'],
-        'destroy' => ['method' => 'delete', 'uri' => '{id}'],
+        'index'   => ['method' => 'get',    'uri' => '',      'action' => 'index'],
+        'store'   => ['method' => 'post',   'uri' => '',      'action' => 'store'],
+        'show'    => ['method' => 'get',    'uri' => '{id}',  'action' => 'show'],
+        'update'  => ['method' => 'put',    'uri' => '{id}',  'action' => 'update'],
+        'destroy' => ['method' => 'delete', 'uri' => '{id}',  'action' => 'destroy'],
     ];
 
     // Filtrar rutas excluidas
@@ -65,11 +87,18 @@ function crud_routes(string $prefix, string $controller, array $middleware = ['a
 }
 
 /**
- * Define rutas con middleware múltiples organizados
+ * Define rutas con múltiples middlewares organizados
  *
  * @param string $prefix Prefijo de la URI
  * @param string $name Prefijo de nombres de rutas
- * @param array $groups Cada grupo tiene: ['controller'=>..., 'middleware'=>[], 'routes'=>[]]
+ * @param array $groups
+ *   [
+ *     [
+ *       'controller' => Controller::class,
+ *       'middleware' => [],
+ *       'routes' => []
+ *     ]
+ *   ]
  */
 function multi_middleware_routes(string $prefix, string $name, array $groups): void
 {
@@ -85,7 +114,9 @@ function multi_middleware_routes(string $prefix, string $name, array $groups): v
                     foreach ($routes as $routeName => $config) {
                         $method = strtolower($config['method'] ?? 'get');
                         $uri = $config['uri'] ?? $routeName;
-                        $route = Route::$method($uri, $routeName)->name($routeName);
+                        $action = $config['action'] ?? $routeName;
+
+                        $route = Route::$method($uri, $action)->name($routeName);
 
                         if (!empty($config['middleware'])) {
                             $route->middleware($config['middleware']);
@@ -103,8 +134,11 @@ function multi_middleware_routes(string $prefix, string $name, array $groups): v
  * @param string $controller Controlador
  * @param array $middleware Middlewares a aplicar
  */
-function api_resource(string $resource, string $controller, array $middleware = ['auth:sanctum']): void
-{
+function api_resource(
+    string $resource,
+    string $controller,
+    array $middleware = ['auth:sanctum']
+): void {
     Route::prefix("api/{$resource}")
         ->as("api.{$resource}.")
         ->middleware($middleware)
@@ -126,8 +160,12 @@ function api_resource(string $resource, string $controller, array $middleware = 
  * @param string $controller Controlador
  * @param array $routes Rutas del grupo
  */
-function role_protected_routes(array $roles, string $prefix, string $controller, array $routes): void
-{
+function role_protected_routes(
+    array $roles,
+    string $prefix,
+    string $controller,
+    array $routes
+): void {
     $middleware = array_merge(['auth'], $roles);
     route_group($prefix, "{$prefix}.", $middleware, $controller, $routes);
 }

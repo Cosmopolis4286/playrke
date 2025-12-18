@@ -2,8 +2,7 @@
 
 namespace App\Services\User\Roles\Customer;
 
-use App\Models\Transactions;
-use App\Traits\SeamlessWallet;
+use App\Traits\Games\Shared\SeamlessWallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -61,7 +60,7 @@ class HandleTransactions
                 }
             }
 
-            DB::commit();  
+            DB::commit();
 
         } catch (\Exception $e) {
             // Si ocurre un error en el proceso global, hacer rollback

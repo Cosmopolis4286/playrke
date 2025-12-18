@@ -25,7 +25,7 @@ class CommerceController extends Controller
      * @param CommerceService $service
      * @return RedirectResponse
      */
-    public function create(CommerceRequest $request, CommerceService $service): RedirectResponse
+    public function store(CommerceRequest $request, CommerceService $service): RedirectResponse
     {
         return $this->handleService(function () use ($request, $service) {
             $result = $service->create($request->toDTO());
@@ -129,6 +129,7 @@ class CommerceController extends Controller
      */
     private function handleService(callable $callback, string $errorMessage)
     {
+        dd(11);
         try {
             return $callback();
         } catch (\Throwable $e) {

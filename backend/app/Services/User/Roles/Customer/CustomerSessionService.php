@@ -3,7 +3,7 @@
 namespace App\Services\User\Roles\Customer;
 
 use App\Models\CustomerUser;
-use App\Traits\SeamlessWallet;
+use App\Traits\Games\Shared\SeamlessWallet;
 
 class CustomerSessionService
 {

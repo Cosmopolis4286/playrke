@@ -17,19 +17,7 @@ require_once app_path('Helpers/RouteHelper.php');
 // ====================================
 multi_middleware_routes('commerce', 'commerce.', [
     [
-        'middleware' => ['auth', 'commerce_id', 'admin'],
-        'controller' => CommerceController::class,
-        'routes' => [
-            'create' => ['method' => 'post', 'uri' => ''],
-            'show' => ['method' => 'get', 'uri' => '{id}'],
-            'update' => ['method' => 'put', 'uri' => '{id}'],
-            'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-            'changePassword' => ['method' => 'put', 'uri' => '{id}/password'],
-            'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
-        ]
-    ],
-    [
-        'middleware' => ['auth', 'commerce_id'],
+        'middleware' => ['auth', 'role:commerce'],
         'controller' => CommerceController::class,
         'routes' => [
             'rewards' => ['method' => 'get', 'uri' => 'rewards'],

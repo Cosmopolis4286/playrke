@@ -8,9 +8,8 @@ use App\Models\CustomerGame;
 use App\Models\CustomerUser;
 use App\Models\Games;
 use App\Models\Transactions;
-
+use App\Traits\Users\Roles\Customer\CustomerTrait;
 // Traits
-use App\Traits\Users\CustomerTrait;
 
 // Otros
 use Carbon\Carbon;
@@ -26,7 +25,7 @@ trait SeamlessWallet
     {
         $customer = Customer::getById($customerId, ['customer_key', 'security_key']);
 
-        // Desencriptar clave de seguridad 
+        // Desencriptar clave de seguridad
         $encryptedKey = decrypt($customer->security_key, env('CTMER_ENCRYPTION_KEY'));
 
         // Desencriptar la clave de seguridad del cliente usando la clave específica
@@ -308,7 +307,7 @@ trait SeamlessWallet
         }
     }
 
-    // Función para registrar las transacciones del cliente 
+    // Función para registrar las transacciones del cliente
     public function registerTransaction(array $game, $customer, $clientUser, $betId, $type, $currency, $amount, $status = 0)
     {
         try {

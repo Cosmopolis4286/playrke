@@ -4,7 +4,7 @@ namespace App\Services\Games\Bingo\Cartons\Customer;
 
 use App\Models\{BingoPrizeCtns, BingoRoom, Customer};
 use App\Services\Users\Customer\HandleTransactions;
-use App\Traits\Games\SeamlessWallet;
+use App\Traits\Games\Shared\SeamlessWallet;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
