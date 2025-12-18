@@ -22,7 +22,6 @@ class CommerceRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        dd(123);
         // Solo permite usuarios con prefix "commerce"
         return PermissionService::checkPrefix('commerce');
     }

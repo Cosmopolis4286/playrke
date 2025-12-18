@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Contracts;
 
+use App\Models\Users\User;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -68,6 +69,24 @@ interface RoleUserRepositoryContract extends BaseRepositoryContract
      * @return bool True si el usuario tiene el rol activo
      */
     public function hasActiveRole(string $userId, string $roleId): bool;
+
+    /**
+     * Verifica si un usuario posee al menos uno de los roles indicados
+     *
+     * @param User $user
+     * @param array $roles Prefijos de roles ['admin', 'commerce', ...]
+     * @return bool
+     */
+    public function userHasAnyRole(User $user, array $roles): bool;
+
+    /**
+     * Verifica si el usuario tiene un rol específico
+     *
+     * @param User $user
+     * @param string $role
+     * @return bool
+     */
+    public function userHasRole(User $user, string $role): bool;
 
     /**
      * Obtiene la asignación específica de un usuario y rol.

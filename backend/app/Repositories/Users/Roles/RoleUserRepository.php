@@ -3,10 +3,12 @@
 namespace App\Repositories\Users\Roles;
 
 use App\Models\Users\Roles\RoleUser;
+use App\Models\Users\User;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Contracts\RoleUserRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Repositorio para la gestión de relaciones usuario-rol.
@@ -98,6 +100,27 @@ class RoleUserRepository extends BaseRepository implements RoleUserRepositoryCon
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>', Carbon::now());
             })->exists();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function userHasAnyRole(User $user, array $roles): bool
+    {
+        return $this->getActiveByUser($user->id)
+            ->loadMissing('role')
+            ->contains(function ($assignment) use ($roles) {
+                return $assignment->role
+                    && in_array($assignment->role->prefix, $roles, true);
+            });
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function userHasRole(User $user, string $role): bool
+    {
+        return $this->userHasAnyRole($user, [$role]);
     }
 
     /**

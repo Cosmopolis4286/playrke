@@ -4,6 +4,7 @@ namespace App\Services\Auth;
 
 use App\Models\Users\User;
 use App\Repositories\Users\Roles\RoleRepository;
+use App\Repositories\Users\Roles\RoleUserRepository;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -71,20 +72,18 @@ class PermissionService
         }
 
         try {
-            /** @var RoleRepository $roleRepository */
-            $roleRepository = app(RoleRepository::class);
+            /** @var RoleUserRepository $roleUserRepository */
+            $roleUserRepository = app(RoleUserRepository::class);
 
-            $userPrefix = $roleRepository->getValueById(
-                $user->user_type,
-                'prefix'
-            );
+            // Obtener roles activos del usuario
+            ! $roleUserRepository->userHasAnyRole($user, (array) $prefixes);
         } catch (\Throwable) {
             return false;
         }
 
         return is_array($prefixes)
-            ? in_array($userPrefix, $prefixes, true)
-            : $userPrefix === $prefixes;
+            ? in_array($userRoles, $prefixes, true)
+            : $userRoles === $prefixes;
     }
 
     /**

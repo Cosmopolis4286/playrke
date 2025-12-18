@@ -41,28 +41,18 @@ class RoleMiddleware
     {
         $user = Auth::user();
 
-        // Usuario no autenticado
         if (!$user) {
             return $this->unauthorizedResponse($request);
         }
 
-        // Obtener roles activos del usuario
-        $userRoles = $this->roleUserRepository
-            ->getActiveByUser($user->id)
-            ->load('role');
-
-
-        // Verificar si posee alguno de los roles requeridos
-        foreach ($userRoles as $assignment) {
-            if (
-                $assignment->role &&
-                in_array($assignment->role->prefix, $roles, true)
-            ) {
-                return $next($request);
-            }
+        if (
+            ! $this->roleUserRepository
+                ->userHasAnyRole($user, (array) $roles)
+        ) {
+            return $this->forbiddenResponse($request);
         }
 
-        return $this->forbiddenResponse($request);
+        return $next($request);
     }
 
     /**

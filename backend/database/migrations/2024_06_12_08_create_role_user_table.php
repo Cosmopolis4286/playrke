@@ -38,6 +38,8 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->comment('ID del usuario que asignó este rol');
 
+            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+
             // -----------------------------
             // Expiración y control
             // -----------------------------

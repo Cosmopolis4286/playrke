@@ -42,6 +42,15 @@ class RoleUser extends Pivot
     ];
 
     /**
+     * Los atributos que deben ser casteados a tipos nativos.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'status' => 'boolean',
+    ];
+
+    /**
      * Campos que deben ser tratados como fechas
      *
      * @var array<int, string>
@@ -81,5 +90,4 @@ class RoleUser extends Pivot
     {
         return $this->belongsTo(User::class, 'assigned_by');
     }
-
 }
