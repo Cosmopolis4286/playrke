@@ -32,7 +32,8 @@ export interface Game {
  * Información de zona horaria
  */
 export interface TimeZone {
-    id: string;      // Ej: "America/Sao_Paulo"
-    name: string;    // Nombre descriptivo, ej: "Brasília Time"
-    offset: string;  // Desfase respecto a UTC, ej: "-03:00"
+    id: string;         // Ej: "America/Sao_Paulo"
+    name: string;       // Nombre descriptivo, ej: "Brasília Time"
+    utc: string;        // Offset UTC, ej: "UTC-03"
+    country_id?: number; // ID del país asociado (opcional)
 }

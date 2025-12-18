@@ -1,5 +1,5 @@
 @props([
-    'containerId' => false,
+    'container' => false,
     'id' => null,
     'label' => null,
     'name',
@@ -13,13 +13,14 @@
     'class' => '',
 ])
 
-<div @if ($containerId) id="container-{{ $id ?? $name }}" @endif
+<div @if ($container) id="container-{{ $id ?? $name }}" @endif
     class="form-group {{ $col }} {{ $class }}">
     @if ($label)
         <label for="{{ $id ?? $name }}">{{ $label }}{{ $required ? '*' : '' }}</label>
     @endif
     <input type="{{ $type }}" id="{{ $id ?? $name }}" name="{{ $name }}" value="{{ old($name, $value) }}"
-        @class(['form-control', 'is-invalid' => $errors->has($name)]) @if ($readonly) readonly @endif
+        @class(['form-control', 'is-invalid' => $errors->has($name)])
+        @if ($readonly) readonly @endif
         @if ($required) required @endif
         @isset($minlength) minlength="{{ $minlength }}" @endisset
         @isset($maxlength) maxlength="{{ $maxlength }}" @endisset>

@@ -1,21 +1,22 @@
 import { getAppDataProperty } from '@/data/index'; // Leer dinámicamente de AppData
-import { Currency } from '@/types/dataModels';
+import { Currency, TimeZone } from '@/types/dataModels';
 
 // ==========================
 //   Constantes
 // ==========================
 const arrCurrencies = getAppDataProperty<Currency[]>('currencies', []);
+const arrTimeZones = getAppDataProperty<TimeZone[]>('timeZones', []);
 
 // ==========================
 //   Elementos del DOM
 // ==========================
-const currency = document.getElementById('currency') as HTMLSelectElement | null;
-const currencyText = document.getElementById('currency-text') as HTMLElement | null;
+const currency = document.getElementById('currency') as HTMLInputElement | HTMLSelectElement | null;
 const containerCurrency = document.getElementById('container-currency') as HTMLElement | null;
 const containerOtherCurrencies = document.getElementById('container-other-currencies') as HTMLElement | null;
 const containerTimeZone = document.getElementById('container-time-zone') as HTMLElement | null;
 const country = document.getElementById('country') as HTMLSelectElement | null;
 const otherCurrencies = document.getElementById('other-currencies') as HTMLSelectElement | null;
+const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement | null;
 
 // ==========================
 //   Funciones auxiliares
@@ -60,17 +61,99 @@ function updateMainCurrencyByCountry(selectedCountry: number): void {
 
     if (!matchingCurrency) return;
 
-    currency.value = String(matchingCurrency.id);
-    currencyText.textContent = `(${matchingCurrency.symbol}) ${matchingCurrency.name}`;
+    // Si el campo currency es un input de texto visible, mostrar el nombre legible
+    // Si es un hidden input o select, guardar el ID
+    if (currency instanceof HTMLInputElement && currency.type === 'text') {
+        currency.value = `(${matchingCurrency.symbol}) ${matchingCurrency.name}`;
+        // Guardar el ID en un atributo data para poder recuperarlo después
+        currency.setAttribute('data-currency-id', String(matchingCurrency.id));
+    } else {
+        currency.value = String(matchingCurrency.id);
+    }
 
     containerCurrency?.classList.remove('d-none');
     containerTimeZone?.classList.remove('d-none');
 }
 
-/** Resetea selección de moneda y oculta container de otras monedas */
+/**
+ * Actualiza las zonas horarias filtradas por el país seleccionado
+ * @param selectedCountry - ID del país seleccionado
+ * @param selectedTimeZone - Zona horaria a preseleccionar (opcional)
+ */
+function updateTimeZonesByCountry(selectedCountry: number, selectedTimeZone?: string): void {
+    if (!timeZoneSelect) return;
+
+    // Limpiar opciones actuales
+    timeZoneSelect.innerHTML = '';
+
+    // Filtrar zonas horarias por país
+    const filteredTimeZones = arrTimeZones.filter(tz => tz.country_id === selectedCountry);
+
+    if (filteredTimeZones.length === 0) {
+        console.warn(`⚠️ No hay zonas horarias para el país con ID ${selectedCountry}`);
+        return;
+    }
+
+    // Ordenar alfabéticamente por nombre
+    const sortedTimeZones = filteredTimeZones.sort((a, b) =>
+        a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+    );
+
+    // Si hay más de una zona horaria, agregar placeholder
+    // Si hay solo una, NO agregar placeholder (se seleccionará automáticamente)
+    const placeholder = timeZoneSelect.dataset.placeholder;
+    const hasMultipleTimeZones = sortedTimeZones.length > 1;
+
+    if (hasMultipleTimeZones && placeholder) {
+        const placeholderOption = new Option(placeholder, '', true, false);
+        placeholderOption.disabled = true;
+        timeZoneSelect.appendChild(placeholderOption);
+    }
+
+    // Agregar opciones de zonas horarias
+    sortedTimeZones.forEach((tz, index) => {
+        // Si hay solo una zona horaria, seleccionarla por defecto
+        // Si hay un valor preseleccionado, usarlo
+        // Si hay múltiples zonas y no hay preselección, ninguna estará seleccionada (placeholder activo)
+        const shouldBeSelected = selectedTimeZone
+            ? selectedTimeZone === tz.id
+            : !hasMultipleTimeZones && index === 0;
+
+        const option = new Option(
+            `${tz.name} (${tz.utc})`,
+            tz.id,
+            shouldBeSelected,
+            shouldBeSelected
+        );
+        timeZoneSelect.appendChild(option);
+    });
+
+    // Establecer el valor seleccionado en el select
+    if (selectedTimeZone) {
+        timeZoneSelect.value = selectedTimeZone;
+    } else if (!hasMultipleTimeZones && sortedTimeZones.length === 1) {
+        timeZoneSelect.value = sortedTimeZones[0].id;
+    }
+}
+
+/** Resetea selección de moneda y zonas horarias, oculta containers */
 function resetCurrencySelection(): void {
-    if (currency) currency.value = '';
-    if (currencyText) currencyText.textContent = '';
+    if (currency) {
+        currency.value = '';
+        currency.removeAttribute('data-currency-id');
+    }
+
+    // Resetear select de zonas horarias
+    if (timeZoneSelect) {
+        timeZoneSelect.innerHTML = '';
+        const placeholder = timeZoneSelect.dataset.placeholder;
+        if (placeholder) {
+            const placeholderOption = new Option(placeholder, '', true, false);
+            placeholderOption.disabled = true;
+            timeZoneSelect.appendChild(placeholderOption);
+        }
+    }
+
     containerOtherCurrencies?.classList.add('d-none');
     containerCurrency?.classList.add('d-none');
     containerTimeZone?.classList.add('d-none');
@@ -79,12 +162,23 @@ function resetCurrencySelection(): void {
 // ==========================
 //   Inicialización
 // ==========================
-/** Inicializa el selector de moneda en función del país */
+/** Inicializa el selector de moneda y zona horaria en función del país */
 export function initCurrencySelector(): void {
-    console.log('Inicializando selector de moneda por país', country);
+    console.log('Inicializando selector de moneda y zona horaria por país', country);
     if (!country) return;
 
     containerOtherCurrencies?.classList.add('d-none');
+
+    // Inicializar el placeholder del select de zona horaria
+    if (timeZoneSelect) {
+        timeZoneSelect.innerHTML = '';
+        const placeholder = timeZoneSelect.dataset.placeholder;
+        if (placeholder) {
+            const placeholderOption = new Option(placeholder, '', true, false);
+            placeholderOption.disabled = true;
+            timeZoneSelect.appendChild(placeholderOption);
+        }
+    }
 
     country.addEventListener('change', () => {
         const selectedCountry = Number(country.value);
@@ -94,10 +188,23 @@ export function initCurrencySelector(): void {
             return;
         }
 
+        // Actualizar moneda principal
         updateMainCurrencyByCountry(selectedCountry);
 
+        // Actualizar zonas horarias filtradas por país
+        updateTimeZonesByCountry(selectedCountry);
+
+        // Insertar otras monedas disponibles
         if (arrCurrencies.length > 1) insertOtherCurrencies();
     });
+}
+
+/**
+ * Exportar función para actualizar zonas horarias manualmente
+ * Útil cuando se necesita preseleccionar una zona horaria al editar
+ */
+export function updateTimeZones(countryId: number, selectedTimeZone?: string): void {
+    updateTimeZonesByCountry(countryId, selectedTimeZone);
 }
 
 // Ejecutar inicialización automáticamente si existe el select de país

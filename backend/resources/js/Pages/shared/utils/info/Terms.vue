@@ -18,20 +18,29 @@ const formatParagraph = (text: string) => {
 
     <Head :title="title" />
 
-    <div class="row justify-content-center">
-        <div class="col-lg-9">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h2 class="mb-3">{{ termsContent.title }}</h2>
+    <div class="info-wrapper">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-9">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h2 class="mb-3">{{ termsContent.title }}</h2>
 
-                    <!-- Itera sobre las secciones -->
-                    <div v-for="(section, index) in termsContent.sections" :key="index">
-                        <h4>{{ section.heading }}</h4>
-                        <p v-for="(paragraph, index) in section.paragraphs" :key="index" class="mb-3"
-                            v-html="formatParagraph(paragraph)" />
+                        <!-- Itera sobre las secciones -->
+                        <div v-for="(section, index) in termsContent.sections" :key="index">
+                            <h4>{{ section.heading }}</h4>
+                            <p v-for="(paragraph, index) in section.paragraphs" :key="index" class="mb-3"
+                                v-html="formatParagraph(paragraph)" />
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.info-wrapper {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+</style>

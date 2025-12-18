@@ -20,7 +20,6 @@ class CommerceDTO
     public readonly string $currency;
     public readonly string $phone;
     public readonly string $name;
-    public readonly string $codeRke;
     public readonly int $userRole;
     /** @var array<int,string>|null */
     public readonly ?array $allowedGames;

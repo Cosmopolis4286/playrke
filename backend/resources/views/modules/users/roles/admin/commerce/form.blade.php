@@ -15,8 +15,7 @@
 
         <!-- Zona Horaria -->
         <x-form.select label="Zona Horaria" id="time-zone" name="time_zone" required='true'
-            placeholder="Seleccionar zona horaria" data-source="timeZones" data-value="id" data-label="name"
-            col="col-sm-6" />
+            placeholder="Seleccionar zona horaria" col="col-sm-6" />
 
         <!-- Teléfono -->
         <x-form.input label="Teléfono" name="phone" required placeholder="Ingresa el número" col="col-sm-6" />
@@ -24,16 +23,10 @@
         <!-- Moneda principal -->
         <x-form.input label="Moneda" name="currency" type="text" required readonly col="col-sm-6" />
 
-        <div id="container-currency" class="form-group col-sm-6 d-none">
-            <label for="currency">Moneda*</label>
-            <div id="currency-text" class="form-control"></div>
-            <input type="hidden" id="currency" name="currency" value="{{ old('currency') }}">
-        </div>
-
         <!-- Otras Monedas -->
-        <x-form.select containerId="other-currencies" label="Otras Monedas" id="other-currencies"
-            name="other_currencies" multiple select2 placeholder="Seleccionar otras monedas" data-source="currencies"
-            data-value="id" data-label="description" col="col-sm-6 d-none" />
+        <x-form.select container="true" label="Otras Monedas" id="other-currencies" name="other_currencies" multiple
+            select2 placeholder="Seleccionar otras monedas" data-source="currencies" data-value="id"
+            data-label="description" col="col-sm-6 d-none" />
 
         <!-- Juegos Permitidos -->
         <x-form.select label="Juegos Permitidos" id="allowed-games" name="allowed_games" multiple select2

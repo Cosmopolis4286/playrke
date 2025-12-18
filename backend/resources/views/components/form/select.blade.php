@@ -1,5 +1,5 @@
 @props([
-    'containerId' => false,
+    'container' => false,
     'id' => null,
     'label',
     'name',
@@ -16,7 +16,7 @@
     'dataLabel' => 'name',
 ])
 
-<div @if ($containerId) id="container-{{ $id ?? $name }}" @endif @class(['form-group', $col])>
+<div @if ($container) id="container-{{ $id ?? $name }}" @endif @class(['form-group', $col])>
     <label for="{{ $id ?? $name }}">{{ $label }}{{ $required ? '*' : '' }}</label>
 
     <select id="{{ $id ?? $name }}" name="{{ $name }}{{ $multiple ? '[]' : '' }}" @class([

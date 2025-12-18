@@ -1,11 +1,13 @@
 // commerceForm.ts
 import { formCRUD } from '@/helpers/form/formCrudInit';
-import { insertOtherCurrencies } from '@/helpers/selects/insertOtherCurrencies';
+import { insertOtherCurrencies, updateTimeZones } from '@/helpers/selects/insertOtherCurrencies';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
 import { route } from '@/routes/commerceRoutes';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
 import { fillFormFromObject } from '@/helpers/form/formHelpers';
+import { getAppDataProperty } from '@/data/index';
+import { Currency } from '@/types/dataModels';
 
 // Re-exportar route para que otros módulos puedan usarla directamente
 export { route };
@@ -59,10 +61,9 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
     const usernameInput = document.getElementById('username') as HTMLInputElement | null;
     const emailInput = document.getElementById('email') as HTMLInputElement | null;
+    const currencyInput = document.getElementById('currency') as HTMLInputElement | null;
 
     if (!usernameInput || !emailInput) return console.error('Inputs username/email no encontrados');
-
-    const codeRKEInput = document.getElementById('code-rke') as HTMLInputElement | null;
 
     // Valores preseleccionados para selects dinámicos
     const selectedValues: Record<string, string | number> = {};
@@ -82,13 +83,32 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
         emailInput.value = user.email ?? '';
         usernameInput.readOnly = true;
         emailInput.readOnly = true;
-        codeRKEInput.readOnly = true;
+
+        // Configurar campo currency como readonly y mostrar nombre legible
+        if (currencyInput) {
+            currencyInput.readOnly = true;
+
+            // Si es un input de texto, mostrar el nombre de la moneda en lugar del ID
+            if (currencyInput.type === 'text' && commerce.currency) {
+                const currencies = getAppDataProperty<Currency[]>('currencies', []);
+                const currencyData = currencies.find(c => c.id === Number(commerce.currency));
+
+                if (currencyData) {
+                    currencyInput.value = `(${currencyData.symbol}) ${currencyData.name}`;
+                    currencyInput.setAttribute('data-currency-id', String(currencyData.id));
+                }
+            }
+        }
 
         selectedValues['country'] = data?.commerce?.country ?? '';
-        selectedValues['time-zone'] = data?.user?.time_zone ?? '';
+
+        // Actualizar zonas horarias filtradas por país y preseleccionar la del usuario
+        if (data?.commerce?.country && data?.user?.time_zone) {
+            updateTimeZones(Number(data.commerce.country), data.user.time_zone);
+        }
     }
 
-    // Inicializar selects
+    // Inicializar selects (excepto time-zone que ya fue inicializado manualmente en modo edición)
     initAllSelects(selectedValues);
 
     // Mostrar modal
@@ -114,6 +134,22 @@ export function initListeners(): void {
     if (typeof $ === 'function') {
         const $phone = $('#phone');
         if ($phone.length) $phone.mask('00000000000');
+    }
+
+    // Listener para interceptar el submit del formulario y reemplazar currency con su ID
+    const form = document.getElementById(moduleId) as HTMLFormElement | null;
+    if (form) {
+        form.addEventListener('submit', () => {
+            const currencyField = document.getElementById('currency') as HTMLInputElement | null;
+
+            // Si el campo currency tiene data-currency-id, reemplazar el valor con el ID
+            if (currencyField?.hasAttribute('data-currency-id')) {
+                const currencyId = currencyField.getAttribute('data-currency-id');
+                if (currencyId) {
+                    currencyField.value = currencyId;
+                }
+            }
+        });
     }
 
     // Click en botones dinámicos del formulario
