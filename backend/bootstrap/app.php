@@ -30,6 +30,21 @@ return Application::configure(
          * tengan acceso a la sesión
          */
         $middleware->statefulApi();
+
+        /**
+         * Configurar el grupo de middleware 'api' para incluir Sanctum
+         * EnsureFrontendRequestsAreStateful permite autenticación basada en cookies
+         */
+        $middleware->api(prepend: [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
+
+        /**
+         * Habilitar credenciales en CORS para permitir cookies cross-origin
+         */
+        $middleware->validateCsrfTokens(except: [
+            // Excluir rutas si es necesario, pero generalmente no se necesita
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         /**
