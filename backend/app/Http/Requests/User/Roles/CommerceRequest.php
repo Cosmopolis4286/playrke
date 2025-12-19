@@ -40,7 +40,7 @@ class CommerceRequest extends FormRequest
             'email'        => ['required', 'string', 'email', 'max:40'],
             'country'      => ['required', 'numeric', 'exists:countries,id'],
             'time_zone'    => ['required', 'numeric', 'exists:time_zones,id'],
-            'currency'         => ['required', 'numeric', 'exists:currencies,id'],
+            'currency'     => ['required', 'numeric', 'exists:currencies,id'],
             'phone'        => ['required', 'string', 'max:20'],
             'name'         => ['required', 'string'],
             'other_currencies.*' => ['exists:currencies,id'],
