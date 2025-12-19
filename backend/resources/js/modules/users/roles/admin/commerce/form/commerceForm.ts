@@ -1,6 +1,6 @@
 // commerceForm.ts
 import { formCRUD } from '@/helpers/form/formCrudInit';
-import { insertOtherCurrencies, updateTimeZones } from '@/helpers/selects/insertOtherCurrencies';
+import { insertOtherCurrencies, updateTimeZones, initCurrencySelector } from '@/helpers/selects/insertOtherCurrencies';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
 import { route } from '@/routes/commerceRoutes';
@@ -62,6 +62,9 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
     if (!usernameInput || !emailInput) return console.error('Inputs username/email no encontrados');
 
+    // Limpiar errores de validación previos
+    clearValidationErrors();
+
     // Valores preseleccionados para selects dinámicos
     const selectedValues: Record<string, string | number> = {};
 
@@ -89,6 +92,10 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
         if (data?.commerce?.country && data?.user?.time_zone) {
             updateTimeZones(Number(data.commerce.country), data.user.time_zone);
         }
+    } else {
+        // En modo creación, habilitar campos
+        usernameInput.readOnly = false;
+        emailInput.readOnly = false;
     }
 
     // Inicializar selects (excepto time-zone que ya fue inicializado manualmente en modo edición)
@@ -96,6 +103,20 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
     // Mostrar modal
     $(modal).modal('show');
+}
+
+/**
+ * Limpia los errores de validación del formulario
+ */
+function clearValidationErrors(): void {
+    const form = document.getElementById('commerce-form');
+    if (!form) return;
+
+    // Remover clases is-invalid
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+    // Remover mensajes de error
+    form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
 }
 
 // ==========================
@@ -112,6 +133,9 @@ export function initListeners(): void {
 
     const modal = document.getElementById(`modal-${moduleId}`);
     if (!modal) return;
+
+    // Inicializar selector de moneda/zona horaria por país
+    initCurrencySelector();
 
     // Máscara de teléfono
     if (typeof $ === 'function') {

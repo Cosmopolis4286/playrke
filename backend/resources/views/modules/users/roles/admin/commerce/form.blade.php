@@ -1,4 +1,4 @@
-<form id="commerce-form">
+<form id="commerce-form" novalidate>
     <div class="row">
         <!-- Nombre -->
         <x-form.input label="Nombre Comercio" name="name" required col="col-sm-12 col-md-6" />
@@ -18,17 +18,15 @@
             placeholder="Seleccionar zona horaria" col="col-sm-6" />
 
         <!-- Teléfono -->
-        <x-form.input label="Teléfono" name="phone" required placeholder="Ingresa el número" col="col-sm-6" />
+        <x-form.input label="Teléfono" name="phone" required placeholder="Ingresa el número" col="col-sm-6" maxlength="20" />
 
         <!-- Moneda principal -->
         <x-form.select container="true" label="Moneda Principal" id="currency" name="currency" required='true'
-            placeholder="Seleccionar moneda principal" data-source="currencies" data-value="id" data-label="description"
-            col="col-sm-6" class="d-none" />
+            placeholder="Seleccionar moneda principal" col="col-sm-6" />
 
         <!-- Otras Monedas -->
         <x-form.select container="true" label="Otras Monedas" id="other-currencies" name="other_currencies" multiple
-            select2 placeholder="Seleccionar otras monedas" data-source="currencies" data-value="id"
-            data-label="description" col="col-sm-6" class="d-none" />
+            select2 placeholder="Seleccionar otras monedas" col="col-sm-6" />
 
         <!-- Juegos Permitidos -->
         <x-form.select label="Juegos Permitidos" id="allowed-games" name="allowed_games" multiple select2

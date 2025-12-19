@@ -4,6 +4,9 @@ import { createDatasetGetters } from '@/utils/dataset';
 // Generar getters automáticamente desde appData
 const datasets = createDatasetGetters();
 
+// Cache para evitar reinicializar selects que ya fueron procesados
+const initializedSelects = new WeakSet<HTMLSelectElement>();
+
 /**
  * Inicializa todos los <select> que tengan el atributo `data-source`.
  *
@@ -12,13 +15,27 @@ const datasets = createDatasetGetters();
  *
  * @param selectedValues - Opcional: objeto { [selectId]: valorPreseleccionado }
  * @param disableFn - Opcional: función para deshabilitar opciones. Recibe (selectId, item) => boolean
+ * @param forceReinit - Opcional: forzar reinicialización de selects ya inicializados (default: false)
  */
 export function initAllSelects(
     selectedValues?: Partial<Record<string, string | number>>,
-    disableFn?: (selectId: string, item: any) => boolean
+    disableFn?: (selectId: string, item: any) => boolean,
+    forceReinit: boolean = false
 ): void {
     // Recorremos todos los selects con data-source
     document.querySelectorAll<HTMLSelectElement>('select[data-source]').forEach(select => {
+        // Si ya fue inicializado y no se fuerza reinicialización, skip
+        if (!forceReinit && initializedSelects.has(select)) {
+            // Si hay valores preseleccionados, actualizar sin reconstruir opciones
+            if (selectedValues?.[select.id]) {
+                select.value = String(selectedValues[select.id]);
+                // Trigger change para Select2
+                if (select.classList.contains('select2')) {
+                    $(select).trigger('change');
+                }
+            }
+            return;
+        }
         const sourceKey = select.dataset.source as keyof typeof datasets;
         const dataset = datasets[sourceKey]?.() ?? [];
 
@@ -89,5 +106,19 @@ export function initAllSelects(
                 multiple: select.multiple,
             });
         }
+
+        // Marcar como inicializado
+        initializedSelects.add(select);
     });
+}
+
+/**
+ * Limpia el cache de selects inicializados
+ * Útil cuando se destruye un modal o se recarga dinámicamente contenido
+ */
+export function clearSelectsCache(): void {
+    // WeakSet no tiene método clear, pero los elementos se limpian automáticamente cuando son eliminados del DOM
+    if (import.meta.env.DEV) {
+        console.log('♻️ Cache de selects se limpiará automáticamente con garbage collection');
+    }
 }

@@ -52,7 +52,7 @@
                     Contraseña
                 </button>
                 <button type="button" class="dropdown-item logout-btn" data-logout-url="{{ route('logout') }}"
-                    data-login-redirect-url="{{ route('login') }}" data-show-confirmation="true">
+                    data-login-redirect-url="{{ route('login') }}" data-show-confirmation="false">
                     <i class="mr-1 nav-icon fas fa-sign-out-alt"></i> Cerrar sesión
                 </button>
             </div>

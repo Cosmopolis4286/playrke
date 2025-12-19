@@ -1,4 +1,4 @@
-import { api } from '@/plugins/axios';
+import { apiClient as api } from '@/plugins/axios';
 import type { AxiosResponse } from 'axios';
 
 // Tipos para el servicio de Bingo

@@ -1,4 +1,4 @@
-import { api, clearAuthTokens } from '@/plugins/axios';
+import { apiClient as api, clearAuthTokens } from '@/plugins/axios';
 import type { AxiosResponse } from 'axios';
 
 // Tipos para las respuestas de la API

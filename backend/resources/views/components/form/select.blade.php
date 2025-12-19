@@ -10,13 +10,14 @@
     'multiple' => false,
     'select2' => false,
     'col' => 'col-sm-6',
+    'class' => '',
     // Datos dinámicos para JS
     'dataSource' => null,
     'dataValue' => 'id',
     'dataLabel' => 'name',
 ])
 
-<div @if ($container) id="container-{{ $id ?? $name }}" @endif @class(['form-group', $col])>
+<div @if ($container) id="container-{{ $id ?? $name }}" @endif @class(['form-group', $col, $class])>
     <label for="{{ $id ?? $name }}">{{ $label }}{{ $required ? '*' : '' }}</label>
 
     <select id="{{ $id ?? $name }}" name="{{ $name }}{{ $multiple ? '[]' : '' }}" @class([

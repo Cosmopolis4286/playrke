@@ -129,7 +129,6 @@ class CommerceController extends Controller
      */
     private function handleService(callable $callback, string $errorMessage)
     {
-        dd(11);
         try {
             return $callback();
         } catch (\Throwable $e) {

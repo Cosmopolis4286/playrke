@@ -65,11 +65,8 @@ export async function performLogout(options: LogoutOptions = {}): Promise<void> 
         clearAuthTokens();
         clearUserData();
 
-        // Redirigir usando Inertia
-        router.visit(loginRedirectUrl, {
-            method: 'get',
-            replace: true
-        });
+        // Redirigir usando window.location para forzar redirección inmediata
+        window.location.href = loginRedirectUrl;
 
     } catch (error) {
         console.error('Error durante el logout:', error);
@@ -78,13 +75,8 @@ export async function performLogout(options: LogoutOptions = {}): Promise<void> 
         clearAuthTokens();
         clearUserData();
 
-        // Mostrar mensaje de error pero continuar con logout
-        if (confirm('Error al comunicarse con el servidor. ¿Deseas cerrar sesión localmente?')) {
-            router.visit(loginRedirectUrl, {
-                method: 'get',
-                replace: true
-            });
-        }
+        // Redirigir automáticamente sin mostrar confirmación
+        window.location.href = loginRedirectUrl;
     }
 }
 

@@ -65,25 +65,43 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
 
 /** Actualiza la moneda principal según el país seleccionado */
 function updateMainCurrencyByCountry(selectedCountry: number): void {
-    const matchingCurrency = arrCurrencies.find(c => c.country_id === selectedCountry);
+    if (!currency) return;
 
-    if (!matchingCurrency) return;
+    // Limpiar el select
+    currency.innerHTML = '';
 
-    // Limpiar y reconstruir el select de moneda con el formato correcto
-    if (currency) {
-        currency.innerHTML = '';
+    // Agregar placeholder
+    const placeholder = currency.dataset.placeholder;
+    if (placeholder) {
+        const placeholderOption = new Option(placeholder, '', false, false);
+        placeholderOption.disabled = true;
+        currency.appendChild(placeholderOption);
+    }
 
-        // Crear la opción con el formato: (SÍMBOLO) Descripción
+    // Filtrar monedas por país seleccionado
+    const currenciesInCountry = arrCurrencies
+        .filter(c => c.country_id === selectedCountry)
+        .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' }));
+
+    if (currenciesInCountry.length === 0) {
+        console.warn(`⚠️ No hay monedas para el país con ID ${selectedCountry}`);
+        return;
+    }
+
+    // Agregar todas las monedas del país al select
+    currenciesInCountry.forEach(({ id, symbol, description }) => {
         const option = new Option(
-            `(${matchingCurrency.symbol}) ${matchingCurrency.description}`,
-            String(matchingCurrency.id),
-            true,
-            true
+            `(${symbol}) ${description}`,
+            String(id),
+            false,
+            false
         );
         currency.appendChild(option);
+    });
 
-        // Establecer el valor seleccionado
-        currency.value = String(matchingCurrency.id);
+    // Si solo hay una moneda, seleccionarla automáticamente
+    if (currenciesInCountry.length === 1) {
+        currency.value = String(currenciesInCountry[0].id);
     }
 
     containerCurrency?.classList.remove('d-none');
@@ -183,12 +201,43 @@ function resetCurrencySelection(): void {
 // ==========================
 //   Inicialización
 // ==========================
+let _currencySelectorInitialized = false;
+
 /** Inicializa el selector de moneda y zona horaria en función del país */
 export function initCurrencySelector(): void {
-    console.log('Inicializando selector de moneda y zona horaria por país', country);
-    if (!country) return;
+    if (_currencySelectorInitialized) {
+        if (import.meta.env.DEV) {
+            console.log('♻️ initCurrencySelector ya fue inicializado, usando instancia existente');
+        }
+        return;
+    }
 
+    if (!country) {
+        if (import.meta.env.DEV) {
+            console.warn('⚠️ No se encontró select de país (#country)');
+        }
+        return;
+    }
+
+    if (import.meta.env.DEV) {
+        console.log('Inicializando selector de moneda y zona horaria por país', country);
+    }
+
+    // Ocultar containers inicialmente
     containerOtherCurrencies?.classList.add('d-none');
+    containerCurrency?.classList.add('d-none');
+    containerTimeZone?.classList.add('d-none');
+
+    // Inicializar el placeholder del select de moneda
+    if (currency) {
+        currency.innerHTML = '';
+        const placeholder = currency.dataset.placeholder;
+        if (placeholder) {
+            const placeholderOption = new Option(placeholder, '', true, false);
+            placeholderOption.disabled = true;
+            currency.appendChild(placeholderOption);
+        }
+    }
 
     // Inicializar el placeholder del select de zona horaria
     if (timeZoneSelect) {
@@ -224,6 +273,8 @@ export function initCurrencySelector(): void {
             containerOtherCurrencies?.classList.add('d-none');
         }
     });
+
+    _currencySelectorInitialized = true;
 }
 
 /**
@@ -234,5 +285,9 @@ export function updateTimeZones(countryId: number, selectedTimeZone?: string): v
     updateTimeZonesByCountry(countryId, selectedTimeZone);
 }
 
-// Ejecutar inicialización automáticamente si existe el select de país
-initCurrencySelector();
+/**
+ * Resetea el estado de inicialización (útil para testing)
+ */
+export function resetCurrencySelectorState(): void {
+    _currencySelectorInitialized = false;
+}

@@ -34,7 +34,9 @@ async function showLaravelMessages(errors: string[] = []): Promise<void> {
         }
     }
 
-    console.log(`✅ ${errors.length} LaravelErrors mostrados`);
+    if (import.meta.env.DEV) {
+        console.log(`✅ ${errors.length} LaravelErrors mostrados`);
+    }
 }
 
 /**
@@ -47,7 +49,9 @@ async function initDataTables(): Promise<void> {
     try {
         const languageUrl = '/lang/datatables/es.json';
         await loadDataTable(languageUrl);
-        console.log(`✅ DataTables inicializadas (${tables.length} tablas)`);
+        if (import.meta.env.DEV) {
+            console.log(`✅ DataTables inicializadas (${tables.length} tablas)`);
+        }
     } catch (err) {
         console.error('❌ Error inicializando DataTables:', err);
     }
@@ -69,7 +73,9 @@ export async function initGlobal(): Promise<void> {
 
         // 🔹 Cambio de contraseña
         await initChangePassw();
-        console.log('✅ initChangePassw ejecutado');
+        if (import.meta.env.DEV) {
+            console.log('✅ initChangePassw ejecutado');
+        }
 
         // 🔹 Mostrar mensajes flash de sesión
         if (window.Session?.message?.trim()) {
@@ -87,7 +93,9 @@ export async function initGlobal(): Promise<void> {
         // 🔹 Inicializar listeners globales de selección de tablas
         initTableActions();
 
-        console.log('✅ initGlobal completado');
+        if (import.meta.env.DEV) {
+            console.log('✅ initGlobal completado');
+        }
     } catch (err) {
         console.error('❌ Error en initGlobal:', err);
     }
@@ -97,6 +105,8 @@ export async function initGlobal(): Promise<void> {
  * Inicialización segura con valores por defecto
  */
 export async function initGlobalSafe(): Promise<void> {
-    console.log('initGlobalSafe iniciado');
+    if (import.meta.env.DEV) {
+        console.log('initGlobalSafe iniciado');
+    }
     await initGlobal();
 }

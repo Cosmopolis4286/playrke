@@ -9,19 +9,19 @@
     'readonly' => false,
     'minlength' => null,
     'maxlength' => null,
+    'placeholder' => null,
     'col' => 'col-sm-6',
     'class' => '',
 ])
 
-<div @if ($container) id="container-{{ $id ?? $name }}" @endif
-    class="form-group {{ $col }} {{ $class }}">
+<div @if ($container) id="container-{{ $id ?? $name }}" @endif @class(['form-group', $col, $class])>
     @if ($label)
         <label for="{{ $id ?? $name }}">{{ $label }}{{ $required ? '*' : '' }}</label>
     @endif
     <input type="{{ $type }}" id="{{ $id ?? $name }}" name="{{ $name }}" value="{{ old($name, $value) }}"
-        @class(['form-control', 'is-invalid' => $errors->has($name)])
-        @if ($readonly) readonly @endif
+        @class(['form-control', 'is-invalid' => $errors->has($name)]) @if ($readonly) readonly @endif
         @if ($required) required @endif
+        @isset($placeholder) placeholder="{{ $placeholder }}" @endisset
         @isset($minlength) minlength="{{ $minlength }}" @endisset
         @isset($maxlength) maxlength="{{ $maxlength }}" @endisset>
 

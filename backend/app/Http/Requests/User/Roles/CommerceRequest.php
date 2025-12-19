@@ -40,10 +40,10 @@ class CommerceRequest extends FormRequest
             'email'        => ['required', 'string', 'email', 'max:40'],
             'country'      => ['required', 'numeric', 'exists:countries,id'],
             'time_zone'    => ['required', 'numeric', 'exists:time_zones,id'],
-            'currency'     => ['required', 'numeric', 'exists:currencies,id'],
+            'currency'     => ['required', 'integer', 'exists:currencies,id'],
             'phone'        => ['required', 'string', 'max:20'],
             'name'         => ['required', 'string'],
-            'other_currencies.*' => ['exists:currencies,id'],
+            'other_currencies.*' => ['integer', 'exists:currencies,id'],
         ];
 
         // Reglas de unicidad dinámicas
@@ -68,11 +68,21 @@ class CommerceRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'username.unique' => 'El nombre de usuario no está disponible.',
-            'email.unique'    => 'Este correo ya está registrado.',
-            'phone.unique'    => 'El número ' . $this->phone . ' ya está registrado.',
-            'other_currencies.*.exists' => 'Uno o más de los otros currencies seleccionados no existen en la base de datos.',
-            'time_zone.exists' => 'La zona horaria seleccionada no existe.',
+            'username.required' => 'El nombre de usuario es obligatorio.',
+            'username.unique'   => 'El nombre de usuario no está disponible.',
+            'email.required'    => 'El correo electrónico es obligatorio.',
+            'email.email'       => 'El correo electrónico debe ser válido.',
+            'email.unique'      => 'Este correo ya está registrado.',
+            'phone.required'    => 'El teléfono es obligatorio.',
+            'phone.unique'      => 'El número ' . $this->phone . ' ya está registrado.',
+            'name.required'     => 'El nombre del comercio es obligatorio.',
+            'country.required'  => 'El país es obligatorio.',
+            'country.exists'    => 'El país seleccionado no es válido.',
+            'time_zone.required' => 'La zona horaria es obligatoria.',
+            'time_zone.exists'  => 'La zona horaria seleccionada no existe.',
+            'currency.required' => 'La moneda principal es obligatoria.',
+            'currency.exists'   => 'La moneda seleccionada no es válida. Por favor, selecciona una moneda de la lista.',
+            'other_currencies.*.exists' => 'Una o más de las monedas adicionales seleccionadas no son válidas.',
         ];
     }
 

@@ -25,7 +25,9 @@
       if (loader) loader.remove();
       if (wrapper) wrapper.classList.remove('d-none');
 
-      console.log('✅ App mostrada (DOM cargado' + (vueMounted ? ' + Vue montado' : ' sin Vue') + ')');
+      if (import.meta.env.DEV) {
+        console.log('✅ App mostrada (DOM cargado' + (vueMounted ? ' + Vue montado' : ' sin Vue') + ')');
+      }
     }
   };
 

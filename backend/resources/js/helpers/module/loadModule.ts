@@ -26,7 +26,9 @@ export async function loadModule<T = Record<string, any>>(
 
     // Si ya se cargó previamente, usar cache
     if (moduleCache[modulePath]) {
-        console.log(`♻️ Módulo "${modulePath}" ya cargado, usando cache`);
+        if (import.meta.env.DEV) {
+            console.log(`♻️ Módulo "${modulePath}" ya cargado, usando cache`);
+        }
         return moduleCache[modulePath];
     }
 
@@ -37,7 +39,10 @@ export async function loadModule<T = Record<string, any>>(
 
             // Resolver ruta absoluta relativa a /resources/js
             const resolvedPath = `/resources/js/${path}`;
-            console.log(`📦 Importando módulo dinámico: ${resolvedPath}`);
+
+            if (import.meta.env.DEV) {
+                console.log(`📦 Importando módulo dinámico: ${resolvedPath}`);
+            }
 
             // Import dinámico con @vite-ignore para que Vite no lo resuelva en compile time
             const imported = (await import(/* @vite-ignore */ resolvedPath)) as Record<string, any>;
@@ -47,7 +52,9 @@ export async function loadModule<T = Record<string, any>>(
             if (initFunction && typeof (mod as any)[initFunction] === 'function') {
                 try {
                     (mod as any)[initFunction]();
-                    console.log(`🟢 Función '${initFunction}' ejecutada en '${modulePath}'`);
+                    if (import.meta.env.DEV) {
+                        console.log(`🟢 Función '${initFunction}' ejecutada en '${modulePath}'`);
+                    }
                 } catch (err) {
                     console.error(`❌ Error ejecutando '${initFunction}' en '${modulePath}':`, err);
                     showToast(`Error ejecutando '${initFunction}' en '${modulePath}'`, 'warning');
@@ -59,7 +66,9 @@ export async function loadModule<T = Record<string, any>>(
                 onDOMReady((mod as any).initListeners);
             }
 
-            console.log(`✅ Módulo "${modulePath}" cargado correctamente.`);
+            if (import.meta.env.DEV) {
+                console.log(`✅ Módulo "${modulePath}" cargado correctamente.`);
+            }
             return mod;
         } catch (err) {
             const msg = `❌ Error al importar '${modulePath}'.`;

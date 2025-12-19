@@ -25,7 +25,9 @@ function initAlpine() {
     (window as any).Alpine = Alpine;
     Alpine.start();
     (window as any).AlpineStarted = true;
-    console.log('✅ Alpine.js iniciado con tableSelection disponible');
+    if (import.meta.env.DEV) {
+      console.log('✅ Alpine.js iniciado con tableSelection disponible');
+    }
   }
 }
 
@@ -68,27 +70,39 @@ async function bootstrapApp() {
 
   _bootstrapPromise = (async () => {
     try {
-      console.trace('🔍 Primera ejecución de bootstrapApp');
-      console.log('⏳ Iniciando bootstrapApp...');
+      if (import.meta.env.DEV) {
+        console.trace('🔍 Primera ejecución de bootstrapApp');
+        console.log('⏳ Iniciando bootstrapApp...');
+      }
 
       await initAppData();
       const appData = getAppDataSync();
-      console.log('🚀 appData inicializado:', appData);
+
+      if (import.meta.env.DEV) {
+        console.log('🚀 appData inicializado:', appData);
+      }
 
       initAlpine();
       await initGlobalSafe();
       initLogout(); // Inicializar sistema de logout
-      console.log('🟢 Helpers globales y logout cargados');
+
+      if (import.meta.env.DEV) {
+        console.log('🟢 Helpers globales y logout cargados');
+      }
 
       if (appData.moduleFile) {
         await loadModule(appData.moduleFile);
         if (appData.enableFormCrud) await initFormCrud();
-        console.log(`🟢 Módulo principal "${appData.moduleFile}" cargado correctamente`);
-      } else {
+        if (import.meta.env.DEV) {
+          console.log(`🟢 Módulo principal "${appData.moduleFile}" cargado correctamente`);
+        }
+      } else if (import.meta.env.DEV) {
         console.warn('⚠️ moduleFile no definido en appData, se omite initFormCrud');
       }
 
-      console.log('🟢 Todos los módulos cargados correctamente');
+      if (import.meta.env.DEV) {
+        console.log('🟢 Todos los módulos cargados correctamente');
+      }
     } catch (err) {
       console.error('❌ Error en bootstrapApp:', err instanceof Error ? err.message : err, err);
     }
