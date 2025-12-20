@@ -90,7 +90,7 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
         // Actualizar zonas horarias filtradas por país y preseleccionar la del usuario
         if (data?.commerce?.country && data?.user?.time_zone) {
-            updateTimeZones(Number(data.commerce.country), data.user.time_zone);
+            updateTimeZones(String(data.commerce.country), data.user.time_zone);
         }
     } else {
         // En modo creación, habilitar campos

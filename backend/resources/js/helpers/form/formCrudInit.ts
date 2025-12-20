@@ -5,6 +5,7 @@ import { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
 import type { OtherCase } from '@/helpers/module/types/moduleFormTypes';
 import { formCrudExports } from './formCrudLoadModule';
 import { onTableSelectionUpdate } from '@/alpine/tableSelectionListener';
+import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form/fieldValidation';
 
 // ID encriptado
 let encryptId = '';
@@ -144,6 +145,9 @@ async function getInfo(encryptId: string) {
 
 /**
  * Valida campos requeridos y envía el formulario
+ *
+ * @param formId - ID del formulario a validar
+ * @param fields - Array de nombres de campos requeridos
  */
 export function submitForm(formId: string, fields: string[] = []) {
     const form = document.getElementById(formId) as HTMLFormElement | null;
@@ -152,38 +156,49 @@ export function submitForm(formId: string, fields: string[] = []) {
         return;
     }
 
+    // Si no se proporcionan campos, detectarlos automáticamente
     if (!fields.length) {
         fields = Array.from(
             form.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
                 'input[required], select[required]'
             )
         )
-            .map(el => el.id)
+            .map(el => el.id || el.name)
             .filter(Boolean);
     }
 
-    console.log('Campos requeridos a validar:', fields);
+    if (import.meta.env.DEV) {
+        console.log(`📋 Campos requeridos a validar: (${fields.length})`, fields);
+    }
 
-    const missingFields = fields.filter(id => {
-        const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
-        return !el || !el.value?.trim();
-    });
+    // Validar campos usando la utilidad compartida
+    const validationResult = validateRequiredFields(formId, fields, true);
 
-    if (missingFields.length) {
-        console.warn('Campos faltantes o vacíos:', missingFields);
+    if (!validationResult.isValid) {
+        console.warn(`⚠️ Campos faltantes o vacíos: ${validationResult.missingFields.join(', ')}`);
 
-        // Opcional: marcar visualmente los campos
-        missingFields.forEach(id => {
-            const el = document.getElementById(id);
-            el?.classList.add('border-red-500');
-        });
+        // Enfocar el primer campo inválido
+        if (validationResult.firstInvalidField) {
+            validationResult.firstInvalidField.focus();
 
+            // Scroll suave hacia el campo
+            validationResult.firstInvalidField.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+
+        // Mostrar notificación
         return showToast(
-            `Campos requeridos faltantes: ${missingFields.join(', ')}`,
+            `Campos requeridos faltantes: ${validationResult.missingFields.join(', ')}`,
             'warning'
         );
     }
 
+    // Limpiar validaciones visuales antes de enviar
+    clearFormValidation(formId);
+
+    // Enviar formulario
     ajaxStart();
     form.submit();
 }
@@ -193,6 +208,7 @@ export function submitForm(formId: string, fields: string[] = []) {
  * - Hace reset del formulario completo.
  * - Limpia los selects marcados con `data-reset="true"`.
  * - Quita el atributo `readonly` a todos los inputs dentro del formulario.
+ * - Limpia validaciones visuales.
  *
  * @param {HTMLFormElement} form - El formulario a resetear
  */
@@ -209,6 +225,11 @@ export function resetForm(form: HTMLFormElement): void {
     form.querySelectorAll<HTMLInputElement>('input[readonly]').forEach(input => {
         input.readOnly = false;
     });
+
+    // Limpiar validaciones visuales
+    if (form.id) {
+        clearFormValidation(form.id);
+    }
 }
 
 /**

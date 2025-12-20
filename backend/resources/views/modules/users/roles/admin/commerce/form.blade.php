@@ -14,8 +14,8 @@
             data-value="id" data-label="name" col="col-sm-6" />
 
         <!-- Zona Horaria -->
-        <x-form.select label="Zona Horaria" id="time-zone" name="time_zone" required='true'
-            placeholder="Seleccionar zona horaria" col="col-sm-6" />
+        <x-form.select container="true" label="Zona Horaria" id="time-zone" name="time_zone" required='true'
+            placeholder="Seleccionar zona horaria" col="col-sm-6" class="d-none" />
 
         <!-- Teléfono -->
         <x-form.input label="Teléfono" name="phone" required placeholder="Ingresa el número" col="col-sm-6" maxlength="20" />
@@ -26,7 +26,7 @@
 
         <!-- Otras Monedas -->
         <x-form.select container="true" label="Otras Monedas" id="other-currencies" name="other_currencies" multiple
-            select2 placeholder="Seleccionar otras monedas" col="col-sm-6" />
+            select2 placeholder="Seleccionar otras monedas" col="col-sm-6" class="d-none" />
 
         <!-- Juegos Permitidos -->
         <x-form.select label="Juegos Permitidos" id="allowed-games" name="allowed_games" multiple select2

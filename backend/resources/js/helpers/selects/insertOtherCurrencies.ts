@@ -40,23 +40,23 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
 
     clearOtherCurrencies();
 
-    const mainCurrencyId = Number(currency.value);
+    const mainCurrencyId = currency.value;
 
     // Obtener el country_id de la moneda principal seleccionada
-    const mainCurrency = arrCurrencies.find(c => c.id === mainCurrencyId);
+    const mainCurrency = arrCurrencies.find(c => String(c.id) === String(mainCurrencyId));
     if (!mainCurrency) return;
 
     const countryId = mainCurrency.country_id;
 
     // Filtrar monedas: mismo país Y diferente a la principal
     arrCurrencies
-        .filter(c => c.country_id === countryId && c.id !== mainCurrencyId)
+        .filter(c => String(c.country_id) === String(countryId) && String(c.id) !== String(mainCurrencyId))
         .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' }))
         .forEach(({ id, symbol, description }) => {
             const option = document.createElement('option');
             option.value = String(id);
             option.textContent = `(${symbol}) ${description}`;
-            if (selectedCurrencies.includes(id)) option.selected = true;
+            if (selectedCurrencies.some(sc => String(sc) === String(id))) option.selected = true;
             otherCurrencies.appendChild(option);
         });
 
@@ -64,7 +64,7 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
 }
 
 /** Actualiza la moneda principal según el país seleccionado */
-function updateMainCurrencyByCountry(selectedCountry: number): void {
+function updateMainCurrencyByCountry(selectedCountry: string): void {
     if (!currency) return;
 
     // Limpiar el select
@@ -80,7 +80,7 @@ function updateMainCurrencyByCountry(selectedCountry: number): void {
 
     // Filtrar monedas por país seleccionado
     const currenciesInCountry = arrCurrencies
-        .filter(c => c.country_id === selectedCountry)
+        .filter(c => String(c.country_id) === String(selectedCountry))
         .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' }));
 
     if (currenciesInCountry.length === 0) {
@@ -102,6 +102,9 @@ function updateMainCurrencyByCountry(selectedCountry: number): void {
     // Si solo hay una moneda, seleccionarla automáticamente
     if (currenciesInCountry.length === 1) {
         currency.value = String(currenciesInCountry[0].id);
+
+        // Disparar el evento change para que se carguen las otras monedas
+        currency.dispatchEvent(new Event('change'));
     }
 
     containerCurrency?.classList.remove('d-none');
@@ -113,14 +116,14 @@ function updateMainCurrencyByCountry(selectedCountry: number): void {
  * @param selectedCountry - ID del país seleccionado
  * @param selectedTimeZone - Zona horaria a preseleccionar (opcional)
  */
-function updateTimeZonesByCountry(selectedCountry: number, selectedTimeZone?: string): void {
+function updateTimeZonesByCountry(selectedCountry: string, selectedTimeZone?: string): void {
     if (!timeZoneSelect) return;
 
     // Limpiar opciones actuales
     timeZoneSelect.innerHTML = '';
 
     // Filtrar zonas horarias por país
-    const filteredTimeZones = arrTimeZones.filter(tz => tz.country_id === selectedCountry);
+    const filteredTimeZones = arrTimeZones.filter(tz => String(tz.country_id) === String(selectedCountry));
 
     if (filteredTimeZones.length === 0) {
         console.warn(`⚠️ No hay zonas horarias para el país con ID ${selectedCountry}`);
@@ -251,7 +254,7 @@ export function initCurrencySelector(): void {
     }
 
     country.addEventListener('change', () => {
-        const selectedCountry = Number(country.value);
+        const selectedCountry = country.value;
 
         if (!selectedCountry) {
             resetCurrencySelection();
@@ -265,12 +268,24 @@ export function initCurrencySelector(): void {
         updateTimeZonesByCountry(selectedCountry);
 
         // Insertar otras monedas del mismo país (excluyendo la principal)
-        const currenciesInCountry = arrCurrencies.filter(c => c.country_id === selectedCountry);
+        const currenciesInCountry = arrCurrencies.filter(c => String(c.country_id) === String(selectedCountry));
         if (currenciesInCountry.length > 1) {
             insertOtherCurrencies();
         } else {
             // Si solo hay una moneda en el país, ocultar el select de otras monedas
             containerOtherCurrencies?.classList.add('d-none');
+        }
+    });
+
+    // Listener para cuando se selecciona una moneda principal manualmente
+    currency?.addEventListener('change', () => {
+        const selectedCountry = country?.value;
+        if (!selectedCountry) return;
+
+        // Insertar otras monedas del mismo país (excluyendo la principal)
+        const currenciesInCountry = arrCurrencies.filter(c => String(c.country_id) === String(selectedCountry));
+        if (currenciesInCountry.length > 1 && currency.value) {
+            insertOtherCurrencies();
         }
     });
 
@@ -281,8 +296,8 @@ export function initCurrencySelector(): void {
  * Exportar función para actualizar zonas horarias manualmente
  * Útil cuando se necesita preseleccionar una zona horaria al editar
  */
-export function updateTimeZones(countryId: number, selectedTimeZone?: string): void {
-    updateTimeZonesByCountry(countryId, selectedTimeZone);
+export function updateTimeZones(countryId: string | number, selectedTimeZone?: string): void {
+    updateTimeZonesByCountry(String(countryId), selectedTimeZone);
 }
 
 /**
