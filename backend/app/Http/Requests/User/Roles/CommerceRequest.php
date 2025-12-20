@@ -38,12 +38,12 @@ class CommerceRequest extends FormRequest
         $rules = [
             'username'     => ['required', 'string', 'max:20'],
             'email'        => ['required', 'string', 'email', 'max:40'],
-            'country'      => ['required', 'numeric', 'exists:countries,id'],
-            'time_zone'    => ['required', 'numeric', 'exists:time_zones,id'],
-            'currency'     => ['required', 'integer', 'exists:currencies,id'],
+            'country'      => ['required', 'string', 'exists:countries,id'],
+            'time_zone'    => ['required', 'string', 'exists:time_zones,id'],
+            'currency'     => ['required', 'string', 'exists:currencies,id'],
             'phone'        => ['required', 'string', 'max:20'],
             'name'         => ['required', 'string'],
-            'other_currencies.*' => ['integer', 'exists:currencies,id'],
+            'other_currencies.*' => ['string', 'exists:currencies,id'],
         ];
 
         // Reglas de unicidad dinámicas

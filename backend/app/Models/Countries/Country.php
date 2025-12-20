@@ -44,6 +44,7 @@ class Country extends Model
     // Casting de tipos
     // ========================
     protected $casts = [
+        'id' => 'string',
         'iso_code_2' => 'string',
         'iso_code_3' => 'string',
         'status' => 'string',

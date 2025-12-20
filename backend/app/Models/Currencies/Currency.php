@@ -52,9 +52,11 @@ class Currency extends Model
     // Casting de tipos
     // ========================
     protected $casts = [
+        'id' => 'string',
         'iso_code' => 'string',
         'symbol' => 'string',
         'type' => 'string',
+        'country_id' => 'string',
         'decimal_places' => 'integer',
         'is_active' => 'boolean',
     ];

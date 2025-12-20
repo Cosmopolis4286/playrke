@@ -37,6 +37,8 @@ class TimeZone extends Model
      * Conversión de tipos.
      */
     protected $casts = [
+        'id' => 'string',
+        'country_id' => 'string',
         'is_active' => 'boolean',
     ];
 

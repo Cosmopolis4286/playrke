@@ -33,6 +33,11 @@ class Commerce extends Model
     ];
 
     protected $casts = [
+        'id' => 'string',
+        'country_id' => 'string',
+        'currency_id' => 'string',
+        'user_id' => 'string',
+        'unique_code_id' => 'string',
         'commission' => 'decimal:2'
     ];
 

@@ -96,7 +96,6 @@ class PermissionService
      */
     public static function authorize(array $options): bool
     {
-        dd(self::checkRole($options['roles']));
         if (
             isset($options['roles']) &&
             ! self::checkRole($options['roles'])

@@ -7,28 +7,49 @@ use App\Repositories\Countries\Contracts\CountryRepositoryContract;
 use App\Repositories\Currencies\Contracts\CurrencyRepositoryContract;
 use App\Repositories\Games\Contracts\GameRepositoryContract;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
+use App\Repositories\Users\Roles\Customer\Contracts\CustomerRepositoryContract;
+use App\Repositories\Users\Roles\Treasurer\Contracts\TreasurerRepositoryContract;
+use App\Repositories\Users\Roles\Treasurer\Contracts\OtherTreasurersRepositoryContract;
 use App\Repositories\Users\Shared\Contracts\TimeZoneRepositoryContract;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Users\UserTrait;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
+/**
+ * Controlador Admin refactorizado
+ *
+ * - Usa solo repositorios (no llama directamente a modelos)
+ * - Todos los Snowflake IDs se serializan como strings
+ * - Código consistente y mantenible
+ */
 class AdminController extends Controller
 {
     use UserTrait, EncryptTrait;
 
     /**
-     * Repositorio de monedas
+     * Constructor con inyección de dependencias
      */
     public function __construct(
         protected CommerceRepositoryContract $commerces,
+        protected CustomerRepositoryContract $customers,
+        protected TreasurerRepositoryContract $treasurers,
+        protected OtherTreasurersRepositoryContract $otherTreasurers,
         protected CountryRepositoryContract $countries,
         protected CurrencyRepositoryContract $currencies,
         protected GameRepositoryContract $games,
         protected TimeZoneRepositoryContract $timeZones
     ) {}
+
+    /**
+     * Vista principal del dashboard de administrador
+     */
+    public function dashboard(): View
+    {
+        return view('modules.users.roles.admin.dashboard.index', [
+            'title' => 'Dashboard Admin',
+        ]);
+    }
 
     /**
      * Vista de comercializadoras
@@ -57,16 +78,16 @@ class AdminController extends Controller
      */
     public function customers(): View
     {
-        return view('modules/admin/customer/index', [
-            'title'     => 'Clientes',
-            'name'      => 'admin-customer',
-            'customers' => Customer::with([
-                'Country:id,name',
-                'User:id,email'
-            ])->get(),
-            'countries' => Country::getAllAvailableCountries(),
-            'timeZones' => $this->getActiveTimeZones(),
-            'currencies' => Currency::getActive(),
+        return view('modules.admin.customer.index', [
+            'title'      => 'Clientes',
+            'name'       => 'admin-customer',
+            'customers'  => $this->customers->getAllWithRelations([
+                'country:id,name',
+                'user:id,email'
+            ]),
+            'countries'  => $this->countries->getActive(),
+            'timeZones'  => $this->timeZones->getActive(),
+            'currencies' => $this->currencies->getActive(),
         ]);
     }
 
@@ -75,18 +96,18 @@ class AdminController extends Controller
      */
     public function treasurers(): View
     {
-        return view('modules/admin/treasurer/index', [
+        return view('modules.admin.treasurer.index', [
             'title'      => 'Tesoreros',
             'name'       => 'admin-treasurer',
             'others'     => false,
-            'treasurers' => Treasurer::with([
-                'Country:id,name',
-                'User:id,email'
-            ])->get(),
-            'countries' => Country::getAllAvailableCountries(),
-            'timeZones' => $this->getActiveTimeZones(),
-            'currencies' => Currency::getActive(),
-            'games'     => Game::getAvailableGames(),
+            'treasurers' => $this->treasurers->getAllWithRelations([
+                'country:id,name',
+                'user:id,email'
+            ]),
+            'countries'  => $this->countries->getActive(),
+            'timeZones'  => $this->timeZones->getActive(),
+            'currencies' => $this->currencies->getActive(),
+            'games'      => $this->games->getActive(),
         ]);
     }
 
@@ -95,91 +116,107 @@ class AdminController extends Controller
      */
     public function otherTreasurers(): View
     {
-        return view('modules/admin/treasurer/other-treasurers', [
+        return view('modules.admin.treasurer.other-treasurers', [
             'title'           => 'Otros Tesoreros',
             'name'            => 'admin-other-treasurers',
             'others'          => true,
-            'otherTreasurers' => OtherTreasurers::with([
-                'User:id,user_type,country,username',
-                'User.Country:id,name'
-            ])->get(),
-            'currencies' => Currency::getActive(),
-            'games'      => Game::getAvailableGames(),
+            'otherTreasurers' => $this->otherTreasurers->getAllWithRelations([
+                'user:id,user_type,country,username',
+                'user.country:id,name'
+            ]),
+            'currencies'      => $this->currencies->getActive(),
+            'games'           => $this->games->getActive(),
         ]);
     }
 
     /**
-     * Convierte un usuario existente en comercializadora
+     * Vista de subsidiarias
      */
-    public function promoteUserToCommerce(Request $request)
+    public function subsidiaries(): View
     {
-        $request->validate([
-            'name'     => 'required|string',
-            'user_id'  => 'required|integer',
+        return view('modules.admin.subsidiary.index', [
+            'title' => 'Subsidiarias',
         ]);
+    }
 
-        try {
-            DB::transaction(function () use ($request) {
-                Commerce::create([
-                    'name'      => $request->name,
-                    'phone'     => $request->phone,
-                    'currency'  => $request->currency,
-                    'country'   => $request->country,
-                    'status'    => 1,
-                    'user'      => $request->user_id,
-                ]);
-            });
+    /**
+     * Vista de usuarios
+     */
+    public function users(): View
+    {
+        return view('modules.admin.users.index', [
+            'title' => 'Usuarios',
+        ]);
+    }
 
-            return back()->with('message', 'Usuario promovido correctamente');
-        } catch (\Throwable $e) {
-            Log::error('Error promoviendo usuario a commerce', [
-                'exception' => $e
-            ]);
-
-            return back()
-                ->with('message', 'Error interno al promover el usuario')
-                ->with('type', 'error');
-        }
+    /**
+     * Vista de vendedores
+     */
+    public function sellers(): View
+    {
+        return view('modules.admin.seller.index', [
+            'title' => 'Vendedores',
+        ]);
     }
 
     /**
      * Obtiene información de usuarios según rol
      *
-     * @param string $userRole
-     * @param string $exclude
-     * @return \Illuminate\Support\Collection|array
+     * @param string $userRole Rol del usuario
+     * @param string $exclude Modelo a excluir (opcional)
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getUserInfo(string $userRole, string $exclude = '')
     {
         if ($userRole === 'admin') {
-            return [];
+            return response()->json([]);
         }
 
         $excludedUsers = $this->resolveExcludedCreators($exclude);
 
-        if ($userRole === 'commerce') {
-            return Commerce::where('status', 1)
-                ->when(
-                    $excludedUsers,
-                    fn($q) =>
-                    $q->whereNotIn('user', $excludedUsers)
-                )
-                ->get(['name', 'user']);
-        }
+        try {
+            $users = match ($userRole) {
+                'commerce' => $this->getFilteredUsers($this->commerces->getActiveCommerces(['name', 'user_id']), $excludedUsers),
+                'customer' => $this->getFilteredUsers($this->customers->getAll(['name', 'user_id']), $excludedUsers),
+                'treasurer' => $this->getFilteredUsers($this->treasurers->getAll(['name', 'user_id']), $excludedUsers),
+                default => []
+            };
 
-        return [];
+            return response()->json($users);
+        } catch (\Throwable $e) {
+            Log::error('Error obteniendo información de usuarios', [
+                'user_role' => $userRole,
+                'exclude' => $exclude,
+                'exception' => $e->getMessage()
+            ]);
+
+            return response()->json([], 500);
+        }
     }
 
     /**
-     * Timezones activos
+     * Filtra usuarios excluyendo los IDs especificados
+     *
+     * @param \Illuminate\Database\Eloquent\Collection $users
+     * @param array $excludedUserIds
+     * @return \Illuminate\Database\Eloquent\Collection
      */
-    protected function getActiveTimeZones()
+    protected function getFilteredUsers($users, array $excludedUserIds)
     {
-        return TimeZone::where('status', 1)->get();
+        if (empty($excludedUserIds)) {
+            return $users;
+        }
+
+        return $users->filter(function ($user) use ($excludedUserIds) {
+            return !in_array($user->user_id ?? null, $excludedUserIds);
+        })->values();
     }
 
     /**
      * Obtiene usuarios creadores a excluir dinámicamente
+     *
+     * @param string $model Nombre del modelo
+     * @return array IDs de usuarios a excluir
      */
     protected function resolveExcludedCreators(string $model): array
     {
@@ -189,10 +226,22 @@ class AdminController extends Controller
 
         $modelClass = "App\\Models\\{$model}";
 
-        if (class_exists($modelClass) && method_exists($modelClass, 'getAllCreatorUser')) {
-            return $modelClass::getAllCreatorUser();
+        if (!class_exists($modelClass)) {
+            Log::warning("Modelo no existe para exclusión: {$modelClass}");
+            return [];
         }
 
-        return [];
+        if (!method_exists($modelClass, 'getAllCreatorUser')) {
+            return [];
+        }
+
+        try {
+            return $modelClass::getAllCreatorUser();
+        } catch (\Throwable $e) {
+            Log::error("Error obteniendo creadores del modelo {$modelClass}", [
+                'exception' => $e->getMessage()
+            ]);
+            return [];
+        }
     }
 }
