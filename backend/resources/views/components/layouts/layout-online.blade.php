@@ -30,6 +30,8 @@
                 </div>
             </section>
         </main>
+        {{-- Modal para cambiar de contraseña --}}
+        <x-shared.modal id="change-password" title="Cambiar Contraseña" :form-view="'components.form.change-password-form'" />
         {{-- Pie de página --}}
         <x-template.footer />
     </div>

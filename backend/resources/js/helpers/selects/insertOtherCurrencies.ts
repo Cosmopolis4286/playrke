@@ -23,12 +23,19 @@ const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement
 // ==========================
 /** Limpia el select de monedas alternativas */
 function clearOtherCurrencies(): void {
-    otherCurrencies?.replaceChildren();
+    if (!otherCurrencies) return;
+
+    otherCurrencies.replaceChildren();
+
+    // Refrescar Select2 si está inicializado
+    if (window.jQuery && (window.jQuery as any)(otherCurrencies).data('select2')) {
+        (window.jQuery as any)(otherCurrencies).val(null).trigger('change');
+    }
 }
 
 /**
  * Inserta las monedas alternativas en el select correspondiente.
- * - Filtra monedas del mismo país que la moneda principal.
+ * - Muestra TODAS las monedas disponibles (sin importar el país).
  * - Excluye la moneda principal seleccionada.
  * - Ordena las monedas alfabéticamente por su símbolo.
  * - Marca como seleccionadas las monedas que se pasan en `selectedCurrencies`.
@@ -41,16 +48,11 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
     clearOtherCurrencies();
 
     const mainCurrencyId = currency.value;
+    if (!mainCurrencyId) return;
 
-    // Obtener el country_id de la moneda principal seleccionada
-    const mainCurrency = arrCurrencies.find(c => String(c.id) === String(mainCurrencyId));
-    if (!mainCurrency) return;
-
-    const countryId = mainCurrency.country_id;
-
-    // Filtrar monedas: mismo país Y diferente a la principal
+    // Filtrar monedas: TODAS las monedas EXCEPTO la principal
     arrCurrencies
-        .filter(c => String(c.country_id) === String(countryId) && String(c.id) !== String(mainCurrencyId))
+        .filter(c => String(c.id) !== String(mainCurrencyId))
         .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' }))
         .forEach(({ id, symbol, description }) => {
             const option = document.createElement('option');
@@ -61,6 +63,11 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
         });
 
     containerOtherCurrencies?.classList.remove('d-none');
+
+    // Refrescar Select2 si está inicializado
+    if (window.jQuery && (window.jQuery as any)(otherCurrencies).data('select2')) {
+        (window.jQuery as any)(otherCurrencies).trigger('change');
+    }
 }
 
 /** Actualiza la moneda principal según el país seleccionado */
@@ -266,27 +273,19 @@ export function initCurrencySelector(): void {
 
         // Actualizar zonas horarias filtradas por país
         updateTimeZonesByCountry(selectedCountry);
-
-        // Insertar otras monedas del mismo país (excluyendo la principal)
-        const currenciesInCountry = arrCurrencies.filter(c => String(c.country_id) === String(selectedCountry));
-        if (currenciesInCountry.length > 1) {
-            insertOtherCurrencies();
-        } else {
-            // Si solo hay una moneda en el país, ocultar el select de otras monedas
-            containerOtherCurrencies?.classList.add('d-none');
-        }
     });
 
     // Listener para cuando se selecciona una moneda principal manualmente
     currency?.addEventListener('change', () => {
-        const selectedCountry = country?.value;
-        if (!selectedCountry) return;
-
-        // Insertar otras monedas del mismo país (excluyendo la principal)
-        const currenciesInCountry = arrCurrencies.filter(c => String(c.country_id) === String(selectedCountry));
-        if (currenciesInCountry.length > 1 && currency.value) {
-            insertOtherCurrencies();
+        if (!currency.value) {
+            // Si se deselecciona la moneda, ocultar other-currencies
+            containerOtherCurrencies?.classList.add('d-none');
+            clearOtherCurrencies();
+            return;
         }
+
+        // Si se selecciona una moneda, mostrar TODAS las demás monedas disponibles
+        insertOtherCurrencies();
     });
 
     _currencySelectorInitialized = true;

@@ -17,10 +17,13 @@ export async function initChangePassw(): Promise<void> {
             return;
         }
 
-        // Confirmar cambio de contraseña
-        if (target?.matches("#btn-confirm-new-pwd[data-type='change_pwd']")) {
-            submitForm('change-password', ['current_password', 'new_password']);
-            return;
+        // Confirmar cambio de contraseña desde el modal
+        if (target?.id === 'btn-confirm') {
+            const modal = target.closest('#modal-change-password');
+            if (modal) {
+                submitForm('change-password-form', ['current_password', 'new_password', 'new_password_confirmation']);
+                return;
+            }
         }
     });
 }

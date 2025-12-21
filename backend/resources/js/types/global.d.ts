@@ -16,6 +16,7 @@ declare global {
     currentBingoView?: string;
     bingoProps?: Record<string, any>;
     Echo: Echo;
+    jQuery?: any;
   }
   interface HTMLElement {
     inert?: boolean;
