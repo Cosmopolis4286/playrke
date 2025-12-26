@@ -84,11 +84,12 @@ class BtnGroup extends Component
                 'title' => 'Editar',
             ],
             (object)[
-                'action' => 'delete',
+                'action' => 'change-status',
                 'color' => 'btn-danger',
                 'disabled' => true,
                 'icon' => 'fa fa-trash',
                 'title' => 'Eliminar',
+                'status' => 'DELETED',
             ],
         ];
     }
@@ -104,7 +105,7 @@ class BtnGroup extends Component
         $btn = is_array($button) ? (object) $button : $button;
 
         // Determinar si el botón debe deshabilitarse según selectedIds
-        if (in_array($btn->action, ['edit', 'delete'])) {
+        if (in_array($btn->action, ['edit', 'delete', 'change-status'])) {
             $btn->disabled = empty($this->selectedIds);
         }
 
@@ -115,6 +116,7 @@ class BtnGroup extends Component
             'title' => $btn->title ?? 'Opción',
             'titleIcon' => $btn->titleIcon ?? null,
             'disabled' => $btn->disabled ?? false,
+            'status' => $btn->status ?? null,
         ];
     }
 

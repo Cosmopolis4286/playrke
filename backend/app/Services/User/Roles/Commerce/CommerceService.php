@@ -118,7 +118,19 @@ class CommerceService
      */
     public function getById(string $id): array
     {
-        $commerce = Commerce::with([
+        $commerce = Commerce::select([
+            'id',
+            'name',
+            'commission',
+            'phone',
+            'country_id',
+            'currency_id',
+            'user_id',
+            'unique_code_id',
+            'status',
+            'created_at',
+            'updated_at'
+        ])->with([
             'country:id,name',
             'user:id,username,email,time_zone_id',
             'user.timeZone:id,name',

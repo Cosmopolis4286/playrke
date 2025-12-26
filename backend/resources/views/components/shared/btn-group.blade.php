@@ -5,7 +5,9 @@
     @foreach ($buttons as $btn)
         <button type="button"
             class="btn btn-sm {{ $btn->color }} btn-{{ $btnGroupId }} {{ $useModal ? 'btn-open-modal' : '' }}"
-            data-action="{{ $btn->action }}" @if ($btn->disabled) disabled @endif
+            data-action="{{ $btn->action }}"
+            @if ($btn->status) data-status="{{ $btn->status }}" @endif
+            @if ($btn->disabled) disabled @endif
             x-bind:disabled="{{ $btn->disabled ? 'selected.length === 0' : 'false' }}"
             @click="$dispatch('btn-action', ['{{ $btn->action }}', selected])">
             <i class="{{ $btn->icon }}"></i> {{ $btn->titleIcon ?? '' }}

@@ -58,34 +58,98 @@ class CommerceController extends Controller
     }
 
     /**
-     * Eliminar un Comercio.
+     * Eliminar físicamente un Comercio.
      *
-     * @param int $id
-     * @param CommerceDeleteService $service
+     * @param string $id ID hasheado con Hashids
      * @return RedirectResponse
      */
-    public function delete(int $id, CommerceDeleteService $service): RedirectResponse
+    public function destroy(string $id): RedirectResponse
     {
-        return $this->handleService(function () use ($service, $id) {
-            $service->delete($id);
+        return $this->handleService(function () use ($id) {
+            // Decodificar el ID usando Hashids
+            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+
+            if (empty($decodedIds)) {
+                throw new \Exception('ID inválido');
+            }
+
+            $realId = (string) $decodedIds[0];
+
+            // Buscar el commerce con su usuario
+            $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')->findOrFail($realId);
+
+            // Usar transacción para eliminar todo
+            \DB::transaction(function () use ($commerce) {
+                $user = $commerce->user;
+
+                // 1. Eliminar relaciones many-to-many del commerce
+                $commerce->otherCurrencies()->detach();
+                $commerce->allowedGames()->detach();
+
+                // 2. Eliminar el commerce
+                $commerce->delete();
+
+                // 3. Eliminar wallets del usuario
+                $user->wallets()->delete();
+
+                // 4. Eliminar el usuario
+                $user->delete();
+            });
+
             Session::flash('message', '✅ Comercio eliminado correctamente');
 
             return redirect()->back();
-        }, "No se pudo eliminar el Comercio [ID: $id].");
+        }, "No se pudo eliminar el Comercio.");
     }
 
     /**
-     * Cambiar estado (activo/inactivo) de un Comercio.
+     * Cambiar estado de un Comercio.
      *
-     * @param int $id
-     * @param CommerceStatusService $service
+     * @param string $id ID hasheado con Hashids
      * @return RedirectResponse
      */
-    public function changeStatus(int $id, CommerceStatusService $service): RedirectResponse
+    public function changeStatus(string $id): RedirectResponse
     {
-        return $this->handleService(function () use ($service, $id) {
-            $service->toggleStatus($id);
-            Session::flash('message', '✅ Estado actualizado correctamente');
+        return $this->handleService(function () use ($id) {
+            // Decodificar el ID usando Hashids
+            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+
+            if (empty($decodedIds)) {
+                throw new \Exception('ID inválido');
+            }
+
+            $realId = (string) $decodedIds[0];
+
+            // Buscar el commerce con su usuario
+            $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')->findOrFail($realId);
+
+            // Obtener el nuevo estado desde la request o usar DELETED por defecto
+            $newStatus = request('status', 'DELETED');
+
+            // Validar que el status sea válido
+            $validStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'];
+            if (!in_array($newStatus, $validStatuses)) {
+                throw new \Exception('Estado inválido');
+            }
+
+            // Usar transacción para asegurar consistencia
+            \DB::transaction(function () use ($commerce, $newStatus) {
+                // Cambiar estado del usuario asociado
+                $commerce->user->update(['status' => $newStatus]);
+
+                // Cambiar estado del commerce
+                $commerce->update(['status' => $newStatus]);
+            });
+
+            $message = match($newStatus) {
+                'DELETED' => "✅ Comercio eliminado correctamente",
+                'ACTIVE' => "✅ Comercio activado correctamente",
+                'INACTIVE' => "✅ Comercio desactivado correctamente",
+                'BLOCKED' => "✅ Comercio bloqueado correctamente",
+                default => "✅ Estado cambiado correctamente"
+            };
+
+            Session::flash('message', $message);
 
             return redirect()->back();
         }, "Hubo un error al cambiar el estado del Comercio [ID: $id].");

@@ -82,11 +82,11 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
         }
 
         case 'delete':
-            await handleOtherCases('delete', encryptId);
+            await handleOtherCases('delete', encryptId, elem);
             break;
 
         default:
-            await handleOtherCases(action, encryptId);
+            await handleOtherCases(action, encryptId, elem);
             break;
     }
 }
@@ -94,20 +94,39 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
 /**
  * Ejecuta acciones personalizadas de otherCasesMap
  */
-async function handleOtherCases(action: string, encryptId: string) {
-    const moduleId = formCrudExports.moduleId;
+async function handleOtherCases(action: string, encryptId: string, elem?: HTMLElement) {
     const otherCases = formCrudExports.otherCasesMap;
     const routeFn = formCrudExports.route;
 
+    // Obtener el status del data-attribute si existe
+    const status = elem?.dataset?.status;
+
     const globalDelete: OtherCase = {
-        routeName: 'delete',
-        text: 'El registro será eliminado definitivamente',
-        icon: 'warning',
-        confirmButtonText: 'Sí, eliminar',
-        method: 'DELETE',
+        routeName: 'destroy',
+        text: '¿Deseas cambiar el estado de este registro?',
+        icon: 'question',
+        confirmButtonText: 'Sí, cambiar',
+        method: 'PUT',
     };
 
-    const caseData: OtherCase | undefined = action === 'delete' ? globalDelete : otherCases[action];
+    const globalChangeStatus: OtherCase = {
+        routeName: 'changeStatus',
+        text: status === 'DELETED' ? '¿Deseas eliminar este registro?' : '¿Deseas cambiar el status de este comercio?',
+        icon: status === 'DELETED' ? 'warning' : 'question',
+        confirmButtonText: status === 'DELETED' ? 'Sí, eliminar' : 'Sí, cambiar',
+        method: 'PUT',
+    };
+
+    // Check if action is a default case (delete or 'change-status')
+    let caseData: OtherCase | undefined;
+    if (action === 'delete') {
+        caseData = globalDelete;
+    } else if (action === 'change-status') {
+        caseData = globalChangeStatus;
+    } else {
+        caseData = otherCases[action];
+    }
+
     if (!caseData) return console.error(`Acción no reconocida: ${action}`);
 
     try {
@@ -115,12 +134,21 @@ async function handleOtherCases(action: string, encryptId: string) {
         if (!confirmed) return showToast('Los cambios no se guardaron', 'info');
 
         const url = routeFn?.(caseData.routeName, { id: encryptId }) ?? '';
+
+        // Preparar datos para enviar
+        const requestData: any = {};
+        if (status) {
+            requestData.status = status;
+        }
+
         await axios.request({
             method: (caseData.method ?? 'PUT').toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch',
             url,
+            data: requestData,
         });
 
-        console.log(`Acción '${action}' registrada correctamente para ${moduleId}`);
+        showToast('Acción completada exitosamente', 'success');
+        setTimeout(() => window.location.reload(), 1000);
     } catch (error: any) {
         console.error(`Error al registrar la acción '${action}':`, error?.response?.data || error.message);
     }
@@ -129,17 +157,38 @@ async function handleOtherCases(action: string, encryptId: string) {
 /**
  * Obtiene datos desde el backend para editar
  */
-async function getInfo(encryptId: string) {
-    if (!encryptId) return console.error('ID cifrado no definido para getInfo');
+async function getInfo(encryptId: string): Promise<void> {
+    if (!encryptId) {
+        console.error('ID cifrado no definido para getInfo');
+        return;
+    }
 
     const routeFn = formCrudExports.route;
+    if (!routeFn) {
+        console.error('Función de rutas no definida');
+        return;
+    }
 
     try {
-        const url = routeFn?.('show', { id: encryptId }) ?? '';
-        const { data } = await axios.get(url);
-        safeInsertInfo('edit', data);
+        const url = routeFn('show', { id: encryptId });
+
+        const response = await axios.get(url);
+        const payload = response.data?.data;
+
+        if (!payload) {
+            console.warn('Respuesta sin data válida', response.data);
+            return;
+        }
+
+        safeInsertInfo('edit', payload);
     } catch (error: any) {
-        console.error('Error al obtener información:', error?.response?.data || error.message);
+        const message =
+            error?.response?.data?.message ??
+            error?.response?.data ??
+            error?.message ??
+            'Error desconocido';
+
+        console.error('Error al obtener información:', message);
     }
 }
 

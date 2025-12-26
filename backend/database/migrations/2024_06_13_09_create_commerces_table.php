@@ -46,7 +46,7 @@ return new class extends Migration
                 ->comment('Código único de referencia');
 
             // Estado del comercio
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'])
                 ->default('ACTIVE')
                 ->comment('Estado activo/inactivo');
 
