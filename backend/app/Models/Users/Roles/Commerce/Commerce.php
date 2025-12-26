@@ -10,6 +10,7 @@ use App\Models\Users\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -92,5 +93,31 @@ class Commerce extends Model
     public function sellers(): HasMany
     {
         return $this->hasMany(Seller::class, 'commerce_id');
+    }
+
+    /**
+     * Monedas adicionales que maneja el comercio
+     */
+    public function otherCurrencies(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Currency::class,
+            'commerces_countries_currencies',
+            'commerce_id',
+            'currency_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Juegos permitidos para el comercio
+     */
+    public function allowedGames(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            \App\Models\Games\Shared\Game::class,
+            'commerces_games',
+            'commerce_id',
+            'game_id'
+        )->withTimestamps();
     }
 }

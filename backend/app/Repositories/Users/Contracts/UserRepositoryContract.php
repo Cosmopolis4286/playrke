@@ -174,4 +174,12 @@ interface UserRepositoryContract extends BaseRepositoryContract
      * @return Collection<User>
      */
     public function getRecentActiveUsers(int $days = 30, int $limit = 50): Collection;
+
+    /**
+     * Generar un código de referido único.
+     *
+     * @param int $length
+     * @return string
+     */
+    public function generateUniqueReferralCode(int $length = 8): string;
 }

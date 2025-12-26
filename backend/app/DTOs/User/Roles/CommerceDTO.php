@@ -20,7 +20,6 @@ class CommerceDTO
     public readonly string $currency;
     public readonly string $phone;
     public readonly string $name;
-    public readonly int $userRole;
     /** @var array<int,string>|null */
     public readonly ?array $allowedGames;
     /** @var array<int,string>|null */
@@ -34,14 +33,17 @@ class CommerceDTO
      */
     private function __construct(array $data)
     {
-        $props = array_keys(get_object_vars($this));
+        $reflection = new \ReflectionClass($this);
+        $props = array_map(
+            fn($prop) => $prop->getName(),
+            $reflection->getProperties(\ReflectionProperty::IS_PUBLIC)
+        );
 
         foreach ($data as $key => $value) {
             $property = self::snakeToCamel($key);
 
             if (in_array($property, $props, true)) {
-                // casteo especial
-                $this->$property = $property === 'userRole' ? (int) $value : $value;
+                $this->$property = $value;
             }
         }
     }
@@ -76,9 +78,15 @@ class CommerceDTO
     public function toArray(): array
     {
         $array = [];
-        foreach (get_object_vars($this) as $property => $value) {
-            $array[self::camelToSnake($property)] = $value;
+        $reflection = new \ReflectionClass($this);
+
+        foreach ($reflection->getProperties(\ReflectionProperty::IS_PUBLIC) as $prop) {
+            $propertyName = $prop->getName();
+            if ($prop->isInitialized($this)) {
+                $array[self::camelToSnake($propertyName)] = $prop->getValue($this);
+            }
         }
+
         return $array;
     }
 

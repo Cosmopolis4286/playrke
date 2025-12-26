@@ -56,14 +56,16 @@ class AdminController extends Controller
      */
     public function commerces(): View
     {
+        $commerces = $this->commerces->getAllWithRelations([
+            'country:id,name',
+            'user:id,email',
+        ]);
+
         return view('modules.users.roles.admin.commerce.index', [
             'title' => 'Comercializadoras',
             'pageData' => [
                 'currencies' => $this->currencies->getActive(),
-                'commerces'  => $this->commerces->getAllWithRelations([
-                    'country:id,name',
-                    'user:id,email',
-                ]),
+                'commerces'  => $commerces,
                 'countries' => $this->countries->getActive(),
                 'games'     => $this->games->getActive(),
                 'timeZones' => $this->timeZones->getActive(),

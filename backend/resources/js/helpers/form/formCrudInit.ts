@@ -135,7 +135,7 @@ async function getInfo(encryptId: string) {
     const routeFn = formCrudExports.route;
 
     try {
-        const url = routeFn?.('getInfo', { id: encryptId }) ?? '';
+        const url = routeFn?.('show', { id: encryptId }) ?? '';
         const { data } = await axios.get(url);
         safeInsertInfo('edit', data);
     } catch (error: any) {

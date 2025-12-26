@@ -94,7 +94,7 @@
                             class="nav-link logout-btn w-100 text-left border-0 bg-transparent"
                             data-logout-url="{{ route('logout') }}"
                             data-login-redirect-url="{{ route('login') }}"
-                            data-show-confirmation="true"
+                            data-show-confirmation="false"
                             style="background: none !important;">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
                         <p>Cerrar sesión</p>

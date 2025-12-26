@@ -170,6 +170,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Zona horaria del usuario
+     *
+     * @return BelongsTo<\App\Models\Users\Shared\TimeZone, self>
+     */
+    public function timeZone(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Users\Shared\TimeZone::class, 'time_zone_id');
+    }
+
+    /**
      * Wallets del usuario
      *
      * @return HasMany<Wallet>
@@ -218,7 +228,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getStatusDescriptionAttribute(): string
     {
-        return self::STATUSES[$this->status] ?? $this->status;
+        return self::STATUSES[$this->status] ?? $this->status ?? 'Sin estado';
     }
 
     /**

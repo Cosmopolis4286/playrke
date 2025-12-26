@@ -2,12 +2,11 @@
 
 namespace App\Services\User\Roles\Commerce;
 
-use App\Models\Users;
-use App\Models\Wallet;
-use App\Models\PhoneNumbers;
-use App\Models\Commerce;
-use App\Models\CommerceCountryCurrency;
-use App\Models\UniqueCode;
+use App\Models\Users\User;
+use App\Models\Wallets\Wallet;
+use App\Models\Users\Roles\Commerce\Commerce;
+use App\Models\Users\Shared\UniqueCode;
+use App\Repositories\Users\Contracts\UserRepositoryContract;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -18,6 +17,10 @@ use Carbon\Carbon;
  */
 class CommerceService
 {
+    public function __construct(
+        protected UserRepositoryContract $userRepository
+    ) {}
+
     /**
      * Crear un nuevo comercio junto con usuario, wallet y configuraciones iniciales.
      *
@@ -33,20 +36,17 @@ class CommerceService
             // 👤 Crear usuario
             $user = $this->createUser($data, $password);
 
+            // 🎭 Asignar rol de comercio
+            $user->assignRole('commerce');
+
+            // 🔑 Crear código único
+            $uniqueCode = $this->createUniqueCode($user->id);
+
             // 🏢 Crear comercio
-            $commerce = $this->createCommerceRecord($data, $user->id);
+            $commerce = $this->createCommerceRecord($data, $user->id, $uniqueCode->id);
 
             // 💰 Wallet
             $this->createWallet($user->id, $data['currency']);
-
-            // 📞 Teléfono
-            $this->createPhoneNumber($user->id, $data['country'], $data['phone']);
-
-            // 🌍 Moneda principal
-            $this->createCommerceCountryCurrency($commerce, $user->id);
-
-            // 🔑 Registrar Code UUID
-            $this->createUUID($commerce->uuid_code, $user->id, $user->user_type);
 
             return ['commerce_id' => $commerce, 'password' => $password];
         });
@@ -61,66 +61,77 @@ class CommerceService
     {
         return User::create([
             'username'          => $data['username'],
-            'user_type'         => $data['user_type'],
             'email'             => $data['email'],
             'password'          => Hash::make($password),
-            'country'           => $data['country'],
-            'time_zone'         => $data['time_zone'],
+            'country_id'        => $data['country'],
+            'time_zone_id'      => $data['time_zone'],
             'email_verified_at' => Carbon::now(),
-            'referral_code'     => User::getUniqueReferralCode(),
+            'referral_code'     => $this->userRepository->generateUniqueReferralCode(),
+            'status'            => 'ACTIVE',
         ]);
     }
 
-    private function createCommerceRecord(array $data, int $userId): Commerce
+    private function createUniqueCode(string $userId): UniqueCode
+    {
+        return UniqueCode::create([
+            'uuid_code'  => (string) Str::uuid(),
+            'rke_code'   => $this->generateUniqueRKECode(),
+            'user_id'    => $userId,
+        ]);
+    }
+
+    private function generateUniqueRKECode(): string
+    {
+        do {
+            $rkeCode = 'RKE' . strtoupper(Str::random(8));
+        } while (UniqueCode::existsRKECode($rkeCode));
+
+        return $rkeCode;
+    }
+
+    private function createCommerceRecord(array $data, string $userId, string $uniqueCodeId): Commerce
     {
         return Commerce::create([
-            'name'      => $data['name'],
-            'phone'     => $data['phone'],
-            'currency'      => $data['currency'],
-            'country'   => $data['country'],
-            'status'    => 1,
-            'user'      => $userId,
-            'uuid_code' => $this->generateUUID(),
+            'name'           => $data['name'],
+            'phone'          => $data['phone'],
+            'currency_id'    => $data['currency'],
+            'country_id'     => $data['country'],
+            'status'         => 'ACTIVE',
+            'user_id'        => $userId,
+            'unique_code_id' => $uniqueCodeId,
         ]);
     }
 
-    private function createWallet(int $userId, string $currency): void
+    private function createWallet(string $userId, string $currencyId): void
     {
-        Wallet::create(['currency' => $currency, 'user' => $userId]);
-    }
-
-    private function createPhoneNumber(int $userId, string $country, string $phone): void
-    {
-        PhoneNumbers::create([
-            'user'         => $userId,
-            'country'      => $country,
-            'phone_number' => $phone
+        Wallet::create([
+            'currency_id' => $currencyId,
+            'user_id'     => $userId
         ]);
     }
 
-    private function createCommerceCountryCurrency(Commerce $commerce, int $userId): void
+    /**
+     * Obtener un comercio por ID con sus relaciones
+     *
+     * @param string $id
+     * @return array
+     */
+    public function getById(string $id): array
     {
-        CommerceCountryCurrency::create([
-            'commerce_id'     => $commerce->id,
-            'country'      => $commerce->country,
-            'currency'         => $commerce->currency,
-            'level'        => '1',
-            'creator_user_id' => $userId,
-            'status'       => 1
-        ]);
-    }
+        $commerce = Commerce::with([
+            'country:id,name',
+            'user:id,username,email,time_zone_id',
+            'user.timeZone:id,name',
+            'currency:id,symbol,description',
+            'otherCurrencies:id,symbol,description',
+            'allowedGames:id,name'
+        ])->findOrFail($id);
 
-    private function createUUID(string $uuid, int $userId, int $userRole): void
-    {
-        UniqueCode::create([
-            'uuid_code'  => $uuid,
-            'user'       => $userId,
-            'user_type'  => $userRole,
-        ]);
-    }
-
-    private function generateUUID(): string
-    {
-        return (string) Str::uuid();
+        return [
+            'commerce' => $commerce,
+            'user' => $commerce->user,
+            'other_currencies' => $commerce->otherCurrencies->pluck('id')->toArray(),
+            'allowed_games' => $commerce->allowedGames->pluck('id')->toArray(),
+        ];
     }
 }

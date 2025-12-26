@@ -32,7 +32,7 @@ export async function performLogout(options: LogoutOptions = {}): Promise<void> 
     const {
         logoutUrl = '/logout',
         loginRedirectUrl = '/login',
-        showConfirmation = true,
+        showConfirmation = false,
         confirmationMessage = '¿Estás seguro de que deseas cerrar sesión?'
     } = options;
 

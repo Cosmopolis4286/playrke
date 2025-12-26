@@ -28,7 +28,7 @@ class CommerceController extends Controller
     public function store(CommerceRequest $request, CommerceService $service): RedirectResponse
     {
         return $this->handleService(function () use ($request, $service) {
-            $result = $service->create($request->toDTO());
+            $result = $service->create($request->toDTO()->toArray());
 
             return redirect()->back()->with([
                 'message' => '✅ Registro exitoso',
@@ -94,16 +94,42 @@ class CommerceController extends Controller
     /**
      * Mostrar detalle de un Comercio.
      *
-     * @param int $id
+     * @param string $id ID hasheado con Hashids
      * @param CommerceService $service
-     * @return \Illuminate\View\View|RedirectResponse
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function show(int $id, CommerceService $service)
+    public function show(string $id, CommerceService $service)
     {
-        return $this->handleService(function () use ($service, $id) {
-            $commerce = $service->getById($id);
-            return view('commerce.show', compact('commerce_id'));
-        }, "No se pudo cargar la información del Comercio [ID: $id].");
+        try {
+            // Decodificar el ID usando Hashids
+            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+
+            if (empty($decodedIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID inválido'
+                ], 400);
+            }
+
+            $realId = (string) $decodedIds[0];
+
+            $commerce = $service->getById($realId);
+
+            return response()->json([
+                'success' => true,
+                'data' => $commerce
+            ]);
+        } catch (\Exception $e) {
+            Log::error('CommerceController::show - Error:', [
+                'hashed_id' => $id,
+                'message' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => "No se pudo cargar la información del Comercio: {$e->getMessage()}"
+            ], 500);
+        }
     }
 
     /**
