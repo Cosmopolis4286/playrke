@@ -77,14 +77,6 @@ function updateMainCurrencyByCountry(selectedCountry: string): void {
     // Limpiar el select
     currency.innerHTML = '';
 
-    // Agregar placeholder
-    const placeholder = currency.dataset.placeholder;
-    if (placeholder) {
-        const placeholderOption = new Option(placeholder, '', false, false);
-        placeholderOption.disabled = true;
-        currency.appendChild(placeholderOption);
-    }
-
     // Filtrar monedas por país seleccionado
     const currenciesInCountry = arrCurrencies
         .filter(c => String(c.country_id) === String(selectedCountry))
@@ -95,22 +87,43 @@ function updateMainCurrencyByCountry(selectedCountry: string): void {
         return;
     }
 
+    // Solo agregar placeholder si hay múltiples monedas
+    const hasMultipleCurrencies = currenciesInCountry.length > 1;
+    const placeholder = currency.dataset.placeholder;
+
+    if (hasMultipleCurrencies && placeholder) {
+        const placeholderOption = new Option(placeholder, '', false, false);
+        placeholderOption.disabled = true;
+        currency.appendChild(placeholderOption);
+    }
+
     // Agregar todas las monedas del país al select
-    currenciesInCountry.forEach(({ id, symbol, description }) => {
+    currenciesInCountry.forEach(({ id, symbol, description }, index) => {
+        // Si solo hay una moneda, seleccionarla automáticamente
+        const shouldBeSelected = !hasMultipleCurrencies && index === 0;
+
         const option = new Option(
             `(${symbol}) ${description}`,
             String(id),
-            false,
-            false
+            shouldBeSelected,
+            shouldBeSelected
         );
         currency.appendChild(option);
     });
 
-    // Si solo hay una moneda, seleccionarla automáticamente
-    if (currenciesInCountry.length === 1) {
+    // Si solo hay una moneda, establecer el valor y disparar change
+    if (!hasMultipleCurrencies && currenciesInCountry.length === 1) {
         currency.value = String(currenciesInCountry[0].id);
 
-        // Disparar el evento change para que se carguen las otras monedas
+        // Si Select2 está inicializado, destruir y reiniciar sin placeholder
+        if (window.jQuery && (window.jQuery as any)(currency).data('select2')) {
+            (window.jQuery as any)(currency).select2('destroy');
+            (window.jQuery as any)(currency).select2({
+                placeholder: false,
+                allowClear: false
+            });
+        }
+
         currency.dispatchEvent(new Event('change'));
     }
 
@@ -159,12 +172,12 @@ function updateTimeZonesByCountry(selectedCountry: string, selectedTimeZone?: st
         // Si hay un valor preseleccionado, usarlo
         // Si hay múltiples zonas y no hay preselección, ninguna estará seleccionada (placeholder activo)
         const shouldBeSelected = selectedTimeZone
-            ? selectedTimeZone === tz.id
+            ? String(selectedTimeZone) === String(tz.id)
             : !hasMultipleTimeZones && index === 0;
 
         const option = new Option(
             `${tz.name} (${tz.utc})`,
-            tz.id,
+            String(tz.id),
             shouldBeSelected,
             shouldBeSelected
         );
@@ -173,9 +186,22 @@ function updateTimeZonesByCountry(selectedCountry: string, selectedTimeZone?: st
 
     // Establecer el valor seleccionado en el select
     if (selectedTimeZone) {
-        timeZoneSelect.value = selectedTimeZone;
+        timeZoneSelect.value = String(selectedTimeZone);
     } else if (!hasMultipleTimeZones && sortedTimeZones.length === 1) {
-        timeZoneSelect.value = sortedTimeZones[0].id;
+        timeZoneSelect.value = String(sortedTimeZones[0].id);
+    }
+
+    // Trigger change event to update Select2 if initialized
+    if (window.jQuery && (window.jQuery as any)(timeZoneSelect).data('select2')) {
+        // Si solo hay una opción, destruir y reiniciar Select2 sin placeholder
+        if (!hasMultipleTimeZones && sortedTimeZones.length === 1) {
+            (window.jQuery as any)(timeZoneSelect).select2('destroy');
+            (window.jQuery as any)(timeZoneSelect).select2({
+                placeholder: false,
+                allowClear: false
+            });
+        }
+        (window.jQuery as any)(timeZoneSelect).trigger('change');
     }
 }
 
@@ -297,6 +323,14 @@ export function initCurrencySelector(): void {
  */
 export function updateTimeZones(countryId: string | number, selectedTimeZone?: string): void {
     updateTimeZonesByCountry(String(countryId), selectedTimeZone);
+}
+
+/**
+ * Exportar función para actualizar moneda principal manualmente
+ * Útil cuando se necesita cargar opciones programáticamente
+ */
+export function updateCurrency(countryId: string | number): void {
+    updateMainCurrencyByCountry(String(countryId));
 }
 
 /**

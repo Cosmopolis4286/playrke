@@ -7,7 +7,7 @@
             <div class="modal-header">
                 <h5 class="modal-title" id="modal-{{ $id }}-label">{{ $title }}</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-                    <span>&times;</span>
+                    <span aria-hidden="true">&times;</span>
                 </button>
             </div>
 
@@ -35,3 +35,23 @@
         </div>
     </div>
 </div>
+
+@once
+    @push('stack-scripts')
+        <script>
+            // Fix para aria-hidden warning en modales de Bootstrap
+            document.addEventListener('DOMContentLoaded', function() {
+                // Escuchar todos los eventos hide.bs.modal
+                document.querySelectorAll('.modal').forEach(function(modal) {
+                    $(modal).on('hide.bs.modal', function() {
+                        // Quitar el foco de cualquier elemento enfocado dentro del modal
+                        const focusedElement = modal.querySelector(':focus');
+                        if (focusedElement instanceof HTMLElement) {
+                            focusedElement.blur();
+                        }
+                    });
+                });
+            });
+        </script>
+    @endpush
+@endonce

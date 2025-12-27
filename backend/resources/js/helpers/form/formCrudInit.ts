@@ -4,16 +4,32 @@ import { ajaxStart } from '@/utils/loader';
 import { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
 import type { OtherCase } from '@/helpers/module/types/moduleFormTypes';
 import { formCrudExports } from './formCrudLoadModule';
-import { onTableSelectionUpdate } from '@/alpine/tableSelectionListener';
 import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form/fieldValidation';
+import { resetFormAndContainers } from './formHelpers';
+import { getSelectedIds } from '@/alpine/tableSelectionListener';
 
-// ID encriptado
-let encryptId = '';
+// Estado del módulo CRUD
+const crudState = {
+    encryptId: '',
+    tableListeners: new Map<string, (ids: string[]) => void>()
+};
 
-// Registrar callback (opcional, útil si quieres reaccionar en tiempo real)
-onTableSelectionUpdate('commerce-table', (selectedIds) => {
-    encryptId = selectedIds.length === 1 ? selectedIds[0] : '';
-});
+/**
+ * Registra un listener para la selección de tabla
+ * @param tableId - ID de la tabla
+ */
+export function registerTableListener(tableId: string): void {
+    // Importación dinámica para evitar dependencia circular
+    import('@/alpine/tableSelectionListener').then(({ onTableSelectionUpdate }) => {
+        if (!crudState.tableListeners.has(tableId)) {
+            const listener = (selectedIds: string[]) => {
+                crudState.encryptId = selectedIds.length === 1 ? selectedIds[0] : '';
+            };
+            onTableSelectionUpdate(tableId, listener);
+            crudState.tableListeners.set(tableId, listener);
+        }
+    });
+}
 
 /**
  * Llama insertInfo si existe y muestra el modal
@@ -76,19 +92,55 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
             if (!form) return;
 
             const modalTitle = `Editar ${formTitleSuffix}`;
-            await getInfo(encryptId);
-            prepareForm(form, 'update', modalTitle, 'PUT', encryptId, route);
+            await getInfo(crudState.encryptId);
+            prepareForm(form, 'update', modalTitle, 'PUT', crudState.encryptId, route);
             break;
         }
 
         case 'delete':
-            await handleOtherCases('delete', encryptId, elem);
+            await handleOtherCases('delete', crudState.encryptId, elem);
             break;
 
         default:
-            await handleOtherCases(action, encryptId, elem);
+            await handleOtherCases(action, crudState.encryptId, elem);
             break;
     }
+}
+
+/**
+ * Genera mensajes dinámicos para acciones de cambio de estado
+ */
+function getStatusChangeMessages(status: string | undefined, entityName: string = 'registro') {
+    const messages = {
+        DELETED: {
+            text: `¿Deseas eliminar este ${entityName}?`,
+            icon: 'warning' as const,
+            confirmButtonText: 'Sí, eliminar'
+        },
+        ACTIVE: {
+            text: `¿Deseas activar este ${entityName}?`,
+            icon: 'question' as const,
+            confirmButtonText: 'Sí, activar'
+        },
+        INACTIVE: {
+            text: `¿Deseas desactivar este ${entityName}?`,
+            icon: 'question' as const,
+            confirmButtonText: 'Sí, desactivar'
+        },
+        BLOCKED: {
+            text: `¿Deseas bloquear este ${entityName}?`,
+            icon: 'warning' as const,
+            confirmButtonText: 'Sí, bloquear'
+        }
+    };
+
+    return status && status in messages
+        ? messages[status as keyof typeof messages]
+        : {
+            text: `¿Deseas cambiar el estado de este ${entityName}?`,
+            icon: 'question' as const,
+            confirmButtonText: 'Sí, cambiar'
+        };
 }
 
 /**
@@ -97,60 +149,81 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
 async function handleOtherCases(action: string, encryptId: string, elem?: HTMLElement) {
     const otherCases = formCrudExports.otherCasesMap;
     const routeFn = formCrudExports.route;
+    const entityName = formCrudExports.formTitleSuffix?.toLowerCase() || 'registro';
 
     // Obtener el status del data-attribute si existe
     const status = elem?.dataset?.status;
 
-    const globalDelete: OtherCase = {
-        routeName: 'destroy',
-        text: '¿Deseas cambiar el estado de este registro?',
-        icon: 'question',
-        confirmButtonText: 'Sí, cambiar',
-        method: 'PUT',
+    // Acciones globales por defecto
+    const globalActions: Record<string, OtherCase> = {
+        'delete': {
+            routeName: 'destroy',
+            text: `¿Deseas cambiar el estado de este ${entityName}?`,
+            icon: 'question',
+            confirmButtonText: 'Sí, cambiar',
+            method: 'PUT',
+        },
+        'change-status': {
+            routeName: 'changeStatus',
+            ...getStatusChangeMessages(status, entityName),
+            method: 'PUT',
+        }
     };
 
-    const globalChangeStatus: OtherCase = {
-        routeName: 'changeStatus',
-        text: status === 'DELETED' ? '¿Deseas eliminar este registro?' : '¿Deseas cambiar el status de este comercio?',
-        icon: status === 'DELETED' ? 'warning' : 'question',
-        confirmButtonText: status === 'DELETED' ? 'Sí, eliminar' : 'Sí, cambiar',
-        method: 'PUT',
-    };
-
-    // Check if action is a default case (delete or 'change-status')
-    let caseData: OtherCase | undefined;
-    if (action === 'delete') {
-        caseData = globalDelete;
-    } else if (action === 'change-status') {
-        caseData = globalChangeStatus;
-    } else {
-        caseData = otherCases[action];
-    }
+    // Determinar qué caso usar
+    const caseData = globalActions[action] || otherCases[action];
 
     if (!caseData) return console.error(`Acción no reconocida: ${action}`);
 
+    // Obtener IDs seleccionados desde la tabla (si existe)
+    const tableId = elem?.closest('[data-table-id]')?.getAttribute('data-table-id');
+    const selectedIds = tableId ? getSelectedIds(tableId) : [];
+
+    // Si hay múltiples IDs seleccionados, usar esos; si no, usar el encryptId individual
+    const idsToProcess = selectedIds.length > 0 ? selectedIds : (encryptId ? [encryptId] : []);
+
+    if (idsToProcess.length === 0) {
+        return console.error('No hay IDs seleccionados para procesar');
+    }
+
+    // Actualizar texto de confirmación para múltiples elementos
+    const confirmText = idsToProcess.length > 1
+        ? caseData.text.replace('este', `estos ${idsToProcess.length}`)
+        : caseData.text;
+
     try {
-        const confirmed = await showToastConfirmAction(caseData.text, caseData.icon, caseData.confirmButtonText);
+        const confirmed = await showToastConfirmAction(confirmText, caseData.icon, caseData.confirmButtonText);
         if (!confirmed) return showToast('Los cambios no se guardaron', 'info');
 
-        const url = routeFn?.(caseData.routeName, { id: encryptId }) ?? '';
-
         // Preparar datos para enviar
-        const requestData: any = {};
+        const requestData: Record<string, any> = {};
         if (status) {
             requestData.status = status;
         }
 
-        await axios.request({
-            method: (caseData.method ?? 'PUT').toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch',
-            url,
-            data: requestData,
+        // Procesar cada ID seleccionado
+        const promises = idsToProcess.map(async (id) => {
+            const url = routeFn?.(caseData.routeName, { id }) ?? '';
+
+            return axios.request({
+                method: (caseData.method ?? 'PUT').toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch',
+                url,
+                data: requestData,
+            });
         });
 
-        showToast('Acción completada exitosamente', 'success');
+        // Ejecutar todas las peticiones en paralelo
+        await Promise.all(promises);
+
+        const successMessage = idsToProcess.length > 1
+            ? `Acción completada exitosamente en ${idsToProcess.length} elementos`
+            : 'Acción completada exitosamente';
+
+        showToast(successMessage, 'success');
         setTimeout(() => window.location.reload(), 1000);
     } catch (error: any) {
         console.error(`Error al registrar la acción '${action}':`, error?.response?.data || error.message);
+        showToast('Error al procesar la acción', 'error');
     }
 }
 
@@ -253,32 +326,24 @@ export function submitForm(formId: string, fields: string[] = []) {
 }
 
 /**
- * Resetea un formulario:
- * - Hace reset del formulario completo.
- * - Limpia los selects marcados con `data-reset="true"`.
- * - Quita el atributo `readonly` a todos los inputs dentro del formulario.
- * - Limpia validaciones visuales.
+ * Resetea un formulario usando la utilidad compartida.
+ * Además quita el atributo `readonly` de los inputs (específico de CRUD).
  *
  * @param {HTMLFormElement} form - El formulario a resetear
  */
 export function resetForm(form: HTMLFormElement): void {
-    // Resetea el formulario
-    form.reset();
+    if (!form.id) {
+        console.warn('El formulario no tiene ID, no se puede resetear');
+        return;
+    }
 
-    // Limpia selects con data-reset="true"
-    form.querySelectorAll<HTMLSelectElement>('select[data-reset="true"]').forEach(select => {
-        select.innerHTML = '';
-    });
+    // Usar la utilidad compartida para resetear el formulario
+    resetFormAndContainers(form.id);
 
-    // Quita readonly a todos los inputs
+    // Quitar readonly a todos los inputs (funcionalidad específica de CRUD)
     form.querySelectorAll<HTMLInputElement>('input[readonly]').forEach(input => {
         input.readOnly = false;
     });
-
-    // Limpiar validaciones visuales
-    if (form.id) {
-        clearFormValidation(form.id);
-    }
 }
 
 /**

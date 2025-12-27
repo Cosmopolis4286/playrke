@@ -1,12 +1,11 @@
 // commerceForm.ts
 import { formCRUD } from '@/helpers/form/formCrudInit';
-import { insertOtherCurrencies, initCurrencySelector } from '@/helpers/selects/insertOtherCurrencies';
+import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTimeZones } from '@/helpers/selects/insertOtherCurrencies';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
 import { route } from '@/routes/commerceRoutes';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
-import { fillFormFromObject } from '@/helpers/form/formHelpers';
-import { getAppDataProperty } from '@/data/index';
+import { fillFormFromObject, clearValidationErrors } from '@/helpers/form/formHelpers';
 
 // Re-exportar route para que otros módulos puedan usarla directamente
 export { route };
@@ -57,7 +56,7 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
     if (!usernameInput || !emailInput) return console.error('Inputs username/email no encontrados');
 
     // Limpiar errores de validación previos
-    clearValidationErrors();
+    clearValidationErrors('commerce-form');
 
     // Valores preseleccionados para selects dinámicos
     const selectedValues: Record<string, string | number> = {};
@@ -66,13 +65,6 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
     if (action === 'edit' && data) {
         const { commerce, user } = data;
 
-        // Debug: ver qué datos estamos recibiendo
-        console.log('📦 Data recibida:', { commerce, user });
-        console.log('🔑 IDs a preseleccionar:', {
-            country_id: commerce?.country_id,
-            currency_id: commerce?.currency_id,
-            time_zone_id: user?.time_zone_id
-        });
 
         fillFormFromObject(commerce);
 
@@ -92,125 +84,75 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
     }
 
     // 1. Inicializar todos los selects básicos con los valores preseleccionados
-    console.log('🎯 Valores a preseleccionar:', selectedValues);
     initAllSelects(selectedValues);
 
-    // Debug: verificar valores después de initAllSelects
-    if (action === 'edit') {
-        console.log('✅ Valores después de initAllSelects:', {
-            country: (document.getElementById('country') as HTMLSelectElement)?.value,
-            currency: (document.getElementById('currency') as HTMLSelectElement)?.value,
-            timeZone: (document.getElementById('time-zone') as HTMLSelectElement)?.value,
-        });
-
-        // Disparar evento change en country para que actualice currency y time-zone
-        const countrySelect = document.getElementById('country') as HTMLSelectElement;
-        if (countrySelect && countrySelect.value) {
-            console.log('🔥 Disparando evento change en country');
-            $(countrySelect).trigger('change');
-        }
-    }
-
-    // 2. DESPUÉS de que el evento change cargue las opciones, establecer los valores
+    // 2. En modo edición, cargar opciones de currency y time-zone programáticamente
     if (action === 'edit' && data) {
         const { commerce, user } = data;
 
-        // Esperar a que el evento change de country termine de cargar opciones
+        // Esperar a que initAllSelects termine de cargar el país
         setTimeout(() => {
-            // Debug: Verificar si los datos globales existen
-            const currencies = getAppDataProperty('currencies', []);
-            const timeZones = getAppDataProperty('timeZones', []);
-            console.log('📊 Currencies disponibles:', currencies.length);
-            console.log('📊 TimeZones disponibles:', timeZones.length);
+            if (import.meta.env.DEV) {
+                console.log('🔄 Modo edición - Cargando opciones para país:', commerce.country_id);
+            }
 
-            // Establecer currency manualmente recorriendo las opciones disponibles
-            const currencySelect = document.getElementById('currency') as HTMLSelectElement;
-            if (currencySelect && commerce?.currency_id) {
-                console.log('🔍 Opciones en currency después del change:',
-                    Array.from(currencySelect.options).map(o => ({ value: o.value, text: o.text }))
-                );
+            // Llamar directamente a las funciones para cargar opciones
+            updateCurrency(commerce.country_id);
+            updateTimeZones(commerce.country_id, String(user.time_zone_id));
 
-                // Si no hay opciones cargadas, cargarlas manualmente
-                if (currencySelect.options.length <= 1 && currencies.length > 0) {
-                    console.log('⚙️ Cargando opciones de currency manualmente...');
-                    // Filtrar currencies por país
-                    const currenciesForCountry = currencies.filter((c: any) =>
-                        String(c.country_id) === String(commerce.country_id)
-                    );
+            // Esperar a que las opciones se carguen
+            setTimeout(() => {
+                const currencySelect = document.getElementById('currency') as HTMLSelectElement;
+                const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement;
 
-                    // Limpiar y agregar opciones
-                    currencySelect.innerHTML = '<option value="">Seleccionar moneda principal</option>';
-                    currenciesForCountry.forEach((curr: any) => {
-                        const option = document.createElement('option');
-                        option.value = String(curr.id);
-                        option.text = `(${curr.symbol}) ${curr.description}`;
-                        currencySelect.appendChild(option);
-                    });
+                // Establecer currency
+                if (currencySelect && commerce?.currency_id) {
+                    if (import.meta.env.DEV) {
+                        console.log('💰 Estableciendo currency:', commerce.currency_id);
+                        console.log('💰 Opciones disponibles:', Array.from(currencySelect.options).map(o => ({ value: o.value, text: o.text })));
+                    }
+
+                    currencySelect.value = String(commerce.currency_id);
+                    $(currencySelect).trigger('change');
+
+                    // Mostrar el contenedor de currency
+                    const containerCurrency = document.getElementById('container-currency');
+                    containerCurrency?.classList.remove('d-none');
                 }
 
-                currencySelect.value = String(commerce.currency_id);
-                $(currencySelect).trigger('change');
-                console.log('💰 Currency establecido a:', currencySelect.value);
-            }
+                // Time-zone ya fue establecido por updateTimeZones
+                if (timeZoneSelect) {
+                    if (import.meta.env.DEV) {
+                        console.log('🕐 Time-zone establecido:', timeZoneSelect.value);
+                        console.log('🕐 Opciones disponibles:', Array.from(timeZoneSelect.options).map(o => ({ value: o.value, text: o.text })));
+                    }
 
-            // Establecer time-zone manualmente
-            const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement;
-            if (timeZoneSelect && user?.time_zone_id) {
-                console.log('🔍 Opciones en time-zone después del change:',
-                    Array.from(timeZoneSelect.options).map(o => ({ value: o.value, text: o.text }))
-                );
-
-                // Si no hay opciones cargadas, cargarlas manualmente
-                if (timeZoneSelect.options.length <= 1 && timeZones.length > 0) {
-                    console.log('⚙️ Cargando opciones de time-zone manualmente...');
-                    // Filtrar time zones por país
-                    const timeZonesForCountry = timeZones.filter((tz: any) =>
-                        String(tz.country_id) === String(commerce.country_id)
-                    );
-
-                    // Limpiar y agregar opciones
-                    timeZoneSelect.innerHTML = '<option value="">Seleccionar zona horaria</option>';
-                    timeZonesForCountry.forEach((tz: any) => {
-                        const option = document.createElement('option');
-                        option.value = String(tz.id);
-                        option.text = `${tz.name} (${tz.offset})`;
-                        timeZoneSelect.appendChild(option);
-                    });
+                    // Mostrar el contenedor de time-zone
+                    const containerTimeZone = document.getElementById('container-time-zone');
+                    containerTimeZone?.classList.remove('d-none');
                 }
 
-                timeZoneSelect.value = String(user.time_zone_id);
-                $(timeZoneSelect).trigger('change');
-                console.log('⏰ Time-zone establecido a:', timeZoneSelect.value);
-            }
+                // Insertar monedas adicionales
+                if (data?.other_currencies && data.other_currencies.length > 0) {
+                    if (import.meta.env.DEV) {
+                        console.log('💵 Insertando other currencies:', data.other_currencies);
+                    }
+                    insertOtherCurrencies(data.other_currencies);
+                }
 
-            // Insertar monedas adicionales
-            if (data?.other_currencies) {
-                insertOtherCurrencies(data.other_currencies);
-            }
-
-            // Insertar juegos permitidos
-            if (data?.allowed_games) {
-                insertOtherCurrencies(data.allowed_games);
-            }
-        }, 500); // Aumentado a 500ms
+                // Insertar juegos permitidos
+                if (data?.allowed_games && data.allowed_games.length > 0) {
+                    if (import.meta.env.DEV) {
+                        console.log('🎮 Insertando allowed games:', data.allowed_games);
+                    }
+                    insertOtherCurrencies(data.allowed_games);
+                }
+            }, 100); // Tiempo para que las funciones terminen de cargar opciones
+        }, 200); // Tiempo para que initAllSelects termine
     }
 
     // Mostrar modal
     $(modal).modal('show');
-}
-
-/**
- * Limpia los errores de validación del formulario
- */
-function clearValidationErrors(): void {
-    const form = document.getElementById('commerce-form');
-    if (!form) return;
-
-    // Remover clases is-invalid
-    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-
-    // Remover mensajes de error
-    form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
 }
 
 // ==========================
