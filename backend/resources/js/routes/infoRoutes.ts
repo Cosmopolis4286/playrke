@@ -1,7 +1,7 @@
 // ======================================================
 // Archivo: resources/js/routes/infoRoutes.ts
 // Descripción: Rutas del módulo infoRoutes
-// Fecha de actualización (GMT): 2025-09-14T05:40:45Z
+// Fecha de actualización (GMT): 2025-12-29T00:05:30Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 

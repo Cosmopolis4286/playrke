@@ -25,17 +25,24 @@ class CommerceController extends Controller
      * @param CommerceService $service
      * @return RedirectResponse
      */
-    public function store(CommerceRequest $request, CommerceService $service): RedirectResponse
+    public function store(CommerceRequest $request, CommerceService $service)
     {
-        return $this->handleService(function () use ($request, $service) {
+        try {
             $result = $service->create($request->toDTO()->toArray());
 
-            return redirect()->back()->with([
+            return response()->json([
+                'success' => true,
                 'message' => '✅ Registro exitoso',
-                'type'    => 'success',
-                'passw'   => $result['password']
+                'password' => $result['password']
             ]);
-        }, 'Hubo un error al crear el Comercio.');
+        } catch (\Throwable $e) {
+            Log::error("❌ Hubo un error al crear el Comercio: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Hubo un error al crear el Comercio.'
+            ], 500);
+        }
     }
 
     /**
@@ -153,6 +160,53 @@ class CommerceController extends Controller
 
             return redirect()->back();
         }, "Hubo un error al cambiar el estado del Comercio [ID: $id].");
+    }
+
+    /**
+     * Cambiar contraseña de un Comercio.
+     *
+     * @param string $id ID hasheado con Hashids
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function changePassword(string $id): \Illuminate\Http\JsonResponse
+    {
+        try {
+            // Decodificar el ID usando Hashids
+            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+
+            if (empty($decodedIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID inválido'
+                ], 400);
+            }
+
+            $realId = (string) $decodedIds[0];
+
+            // Buscar el commerce con su usuario
+            $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')->findOrFail($realId);
+
+            // Generar una nueva contraseña aleatoria
+            $newPassword = \Str::random(12);
+
+            // Actualizar la contraseña del usuario
+            $commerce->user->update([
+                'password' => \Hash::make($newPassword)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => '✅ Contraseña generada exitosamente',
+                'password' => $newPassword
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("❌ Error al cambiar la contraseña del Comercio [ID: $id]: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => "Hubo un error al cambiar la contraseña del Comercio"
+            ], 500);
+        }
     }
 
     /**

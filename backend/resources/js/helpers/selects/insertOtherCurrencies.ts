@@ -111,11 +111,9 @@ function updateMainCurrencyByCountry(selectedCountry: string): void {
         currency.appendChild(option);
     });
 
-    // Si solo hay una moneda, establecer el valor y disparar change
+    // Si solo hay una moneda, manejar Select2 y establecer el valor
     if (!hasMultipleCurrencies && currenciesInCountry.length === 1) {
-        currency.value = String(currenciesInCountry[0].id);
-
-        // Si Select2 está inicializado, destruir y reiniciar sin placeholder
+        // Si Select2 está inicializado, destruir y reiniciar sin placeholder PRIMERO
         if (window.jQuery && (window.jQuery as any)(currency).data('select2')) {
             (window.jQuery as any)(currency).select2('destroy');
             (window.jQuery as any)(currency).select2({
@@ -124,6 +122,8 @@ function updateMainCurrencyByCountry(selectedCountry: string): void {
             });
         }
 
+        // Establecer el valor DESPUÉS de reinicializar Select2
+        currency.value = String(currenciesInCountry[0].id);
         currency.dispatchEvent(new Event('change'));
     }
 
@@ -184,14 +184,7 @@ function updateTimeZonesByCountry(selectedCountry: string, selectedTimeZone?: st
         timeZoneSelect.appendChild(option);
     });
 
-    // Establecer el valor seleccionado en el select
-    if (selectedTimeZone) {
-        timeZoneSelect.value = String(selectedTimeZone);
-    } else if (!hasMultipleTimeZones && sortedTimeZones.length === 1) {
-        timeZoneSelect.value = String(sortedTimeZones[0].id);
-    }
-
-    // Trigger change event to update Select2 if initialized
+    // Si Select2 está inicializado, manejar según el número de opciones
     if (window.jQuery && (window.jQuery as any)(timeZoneSelect).data('select2')) {
         // Si solo hay una opción, destruir y reiniciar Select2 sin placeholder
         if (!hasMultipleTimeZones && sortedTimeZones.length === 1) {
@@ -201,6 +194,17 @@ function updateTimeZonesByCountry(selectedCountry: string, selectedTimeZone?: st
                 allowClear: false
             });
         }
+    }
+
+    // Establecer el valor seleccionado en el select (DESPUÉS de reinicializar Select2)
+    if (selectedTimeZone) {
+        timeZoneSelect.value = String(selectedTimeZone);
+    } else if (!hasMultipleTimeZones && sortedTimeZones.length === 1) {
+        timeZoneSelect.value = String(sortedTimeZones[0].id);
+    }
+
+    // Trigger change event to update Select2 display
+    if (window.jQuery && (window.jQuery as any)(timeZoneSelect).data('select2')) {
         (window.jQuery as any)(timeZoneSelect).trigger('change');
     }
 }

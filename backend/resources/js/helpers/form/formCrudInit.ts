@@ -167,6 +167,18 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
             routeName: 'changeStatus',
             ...getStatusChangeMessages(status, entityName),
             method: 'PUT',
+        },
+        'changeStatus': {
+            routeName: 'changeStatus',
+            ...getStatusChangeMessages(status, entityName),
+            method: 'PUT',
+        },
+        'generatePassw': {
+            routeName: 'changePassword',
+            text: `¿Deseas generar una nueva contraseña para este ${entityName}?`,
+            icon: 'warning',
+            confirmButtonText: 'Sí, generar',
+            method: 'PUT',
         }
     };
 
@@ -204,6 +216,12 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
         // Procesar cada ID seleccionado
         const promises = idsToProcess.map(async (id) => {
             const url = routeFn?.(caseData.routeName, { id }) ?? '';
+            console.log(`🔍 Generando URL para acción '${action}':`, {
+                routeName: caseData.routeName,
+                id,
+                url,
+                routeFnExists: !!routeFn
+            });
 
             return axios.request({
                 method: (caseData.method ?? 'PUT').toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch',
@@ -213,13 +231,77 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
         });
 
         // Ejecutar todas las peticiones en paralelo
-        await Promise.all(promises);
+        const results = await Promise.all(promises);
 
-        const successMessage = idsToProcess.length > 1
-            ? `Acción completada exitosamente en ${idsToProcess.length} elementos`
-            : 'Acción completada exitosamente';
+        // Verificar si alguna respuesta contiene una contraseña generada
+        const passwordResponse = results.find((result: any) => result?.data?.password);
 
-        showToast(successMessage, 'success');
+        if (passwordResponse?.data?.password) {
+            // Mostrar modal con la contraseña generada usando SweetAlert
+            await Swal.fire({
+                title: 'Nueva Contraseña Generada',
+                html: `
+                    <div style="text-align: left;">
+                        <p><strong>Contraseña:</strong></p>
+                        <div style="position: relative; display: flex; align-items: center; gap: 8px;">
+                            <div id="password-display" style="flex: 1; background-color: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 16px; word-break: break-all;">
+                                ${passwordResponse.data.password}
+                            </div>
+                            <button id="copy-password-btn" type="button" style="padding: 10px 15px; background-color: #6366f1; color: white; border: none; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px; min-width: 80px; justify-content: center;" title="Copiar al portapapeles">
+                                <i class="fas fa-copy"></i>
+                                <span>Copiar</span>
+                            </button>
+                        </div>
+                        <p style="color: #6c757d; font-size: 14px; margin-top: 15px;">
+                            <i class="fas fa-info-circle"></i> Guarda esta contraseña en un lugar seguro. No podrás verla nuevamente.
+                        </p>
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonText: 'Entendido',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    // Añadir funcionalidad de copiar al botón
+                    const copyBtn = document.getElementById('copy-password-btn');
+                    const password = passwordResponse.data.password;
+
+                    if (copyBtn) {
+                        copyBtn.addEventListener('click', async () => {
+                            try {
+                                await navigator.clipboard.writeText(password);
+
+                                // Cambiar el texto y estilo del botón temporalmente
+                                const btnText = copyBtn.querySelector('span');
+                                const btnIcon = copyBtn.querySelector('i');
+
+                                if (btnText && btnIcon) {
+                                    btnIcon.className = 'fas fa-check';
+                                    btnText.textContent = 'Copiado';
+                                    copyBtn.style.backgroundColor = '#10b981';
+
+                                    setTimeout(() => {
+                                        btnIcon.className = 'fas fa-copy';
+                                        btnText.textContent = 'Copiar';
+                                        copyBtn.style.backgroundColor = '#6366f1';
+                                    }, 2000);
+                                }
+                            } catch (err) {
+                                console.error('Error al copiar:', err);
+                                showToast('Error al copiar la contraseña', 'error');
+                            }
+                        });
+                    }
+                }
+            });
+        } else {
+            const successMessage = idsToProcess.length > 1
+                ? `Acción completada exitosamente en ${idsToProcess.length} elementos`
+                : 'Acción completada exitosamente';
+
+            showToast(successMessage, 'success');
+        }
+
         setTimeout(() => window.location.reload(), 1000);
     } catch (error: any) {
         console.error(`Error al registrar la acción '${action}':`, error?.response?.data || error.message);
@@ -320,9 +402,93 @@ export function submitForm(formId: string, fields: string[] = []) {
     // Limpiar validaciones visuales antes de enviar
     clearFormValidation(formId);
 
-    // Enviar formulario
+    // Enviar formulario con AJAX
     ajaxStart();
-    form.submit();
+
+    const formData = new FormData(form);
+    const url = form.action;
+    const method = (form.method || 'POST').toUpperCase();
+
+    axios.request({
+        method: method.toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch',
+        url,
+        data: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(async (response) => {
+        const data = response.data;
+
+        // Si la respuesta incluye una contraseña, mostrar modal con botón de copiar
+        if (data.success && data.password) {
+            await Swal.fire({
+                title: 'Registro Exitoso',
+                html: `
+                    <div style="text-align: left;">
+                        <p>${data.message || '✅ Comercio creado exitosamente'}</p>
+                        <p style="margin-top: 15px;"><strong>Contraseña generada:</strong></p>
+                        <div style="position: relative; display: flex; align-items: center; gap: 8px;">
+                            <div id="password-display" style="flex: 1; background-color: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 16px; word-break: break-all;">
+                                ${data.password}
+                            </div>
+                            <button id="copy-password-btn" type="button" style="padding: 10px 15px; background-color: #6366f1; color: white; border: none; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px; min-width: 80px; justify-content: center;" title="Copiar al portapapeles">
+                                <i class="fas fa-copy"></i>
+                                <span>Copiar</span>
+                            </button>
+                        </div>
+                        <p style="color: #6c757d; font-size: 14px; margin-top: 15px;">
+                            <i class="fas fa-info-circle"></i> Guarda esta contraseña en un lugar seguro. No podrás verla nuevamente.
+                        </p>
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonText: 'Entendido',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    const copyBtn = document.getElementById('copy-password-btn');
+                    const password = data.password;
+
+                    if (copyBtn) {
+                        copyBtn.addEventListener('click', async () => {
+                            try {
+                                await navigator.clipboard.writeText(password);
+
+                                const btnText = copyBtn.querySelector('span');
+                                const btnIcon = copyBtn.querySelector('i');
+
+                                if (btnText && btnIcon) {
+                                    btnIcon.className = 'fas fa-check';
+                                    btnText.textContent = 'Copiado';
+                                    copyBtn.style.backgroundColor = '#10b981';
+
+                                    setTimeout(() => {
+                                        btnIcon.className = 'fas fa-copy';
+                                        btnText.textContent = 'Copiar';
+                                        copyBtn.style.backgroundColor = '#6366f1';
+                                    }, 2000);
+                                }
+                            } catch (err) {
+                                console.error('Error al copiar:', err);
+                                showToast('Error al copiar la contraseña', 'error');
+                            }
+                        });
+                    }
+                }
+            });
+        } else if (data.success) {
+            showToast(data.message || 'Operación exitosa', 'success');
+        }
+
+        // Recargar la página después de cerrar el modal
+        setTimeout(() => window.location.reload(), 1000);
+    })
+    .catch((error) => {
+        console.error('Error al enviar formulario:', error);
+        const message = error.response?.data?.message || 'Error al procesar la solicitud';
+        showToast(message, 'error');
+    });
 }
 
 /**

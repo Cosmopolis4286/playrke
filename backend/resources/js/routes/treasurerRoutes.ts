@@ -1,14 +1,14 @@
 // ======================================================
 // Archivo: resources/js/routes/treasurerRoutes.ts
 // Descripción: Rutas del módulo treasurerRoutes
-// Fecha de actualización (GMT): 2025-09-14T05:40:45Z
+// Fecha de actualización (GMT): 2025-12-29T00:05:30Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
 import { route as baseRoute } from './helper.js';
 
 export const treasurerRoutes = {
-    "create": "/treasurer",
+    "store": "/treasurer",
     "show": "/treasurer/{id}",
     "update": "/treasurer/{id}",
     "destroy": "/treasurer/{id}",

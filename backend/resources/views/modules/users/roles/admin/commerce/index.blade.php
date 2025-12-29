@@ -4,10 +4,6 @@
         module-id="commerce-form" context="commerce" table-id="commerce-table" />
     {{-- Modal para formulario de comercio --}}
     <x-shared.modal id="commerce-form" title="Comercio" form-view="modules.users.roles.admin.commerce.form" />
-    {{-- Modal de contraseña (si aplica) --}}
-    @if (session('pawss'))
-        <x-shared.modal title="Contraseña Vendedor" :value="session('pawss')" />
-    @endif
     {{-- Scripts globales solo una vez --}}
     @once
         @push('stack-scripts')

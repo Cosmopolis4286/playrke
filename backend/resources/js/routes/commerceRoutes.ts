@@ -1,14 +1,14 @@
 // ======================================================
 // Archivo: resources/js/routes/commerceRoutes.ts
 // Descripción: Rutas del módulo commerceRoutes
-// Fecha de actualización (GMT): 2025-09-14T05:40:44Z
+// Fecha de actualización (GMT): 2025-12-29T00:05:30Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
 import { route as baseRoute } from './helper.js';
 
 export const commerceRoutes = {
-    "create": "/commerce",
+    "store": "/commerce",
     "show": "/commerce/{id}",
     "update": "/commerce/{id}",
     "destroy": "/commerce/{id}",
@@ -19,8 +19,7 @@ export const commerceRoutes = {
     "currency-by-country": "/commerce/seller/currency/{country}/{seller}",
     "seller-info-by-carton": "/commerce/seller/info/{ctnId}",
     "carton-lot-payment": "/commerce/bingo/carton-lot/payment",
-    "payment-details-public": "/commerce/payment-details/{commerce}/{currency}",
-    "getPaymentCommerceDetails": "/commerce/getPaymentCommerceDetails/{commerce}/{currency}"
+    "payment-details-public": "/commerce/payment-details/{commerce}/{currency}"
 } as const;
 
 /**

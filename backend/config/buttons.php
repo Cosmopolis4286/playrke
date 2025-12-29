@@ -3,7 +3,7 @@
 |--------------------------------------------------------------------------
 | Botones adicionales según contexto
 |--------------------------------------------------------------------------
-| Aquí defines botones extras que se agregan al componente BtnGroup 
+| Aquí defines botones extras que se agregan al componente BtnGroup
 | dependiendo del contexto (seller, commerce, etc).
 |
 | Cada botón se normaliza en el componente, por lo que si algún campo falta,
@@ -28,5 +28,5 @@ $defaultExtraButtons = [
 
 return [
     'seller' => $defaultExtraButtons,
-    'commerce_id' => $defaultExtraButtons,
+    'commerce' => $defaultExtraButtons,
 ];
