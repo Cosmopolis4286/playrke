@@ -51,11 +51,10 @@ use App\Models\UniqueCode;
 use App\Models\Wallet;
 use App\Repositories\User\Roles\RoleRepository;
 // Services
-use App\Services\Games\Bingo\AutoGenerateBingoRooms;
 use App\Services\Games\Bingo\AutoGenerateBingoRoomsService;
 use App\Services\Games\Bingo\HandleBingoRoomsService;
 use App\Services\Games\Room\RoomTypeService;
-use App\Services\RouteService;
+use App\Services\Route\RouteService;
 use App\Services\Users\Customer\HandleTransactions;
 
 // Traits

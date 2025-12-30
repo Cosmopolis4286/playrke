@@ -9,8 +9,8 @@ use App\Models\Commerce;
 use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\DocumentType;
-use App\Models\Payments\Methods\Venezuela\PagoMovil;
-use App\Models\Payments\Methods\Colombia\ColombianPaymentAccount;
+use App\Models\Payments\Venezuela\PagoMovil;
+use App\Models\Payments\Colombia\PaymentAccount;
 use App\Models\Pix;
 use App\Repositories\User\Roles\RoleRepository;
 use App\Repositories\Users\Roles\Contracts\RoleRepositoryContract;
@@ -84,9 +84,9 @@ class DirectoryController extends Controller
 
             case 'COL': // Colombia
                 $paymentType = 'Registro';
-                $moduleId  = 'payment-method-col';
+                $moduleId  = 'payment_accounts_co';
                 $additionalData = [
-                    'paymentMethods' => ColombianPaymentAccount::where('user', $userId)->get(),
+                    'paymentMethods' => PaymentAccount::where('user', $userId)->get(),
                     'arrPaymentMethod' => ['B' => 'Bancolombia', 'D' => 'Daviplata', 'N' => 'Nequi']
                 ];
                 break;

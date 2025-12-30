@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Enums\Payments\Methods\Brasil;
+namespace App\Enums\Payments\Brasil;
 
 /**
  * Enum con los tipos de clave PIX permitidos.

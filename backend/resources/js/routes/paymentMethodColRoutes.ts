@@ -8,10 +8,10 @@
 import { route as baseRoute } from './helper.js';
 
 export const paymentMethodColRoutes = {
-    "create": "/payment-method-col",
-    "show": "/payment-method-col/{id}/info",
-    "update": "/payment-method-col/{id}",
-    "destroy": "/payment-method-col/{id}"
+    "create": "/payment_accounts_co",
+    "show": "/payment_accounts_co/{id}/info",
+    "update": "/payment_accounts_co/{id}",
+    "destroy": "/payment_accounts_co/{id}"
 } as const;
 
 /**

@@ -1,10 +1,10 @@
 <?php
 
 use App\Http\Controllers\Payments\DirectoryController;
-use App\Http\Controllers\Payments\ExchangeRateController;
-use App\Http\Controllers\Payments\Methods\Brasil\PixController;
-use App\Http\Controllers\Payments\Methods\Colombia\ColombianPaymentAccountController;
-use App\Http\Controllers\Payments\Methods\Venezuela\PagoMovilController;
+use App\Http\Controllers\ExchangeRate\ExchangeRateController;
+use App\Http\Controllers\Payments\Brasil\PixController;
+use App\Http\Controllers\Payments\Colombia\PaymentAccountController;
+use App\Http\Controllers\Payments\Venezuela\PagoMovilController;
 use App\Http\Controllers\Payments\PaymentController;
 use App\Http\Controllers\User\ReportsController;
 use Illuminate\Support\Facades\Route;
@@ -71,10 +71,10 @@ Route::middleware('auth')->group(function () {
 // ====================================
 // MÉTODOS DE PAGO COLOMBIA
 // ====================================
-crud_routes('payment-method-col', ColombianPaymentAccountController::class, ['auth'], ['index', 'destroy']);
+crud_routes('payment_accounts_co', PaymentAccountController::class, ['auth'], ['index', 'destroy']);
 Route::middleware('auth')->group(function () {
-    Route::delete('payment-method-col/{id}', [ColombianPaymentAccountController::class, 'destroy'])->name('payment-method-col.destroy');
-    Route::get('payment-method-col/{id}/info', [ColombianPaymentAccountController::class, 'show'])->name('payment-method-col.show');
+    Route::delete('payment-accounts-co/{id}', [PaymentAccountController::class, 'destroy'])->name('payment_accounts_co.destroy');
+    Route::get('payment-accounts-\co/{id}/info', [PaymentAccountController::class, 'show'])->name('payment_accounts_co.show');
 });
 
 // ====================================

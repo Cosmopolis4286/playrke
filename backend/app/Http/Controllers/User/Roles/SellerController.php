@@ -39,7 +39,7 @@ use Illuminate\Support\Facades\Validator;
 
 class SellerController extends Controller
 {
-    use EncryptTrait, BingoTrait, ExternalPlayerTrait,  UserTrait, FiltersTrait;
+    use EncryptTrait, BingoTrait,  UserTrait, FiltersTrait;
 
     /**
      * Valida la solicitud para crear o actualizar un vendedor (Seller).

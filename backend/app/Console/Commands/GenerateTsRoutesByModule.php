@@ -39,7 +39,7 @@ class GenerateTsRoutesByModule extends Command
             'other-treasurers',
             'pagomovil',
             'payment',
-            'payment-method-col',
+            'payment_accounts_co',
             'pix',
             'profile',
             'seller',

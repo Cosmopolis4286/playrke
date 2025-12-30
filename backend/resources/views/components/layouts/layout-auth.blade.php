@@ -19,7 +19,7 @@
 
 <body>
     <main id="containerFirst">
-        <img id="bgImg" src="{{ asset('img/body/wall9.jpg') }}">
+        <img id="bgImg" src="{{ asset('img/body/bg_6.jpg') }}">
         <div id="containerRKE">
             <div class="login_logo">
                 <img src="{{ asset('img/log.png') }}" alt="PlayRKE">

@@ -2,9 +2,8 @@
 
 namespace App\Providers;
 
-use App\Repositories\Users\Roles\RoleRepository;
 use App\Services\Games\Room\RoomTypeService;
-use App\Services\RouteService;
+use App\Services\Route\RouteService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;

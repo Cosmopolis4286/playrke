@@ -53,7 +53,7 @@ import { ref } from 'vue';
 const currentYear = new Date().getFullYear();
 
 // Ruta a assets públicos, ajusta según tu configuración Vite o Laravel Mix
-const bgImg = new URL('/img/body/wall9.jpg', import.meta.url).href;
+const bgImg = new URL('/img/body/bg_6.jpg', import.meta.url).href;
 const logo = new URL('/img/log.png', import.meta.url).href;
 </script>
 
