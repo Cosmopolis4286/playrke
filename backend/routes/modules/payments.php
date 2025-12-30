@@ -1,9 +1,12 @@
 <?php
 
-use App\Http\Controllers\{
-    PaymentController, ExchangeRateController, PagoMovilController, 
-    PixController, ColombianPaymentAccountController, ReportsController
-};
+use App\Http\Controllers\Payments\DirectoryController;
+use App\Http\Controllers\Payments\ExchangeRateController;
+use App\Http\Controllers\Payments\Methods\Brasil\PixController;
+use App\Http\Controllers\Payments\Methods\Colombia\ColombianPaymentAccountController;
+use App\Http\Controllers\Payments\Methods\Venezuela\PagoMovilController;
+use App\Http\Controllers\Payments\PaymentController;
+use App\Http\Controllers\User\ReportsController;
 use Illuminate\Support\Facades\Route;
 
 require_once app_path('Helpers/RouteHelper.php');
@@ -13,8 +16,16 @@ require_once app_path('Helpers/RouteHelper.php');
 | Rutas de Métodos de Pago
 |--------------------------------------------------------------------------
 | Gestión de todos los métodos de pago: Pago Móvil, PIX, Colombia,
-| tasas de cambio y comprobantes de pago.
+| tasas de cambio, directorios de datos y comprobantes de pago.
 */
+
+// ====================================
+// DIRECTORIO BANCARIO POR PAÍSES
+// ====================================
+route_group('directory', 'directory.', ['auth'], DirectoryController::class, [
+    'index' => ['method' => 'get', 'uri' => 'directory'],
+    'country' => ['method' => 'get', 'uri' => '{countryCode}'],
+]);
 
 // ====================================
 // COMPROBANTES DE PAGO

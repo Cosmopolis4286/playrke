@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Shared;
+namespace App\Http\Controllers\Payments;
 
 // Base Controller
 use App\Http\Controllers\Controller;

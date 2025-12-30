@@ -14,7 +14,7 @@
 
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('seller.cartonGenerate', 'bingo.ctnsSold', 'bingo.ctnsAwarded', 'bingo.reportSalesRooms', 'bingo.reportSalesByRoom') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('seller.cartonGenerate', 'bingo.cartons-sold', 'bingo.winners', 'bingo.sales-report', 'bingo.reportSalesByRoom') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>
@@ -29,21 +29,21 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('bingo.ctnsSold') }}" class="nav-link {{ !Route::is('bingo.ctnsSold') ?: 'active' }}">
+                <a href="{{ route('bingo.cartons-sold') }}" class="nav-link {{ !Route::is('bingo.cartons-sold') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Cartones</p>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('bingo.ctnsAwarded', ['type' => 'private', 'dateFilter' => 'today']) }}"
-                    class="nav-link {{ !Route::is('bingo.ctnsAwarded') ?: 'active' }}">
+                <a href="{{ route('bingo.winners', ['type' => 'private', 'dateFilter' => 'today']) }}"
+                    class="nav-link {{ !Route::is('bingo.winners') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Ganadores</p>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('bingo.reportSalesRooms') }}"
-                    class="nav-link {{ !Route::is('bingo.reportSalesRooms', 'bingo.reportSalesByRoom') ?: 'active' }}">
+                <a href="{{ route('bingo.sales-report') }}"
+                    class="nav-link {{ !Route::is('bingo.sales-report', 'bingo.reportSalesByRoom') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Reporte de Ventas</p>
                 </a>

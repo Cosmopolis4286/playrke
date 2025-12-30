@@ -1,7 +1,9 @@
 <?php
 
-use App\Http\Controllers\{GameController, RewardsController};
 // use App\Http\Controllers\CookieController;
+
+use App\Http\Controllers\Games\GameController;
+use App\Http\Controllers\Rewards\RewardsController;
 use Illuminate\Support\Facades\Route;
 
 require_once app_path('Helpers/RouteHelper.php');
@@ -29,4 +31,7 @@ Route::put('games/handle-customer/{id?}', [GameController::class, 'handleCustome
 // ====================================
 // SISTEMA DE RECOMPENSAS
 // ====================================
-crud_routes('rewards', RewardsController::class, ['auth', 'commerce_id']);
+route_group('rewards', 'rewards.', ['auth'], RewardsController::class, [
+    'index' => ['method' => 'get', 'uri' => ''],
+    'country' => ['method' => 'get', 'uri' => '{countryCode}'],
+]);

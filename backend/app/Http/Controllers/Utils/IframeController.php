@@ -28,7 +28,7 @@ class IframeController extends Controller
             [
                 'title' => 'Salas de Juego CRUD',
                 'route' => route(
-                    'bingo.handleGameRoomSummary',
+                    'bingo.room-summary',
                     [
                         'roomType' => 'private-rooms',
                         'creatorType' => 'customer',

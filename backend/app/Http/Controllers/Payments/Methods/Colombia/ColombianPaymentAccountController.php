@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payments\Methods\Colombia;
 
+use App\Http\Controllers\Controller;
 use App\Models\Payments\Methods\Colombia\ColombianPaymentAccount;
 
 use Illuminate\Support\Facades\Auth;

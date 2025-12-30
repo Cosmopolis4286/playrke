@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\BingoController;
+use App\Http\Controllers\Games\Bingo\BingoController;
 use Illuminate\Support\Facades\Route;
 
 require_once app_path('Helpers/RouteHelper.php');

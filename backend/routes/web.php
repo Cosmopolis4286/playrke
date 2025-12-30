@@ -37,8 +37,8 @@ require __DIR__ . '/modules/commerce.php';        // TODO: Revisar controllers
 // ====================================
 // RUTAS DE NEGOCIO ESPECÍFICAS
 // ====================================
-// require __DIR__ . '/modules/games/bingo.php';    // TODO: Revisar controllers
-// require __DIR__ . '/modules/payments.php';        // TODO: Revisar controllers
+require __DIR__ . '/modules/games/bingo.php';    // TODO: Revisar controllers
+require __DIR__ . '/modules/payments.php';        // TODO: Revisar controllers
 // require __DIR__ . '/modules/wallets.php';         // TODO: Revisar controllers
 // require __DIR__ . '/modules/reports.php';         // TODO: Revisar controllers
 
@@ -46,7 +46,7 @@ require __DIR__ . '/modules/commerce.php';        // TODO: Revisar controllers
 // UTILIDADES Y SERVICIOS
 // ====================================
 // require __DIR__ . '/modules/files.php';           // TODO: Revisar controllers
-// require __DIR__ . '/modules/utils.php';           // TODO: Revisar controllers
+require __DIR__ . '/modules/utils.php';           // TODO: Revisar controllers
 
 // ====================================
 // DESARROLLO Y DEMOS

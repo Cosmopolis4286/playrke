@@ -139,7 +139,7 @@ class BingoController extends Controller
         switch ($creator['type']) {
             case 'admin': // Admin
                 break;
-            case 'commerce_id': // Comercio
+            case 'commerce': // Comercio
                 $creatorId = $creator['id'];
 
                 $isLogin = true;
@@ -211,7 +211,7 @@ class BingoController extends Controller
         // Redirigir si no hay salas disponibles
         if (!count($rooms) && $creator['type'] === 'commerce_id') {
             return ['redirect' => route(
-                'bingo.handleGameRoomSummary',
+                'bingo.room-summary',
                 [
                     'roomType' => $roomType == 1 ? 'public-rooms' : 'private-rooms',
                     'creatorType' => 'commerce_id',
@@ -256,7 +256,7 @@ class BingoController extends Controller
 
         if (!$currency) {
             return redirect()->route(
-                'bingo.handleGameRoomSummary',
+                'bingo.room-summary',
                 [
                     'roomType' => $roomType === 'private' ? 'private-rooms' : 'public-rooms',
                     'creatorType' => 'commerce_id',
@@ -1064,7 +1064,7 @@ class BingoController extends Controller
                 );
 
                 $routeWithCurrency = [
-                    'route' => 'bingo.handleGameRoomSummary',
+                    'route' => 'bingo.room-summary',
                     'parameters' => [
                         'roomType' => $roomType,
                         'creatorType' => 'commerce_id',
@@ -1093,7 +1093,7 @@ class BingoController extends Controller
                 $customer = Customer::getById($creatorId, ['customer_id', 'token']);
 
                 $routeWithCurrency = [
-                    'route' => 'bingo.handleGameRoomSummary',
+                    'route' => 'bingo.room-summary',
                     'parameters' => [
                         'roomType' => $roomType,
                         'creatorType' => 'customer',
@@ -1214,7 +1214,7 @@ class BingoController extends Controller
 
         // Si falta la moneda, redirigir con moneda por defecto
         if (!$currency) {
-            return redirect()->route('bingo.handleGameRoomSummary', [
+            return redirect()->route('bingo.room-summary', [
                 'roomType' => $roomType,
                 'creatorType' => $creatorType,
                 'creatorId' => encrypt($creatorId),
@@ -1282,7 +1282,7 @@ class BingoController extends Controller
                 return response()->json(['message' => 'No se encontraron monedas registradas'], 404);
             }
 
-            return redirect()->route('bingo.handleGameRoomSummary', [
+            return redirect()->route('bingo.room-summary', [
                 'roomType' => $roomType,
                 'creatorType' => 'customer',
                 'creatorId' => $isLogin ? encrypt($customerId) : $customerId,
@@ -1303,7 +1303,7 @@ class BingoController extends Controller
             $currency = CustomerExchangeRate::getCustomerCurrencyValue($customerId, $currency, 'id');
 
             // Redirigir con la moneda correctamente formateada
-            return redirect()->route('bingo.handleGameRoomSummary', [
+            return redirect()->route('bingo.room-summary', [
                 'roomType' => $roomType,
                 'creatorType' => 'customer',
                 'creatorId' => $isLogin ? encrypt($customerId) : $customerId,
@@ -2695,7 +2695,7 @@ class BingoController extends Controller
         $creator = ['type' => $userData['type'], 'id' => encrypt($userData['id'])];
 
         $routeWithCurrency = [
-            'route' => 'bingo.handleGameRoomSummary',
+            'route' => 'bingo.room-summary',
             'parameters' => [
                 'roomType' => 'other-public-rooms',
                 'creatorType' => $userData['type'],
@@ -2728,7 +2728,7 @@ class BingoController extends Controller
     private function allOtherPublicRooms($creatorType, $creatorId, $currency = '')
     {
         if (!$currency) {
-            return redirect()->route('bingo.handleGameRoomSummary', [
+            return redirect()->route('bingo.room-summary', [
                 'roomType' => 'other-public-rooms',
                 'creatorType' => $creatorType,
                 'creatorId' => $creatorId,
@@ -3109,7 +3109,7 @@ class BingoController extends Controller
         $verifyCurrency = $this->verifyExistenceOfSales($userData, $currency, $dateFilter);
 
         if (isset($verifyCurrency['return'])) {
-            return redirect()->route('bingo.reportSalesRooms', [
+            return redirect()->route('bingo.sales-report', [
                 'currency' => $verifyCurrency['currency'],
                 'dateFilter' => 'all'
             ]);
@@ -3117,7 +3117,7 @@ class BingoController extends Controller
 
         $title = 'Reporte de Ventas';
         $routeWithCurrency = [
-            'route' => 'bingo.reportSalesRooms',
+            'route' => 'bingo.sales-report',
             'parameters' => ['currency' => $currency, 'dateFilter' => $dateFilter]
         ];
 
@@ -3341,7 +3341,7 @@ class BingoController extends Controller
 
         if (isset($verifyCurrency['return'])) {
             return redirect()->route(
-                'bingo.ctnsSold',
+                'bingo.cartons-sold',
                 ['currency' => $verifyCurrency['currency'], 'dateFilter' => 'all']
             );
         }
@@ -3350,7 +3350,7 @@ class BingoController extends Controller
         $moduleId = 'notify-payment-ctns-off';
 
         $routeWithCurrency = [
-            'route' => 'bingo.ctnsSold',
+            'route' => 'bingo.cartons-sold',
             'parameters' => ['currency' => $currency, 'dateFilter' => $dateFilter]
         ];
 
@@ -3441,7 +3441,7 @@ class BingoController extends Controller
         return view($view, $params);
     }
 
-    public function ctnsAwarded($type = 'private', $dateFilter = "today", $currency = '')
+    public function winners($type = 'private', $dateFilter = "today", $currency = '')
     {
         if (!in_array($type, ['private', 'public'])) {
             abort(404); // Retorna un error 404 Not Found
@@ -3453,7 +3453,7 @@ class BingoController extends Controller
 
         if (isset($verifyCurrency['return'])) {
             return redirect()->route(
-                'bingo.ctnsAwarded',
+                'bingo.winners',
                 [
                     'type' => $type,
                     'dateFilter' => 'all',
@@ -3463,7 +3463,7 @@ class BingoController extends Controller
         }
 
         $routeWithCurrency = [
-            'route' => 'bingo.ctnsAwarded',
+            'route' => 'bingo.winners',
             'parameters' => [
                 'type' => $type,
                 'dateFilter' => $dateFilter,

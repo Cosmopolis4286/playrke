@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers\Rewards;
 
-use App\Models\Rewards;
+use App\Http\Controllers\Controller;
+
 use App\Traits\Users\UserTrait;
 
 use Illuminate\Http\Request;

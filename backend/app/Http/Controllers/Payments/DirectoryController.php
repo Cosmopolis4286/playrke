@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Shared;
+namespace App\Http\Controllers\Payments;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankVenezuela;
@@ -13,17 +13,26 @@ use App\Models\Payments\Methods\Venezuela\PagoMovil;
 use App\Models\Payments\Methods\Colombia\ColombianPaymentAccount;
 use App\Models\Pix;
 use App\Repositories\User\Roles\RoleRepository;
+use App\Repositories\Users\Roles\Contracts\RoleRepositoryContract;
 use App\Traits\Users\UserTrait;
 
 class DirectoryController extends Controller
 {
     use UserTrait;
 
+
+    /**
+     * Constructor con inyección de dependencias
+     */
+    public function __construct(
+        //protected CommerceRepositoryContract $commerces,
+    ) {}
+
     public function index($countryCode)
     {
         $user = $this->user(['id', 'user_type']);
         $userId = $user->id;
-        $userRole = RoleRepository::getValueById($user->user_type, 'prefix');
+        $userRole = 22;
 
         if ($userRole === 'customer') {
             return redirect()->back();

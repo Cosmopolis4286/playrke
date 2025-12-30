@@ -7,7 +7,7 @@
         <x-template.sidebar.admin />
     @break
 
-    @case('commerce_id')
+    @case('commerce')
     @case('subsidiary')
         <x-template.sidebar.commerce />
     @break

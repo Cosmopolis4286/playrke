@@ -5,7 +5,7 @@ import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
 import { route } from '@/routes/commerceRoutes';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
-import { fillFormFromObject, clearValidationErrors } from '@/helpers/form/formHelpers';
+import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@/helpers/form/formHelpers';
 
 // Re-exportar route para que otros módulos puedan usarla directamente
 export { route };
@@ -78,7 +78,10 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
         selectedValues['currency'] = commerce?.currency_id ?? '';
         selectedValues['time-zone'] = user?.time_zone_id ?? '';
     } else {
-        // En modo creación, habilitar campos
+        // En modo creación, resetear formulario y ocultar contenedores dinámicos
+        resetFormAndContainers('commerce-form', ['container-currency', 'container-time-zone']);
+
+        // Habilitar campos de username y email
         usernameInput.readOnly = false;
         emailInput.readOnly = false;
     }
