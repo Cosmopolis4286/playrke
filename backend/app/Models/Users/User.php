@@ -96,6 +96,8 @@ class User extends Authenticatable implements MustVerifyEmail
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
+        'country_id' => 'string',
+        'time_zone_id' => 'string',
         'is_demo_user' => 'boolean',
         'email_verified_at' => 'datetime',
         'last_login_at' => 'datetime',

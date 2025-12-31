@@ -1,44 +1,40 @@
 import axios from 'axios';
 import type { Method } from 'axios';
 
+/**
+ * URL base del backend (Laravel)
+ * - API_BASE_URL apunta a /api
+ * - BACKEND_BASE_URL elimina /api para rutas web (Sanctum, login, logout)
+ */
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-const WEB_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+const BACKEND_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
 
 /**
- * Instancia Axios para llamadas a API REST.
- * Configurada con baseURL, timeout, y envío de cookies.
+ * Cliente principal para comunicar el frontend con el backend Laravel.
+ * Maneja:
+ * - Cookies (Sanctum)
+ * - CSRF
+ * - Autenticación por sesión
  */
-export const apiClient = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: 10000,
+export const backendClient = axios.create({
+    baseURL: BACKEND_BASE_URL,
     withCredentials: true,
+    timeout: 10000,
     headers: {
-        'Content-Type': 'application/json',
         Accept: 'application/json',
+        'Content-Type': 'application/json',
     },
 });
 
 /**
- * Instancia Axios para rutas web (sin /api), usada para CSRF, login, logout.
- */
-export const webClient = axios.create({
-    baseURL: WEB_BASE_URL,
-    timeout: 10000,
-    withCredentials: true,
-    headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-    },
-});
-
-/**
- * Obtiene el token CSRF desde Laravel Sanctum.
- * Llama a la ruta `/sanctum/csrf-cookie` para establecer la cookie CSRF.
+ * Solicita la cookie CSRF necesaria para Sanctum (SPA auth).
+ * Laravel responderá seteando la cookie XSRF-TOKEN.
+ *
  * @returns {Promise<void>}
  */
-export async function getCsrfToken(): Promise<void> {
+export async function getCsrfCookie(): Promise<void> {
     try {
-        await webClient.get('/sanctum/csrf-cookie');
+        await backendClient.get('/sanctum/csrf-cookie');
     } catch (error) {
         console.error('Error al obtener el token CSRF:', error);
         throw error;
@@ -56,11 +52,12 @@ export function clearAuthTokens(): void {
 
 /**
  * Obtiene el valor de una cookie por nombre.
- * @param {string} name - Nombre de la cookie.
- * @returns {string|null} Valor de la cookie o null si no existe.
+ *
+ * @param {string} name
+ * @returns {string | null}
  */
-export function getCookie(name: string): string | null {
-    const cookies = document.cookie ? document.cookie.split('; ') : [];
+function getCookie(name: string): string | null {
+    const cookies = document.cookie?.split('; ') ?? [];
     for (const cookie of cookies) {
         const [key, value] = cookie.split('=');
         if (key === name) return decodeURIComponent(value);
@@ -69,23 +66,31 @@ export function getCookie(name: string): string | null {
 }
 
 /**
- * Interceptor para agregar el token CSRF automáticamente a las solicitudes del apiClient.
+ * Interceptor REQUEST
+ * Inyecta automáticamente el token CSRF en cada request.
+ *
+ * ⚠️ Importante:
+ * No tipar manualmente `config` para evitar conflictos
+ * con `InternalAxiosRequestConfig` de Axios v1+
  */
-apiClient.interceptors.request.use(
+backendClient.interceptors.request.use(
     (config) => {
         const xsrfToken = getCookie('XSRF-TOKEN');
+
         if (xsrfToken) {
-            config.headers['X-XSRF-TOKEN'] = xsrfToken;
+            config.headers.set('X-XSRF-TOKEN', xsrfToken);
         }
+
         return config;
     },
     (error) => Promise.reject(error)
 );
 
 /**
- * Interceptor para manejar respuestas, principalmente errores 401 (no autorizado).
+ * Interceptor RESPONSE
+ * Maneja errores globales de autenticación.
  */
-apiClient.interceptors.response.use(
+backendClient.interceptors.response.use(
     (response) => response,
     (error) => {
         const originalRequest = error.config;
@@ -101,5 +106,4 @@ apiClient.interceptors.response.use(
 // Exportaciones adicionales
 export { axios, Method };
 
-// Exportación por defecto para importación sencilla
-export default apiClient;
+export default backendClient;

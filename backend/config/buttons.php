@@ -11,14 +11,14 @@
 */
 $defaultExtraButtons = [
     [
-        'action' => 'changeStatus',
+        'action' => 'change-status',
         'color' => 'btn-secondary',
         'disabled' => true,
         'icon' => 'fa-solid fa-repeat',
         'title' => 'Cambiar status',
     ],
     [
-        'action' => 'generatePassw',
+        'action' => 'change-password',
         'color' => 'bg-navy',
         'disabled' => true,
         'icon' => 'fa-solid fa-lock',

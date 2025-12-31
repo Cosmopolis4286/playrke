@@ -103,6 +103,8 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
             updateCurrency(commerce.country_id);
             updateTimeZones(commerce.country_id, String(user.time_zone_id));
 
+            console.log(user);
+
             // Esperar a que las opciones se carguen
             setTimeout(() => {
                 const currencySelect = document.getElementById('currency') as HTMLSelectElement;

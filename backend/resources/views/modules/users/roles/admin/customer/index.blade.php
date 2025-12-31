@@ -1,16 +1,9 @@
 <x-layouts.layout-online :title="$title" loadSelect2="true">
     {{-- Tabla de comercios --}}
-    <x-shared.table-with-selection :title="$title" :rows="$pageData['commerces']"
-        :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']"
-        :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
-        module-id="commerce-form" context="commerce"
-    />
+    <x-shared.table-with-selection :title="$title" :rows="$pageData['commerces']" :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']" :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
+        module-id="commerce-form" context="commerce" table-id="commerce-table" />
     {{-- Modal para formulario de comercio --}}
-    <x-shared.modal id="commerce-form" :form-view="'modules.users.roles.admin.commerce.form'" />
-    {{-- Modal de contraseña (si aplica) --}}
-    @if (session('pawss'))
-        <x-shared.modal title="Contraseña Vendedor" :value="session('pawss')" />
-    @endif
+    <x-shared.modal id="commerce-form" title="Comercio" form-view="modules.users.roles.admin.commerce.form" />
     {{-- Scripts globales solo una vez --}}
     @once
         @push('stack-scripts')

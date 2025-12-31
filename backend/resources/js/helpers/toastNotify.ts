@@ -43,3 +43,5 @@ export async function showToastConfirmAction(
 
     return result.isConfirmed;
 }
+
+export default Swal;

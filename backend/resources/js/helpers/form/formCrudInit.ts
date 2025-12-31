@@ -1,7 +1,7 @@
 // helpers/form/formCrudInit.ts
 import axios from '@/plugins/axios';
 import { ajaxStart } from '@/utils/loader';
-import { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
+import Swal, { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
 import type { OtherCase } from '@/helpers/module/types/moduleFormTypes';
 import { formCrudExports } from './formCrudLoadModule';
 import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form/fieldValidation';
@@ -168,12 +168,7 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
             ...getStatusChangeMessages(status, entityName),
             method: 'PUT',
         },
-        'changeStatus': {
-            routeName: 'changeStatus',
-            ...getStatusChangeMessages(status, entityName),
-            method: 'PUT',
-        },
-        'generatePassw': {
+        'change-password': {
             routeName: 'changePassword',
             text: `¿Deseas generar una nueva contraseña para este ${entityName}?`,
             icon: 'warning',
@@ -301,8 +296,6 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
 
             showToast(successMessage, 'success');
         }
-
-        setTimeout(() => window.location.reload(), 1000);
     } catch (error: any) {
         console.error(`Error al registrar la acción '${action}':`, error?.response?.data || error.message);
         showToast('Error al procesar la acción', 'error');
@@ -417,14 +410,14 @@ export function submitForm(formId: string, fields: string[] = []) {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(async (response) => {
-        const data = response.data;
+        .then(async (response) => {
+            const data = response.data;
 
-        // Si la respuesta incluye una contraseña, mostrar modal con botón de copiar
-        if (data.success && data.password) {
-            await Swal.fire({
-                title: 'Registro Exitoso',
-                html: `
+            // Si la respuesta incluye una contraseña, mostrar modal con botón de copiar
+            if (data.success && data.password) {
+                await Swal.fire({
+                    title: 'Registro Exitoso',
+                    html: `
                     <div style="text-align: left;">
                         <p>${data.message || '✅ Comercio creado exitosamente'}</p>
                         <p style="margin-top: 15px;"><strong>Contraseña generada:</strong></p>
@@ -442,53 +435,53 @@ export function submitForm(formId: string, fields: string[] = []) {
                         </p>
                     </div>
                 `,
-                icon: 'success',
-                confirmButtonText: 'Entendido',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    const copyBtn = document.getElementById('copy-password-btn');
-                    const password = data.password;
+                    icon: 'success',
+                    confirmButtonText: 'Entendido',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        const copyBtn = document.getElementById('copy-password-btn');
+                        const password = data.password;
 
-                    if (copyBtn) {
-                        copyBtn.addEventListener('click', async () => {
-                            try {
-                                await navigator.clipboard.writeText(password);
+                        if (copyBtn) {
+                            copyBtn.addEventListener('click', async () => {
+                                try {
+                                    await navigator.clipboard.writeText(password);
 
-                                const btnText = copyBtn.querySelector('span');
-                                const btnIcon = copyBtn.querySelector('i');
+                                    const btnText = copyBtn.querySelector('span');
+                                    const btnIcon = copyBtn.querySelector('i');
 
-                                if (btnText && btnIcon) {
-                                    btnIcon.className = 'fas fa-check';
-                                    btnText.textContent = 'Copiado';
-                                    copyBtn.style.backgroundColor = '#10b981';
+                                    if (btnText && btnIcon) {
+                                        btnIcon.className = 'fas fa-check';
+                                        btnText.textContent = 'Copiado';
+                                        copyBtn.style.backgroundColor = '#10b981';
 
-                                    setTimeout(() => {
-                                        btnIcon.className = 'fas fa-copy';
-                                        btnText.textContent = 'Copiar';
-                                        copyBtn.style.backgroundColor = '#6366f1';
-                                    }, 2000);
+                                        setTimeout(() => {
+                                            btnIcon.className = 'fas fa-copy';
+                                            btnText.textContent = 'Copiar';
+                                            copyBtn.style.backgroundColor = '#6366f1';
+                                        }, 2000);
+                                    }
+                                } catch (err) {
+                                    console.error('Error al copiar:', err);
+                                    showToast('Error al copiar la contraseña', 'error');
                                 }
-                            } catch (err) {
-                                console.error('Error al copiar:', err);
-                                showToast('Error al copiar la contraseña', 'error');
-                            }
-                        });
+                            });
+                        }
                     }
-                }
-            });
-        } else if (data.success) {
-            showToast(data.message || 'Operación exitosa', 'success');
-        }
+                });
+            } else if (data.success) {
+                showToast(data.message || 'Operación exitosa', 'success');
+            }
 
-        // Recargar la página después de cerrar el modal
-        setTimeout(() => window.location.reload(), 1000);
-    })
-    .catch((error) => {
-        console.error('Error al enviar formulario:', error);
-        const message = error.response?.data?.message || 'Error al procesar la solicitud';
-        showToast(message, 'error');
-    });
+            // Recargar la página después de cerrar el modal
+            setTimeout(() => window.location.reload(), 1000);
+        })
+        .catch((error) => {
+            console.error('Error al enviar formulario:', error);
+            const message = error.response?.data?.message || 'Error al procesar la solicitud';
+            showToast(message, 'error');
+        });
 }
 
 /**

@@ -80,7 +80,7 @@ class AdminController extends Controller
      */
     public function customers(): View
     {
-        return view('modules.admin.customer.index', [
+        return view('modules.users.roles.admin.customer.index', [
             'title'      => 'Clientes',
             'name'       => 'admin-customer',
             'customers'  => $this->customers->getAllWithRelations([
@@ -98,7 +98,7 @@ class AdminController extends Controller
      */
     public function treasurers(): View
     {
-        return view('modules.admin.treasurer.index', [
+        return view('modules.users.roles.admin.treasurer.index', [
             'title'      => 'Tesoreros',
             'name'       => 'admin-treasurer',
             'others'     => false,

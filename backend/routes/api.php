@@ -28,16 +28,26 @@ use App\Http\Controllers\Api\Auth\DemoCredentialsController;
 // PUBLIC ROUTES
 //
 
-// Información del usuario actual (si está autenticado)
 Route::middleware('web')->get('user', [AuthController::class, 'user'])->name('api.user');
 
-// Auth (Login / Register / Reset)
 Route::middleware('web')->prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('api.auth.login');
     Route::post('register', [AuthController::class, 'register'])->name('api.auth.register');
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
     Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('api.auth.reset-password');
 });
+
+Route::prefix('api')->group(function () {
+    // Auth (Login / Register / Reset)
+    Route::prefix('auth')->group(function () {
+        Route::post('login', [AuthController::class, 'login']);
+        Route::post('register', [AuthController::class, 'register']);
+        Route::post('logout', [AuthController::class, 'logout']);
+    });
+
+    Route::middleware('auth')->get('user', [AuthController::class, 'user']);
+});
+
 
 // Demo credentials (solo en local)
 // Route::middleware('web')->get('demo-credentials', [DemoCredentialsController::class, 'index'])

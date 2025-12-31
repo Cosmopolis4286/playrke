@@ -1,67 +1,74 @@
 <template>
-    <AuthLayout :title="'Iniciar sesión'">
-        <!-- Contenido para el slot "logo-text" -->
+    <AuthLayout title="Iniciar sesión">
         <template #logo-text>
             Ingresa a tu cuenta
         </template>
 
-        <!-- Formulario de inicio de sesión -->
         <template #auth-form>
-            <form @submit.prevent="submitForm">
+            <form @submit.prevent="submit">
                 <div>
-                    <label for="login">Correo Electrónico</label>
-                    <input v-model="login" id="login" type="text" required />
+                    <label for="login">Correo electrónico</label>
+                    <input id="login" v-model="login" type="text" autocomplete="username" required />
                 </div>
 
                 <div>
                     <label for="password">Contraseña</label>
-                    <input v-model="password" id="password" type="password" required />
+                    <input id="password" v-model="password" type="password" autocomplete="current-password" required />
                 </div>
 
-                <button type="submit">Iniciar sesión</button>
+                <button type="submit" :disabled="loading">
+                    {{ loading ? 'Ingresando…' : 'Iniciar sesión' }}
+                </button>
             </form>
         </template>
 
-        <!-- Contenido para el slot "footer-info" -->
         <template #footer-info>
-            <p class="text-center">¿No tienes cuenta?</p>
+            <p class="text-center">
+                ¿No tienes cuenta?
+                <NuxtLink to="/auth/register">Regístrate</NuxtLink>
+            </p>
         </template>
     </AuthLayout>
 </template>
 
 <script setup lang="ts">
-import AuthLayout from '@/Layouts/AuthLayout.vue';
-import { ref } from 'vue';
-import { apiClient, getCsrfToken } from '@/plugins/axios'; // Usa apiClient y getCsrfToken importados
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import AuthLayout from '@/Layouts/AuthLayout.vue'
+import backendClient, { getCsrfCookie } from '@/plugins/axios'
 
-const login = ref('');
-const password = ref('');
+const router = useRouter()
 
-// Props del componente
-defineProps<{
-    register: boolean;
-    loginUrl: string;
-    passwordRequestUrl: string;
-    registerUrl: string;
-}>();
+const login = ref('')
+const password = ref('')
+const loading = ref(false)
 
-const submitForm = async () => {
+/**
+ * Envío del formulario de login
+ * - Obtiene CSRF (Sanctum)
+ * - Ejecuta login por sesión
+ * - Redirige al dashboard
+ */
+const submit = async () => {
+    if (loading.value) return
+
+    loading.value = true
+
     try {
-        // Obtener token CSRF antes de login
-        await getCsrfToken();
+        // Necesario SOLO para login / register
+        await getCsrfCookie()
 
-        // Llamada al endpoint de login usando apiClient configurado
-        const response = await apiClient.post('/auth/login', {
+        await backendClient.post('/api/auth/login', {
             login: login.value,
             password: password.value,
-        });
+        })
 
-        // Redirigir al dashboard o url que venga en la respuesta
-        window.location.href = response.data.redirectUrl || '/dashboard';
-
-    } catch (error) {
-        console.error('Error al iniciar sesión:', error);
-        // Aquí puedes manejar el error para mostrar mensaje en UI
+        router.push('/dashboard')
+    } catch (error: any) {
+        console.error('Error de login', error)
+        alert('Credenciales inválidas')
+    } finally {
+        loading.value = false
     }
-};
+}
 </script>

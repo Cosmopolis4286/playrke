@@ -7,8 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Roles\CommerceRequest;
 use App\Services\User\Roles\Commerce\CommerceService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
 
 /**
  * Controlador HTTP para la gestión de Comercios (Commerce).
@@ -50,10 +53,10 @@ class CommerceController extends Controller
      *
      * @param CommerceRequest $request
      * @param int $id
-     * @param CommerceUpdateService $service
+     * @param CommerceService $service
      * @return RedirectResponse
      */
-    public function update(CommerceRequest $request, int $id, CommerceUpdateService $service): RedirectResponse
+    public function update(CommerceRequest $request, int $id, CommerceService $service): RedirectResponse
     {
         return $this->handleService(function () use ($request, $service, $id) {
             $service->update($request->toDTO(), $id);
@@ -86,7 +89,7 @@ class CommerceController extends Controller
             $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')->findOrFail($realId);
 
             // Usar transacción para eliminar todo
-            \DB::transaction(function () use ($commerce) {
+            DB::transaction(function () use ($commerce) {
                 $user = $commerce->user;
 
                 // 1. Eliminar relaciones many-to-many del commerce
@@ -140,7 +143,7 @@ class CommerceController extends Controller
             }
 
             // Usar transacción para asegurar consistencia
-            \DB::transaction(function () use ($commerce, $newStatus) {
+            DB::transaction(function () use ($commerce, $newStatus) {
                 // Cambiar estado del usuario asociado
                 $commerce->user->update(['status' => $newStatus]);
 
@@ -148,7 +151,7 @@ class CommerceController extends Controller
                 $commerce->update(['status' => $newStatus]);
             });
 
-            $message = match($newStatus) {
+            $message = match ($newStatus) {
                 'DELETED' => "✅ Comercio eliminado correctamente",
                 'ACTIVE' => "✅ Comercio activado correctamente",
                 'INACTIVE' => "✅ Comercio desactivado correctamente",
@@ -187,11 +190,11 @@ class CommerceController extends Controller
             $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')->findOrFail($realId);
 
             // Generar una nueva contraseña aleatoria
-            $newPassword = \Str::random(12);
+            $newPassword = Str::random(12);
 
             // Actualizar la contraseña del usuario
             $commerce->user->update([
-                'password' => \Hash::make($newPassword)
+                'password' => Hash::make($newPassword)
             ]);
 
             return response()->json([
