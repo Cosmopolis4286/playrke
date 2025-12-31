@@ -167,8 +167,19 @@ function role_protected_routes(
     array $routes
 ): void {
     $middleware = array_merge(['auth'], $roles);
-    route_group($prefix, "{$prefix}.", $middleware, $controller, $routes);
+
+    // Convertir admin/commerce → admin.commerce
+    $namePrefix = str_replace('/', '.', trim($prefix, '/')) . '.';
+
+    route_group(
+        $prefix,
+        $namePrefix,
+        $middleware,
+        $controller,
+        $routes
+    );
 }
+
 
 /**
  * Define rutas condicionales por entorno

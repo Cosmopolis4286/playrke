@@ -9,8 +9,6 @@ use App\Http\Controllers\Payments\PaymentController;
 use App\Http\Controllers\User\ReportsController;
 use Illuminate\Support\Facades\Route;
 
-require_once app_path('Helpers/RouteHelper.php');
-
 /*
 |--------------------------------------------------------------------------
 | Rutas de Métodos de Pago

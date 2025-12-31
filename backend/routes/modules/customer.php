@@ -1,8 +1,6 @@
 <?php
 
-use App\Http\Controllers\CustomerController;
-
-require_once app_path('Helpers/RouteHelper.php');
+use App\Http\Controllers\User\Roles\CustomerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,6 +12,7 @@ require_once app_path('Helpers/RouteHelper.php');
 // ====================================
 // API CLIENTE (SEAMLESS WALLET)
 // ====================================
+
 role_protected_routes(['customer'], 'customer', CustomerController::class, [
     'balance' => ['method' => 'get', 'uri' => 'balance/{userToken}'],
     'user-id' => ['method' => 'get', 'uri' => 'user-id/{userToken}'],

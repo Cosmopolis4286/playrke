@@ -6,8 +6,6 @@ use App\Http\Controllers\Games\GameController;
 use App\Http\Controllers\Rewards\RewardsController;
 use Illuminate\Support\Facades\Route;
 
-require_once app_path('Helpers/RouteHelper.php');
-
 /*
 |--------------------------------------------------------------------------
 | Rutas de Utilidades Generales

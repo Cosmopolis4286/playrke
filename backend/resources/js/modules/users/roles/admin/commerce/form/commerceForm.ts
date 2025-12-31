@@ -28,13 +28,13 @@ export const otherCasesMap: Record<string, {
     confirmButtonText: string;
     method?: 'PUT' | 'DELETE';
 }> = {
-    '5': {
-        routeName: 'changePassw',
-        text: 'Generar nueva contraseña a este comercio',
-        icon: 'info',
-        confirmButtonText: 'Sí, generar',
-        method: 'PUT',
-    },
+    // '5': {
+    //     routeName: 'changePassw',
+    //     text: 'Generar nueva contraseña a este comercio',
+    //     icon: 'info',
+    //     confirmButtonText: 'Sí, generar',
+    //     method: 'PUT',
+    // },
 };
 
 // ==========================

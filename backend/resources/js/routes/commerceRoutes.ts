@@ -8,12 +8,12 @@
 import { route as baseRoute } from './helper.js';
 
 export const commerceRoutes = {
-    "store": "/commerce",
-    "show": "/commerce/{id}",
-    "update": "/commerce/{id}",
-    "destroy": "/commerce/{id}",
-    "changePassword": "/commerce/{id}/password",
-    "changeStatus": "/commerce/{id}/status",
+    "store": "/admin/commerce",
+    "show": "/admin/commerce/{id}",
+    "update": "/admin/commerce/{id}",
+    "destroy": "/admin/commerce/{id}",
+    "changePassword": "/admin/commerce/{id}/password",
+    "changeStatus": "/admin/commerce/{id}/status",
     "rewards": "/commerce/rewards",
     "sellers": "/commerce/sellers",
     "currency-by-country": "/commerce/seller/currency/{country}/{seller}",
@@ -39,7 +39,7 @@ export function getRoute(name, params) {
 
     if (params) {
         Object.entries(params).forEach(([key, value]) => {
-            url = url.replace(new RegExp("{"+key+"\??}", "g"), String(value));
+            url = url.replace(new RegExp("{" + key + "\??}", "g"), String(value));
         });
     }
 

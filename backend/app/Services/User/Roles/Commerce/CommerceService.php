@@ -31,7 +31,7 @@ class CommerceService
     public function create(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            $password = $this->change-passwordord();
+            $password = $this->changePassword();
 
             // 👤 Crear usuario
             $user = $this->createUser($data, $password);
@@ -52,7 +52,7 @@ class CommerceService
         });
     }
 
-    private function change-passwordord(): string
+    private function changePassword(): string
     {
         return bin2hex(random_bytes(4));
     }

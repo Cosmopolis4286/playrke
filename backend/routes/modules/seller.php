@@ -3,8 +3,6 @@
 use App\Http\Controllers\Games\Bingo\BingoController;
 use App\Http\Controllers\User\Roles\SellerController;
 
-require_once app_path('Helpers/RouteHelper.php');
-
 /*
 |--------------------------------------------------------------------------
 | Rutas de Vendedores/Agencias/Taquillas

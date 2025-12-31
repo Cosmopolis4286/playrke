@@ -1,9 +1,8 @@
 <?php
 
-use App\Http\Controllers\{WalletController, BinanceController};
+use App\Http\Controllers\Wallets\Crypto\BinanceController;
+use App\Http\Controllers\Wallets\WalletController;
 use Illuminate\Support\Facades\Route;
-
-require_once app_path('Helpers/RouteHelper.php');
 
 /*
 |--------------------------------------------------------------------------

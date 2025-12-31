@@ -1,9 +1,7 @@
 <?php
 
-use App\Http\Controllers\OtherTreasurersController;
+use App\Http\Controllers\User\Roles\Treasurer\OtherTreasurersController;
 use Illuminate\Support\Facades\Route;
-
-require_once app_path('Helpers/RouteHelper.php');
 
 /*
 |--------------------------------------------------------------------------

@@ -218,6 +218,8 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
                 routeFnExists: !!routeFn
             });
 
+            console.log(`🚀 Enviando petición para ID '${id}' con método '${caseData.method ?? 'PUT'}' a la URL:`, url);
+
             return axios.request({
                 method: (caseData.method ?? 'PUT').toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch',
                 url,
@@ -319,6 +321,8 @@ async function getInfo(encryptId: string): Promise<void> {
 
     try {
         const url = routeFn('show', { id: encryptId });
+
+        console.log('url', url);
 
         const response = await axios.get(url);
         const payload = response.data?.data;

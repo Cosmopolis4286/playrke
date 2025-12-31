@@ -1,8 +1,7 @@
 <?php
 
-use App\Http\Controllers\{FileController, IframeController};
-
-require_once app_path('Helpers/RouteHelper.php');
+use App\Http\Controllers\Utils\FileController;
+use App\Http\Controllers\Utils\IframeController;
 
 /*
 |--------------------------------------------------------------------------

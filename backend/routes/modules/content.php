@@ -1,10 +1,6 @@
 <?php
 
-use App\Http\Controllers\Shared\DirectoryController;
 use App\Http\Controllers\Shared\InformationController;
-use Illuminate\Support\Facades\Route;
-
-require_once app_path('Helpers/RouteHelper.php');
 
 /*
 |--------------------------------------------------------------------------

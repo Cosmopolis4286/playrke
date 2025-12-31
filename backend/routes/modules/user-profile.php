@@ -2,8 +2,6 @@
 
 use App\Http\Controllers\User\{ProfileController, ReferralController};
 
-require_once app_path('Helpers/RouteHelper.php');
-
 /*
 |--------------------------------------------------------------------------
 | Rutas de Perfil de Usuario

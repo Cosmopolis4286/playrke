@@ -2,8 +2,6 @@
 
 use App\Http\Controllers\ReportsController;
 
-require_once app_path('Helpers/RouteHelper.php');
-
 /*
 |--------------------------------------------------------------------------
 | Rutas de Reportes y Estadísticas
