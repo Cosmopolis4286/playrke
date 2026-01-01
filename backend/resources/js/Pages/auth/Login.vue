@@ -25,23 +25,26 @@
         <template #footer-info>
             <p class="text-center">
                 ¿No tienes cuenta?
-                <NuxtLink to="/auth/register">Regístrate</NuxtLink>
+                <a href="/register" class="text-primary">Regístrate</a>
             </p>
         </template>
     </AuthLayout>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import AuthLayout from '@/Layouts/AuthLayout.vue'
 import backendClient, { getCsrfCookie } from '@/plugins/axios'
-
-const router = useRouter()
 
 const login = ref('')
 const password = ref('')
 const loading = ref(false)
+let isSubmitting = false // Flag adicional para prevenir dobles llamadas
+
+// Log para detectar múltiples montajes del componente
+onMounted(() => {
+    console.log('🔵 Componente Login montado')
+})
 
 /**
  * Envío del formulario de login
@@ -50,25 +53,34 @@ const loading = ref(false)
  * - Redirige al dashboard
  */
 const submit = async () => {
-    if (loading.value) return
+    // Doble protección contra envíos duplicados
+    if (loading.value || isSubmitting) {
+        console.warn('⚠️ Login ya en proceso, ignorando intento duplicado')
+        return
+    }
 
     loading.value = true
+    isSubmitting = true
 
     try {
         // Necesario SOLO para login / register
         await getCsrfCookie()
 
-        await backendClient.post('/api/auth/login', {
+        const response = await backendClient.post('/api/auth/login', {
             login: login.value,
             password: password.value,
         })
 
-        router.push('/dashboard')
+        console.log('✅ Login exitoso:', response.status)
+
+        // Redirección completa del navegador para inicializar la sesión correctamente
+        window.location.href = '/dashboard'
     } catch (error: any) {
-        console.error('Error de login', error)
+        console.error('❌ Error de login:', error)
         alert('Credenciales inválidas')
     } finally {
         loading.value = false
+        isSubmitting = false
     }
 }
 </script>

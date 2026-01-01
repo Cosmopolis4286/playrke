@@ -9,6 +9,12 @@ import { onDOMReady } from '@/utils/domReady';
 const moduleCache: Record<string, Promise<any>> = {};
 
 /**
+ * Pre-cargar todos los módulos posibles usando import.meta.glob
+ * Esto permite a Vite procesar correctamente los imports para producción
+ */
+const modules = import.meta.glob<Record<string, any>>('@/modules/**/*.ts', { eager: false });
+
+/**
  * loadModule.ts
  * Permite cargar cualquier módulo dentro de /resources/js/ usando rutas "relativas al root" (resources/js)
  * desde cualquier archivo que llame a loadModule, evitando problemas de rutas relativas y duplicación de imports.
@@ -35,17 +41,29 @@ export async function loadModule<T = Record<string, any>>(
     const loadPromise = (async () => {
         try {
             // Normalizar extensión
-            const path = modulePath.endsWith('.ts') ? modulePath : `${modulePath}.ts`;
+            const cleanPath = modulePath.replace(/\.ts$/, '');
+            const pathWithTs = cleanPath + '.ts';
 
-            // Resolver ruta absoluta relativa a /resources/js
-            const resolvedPath = `/resources/js/${path}`;
+            // Buscar el módulo en el glob
+            const moduleKey = Object.keys(modules).find(key => {
+                // Normalizar la key del glob (puede venir como @/ o /resources/js/)
+                const normalizedKey = key
+                    .replace(/^\/@\//, '')
+                    .replace(/^@\//, '')
+                    .replace(/^\/resources\/js\//, '');
+                return normalizedKey === pathWithTs;
+            });
 
-            if (import.meta.env.DEV) {
-                console.log(`📦 Importando módulo dinámico: ${resolvedPath}`);
+            if (!moduleKey) {
+                throw new Error(`Módulo no encontrado: ${pathWithTs}. Rutas disponibles: ${Object.keys(modules).join(', ')}`);
             }
 
-            // Import dinámico con @vite-ignore para que Vite no lo resuelva en compile time
-            const imported = (await import(/* @vite-ignore */ resolvedPath)) as Record<string, any>;
+            if (import.meta.env.DEV) {
+                console.log(`📦 Importando módulo dinámico: ${moduleKey}`);
+            }
+
+            // Importar usando el glob pre-cargado
+            const imported = await modules[moduleKey]();
             const mod: T = (imported.default ?? imported) as T;
 
             // Ejecutar función de inicialización si existe

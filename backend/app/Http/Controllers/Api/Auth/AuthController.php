@@ -23,6 +23,14 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
+        // Log para detectar llamadas duplicadas
+        \Log::info('📥 Login request received', [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+            'request_id' => $request->header('X-Request-ID') ?? uniqid(),
+        ]);
+
         try {
             // Authenticate the user
             $request->authenticate();

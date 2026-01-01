@@ -210,15 +210,26 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
 
         // Procesar cada ID seleccionado
         const promises = idsToProcess.map(async (id) => {
-            const url = routeFn?.(caseData.routeName, { id }) ?? '';
+            const fullUrl = routeFn?.(caseData.routeName, { id }) ?? '';
+
+            // Convertir URL absoluta a relativa para evitar conflictos con baseURL de axios
+            const url = fullUrl.replace(/^https?:\/\/[^\/]+/, '');
+
             console.log(`🔍 Generando URL para acción '${action}':`, {
                 routeName: caseData.routeName,
                 id,
+                fullUrl,
                 url,
                 routeFnExists: !!routeFn
             });
 
             console.log(`🚀 Enviando petición para ID '${id}' con método '${caseData.method ?? 'PUT'}' a la URL:`, url);
+            console.log('📦 Axios config:', {
+                method: (caseData.method ?? 'PUT').toLowerCase(),
+                url,
+                data: requestData,
+                baseURL: axios.defaults.baseURL
+            });
 
             return axios.request({
                 method: (caseData.method ?? 'PUT').toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch',

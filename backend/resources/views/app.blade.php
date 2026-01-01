@@ -9,17 +9,7 @@
 </head>
 
 <body class="antialiased">
-    @php
-        $layout = $page['props']['layout'] ?? 'layouts.layout-online'; // Default layout
-    @endphp
-
-    @if ($layout === 'layouts.layout-auth')
-        @inertia
-    @else
-        <x-dynamic-component :component="$layout" :title="$title ?? null" :loadDataTables="$loadDataTables ?? true" :loadSelect2="$loadSelect2 ?? false">
-            @inertia
-        </x-dynamic-component>
-    @endif
+    @inertia
 </body>
 
 </html>

@@ -4,10 +4,13 @@ import type { Method } from 'axios';
 /**
  * URL base del backend (Laravel)
  * - API_BASE_URL apunta a /api
- * - BACKEND_BASE_URL elimina /api para rutas web (Sanctum, login, logout)
+ * - BACKEND_BASE_URL se deja vacío para usar URLs relativas (mismo dominio)
+ *
+ * NOTA: Como la app Blade y el backend Laravel corren en el mismo servidor,
+ * usamos URLs relativas sin baseURL para evitar problemas de CORS.
  */
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-const BACKEND_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+const BACKEND_BASE_URL = ''; // Usar URLs relativas
 
 /**
  * Cliente principal para comunicar el frontend con el backend Laravel.
@@ -81,6 +84,14 @@ backendClient.interceptors.request.use(
             config.headers.set('X-XSRF-TOKEN', xsrfToken);
         }
 
+        // Log de debug para detectar llamadas duplicadas
+        if (import.meta.env.DEV && config.url?.includes('/api/auth/')) {
+            console.log(`📤 Request: ${config.method?.toUpperCase()} ${config.url}`, {
+                retry: config._retry,
+                timestamp: new Date().toISOString()
+            });
+        }
+
         return config;
     },
     (error) => Promise.reject(error)
@@ -94,11 +105,16 @@ backendClient.interceptors.response.use(
     (response) => response,
     (error) => {
         const originalRequest = error.config;
-        if (error.response?.status === 401 && !originalRequest._retry) {
+
+        // NO reintentar rutas de autenticación para evitar duplicaciones
+        const isAuthRoute = originalRequest?.url?.includes('/api/auth/');
+
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
             originalRequest._retry = true;
             clearAuthTokens();
             window.location.href = '/auth/login';
         }
+
         return Promise.reject(error);
     }
 );

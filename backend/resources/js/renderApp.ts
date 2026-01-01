@@ -18,6 +18,9 @@ const pages = import.meta.glob<{ default: DefineComponent }>(
     './Pages/**/*.vue'
 )
 
+// Cache para prevenir resoluciones duplicadas
+const resolveCache = new Map<string, Promise<DefineComponent>>()
+
 // ─────────────────────────────────────────────────────────────
 // Page Not Found (TIPO FIJO)
 // ─────────────────────────────────────────────────────────────
@@ -42,6 +45,10 @@ const PageNotFound: DefineComponent = defineComponent({
 // ─────────────────────────────────────────────────────────────
 // Inertia App
 // ─────────────────────────────────────────────────────────────
+if (import.meta.env.DEV) {
+    console.log('🔵 Inicializando Inertia App')
+}
+
 createInertiaApp({
     /**
      * Resolver dinámico de páginas
@@ -50,16 +57,27 @@ createInertiaApp({
      */
     resolve: async (name): Promise<DefineComponent> => {
         const path = `./Pages/${name}.vue`
+
+        // Verificar si ya estamos resolviendo esta página
+        if (resolveCache.has(path)) {
+            console.log(`♻️ Usando cache para: ${path}`)
+            return resolveCache.get(path)!
+        }
+
+        console.log(`📄 Resolviendo página (primera vez): ${path}`)
+
         const loader = pages[path]
 
-        console.log(path)
         if (!loader) {
             console.error(`[Inertia] Página no encontrada: ${name}`)
             return PageNotFound
         }
 
-        const module = await loader()
-        return module.default
+        // Cachear la promesa
+        const loadPromise = loader().then(module => module.default)
+        resolveCache.set(path, loadPromise)
+
+        return loadPromise
     },
 
     /**
