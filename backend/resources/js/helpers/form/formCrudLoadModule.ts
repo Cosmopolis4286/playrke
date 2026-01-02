@@ -69,7 +69,7 @@ function setupTableListener(): void {
     if (!_tableId) return;
 
     // Importación dinámica para registrar el listener de tabla
-    import('./formCrudInit').then(({ registerTableListener }) => {
+    import('@/helpers/form/formCrudInit').then(({ registerTableListener }) => {
         registerTableListener(_tableId);
     });
 }
@@ -85,7 +85,7 @@ function setupListeners(): void {
 
             // Importación dinámica para evitar dependencia circular
             if (target.closest('#btn-confirm')) {
-                import('./formCrudInit').then(({ submitForm }) => {
+                import('@/helpers/form/formCrudInit').then(({ submitForm }) => {
                     submitForm(_moduleId, _requiredFields);
                 });
             }

@@ -418,7 +418,7 @@ onUnmounted(() => {
 
 /* Modal Footer */
 .auth__modal-footer {
-  @apply flex items-center justify-end space-x-3 p-6 border-t border-gray-600 bg-gray-750;
+  @apply flex items-center justify-end space-x-3 p-6 border-t border-gray-600 bg-gray-700;
 }
 
 /* Transitions */

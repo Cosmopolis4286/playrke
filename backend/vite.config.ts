@@ -14,11 +14,12 @@ import { visualizer } from 'rollup-plugin-visualizer';
 // ---------------------------------------------
 const cssFiles = [
     'resources/css/global/styles.css',
-    'resources/css/global/loader.css'
+    'resources/css/global/loader.css',
+    'resources/css/global/auth-pages.css'
 ];
 
 // ---------------------------------------------
-// Función recursiva para recoger todos .ts y .js en resources/js y subcarpetas
+// Función recursiva para recoger todos .ts, .js y .vue en resources/js y subcarpetas
 // ---------------------------------------------
 function getAllJsTsFiles(dir: string, baseDir: string = dir): string[] {
     let results: string[] = [];
@@ -32,10 +33,17 @@ function getAllJsTsFiles(dir: string, baseDir: string = dir): string[] {
 
         if (file.isDirectory()) {
             results = results.concat(getAllJsTsFiles(fullPath, baseDir));
-        } else if (file.isFile() && (file.name.endsWith('.js') || file.name.endsWith('.ts'))) {
+        } else if (file.isFile() && (file.name.endsWith('.js') || file.name.endsWith('.ts') || file.name.endsWith('.vue'))) {
             // Convertir a ruta relativa desde baseDir y con separadores Unix
             const relativePath = path.relative(baseDir, fullPath).split(path.sep).join('/');
-            results.push(`resources/js/${relativePath}`);
+            const fullRelativePath = `resources/js/${relativePath}`;
+
+            // Excluir OnlineLayout.vue (no usado - app usa Blade layouts)
+            if (fullRelativePath.includes('Layouts/OnlineLayout.vue')) {
+                continue;
+            }
+
+            results.push(fullRelativePath);
         }
     }
 
@@ -43,12 +51,12 @@ function getAllJsTsFiles(dir: string, baseDir: string = dir): string[] {
 }
 
 // ---------------------------------------------
-// Recoge todos los archivos JS/TS bajo resources/js
+// Recoge todos los archivos JS/TS/Vue bajo resources/js
 // ---------------------------------------------
 const allJsTsFiles = getAllJsTsFiles(path.resolve(__dirname, 'resources/js'));
 
 // ---------------------------------------------
-// Inputs completos para Vite: CSS + todos JS/TS
+// Inputs completos para Vite: CSS + todos JS/TS/Vue
 // ---------------------------------------------
 const inputs = [...cssFiles, ...allJsTsFiles];
 

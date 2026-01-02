@@ -77,19 +77,28 @@ class AdminController extends Controller
 
     /**
      * Vista de clientes
+     *
+     * Retorna la vista con todos los clientes y los datos necesarios
+     * para el formulario (países, monedas, zonas horarias, juegos).
      */
     public function customers(): View
     {
+        $customers = $this->customers->getAllWithRelations([
+            'country:id,name',
+            'user:id,email',
+        ]);
+
         return view('modules.users.roles.admin.customer.index', [
-            'title'      => 'Clientes',
-            'name'       => 'admin-customer',
-            'customers'  => $this->customers->getAllWithRelations([
-                'country:id,name',
-                'user:id,email'
-            ]),
-            'countries'  => $this->countries->getActive(),
-            'timeZones'  => $this->timeZones->getActive(),
-            'currencies' => $this->currencies->getActive(),
+            'title' => 'Clientes',
+            'pageData' => [
+                'currencies' => $this->currencies->getActive(),
+                'customers'  => $customers,
+                'countries'  => $this->countries->getActive(),
+                'games'      => $this->games->getActive(),
+                'timeZones'  => $this->timeZones->getActive(),
+                'enableFormCrud' => true,
+                'moduleFile' => 'modules/users/roles/customer/form/customerForm.ts',
+            ]
         ]);
     }
 
