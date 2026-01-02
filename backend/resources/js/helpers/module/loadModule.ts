@@ -11,8 +11,13 @@ const moduleCache: Record<string, Promise<any>> = {};
 /**
  * Pre-cargar todos los módulos posibles usando import.meta.glob
  * Esto permite a Vite procesar correctamente los imports para producción
+ *
+ * IMPORTANTE: Usamos el alias @/ que apunta a /resources/js/
+ * Vite procesa correctamente estos paths en build
  */
-const modules = import.meta.glob<Record<string, any>>('@/modules/**/*.ts', { eager: false });
+const modules = import.meta.glob<Record<string, any>>('@/modules/**/*.ts', {
+    eager: false
+});
 
 /**
  * loadModule.ts
@@ -45,12 +50,13 @@ export async function loadModule<T = Record<string, any>>(
             const pathWithTs = cleanPath + '.ts';
 
             // Buscar el módulo en el glob
+            // Las keys del glob pueden venir con diferentes prefijos según el entorno:
+            // - Desarrollo: @/modules/...
+            // - Producción: /resources/js/modules/...
             const moduleKey = Object.keys(modules).find(key => {
-                // Normalizar la key del glob (puede venir como @/ o /resources/js/)
                 const normalizedKey = key
-                    .replace(/^\/@\//, '')
-                    .replace(/^@\//, '')
-                    .replace(/^\/resources\/js\//, '');
+                    .replace(/^@\//, '')                    // Quita @/
+                    .replace(/^\/resources\/js\//, '');    // Quita /resources/js/
                 return normalizedKey === pathWithTs;
             });
 

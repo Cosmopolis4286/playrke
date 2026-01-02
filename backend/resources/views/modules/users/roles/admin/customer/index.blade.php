@@ -1,9 +1,9 @@
 <x-layouts.layout-online :title="$title" loadSelect2="true">
-    {{-- Tabla de comercios --}}
-    <x-shared.table-with-selection :title="$title" :rows="$pageData['commerces']" :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']" :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
-        module-id="commerce-form" context="commerce" table-id="commerce-table" />
-    {{-- Modal para formulario de comercio --}}
-    <x-shared.modal id="commerce-form" title="Comercio" form-view="modules.users.roles.admin.commerce.form" />
+    {{-- Tabla de clientes --}}
+    <x-shared.table-with-selection :title="$title" :rows="$pageData['customers']" :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']" :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
+        module-id="customer-form" context="customer" table-id="customer-table" />
+    {{-- Modal para formulario de cliente --}}
+    <x-shared.modal id="customer-form" title="Cliente" form-view="modules.users.roles.admin.customer.form" />
     {{-- Scripts globales solo una vez --}}
     @once
         @push('stack-scripts')

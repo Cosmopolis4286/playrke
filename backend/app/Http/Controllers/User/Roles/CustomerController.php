@@ -3,425 +3,325 @@
 namespace App\Http\Controllers\User\Roles;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
-use App\Models\CustomerUser;
-use App\Models\PhoneNumbers;
-use App\Models\Role;
-use App\Models\UniqueCode;
-use App\Models\Wallet;
-use App\Traits\Games\Shared\SeamlessWallet;
-use App\Traits\Helpers\EncryptTrait;
-use App\Traits\Users\UserTrait;
-use Carbon\Carbon;
-use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\User\Roles\CustomerRequest;
+use App\Services\User\Roles\Customer\CustomerService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
+/**
+ * Controlador HTTP para la gestión de Clientes (Customer).
+ *
+ * - Maneja Requests y Responses HTTP.
+ * - Toda la lógica de negocio se delega a los Services.
+ * - Sigue el patrón de arquitectura establecido en el proyecto.
+ *
+ * Responsabilidades:
+ * - Validar entrada mediante CustomerRequest
+ * - Delegar operaciones a CustomerService
+ * - Retornar respuestas HTTP apropiadas
+ * - Manejar errores y logging
+ *
+ * @package App\Http\Controllers\User\Roles
+ */
 class CustomerController extends Controller
 {
-    use EncryptTrait, UserTrait, SeamlessWallet;
-
-    private function validateRequest($request, $type = 1, $id = '')
-    {
-        // Si es tipo 2, encuentra al usuario usando el ID descifrado.
-        if ($type == 2) {
-            $customer = Customer::findOrFail(decrypt($id));
-        }
-
-        // Definir reglas de validación.
-        $rules = [
-            'username' => ['required', 'string', 'max:20', 'unique:users,username'],
-            'email' => ['required', 'string', 'email', 'max:40', 'unique:users,email'],
-            'customer_id' => ['required', 'string', 'max:30', 'unique:customers,customer_id'],
-            'country' => ['required', 'numeric', 'exists:countries,id'],
-            'time_zone' => ['required', 'numeric', 'exists:time_zones,id'],
-            'name' => ['required', 'string'],
-            'phone' => ['nullable', 'string', 'max:20', 'unique:customers,phone'],
-            'api_route' => ['required', 'string', 'max:255'],
-            'customer_key' => ['required', 'string', 'max:255'],
-        ];
-
-        // Ajustar reglas de validación si es una actualización.
-        if ($type == 2) {
-            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username,' . $customer->user];
-            $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email,' . $customer->user];
-            $rules['customer_id'] = ['required', 'string', 'max:30', 'unique:customers,customer_id,' . $customer->id];
-            $rules['phone'] = ['nullable', 'string', 'max:20', 'unique:customers,phone,' . $customer->id];
-        }
-
-        // Definir mensajes de error personalizados.
-        $messages = [
-            'username.unique' => 'Nombre de usuario no disponible.',
-            'email.unique' => 'Este correo ya está registrado.',
-            'customer_id.unique' => 'Cliente ID ya está registrado.',
-            'phone.unique' => 'Este celular (' . $request->phone . ') ya está registrado.',
-        ];
-
-        // Crear el validador.
-        $validator = Validator::make($request->all(), $rules, $messages);
-
-        // Si la validación falla.
-        if ($validator->fails()) {
-            Session::flash('msg-error', $type);
-            if ($type > 1) {
-                Session::flash('encryptedId', $id);
-            }
-            return $validator; // Devuelve el validador en caso de falla
-        }
-
-        return $validator; // Devuelve el validador en caso de éxito
-    }
-
-    private function getEncryptionKeyForClient($customerKey)
-    {
-        // Crear clave de Encriptacion para Clave de Conexion del Cliente
-        $securityKey = $this->generateBase64Key();
-        $customerKey = encrypt($customerKey, $securityKey);
-
-        $securityKey = encrypt($securityKey, env('CTMER_ENCRYPTION_KEY'));
-
-        return ['customerKey' => $customerKey, 'securityKey' => $securityKey];
-    }
-
-    private function saveLogo(UploadedFile $logo, $customerId)
+    /**
+     * Crear un nuevo Cliente.
+     *
+     * Proceso:
+     * 1. Valida los datos mediante CustomerRequest
+     * 2. Delega la creación al CustomerService
+     * 3. Retorna respuesta JSON con la contraseña generada
+     *
+     * @param CustomerRequest $request Request validado con los datos del cliente
+     * @param CustomerService $service Servicio de lógica de negocio
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con el resultado
+     */
+    public function store(CustomerRequest $request, CustomerService $service)
     {
         try {
-            if ($logo && $logo->isValid()) {
-                // Crear un nombre único para el archivo
-                $fileName = Carbon::now()->timestamp . '.' . $logo->getClientOriginalExtension();
+            $result = $service->create($request->toDTO()->toArray());
 
-                // Crear una carpeta personalizada usando el ID del cliente
-                $customerFolder = "customers/$customerId";
+            return response()->json([
+                'success' => true,
+                'message' => '✅ Registro exitoso',
+                'password' => $result['password']
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("❌ Hubo un error al crear el Cliente: " . $e->getMessage());
 
-                // Eliminar cualquier archivo existente en la carpeta
-                Storage::disk('public')->deleteDirectory($customerFolder);
-
-                // Guardar el nuevo archivo en la carpeta específica
-                $logo->storeAs($customerFolder, $fileName, 'public');
-
-                return $fileName;
-            }
-
-            throw new \Exception('El archivo no es válido o está corrupto.');
-        } catch (\Exception $e) {
-            // Registrar el error para depuración
-            Log::error("Error al guardar el logo para el cliente $customerId: " . $e->getMessage());
-
-            throw new HttpResponseException(response()->json([
-                'message' => 'Error al guardar el logo. Inténtalo de nuevo.',
-                'error' => $e->getMessage()
-            ], 500));
+            return response()->json([
+                'success' => false,
+                'message' => 'Hubo un error al crear el Cliente.'
+            ], 500);
         }
     }
 
-    public function create(Request $request) /// Registar Comercializadoras
+    /**
+     * Actualizar un Cliente existente.
+     *
+     * Proceso:
+     * 1. Valida los datos mediante CustomerRequest
+     * 2. Decodifica el ID hasheado
+     * 3. Delega la actualización al CustomerService
+     * 4. Retorna redirect con mensaje flash
+     *
+     * @param CustomerRequest $request Request validado con los datos
+     * @param int $id ID hasheado del cliente con Hashids
+     * @param CustomerService $service Servicio de lógica de negocio
+     * @return RedirectResponse Redirect con mensaje flash
+     */
+    public function update(CustomerRequest $request, int $id, CustomerService $service): RedirectResponse
     {
-        if ($this->user(['user_type'])->user_type != 2) {
-            return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
-        }
+        return $this->handleService(function () use ($request, $service, $id) {
+            $service->update($request->toDTO()->toArray(), $id);
 
-        DB::beginTransaction();
+            Session::flash('message', '✅ La información fue actualizada correctamente');
 
+            return redirect()->back();
+        }, "Hubo un error al actualizar el Cliente [ID: $id].");
+    }
+
+    /**
+     * Eliminar físicamente un Cliente.
+     *
+     * Elimina el cliente, su usuario asociado, wallets y relaciones many-to-many.
+     *
+     * @param string $id ID hasheado con Hashids
+     * @return RedirectResponse Redirect con mensaje flash
+     */
+    public function destroy(string $id): RedirectResponse
+    {
+        return $this->handleService(function () use ($id) {
+            // Decodificar el ID usando Hashids
+            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+
+            if (empty($decodedIds)) {
+                throw new \Exception('ID inválido');
+            }
+
+            $realId = (string) $decodedIds[0];
+
+            // Buscar el customer con su usuario
+            $customer = \App\Models\Users\Roles\Customer\Customer::with('user')->findOrFail($realId);
+
+            // Usar transacción para eliminar todo
+            DB::transaction(function () use ($customer) {
+                $user = $customer->user;
+
+                // 1. Eliminar relaciones many-to-many del customer
+                $customer->otherCurrencies()->detach();
+                $customer->allowedGames()->detach();
+
+                // 2. Eliminar el customer
+                $customer->delete();
+
+                // 3. Eliminar wallets del usuario
+                $user->wallets()->delete();
+
+                // 4. Eliminar el usuario
+                $user->delete();
+            });
+
+            Session::flash('message', '✅ Cliente eliminado correctamente');
+
+            return redirect()->back();
+        }, "No se pudo eliminar el Cliente.");
+    }
+
+    /**
+     * Cambiar estado de un Cliente.
+     *
+     * Cambia el estado tanto del customer como del usuario asociado.
+     * Estados permitidos: ACTIVE, INACTIVE, BLOCKED, DELETED
+     *
+     * @param string $id ID hasheado con Hashids
+     * @return RedirectResponse Redirect con mensaje flash
+     */
+    public function changeStatus(string $id): RedirectResponse
+    {
+        return $this->handleService(function () use ($id) {
+            // Decodificar el ID usando Hashids
+            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+
+            if (empty($decodedIds)) {
+                throw new \Exception('ID inválido');
+            }
+
+            $realId = (string) $decodedIds[0];
+
+            // Buscar el customer con su usuario
+            $customer = \App\Models\Users\Roles\Customer\Customer::with('user')->findOrFail($realId);
+
+            // Obtener el nuevo estado desde la request o usar DELETED por defecto
+            $newStatus = request('status', 'DELETED');
+
+            // Validar que el status sea válido
+            $validStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'];
+            if (!in_array($newStatus, $validStatuses)) {
+                throw new \Exception('Estado inválido');
+            }
+
+            // Usar transacción para asegurar consistencia
+            DB::transaction(function () use ($customer, $newStatus) {
+                // Cambiar estado del usuario asociado
+                $customer->user->update(['status' => $newStatus]);
+
+                // Cambiar estado del customer
+                $customer->update(['status' => $newStatus]);
+            });
+
+            $message = match ($newStatus) {
+                'DELETED' => "✅ Cliente eliminado correctamente",
+                'ACTIVE' => "✅ Cliente activado correctamente",
+                'INACTIVE' => "✅ Cliente desactivado correctamente",
+                'BLOCKED' => "✅ Cliente bloqueado correctamente",
+                default => "✅ Estado cambiado correctamente"
+            };
+
+            Session::flash('message', $message);
+
+            return redirect()->back();
+        }, "Hubo un error al cambiar el estado del Cliente [ID: $id].");
+    }
+
+    /**
+     * Cambiar contraseña de un Cliente.
+     *
+     * Genera una nueva contraseña aleatoria de 8 caracteres hexadecimales
+     * y la actualiza en el usuario asociado al cliente.
+     *
+     * @param string $id ID hasheado con Hashids
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con la nueva contraseña
+     */
+    public function changePassword(string $id): \Illuminate\Http\JsonResponse
+    {
         try {
-            // Validar la solicitud usando la función validateRequest
-            $validator = $this->validateRequest($request);
-            if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
+            // Decodificar el ID usando Hashids
+            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+
+            if (empty($decodedIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID inválido'
+                ], 400);
             }
 
-            $newPassw = $this->valEncrypt();
+            $realId = (string) $decodedIds[0];
 
-            $newUser = User::create([
-                'username' => $request->username,
-                'user_type' => Role::getValueByPrefix('customer', 'id'),
-                'email' => $request->email,
-                'password' => Hash::make($newPassw),
-                'country' => $request->country,
-                'time_zone' => $request->time_zone,
-                'email_verified_at' => Carbon::now(),
-                'referral_code' => User::getUniqueReferralCode(),
-            ])->id;
+            // Buscar el customer con su usuario
+            $customer = \App\Models\Users\Roles\Customer\Customer::with('user')->findOrFail($realId);
 
-            // Crear un nuevo Wallet para el usuario
-            Wallet::create(['currency' => $request->currency ?? 1, 'user' => $newUser]);
+            // Generar una nueva contraseña aleatoria
+            $newPassword = Str::random(12);
 
-            $phoneNumber = $request->phone;
-
-            if ($phoneNumber) {
-                PhoneNumbers::create([
-                    'user' => $newUser,
-                    'country' => $request->country,
-                    'phone_number' => $phoneNumber
-                ]);
-            }
-
-            $keys = $this->getEncryptionKeyForClient($request->customer_key);
-
-            $codeUUID = $this->getCodeUUID();
-
-            $fileLogo = $request->file('logo');
-            $logo = $fileLogo ? $this->saveLogo($fileLogo, $codeUUID) : null;
-
-            Customer::create([
-                'name' => $request->name,
-                'country' => $request->country,
-                'phone' => $phoneNumber,
-                'customer_id' => $request->customer_id,
-                'user' => $newUser,
-                'logo' => $logo,
-                'link_route' => $request->api_route,
-                'token' => $codeUUID,
-                'customer_key' => $keys['customerKey'],
-                'security_key' => $keys['securityKey'],
-                'status' => 1
+            // Actualizar la contraseña del usuario
+            $customer->user->update([
+                'password' => Hash::make($newPassword)
             ]);
 
-            // Registrar Code UUID
-            UniqueCode::create([
-                'uuid_code' => $codeUUID,
-                'user' => $newUser,
-                'user_type' => Role::getValueByPrefix('customer', 'id')
+            return response()->json([
+                'success' => true,
+                'message' => '✅ Contraseña generada exitosamente',
+                'password' => $newPassword
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("❌ Error al cambiar la contraseña del Cliente [ID: $id]: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => "Hubo un error al cambiar la contraseña del Cliente"
+            ], 500);
+        }
+    }
+
+    /**
+     * Mostrar detalle de un Cliente.
+     *
+     * Retorna toda la información del cliente con sus relaciones:
+     * - País
+     * - Usuario (con zona horaria)
+     * - Moneda principal
+     * - Otras monedas
+     * - Juegos permitidos
+     *
+     * @param string $id ID hasheado con Hashids
+     * @param CustomerService $service Servicio de lógica de negocio
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con los datos del cliente
+     */
+    public function show(string $id, CustomerService $service)
+    {
+        try {
+            // Decodificar el ID usando Hashids
+            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+
+            if (empty($decodedIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID inválido'
+                ], 400);
+            }
+
+            $realId = (string) $decodedIds[0];
+
+            $customer = $service->getById($realId);
+
+            return response()->json([
+                'success' => true,
+                'data' => $customer
+            ]);
+        } catch (\Exception $e) {
+            Log::error('CustomerController::show - Error:', [
+                'hashed_id' => $id,
+                'message' => $e->getMessage()
             ]);
 
-            DB::commit();
-
-            // Mensajes flash con tiempo de expiración personalizado
-            Session::flash('message', "Registro exitoso");
-            Session::flash('pawss', $newPassw);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al crear Customer: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Hubo un error al procesar la solicitud.']);
+            return response()->json([
+                'success' => false,
+                'message' => "No se pudo cargar la información del Cliente: {$e->getMessage()}"
+            ], 500);
         }
-
-        return redirect()->back();
     }
 
-    public function getInfo($id) // Obtener Info Comercializadora
+    /**
+     * Listar todos los Clientes.
+     *
+     * Retorna la vista con todos los clientes y sus relaciones básicas.
+     *
+     * @param CustomerService $service Servicio de lógica de negocio
+     * @return \Illuminate\View\View|RedirectResponse Vista con los clientes
+     */
+    public function index(CustomerService $service)
     {
-        $id = decrypt($id);
-
-        // Obtener datos del cliente
-        $customer = Customer::getById($id, ['name', 'customer_id', 'country', 'phone', 'link_route']);
-
-        // Obtener datos del usuario
-        $user = User::getById(Customer::getValueById($id, 'user'), ['username', 'email', 'time_zone']);
-
-        $keys = Customer::getById($id, ['customer_key', 'security_key']);
-        // Desencriptar clave de seguridad
-        $encryptedKey = decrypt($keys->security_key, env('CTMER_ENCRYPTION_KEY'));
-        // Desencriptar la clave de seguridad del cliente usando la clave específica
-        $customerKey = decrypt($keys->customer_key, $encryptedKey);
-
-        // Anexar el customerKey al array de customer
-        $customerData = array_merge($customer->toArray(), ['customer_key' => $customerKey]);
-
-        $data = [
-            'customer' => $customerData,
-            'user' => $user
-        ];
-
-        return response()->json($data);
+        return $this->handleService(function () use ($service) {
+            $customers = $service->getAll();
+            return view('customer.index', compact('customers'));
+        }, "No se pudo cargar la lista de Clientes.");
     }
 
-    public function update(Request $request, $id) // Editar Comercializadora
+    /**
+     * Manejo centralizado de errores para los métodos del Controller.
+     *
+     * Ejecuta un callback dentro de un try-catch y maneja los errores
+     * de forma consistente con logging y mensajes flash.
+     *
+     * @param callable $callback Función a ejecutar
+     * @param string $errorMessage Mensaje de error a mostrar
+     * @return mixed Resultado del callback o redirect con error
+     */
+    private function handleService(callable $callback, string $errorMessage)
     {
-        if ($this->user(['user_type'])->user_type != 2) {
-            return redirect()->back()->withErrors(['error' => 'No tienes permiso para realizar esta acción.']);
-        }
-
-        DB::beginTransaction();
-
         try {
-            // Decryptar el ID y encontrar el cliente
-            $customer = Customer::findOrFail(decrypt($id));
+            return $callback();
+        } catch (\Throwable $e) {
+            Log::error("❌ $errorMessage Error: " . $e->getMessage());
+            Session::flash('error', $errorMessage);
 
-            if ($customer) {
-
-                $validator = $this->validateRequest($request, 2, $id);
-
-                if ($validator->fails()) {
-                    return redirect()->back()->withErrors($validator)->withInput();
-                }
-
-                $userId = $customer->user;
-                $userTimeZone = User::getValueById($userId, 'time_zone');
-
-                if ($userTimeZone <> $request->time_zone) {
-                    User::where('id', $userId)->update(['time_zone' => $request->time_zone]);
-                }
-
-                $fileLogo = $request->file('logo');
-                $logo = $fileLogo ? $this->saveLogo($fileLogo, $customer->token) : null;
-
-                $phoneNumber = $request->phone;
-
-                if ($phoneNumber <> $customer->phone) {
-                    PhoneNumbers::where('user', $customer->user)->update([
-                        'country' => $request->country,
-                        'phone_number' => $phoneNumber
-                    ]);
-                }
-
-                $data = [
-                    'name' => $request->name,
-                    'country' => $request->country,
-                    'time_zone' => $request->time_zone,
-                    'customer_id' => $request->customer_id,
-                    'phone' => $phoneNumber,
-                    'logo' => $logo,
-                    'link_route' => $request->api_route
-                ];
-
-                // Desencriptar clave de seguridad
-                $encryptedKey = decrypt($customer->security_key, env('CTMER_ENCRYPTION_KEY'));
-                // Desencriptar la clave de seguridad del cliente usando la clave específica
-                $customerKey = decrypt($customer->customer_key, $encryptedKey);
-
-                if ($customerKey != $request->customer_key) {
-                    $keys = $this->getEncryptionKeyForClient($request->customer_key);
-                    $data['customer_key'] = $keys['customerKey'];
-                    $data['security_key'] = $keys['securityKey'];
-                }
-
-                // Actualizar los campos del cliente
-                $customer->update($data);
-
-                DB::commit();
-
-                Session::flash('message', 'La información fue actualizada correctamente');
-            } else {
-                // Manejar caso donde no se encuentra el cliente
-                Session::flash('msg-error', 'No se encontró el cliente');
-            }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            // Captura cualquier excepción lanzada durante el proceso de actualización
-            Session::flash('msg-error', 'Hubo un problema al actualizar la información del cliente: ' . $e->getMessage());
-        }
-
-        return redirect()->back();
-    }
-
-    public function delete($id)
-    {
-        //Customer::destroy(decrypt($request->id));
-        Customer::where('id', decrypt($id))->update(['status' => 3]);
-
-        Session::flash('message', 'El Cliente fue eliminado');
-        return redirect()->back();
-    }
-
-    public function changeStatus($id)
-    {
-        DB::beginTransaction();
-
-        try {
-            $id = decrypt($id);
-
-            // Obtener el estado del cliente
-            $customerStatus = Customer::getValueById($id, 'status');
-
-            // Determinar si el cliente está eliminado
-            $isDeleted = $customerStatus == 3 ? true : false;
-
-            // Determinar el estado basado en si está eliminado o no
-            $status = $isDeleted ? 1 : (int)!$customerStatus;
-
-            Customer::where('id', $id)->update(['status' => $status]);
-
-            DB::commit();
-            Session::flash('message', 'Status actualizado');
-            return redirect()->back()->with('type', 'success');
-        } catch (\Throwable $th) {
-            //throw $th;
-            DB::rollBack();
-        }
-    }
-
-    public function changePassword($id)
-    {
-        $res = $this->handleChangePassword('Customer', $id);
-
-        if (isset($res['PWD'])) {
-            $password = $res['PWD'];
-            Session::flash('message', "La nueva contraseña del Cliente es: <b>$password</b>");
-            Session::flash('pawss', $password);
-        } else {
-            Session::flash('msg-error', 'Ha ocurrido un error: ' . $res['Error']);
-        }
-        return redirect()->back();
-    }
-
-    public function getUserId($userToken)
-    {
-        $customerId = Customer::getValueByUserId(Auth::id(), 'id');
-        if (!$customerId) return false;
-        return $this->getUserInfoFromCustomer($customerId, $userToken);
-    }
-
-    public function getUserBalance($userToken)
-    {
-        $customerId = Customer::getValueByUserId(Auth::id(), 'id');
-        if (!$customerId) return false;
-        return $this->getUserBalanceFromCustomer($customerId, $userToken);
-    }
-
-    public function increaseBalance($userToken, $balance = 2000)
-    {
-        $customerId = Customer::getValueByUserId(Auth::id(), 'id');
-        if (!$customerId) return false;
-
-        $player = CustomerUser::getByToken($customerId, $userToken, ['id', 'currency']);
-
-        if (!$player) {
-            return response()->json(['type' => 'warning', 'message' => 'Usuario no encontrado en DB']);
-        }
-
-        DB::beginTransaction();
-
-        try {
-            $transaction = $this->registerTransaction(
-                ['name' => 'BINGO', 'game_mode' => 1],
-                $customerId,
-                $player->id,
-                'TESTE_RECARGAR_SALDO',
-                'WIN',
-                $player->currency,
-                $balance
-            );
-
-            $response = $this->transferMoney($transaction, 'TESTE_RECARGAR_SALDO');
-
-            if (isset($response['Error']) && $response['Error']) {
-                $typeMessage = 'warning';
-                $message = 'Error al recargar saldo';
-                Log::error($message . ': ' . $response['Error']);
-            } else {
-                $typeMessage = 'success';
-                $message = 'Recarga de saldo exitosa';
-                Log::info($message . ' Monto recargado: ' . $balance);
-
-                // Actualizar la transacción como exitosa
-                $transaction->update([
-                    'status' => 1,
-                    'processing_data' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                DB::commit();
-            }
-            return response()->json(['type' => $typeMessage, 'message' => $message]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error']);
+            return redirect()->back()->withErrors(['error' => $errorMessage]);
         }
     }
 }

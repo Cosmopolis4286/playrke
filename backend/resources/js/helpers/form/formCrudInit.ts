@@ -49,6 +49,18 @@ function safeInsertInfo(action: string, data?: any) {
 }
 
 /**
+ * Obtiene el ID cifrado actual desde la tabla o desde el estado
+ */
+function getCurrentEncryptId(): string {
+    const tableId = formCrudExports.tableId;
+    if (tableId) {
+        const selectedIds = getSelectedIds(tableId);
+        return selectedIds.length === 1 ? selectedIds[0] : '';
+    }
+    return crudState.encryptId;
+}
+
+/**
  * Ejecuta el flujo principal de acciones CRUD
  *
  * @param {HTMLElement} elem - Elemento que contiene el atributo data-action
@@ -58,6 +70,9 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
     const action: CrudAction = elem.dataset.action ?? '';
 
     const { moduleId, modal, route, formTitleSuffix } = formCrudExports;
+
+    // Obtener el ID cifrado actual al momento del clic
+    const currentEncryptId = getCurrentEncryptId();
 
     // Inicialización de formulario y modal (solo para create/edit)
     const initForm = (): HTMLFormElement | null => {
@@ -92,17 +107,17 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
             if (!form) return;
 
             const modalTitle = `Editar ${formTitleSuffix}`;
-            await getInfo(crudState.encryptId);
-            prepareForm(form, 'update', modalTitle, 'PUT', crudState.encryptId, route);
+            await getInfo(currentEncryptId);
+            prepareForm(form, 'update', modalTitle, 'PUT', currentEncryptId, route);
             break;
         }
 
         case 'delete':
-            await handleOtherCases('delete', crudState.encryptId, elem);
+            await handleOtherCases('delete', currentEncryptId, elem);
             break;
 
         default:
-            await handleOtherCases(action, crudState.encryptId, elem);
+            await handleOtherCases(action, currentEncryptId, elem);
             break;
     }
 }
