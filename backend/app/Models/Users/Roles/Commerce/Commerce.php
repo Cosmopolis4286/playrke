@@ -51,6 +51,7 @@ class Commerce extends Model
             'ACTIVE' => '<span class="badge badge-success">Activo</span>',
             'INACTIVE' => '<span class="badge badge-warning">Inactivo</span>',
             'BLOCKED' => '<span class="badge badge-danger">Bloqueado</span>',
+            'DELETED' => '<span class="badge badge-dark">Eliminado</span>',
             default => '<span class="badge badge-secondary">Desconocido</span>'
         };
     }

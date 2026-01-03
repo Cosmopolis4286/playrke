@@ -2,7 +2,7 @@
 import axios from '@/plugins/axios';
 import { ajaxStart } from '@/utils/loader';
 import Swal, { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
-import type { OtherCase } from '@/helpers/module/types/moduleFormTypes';
+import type { OtherCase } from '@/helpers/module/types/formModule.types';
 import { formCrudExports } from './formCrudLoadModule';
 import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form/fieldValidation';
 import { resetFormAndContainers } from './formHelpers';
@@ -173,10 +173,10 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
     const globalActions: Record<string, OtherCase> = {
         'delete': {
             routeName: 'destroy',
-            text: `¿Deseas cambiar el estado de este ${entityName}?`,
+            text: `¿Deseas eliminar este ${entityName}?`,
             icon: 'question',
-            confirmButtonText: 'Sí, cambiar',
-            method: 'PUT',
+            confirmButtonText: 'Sí, eliminar',
+            method: 'DELETE',
         },
         'change-status': {
             routeName: 'changeStatus',
@@ -223,12 +223,25 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
             requestData.status = status;
         }
 
+        console.log('🧪 ACTION DEBUG', {
+            action,
+            caseData,
+            idsToProcess
+        });
+
         // Procesar cada ID seleccionado
         const promises = idsToProcess.map(async (id) => {
             const fullUrl = routeFn?.(caseData.routeName, { id }) ?? '';
 
             // Convertir URL absoluta a relativa para evitar conflictos con baseURL de axios
             const url = fullUrl.replace(/^https?:\/\/[^\/]+/, '');
+
+            console.log('🧪 REQUEST DEBUG', {
+                action,
+                routeName: caseData.routeName,
+                url
+            });
+
 
             console.log(`🔍 Generando URL para acción '${action}':`, {
                 routeName: caseData.routeName,

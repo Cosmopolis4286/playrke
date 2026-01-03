@@ -120,49 +120,66 @@ class CommerceController extends Controller
      */
     public function changeStatus(string $id): RedirectResponse
     {
-        return $this->handleService(function () use ($id) {
-            // Decodificar el ID usando Hashids
-            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+        try {
+            return $this->handleService(function () use ($id) {
 
-            if (empty($decodedIds)) {
-                throw new \Exception('ID inválido');
-            }
+                // Decodificar el ID usando Hashids
+                $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
 
-            $realId = (string) $decodedIds[0];
+                if (empty($decodedIds)) {
+                    throw new \InvalidArgumentException('ID inválido');
+                }
 
-            // Buscar el commerce con su usuario
-            $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')->findOrFail($realId);
+                $realId = (string) $decodedIds[0];
 
-            // Obtener el nuevo estado desde la request o usar DELETED por defecto
-            $newStatus = request('status', 'DELETED');
+                // Buscar el commerce con su usuario
+                $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')
+                    ->findOrFail($realId);
 
-            // Validar que el status sea válido
-            $validStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'];
-            if (!in_array($newStatus, $validStatuses)) {
-                throw new \Exception('Estado inválido');
-            }
+                // Obtener el nuevo estado desde la request
+                $newStatus = request('status', 'DELETED');
 
-            // Usar transacción para asegurar consistencia
-            DB::transaction(function () use ($commerce, $newStatus) {
-                // Cambiar estado del usuario asociado
-                $commerce->user->update(['status' => $newStatus]);
+                // // Validar estado
+                // $validStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'];
+                // if (!in_array($newStatus, $validStatuses, true)) {
+                //     throw new \InvalidArgumentException('Estado inválido');
+                // }
 
-                // Cambiar estado del commerce
-                $commerce->update(['status' => $newStatus]);
-            });
+                // // Transacción
+                // DB::transaction(function () use ($commerce, $newStatus) {
+                //     $commerce->user->update([
+                //         'status' => $newStatus,
+                //     ]);
 
-            $message = match ($newStatus) {
-                'DELETED' => "✅ Comercio eliminado correctamente",
-                'ACTIVE' => "✅ Comercio activado correctamente",
-                'INACTIVE' => "✅ Comercio desactivado correctamente",
-                'BLOCKED' => "✅ Comercio bloqueado correctamente",
-                default => "✅ Estado cambiado correctamente"
-            };
+                //     $commerce->update([
+                //         'status' => $newStatus,
+                //     ]);
+                // });
 
-            Session::flash('message', $message);
+                $message = match ($newStatus) {
+                    'DELETED'  => '✅ Comercio eliminado correctamente',
+                    'ACTIVE'   => '✅ Comercio activado correctamente',
+                    'INACTIVE' => '✅ Comercio desactivado correctamente',
+                    'BLOCKED'  => '✅ Comercio bloqueado correctamente',
+                    default    => '✅ Estado cambiado correctamente',
+                };
+
+                Session::flash('message', $message);
+
+                return redirect()->back();
+            }, "Hubo un error al cambiar el estado del Comercio [ID: {$id}].");
+        } catch (\Throwable $e) {
+
+            // Log detallado para debugging
+            Log::error('Error al cambiar estado de comercio', [
+                'hashed_id' => $id,
+                'exception' => $e,
+            ]);
+
+            Session::flash('error', $e->getMessage());
 
             return redirect()->back();
-        }, "Hubo un error al cambiar el estado del Comercio [ID: $id].");
+        }
     }
 
     /**

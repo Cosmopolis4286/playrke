@@ -1,62 +1,82 @@
 // helpers/form/formCrudLoadModule.ts
-import { getAppDataProperty } from '@/data/index';
+import { getAppDataProperty } from '@/data';
 import { loadModule } from '@/helpers/module/loadModule';
-import type { ModuleType, OtherCase } from '@/helpers/module/types/moduleFormTypes';
+import type { ModuleType } from '@/helpers/module/types/formModule.types';
 import { copyInfo } from '@/utils/copyInfo';
 import { onDOMReady } from '@/utils/domReady';
 
+// ==========================
 // Estado interno del módulo cargado
-let _formTitleSuffix = '';
-let _insertInfo: (action: string, data?: any) => void = () => { };
+// ==========================
+let _module: Readonly<ModuleType> | null = null;
+
+let _moduleId: string = '';
+let _formTitleSuffix: string = '';
+let _tableId: string = '';
+
 let _modal: HTMLDivElement | null = null;
-let _module: ModuleType | null = null;
-let _otherCasesMap: Record<string, OtherCase> = {};
-let _requiredFields: string[] = [];
-let _route: (name: string, params?: Record<string, string | number>) => string = () => '';
-let _moduleId = '';
-let _tableId = '';
+
+let _insertInfo: ModuleType['insertInfo'] = () => { };
+let _otherCasesMap: NonNullable<ModuleType['otherCasesMap']> = {};
+let _requiredFields: NonNullable<ModuleType['requiredFields']> = [];
+let _route: NonNullable<ModuleType['route']> = () => '';
+
 
 /**
  * Export seguro del módulo con getters dinámicos
  */
 export const formCrudExports = {
+    get moduleId() { return _moduleId; },
     get formTitleSuffix() { return _formTitleSuffix; },
-    get insertInfo() { return _insertInfo; },
+    get tableId() { return _tableId; },
     get modal() { return _modal; },
+
+    get insertInfo() { return _insertInfo; },
     get otherCasesMap() { return _otherCasesMap; },
     get requiredFields() { return _requiredFields; },
     get route() { return _route; },
-    get moduleId() { return _moduleId; },
-    get tableId() { return _tableId; },
-    get moduleFile() { return getAppDataProperty<string>('moduleFile', ''); }
+
+    get moduleFile() {
+        return getAppDataProperty<string>('moduleFile', '');
+    },
 };
 
 /**
  * Inicializa el módulo CRUD dinámico solo si no está cargado aún
  */
 export async function initFormCrud(): Promise<void> {
+    if (_module) return; // evita doble carga
+
     const moduleFile = getAppDataProperty<string>('moduleFile', '');
     if (!moduleFile) {
         console.warn('⚠️ moduleFile no definido en appData. Se omite initFormCrud.');
         return;
     }
 
-    if (_module) return; // evita doble carga
-
     _module = await loadModule<ModuleType>(moduleFile);
 
     _moduleId = _module.moduleId;
-    _formTitleSuffix = _module.formTitleSuffix ?? '';
+    _formTitleSuffix = _module.formTitleSuffix;
     _insertInfo = _module.insertInfo ?? (() => { });
     _otherCasesMap = _module.otherCasesMap ?? {};
     _requiredFields = _module.requiredFields ?? [];
     _route = _module.route ?? (() => '');
 
-    // Obtener tableId del módulo o del appData
-    _tableId = getAppDataProperty<string>('tableId', '') || `${_moduleId.replace('-form', '')}-table`;
+    _tableId =
+        getAppDataProperty<string>('tableId', '') ||
+        `${_moduleId.replace('-form', '')}-table`;
 
     _modal = document.getElementById(`modal-${_moduleId}`) as HTMLDivElement | null;
-    if (!_modal) console.warn(`Modal con id 'modal-${_moduleId}' no encontrado`);
+
+    if (!_modal) {
+        console.warn(`Modal con id 'modal-${_moduleId}' no encontrado`);
+    }
+
+    console.log('🧩 CRUD MODULE LOADED:', {
+        moduleFile,
+        moduleId: _moduleId,
+        routeTest: _route('changeStatus', { id: 'TEST' }),
+    });
 
     setupListeners();
     setupTableListener();
@@ -68,7 +88,7 @@ export async function initFormCrud(): Promise<void> {
 function setupTableListener(): void {
     if (!_tableId) return;
 
-    // Importación dinámica para registrar el listener de tabla
+    // Importación dinámica para evitar dependencias innecesarias
     import('@/helpers/form/formCrudInit').then(({ registerTableListener }) => {
         registerTableListener(_tableId);
     });
@@ -78,22 +98,27 @@ function setupTableListener(): void {
  * Configura listeners de click para botones dentro del módulo CRUD
  */
 function setupListeners(): void {
-    const initClickListeners = () => {
-        document.addEventListener('click', (e) => {
-            const target = e.target as HTMLElement;
+    onDOMReady(() => {
+        document.addEventListener('click', async (e) => {
+            alert('Click listener invoked in formCrudLoadModule');
+            const target = e.target as HTMLElement | null;
             if (!target) return;
 
-            // Importación dinámica para evitar dependencia circular
-            if (target.closest('#btn-confirm')) {
-                import('@/helpers/form/formCrudInit').then(({ submitForm }) => {
-                    submitForm(_moduleId, _requiredFields);
-                });
+            // Submit automático (solo si el módulo lo permite)
+            if (target.closest('#btn-confirm') && !_module?.disableAutoSubmit) {
+                const { submitForm } = await import('@/helpers/form/formCrudInit');
+                submitForm(_moduleId, _requiredFields);
+                return;
             }
-            if (target.closest('#btn-copy')) copyInfo('Contraseña Copiada');
-            if (target.closest('.popover-dismiss')) $(target).popover('toggle');
-        });
-    };
 
-    // Ejecuta cuando el DOM esté listo
-    onDOMReady(initClickListeners);
+            if (target.closest('#btn-copy')) {
+                copyInfo('Contraseña Copiada');
+                return;
+            }
+
+            if (target.closest('.popover-dismiss')) {
+                $(target).popover('toggle');
+            }
+        });
+    });
 }

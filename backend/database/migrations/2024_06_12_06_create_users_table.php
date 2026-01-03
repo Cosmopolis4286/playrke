@@ -54,7 +54,7 @@ return new class extends Migration
                 ->comment('Usuario que refirió a este usuario');
 
             // Estado y control
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION'])
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'DELETED', 'PENDING_VERIFICATION'])
                 ->default('PENDING_VERIFICATION')
                 ->index()
                 ->comment('Estado del usuario');

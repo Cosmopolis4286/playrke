@@ -48,7 +48,7 @@ return new class extends Migration
             // Estado del comercio
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'])
                 ->default('ACTIVE')
-                ->comment('Estado activo/inactivo');
+                ->comment('Estados del comercio');
 
             // Timestamps automáticos
             $table->timestamps();

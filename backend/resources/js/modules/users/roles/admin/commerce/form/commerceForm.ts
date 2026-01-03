@@ -1,8 +1,8 @@
 // commerceForm.ts
 import { formCRUD } from '@/helpers/form/formCrudInit';
 import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTimeZones } from '@/helpers/selects/insertOtherCurrencies';
-import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
+import type { ModuleType } from '@/helpers/module/types/formModule.types';
 import { route } from '@/routes/commerceRoutes';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
 import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@/helpers/form/formHelpers';
@@ -11,31 +11,36 @@ import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } fro
 export { route };
 
 // ==========================
-// Constantes globales
+// Módulo CRUD: Commerce
 // ==========================
-export const formTitleSuffix = 'Comercio';
-export const moduleId = 'commerce-form';
+const formModule: ModuleType = {
+    moduleId: 'commerce-form',
+    formTitleSuffix: 'Comercio',
 
-export const requiredFields: string[] = ['name', 'country', 'time-zone', 'currency', 'phone', 'username', 'email'];
+    disableAutoSubmit: true,
 
-// ==========================
-// Mapeo de acciones personalizadas
-// ==========================
-export const otherCasesMap: Record<string, {
-    routeName: string;
-    text: string;
-    icon: SweetAlertIcon;
-    confirmButtonText: string;
-    method?: 'PUT' | 'DELETE';
-}> = {
-    // '5': {
-    //     routeName: 'changePassw',
-    //     text: 'Generar nueva contraseña a este comercio',
-    //     icon: 'info',
-    //     confirmButtonText: 'Sí, generar',
-    //     method: 'PUT',
-    // },
+    requiredFields: [
+        'name',
+        'country',
+        'time-zone',
+        'currency',
+        'phone',
+        'username',
+        'email',
+    ],
+
+    otherCasesMap: {
+        // changeStatus: {
+        //     routeName: 'changeStatus',
+        //     text: '¿Deseas cambiar el estado de este comercio?',
+        //     icon: 'warning',
+        //     confirmButtonText: 'Sí, cambiar',
+        //     method: 'PUT',
+        // },
+    },
 };
+
+export default formModule;
 
 // ==========================
 // Función: insertInfo
@@ -47,7 +52,7 @@ export const otherCasesMap: Record<string, {
  * @param data - Datos para precargar en modo edición
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
-    const modal = document.getElementById(`modal-${moduleId}`);
+    const modal = document.getElementById(`modal-${formModule.moduleId}`);
     if (!modal) return console.error('Modal no encontrado');
 
     const usernameInput = document.getElementById('username') as HTMLInputElement | null;
@@ -172,7 +177,7 @@ export function initListeners(): void {
     if (listenersAttached) return;
     listenersAttached = true;
 
-    const modal = document.getElementById(`modal-${moduleId}`);
+    const modal = document.getElementById(`modal-${formModule.moduleId}`);
     if (!modal) return;
 
     // Inicializar selector de moneda/zona horaria por país
@@ -186,7 +191,7 @@ export function initListeners(): void {
 
     // Click en botones dinámicos del formulario
     document.addEventListener('click', async ({ target }) => {
-        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${moduleId}`);
+        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${formModule.moduleId}`);
 
         if (!element) return;
         try {
