@@ -100,7 +100,6 @@ function setupTableListener(): void {
 function setupListeners(): void {
     onDOMReady(() => {
         document.addEventListener('click', async (e) => {
-            alert('Click listener invoked in formCrudLoadModule');
             const target = e.target as HTMLElement | null;
             if (!target) return;
 

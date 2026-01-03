@@ -8,7 +8,11 @@
             data-action="{{ $btn->action }}"
             @if ($btn->status) data-status="{{ $btn->status }}" @endif
             @if ($btn->disabled) disabled @endif
-            x-bind:disabled="{{ $btn->disabled ? 'selected.length === 0' : 'false' }}"
+            @if (in_array($btn->action, ['edit', 'change-password', 'delete']))
+                x-bind:disabled="selected.length === 0 || hasDeletedStatus"
+            @else
+                x-bind:disabled="{{ $btn->disabled ? 'selected.length === 0' : 'false' }}"
+            @endif
             @click="$dispatch('btn-action', ['{{ $btn->action }}', selected])">
             <i class="{{ $btn->icon }}"></i> {{ $btn->titleIcon ?? '' }}
         </button>

@@ -2,7 +2,6 @@
 import { formCRUD } from '@/helpers/form/formCrudInit';
 import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTimeZones } from '@/helpers/selects/insertOtherCurrencies';
 import { validateInput } from '@/helpers/validateInput';
-import type { ModuleType } from '@/helpers/module/types/formModule.types';
 import { route } from '@/routes/commerceRoutes';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
 import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@/helpers/form/formHelpers';
@@ -11,36 +10,28 @@ import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } fro
 export { route };
 
 // ==========================
-// Módulo CRUD: Commerce
+// Constantes globales
 // ==========================
-const formModule: ModuleType = {
-    moduleId: 'commerce-form',
-    formTitleSuffix: 'Comercio',
+export const formTitleSuffix = 'Comercio';
+export const moduleId = 'commerce-form';
+export const disableAutoSubmit = true;
 
-    disableAutoSubmit: true,
+export const requiredFields: string[] = [
+    'name',
+    'country',
+    'time-zone',
+    'currency',
+    'phone',
+    'username',
+    'email',
+];
 
-    requiredFields: [
-        'name',
-        'country',
-        'time-zone',
-        'currency',
-        'phone',
-        'username',
-        'email',
-    ],
+// ==========================
+// Mapeo de acciones personalizadas
+// ==========================
+export const otherCasesMap: Record<string, any> = {
 
-    otherCasesMap: {
-        // changeStatus: {
-        //     routeName: 'changeStatus',
-        //     text: '¿Deseas cambiar el estado de este comercio?',
-        //     icon: 'warning',
-        //     confirmButtonText: 'Sí, cambiar',
-        //     method: 'PUT',
-        // },
-    },
 };
-
-export default formModule;
 
 // ==========================
 // Función: insertInfo
@@ -52,7 +43,7 @@ export default formModule;
  * @param data - Datos para precargar en modo edición
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
-    const modal = document.getElementById(`modal-${formModule.moduleId}`);
+    const modal = document.getElementById(`modal-${moduleId}`);
     if (!modal) return console.error('Modal no encontrado');
 
     const usernameInput = document.getElementById('username') as HTMLInputElement | null;
@@ -174,11 +165,47 @@ let listenersAttached = false;
  * Inicializa listeners globales del formulario
  */
 export function initListeners(): void {
-    if (listenersAttached) return;
+    if (listenersAttached) {
+        if (import.meta.env.DEV) {
+            console.log('⚠️ initListeners ya fue ejecutado anteriormente');
+        }
+        return;
+    }
     listenersAttached = true;
 
-    const modal = document.getElementById(`modal-${formModule.moduleId}`);
-    if (!modal) return;
+    if (import.meta.env.DEV) {
+        console.log('🚀 Inicializando listeners de commerce module');
+    }
+
+    // Listener para eventos de acciones de botones desde Alpine.js
+    // IMPORTANTE: Este listener debe registrarse ANTES de verificar el modal
+    window.addEventListener('table-action', (event: Event) => {
+        const customEvent = event as CustomEvent;
+        const { action, selectedIds } = customEvent.detail || {};
+
+        if (import.meta.env.DEV) {
+            console.log('🎯 Evento table-action recibido en commerce module:', { action, selectedIds });
+        }
+
+        // Solo manejar "create" aquí, porque "edit" lo maneja formCRUD con AJAX
+        if (action === 'create') {
+            insertInfo('create');
+        }
+        // Para "edit" y otras acciones, el click listener (línea 234) llama a formCRUD
+        // que hace la petición AJAX y luego llama a insertInfo con los datos correctos
+    });
+
+    if (import.meta.env.DEV) {
+        console.log('✅ Listener table-action registrado');
+    }
+
+    const modal = document.getElementById(`modal-${moduleId}`);
+    if (!modal) {
+        if (import.meta.env.DEV) {
+            console.warn(`⚠️ Modal con id 'modal-${moduleId}' no encontrado`);
+        }
+        return;
+    }
 
     // Inicializar selector de moneda/zona horaria por país
     initCurrencySelector();
@@ -191,7 +218,7 @@ export function initListeners(): void {
 
     // Click en botones dinámicos del formulario
     document.addEventListener('click', async ({ target }) => {
-        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${formModule.moduleId}`);
+        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${moduleId}`);
 
         if (!element) return;
         try {
@@ -207,4 +234,21 @@ export function initListeners(): void {
             validateInput(target, true, 3, 35);
         }
     });
+
+    // Listener para el botón "Guardar" del modal
+    const btnConfirm = document.getElementById('btn-confirm');
+    if (btnConfirm) {
+        btnConfirm.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            if (import.meta.env.DEV) {
+                console.log('🔵 Click en botón Guardar - Validando campos requeridos');
+            }
+
+            // Importar submitForm dinámicamente
+            import('@/helpers/form/formCrudInit').then(({ submitForm }) => {
+                submitForm(moduleId, requiredFields);
+            });
+        });
+    }
 }

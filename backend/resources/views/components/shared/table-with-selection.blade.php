@@ -15,7 +15,8 @@
 
     {{-- x-data recibe los IDs encriptados --}}
     <div class="card-body" x-data='tableSelection(@json($hashedIds), "{{ $tableId }}")'
-        data-table-id="{{ $tableId }}">
+        data-table-id="{{ $tableId }}"
+        @btn-action.window="handleBtnAction($event)">
         {{-- Botones de acciones --}}
         <x-shared.btn-group useModal="true" :btn-group-id="$moduleId" :buttons="[]" :context="$context"
             x-bind:data-id="selectedIds" />
@@ -38,7 +39,10 @@
                         {{-- Usamos $hashedIds[$index] para cada fila --}}
                         @php $hashId = $hashedIds[$index] ?? $item->id; @endphp
                         <tr :class="selected.includes('{{ $hashId }}') ? 'table-primary' : ''"
-                            @click="toggle('{{ $hashId }}')" style="cursor:pointer;">
+                            @click="toggle('{{ $hashId }}')"
+                            style="cursor:pointer;"
+                            data-row-id="{{ $hashId }}"
+                            data-status="{{ $item->status ?? '' }}">
                             <td class="text-center">
                                 <input type="checkbox" :checked="selected.includes('{{ $hashId }}')"
                                     @click.stop="toggle('{{ $hashId }}')">

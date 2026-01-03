@@ -88,6 +88,11 @@ class CommerceController extends Controller
             // Buscar el commerce con su usuario
             $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')->findOrFail($realId);
 
+            // Validar que el comercio no esté ya eliminado (DELETED)
+            if ($commerce->status === 'DELETED') {
+                throw new \Exception('No se puede eliminar un comercio que ya está eliminado');
+            }
+
             // Usar transacción para eliminar todo
             DB::transaction(function () use ($commerce) {
                 $user = $commerce->user;
@@ -116,69 +121,73 @@ class CommerceController extends Controller
      * Cambiar estado de un Comercio.
      *
      * @param string $id ID hasheado con Hashids
-     * @return RedirectResponse
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function changeStatus(string $id): RedirectResponse
+    public function changeStatus(string $id): \Illuminate\Http\JsonResponse
     {
         try {
-            return $this->handleService(function () use ($id) {
+            // Decodificar el ID usando Hashids
+            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
 
-                // Decodificar el ID usando Hashids
-                $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
+            if (empty($decodedIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID inválido'
+                ], 400);
+            }
 
-                if (empty($decodedIds)) {
-                    throw new \InvalidArgumentException('ID inválido');
-                }
+            $realId = (string) $decodedIds[0];
 
-                $realId = (string) $decodedIds[0];
+            // Buscar el commerce con su usuario
+            $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')
+                ->findOrFail($realId);
 
-                // Buscar el commerce con su usuario
-                $commerce = \App\Models\Users\Roles\Commerce\Commerce::with('user')
-                    ->findOrFail($realId);
+            // Obtener el nuevo estado desde la request
+            $newStatus = request('status', 'DELETED');
 
-                // Obtener el nuevo estado desde la request
-                $newStatus = request('status', 'DELETED');
+            // Validar estado
+            $validStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'];
+            if (!in_array($newStatus, $validStatuses, true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Estado inválido'
+                ], 400);
+            }
 
-                // // Validar estado
-                // $validStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'];
-                // if (!in_array($newStatus, $validStatuses, true)) {
-                //     throw new \InvalidArgumentException('Estado inválido');
-                // }
+            // Transacción
+            DB::transaction(function () use ($commerce, $newStatus) {
+                $commerce->user->update([
+                    'status' => $newStatus,
+                ]);
 
-                // // Transacción
-                // DB::transaction(function () use ($commerce, $newStatus) {
-                //     $commerce->user->update([
-                //         'status' => $newStatus,
-                //     ]);
+                $commerce->update([
+                    'status' => $newStatus,
+                ]);
+            });
 
-                //     $commerce->update([
-                //         'status' => $newStatus,
-                //     ]);
-                // });
+            $message = match ($newStatus) {
+                'DELETED'  => '✅ Comercio eliminado correctamente',
+                'ACTIVE'   => '✅ Comercio activado correctamente',
+                'INACTIVE' => '✅ Comercio desactivado correctamente',
+                'BLOCKED'  => '✅ Comercio bloqueado correctamente',
+                default    => '✅ Estado cambiado correctamente',
+            };
 
-                $message = match ($newStatus) {
-                    'DELETED'  => '✅ Comercio eliminado correctamente',
-                    'ACTIVE'   => '✅ Comercio activado correctamente',
-                    'INACTIVE' => '✅ Comercio desactivado correctamente',
-                    'BLOCKED'  => '✅ Comercio bloqueado correctamente',
-                    default    => '✅ Estado cambiado correctamente',
-                };
-
-                Session::flash('message', $message);
-
-                return redirect()->back();
-            }, "Hubo un error al cambiar el estado del Comercio [ID: {$id}].");
+            return response()->json([
+                'success' => true,
+                'message' => $message
+            ]);
         } catch (\Throwable $e) {
-
             // Log detallado para debugging
             Log::error('Error al cambiar estado de comercio', [
                 'hashed_id' => $id,
                 'exception' => $e,
             ]);
 
-            Session::flash('error', $e->getMessage());
-
-            return redirect()->back();
+            return response()->json([
+                'success' => false,
+                'message' => "Hubo un error al cambiar el estado del Comercio"
+            ], 500);
         }
     }
 

@@ -84,12 +84,11 @@ class BtnGroup extends Component
                 'title' => 'Editar',
             ],
             (object)[
-                'action' => 'change-status',
+                'action' => 'delete',
                 'color' => 'btn-danger',
                 'disabled' => true,
                 'icon' => 'fa fa-trash',
                 'title' => 'Eliminar',
-                'status' => 'DELETED',
             ],
         ];
     }

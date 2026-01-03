@@ -24,6 +24,33 @@ export function tableSelection(allIds: string[] = [], tableId: string = 'default
     /** Identificador de la tabla */
     tableId,
 
+    /**
+     * Maneja los eventos btn-action disparados por Alpine.js
+     * @param event - Evento Alpine.js con action y selected
+     */
+    handleBtnAction(event: CustomEvent) {
+      const [action, selectedIds] = event.detail || [];
+
+      if (import.meta.env.DEV) {
+        console.log('🔔 Evento btn-action recibido:', { action, selectedIds, tableId: this.tableId });
+      }
+
+      // Disparar evento global para que el módulo lo capture
+      const tableActionEvent = new CustomEvent('table-action', {
+        detail: { action, selectedIds, tableId: this.tableId }
+      });
+
+      if (import.meta.env.DEV) {
+        console.log('📢 Disparando evento table-action:', tableActionEvent.detail);
+      }
+
+      window.dispatchEvent(tableActionEvent);
+
+      if (import.meta.env.DEV) {
+        console.log('✅ Evento table-action disparado');
+      }
+    },
+
     /** Devuelve true si todos los IDs están seleccionados */
     get allSelected() {
       return this.selected.length === this.allIds.length;
@@ -65,6 +92,19 @@ export function tableSelection(allIds: string[] = [], tableId: string = 'default
     /** Devuelve los IDs seleccionados (siempre array) */
     get selectedIds() {
       return [...this.selected];
+    },
+
+    /**
+     * Verifica si alguno de los registros seleccionados tiene status DELETED
+     * Usado para deshabilitar el botón de cambiar estado
+     */
+    get hasDeletedStatus() {
+      if (this.selected.length === 0) return false;
+
+      return this.selected.some(id => {
+        const row = document.querySelector(`tr[data-row-id="${id}"]`);
+        return row?.getAttribute('data-status') === 'DELETED';
+      });
     },
 
     /**

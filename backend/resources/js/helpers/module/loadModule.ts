@@ -86,8 +86,16 @@ export async function loadModule<T = Record<string, any>>(
             }
 
             // Ejecutar initListeners si existe
-            if (typeof (mod as any).initListeners === 'function') {
-                onDOMReady((mod as any).initListeners);
+            // Buscar initListeners tanto en mod (default export) como en imported (named exports)
+            const initListenersFn = (mod as any).initListeners || (imported as any).initListeners;
+
+            if (typeof initListenersFn === 'function') {
+                if (import.meta.env.DEV) {
+                    console.log(`🎧 Registrando initListeners de "${modulePath}"`);
+                }
+                onDOMReady(initListenersFn);
+            } else if (import.meta.env.DEV) {
+                console.log(`ℹ️ Módulo "${modulePath}" no tiene initListeners`);
             }
 
             if (import.meta.env.DEV) {
