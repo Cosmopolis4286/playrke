@@ -32,7 +32,4 @@ export interface ModuleType {
 
     // Hook para listeners personalizados
     initListeners?: () => void;
-
-    // Deshabilita submit automático del botón confirmar
-    disableAutoSubmit?: boolean;
 }

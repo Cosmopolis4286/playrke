@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 /**
  * Controlador HTTP para la gestión de Comercios (Commerce).
@@ -294,21 +295,26 @@ class CommerceController extends Controller
     }
 
     /**
-     * Manejo centralizado de errores para los métodos del Controller.
-     *
-     * @param callable $callback
-     * @param string $errorMessage
-     * @return mixed
+     * Vista de vendedores
      */
-    private function handleService(callable $callback, string $errorMessage)
+    public function sellers(): View
     {
-        try {
-            return $callback();
-        } catch (\Throwable $e) {
-            Log::error("❌ $errorMessage Error: " . $e->getMessage());
-            Session::flash('error', $errorMessage);
+        $sellers = $this->commerces->sellers->getAllWithRelations([
+            'country:id,name',
+            'user:id,email',
+        ]);
 
-            return redirect()->back()->withErrors(['error' => $errorMessage]);
-        }
+        return view('modules.users.roles.seller.form.index', [
+            'title' => 'Vendedores',
+            'pageData' => [
+                // 'currencies' => $this->currencies->getActive(),
+                // 'commerces'  => $commerces,
+                // 'countries' => $this->countries->getActive(),
+                // 'games'     => $this->games->getActive(),
+                // 'timeZones' => $this->timeZones->getActive(),
+                'enableFormCrud' => true,
+                'moduleFile' => 'modules/users/roles/admin/commerce/form/commerceForm.ts',
+            ]
+        ]);
     }
 }

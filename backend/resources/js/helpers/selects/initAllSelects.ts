@@ -8,6 +8,34 @@ const datasets = createDatasetGetters();
 const initializedSelects = new WeakSet<HTMLSelectElement>();
 
 /**
+ * Inicializa todos los selects con Select2 que no tienen data-source
+ */
+function initSelect2Only(): void {
+    document.querySelectorAll<HTMLSelectElement>('select.select2').forEach(select => {
+        // Si ya fue inicializado con Select2, skip
+        if ($(select).data('select2')) return;
+
+        // Si tiene data-source, será manejado por initAllSelects
+        if (select.dataset.source) return;
+
+        const placeholderText = select.dataset.placeholder || '';
+        const allowClear = select.dataset.allowClear !== 'false';
+
+        $(select).select2({
+            placeholder: placeholderText,
+            allowClear: allowClear,
+            theme: 'bootstrap4',
+            width: '100%',
+            multiple: select.multiple,
+        });
+
+        if (import.meta.env.DEV) {
+            console.log(`✅ Select2 inicializado para #${select.id}`);
+        }
+    });
+}
+
+/**
  * Inicializa todos los <select> que tengan el atributo `data-source`.
  *
  * Funciona tanto para selects nativos como para Select2.
@@ -110,6 +138,9 @@ export function initAllSelects(
         // Marcar como inicializado
         initializedSelects.add(select);
     });
+
+    // Inicializar Select2 para selects que no tienen data-source
+    initSelect2Only();
 }
 
 /**

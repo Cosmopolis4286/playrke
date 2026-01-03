@@ -1,6 +1,6 @@
 // helpers/form/formCrudInit.ts
 import axios from '@/plugins/axios';
-import { ajaxStart } from '@/utils/loader';
+import { ajaxStart, ajaxStop } from '@/utils/loader';
 import Swal, { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
 import type { OtherCase } from '@/helpers/module/types/formModule.types';
 import { formCrudExports } from './formCrudLoadModule';
@@ -98,7 +98,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
 
             const modalTitle = `Registrar ${formTitleSuffix}`;
             safeInsertInfo('create');
-            prepareForm(form, 'create', modalTitle, 'POST', undefined, route);
+            prepareForm(form, 'store', modalTitle, 'POST', undefined, route);
             break;
         }
 
@@ -223,41 +223,12 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
             requestData.status = status;
         }
 
-        console.log('🧪 ACTION DEBUG', {
-            action,
-            caseData,
-            idsToProcess
-        });
-
         // Procesar cada ID seleccionado
         const promises = idsToProcess.map(async (id) => {
             const fullUrl = routeFn?.(caseData.routeName, { id }) ?? '';
 
             // Convertir URL absoluta a relativa para evitar conflictos con baseURL de axios
             const url = fullUrl.replace(/^https?:\/\/[^\/]+/, '');
-
-            console.log('🧪 REQUEST DEBUG', {
-                action,
-                routeName: caseData.routeName,
-                url
-            });
-
-
-            console.log(`🔍 Generando URL para acción '${action}':`, {
-                routeName: caseData.routeName,
-                id,
-                fullUrl,
-                url,
-                routeFnExists: !!routeFn
-            });
-
-            console.log(`🚀 Enviando petición para ID '${id}' con método '${caseData.method ?? 'PUT'}' a la URL:`, url);
-            console.log('📦 Axios config:', {
-                method: (caseData.method ?? 'PUT').toLowerCase(),
-                url,
-                data: requestData,
-                baseURL: axios.defaults.baseURL
-            });
 
             return axios.request({
                 method: (caseData.method ?? 'PUT').toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch',
@@ -524,6 +495,10 @@ export function submitForm(formId: string, fields: string[] = []) {
             console.error('Error al enviar formulario:', error);
             const message = error.response?.data?.message || 'Error al procesar la solicitud';
             showToast(message, 'error');
+        })
+        .finally(() => {
+            // Siempre rehabilitar botones después de la petición (éxito o error)
+            ajaxStop();
         });
 }
 

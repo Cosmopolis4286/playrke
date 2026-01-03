@@ -4,6 +4,7 @@ import { loadModule } from '@/helpers/module/loadModule';
 import type { ModuleType } from '@/helpers/module/types/formModule.types';
 import { copyInfo } from '@/utils/copyInfo';
 import { onDOMReady } from '@/utils/domReady';
+import { devConsole } from '@/utils/console';
 
 // ==========================
 // Estado interno del módulo cargado
@@ -72,7 +73,7 @@ export async function initFormCrud(): Promise<void> {
         console.warn(`Modal con id 'modal-${_moduleId}' no encontrado`);
     }
 
-    console.log('🧩 CRUD MODULE LOADED:', {
+    devConsole('log', '🧩 CRUD MODULE LOADED:', {
         moduleFile,
         moduleId: _moduleId,
         routeTest: _route('changeStatus', { id: 'TEST' }),
@@ -104,7 +105,7 @@ function setupListeners(): void {
             if (!target) return;
 
             // Submit automático (solo si el módulo lo permite)
-            if (target.closest('#btn-confirm') && !_module?.disableAutoSubmit) {
+            if (target.closest('#btn-confirm')) {
                 const { submitForm } = await import('@/helpers/form/formCrudInit');
                 submitForm(_moduleId, _requiredFields);
                 return;

@@ -14,7 +14,6 @@ export { route };
 // ==========================
 export const formTitleSuffix = 'Comercio';
 export const moduleId = 'commerce-form';
-export const disableAutoSubmit = true;
 
 export const requiredFields: string[] = [
     'name',
@@ -171,29 +170,12 @@ export function initListeners(): void {
         }
         return;
     }
+
     listenersAttached = true;
 
     if (import.meta.env.DEV) {
         console.log('🚀 Inicializando listeners de commerce module');
     }
-
-    // Listener para eventos de acciones de botones desde Alpine.js
-    // IMPORTANTE: Este listener debe registrarse ANTES de verificar el modal
-    window.addEventListener('table-action', (event: Event) => {
-        const customEvent = event as CustomEvent;
-        const { action, selectedIds } = customEvent.detail || {};
-
-        if (import.meta.env.DEV) {
-            console.log('🎯 Evento table-action recibido en commerce module:', { action, selectedIds });
-        }
-
-        // Solo manejar "create" aquí, porque "edit" lo maneja formCRUD con AJAX
-        if (action === 'create') {
-            insertInfo('create');
-        }
-        // Para "edit" y otras acciones, el click listener (línea 234) llama a formCRUD
-        // que hace la petición AJAX y luego llama a insertInfo con los datos correctos
-    });
 
     if (import.meta.env.DEV) {
         console.log('✅ Listener table-action registrado');
@@ -234,21 +216,4 @@ export function initListeners(): void {
             validateInput(target, true, 3, 35);
         }
     });
-
-    // Listener para el botón "Guardar" del modal
-    const btnConfirm = document.getElementById('btn-confirm');
-    if (btnConfirm) {
-        btnConfirm.addEventListener('click', (e) => {
-            e.preventDefault();
-
-            if (import.meta.env.DEV) {
-                console.log('🔵 Click en botón Guardar - Validando campos requeridos');
-            }
-
-            // Importar submitForm dinámicamente
-            import('@/helpers/form/formCrudInit').then(({ submitForm }) => {
-                submitForm(moduleId, requiredFields);
-            });
-        });
-    }
 }
