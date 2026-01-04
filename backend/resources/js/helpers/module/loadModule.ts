@@ -56,12 +56,52 @@ export async function loadModule<T = Record<string, any>>(
             const moduleKey = Object.keys(modules).find(key => {
                 const normalizedKey = key
                     .replace(/^@\//, '')                    // Quita @/
-                    .replace(/^\/resources\/js\//, '');    // Quita /resources/js/
+                    .replace(/^\/resources\/js\//, '')     // Quita /resources/js/
+                    .replace(/^resources\/js\//, '');      // Quita resources/js/ sin /
+
                 return normalizedKey === pathWithTs;
             });
 
             if (!moduleKey) {
-                throw new Error(`Módulo no encontrado: ${pathWithTs}. Rutas disponibles: ${Object.keys(modules).join(', ')}`);
+                // Fallback: intentar import dinámico directo
+                console.warn(`⚠️ Módulo "${pathWithTs}" no encontrado en glob, intentando import directo...`);
+
+                try {
+                    // Construir ruta con alias @/
+                    const directImportPath = `@/${pathWithTs}`;
+
+                    if (import.meta.env.DEV) {
+                        console.log(`🔄 Intentando import directo: ${directImportPath}`);
+                    }
+
+                    // Import dinámico directo
+                    const imported = await import(/* @vite-ignore */ directImportPath);
+                    const mod: T = (imported.default ?? imported) as T;
+
+                    // Ejecutar initListeners si existe
+                    const initListenersFn = (mod as any).initListeners || (imported as any).initListeners;
+                    if (typeof initListenersFn === 'function') {
+                        onDOMReady(initListenersFn);
+                    }
+
+                    if (import.meta.env.DEV) {
+                        console.log(`✅ Módulo "${modulePath}" cargado con import directo`);
+                    }
+
+                    return mod;
+                } catch (directImportError) {
+                    // Si el import directo también falla, mostrar error completo
+                    const normalizedKeys = Object.keys(modules).map(k =>
+                        k.replace(/^@\//, '').replace(/^\/resources\/js\//, '').replace(/^resources\/js\//, '')
+                    );
+
+                    console.error(`❌ Módulo no encontrado: "${pathWithTs}"`);
+                    console.error(`📋 Rutas disponibles normalizadas:`, normalizedKeys);
+                    console.error(`📋 Rutas originales del glob:`, Object.keys(modules));
+                    console.error(`❌ Error en import directo:`, directImportError);
+
+                    throw new Error(`Módulo no encontrado: ${pathWithTs}`);
+                }
             }
 
             if (import.meta.env.DEV) {

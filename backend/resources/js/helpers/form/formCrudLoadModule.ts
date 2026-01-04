@@ -5,6 +5,7 @@ import type { ModuleType } from '@/helpers/module/types/formModule.types';
 import { copyInfo } from '@/utils/copyInfo';
 import { onDOMReady } from '@/utils/domReady';
 import { devConsole } from '@/utils/console';
+import { registerTableListener, submitForm } from '@/helpers/form/formCrudInit';
 
 // ==========================
 // Estado interno del módulo cargado
@@ -89,10 +90,8 @@ export async function initFormCrud(): Promise<void> {
 function setupTableListener(): void {
     if (!_tableId) return;
 
-    // Importación dinámica para evitar dependencias innecesarias
-    import('@/helpers/form/formCrudInit').then(({ registerTableListener }) => {
-        registerTableListener(_tableId);
-    });
+    // Usar import estático (ya importado arriba)
+    registerTableListener(_tableId);
 }
 
 /**
@@ -106,7 +105,7 @@ function setupListeners(): void {
 
             // Submit automático (solo si el módulo lo permite)
             if (target.closest('#btn-confirm')) {
-                const { submitForm } = await import('@/helpers/form/formCrudInit');
+                // Usar import estático (ya importado arriba)
                 submitForm(_moduleId, _requiredFields);
                 return;
             }

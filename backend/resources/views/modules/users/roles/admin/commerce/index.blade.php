@@ -1,9 +1,37 @@
 <x-layouts.layout-online :title="$title" loadSelect2="true">
-    {{-- Tabla de comercios --}}
-    <x-shared.table-with-selection :title="$title" :rows="$pageData['commerces']" :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']" :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
-        module-id="commerce-form" context="commerce" table-id="commerce-table" />
+    {{-- Tabla de comercios con Vue + Filtros --}}
+    <x-shared.table-with-filter-vue
+        :title="$title"
+        :rows="$pageData['commerces']"
+        :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']"
+        :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
+        :filters="[
+            [
+                'key' => 'Country_name',
+                'label' => 'País',
+                'placeholder' => 'Filtrar por país',
+                'options' => $pageData['countries']->map(fn($c) => ['value' => $c->name, 'label' => $c->name])->unique('value')->values()->toArray()
+            ],
+            [
+                'key' => 'status',
+                'label' => 'Estado',
+                'placeholder' => 'Filtrar por estado',
+                'options' => [
+                    ['value' => 'ACTIVE', 'label' => 'Activo'],
+                    ['value' => 'INACTIVE', 'label' => 'Inactivo'],
+                    ['value' => 'DELETED', 'label' => 'Eliminado']
+                ]
+            ]
+        ]"
+        module-id="commerce-form"
+        context="commerce"
+        table-id="commerce-table"
+        search-placeholder="Buscar por nombre, email, teléfono..."
+    />
+
     {{-- Modal para formulario de comercio --}}
     <x-shared.modal id="commerce-form" title="Comercio" form-view="modules.users.roles.admin.commerce.form" />
+
     {{-- Scripts globales solo una vez --}}
     @once
         @push('stack-scripts')

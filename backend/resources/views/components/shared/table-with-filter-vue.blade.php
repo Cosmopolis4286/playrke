@@ -77,55 +77,16 @@
 
 @once
     @push('stack-scripts')
-        <script type="module">
-            import { createApp } from 'vue';
-            import TableWithFilterBridge from '@/components/shared/TableWithFilterBridge.vue';
+        {{-- Incluir el script de inicialización compilado por Vite --}}
+        @vite(['resources/js/components/shared/table-filter-bridge-init.ts'])
 
-            // Crear aplicación Vue para la tabla
-            const app = createApp({
-                components: {
-                    TableWithFilterBridge
-                }
-            });
-
-            app.mount('#table-{{ $tableId }}-vue-wrapper');
-
-            // Integración con el sistema existente
-            window.addEventListener('table:create', (e) => {
-                if (e.detail.moduleId === '{{ $moduleId }}') {
-                    // Trigger formCRUD existente
-                    const btn = document.querySelector('.btn-{{ $moduleId }}[data-action="create"]');
-                    if (btn) btn.click();
-                }
-            });
-
-            window.addEventListener('table:edit', (e) => {
-                if (e.detail.moduleId === '{{ $moduleId }}') {
-                    // Actualizar el ID seleccionado en Alpine/tabla
-                    const btn = document.querySelector('.btn-{{ $moduleId }}[data-action="edit"]');
-                    if (btn) btn.click();
-                }
-            });
-
-            window.addEventListener('table:delete', (e) => {
-                if (e.detail.moduleId === '{{ $moduleId }}') {
-                    const btn = document.querySelector('.btn-{{ $moduleId }}[data-action="delete"]');
-                    if (btn) btn.click();
-                }
-            });
-
-            window.addEventListener('table:selection-change', (e) => {
-                if (e.detail.moduleId === '{{ $moduleId }}') {
-                    // Actualizar selección global si se usa Alpine
-                    if (window.Alpine) {
-                        const element = document.querySelector('[data-table-id="{{ $tableId }}"]');
-                        if (element && element.__x) {
-                            const component = element.__x.$data;
-                            if (component && component.selected) {
-                                component.selected = e.detail.selectedIds;
-                            }
-                        }
-                    }
+        <script>
+            // Inicializar cuando el DOM esté listo
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof window.initTableFilterBridge === 'function') {
+                    window.initTableFilterBridge('{{ $tableId }}', '{{ $moduleId }}');
+                } else {
+                    console.error('initTableFilterBridge no está disponible');
                 }
             });
         </script>
