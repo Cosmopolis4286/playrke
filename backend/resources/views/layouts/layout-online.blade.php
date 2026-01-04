@@ -2,27 +2,22 @@
 <html lang="en">
 <x-template.head :title="$title ?? 'Título por defecto'" />
 
-<body
-    class="d-flex flex-column min-vh-100 hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
-    {{-- Loader visible mientras la app se carga --}}
+<body class="hold-transition sidebar-mini layout-fixed overflow-hidden">
     <x-shared.app-loader />
-    {{-- Contenedor principal, oculto hasta que la app esté lista --}}
-    <div id="app-wrapper" class="flex-grow-1 d-none">
-        {{-- Barra de navegación --}}
+    <div id="app-wrapper" class="d-flex flex-column vh-100">
+        {{-- NAVBAR --}}
         <x-template.navbar />
-        {{-- Sidebar selector --}}
+        {{-- SIDEBAR --}}
         <x-template.sidebar.sidebar-selector />
         {{-- Alertas SweetAlert --}}
         @include('sweetalert::alert')
-        {{-- Contenido principal --}}
-        <main class="content-wrapper">
-            {{-- Header (opcional, títulos/breadcrumbs) --}}
-            <section class="content-header">
-                {{-- aquí SOLO títulos si los necesitas --}}
-            </section>
-            {{-- Contenido real --}}
-            <section class="content">
-                <div id="app-iwnertia" class="container-fluid"></div>
+        {{-- CONTENEDOR CENTRAL --}}
+        <main class="content-wrapper flex-grow-1 d-flex flex-column">
+            {{-- HEADER OPCIONAL --}}
+            <section class="content-header"></section>
+            {{-- 🔥 ÚNICA ZONA CON SCROLL --}}
+            <section class="content flex-grow-1 overflow-auto">
+                @inertia
             </section>
         </main>
         {{-- Modal para cambiar de contraseña --}}
@@ -30,7 +25,6 @@
         {{-- Pie de página --}}
         <x-template.footer />
     </div>
-    {{-- Scripts adicionales y dependencias --}}
     <x-template.scripts />
     {{-- Pila para scripts específicos de cada vista --}}
     @stack('stack-scripts')

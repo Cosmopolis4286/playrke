@@ -80,7 +80,7 @@ class ExchangeRateController extends Controller
         }
 
         $viewData = [
-            'layout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
+            'bladeLayout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
             'title' => 'Tasas de Cambio',
             'name' => 'exchange-rate',
             'returnBtn' => $returnBtn ?? true,
@@ -373,7 +373,7 @@ class ExchangeRateController extends Controller
         }
 
         $viewData = [
-            'layout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
+            'bladeLayout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
             'title' => 'Histórico Tasa de Cambio',
             'name' => 'exchange-rate-historical',
             'returnBtn' => $returnBtn ?? true,

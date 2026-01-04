@@ -3,13 +3,11 @@
 use App\Http\Controllers\{AdminController, CustomerController, TreasurerController, OtherTreasurersController};
 use Illuminate\Support\Facades\Route;
 
-require_once app_path('Helpers/RouteHelper.php');
-
 /*
 |--------------------------------------------------------------------------
 | Rutas de Administración del Sistema
 |--------------------------------------------------------------------------
-| Todas las funciones administrativas: gestión de usuarios, comercios, 
+| Todas las funciones administrativas: gestión de usuarios, comercios,
 | tesoreros, y configuraciones del sistema.
 */
 

@@ -9,7 +9,11 @@
 </head>
 
 <body class="antialiased">
-    @inertia
+    @php
+        $layout = $page['props']['bladeLayout'] ?? 'layouts.layout-online';
+    @endphp
+
+    @include($layout)
 </body>
 
 </html>

@@ -12,10 +12,10 @@ InertiaProgress.init({
 })
 
 // ─────────────────────────────────────────────────────────────
-// Pages (TIPADO EXACTO)
+// Pages (TIPADO EXACTO) - Usando alias @ para compatibilidad prod
 // ─────────────────────────────────────────────────────────────
 const pages = import.meta.glob<{ default: DefineComponent }>(
-    './Pages/**/*.vue'
+    '@/Pages/**/*.vue'
 )
 
 // Cache para prevenir resoluciones duplicadas
@@ -54,30 +54,37 @@ createInertiaApp({
      * Resolver dinámico de páginas
      * ✔ async
      * ✔ siempre retorna DefineComponent
+     * ✔ Intenta múltiples formatos de ruta para dev y prod
      */
     resolve: async (name): Promise<DefineComponent> => {
-        const path = `./Pages/${name}.vue`
+        // Intentar ambos formatos de ruta (dev usa @/, prod usa /resources/js/)
+        const possiblePaths = [
+            `/resources/js/Pages/${name}.vue`, // Producción
+            `@/Pages/${name}.vue`,              // Desarrollo
+            `./Pages/${name}.vue`,              // Fallback
+        ]
 
-        // Verificar si ya estamos resolviendo esta página
-        if (resolveCache.has(path)) {
-            console.log(`♻️ Usando cache para: ${path}`)
-            return resolveCache.get(path)!
+        for (const path of possiblePaths) {
+            // Verificar cache primero
+            if (resolveCache.has(path)) {
+                console.log(`♻️ Usando cache para: ${path}`)
+                return resolveCache.get(path)!
+            }
+
+            const loader = pages[path]
+
+            if (loader) {
+                console.log(`📄 Resolviendo página: ${path}`)
+                const loadPromise = loader().then(module => module.default)
+                resolveCache.set(path, loadPromise)
+                return loadPromise
+            }
         }
 
-        console.log(`📄 Resolviendo página (primera vez): ${path}`)
-
-        const loader = pages[path]
-
-        if (!loader) {
-            console.error(`[Inertia] Página no encontrada: ${name}`)
-            return PageNotFound
-        }
-
-        // Cachear la promesa
-        const loadPromise = loader().then(module => module.default)
-        resolveCache.set(path, loadPromise)
-
-        return loadPromise
+        // Si no se encuentra en ningún formato
+        console.error(`[Inertia] Página no encontrada: ${name}`)
+        console.error('Páginas disponibles:', Object.keys(pages))
+        return PageNotFound
     },
 
     /**

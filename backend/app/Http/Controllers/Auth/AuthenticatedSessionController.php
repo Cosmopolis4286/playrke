@@ -51,7 +51,7 @@ class AuthenticatedSessionController extends Controller
      * Página de inicio / login con estado de registro
      */
     public function create(): Response
-    {
+    { dd('here');
         $register = $this->settings->getParameterStatus('REGISTER');
 
         return Inertia::render('auth/Login', [
@@ -60,7 +60,7 @@ class AuthenticatedSessionController extends Controller
             'passwordRequestUrl' => route('password.request'),
             'registerUrl' => route('register'),
             // Blade renderizado
-            'layout' => 'layouts.layout-auth',
+            'bladeLayout' => 'layouts.layout-auth',
         ]);
     }
 

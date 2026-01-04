@@ -24,6 +24,7 @@ class HomeController extends Controller
      */
     public function index(): View
     {
+        dd(33);
         $user = Auth::user();
         $firstRole = $user->roles->first();
         $userRole = $firstRole?->prefix ?? 'user';

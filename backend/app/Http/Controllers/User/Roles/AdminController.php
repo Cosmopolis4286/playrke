@@ -15,6 +15,8 @@ use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Controlador Admin refactorizado
@@ -44,9 +46,9 @@ class AdminController extends Controller
     /**
      * Vista principal del dashboard de administrador
      */
-    public function dashboard(): View
+    public function dashboard(): Response
     {
-        return view('modules.users.roles.admin.dashboard.index', [
+        return Inertia::render('modules/users/roles/admin/Dashboard', [
             'title' => 'Dashboard Admin',
         ]);
     }
