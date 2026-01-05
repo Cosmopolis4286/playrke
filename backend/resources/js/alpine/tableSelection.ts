@@ -14,120 +14,120 @@ import { onTableSelectionUpdate } from './tableSelectionListener';
  * @param tableId - Identificador único de la tabla (requerido para listener)
  */
 export function tableSelection(allIds: string[] = [], tableId: string = 'default') {
-  return {
-    /** IDs seleccionados actualmente (siempre array) */
-    selected: [] as string[],
+    return {
+        /** IDs seleccionados actualmente (siempre array) */
+        selected: [] as string[],
 
-    /** Todos los IDs disponibles de la tabla */
-    allIds: allIds || [],
+        /** Todos los IDs disponibles de la tabla */
+        allIds: allIds || [],
 
-    /** Identificador de la tabla */
-    tableId,
+        /** Identificador de la tabla */
+        tableId,
 
-    /**
-     * Maneja los eventos btn-action disparados por Alpine.js
-     * @param event - Evento Alpine.js con action y selected
-     */
-    handleBtnAction(event: CustomEvent) {
-      const [action, selectedIds] = event.detail || [];
+        /**
+         * Maneja los eventos btn-action disparados por Alpine.js
+         * @param event - Evento Alpine.js con action y selected
+         */
+        handleBtnAction(event: CustomEvent) {
+            const [action, selectedIds] = event.detail || [];
 
-      if (import.meta.env.DEV) {
-        console.log('🔔 Evento btn-action recibido:', { action, selectedIds, tableId: this.tableId });
-      }
+            if (import.meta.env.DEV) {
+                console.log('🔔 Evento btn-action recibido:', { action, selectedIds, tableId: this.tableId });
+            }
 
-      // Disparar evento global para que el módulo lo capture
-      const tableActionEvent = new CustomEvent('table-action', {
-        detail: { action, selectedIds, tableId: this.tableId }
-      });
+            // Disparar evento global para que el módulo lo capture
+            const tableActionEvent = new CustomEvent('table-action', {
+                detail: { action, selectedIds, tableId: this.tableId }
+            });
 
-      if (import.meta.env.DEV) {
-        console.log('📢 Disparando evento table-action:', tableActionEvent.detail);
-      }
+            if (import.meta.env.DEV) {
+                console.log('📢 Disparando evento table-action:', tableActionEvent.detail);
+            }
 
-      window.dispatchEvent(tableActionEvent);
+            window.dispatchEvent(tableActionEvent);
 
-      if (import.meta.env.DEV) {
-        console.log('✅ Evento table-action disparado');
-      }
-    },
+            if (import.meta.env.DEV) {
+                console.log('✅ Evento table-action disparado');
+            }
+        },
 
-    /** Devuelve true si todos los IDs están seleccionados */
-    get allSelected() {
-      return this.selected.length === this.allIds.length;
-    },
+        /** Devuelve true si todos los IDs están seleccionados */
+        get allSelected() {
+            return this.selected.length === this.allIds.length;
+        },
 
-    /**
-     * Devuelve un solo valor si hay uno, o el array si hay más de uno
-     * Ideal para contextos donde solo se necesita un ID
-     */
-    get selectedValue() {
-      if (this.selected.length === 1) return this.selected[0];
-      return [...this.selected];
-    },
+        /**
+         * Devuelve un solo valor si hay uno, o el array si hay más de uno
+         * Ideal para contextos donde solo se necesita un ID
+         */
+        get selectedValue() {
+            if (this.selected.length === 1) return this.selected[0];
+            return [...this.selected];
+        },
 
-    /** Alterna la selección de un ID individual */
-    toggle(id: string) {
-      if (this.selected.includes(id)) {
-        this.selected = this.selected.filter(i => i !== id);
-      } else {
-        this.selected.push(id);
-      }
-      this.emitSelectionUpdate();
-    },
+        /** Alterna la selección de un ID individual */
+        toggle(id: string) {
+            if (this.selected.includes(id)) {
+                this.selected = this.selected.filter(i => i !== id);
+            } else {
+                this.selected.push(id);
+            }
+            this.emitSelectionUpdate();
+        },
 
-    /** Alterna la selección de todos los IDs */
-    toggleAll() {
-      this.selected = this.selected.length === this.allIds.length
-        ? []
-        : [...this.allIds];
-      this.emitSelectionUpdate();
-    },
+        /** Alterna la selección de todos los IDs */
+        toggleAll() {
+            this.selected = this.selected.length === this.allIds.length
+                ? []
+                : [...this.allIds];
+            this.emitSelectionUpdate();
+        },
 
-    /** Limpia la selección */
-    clear() {
-      this.selected = [];
-      this.emitSelectionUpdate();
-    },
+        /** Limpia la selección */
+        clear() {
+            this.selected = [];
+            this.emitSelectionUpdate();
+        },
 
-    /** Devuelve los IDs seleccionados (siempre array) */
-    get selectedIds() {
-      return [...this.selected];
-    },
+        /** Devuelve los IDs seleccionados (siempre array) */
+        get selectedIds() {
+            return [...this.selected];
+        },
 
-    /**
-     * Verifica si alguno de los registros seleccionados tiene status DELETED
-     * Usado para deshabilitar el botón de cambiar estado
-     */
-    get hasDeletedStatus() {
-      if (this.selected.length === 0) return false;
+        /**
+         * Verifica si alguno de los registros seleccionados tiene status DELETED
+         * Usado para deshabilitar el botón de cambiar estado
+         */
+        get hasDeletedStatus() {
+            if (this.selected.length === 0) return false;
 
-      return this.selected.some(id => {
-        const row = document.querySelector(`tr[data-row-id="${id}"]`);
-        return row?.getAttribute('data-status') === 'DELETED';
-      });
-    },
+            return this.selected.some(id => {
+                const row = document.querySelector(`tr[data-row-id="${id}"]`);
+                return row?.getAttribute('data-status') === 'DELETED';
+            });
+        },
 
-    /**
-     * Emite un evento global con los IDs seleccionados
-     * Convierte el array reactivo (Proxy) a un array plano
-     * Se puede conectar a tableSelectionListener para callbacks centralizados
-     */
-    emitSelectionUpdate: (() => {
-      let timeout: number;
-      const debounceTime = 50; // ms
-      return function () {
-        clearTimeout(timeout);
-        timeout = window.setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('table-selection-updated', {
-            detail: {
-              tableId: this.tableId,
-              selectedIds: [...this.selected],
-            },
-          }));
-        }, debounceTime);
-      };
-    })(),
-  };
+        /**
+         * Emite un evento global con los IDs seleccionados
+         * Convierte el array reactivo (Proxy) a un array plano
+         * Se puede conectar a tableSelectionListener para callbacks centralizados
+         */
+        emitSelectionUpdate: (() => {
+            let timeout: number;
+            const debounceTime = 50; // ms
+            return function () {
+                clearTimeout(timeout);
+                timeout = window.setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('table-selection-updated', {
+                        detail: {
+                            tableId: this.tableId,
+                            selectedIds: [...this.selected],
+                        },
+                    }));
+                }, debounceTime);
+            };
+        })(),
+    };
 }
 
 /**
@@ -135,17 +135,17 @@ export function tableSelection(allIds: string[] = [], tableId: string = 'default
  * Escucha automáticamente los cambios de selección de cada tabla
  */
 export function initTableActions() {
-  document.querySelectorAll<HTMLElement>('[data-table-id]').forEach(el => {
-    if (el.dataset.tableInit) return; // ya inicializado
-    el.dataset.tableInit = 'true';
+    document.querySelectorAll<HTMLElement>('[data-table-id]').forEach(el => {
+        if (el.dataset.tableInit) return; // ya inicializado
+        el.dataset.tableInit = 'true';
 
-    const tableId = el.dataset.tableId;
-    if (!tableId) return;
+        const tableId = el.dataset.tableId;
+        if (!tableId) return;
 
-    // Registrar callback para actualizar btn-group al cambiar selección
-    onTableSelectionUpdate(tableId, (selectedIds) => {
-      const btnGroup = el.querySelector<HTMLElement>(`.btn-group[data-btn-group-id="${tableId}"]`);
-      if (btnGroup) btnGroup.dataset.id = selectedIds.join(',');
+        // Registrar callback para actualizar btn-group al cambiar selección
+        onTableSelectionUpdate(tableId, (selectedIds) => {
+            const btnGroup = el.querySelector<HTMLElement>(`.btn-group[data-btn-group-id="${tableId}"]`);
+            if (btnGroup) btnGroup.dataset.id = selectedIds.join(',');
+        });
     });
-  });
 }

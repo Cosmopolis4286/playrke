@@ -1,20 +1,8 @@
 <template>
-    <TableWithFilter
-        :title="title"
-        :columns="parsedColumns"
-        :rows="parsedRows"
-        :filters="parsedFilters"
-        :search-placeholder="searchPlaceholder"
-        :debounce-delay="debounceDelay"
-        :empty-message="emptyMessage"
-        :show-create-button="showCreateButton"
-        :show-edit-button="showEditButton"
-        :show-delete-button="showDeleteButton"
-        @create="handleCreate"
-        @edit="handleEdit"
-        @delete="handleDelete"
-        @selection-change="handleSelectionChange"
-    >
+    <TableWithFilter :title="title" :columns="parsedColumns" :rows="parsedRows" :filters="parsedFilters"
+        :search-placeholder="searchPlaceholder" :debounce-delay="debounceDelay" :empty-message="emptyMessage"
+        :show-create-button="showCreateButton" :show-edit-button="showEditButton" :show-delete-button="showDeleteButton"
+        @create="handleCreate" @edit="handleEdit" @delete="handleDelete" @selection-change="handleSelectionChange">
         <!-- Forward all slots -->
         <template v-for="(_, name) in $slots" #[name]="slotData">
             <slot :name="name" v-bind="slotData" />
@@ -22,7 +10,7 @@
     </TableWithFilter>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import TableWithFilter from './TableWithFilter.vue'
 
@@ -100,38 +88,35 @@ const parsedFilters = computed(() => {
 
 // Handlers que se integran con el sistema existente
 const handleCreate = () => {
-    // Trigger event para Alpine.js o sistema existente
-    window.dispatchEvent(new CustomEvent('table:create', {
-        detail: { moduleId: props.moduleId, context: props.context }
-    }))
-
-    // Si existe la función global formCRUD
-    if (window.formCRUD) {
-        const fakeElement = document.createElement('button')
-        fakeElement.dataset.action = 'create'
-        window.formCRUD(fakeElement)
-    }
+    window.dispatchEvent(
+        new CustomEvent('table:crud', {
+            detail: {
+                action: 'create',
+                moduleId: props.moduleId,
+                context: props.context
+            }
+        })
+    )
 }
 
-const handleEdit = (id) => {
-    window.dispatchEvent(new CustomEvent('table:edit', {
-        detail: { id, moduleId: props.moduleId, context: props.context }
+const handleEdit = (id: string) => {
+    window.dispatchEvent(new CustomEvent('table:crud', {
+        detail: {
+            action: 'edit',
+            id,
+            moduleId: props.moduleId,
+            context: props.context
+        }
     }))
-
-    if (window.formCRUD) {
-        const fakeElement = document.createElement('button')
-        fakeElement.dataset.action = 'edit'
-        window.formCRUD(fakeElement)
-    }
 }
 
-const handleDelete = (ids) => {
+const handleDelete = (ids: Array<string>) => {
     window.dispatchEvent(new CustomEvent('table:delete', {
         detail: { ids, moduleId: props.moduleId, context: props.context }
     }))
 }
 
-const handleSelectionChange = (selectedIds) => {
+const handleSelectionChange = (selectedIds: Array<string>) => {
     window.dispatchEvent(new CustomEvent('table:selection-change', {
         detail: { selectedIds, moduleId: props.moduleId, context: props.context }
     }))

@@ -7,7 +7,7 @@
         :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
         :filters="[
             [
-                'key' => 'Country_name',
+                'key' => 'country_name',
                 'label' => 'País',
                 'placeholder' => 'Filtrar por país',
                 'options' => $pageData['countries']->map(fn($c) => ['value' => $c->name, 'label' => $c->name])->unique('value')->values()->toArray()

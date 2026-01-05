@@ -4,8 +4,8 @@ import { loadModule } from '@/helpers/module/loadModule';
 import type { ModuleType } from '@/helpers/module/types/formModule.types';
 import { copyInfo } from '@/utils/copyInfo';
 import { onDOMReady } from '@/utils/domReady';
-import { devConsole } from '@/utils/console';
-import { registerTableListener, submitForm } from '@/helpers/form/formCrudInit';
+import { formCRUD, submitForm } from '@/helpers/form/formCrudInit';
+import { registerTableListener } from '@/alpine/tableSelectionListener';
 
 // ==========================
 // Estado interno del módulo cargado
@@ -16,12 +16,12 @@ let _moduleId: string = '';
 let _formTitleSuffix: string = '';
 let _tableId: string = '';
 
-let _modal: HTMLDivElement | null = null;
+let _modalId: HTMLDivElement | null = null;
 
 let _insertInfo: ModuleType['insertInfo'] = () => { };
 let _otherCasesMap: NonNullable<ModuleType['otherCasesMap']> = {};
 let _requiredFields: NonNullable<ModuleType['requiredFields']> = [];
-let _route: NonNullable<ModuleType['route']> = () => '';
+let _routeFn: NonNullable<ModuleType['routeFn']> = () => '';
 
 
 /**
@@ -29,18 +29,16 @@ let _route: NonNullable<ModuleType['route']> = () => '';
  */
 export const formCrudExports = {
     get moduleId() { return _moduleId; },
-    get formTitleSuffix() { return _formTitleSuffix; },
-    get tableId() { return _tableId; },
-    get modal() { return _modal; },
-
-    get insertInfo() { return _insertInfo; },
-    get otherCasesMap() { return _otherCasesMap; },
-    get requiredFields() { return _requiredFields; },
-    get route() { return _route; },
-
     get moduleFile() {
         return getAppDataProperty<string>('moduleFile', '');
     },
+    get formTitleSuffix() { return _formTitleSuffix; },
+    get tableId() { return _tableId; },
+    get modalId() { return _modalId; },
+    get insertInfo() { return _insertInfo; },
+    get otherCasesMap() { return _otherCasesMap; },
+    get requiredFields() { return _requiredFields; },
+    get routeFn() { return _routeFn; },
 };
 
 /**
@@ -62,35 +60,18 @@ export async function initFormCrud(): Promise<void> {
     _insertInfo = _module.insertInfo ?? (() => { });
     _otherCasesMap = _module.otherCasesMap ?? {};
     _requiredFields = _module.requiredFields ?? [];
-    _route = _module.route ?? (() => '');
+    _routeFn = _module.routeFn ?? (() => '');
 
     _tableId =
         getAppDataProperty<string>('tableId', '') ||
         `${_moduleId.replace('-form', '')}-table`;
 
-    _modal = document.getElementById(`modal-${_moduleId}`) as HTMLDivElement | null;
+    _modalId = document.getElementById(`modal-${_moduleId}`) as HTMLDivElement | null;
 
-    if (!_modal) {
+    if (!_modalId) {
         console.warn(`Modal con id 'modal-${_moduleId}' no encontrado`);
     }
-
-    devConsole('log', '🧩 CRUD MODULE LOADED:', {
-        moduleFile,
-        moduleId: _moduleId,
-        routeTest: _route('changeStatus', { id: 'TEST' }),
-    });
-
     setupListeners();
-    setupTableListener();
-}
-
-/**
- * Configura el listener de selección de tabla
- */
-function setupTableListener(): void {
-    if (!_tableId) return;
-
-    // Usar import estático (ya importado arriba)
     registerTableListener(_tableId);
 }
 
@@ -99,25 +80,47 @@ function setupTableListener(): void {
  */
 function setupListeners(): void {
     onDOMReady(() => {
-        document.addEventListener('click', async (e) => {
-            const target = e.target as HTMLElement | null;
-            if (!target) return;
+        const modalId = `modal-${_moduleId}`;
+        const modal = document.getElementById(modalId);
 
-            // Submit automático (solo si el módulo lo permite)
-            if (target.closest('#btn-confirm')) {
-                // Usar import estático (ya importado arriba)
-                submitForm(_moduleId, _requiredFields);
-                return;
-            }
+        if (!modal) {
+            import.meta.env.DEV &&
+                console.warn(`⚠️ Modal con id '${modalId}' no encontrado`);
+            return;
+        }
 
-            if (target.closest('#btn-copy')) {
-                copyInfo('Contraseña Copiada');
-                return;
-            }
-
-            if (target.closest('.popover-dismiss')) {
-                $(target).popover('toggle');
-            }
-        });
+        document.addEventListener('click', handleClick);
     });
 }
+
+async function handleClick(e: MouseEvent): Promise<void> {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+
+    // Acciones directas (rápidas)
+    if (target.closest('#btn-confirm')) {
+        submitForm(_moduleId, _requiredFields);
+        return;
+    }
+
+    if (target.closest('#btn-copy')) {
+        copyInfo('Contraseña Copiada');
+        return;
+    }
+
+    if (target.closest('.popover-dismiss')) {
+        $(target).popover('toggle');
+        return;
+    }
+
+    // Botones del módulo
+    const btn = target.closest<HTMLElement>(`.btn-${_moduleId}`);
+    if (!btn) return;
+
+    try {
+        await formCRUD(btn);
+    } catch (err) {
+        console.error('Error en formCRUD:', err);
+    }
+}
+

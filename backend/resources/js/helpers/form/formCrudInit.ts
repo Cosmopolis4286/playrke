@@ -6,29 +6,36 @@ import type { OtherCase } from '@/helpers/module/types/formModule.types';
 import { formCrudExports } from './formCrudLoadModule';
 import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form/fieldValidation';
 import { resetFormAndContainers } from './formHelpers';
-import { getSelectedIds } from '@/alpine/tableSelectionListener';
+import { getSelectedIds, getCurrentEncryptId } from '@/alpine/tableSelectionListener';
 
-// Estado del módulo CRUD
-const crudState = {
-    encryptId: '',
-    tableListeners: new Map<string, (ids: string[]) => void>()
-};
+const { moduleId, modalId, routeFn, formTitleSuffix, otherCasesMap } = formCrudExports;
 
 /**
- * Registra un listener para la selección de tabla
- * @param tableId - ID de la tabla
+ * Inicializa los listeners globales para acciones CRUD disparadas vía CustomEvent.
+ *
+ * Escucha el evento `table:crud` y delega la acción al handler interno `formCRUD`
+ * sin exponerlo en el scope global (`window`).
+ *
+ * Uso esperado del evento:
+ * window.dispatchEvent(new CustomEvent('table:crud', {
+ *   detail: {
+ *     action: 'create' | 'edit' | 'delete' | string
+ *   }
+ * }))
+ *
+ * @returns {void}
  */
-export function registerTableListener(tableId: string): void {
-    // Importación dinámica para evitar dependencia circular
-    import('@/alpine/tableSelectionListener').then(({ onTableSelectionUpdate }) => {
-        if (!crudState.tableListeners.has(tableId)) {
-            const listener = (selectedIds: string[]) => {
-                crudState.encryptId = selectedIds.length === 1 ? selectedIds[0] : '';
-            };
-            onTableSelectionUpdate(tableId, listener);
-            crudState.tableListeners.set(tableId, listener);
-        }
-    });
+export function initFormCRUDListeners(): void {
+    window.addEventListener('table:crud', (e: Event) => {
+        const { action } = (e as CustomEvent<{ action?: string }>).detail ?? {}
+
+        if (!action) return
+
+        const fakeElement = document.createElement('button')
+        fakeElement.dataset.action = action
+
+        formCRUD(fakeElement)
+    })
 }
 
 /**
@@ -36,28 +43,15 @@ export function registerTableListener(tableId: string): void {
  */
 function safeInsertInfo(action: string, data?: any) {
     const insertFn = formCrudExports.insertInfo;
-    const modalEl = formCrudExports.modal;
 
     if (typeof insertFn === 'function') {
         insertFn(action, data);
-        if (modalEl) $(modalEl).modal('show');
+        if (modalId) $(modalId).modal('show');
     } else {
         console.error(
             `La función insertInfo no existe o el módulo '${formCrudExports.moduleFile}' no está cargado aún.`
         );
     }
-}
-
-/**
- * Obtiene el ID cifrado actual desde la tabla o desde el estado
- */
-function getCurrentEncryptId(): string {
-    const tableId = formCrudExports.tableId;
-    if (tableId) {
-        const selectedIds = getSelectedIds(tableId);
-        return selectedIds.length === 1 ? selectedIds[0] : '';
-    }
-    return crudState.encryptId;
 }
 
 /**
@@ -69,14 +63,12 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
     type CrudAction = 'create' | 'edit' | 'delete' | string;
     const action: CrudAction = elem.dataset.action ?? '';
 
-    const { moduleId, modal, route, formTitleSuffix } = formCrudExports;
-
     // Obtener el ID cifrado actual al momento del clic
     const currentEncryptId = getCurrentEncryptId();
 
     // Inicialización de formulario y modal (solo para create/edit)
     const initForm = (): HTMLFormElement | null => {
-        if (!modal) {
+        if (!modalId) {
             console.warn(`Modal no encontrado para: ${moduleId}`);
             return null;
         }
@@ -98,7 +90,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
 
             const modalTitle = `Registrar ${formTitleSuffix}`;
             safeInsertInfo('create');
-            prepareForm(form, 'store', modalTitle, 'POST', undefined, route);
+            prepareForm(form, 'store', modalTitle, 'POST', undefined, routeFn);
             break;
         }
 
@@ -108,7 +100,7 @@ export async function formCRUD(elem: HTMLElement): Promise<void> {
 
             const modalTitle = `Editar ${formTitleSuffix}`;
             await getInfo(currentEncryptId);
-            prepareForm(form, 'update', modalTitle, 'PUT', currentEncryptId, route);
+            prepareForm(form, 'update', modalTitle, 'PUT', currentEncryptId, routeFn);
             break;
         }
 
@@ -162,10 +154,7 @@ function getStatusChangeMessages(status: string | undefined, entityName: string 
  * Ejecuta acciones personalizadas de otherCasesMap
  */
 async function handleOtherCases(action: string, encryptId: string, elem?: HTMLElement) {
-    const otherCases = formCrudExports.otherCasesMap;
-    const routeFn = formCrudExports.route;
-    const entityName = formCrudExports.formTitleSuffix?.toLowerCase() || 'registro';
-
+    const entityName = formTitleSuffix?.toLowerCase() || 'registro';
     // Obtener el status del data-attribute si existe
     const status = elem?.dataset?.status;
 
@@ -193,7 +182,7 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
     };
 
     // Determinar qué caso usar
-    const caseData = globalActions[action] || otherCases[action];
+    const caseData = globalActions[action] || otherCasesMap[action];
 
     if (!caseData) return console.error(`Acción no reconocida: ${action}`);
 
@@ -323,7 +312,6 @@ async function getInfo(encryptId: string): Promise<void> {
         return;
     }
 
-    const routeFn = formCrudExports.route;
     if (!routeFn) {
         console.error('Función de rutas no definida');
         return;
@@ -331,9 +319,6 @@ async function getInfo(encryptId: string): Promise<void> {
 
     try {
         const url = routeFn('show', { id: encryptId });
-
-        console.log('url', url);
-
         const response = await axios.get(url);
         const payload = response.data?.data;
 
@@ -534,10 +519,9 @@ export function prepareForm(
     id?: string,
     routeFn: (name: string, params?: Record<string, string | number>) => string = () => ''
 ) {
-    const moduleId = formCrudExports.moduleId;
-
     const methodUpper = method.toUpperCase();
     const modalLabel = document.querySelector(`#modal-${moduleId}-label`);
+
     if (modalLabel) modalLabel.textContent = modalTitle;
 
     try {

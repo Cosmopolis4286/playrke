@@ -19,7 +19,7 @@ export interface ModuleType {
     formTitleSuffix: string;
 
     // Generador de rutas del módulo
-    route?: (name: string, params?: Record<string, string | number>) => string;
+    routeFn?: (name: string, params?: Record<string, string | number>) => string;
 
     // Acciones adicionales (no create/update)
     otherCasesMap?: Record<string, OtherCase>;

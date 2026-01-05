@@ -75,7 +75,7 @@ Sistema modular y reutilizable para manejo de operaciones CRUD con separación c
 Registra dinámicamente un listener para selección de tabla.
 - Evita hard-coding del nombre de tabla
 - Usa importación dinámica para evitar dependencias circulares
-- Mantiene estado en `crudState.encryptId`
+- Mantiene estado en `tableSelectionStore.encryptId`
 
 #### `formCRUD(elem: HTMLElement)`
 Orquestador principal de acciones CRUD.
@@ -110,7 +110,7 @@ Configura formulario antes de envío:
 **Mejoras Implementadas**:
 - ✅ Mensajes dinámicos por entidad (usa `formTitleSuffix`)
 - ✅ Soporte para múltiples estados (DELETED, ACTIVE, INACTIVE, BLOCKED)
-- ✅ Estado encapsulado en `crudState`
+- ✅ Estado encapsulado en `tableSelectionStore`
 - ✅ Sin hard-coding de nombres de tabla
 
 ---
@@ -175,7 +175,7 @@ validateRequiredFields() → Si válido: form.submit()
 ```
 Usuario selecciona fila → Alpine.js actualiza 'selected'
     ↓
-registerTableListener() → crudState.encryptId = selectedId
+registerTableListener() → tableSelectionStore.encryptId = selectedId
     ↓
 Usuario click "Editar"
     ↓
@@ -183,7 +183,7 @@ formCRUD(elem) detecta action='edit'
     ↓
 initForm() → resetForm()
     ↓
-getInfo(crudState.encryptId) → axios.get(route('show'))
+getInfo(tableSelectionStore.encryptId) → axios.get(route('show'))
     ↓
 safeInsertInfo('edit', payload) → commerceForm.insertInfo('edit', data)
     ↓
@@ -198,7 +198,7 @@ submitForm() → validateRequiredFields() → form.submit()
 
 ### Flujo de Eliminación (Change Status)
 ```
-Usuario selecciona fila → crudState.encryptId = selectedId
+Usuario selecciona fila → tableSelectionStore.encryptId = selectedId
     ↓
 Usuario click "Eliminar"
     ↓

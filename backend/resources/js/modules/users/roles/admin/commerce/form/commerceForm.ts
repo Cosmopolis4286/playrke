@@ -1,13 +1,13 @@
 // commerceForm.ts
-import { formCRUD } from '@/helpers/form/formCrudInit';
 import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTimeZones } from '@/helpers/selects/insertOtherCurrencies';
 import { validateInput } from '@/helpers/validateInput';
-import { route } from '@/routes/commerceRoutes';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
 import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@/helpers/form/formHelpers';
 
 // Re-exportar route para que otros módulos puedan usarla directamente
-export { route };
+export { routeFn };
+
+
 
 // ==========================
 // Constantes globales
@@ -155,40 +155,10 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
     $(modal).modal('show');
 }
 
-// ==========================
-// Función: initListeners
-// ==========================
-let listenersAttached = false;
-
 /**
  * Inicializa listeners globales del formulario
  */
 export function initListeners(): void {
-    if (listenersAttached) {
-        if (import.meta.env.DEV) {
-            console.log('⚠️ initListeners ya fue ejecutado anteriormente');
-        }
-        return;
-    }
-
-    listenersAttached = true;
-
-    if (import.meta.env.DEV) {
-        console.log('🚀 Inicializando listeners de commerce module');
-    }
-
-    if (import.meta.env.DEV) {
-        console.log('✅ Listener table-action registrado');
-    }
-
-    const modal = document.getElementById(`modal-${moduleId}`);
-    if (!modal) {
-        if (import.meta.env.DEV) {
-            console.warn(`⚠️ Modal con id 'modal-${moduleId}' no encontrado`);
-        }
-        return;
-    }
-
     // Inicializar selector de moneda/zona horaria por país
     initCurrencySelector();
 
@@ -197,18 +167,6 @@ export function initListeners(): void {
         const $phone = $('#phone');
         if ($phone.length) $phone.mask('00000000000');
     }
-
-    // Click en botones dinámicos del formulario
-    document.addEventListener('click', async ({ target }) => {
-        const element = (target as HTMLElement | null)?.closest<HTMLElement>(`.btn-${moduleId}`);
-
-        if (!element) return;
-        try {
-            await formCRUD(element);
-        } catch (e) {
-            console.error('Error en formCRUD:', e);
-        }
-    });
 
     // Validación de input 'commission'
     document.addEventListener('input', ({ target }) => {

@@ -30,7 +30,7 @@ Componente Blade que envuelve el sistema Vue para fácil uso.
     :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
     :filters="[
         [
-            'key' => 'Country_name',
+            'key' => 'country_name',
             'label' => 'País',
             'placeholder' => 'Filtrar por país',
             'options' => $countries->map(fn($c) => ['value' => $c->name, 'label' => $c->name])->toArray()
