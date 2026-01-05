@@ -71,7 +71,7 @@ class DashboardController extends Controller
             ],
         ];
 
-        $view = "modules/users/roles/{$userRole}/widgets/index";
+        $view = "modules/users/roles/{$userRole}/dashboard/index";
 
         return view($view, $data);
     }

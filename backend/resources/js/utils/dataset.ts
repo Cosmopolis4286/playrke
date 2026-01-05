@@ -1,5 +1,5 @@
-import { getAppDataProperty } from '@/data/index';
-import { getAppData, type AppData } from '@/app';
+import { getAppDataProperty, type AppData } from '@/data/index';
+import { getAppDataSync } from '@/app';
 
 /**
  * Extrae las keys de un tipo de mapa de datasets.
@@ -20,7 +20,7 @@ export function datasetKeys<T extends Record<string, any[]>>() {
  */
 export function createDatasetGetters<T extends Record<string, any[]>>(datasetMap?: T) {
     // Si no se pasa un datasetMap → se arma desde el appData ya inicializado
-    const appData: AppData | T = datasetMap ?? getAppData();
+    const appData: AppData | T = datasetMap ?? getAppDataSync();
     const keys = Object.keys(appData) as (keyof T)[];
 
     return keys.reduce((acc, key) => {

@@ -12,11 +12,15 @@
 <body class="antialiased">
     @php
         /**
-         * Si la prop `inertiaOnly === true`
-         * → se renderiza SOLO Inertia (sin layout Blade)
+         * inertiaOnly === true
+         * → renderiza SOLO Inertia (sin layout Blade)
          */
         $inertiaOnly = $page['props']['inertiaOnly'] ?? false;
-        $layout = $page['props']['bladeLayout'] ?? 'layouts.layout-auth';
+
+        /**
+         * Layout Blade por defecto
+         */
+        $layoutComponent = $page['props']['bladeLayout'] ?? 'layouts.layout-auth';
     @endphp
 
     @if ($inertiaOnly)
@@ -24,7 +28,7 @@
         @inertia
     @else
         {{-- Layout Blade envolviendo Inertia --}}
-        @include($layout)
+        <x-dynamic-component :component="$layoutComponent">@inertia</x-dynamic-component>
     @endif
 </body>
 

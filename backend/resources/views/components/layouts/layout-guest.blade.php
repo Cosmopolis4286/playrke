@@ -10,13 +10,11 @@
     @include('sweetalert::alert')
 
     <main class="container-fluid">
-        @yield('content')
+        {{ $slot }}
     </main>
 
     @if (empty($withoutScripts))
         <x-template.scripts />
-    @else
-        @yield('scripts')
     @endif
     @stack('stack-scripts')
     @if (empty($withoutAppJS))
