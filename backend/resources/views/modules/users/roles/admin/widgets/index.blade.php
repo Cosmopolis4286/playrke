@@ -1,4 +1,2 @@
-@extends ('layouts.layout-online')
-@section('title', 'Tablero')
-@section('content')
-@endsection
+<x-layouts.layout-auth :title="$title" loadSelect2="true">
+</x-layouts.layout-auth>

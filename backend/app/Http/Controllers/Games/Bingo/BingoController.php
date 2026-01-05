@@ -223,7 +223,7 @@ class BingoController extends Controller
         $creator['id'] = encrypt($creator['id']);
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
+            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Bingo Salas de Juego',
             'currencySymbol' => $currencySym,
             'currency' => encrypt($currency),
@@ -790,7 +790,7 @@ class BingoController extends Controller
         $prizePool = BingoRoom::getValueById($roomId, 'prize_pool');
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
+            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'BingoCash',
             'isLogin' => $isLogin,
             'creatorType' => $creator['type'],
@@ -1141,7 +1141,7 @@ class BingoController extends Controller
         $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
+            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Salas de Bingo',
             'subtitle' => $view === 'private' ? 'Privadas' : 'Publicas',
             'view' => strtoupper($view),
@@ -1808,7 +1808,7 @@ class BingoController extends Controller
         }
 
         $viewData = [
-            'bladeLayout' => !$userToken ? 'layouts.layout-online' : 'layouts.layout-offline',
+            'bladeLayout' => !$userToken ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Bingo Configuración',
             'userToken' => $userToken,
             'rulesID' => $rulesID,
@@ -2204,7 +2204,7 @@ class BingoController extends Controller
         $bingoPatterns = BingoPatterns::where('user', $user)->where('status', '<>', 'DELETED')->get();
 
         $viewData = [
-            'bladeLayout' => !$userToken ? 'layouts.layout-online' : 'layouts.layout-offline',
+            'bladeLayout' => !$userToken ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Bingo Configuración',
             'name' => 'bingo-patterns',
             'userToken' => $userToken,
@@ -2595,7 +2595,7 @@ class BingoController extends Controller
         $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
+            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Salas de Bingo',
             'name' => 'bingo-automatic-room',
             'returnBtn' => $returnBtn ?? true,
@@ -2703,7 +2703,7 @@ class BingoController extends Controller
         ];
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-online' : 'layouts.layout-offline',
+            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Salas de Bingo',
             'subtitle' => 'Otras Salas Publicas',
             'name' => 'bingo',

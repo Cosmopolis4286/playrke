@@ -1,4 +1,4 @@
-@extends('layouts.layout-online')
+@extends('layouts.layout-auth')
 <title>Mi Perfil - PlayRKE</title>
 @section('content')
     <div class="row">
@@ -96,7 +96,7 @@
                                 <div style="display:flex;">
                                     <div class="cont_img_pf">
                                         <img class="img_pf"
-                                            @if ($user->foto == '') src="{{ asset('img/fav.ico') }}" 
+                                            @if ($user->foto == '') src="{{ asset('img/fav.ico') }}"
                                     @else src="imgSystem/imgUsers/{{ $user->foto }}" @endif>
                                     </div>
                                     <input id="foto" type="file" name="foto" class="ml-1 form-control"

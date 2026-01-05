@@ -1,6 +1,6 @@
 {{-- resources/views/seller/form/index.blade.php --}}
 
-<x-layouts.layout-online :title="$title" :loadSelect2="true">
+<x-layouts.layout-auth :title="$title" :loadSelect2="true">
     {{-- Contenido principal --}}
     <div class="col-12">
         <div class="card">
@@ -100,4 +100,4 @@
         {{-- Carga principal del CRUD --}}
         @vite('resources/js/helpers/formCrud.ts')
     @endpush
-    </x-layout-online>
+    </x-layout-auth>

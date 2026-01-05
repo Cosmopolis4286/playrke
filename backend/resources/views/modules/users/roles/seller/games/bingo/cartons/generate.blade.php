@@ -1,4 +1,4 @@
-@extends('layouts.layout-online')
+@extends('layouts.layout-auth')
 @section('title', $title)
 @section('content')
     <div class="col-md-9 col-lg-6 m-auto" style="max-width:535px">

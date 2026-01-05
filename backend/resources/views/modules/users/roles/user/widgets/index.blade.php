@@ -1,4 +1,4 @@
-@extends ('layouts.layout-online')
+@extends ('layouts.layout-auth')
 @section('title', 'Tablero')
 
 @section('content')

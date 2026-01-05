@@ -13,7 +13,7 @@ use Illuminate\View\View;
  * Controlador para la página principal / dashboard.
  * Ahora solo API - Nuxt maneja las vistas
  */
-class HomeController extends Controller
+class DashboardController extends Controller
 {
     use UserTrait;
 
@@ -22,9 +22,34 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    public function dashboard(): JsonResponse
+    {
+        $user = Auth::user();
+        $firstRole = $user->roles->first();
+        $userRole = $firstRole?->prefix ?? 'user';
+
+        $data = [
+            'title' => 'Dashboard',
+            'exchangeRate' => 1,
+            'balance' => $this->getBalance($user->id),
+            'userRole' => $userRole,
+            'user' => [
+                'id' => (string)$user->id,
+                'username' => $user->username,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'avatar' => $user->avatar ?? null,
+                'roles' => [$userRole],
+                'permissions' => [],
+            ],
+        ];
+
+        return response()->json($data);
+    }
+
     public function index(): View
     {
-        dd(33);
         $user = Auth::user();
         $firstRole = $user->roles->first();
         $userRole = $firstRole?->prefix ?? 'user';

@@ -4,16 +4,28 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    @vite('resources/js/renderApp.ts')
+
+    @vite('resources/js/inertia.ts')
     @inertiaHead
 </head>
 
 <body class="antialiased">
     @php
-        $layout = $page['props']['bladeLayout'] ?? 'layouts.layout-online';
+        /**
+         * Si la prop `inertiaOnly === true`
+         * → se renderiza SOLO Inertia (sin layout Blade)
+         */
+        $inertiaOnly = $page['props']['inertiaOnly'] ?? false;
+        $layout = $page['props']['bladeLayout'] ?? 'layouts.layout-auth';
     @endphp
 
-    @include($layout)
+    @if ($inertiaOnly)
+        {{-- Render puro Inertia --}}
+        @inertia
+    @else
+        {{-- Layout Blade envolviendo Inertia --}}
+        @include($layout)
+    @endif
 </body>
 
 </html>

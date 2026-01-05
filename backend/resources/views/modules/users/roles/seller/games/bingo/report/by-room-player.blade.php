@@ -1,4 +1,4 @@
-@extends('layouts.layout-online')
+@extends('layouts.layout-auth')
 <title>PlayRKE - Reporte de Ventas</title>
 @section('content')
     <div class="row">

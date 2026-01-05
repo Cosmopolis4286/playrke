@@ -1,41 +1,95 @@
-import '@/helpers/mounApp'; // 🔹 Primero: loader y wrapper
-import Alpine from 'alpinejs';
-import { tableSelection } from '@/alpine/tableSelection';
-import { loadModule } from '@/helpers/module/loadModule';
-import { initFormCrud } from '@/helpers/form/formCrudLoadModule';
-import { initAppData, getAppData, AppData } from '@/data/index';
-import { initGlobalSafe } from '@/helpers/global';
-import { initLogout } from '@/helpers/user/logout';
+// js/system.ts
+import '@/helpers/mounApp' // loader / wrapper global (side effects controlados)
 
-let _bootstrapPromise: Promise<void> | null = null;
-let _logsShown = false; // 🔹 Nueva bandera para evitar logs repetidos
+import Alpine from 'alpinejs'
+import { tableSelection } from '@/alpine/tableSelection'
+import { loadModule } from '@/helpers/module/loadModule'
+import { initFormCrud } from '@/helpers/form/formCrudLoadModule'
+import { initAppData, getAppData, type AppData } from '@/data'
+import { initGlobalSafe } from '@/helpers/global'
+import { initLogout } from '@/helpers/user/logout'
 
-/**
- * Reexportar AppData para que otros módulos lo usen desde app.ts
- */
-export type { AppData } from '@/data/index';
-export { getAppDataProperty, getAppData } from '@/data/index';
+let bootstrapPromise: Promise<void> | null = null
 
 /**
- * Inicialización de Alpine.js
+ * Reexport útil para otros entrypoints
  */
-function initAlpine() {
-  if (!(window as any).AlpineStarted) {
-    Alpine.data('tableSelection', tableSelection);
-    (window as any).Alpine = Alpine;
-    Alpine.start();
-    (window as any).AlpineStarted = true;
+export type { AppData }
+export { getAppData }
+
+/**
+ * Inicializa Alpine UNA sola vez
+ */
+function initAlpine(): void {
+    if ((window as any).__ALPINE_STARTED__) return
+
+    Alpine.data('tableSelection', tableSelection)
+        ; (window as any).Alpine = Alpine
+    Alpine.start()
+        ; (window as any).__ALPINE_STARTED__ = true
+
     if (import.meta.env.DEV) {
-      console.log('✅ Alpine.js iniciado con tableSelection disponible');
+        console.log('✅ Alpine.js iniciado')
     }
-  }
 }
 
 /**
- * Getter seguro para appData
+ * Bootstrap global del sistema
+ * ⚠️ NO monta Vue
+ * ⚠️ NO monta Inertia
+ */
+export function bootstrapSystem(): Promise<void> {
+    if (bootstrapPromise) return bootstrapPromise
+
+    bootstrapPromise = (async () => {
+        try {
+            if (import.meta.env.DEV) {
+                console.log('⏳ bootstrapSystem iniciado')
+            }
+
+            // 1️⃣ Datos base de la app
+            await initAppData()
+            const appData = getAppData()
+
+            if (import.meta.env.DEV) {
+                console.log('🚀 appData listo:', appData)
+            }
+
+            // 2️⃣ Alpine + helpers globales
+            initAlpine()
+            await initGlobalSafe()
+            initLogout()
+
+            // 3️⃣ Módulos legacy / opcionales
+            if (appData.moduleFile) {
+                await loadModule(appData.moduleFile)
+
+                if (appData.enableFormCrud) {
+                    await initFormCrud()
+                }
+
+                if (import.meta.env.DEV) {
+                    console.log(`🟢 Módulo "${appData.moduleFile}" cargado`)
+                }
+            }
+
+            if (import.meta.env.DEV) {
+                console.log('🟢 bootstrapSystem completado')
+            }
+        } catch (error) {
+            console.error('❌ Error crítico en bootstrapSystem', error)
+            throw error
+        }
+    })()
+
+    return bootstrapPromise
+}
+
+/**
+ * Acceso seguro y sincronizado a appData
  */
 export function getAppDataSync(): Readonly<AppData> {
-  return getAppData();
+    return getAppData()
 }
 
 /**

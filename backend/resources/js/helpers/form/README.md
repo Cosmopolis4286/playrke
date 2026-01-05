@@ -305,7 +305,7 @@ export function initListeners(): void {
 ### 2. Configurar en Blade
 ```blade
 {{-- resources/views/modules/users/roles/admin/seller/index.blade.php --}}
-<x-layouts.layout-online :title="$title">
+<x-layouts.layout-auth :title="$title">
     <x-shared.table-with-selection
         :title="$title"
         :rows="$pageData['sellers']"
@@ -322,7 +322,7 @@ export function initListeners(): void {
             </script>
         @endpush
     @endonce
-</x-layouts.layout-online>
+</x-layouts.layout-auth>
 ```
 
 ### 3. Configurar en Controller

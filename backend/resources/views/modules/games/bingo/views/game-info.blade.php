@@ -1,4 +1,4 @@
-@extends('layouts.layout-offline', ['withoutAppJS' => true, 'withoutScripts' => true])
+@extends('layouts.layout-guest', ['withoutAppJS' => true, 'withoutScripts' => true])
 
 @section('title', 'BingoPlay')
 

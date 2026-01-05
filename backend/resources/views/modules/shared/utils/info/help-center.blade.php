@@ -1,4 +1,4 @@
-@extends('layouts.layout-online')
+@extends('layouts.layout-auth')
 @section('title', $title)
 @section('content')
     <style>

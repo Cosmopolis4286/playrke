@@ -1,4 +1,5 @@
-import { getAppDataProperty, getAppData, AppData } from '@/app';
+import { getAppDataProperty } from '@/data/index';
+import { getAppData, type AppData } from '@/app';
 
 /**
  * Extrae las keys de un tipo de mapa de datasets.
@@ -11,10 +12,10 @@ export function datasetKeys<T extends Record<string, any[]>>() {
 
 /**
  * Genera getters seguros para datasets dinámicos en appData o en un DatasetMap.
- * 
+ *
  * @param datasetMap - Un mapa de datasets tipado opcional.
  *   Si no se pasa, se infiere automáticamente de `appData`.
- * 
+ *
  * @returns Un objeto con funciones que devuelven arrays tipados.
  */
 export function createDatasetGetters<T extends Record<string, any[]>>(datasetMap?: T) {

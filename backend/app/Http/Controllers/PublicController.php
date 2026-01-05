@@ -32,20 +32,17 @@ class PublicController extends Controller
      */
     public function root(): Response
     {
-        dd(44)
         $register = $this->settings->getParameterStatus('REGISTER');
 
         return Inertia::render('auth/Login', [
-            'register' => (bool) $register,
-            'loginUrl' => route('login'),
-            'passwordRequestUrl' => route('password.request'),
-            'registerUrl' => route('register'),
-
-            // Blade renderizado
-            'bladeLayout' => 'layouts.layout-auth',
-            'html' => View::make('auth.login', [
-                'register' => $register,
-            ])->render(),
+            'inertiaOnly' => true,
+            // 'register' => (bool) $register,
+            // 'loginUrl' => route('login'),
+            // 'passwordRequestUrl' => route('password.request'),
+            // 'registerUrl' => route('register'),
+            // 'html' => View::make('auth.login', [
+            //     'register' => $register,
+            // ])->render(),
         ]);
     }
 
