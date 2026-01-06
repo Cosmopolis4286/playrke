@@ -49,7 +49,7 @@
 
             <!-- Tabla -->
             <div class="table-responsive mt-2">
-                <table class="table table-striped table-bordered my-2 w-100">
+                <table :id="tableId" class="table table-striped table-bordered my-2 w-100">
                     <thead>
                         <tr>
                             <th class="text-center" style="width:40px;">
@@ -120,6 +120,10 @@ import { ref, computed } from 'vue'
 import TableFilter from './TableFilter.vue'
 
 const props = defineProps({
+    tableId: {
+        type: String,
+        required: true
+    },
     title: {
         type: String,
         required: true

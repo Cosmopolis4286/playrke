@@ -1,5 +1,5 @@
 // resources/js/helpers/user/changePassw.ts
-import { submitForm } from "../form/formHelpers";
+import { submitForm } from "../form/services/formSubmitService";
 
 /**
  * Inicializa el módulo de cambio de contraseña:

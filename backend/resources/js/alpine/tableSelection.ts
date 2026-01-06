@@ -13,7 +13,11 @@ import { onTableSelectionUpdate } from './tableSelectionListener';
  * @param allIds - Array inicial de IDs de la tabla
  * @param tableId - Identificador único de la tabla (requerido para listener)
  */
-export function tableSelection(allIds: string[] = [], tableId: string = 'default') {
+export function tableSelection(allIds: string[] = [], tableId?: string) {
+    if (import.meta.env.DEV && !tableId) {
+        throw new Error('[tableSelection] tableId es obligatorio');
+    }
+
     return {
         /** IDs seleccionados actualmente (siempre array) */
         selected: [] as string[],
@@ -22,34 +26,7 @@ export function tableSelection(allIds: string[] = [], tableId: string = 'default
         allIds: allIds || [],
 
         /** Identificador de la tabla */
-        tableId,
-
-        /**
-         * Maneja los eventos btn-action disparados por Alpine.js
-         * @param event - Evento Alpine.js con action y selected
-         */
-        handleBtnAction(event: CustomEvent) {
-            const [action, selectedIds] = event.detail || [];
-
-            if (import.meta.env.DEV) {
-                console.log('🔔 Evento btn-action recibido:', { action, selectedIds, tableId: this.tableId });
-            }
-
-            // Disparar evento global para que el módulo lo capture
-            const tableActionEvent = new CustomEvent('table-action', {
-                detail: { action, selectedIds, tableId: this.tableId }
-            });
-
-            if (import.meta.env.DEV) {
-                console.log('📢 Disparando evento table-action:', tableActionEvent.detail);
-            }
-
-            window.dispatchEvent(tableActionEvent);
-
-            if (import.meta.env.DEV) {
-                console.log('✅ Evento table-action disparado');
-            }
-        },
+        tableId: tableId as string,
 
         /** Devuelve true si todos los IDs están seleccionados */
         get allSelected() {
@@ -61,8 +38,9 @@ export function tableSelection(allIds: string[] = [], tableId: string = 'default
          * Ideal para contextos donde solo se necesita un ID
          */
         get selectedValue() {
-            if (this.selected.length === 1) return this.selected[0];
-            return [...this.selected];
+            return this.selected.length === 1
+                ? this.selected[0]
+                : [...this.selected];
         },
 
         /** Alterna la selección de un ID individual */
@@ -115,15 +93,18 @@ export function tableSelection(allIds: string[] = [], tableId: string = 'default
         emitSelectionUpdate: (() => {
             let timeout: number;
             const debounceTime = 50; // ms
+
             return function () {
                 clearTimeout(timeout);
                 timeout = window.setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('table-selection-updated', {
-                        detail: {
-                            tableId: this.tableId,
-                            selectedIds: [...this.selected],
-                        },
-                    }));
+                    window.dispatchEvent(
+                        new CustomEvent('table-selection-updated', {
+                            detail: {
+                                tableId: this.tableId,
+                                selectedIds: [...this.selected],
+                            },
+                        })
+                    );
                 }, debounceTime);
             };
         })(),
@@ -136,16 +117,20 @@ export function tableSelection(allIds: string[] = [], tableId: string = 'default
  */
 export function initTableActions() {
     document.querySelectorAll<HTMLElement>('[data-table-id]').forEach(el => {
-        if (el.dataset.tableInit) return; // ya inicializado
+        if (el.dataset.tableInit) return;
         el.dataset.tableInit = 'true';
 
         const tableId = el.dataset.tableId;
         if (!tableId) return;
 
-        // Registrar callback para actualizar btn-group al cambiar selección
         onTableSelectionUpdate(tableId, (selectedIds) => {
-            const btnGroup = el.querySelector<HTMLElement>(`.btn-group[data-btn-group-id="${tableId}"]`);
-            if (btnGroup) btnGroup.dataset.id = selectedIds.join(',');
+            const btnGroup = el.querySelector<HTMLElement>(
+                `.btn-group[data-btn-group-id="${tableId}"]`
+            );
+
+            if (btnGroup) {
+                btnGroup.dataset.id = selectedIds.join(',');
+            }
         });
     });
 }

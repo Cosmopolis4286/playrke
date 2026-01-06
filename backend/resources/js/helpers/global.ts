@@ -1,11 +1,9 @@
 // js/global/global.ts
 
 import { showToast } from './toastNotify';
-import { loadDataTable } from './dataTables';
 import { initChangePassw } from './user/changePassw';
 import { initLogout } from './user/logout';
 import { initModalFocus } from '@/helpers/modal/modals';
-import { initTableActions } from '@/alpine/tableSelection';
 
 /**
  * Inicializa el bloqueo de arrastre de imágenes
@@ -40,24 +38,6 @@ async function showLaravelMessages(errors: string[] = []): Promise<void> {
 }
 
 /**
- * Inicializa DataTables en todas las tablas con clase .data-table
- */
-async function initDataTables(): Promise<void> {
-    const tables = document.querySelectorAll('table.data-table');
-    if (!tables.length) return;
-
-    try {
-        const languageUrl = '/lang/datatables/es.json';
-        await loadDataTable(languageUrl);
-        if (import.meta.env.DEV) {
-            console.log(`✅ DataTables inicializadas (${tables.length} tablas)`);
-        }
-    } catch (err) {
-        console.error('❌ Error inicializando DataTables:', err);
-    }
-}
-
-/**
  * Inicializa la aplicación globalmente
  */
 export async function initGlobal(): Promise<void> {
@@ -86,12 +66,6 @@ export async function initGlobal(): Promise<void> {
         if (window.LaravelErrors?.length) {
             await showLaravelMessages(window.LaravelErrors);
         }
-
-        // 🔹 Inicializar DataTables
-        await initDataTables();
-
-        // 🔹 Inicializar listeners globales de selección de tablas
-        initTableActions();
 
         if (import.meta.env.DEV) {
             console.log('✅ initGlobal completado');

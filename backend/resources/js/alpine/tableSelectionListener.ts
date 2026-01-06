@@ -46,15 +46,19 @@ let initialized = false;
  * @param event - Evento CustomEvent con detail { tableId, selectedIds }
  */
 function handleSelectionUpdate(event: Event): void {
-    if (!(event instanceof CustomEvent)) return;
+    const customEvent = event as CustomEvent;
 
-    const { tableId, selectedIds } = event.detail ?? {};
-    if (!tableId || !Array.isArray(selectedIds)) return;
+    if (!customEvent?.detail) return;
+
+    const { tableId, selectedIds } = customEvent.detail;
+
+    if (typeof tableId !== 'string' || !Array.isArray(selectedIds)) return;
 
     const snapshot = [...selectedIds];
 
     // Actualiza estado centralizado
     tableSelections[tableId] = snapshot;
+    console.log('tableSelections', tableSelections);
 
     // Ejecuta callbacks registrados
     registry[tableId]?.forEach(cb => cb(snapshot));
@@ -62,17 +66,18 @@ function handleSelectionUpdate(event: Event): void {
 
 /**
  * Inicializa el listener global (solo una vez).
- * Se ejecuta automáticamente al importar el módulo.
+ * Debe ejecutarse en entorno cliente.
  */
-function init(): void {
+export function initTableSelectionListener(): void {
     if (initialized) return;
     initialized = true;
 
-    window.addEventListener('table-selection-updated', handleSelectionUpdate);
+    alert('initTableSelectionListener');
+    window.addEventListener(
+        'table-selection-updated',
+        handleSelectionUpdate as EventListener
+    );
 }
-
-// Auto-inicialización
-init();
 
 /**
  * Registra un callback para un tableId específico.
@@ -86,8 +91,13 @@ export function onTableSelectionUpdate(
     tableId: string,
     callback: TableSelectionCallback
 ): () => void {
+    if (!tableId) return () => undefined;
+
     (registry[tableId] ??= new Set()).add(callback);
-    return () => registry[tableId]?.delete(callback);
+
+    return () => {
+        registry[tableId]?.delete(callback);
+    };
 }
 
 /**
@@ -130,12 +140,15 @@ export function removeTableSelectionCallback(
  * @returns IDs seleccionados o array vacío
  */
 export function getSelectedIds(tableId: string): string[] {
-    if (!tableId) return;
+    if (!tableId) return [];
     return [...(tableSelections[tableId] ?? [])];
 }
 
 /**
  * Obtiene el ID cifrado actual desde la tabla o desde el estado
+ *
+ * @param tableId - Identificador de la tabla
+ * @returns ID cifrado o string vacío
  */
 export function getCurrentEncryptId(tableId: string): string {
     const selectedIds = getSelectedIds(tableId);

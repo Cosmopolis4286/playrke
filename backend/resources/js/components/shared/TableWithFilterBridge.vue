@@ -1,8 +1,9 @@
 <template>
-    <TableWithFilter :title="title" :columns="parsedColumns" :rows="parsedRows" :filters="parsedFilters"
-        :search-placeholder="searchPlaceholder" :debounce-delay="debounceDelay" :empty-message="emptyMessage"
-        :show-create-button="showCreateButton" :show-edit-button="showEditButton" :show-delete-button="showDeleteButton"
-        @create="handleCreate" @edit="handleEdit" @delete="handleDelete" @selection-change="handleSelectionChange">
+    <TableWithFilter :table-id="tableId" :title="title" :columns="parsedColumns" :rows="parsedRows"
+        :filters="parsedFilters" :search-placeholder="searchPlaceholder" :debounce-delay="debounceDelay"
+        :empty-message="emptyMessage" :show-create-button="showCreateButton" :show-edit-button="showEditButton"
+        :show-delete-button="showDeleteButton" @create="handleCreate" @edit="handleEdit" @delete="handleDelete"
+        @selection-change="handleSelectionChange">
         <!-- Forward all slots -->
         <template v-for="(_, name) in $slots" #[name]="slotData">
             <slot :name="name" v-bind="slotData" />
@@ -16,6 +17,10 @@ import TableWithFilter from './TableWithFilter.vue'
 
 const props = defineProps({
     // Datos serializados desde Blade
+    tableId: {
+        type: String,
+        required: true
+    },
     title: {
         type: String,
         required: true
@@ -88,7 +93,6 @@ const parsedFilters = computed(() => {
 
 // Handlers que se integran con el sistema existente
 const handleCreate = () => {
-    console.log('dispatch create event');
     window.dispatchEvent(
         new CustomEvent('table:crud', {
             detail: {
@@ -117,9 +121,15 @@ const handleDelete = (ids: Array<string>) => {
     }))
 }
 
-const handleSelectionChange = (selectedIds: Array<string>) => {
-    window.dispatchEvent(new CustomEvent('table:selection-change', {
-        detail: { selectedIds, moduleId: props.moduleId, context: props.context }
-    }))
-}
+const handleSelectionChange = (selectedIds: string[]) => {
+    window.dispatchEvent(
+        new CustomEvent('table-selection-updated', {
+            detail: {
+                tableId: props.tableId,   // o tableId explícito
+                selectedIds,
+                context: props.context,    // metadata adicional
+            }
+        })
+    );
+};
 </script>

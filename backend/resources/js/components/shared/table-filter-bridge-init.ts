@@ -2,6 +2,11 @@
 import { createVueAppWithSharedComponents } from '@/helpers/vue/registerSharedComponents'
 
 /**
+ * Registro para evitar listeners duplicados por módulo
+ */
+const initializedModules = new Set<string>()
+
+/**
  * Inicializa una instancia de Vue para TableWithFilterBridge
  * @param tableId - ID único de la tabla
  * @param moduleId - ID del módulo para integración con formCRUD
@@ -9,71 +14,98 @@ import { createVueAppWithSharedComponents } from '@/helpers/vue/registerSharedCo
 export function initTableFilterBridge(tableId: string, moduleId: string): void {
     const wrapperId = `#table-${tableId}-vue-wrapper`
 
-    // Verificar que el elemento existe
     const wrapperElement = document.querySelector(wrapperId)
     if (!wrapperElement) {
-        console.error(`No se encontró el wrapper ${wrapperId}`)
+        if (import.meta.env.DEV) {
+            console.warn(`[TableFilterBridge] Wrapper no encontrado: ${wrapperId}`)
+        }
         return
     }
 
-    // Crear y montar aplicación Vue
-    const app = createVueAppWithSharedComponents()
-    app.mount(wrapperId)
+    // Montar Vue una sola vez
+    if (!wrapperElement.hasAttribute('data-vue-mounted')) {
+        const app = createVueAppWithSharedComponents()
+        app.mount(wrapperElement)
+        wrapperElement.setAttribute('data-vue-mounted', 'true')
 
-    if (import.meta.env.DEV) {
-        console.log(`✅ TableFilterBridge montado en ${wrapperId}`)
+        if (import.meta.env.DEV) {
+            console.log(`✅ TableFilterBridge montado en ${wrapperId}`)
+        }
     }
 
-    // Integración con el sistema existente
-    setupEventListeners(moduleId, tableId)
+    // Registrar listeners solo una vez por módulo
+    if (!initializedModules.has(moduleId)) {
+        setupEventListeners(moduleId, tableId)
+        initializedModules.add(moduleId)
+    }
 }
 
 /**
- * Configura listeners para integración con formCRUD y Alpine
+ * Configura listeners globales para integración con formCRUD
+ * Usa eventos canónicos del sistema
  */
 function setupEventListeners(moduleId: string, tableId: string): void {
-    // Evento: Crear
-    window.addEventListener('table:create', (e: any) => {
-        if (e.detail.moduleId === moduleId) {
-            const btn = document.querySelector(`.btn-${moduleId}[data-action="create"]`) as HTMLElement
-            if (btn) btn.click()
+    /**
+     * Helper interno para acciones CRUD
+     */
+    const triggerAction = (action: 'create' | 'edit' | 'delete') => {
+        const btn = document.querySelector<HTMLElement>(
+            `.btn-${moduleId}[data-action="${action}"]`
+        )
+        btn?.click()
+    }
+
+    window.addEventListener('table:create', (e: Event) => {
+        const ev = e as CustomEvent
+        if (ev.detail?.moduleId === moduleId) {
+            triggerAction('create')
         }
     })
 
-    // Evento: Editar
-    window.addEventListener('table:edit', (e: any) => {
-        if (e.detail.moduleId === moduleId) {
-            const btn = document.querySelector(`.btn-${moduleId}[data-action="edit"]`) as HTMLElement
-            if (btn) btn.click()
+    window.addEventListener('table:edit', (e: Event) => {
+        const ev = e as CustomEvent
+        if (ev.detail?.moduleId === moduleId) {
+            triggerAction('edit')
         }
     })
 
-    // Evento: Eliminar
-    window.addEventListener('table:delete', (e: any) => {
-        if (e.detail.moduleId === moduleId) {
-            const btn = document.querySelector(`.btn-${moduleId}[data-action="delete"]`) as HTMLElement
-            if (btn) btn.click()
+    window.addEventListener('table:delete', (e: Event) => {
+        const ev = e as CustomEvent
+        if (ev.detail?.moduleId === moduleId) {
+            triggerAction('delete')
         }
     })
 
-    // Evento: Cambio de selección
-    window.addEventListener('table:selection-change', (e: any) => {
-        if (e.detail.moduleId === moduleId) {
-            // Actualizar selección global si se usa Alpine
-            if ((window as any).Alpine) {
-                const element = document.querySelector(`[data-table-id="${tableId}"]`) as any
-                if (element && element.__x) {
-                    const component = element.__x.$data
-                    if (component && component.selected) {
-                        component.selected = e.detail.selectedIds
-                    }
-                }
-            }
+    /**
+     * Evento canónico de selección de tabla
+     * Vue reacciona, Alpine se mantiene desacoplado
+     */
+    window.addEventListener('table-selection-updated', (e: Event) => {
+        const ev = e as CustomEvent
+        const { tableId: eventTableId, selectedIds } = ev.detail || {}
+
+        console.log('table-selection-updated event received', ev.detail);
+        console.log('Comparing eventTableId:', eventTableId, 'with tableId:', tableId);
+
+      //  if (eventTableId !== tableId) return
+
+        if (import.meta.env.DEV) {
+            console.log('🔁 Selección de tabla actualizada:', {
+                tableId,
+                selectedIds,
+            })
         }
+
+        /**
+         * Si Vue necesita reaccionar, lo hará vía su propio estado
+         * Alpine ya está sincronizado por su propio componente
+         */
     })
 }
 
-// Exportar para uso global
+/**
+ * Exponer inicializador en window (uso legacy)
+ */
 if (typeof window !== 'undefined') {
-    (window as any).initTableFilterBridge = initTableFilterBridge
+    ; (window as any).initTableFilterBridge = initTableFilterBridge
 }

@@ -17,7 +17,7 @@ interface SubmitFormOptions {
  * Servicio único y reutilizable para enviar formularios vía Axios
  * No maneja UI, loaders ni validaciones
  */
-export async function submitFormService({
+async function submitFormService({
     form,
     method,
     url,
@@ -35,4 +35,42 @@ export async function submitFormService({
         data: formData,
         headers,
     });
+}
+
+export async function submitForm(formId: string, fields: string[] = []) {
+    const form = document.getElementById(formId) as HTMLFormElement | null;
+    if (!form) return;
+
+    const validation = validateRequiredFields(formId, fields, true);
+    if (!validation.isValid) {
+        showToast(
+            `Campos requeridos faltantes: ${validation.missingFields.join(', ')}`,
+            'warning'
+        );
+        validation.firstInvalidField?.focus();
+        return;
+    }
+
+    clearFormValidation(formId);
+
+    try {
+        ajaxStart();
+
+        const { data } = await submitFormService({ form });
+
+        if (!data?.success) {
+            throw new Error(data?.message);
+        }
+
+        showToast(data.message || 'Operación exitosa', 'success');
+
+        setTimeout(() => window.location.reload(), 1000);
+    } catch (error: any) {
+        showToast(
+            error.response?.data?.message || 'Error al enviar formulario',
+            'error'
+        );
+    } finally {
+        ajaxStop();
+    }
 }

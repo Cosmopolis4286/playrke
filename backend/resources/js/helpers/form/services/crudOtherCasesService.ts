@@ -1,5 +1,6 @@
 // services/crudOtherCasesService.ts
 import axios from '@/plugins/axios'
+import type { SweetAlertIcon } from 'sweetalert2';
 import { formCrudState as crud } from '../state/formCrudState'
 import { showConfirm, showSuccess } from '../ui/crudModalUI'
 import type { OtherCase } from '@/helpers/module/types/formModule.types'
@@ -35,17 +36,17 @@ export async function handleOtherCases(
 }
 
 function resolveCase(action: string): OtherCase | null {
-    return (
-        {
-            delete: {
-                routeName: 'destroy',
-                text: '¿Deseas eliminar este registro?',
-                icon: 'warning',
-                confirmButtonText: 'Sí, eliminar',
-                method: 'DELETE'
-            }
-        }[action] || crud.otherCasesMap[action] || null
-    )
+    const builtInCases: Record<string, OtherCase> = {
+        delete: {
+            routeName: 'destroy',
+            text: '¿Deseas eliminar este registro?',
+            icon: 'warning' as SweetAlertIcon,
+            confirmButtonText: 'Sí, eliminar',
+            method: 'DELETE'
+        }
+    };
+
+    return builtInCases[action] || crud.otherCasesMap[action] || null;
 }
 
 function resolveIds(encryptId: string, elem?: HTMLElement): string[] {

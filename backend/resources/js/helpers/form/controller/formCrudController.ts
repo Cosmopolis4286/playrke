@@ -1,7 +1,7 @@
 // backend/resources/js/helpers/form/controller/formCrudController.ts
 
 import { copyInfo } from '@/utils/copyInfo';
-import { submitForm } from '../formHelpers';
+import { submitForm } from '../services/formSubmitService';
 import { formCrudState as crud } from '../state/formCrudState';
 import { executeCrud } from '../services/crudExecutor';
 

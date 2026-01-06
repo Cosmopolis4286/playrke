@@ -59,6 +59,7 @@
 
 <div id="table-{{ $tableId }}-vue-wrapper">
     <table-with-filter-bridge
+        table-id="{{ $tableId }}"
         title="{{ $title }}"
         :columns='@json($vueColumns)'
         :rows='@json($vueRows)'
