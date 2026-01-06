@@ -1,0 +1,90 @@
+// backend/resources/js/helpers/form/controller/formCrudController.ts
+
+import { copyInfo } from '@/utils/copyInfo';
+import { submitForm } from '../formHelpers';
+import { formCrudState as crud } from '../state/formCrudState';
+import { executeCrud } from '../services/crudExecutor';
+
+/**
+ * Controlador central de eventos CRUD.
+ *
+ * Responsabilidades:
+ * - Escuchar interacciones globales de UI (clicks)
+ * - Escuchar eventos CustomEvent provenientes de tablas (Vue / Alpine)
+ * - Delegar la ejecución de lógica CRUD a servicios especializados
+ *
+ * ❌ No inicializa módulos
+ * ❌ No maneja estado de negocio
+ */
+let initialized = false;
+
+export function initFormCrudController(): void {
+    if (initialized) return;
+    initialized = true;
+
+    document.addEventListener('click', handleCrudClick);
+    window.addEventListener('table:crud', handleCrudCustomEvent);
+
+    if (import.meta.env.DEV) {
+        console.info('[FormCrudController] inicializado');
+    }
+}
+
+/**
+ * Handler global de clicks.
+ * Implementa event delegation para acciones CRUD y utilidades rápidas.
+ *
+ * @param e - MouseEvent del DOM
+ */
+async function handleCrudClick(e: MouseEvent): Promise<void> {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+
+    /* ───────── Acciones rápidas ───────── */
+
+    if (target.closest('#btn-confirm')) {
+        if (!crud.moduleId) return;
+        submitForm(crud.moduleId);
+        return;
+    }
+
+    if (target.closest('#btn-copy')) {
+        copyInfo('Contraseña copiada');
+        return;
+    }
+
+    if (target.closest('.popover-dismiss')) {
+        $(target).popover('toggle');
+        return;
+    }
+
+    /* ───────── Acciones CRUD ───────── */
+
+    if (!crud.moduleId) return;
+
+    const btn = target.closest<HTMLElement>('[data-action]');
+    if (!btn) return;
+
+    await executeCrud(btn);
+}
+
+/**
+ * Handler para eventos CustomEvent provenientes de tablas
+ * (Vue, Alpine u otros adapters).
+ *
+ * Espera un detail con al menos:
+ * - action: string
+ *
+ * @param e - Evento CustomEvent
+ */
+async function handleCrudCustomEvent(e: Event): Promise<void> {
+    if (!(e instanceof CustomEvent)) return;
+
+    const { action } = e.detail ?? {};
+    if (!action) return;
+
+    const fakeElement = document.createElement('button');
+    fakeElement.dataset.action = action;
+
+    await executeCrud(fakeElement);
+}

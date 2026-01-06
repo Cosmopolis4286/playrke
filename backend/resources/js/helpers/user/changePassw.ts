@@ -1,5 +1,5 @@
 // resources/js/helpers/user/changePassw.ts
-import { submitForm } from "../form/formCrudInit";
+import { submitForm } from "../form/formHelpers";
 
 /**
  * Inicializa el módulo de cambio de contraseña:

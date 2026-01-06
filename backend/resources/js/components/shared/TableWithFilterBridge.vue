@@ -88,6 +88,7 @@ const parsedFilters = computed(() => {
 
 // Handlers que se integran con el sistema existente
 const handleCreate = () => {
+    console.log('dispatch create event');
     window.dispatchEvent(
         new CustomEvent('table:crud', {
             detail: {
