@@ -65,22 +65,25 @@ function route_group(
  * @param string $controller Nombre del controlador
  * @param array $middleware Middlewares a aplicar
  * @param array $except Rutas a excluir ['index', 'store', ...]
+ * @param string $param Nombre del parámetro para Route Model Binding
  */
 function crud_routes(
     string $prefix,
     string $controller,
     array $middleware = ['auth'],
-    array $except = []
+    array $except = [],
+    string $param = 'id'
 ): void {
+    $paramUri = '{' . $param . '}';
+
     $routes = [
-        'index'   => ['method' => 'get',    'uri' => '',      'action' => 'index'],
-        'store'   => ['method' => 'post',   'uri' => '',      'action' => 'store'],
-        'show'    => ['method' => 'get',    'uri' => '{id}',  'action' => 'show'],
-        'update'  => ['method' => 'put',    'uri' => '{id}',  'action' => 'update'],
-        'destroy' => ['method' => 'delete', 'uri' => '{id}',  'action' => 'destroy'],
+        'index'   => ['method' => 'get',    'uri' => '',            'action' => 'index'],
+        'store'   => ['method' => 'post',   'uri' => '',            'action' => 'store'],
+        'show'    => ['method' => 'get',    'uri' => $paramUri,     'action' => 'show'],
+        'update'  => ['method' => 'put',    'uri' => $paramUri,     'action' => 'update'],
+        'destroy' => ['method' => 'delete', 'uri' => $paramUri,     'action' => 'destroy'],
     ];
 
-    // Filtrar rutas excluidas
     $routes = array_diff_key($routes, array_flip($except));
 
     route_group($prefix, "{$prefix}.", $middleware, $controller, $routes);
@@ -159,17 +162,26 @@ function api_resource(
  * @param string $prefix Prefijo de la URI
  * @param string $controller Controlador
  * @param array $routes Rutas del grupo
+ * @param string $param Nombre del parámetro de binding
  */
 function role_protected_routes(
     array $roles,
     string $prefix,
     string $controller,
-    array $routes
+    array $routes,
+    string $param = 'id'
 ): void {
     $middleware = array_merge(['auth'], $roles);
-
-    // Convertir admin/commerce → admin.commerce
     $namePrefix = str_replace('/', '.', trim($prefix, '/')) . '.';
+
+    $paramUri = '{' . $param . '}';
+
+    // Reemplazo automático de {id}
+    foreach ($routes as &$route) {
+        if (isset($route['uri'])) {
+            $route['uri'] = str_replace('{id}', $paramUri, $route['uri']);
+        }
+    }
 
     route_group(
         $prefix,
@@ -179,7 +191,6 @@ function role_protected_routes(
         $routes
     );
 }
-
 
 /**
  * Define rutas condicionales por entorno

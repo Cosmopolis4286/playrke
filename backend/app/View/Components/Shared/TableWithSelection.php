@@ -2,9 +2,9 @@
 
 namespace App\View\Components\Shared;
 
+use App\View\Components\Concerns\GeneratesHashedIds;
 use Illuminate\View\Component;
 use Illuminate\Support\Collection;
-use Vinkla\Hashids\Facades\Hashids;
 
 /**
  * Componente de tabla con selección de filas.
@@ -12,6 +12,8 @@ use Vinkla\Hashids\Facades\Hashids;
  */
 class TableWithSelection extends Component
 {
+    use GeneratesHashedIds;
+
     public string $title;
     public string $moduleId;
     public array $columns;
@@ -20,7 +22,7 @@ class TableWithSelection extends Component
     public string $context;
     public string $tableId;
 
-    /** 
+    /**
      * @var string[] IDs encriptados para Alpine.js
      */
     public array $hashedIds;
@@ -91,10 +93,7 @@ class TableWithSelection extends Component
      */
     protected function generateHashedIds(): void
     {
-        $this->hashedIds = $this->rows
-            ->pluck('id')
-            ->map(fn($id) => Hashids::connection('main')->encode($id))
-            ->toArray();
+        $this->hashedIds = $this->hashCollectionIds($this->rows);
     }
 
     /**

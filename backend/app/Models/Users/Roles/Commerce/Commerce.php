@@ -2,6 +2,7 @@
 
 namespace App\Models\Users\Roles\Commerce;
 
+use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
 use App\Models\Users\Roles\Seller\Seller;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Commerce extends Model
 {
     use SnowflakeId;
+    use HasHashedRouteKey;
 
     protected $table = 'commerces';
 

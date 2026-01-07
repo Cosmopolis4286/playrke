@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User\Roles;
 use App\Http\Controllers\Controller;
 
 use App\Http\Requests\User\Roles\CommerceRequest;
+use App\Models\Users\Roles\Commerce\Commerce;
 use App\Services\User\Roles\Commerce\CommerceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,11 @@ use Illuminate\View\View;
  */
 class CommerceController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(Commerce::class, 'commerce');
+    }
+
     /**
      * Crear un nuevo Comercio.
      *
@@ -242,40 +248,30 @@ class CommerceController extends Controller
     /**
      * Mostrar detalle de un Comercio.
      *
-     * @param string $id ID hasheado con Hashids
+     * @param Commerce $commerce  Modelo resuelto vía Route Model Binding (Hashids)
      * @param CommerceService $service
+     *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function show(string $id, CommerceService $service)
+    public function show(Commerce $commerce, CommerceService $service)
     {
         try {
-            // Decodificar el ID usando Hashids
-            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
-
-            if (empty($decodedIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ID inválido'
-                ], 400);
-            }
-
-            $realId = (string) $decodedIds[0];
-
-            $commerce = $service->getById($realId);
+            $commerceData = $service->getById($commerce->id);
 
             return response()->json([
                 'success' => true,
-                'data' => $commerce
+                'data' => $commerceData,
             ]);
-        } catch (\Exception $e) {
-            Log::error('CommerceController::show - Error:', [
-                'hashed_id' => $id,
-                'message' => $e->getMessage()
+        } catch (\Throwable $e) {
+            \Log::error('CommerceController::show error', [
+                'commerce_id' => $commerce->id,
+                'hashed_id'   => $commerce->hashed_id,
+                'exception'  => $e,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => "No se pudo cargar la información del Comercio: {$e->getMessage()}"
+                'message' => 'No se pudo cargar la información del comercio.',
             ], 500);
         }
     }

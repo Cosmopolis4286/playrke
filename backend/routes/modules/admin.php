@@ -117,10 +117,10 @@ Route::middleware('auth')->group(function () {
         ],
     ];
 
-    role_protected_routes(['role:admin'], 'admin/commerce', CommerceController::class, $adminCrudRoutes);
-    role_protected_routes(['role:admin'], 'admin/customer', CustomerController::class, $adminCrudRoutes);
-    role_protected_routes(['role:admin'], 'admin/treasurer', TreasurerController::class, $adminCrudRoutes);
-    role_protected_routes(['role:admin'], 'admin/other-treasurers', OtherTreasurersController::class, $adminCrudRoutes);
+    role_protected_routes(['role:admin'], 'admin/commerce', CommerceController::class, $adminCrudRoutes, 'commerce');
+    role_protected_routes(['role:admin'], 'admin/customer', CustomerController::class, $adminCrudRoutes, 'customer');
+    role_protected_routes(['role:admin'], 'admin/treasurer', TreasurerController::class, $adminCrudRoutes, 'treasurer');
+    role_protected_routes(['role:admin'], 'admin/other-treasurers', OtherTreasurersController::class, $adminCrudRoutes, 'otherTreasurer');
 });
 
 /**
