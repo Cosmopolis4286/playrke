@@ -5,6 +5,7 @@ import { formCrudState as crud } from '../state/formCrudState'
 import { showConfirm, showSuccess } from '../ui/crudModalUI'
 import type { OtherCase } from '@/helpers/module/types/formModule.types'
 import { getSelectedIds } from '@/alpine/tableSelectionListener'
+import { route } from '@/routes/helper';
 
 export async function handleOtherCases(
     action: string,
@@ -24,7 +25,7 @@ export async function handleOtherCases(
         ids.map(id =>
             axios.request({
                 method: caseData.method!.toLowerCase(),
-                url: crud.routes(caseData.routeName, { id }),
+                url: route(crud.routes, caseData.routeName, { id }),
                 data: elem?.dataset?.status
                     ? { status: elem.dataset.status }
                     : undefined
