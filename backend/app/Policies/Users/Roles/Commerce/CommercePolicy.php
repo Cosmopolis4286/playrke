@@ -4,7 +4,7 @@ namespace App\Policies\Users\Roles\Commerce;
 
 use App\Models\Users\Roles\Commerce\Commerce;
 use App\Models\Users\User;
-use App\Policies\BaseRolePolicy;
+use App\Policies\Users\Roles\BaseRolePolicy;
 
 /**
  * Policy de autorización para el dominio Commerce.

@@ -36,25 +36,25 @@ class CommerceRequest extends FormRequest
         $commerceId = $this->getCommerceId();
 
         $rules = [
-            'username'     => ['required', 'string', 'max:20'],
-            'email'        => ['required', 'string', 'email', 'max:40'],
-            'country'      => ['required', 'string', 'exists:countries,id'],
-            'time_zone'    => ['required', 'string', 'exists:time_zones,id'],
-            'currency'     => ['required', 'string', 'exists:currencies,id'],
-            'phone'        => ['required', 'string', 'max:20'],
-            'name'         => ['required', 'string'],
+            'country' => ['required', 'string', 'exists:countries,id'],
+            'time_zone' => ['required', 'string', 'exists:time_zones,id'],
+            'currency' => ['required', 'string', 'exists:currencies,id'],
+            'phone' => ['required', 'string', 'max:20'],
+            'name' => ['required', 'string'],
             'other_currencies.*' => ['string', 'exists:currencies,id'],
         ];
 
-        // Reglas de unicidad dinámicas
-        if ($this->isUpdate() && $commerceId) {
-            $rules['username'][] = 'unique:users,username,' . $commerceId;
-            $rules['email'][]    = 'unique:users,email,' . $commerceId;
-            $rules['phone'][]    = 'unique:commerces,phone,' . $commerceId;
+        // Ajustar regla unique para phone con exclusión en update
+        if ($commerceId) {
+            $rules['phone'][] = 'unique:commerces,phone,' . $commerceId . ',id';
         } else {
-            $rules['username'][] = 'unique:users,username';
-            $rules['email'][]    = 'unique:users,email';
-            $rules['phone'][]    = 'unique:commerces,phone';
+            $rules['phone'][] = 'unique:commerces,phone';
+        }
+
+        // Solo para creación (no update)
+        if (!$this->isUpdate()) {
+            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username'];
+            $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email'];
         }
 
         return $rules;
@@ -69,19 +69,19 @@ class CommerceRequest extends FormRequest
     {
         return [
             'username.required' => 'El nombre de usuario es obligatorio.',
-            'username.unique'   => 'El nombre de usuario no está disponible.',
-            'email.required'    => 'El correo electrónico es obligatorio.',
-            'email.email'       => 'El correo electrónico debe ser válido.',
-            'email.unique'      => 'Este correo ya está registrado.',
-            'phone.required'    => 'El teléfono es obligatorio.',
-            'phone.unique'      => 'El número ' . $this->phone . ' ya está registrado.',
-            'name.required'     => 'El nombre del comercio es obligatorio.',
-            'country.required'  => 'El país es obligatorio.',
-            'country.exists'    => 'El país seleccionado no es válido.',
+            'username.unique' => 'El nombre de usuario no está disponible.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'El correo electrónico debe ser válido.',
+            'email.unique' => 'Este correo ya está registrado.',
+            'phone.required' => 'El teléfono es obligatorio.',
+            'phone.unique' => 'El número ' . $this->phone . ' ya está registrado.',
+            'name.required' => 'El nombre del comercio es obligatorio.',
+            'country.required' => 'El país es obligatorio.',
+            'country.exists' => 'El país seleccionado no es válido.',
             'time_zone.required' => 'La zona horaria es obligatoria.',
-            'time_zone.exists'  => 'La zona horaria seleccionada no existe.',
+            'time_zone.exists' => 'La zona horaria seleccionada no existe.',
             'currency.required' => 'La moneda principal es obligatoria.',
-            'currency.exists'   => 'La moneda seleccionada no es válida. Por favor, selecciona una moneda de la lista.',
+            'currency.exists' => 'La moneda seleccionada no es válida. Por favor, selecciona una moneda de la lista.',
             'other_currencies.*.exists' => 'Una o más de las monedas adicionales seleccionadas no son válidas.',
         ];
     }
@@ -106,7 +106,7 @@ class CommerceRequest extends FormRequest
      */
     private function isUpdate(): bool
     {
-        return $this->route('id') !== null;
+        return $this->route('commerce') !== null;
     }
 
     /**
@@ -116,6 +116,8 @@ class CommerceRequest extends FormRequest
      */
     private function getCommerceId(): ?int
     {
-        return $this->isUpdate() ? decrypt($this->route('id')) : null;
+        /** @var \App\Models\Users\Roles\Commerce\Commerce|null $commerce */
+        $commerce = $this->route('commerce');
+        return $commerce ? $commerce->id : null;
     }
 }

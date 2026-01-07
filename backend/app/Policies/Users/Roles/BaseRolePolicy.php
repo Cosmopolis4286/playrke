@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Policies;
+namespace App\Policies\Users\Roles;
 
 use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Policy base para entidades administradas por roles.
@@ -92,6 +93,11 @@ abstract class BaseRolePolicy
      */
     public function update(User $user, Model $model): bool
     {
+          Log::info('Policy update check', [
+        'user_id' => $user->id,
+        'user_roles' => $user->roles->pluck('name')->toArray(),
+        'commerce_status' => $model->status,
+    ]);
         return $this->hasAccess($user)
             && $this->canMutate($model);
     }

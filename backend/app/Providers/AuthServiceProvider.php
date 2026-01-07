@@ -5,63 +5,57 @@ namespace App\Providers;
 use App\Models\Users\Roles\Commerce\Commerce;
 use App\Policies\Users\Roles\Commerce\CommercePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 
 /**
- * AuthServiceProvider
+ * Proveedor de autorización
  *
- * Registra políticas de autorización y gates de la aplicación.
+ * Registra políticas y gates para el sistema de roles.
  */
 class AuthServiceProvider extends ServiceProvider
 {
     /**
-     * Políticas de autorización de los modelos.
+     * Políticas de autorización para los modelos.
      *
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        // 'App\Models\Model' => 'App\Policies\ModelPolicy',
         Commerce::class => CommercePolicy::class,
     ];
 
     /**
-     * Registrar Gates y políticas.
+     * Registra políticas y gates.
+     *
+     * @return void
      */
     public function boot(): void
     {
-        // Registrar políticas primero
         $this->registerPolicies();
 
-        // Los Gates se definen después de que el servicio esté disponible
         $this->app->booted(function () {
-            // Definir Gates para roles
-            \Illuminate\Support\Facades\Gate::define('admin', function ($user) {
-                $firstRole = $user->roles->first();
-                return $firstRole && $firstRole->prefix === 'admin';
-            });
+            $this->defineRoleGate('admin');
+            $this->defineRoleGate('commerce', ['commerce', 'admin']);
+            $this->defineRoleGate('treasurer', ['treasurer', 'admin']);
+            $this->defineRoleGate('seller', ['seller', 'admin']);
+            $this->defineRoleGate('customer');
+            $this->defineRoleGate('player');
+        });
+    }
 
-            \Illuminate\Support\Facades\Gate::define('commerce', function ($user) {
-                $firstRole = $user->roles->first();
-                return $firstRole && in_array($firstRole->prefix, ['commerce', 'admin']);
-            });
+    /**
+     * Define un gate para un rol o múltiples roles.
+     *
+     * @param string $gateName Nombre del gate
+     * @param string[]|null $allowedPrefixes Prefijos de rol permitidos (por defecto solo el gateName)
+     * @return void
+     */
+    protected function defineRoleGate(string $gateName, array|null $allowedPrefixes = null): void
+    {
+        $prefixes = $allowedPrefixes ?? [$gateName];
 
-            \Illuminate\Support\Facades\Gate::define('treasurer', function ($user) {
-                $firstRole = $user->roles->first();
-                return $firstRole && in_array($firstRole->prefix, ['treasurer', 'admin']);
-            });
-
-            \Illuminate\Support\Facades\Gate::define('seller', function ($user) {
-                $firstRole = $user->roles->first();
-                return $firstRole && in_array($firstRole->prefix, ['seller', 'admin']);
-            });
-
-            \Illuminate\Support\Facades\Gate::define('customer', function ($user) {
-                $firstRole = $user->roles->first();
-                return $firstRole && $firstRole->prefix === 'customer';
-            });
-
-            \Illuminate\Support\Facades\Gate::define('player', function ($user) {
-                $firstRole = $user->roles->first();
-                return $firstRole && $firstRole->prefix === 'player';
+        Gate::define($gateName, function ($user) use ($prefixes) {
+            return $user->roles->contains(function ($role) use ($prefixes) {
+                return in_array($role->prefix, $prefixes, true);
             });
         });
     }

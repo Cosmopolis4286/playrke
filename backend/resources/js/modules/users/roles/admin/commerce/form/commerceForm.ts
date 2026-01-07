@@ -3,7 +3,7 @@ import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTime
 import { validateInput } from '@/helpers/validateInput';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
 import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@/helpers/form/formHelpers';
-import { commerceAdminRoutes  } from '@/routes/commerceRoutes';
+import { commerceAdminRoutes } from '@/routes/commerceRoutes';
 
 // ==========================
 // Constantes globales
@@ -61,9 +61,10 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
         fillFormFromObject(commerce);
 
         usernameInput.value = user.username ?? '';
+        usernameInput.disabled = !!usernameInput.value;  // true si tiene valor, false si está vacío
+
         emailInput.value = user.email ?? '';
-        usernameInput.readOnly = true;
-        emailInput.readOnly = true;
+        emailInput.disabled = !!emailInput.value;
 
         // Valores preseleccionados para selects (usando los IDs de las foreign keys)
         selectedValues['country'] = commerce?.country_id ?? '';
@@ -74,8 +75,8 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
         resetFormAndContainers('commerce-form', ['container-currency', 'container-time-zone']);
 
         // Habilitar campos de username y email
-        usernameInput.readOnly = false;
-        emailInput.readOnly = false;
+        usernameInput.disabled = false;
+        emailInput.disabled = false;
     }
 
     // 1. Inicializar todos los selects básicos con los valores preseleccionados
@@ -94,8 +95,6 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
             // Llamar directamente a las funciones para cargar opciones
             updateCurrency(commerce.country_id);
             updateTimeZones(commerce.country_id, String(user.time_zone_id));
-
-            console.log(user);
 
             // Esperar a que las opciones se carguen
             setTimeout(() => {

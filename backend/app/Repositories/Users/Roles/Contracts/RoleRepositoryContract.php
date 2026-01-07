@@ -53,6 +53,14 @@ interface RoleRepositoryContract extends BaseRepositoryContract
     public function getByPrefix(string $prefix): Collection;
 
     /**
+     * Obtiene los prefijos de todos los roles activos asignados a un usuario.
+     *
+     * @param string $userId ID del usuario
+     * @return array<string> Lista de prefijos de roles
+     */
+    public function getRolesByUserId(string $userId): array;
+
+    /**
      * Buscar roles por descripción parcial.
      *
      * @param string $searchTerm Término de búsqueda parcial

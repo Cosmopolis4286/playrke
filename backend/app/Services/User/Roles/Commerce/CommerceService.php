@@ -146,4 +146,44 @@ class CommerceService
             'allowed_games' => $commerce->allowedGames->pluck('id')->toArray(),
         ];
     }
+
+    public function update(array $data, string $id): void
+    {
+        DB::transaction(function () use ($data, $id) {
+            $commerce = Commerce::findOrFail($id);
+
+            // Actualizar campos básicos
+            $commerce->update([
+                'name' => $data['name'] ?? $commerce->name,
+                'phone' => $data['phone'] ?? $commerce->phone,
+                'currency_id' => $data['currency'] ?? $commerce->currency_id,
+                'country_id' => $data['country'] ?? $commerce->country_id,
+                // agregá más campos si es necesario
+            ]);
+
+            // Actualizar monedas adicionales (relación many-to-many)
+            if (isset($data['other_currencies']) && is_array($data['other_currencies'])) {
+                $commerce->otherCurrencies()->sync($data['other_currencies']);
+            }
+
+            // Actualizar juegos permitidos (relación many-to-many)
+            if (isset($data['allowed_games']) && is_array($data['allowed_games'])) {
+                $commerce->allowedGames()->sync($data['allowed_games']);
+            }
+
+            // Si necesitás actualizar datos del usuario asociado, podrías hacerlo así:
+            if (isset($data['email']) || isset($data['username'])) {
+                $userData = [];
+                if (isset($data['email'])) {
+                    $userData['email'] = $data['email'];
+                }
+                if (isset($data['username'])) {
+                    $userData['username'] = $data['username'];
+                }
+                if (!empty($userData)) {
+                    $commerce->user()->update($userData);
+                }
+            }
+        });
+    }
 }

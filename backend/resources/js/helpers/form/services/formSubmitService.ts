@@ -1,4 +1,7 @@
 import axios from '@/plugins/axios';
+import { validateAndFocus } from '../ui/crudFormUI';
+import { showToast } from '@/helpers/toastNotify';
+import { ajaxStart, ajaxStop } from '@/utils/loader';
 
 export type SubmitMethod =
     | 'post'
@@ -29,9 +32,28 @@ async function submitFormService({
 
     const formData = new FormData(form);
 
+    // Obtener método real: si se pasa explícitamente, usarlo,
+    // si no, verificar si hay _method oculto en el formData,
+    // si no, usar form.method o 'post' por defecto
+    const formMethod = form.method?.toLowerCase() as SubmitMethod | undefined;
+    const hiddenMethod = formData.get('_method') as string | null;
+
+    const realMethod =
+        method ||
+        (hiddenMethod ? hiddenMethod.toLowerCase() : formMethod) ||
+        'post';
+
+    console.log({
+        url: url,
+        action: form.action,
+        method: realMethod,
+        data: formData,
+        headers,
+    });
+
     return axios.request({
         url: url || form.action,
-        method: method || (form.method?.toLowerCase() as SubmitMethod) || 'post',
+        method: realMethod,
         data: formData,
         headers,
     });
@@ -41,17 +63,7 @@ export async function submitForm(formId: string, fields: string[] = []) {
     const form = document.getElementById(formId) as HTMLFormElement | null;
     if (!form) return;
 
-    const validation = validateRequiredFields(formId, fields, true);
-    if (!validation.isValid) {
-        showToast(
-            `Campos requeridos faltantes: ${validation.missingFields.join(', ')}`,
-            'warning'
-        );
-        validation.firstInvalidField?.focus();
-        return;
-    }
-
-    clearFormValidation(formId);
+    validateAndFocus(formId, fields);
 
     try {
         ajaxStart();

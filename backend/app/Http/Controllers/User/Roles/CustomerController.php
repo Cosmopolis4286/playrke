@@ -302,26 +302,4 @@ class CustomerController extends Controller
             return view('customer.index', compact('customers'));
         }, "No se pudo cargar la lista de Clientes.");
     }
-
-    /**
-     * Manejo centralizado de errores para los métodos del Controller.
-     *
-     * Ejecuta un callback dentro de un try-catch y maneja los errores
-     * de forma consistente con logging y mensajes flash.
-     *
-     * @param callable $callback Función a ejecutar
-     * @param string $errorMessage Mensaje de error a mostrar
-     * @return mixed Resultado del callback o redirect con error
-     */
-    private function handleService(callable $callback, string $errorMessage)
-    {
-        try {
-            return $callback();
-        } catch (\Throwable $e) {
-            Log::error("❌ $errorMessage Error: " . $e->getMessage());
-            Session::flash('error', $errorMessage);
-
-            return redirect()->back()->withErrors(['error' => $errorMessage]);
-        }
-    }
 }

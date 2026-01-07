@@ -2,81 +2,61 @@
 
 namespace App\Http\Middleware;
 
-use App\Repositories\User\Roles\RoleRepository;
+use App\Repositories\Users\Roles\RoleUserRepository;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Middleware avanzado para verificar roles múltiples de un usuario.
- * Permite que un usuario tenga varios roles y que se valide si tiene
- * al menos uno de los roles permitidos.
- */
 class MultiRoleMiddleware
 {
-    protected RoleRepository $RoleRepository;
+    protected RoleUserRepository $roleUserRepository;
 
-    /**
-     * Constructor del middleware.
-     *
-     * @param RoleRepository $RoleRepository
-     */
-    public function __construct(RoleRepository $RoleRepository)
+    public function __construct(RoleUserRepository $roleUserRepository)
     {
-        $this->RoleRepository = $RoleRepository;
+        $this->roleUserRepository = $roleUserRepository;
     }
 
-    /**
-     * Maneja la petición entrante.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param \Closure $next
-     * @param mixed ...$roles Lista de roles permitidos
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
-    public function handle(Request $request, Closure $next, mixed ...$roles): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = Auth::user();
 
-        // 1. Verificar autenticación
         if (!$user) {
             return redirect()->route('login')->with('error', 'Por favor, inicie sesión para continuar.');
         }
 
-        // 2. Validar que el tipo de usuario exista y obtener todos sus roles
-        $userRoles = $this->RoleRepository->getRolesByUserId($user->id);
+        // Obtener roles activos asignados al usuario (con prefijos)
+        $activeAssignments = $this->roleUserRepository->getActiveByUser($user->id);
 
-        if (empty($userRoles)) {
+        if ($activeAssignments->isEmpty()) {
             Auth::logout();
             return redirect()->route('login')->with('error', 'Usuario inválido o sin roles asignados.');
         }
 
-        // 3. Definir Gates dinámicamente si no existen
+        // Extraer prefijos de roles activos
+        $userRolesPrefixes = $activeAssignments->map(function ($assignment) {
+            return $assignment->role->prefix ?? null;
+        })->filter()->unique()->toArray();
+
+        // Definir gates dinámicos para roles solicitados
         foreach ($roles as $role) {
             if (!Gate::has($role)) {
-                Gate::define($role, fn($user) => in_array($role, $userRoles));
+                Gate::define($role, fn($user) => in_array($role, $userRolesPrefixes, true));
             }
         }
 
-        // 4. Verificar si el usuario tiene al menos uno de los roles permitidos
-        $hasAccess = false;
+        // Validar acceso por alguno de los roles permitidos
         foreach ($roles as $role) {
             if (Gate::allows($role, $user)) {
-                $hasAccess = true;
-                break;
+                return $next($request);
             }
         }
 
-        // 5. Denegar acceso si no tiene permisos
-        if (!$hasAccess) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'Acceso denegado.'], 403);
-            }
-            return redirect()->route('dashboard')->with('error', 'Acceso denegado.');
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Acceso denegado.'], 403);
         }
 
-        return $next($request);
+        return redirect()->route('dashboard')->with('error', 'Acceso denegado.');
     }
 }

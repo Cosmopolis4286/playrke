@@ -345,6 +345,19 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Verifica si el usuario tiene un rol específico (por nombre o prefijo).
+     *
+     * @param string $role Rol o prefijo a buscar.
+     * @return bool
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->roles->contains(function ($r) use ($role) {
+            return $r->name === $role || $r->prefix === $role;
+        });
+    }
+
+    /**
      * Scope para obtener solo usuarios activos
      *
      * @param \Illuminate\Database\Eloquent\Builder $query

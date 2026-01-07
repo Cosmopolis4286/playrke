@@ -96,6 +96,24 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
+     * Obtener prefijos de roles activos asignados a un usuario.
+     *
+     * @param string $userId
+     * @return array<string>
+     */
+    public function getRolesByUserId(string $userId): array
+    {
+        return $this->model
+            ->where('user_id', $userId)
+            ->whereNull('expires_at') // o condiciones para asignaciones activas
+            ->orWhere('expires_at', '>', now())
+            ->with('role') // relación con Role para obtener prefijo
+            ->get()
+            ->pluck('role.prefix')
+            ->toArray();
+    }
+
+    /**
      * Buscar roles por descripción
      *
      * @param string $searchTerm

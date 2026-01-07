@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Roles\CommerceRequest;
 use App\Models\Users\Roles\Commerce\Commerce;
 use App\Services\User\Roles\Commerce\CommerceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -35,7 +36,7 @@ class CommerceController extends Controller
      * @param CommerceService $service
      * @return RedirectResponse
      */
-    public function store(CommerceRequest $request, CommerceService $service)
+    public function store(CommerceRequest $request, CommerceService $service): JsonResponse
     {
         try {
             $result = $service->create($request->toDTO()->toArray());
@@ -63,15 +64,26 @@ class CommerceController extends Controller
      * @param CommerceService $service
      * @return RedirectResponse
      */
-    public function update(CommerceRequest $request, int $id, CommerceService $service): RedirectResponse
-    {
-        return $this->handleService(function () use ($request, $service, $id) {
-            $service->update($request->toDTO(), $id);
+    public function update(
+        CommerceRequest $request,
+        Commerce $commerce,
+        CommerceService $service
+    ): JsonResponse {
+        try {
+            $service->update($request->toDTO()->toArray(), $commerce->id);
 
-            Session::flash('message', '✅ La información fue actualizada correctamente');
+            return response()->json([
+                'success' => true,
+                'message' => '✅ Actualización exitosa',
+            ]);
+        } catch (\Throwable $th) {
+            Log::error("❌ Hubo un error al editar el Comercio: " . $th->getMessage());
 
-            return redirect()->back();
-        }, "Hubo un error al actualizar el Comercio [ID: $id].");
+            return response()->json([
+                'success' => false,
+                'message' => 'Hubo un error al editar el Comercio.'
+            ], 500);
+        }
     }
 
     /**
@@ -263,7 +275,7 @@ class CommerceController extends Controller
                 'data' => $commerceData,
             ]);
         } catch (\Throwable $e) {
-            \Log::error('CommerceController::show error', [
+            Log::error('CommerceController::show error', [
                 'commerce_id' => $commerce->id,
                 'hashed_id'   => $commerce->hashed_id,
                 'exception'  => $e,
