@@ -24,7 +24,7 @@ export async function handleOtherCases(
         ids.map(id =>
             axios.request({
                 method: caseData.method!.toLowerCase(),
-                url: crud.routeFn(caseData.routeName, { id }),
+                url: crud.routes(caseData.routeName, { id }),
                 data: elem?.dataset?.status
                     ? { status: elem.dataset.status }
                     : undefined

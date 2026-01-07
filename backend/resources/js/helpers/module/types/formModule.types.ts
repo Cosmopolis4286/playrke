@@ -17,20 +17,21 @@ export type ModuleAction = CrudAction | string;
 /**
  * Definición de un módulo CRUD dinámico
  */
-export interface ModuleType<
-    TRoutes extends Readonly<Record<string, string>> = Readonly<Record<string, string>>
-> {
+export interface ModuleType {
     /** ID único del módulo */
     moduleId: string;
 
     /** Sufijo del título del formulario */
     formTitleSuffix: string;
 
-    /** Rutas del módulo (tipadas por const assertion) */
-    routes: TRoutes;
+    /**
+       * Mapa de rutas del módulo
+       * Ej: { store: '/admin/commerce', update: '/admin/commerce/{id}' }
+       */
+    routes: Readonly<Record<string, string>>;
 
     /** Acciones adicionales (no CRUD base) */
-    otherCasesMap?: Partial<Record<keyof TRoutes | string, OtherCase>>;
+    otherCasesMap?: Partial<Record<string, OtherCase>>;
 
     /** Campos requeridos para submit automático */
     requiredFields?: readonly string[];

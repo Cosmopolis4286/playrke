@@ -1,6 +1,7 @@
 import { formCrudState as crud } from '../state/formCrudState';
 import { resetForm } from '../formHelpers';
 import { getInfo } from './getInfoService';
+import { route } from '@/routes/helper';
 
 /**
  * Configura el formulario antes de enviarlo
@@ -8,20 +9,15 @@ import { getInfo } from './getInfoService';
 export function prepareForm(
     form: HTMLFormElement,
     routeName: string,
-    modalTitle: string,
     method: string = 'POST',
     id?: string,
-    route: (name: string, params?: Record<string, string | number>) => string = () => ''
 ) {
     const methodUpper = method.toUpperCase();
-    const modalLabel = document.querySelector(`#modal-${crud.moduleId}-label`);
-
-    if (modalLabel) modalLabel.textContent = modalTitle;
 
     try {
         const actionUrl = ['PUT', 'PATCH', 'DELETE'].includes(methodUpper)
-            ? (id ? route(routeName, { id }) : (() => { throw new Error(`'id' requerido para ${methodUpper}`); })())
-            : route(routeName);
+            ? (id ? route(crud.routes, routeName, { id }) : (() => { throw new Error(`'id' requerido para ${methodUpper}`); })())
+            : route(crud.routes, routeName);
 
         form.action = actionUrl;
         form.method = methodUpper;
@@ -63,35 +59,29 @@ function initForm(): HTMLFormElement | null {
     return form;
 }
 
+function modalLabel(modalTitle: string): void {
+    const modalLabel = document.querySelector(`#modal-${crud.moduleId}-label`);
+
+    if (modalLabel) modalLabel.textContent = modalTitle;
+}
+
 export function prepareCreate(): void {
     const form = initForm();
     if (!form) return;
 
     crud.insertInfo?.('create');
+    modalLabel(`Registrar ${crud.formTitleSuffix}`);
     $(crud.modalId!).modal('show');
 
-    prepareForm(
-        form,
-        'store',
-        `Registrar ${crud.formTitleSuffix}`,
-        'POST',
-        undefined,
-        crud.routeFn
-    );
+    prepareForm(form, 'store', 'POST');
 }
 
 export async function prepareEdit(encryptId: string): Promise<void> {
     const form = initForm();
     if (!form) return;
 
+    modalLabel(`Editar ${crud.formTitleSuffix}`);
     await getInfo(encryptId);
 
-    prepareForm(
-        form,
-        'update',
-        `Editar ${crud.formTitleSuffix}`,
-        'PUT',
-        encryptId,
-        crud.routeFn
-    );
+    prepareForm(form, 'update', 'PUT', encryptId);
 }
