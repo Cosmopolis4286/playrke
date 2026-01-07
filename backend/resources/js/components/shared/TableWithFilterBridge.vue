@@ -12,11 +12,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import TableWithFilter from './TableWithFilter.vue'
 
+/**
+ * Props recibidas desde Blade / sistema legacy
+ */
 const props = defineProps({
-    // Datos serializados desde Blade
     tableId: {
         type: String,
         required: true
@@ -61,7 +63,6 @@ const props = defineProps({
         type: Boolean,
         default: true
     },
-    // Callbacks de integración con Blade/Alpine
     moduleId: {
         type: String,
         default: ''
@@ -72,64 +73,104 @@ const props = defineProps({
     }
 })
 
-// Parse JSON strings if needed
-const parsedColumns = computed(() => {
-    return typeof props.columns === 'string'
+/**
+ * Estado local de selección
+ * Vue es la fuente de verdad del ID seleccionado
+ */
+const selectedIds = ref<string[]>([])
+
+/**
+ * Parseo seguro de props serializadas
+ */
+const parsedColumns = computed(() =>
+    typeof props.columns === 'string'
         ? JSON.parse(props.columns)
         : props.columns
-})
+)
 
-const parsedRows = computed(() => {
-    return typeof props.rows === 'string'
+const parsedRows = computed(() =>
+    typeof props.rows === 'string'
         ? JSON.parse(props.rows)
         : props.rows
-})
+)
 
-const parsedFilters = computed(() => {
-    return typeof props.filters === 'string'
+const parsedFilters = computed(() =>
+    typeof props.filters === 'string'
         ? JSON.parse(props.filters)
         : props.filters
-})
+)
 
-// Handlers que se integran con el sistema existente
+/**
+ * Acción: Crear
+ */
 const handleCreate = () => {
-    window.dispatchEvent(
-        new CustomEvent('table:crud', {
-            detail: {
-                action: 'create',
-                moduleId: props.moduleId,
-                context: props.context
-            }
-        })
-    )
-}
-
-const handleEdit = (id: string) => {
     window.dispatchEvent(new CustomEvent('table:crud', {
         detail: {
-            action: 'edit',
-            id,
+            action: 'create',
             moduleId: props.moduleId,
+            tableId: props.tableId,
             context: props.context
         }
     }))
 }
 
-const handleDelete = (ids: Array<string>) => {
-    window.dispatchEvent(new CustomEvent('table:delete', {
-        detail: { ids, moduleId: props.moduleId, context: props.context }
+/**
+ * Acción: Editar
+ * ⚠️ El ID se resuelve AQUÍ, no en el CRUD
+ */
+const handleEdit = () => {
+    if (selectedIds.value.length !== 1) return
+
+    window.dispatchEvent(new CustomEvent('table:crud', {
+        detail: {
+            action: 'edit',
+            moduleId: props.moduleId,
+            tableId: props.tableId,
+            encryptId: selectedIds.value[0],
+            context: props.context
+        }
     }))
 }
 
-const handleSelectionChange = (selectedIds: string[]) => {
-    window.dispatchEvent(
-        new CustomEvent('table-selection-updated', {
-            detail: {
-                tableId: props.tableId,   // o tableId explícito
-                selectedIds,
-                context: props.context,    // metadata adicional
-            }
+/**
+ * Acción: Eliminar
+ */
+const handleDelete = () => {
+    if (selectedIds.value.length === 0) return
+
+    window.dispatchEvent(new CustomEvent('table:crud', {
+        detail: {
+            action: 'delete',
+            moduleId: props.moduleId,
+            tableId: props.tableId,
+            encryptId: selectedIds.value.length === 1
+                ? selectedIds.value[0]
+                : '',
+            context: props.context
+        }
+    }))
+}
+
+/**
+ * Cambio de selección desde la tabla
+ * Evento informativo para Alpine / otros módulos
+ */
+const handleSelectionChange = (ids: string[]) => {
+    selectedIds.value = [...ids]
+
+    if (import.meta.env.DEV) {
+        console.log('🔁 table-selection-updated', {
+            tableId: props.tableId,
+            selectedIds: selectedIds.value
         })
-    );
-};
+    }
+
+    window.dispatchEvent(new CustomEvent('table-selection-updated', {
+        detail: {
+            tableId: props.tableId,
+            selectedIds: [...selectedIds.value],
+            context: props.context
+        }
+    }))
+}
 </script>

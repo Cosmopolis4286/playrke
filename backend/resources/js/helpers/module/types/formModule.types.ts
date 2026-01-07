@@ -11,25 +11,34 @@ export interface OtherCase {
     method?: 'PUT' | 'DELETE';         // Método HTTP (default: PUT)
 }
 
+export type CrudAction = 'create' | 'edit' | 'delete';
+export type ModuleAction = CrudAction | string;
+
 /**
  * Definición de un módulo CRUD dinámico
  */
-export interface ModuleType {
+export interface ModuleType<
+    TRoutes extends Readonly<Record<string, string>> = Readonly<Record<string, string>>
+> {
+    /** ID único del módulo */
     moduleId: string;
+
+    /** Sufijo del título del formulario */
     formTitleSuffix: string;
 
-    // Generador de rutas del módulo
-    routeFn?: (name: string, params?: Record<string, string | number>) => string;
+    /** Rutas del módulo (tipadas por const assertion) */
+    routes: TRoutes;
 
-    // Acciones adicionales (no create/update)
-    otherCasesMap?: Record<string, OtherCase>;
+    /** Acciones adicionales (no CRUD base) */
+    otherCasesMap?: Partial<Record<keyof TRoutes | string, OtherCase>>;
 
-    // Campos requeridos para submit automático
-    requiredFields?: string[];
+    /** Campos requeridos para submit automático */
+    requiredFields?: readonly string[];
 
-    // Hook para inyectar data en el formulario
-    insertInfo?: (action: 'create' | 'edit' | string, data?: unknown) => void;
+    /** Hook para inyectar data en el formulario */
+    insertInfo?: (action: ModuleAction, data?: unknown) => void;
 
-    // Hook para listeners personalizados
+    /** Hook para inicializar listeners personalizados */
     initListeners?: () => void;
 }
+

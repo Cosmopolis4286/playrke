@@ -4,6 +4,7 @@ import { copyInfo } from '@/utils/copyInfo';
 import { submitForm } from '../services/formSubmitService';
 import { formCrudState as crud } from '../state/formCrudState';
 import { executeCrud } from '../services/crudExecutor';
+import type { TableCrudEventDetail } from '@/helpers/table/types';
 
 /**
  * Controlador central de eventos CRUD.
@@ -65,7 +66,7 @@ async function handleCrudClick(e: MouseEvent): Promise<void> {
     const btn = target.closest<HTMLElement>('[data-action]');
     if (!btn) return;
 
-    await executeCrud(btn);
+    await executeCrud(btn.dataset.action || '', btn.dataset.encryptId);
 }
 
 /**
@@ -77,14 +78,12 @@ async function handleCrudClick(e: MouseEvent): Promise<void> {
  *
  * @param e - Evento CustomEvent
  */
-async function handleCrudCustomEvent(e: Event): Promise<void> {
-    if (!(e instanceof CustomEvent)) return;
+function handleCrudCustomEvent(event: Event): void {
+    const ev = event as CustomEvent<TableCrudEventDetail>;
+    if (!ev.detail) return;
 
-    const { action } = e.detail ?? {};
-    if (!action) return;
+    const { action, encryptId } = ev.detail;
 
-    const fakeElement = document.createElement('button');
-    fakeElement.dataset.action = action;
-
-    await executeCrud(fakeElement);
+    executeCrud(action, encryptId);
 }
+

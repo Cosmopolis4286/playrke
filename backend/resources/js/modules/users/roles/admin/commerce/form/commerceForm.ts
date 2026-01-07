@@ -3,15 +3,12 @@ import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTime
 import { validateInput } from '@/helpers/validateInput';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
 import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@/helpers/form/formHelpers';
-
-// Re-exportar route para que otros módulos puedan usarla directamente
-export { routeFn };
-
-
+import { commerceAdminRoutes  } from '@/routes/commerceRoutes';
 
 // ==========================
 // Constantes globales
 // ==========================
+export const routes: typeof commerceAdminRoutes = commerceAdminRoutes;
 export const formTitleSuffix = 'Comercio';
 export const moduleId = 'commerce-form';
 

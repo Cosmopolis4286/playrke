@@ -18,6 +18,7 @@ type TableSelectionRegistry = Record<string, Set<TableSelectionCallback>>;
 
 /**
  * Estado centralizado de selecciones por tabla
+ * ⚠️ ÚNICA fuente de verdad
  */
 const tableSelections: Record<string, string[]> = Object.create(null);
 
@@ -25,14 +26,6 @@ const tableSelections: Record<string, string[]> = Object.create(null);
  * Callbacks registrados por tabla
  */
 const registry: TableSelectionRegistry = Object.create(null);
-
-/**
- * Estado interno para integración CRUD basada en selección de tabla
- */
-const tableSelectionStore = {
-    encryptId: '',
-    listeners: new Map<string, TableSelectionCallback>()
-};
 
 /**
  * Evita inicializar el listener global más de una vez
@@ -46,19 +39,22 @@ let initialized = false;
  * @param event - Evento CustomEvent con detail { tableId, selectedIds }
  */
 function handleSelectionUpdate(event: Event): void {
-    const customEvent = event as CustomEvent;
+    const ev = event as CustomEvent;
+    if (!ev?.detail) return;
 
-    if (!customEvent?.detail) return;
-
-    const { tableId, selectedIds } = customEvent.detail;
+    const { tableId, selectedIds } = ev.detail;
 
     if (typeof tableId !== 'string' || !Array.isArray(selectedIds)) return;
 
+    // Normalización defensiva (elimina Proxy, refs, etc.)
     const snapshot = [...selectedIds];
 
     // Actualiza estado centralizado
     tableSelections[tableId] = snapshot;
-    console.log('tableSelections', tableSelections);
+
+    if (import.meta.env.DEV) {
+        console.debug('[TableSelection]', tableId, snapshot);
+    }
 
     // Ejecuta callbacks registrados
     registry[tableId]?.forEach(cb => cb(snapshot));
@@ -72,11 +68,14 @@ export function initTableSelectionListener(): void {
     if (initialized) return;
     initialized = true;
 
-    alert('initTableSelectionListener');
     window.addEventListener(
         'table-selection-updated',
         handleSelectionUpdate as EventListener
     );
+
+    if (import.meta.env.DEV) {
+        console.info('[TableSelectionListener] inicializado');
+    }
 }
 
 /**
@@ -101,24 +100,6 @@ export function onTableSelectionUpdate(
 }
 
 /**
- * Registra un listener de selección para integración con CRUD.
- * Garantiza que solo exista un listener por tableId.
- *
- * @param tableId - ID de la tabla
- */
-export function registerTableListener(tableId: string): void {
-    if (!tableId || tableSelectionStore.listeners.has(tableId)) return;
-
-    const listener: TableSelectionCallback = (selectedIds) => {
-        tableSelectionStore.encryptId =
-            selectedIds.length === 1 ? selectedIds[0] : '';
-    };
-
-    onTableSelectionUpdate(tableId, listener);
-    tableSelectionStore.listeners.set(tableId, listener);
-}
-
-/**
  * Elimina un callback previamente registrado.
  * Útil para limpieza manual cuando una tabla se destruye.
  *
@@ -134,7 +115,7 @@ export function removeTableSelectionCallback(
 
 /**
  * Obtiene los IDs seleccionados actualmente para una tabla.
- * Siempre devuelve un nuevo array.
+ * Siempre devuelve un nuevo array plano.
  *
  * @param tableId - Identificador de la tabla
  * @returns IDs seleccionados o array vacío
@@ -145,7 +126,8 @@ export function getSelectedIds(tableId: string): string[] {
 }
 
 /**
- * Obtiene el ID cifrado actual desde la tabla o desde el estado
+ * Obtiene el ID cifrado actual desde la selección de la tabla.
+ * Solo devuelve valor si hay exactamente un registro seleccionado.
  *
  * @param tableId - Identificador de la tabla
  * @returns ID cifrado o string vacío

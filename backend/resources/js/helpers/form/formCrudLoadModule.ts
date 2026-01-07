@@ -2,7 +2,6 @@
 import { getAppDataProperty } from '@/data';
 import { loadModule } from '@/helpers/module/loadModule';
 import type { ModuleType } from '@/helpers/module/types/formModule.types';
-import { registerTableListener } from '@/alpine/tableSelectionListener';
 import { setFormCrudState } from './state/formCrudState';
 import { initFormCrudController } from './controller/formCrudController';
 
@@ -58,17 +57,11 @@ export async function initFormCrud(): Promise<void> {
         insertInfo: _module.insertInfo ?? (() => { }),
         otherCasesMap: _module.otherCasesMap ?? {},
         requiredFields: _module.requiredFields ?? [],
-        routeFn: _module.routeFn ?? (() => ''),
+        routes: _module.routes
     });
-
-/**
- * Registrar listener de selección de filas de la tabla
- */
-registerTableListener(tableId);
-
-/**
- * Inicializar controller CRUD (UI + eventos)
- * Se ejecuta SOLO después de que el módulo y el estado estén listos
- */
-initFormCrudController();
+    /**
+     * Inicializar controller CRUD (UI + eventos)
+     * Se ejecuta SOLO después de que el módulo y el estado estén listos
+     */
+    initFormCrudController();
 }

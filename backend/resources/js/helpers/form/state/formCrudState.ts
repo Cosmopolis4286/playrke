@@ -51,9 +51,9 @@ export const formCrudState = {
         return state.requiredFields;
     },
 
-    /** Generador de rutas del módulo */
-    get routeFn(): NonNullable<ModuleType['routeFn']> {
-        return state.routeFn;
+    /** Rutas del módulo (tipadas por const assertion) */
+    get routes(): NonNullable<ModuleType['routes']> {
+        return state.routes;
     },
 };
 
@@ -70,7 +70,7 @@ const state: {
     insertInfo: ModuleType['insertInfo'];
     otherCasesMap: NonNullable<ModuleType['otherCasesMap']>;
     requiredFields: NonNullable<ModuleType['requiredFields']>;
-    routeFn: NonNullable<ModuleType['routeFn']>;
+    routes: NonNullable<ModuleType['routes']>;
 } = {
     moduleId: '',
     moduleFile: '',
@@ -80,7 +80,7 @@ const state: {
     insertInfo: () => { },
     otherCasesMap: {},
     requiredFields: [],
-    routeFn: () => '',
+    routes: () => '',
 };
 
 /**

@@ -84,10 +84,7 @@ function setupEventListeners(moduleId: string, tableId: string): void {
         const ev = e as CustomEvent
         const { tableId: eventTableId, selectedIds } = ev.detail || {}
 
-        console.log('table-selection-updated event received', ev.detail);
-        console.log('Comparing eventTableId:', eventTableId, 'with tableId:', tableId);
-
-      //  if (eventTableId !== tableId) return
+        if (eventTableId !== tableId) return
 
         if (import.meta.env.DEV) {
             console.log('🔁 Selección de tabla actualizada:', {
