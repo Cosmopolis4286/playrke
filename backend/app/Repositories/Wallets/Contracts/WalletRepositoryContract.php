@@ -93,6 +93,13 @@ interface WalletRepositoryContract extends BaseRepositoryContract
     public function getBlockedWallets(array $filters = [], array $columns = ['*']): Collection;
 
     /**
+     * Elimina todas las wallets de un usuario
+     * @param string $userId ID del usuario
+     * @return int Número de wallets eliminadas
+     */
+    public function deleteByUserId(string $userId): int;
+
+    /**
      * Actualiza el balance de una wallet
      *
      * @param string $walletId ID de la wallet

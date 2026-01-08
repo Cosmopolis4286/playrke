@@ -153,6 +153,19 @@ class WalletRepository extends BaseRepository implements WalletRepositoryContrac
     }
 
     /**
+     * Elimina todas las wallets asociadas a un usuario
+     *
+     * @param string $userId
+     * @return int Cantidad de registros eliminados
+     */
+    public function deleteByUserId(string $userId): int
+    {
+        return $this->model
+            ->where('user_id', $userId)
+            ->delete();
+    }
+
+    /**
      * Actualiza el balance de una wallet
      */
     public function updateBalance(string $walletId, float $newBalance): bool

@@ -3,113 +3,74 @@
 namespace App\Services\User\Roles\Commerce;
 
 use App\Models\Users\User;
-use App\Models\Wallets\Wallet;
 use App\Models\Users\Roles\Commerce\Commerce;
 use App\Models\Users\Shared\UniqueCode;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
+use App\Repositories\Wallets\Contracts\WalletRepositoryContract;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
+use InvalidArgumentException;
+use RuntimeException;
+use Vinkla\Hashids\Facades\Hashids;
 
-/**
- * Servicio para manejar la creación de Comercializadoras (Commerce).
- */
 class CommerceService
 {
     public function __construct(
-        protected UserRepositoryContract $userRepository
+        protected UserRepositoryContract $userRepository,
+        protected CommerceRepositoryContract $commerceRepository,
+        protected WalletRepositoryContract $walletRepository,
     ) {}
 
     /**
-     * Crear un nuevo comercio junto con usuario, wallet y configuraciones iniciales.
-     *
-     * @param array $data Datos validados del request
-     * @return array ['commerce_id' => Commerce, 'password' => string]
-     * @throws \Throwable
+     * Obtener todos los comercios.
+     */
+    public function getAll()
+    {
+        return $this->commerceRepository->all();
+    }
+
+    /**
+     * Crear un comercio completo (User + Commerce + Wallet + Codes).
      */
     public function create(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            $password = $this->changePassword();
 
-            // 👤 Crear usuario
-            $user = $this->createUser($data, $password);
+            $plainPassword = $this->generatePassword();
 
-            // 🎭 Asignar rol de comercio
+            $user = $this->createUser($data, $plainPassword);
             $user->assignRole('commerce');
 
-            // 🔑 Crear código único
             $uniqueCode = $this->createUniqueCode($user->id);
 
-            // 🏢 Crear comercio
-            $commerce = $this->createCommerceRecord($data, $user->id, $uniqueCode->id);
+            $commerce = $this->commerceRepository->create([
+                'name'           => $data['name'],
+                'phone'          => $data['phone'],
+                'currency_id'    => $data['currency'],
+                'country_id'     => $data['country'],
+                'status'         => 'ACTIVE',
+                'user_id'        => $user->id,
+                'unique_code_id' => $uniqueCode->id,
+            ]);
 
-            // 💰 Wallet
-            $this->createWallet($user->id, $data['currency']);
+            $this->walletRepository->create([
+                'user_id'     => $user->id,
+                'currency_id' => $data['currency'],
+            ]);
 
-            return ['commerce_id' => $commerce, 'password' => $password];
+            return [
+                'commerce' => $commerce,
+                'password' => $plainPassword,
+            ];
         });
     }
 
-    private function changePassword(): string
-    {
-        return bin2hex(random_bytes(4));
-    }
-
-    private function createUser(array $data, string $password): User
-    {
-        return User::create([
-            'username'          => $data['username'],
-            'email'             => $data['email'],
-            'password'          => Hash::make($password),
-            'country_id'        => $data['country'],
-            'time_zone_id'      => $data['time_zone'],
-            'email_verified_at' => Carbon::now(),
-            'referral_code'     => $this->userRepository->generateUniqueReferralCode(),
-            'status'            => 'ACTIVE',
-        ]);
-    }
-
-    private function createUniqueCode(string $userId): UniqueCode
-    {
-        return UniqueCode::create([
-            'uuid_code'  => (string) Str::uuid(),
-            'rke_code'   => $this->generateUniqueRKECode(),
-            'user_id'    => $userId,
-        ]);
-    }
-
-    private function generateUniqueRKECode(): string
-    {
-        do {
-            $rkeCode = 'RKE' . strtoupper(Str::random(8));
-        } while (UniqueCode::existsRKECode($rkeCode));
-
-        return $rkeCode;
-    }
-
-    private function createCommerceRecord(array $data, string $userId, string $uniqueCodeId): Commerce
-    {
-        return Commerce::create([
-            'name'           => $data['name'],
-            'phone'          => $data['phone'],
-            'currency_id'    => $data['currency'],
-            'country_id'     => $data['country'],
-            'status'         => 'ACTIVE',
-            'user_id'        => $userId,
-            'unique_code_id' => $uniqueCodeId,
-        ]);
-    }
-
-    private function createWallet(string $userId, string $currencyId): void
-    {
-        Wallet::create([
-            'currency_id' => $currencyId,
-            'user_id'     => $userId
-        ]);
-    }
-
+    /**
+     * Obtener comercio con relaciones necesarias para edición / detalle.
+     */
     /**
      * Obtener un comercio por ID con sus relaciones
      *
@@ -147,43 +108,168 @@ class CommerceService
         ];
     }
 
-    public function update(array $data, string $id): void
+
+    /**
+     * Actualizar comercio y relaciones.
+     */
+    public function update(string $id, array $data): void
     {
-        DB::transaction(function () use ($data, $id) {
-            $commerce = Commerce::findOrFail($id);
+        DB::transaction(function () use ($id, $data) {
 
-            // Actualizar campos básicos
-            $commerce->update([
-                'name' => $data['name'] ?? $commerce->name,
-                'phone' => $data['phone'] ?? $commerce->phone,
-                'currency_id' => $data['currency'] ?? $commerce->currency_id,
-                'country_id' => $data['country'] ?? $commerce->country_id,
-                // agregá más campos si es necesario
-            ]);
+            $commerce = $this->commerceRepository->findOrFail($id);
 
-            // Actualizar monedas adicionales (relación many-to-many)
-            if (isset($data['other_currencies']) && is_array($data['other_currencies'])) {
+            $this->commerceRepository->update($id, array_filter([
+                'name'        => $data['name']        ?? null,
+                'phone'       => $data['phone']       ?? null,
+                'currency_id' => $data['currency']    ?? null,
+                'country_id'  => $data['country']     ?? null,
+            ]));
+
+            if (isset($data['other_currencies'])) {
                 $commerce->otherCurrencies()->sync($data['other_currencies']);
             }
 
-            // Actualizar juegos permitidos (relación many-to-many)
-            if (isset($data['allowed_games']) && is_array($data['allowed_games'])) {
+            if (isset($data['allowed_games'])) {
                 $commerce->allowedGames()->sync($data['allowed_games']);
             }
 
-            // Si necesitás actualizar datos del usuario asociado, podrías hacerlo así:
             if (isset($data['email']) || isset($data['username'])) {
-                $userData = [];
-                if (isset($data['email'])) {
-                    $userData['email'] = $data['email'];
-                }
-                if (isset($data['username'])) {
-                    $userData['username'] = $data['username'];
-                }
-                if (!empty($userData)) {
-                    $commerce->user()->update($userData);
-                }
+                $commerce->user()->update(array_filter([
+                    'email'    => $data['email']    ?? null,
+                    'username' => $data['username'] ?? null,
+                ]));
             }
         });
+    }
+
+    /**
+     * Eliminación física del comercio (hard delete).
+     */
+    public function delete(string $id): void
+    {
+        DB::transaction(function () use ($id) {
+
+            $commerce = $this->commerceRepository
+                ->findOrFail($id, ['user', 'otherCurrencies', 'allowedGames']);
+
+            if ($commerce->status === 'DELETED') {
+                throw new RuntimeException('El comercio ya está eliminado');
+            }
+
+            $commerce->otherCurrencies()->detach();
+            $commerce->allowedGames()->detach();
+
+            $this->walletRepository->deleteByUserId($commerce->user_id);
+            $this->commerceRepository->delete($commerce->id);
+            $this->userRepository->delete($commerce->user_id);
+        });
+    }
+
+    /**
+     * Cambiar estado del comercio y su usuario asociado.
+     */
+    public function changeStatus(string $hashedId, string $status): void
+    {
+        $commerce = $this->getCommerceByHash($hashedId);
+
+        $this->assertValidStatus($status);
+
+        DB::transaction(function () use ($commerce, $status) {
+            $commerce->update(['status' => $status]);
+            $commerce->user->update(['status' => $status]);
+        });
+    }
+
+    /**
+     * Resetear contraseña del usuario del comercio.
+     */
+    public function resetPassword(string $hashedId): string
+    {
+        $commerce = $this->getCommerceByHash($hashedId);
+
+        $newPassword = Str::random(12);
+
+        $commerce->user->update([
+            'password' => Hash::make($newPassword),
+        ]);
+
+        return $newPassword;
+    }
+
+    /* =====================================================
+     | Helpers internos
+     |=====================================================*/
+
+    /**
+     * Obtener Commerce desde HashId con su usuario.
+     */
+    private function getCommerceByHash(string $hashedId): Commerce
+    {
+        $decoded = Hashids::connection('main')->decode($hashedId);
+
+        if (empty($decoded)) {
+            throw new InvalidArgumentException('ID inválido');
+        }
+
+        return Commerce::with('user')->findOrFail((string) $decoded[0]);
+    }
+
+    /**
+     * Validar estados permitidos.
+     */
+    private function assertValidStatus(string $status): void
+    {
+        if (!in_array($status, ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'], true)) {
+            throw new InvalidArgumentException('Estado inválido');
+        }
+    }
+
+    /**
+     * Generar contraseña inicial.
+     */
+    private function generatePassword(): string
+    {
+        return bin2hex(random_bytes(4));
+    }
+
+    /**
+     * Crear usuario base para el comercio.
+     */
+    private function createUser(array $data, string $plainPassword): User
+    {
+        return $this->userRepository->create([
+            'username'          => $data['username'],
+            'email'             => $data['email'],
+            'password'          => Hash::make($plainPassword),
+            'country_id'        => $data['country'],
+            'time_zone_id'      => $data['time_zone'],
+            'email_verified_at' => Carbon::now(),
+            'referral_code'     => $this->userRepository->generateUniqueReferralCode(),
+            'status'            => 'ACTIVE',
+        ]);
+    }
+
+    /**
+     * Crear código único asociado al usuario.
+     */
+    private function createUniqueCode(string $userId): UniqueCode
+    {
+        return UniqueCode::create([
+            'uuid_code' => (string) Str::uuid(),
+            'rke_code'  => $this->generateUniqueRkeCode(),
+            'user_id'   => $userId,
+        ]);
+    }
+
+    /**
+     * Generar RKE único.
+     */
+    private function generateUniqueRkeCode(): string
+    {
+        do {
+            $code = 'RKE' . strtoupper(Str::random(8));
+        } while (UniqueCode::existsRKECode($code));
+
+        return $code;
     }
 }
