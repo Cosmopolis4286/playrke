@@ -35,69 +35,8 @@ export function initTableFilterBridge(tableId: string, moduleId: string): void {
 
     // Registrar listeners solo una vez por módulo
     if (!initializedModules.has(moduleId)) {
-        setupEventListeners(moduleId, tableId)
         initializedModules.add(moduleId)
     }
-}
-
-/**
- * Configura listeners globales para integración con formCRUD
- * Usa eventos canónicos del sistema
- */
-function setupEventListeners(moduleId: string, tableId: string): void {
-    /**
-     * Helper interno para acciones CRUD
-     */
-    const triggerAction = (action: 'create' | 'edit' | 'delete') => {
-        const btn = document.querySelector<HTMLElement>(
-            `.btn-${moduleId}[data-action="${action}"]`
-        )
-        btn?.click()
-    }
-
-    window.addEventListener('table:create', (e: Event) => {
-        const ev = e as CustomEvent
-        if (ev.detail?.moduleId === moduleId) {
-            triggerAction('create')
-        }
-    })
-
-    window.addEventListener('table:edit', (e: Event) => {
-        const ev = e as CustomEvent
-        if (ev.detail?.moduleId === moduleId) {
-            triggerAction('edit')
-        }
-    })
-
-    window.addEventListener('table:delete', (e: Event) => {
-        const ev = e as CustomEvent
-        if (ev.detail?.moduleId === moduleId) {
-            triggerAction('delete')
-        }
-    })
-
-    /**
-     * Evento canónico de selección de tabla
-     * Vue reacciona, Alpine se mantiene desacoplado
-     */
-    window.addEventListener('table-selection-updated', (e: Event) => {
-        const ev = e as CustomEvent
-        const { tableId: eventTableId, selectedIds } = ev.detail || {}
-
-        if (eventTableId !== tableId) return
-
-        if (import.meta.env.DEV) {
-            console.log('🔁 Selección de tabla actualizada:', {
-                tableId,
-                selectedIds,
-            })
-        }
-
-        /**
-         * Si Vue necesita reaccionar, lo hará vía su propio estado
-         * Alpine ya está sincronizado por su propio componente
-         */
-    })
 }
 
 /**

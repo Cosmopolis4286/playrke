@@ -28,8 +28,8 @@
         table-id="commerce-table"
         search-placeholder="Buscar por nombre, email, teléfono..."
         :extra-buttons="[
-            ['label' => '', 'icon' => 'fas fa-exchange-alt', 'class' => 'btn-secondary', 'show' => false, 'onClick' => 'handleChangeStatus'],
-            ['label' => '', 'icon' => 'fas fa-key', 'class' => 'btn-dark', 'show' => false, 'onClick' => 'handleResetPassword']
+            ['label' => '', 'icon' => 'fas fa-exchange-alt', 'class' => 'btn-secondary', 'show' => false, 'action' => 'changeStatus'],
+            ['label' => '', 'icon' => 'fas fa-key', 'class' => 'btn-dark', 'show' => false, 'action' => 'resetPassword']
         ]"
     />
 

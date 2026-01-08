@@ -13,7 +13,8 @@
         <template #action-buttons="{ selectedIds }">
             <button v-for="(btn, i) in visibleExtraButtons" :key="i"
                 :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
-                :disabled="btn.disabled ? btn.disabled(selectedIds) : false" @click="() => btn.onClick(selectedIds)"
+                :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
+                @click="btn.onClick"
                 type="button">
                 <i v-if="btn.icon" :class="btn.icon"></i>
                 {{ btn.label }}
@@ -52,11 +53,14 @@ interface ExtraButton {
      */
     disabled?: (selectedIds: string[]) => boolean
 
+    /** Acción asociada al botón (usada para asignar handler) */
+    action?: string
+
     /**
      * Función que se ejecuta al hacer click en el botón.
      * Recibe los IDs seleccionados.
      */
-    onClick: (selectedIds: string[]) => void
+    onClick: (selectedIds: string[]) => void;  // Asegúrate que acepta el array
 }
 
 /**
@@ -99,37 +103,82 @@ const parsedFilters = computed(() =>
 )
 
 /**
- * Computed que devuelve solo los botones que deben mostrarse,
- * evaluando la propiedad `show` anticipadamente.
- * Si `show` es booleano false, se muestra solo si hay al menos una selección.
- * Además, se asegura que `onClick` sea una función para evitar errores.
+ * Computed que asigna funciones `onClick` reales a cada botón extra,
+ * basándose en la propiedad `action` enviada desde backend.
+ *
+ * Si no encuentra handler para un botón, asigna función que emite warning.
+ *
+ * @returns {Array<ExtraButton>} Array de botones con función onClick asignada.
  */
-const visibleExtraButtons = computed(() => {
-  return props.extraButtons
-    .filter(btn => {
-      if (!btn) return false
+const extraButtonsWithHandlers = computed(() => {
+    return props.extraButtons.map(btn => {
 
-      if (btn.show === undefined) {
-        return true
-      }
+        let onClickFn = () => {
+            console.warn(`No handler definido para el botón '${btn.label}'`)
+        }
 
-      if (typeof btn.show === 'function') {
-        return btn.show(selectedIds.value)
-      }
+        switch (btn.action) {
+            case 'changeStatus':
+                onClickFn = handleChangeStatus
+                break
+            case 'resetPassword':
+                onClickFn = handleResetPassword
+                break
+        }
 
-      if (btn.show === false) {
-        return selectedIds.value.length > 0
-      }
-
-      return !!btn.show
+        return {
+            ...btn,
+            onClick: onClickFn
+        }
     })
-    .map(btn => ({
-      ...btn,
-      onClick: typeof btn.onClick === 'function' ? btn.onClick : () => {
-        console.warn(`ExtraButton '${btn.label}' no tiene función onClick válida.`)
-      }
-    }))
 })
+
+/**
+ * Computed que filtra y retorna solo los botones que deben mostrarse.
+ * - `show` puede ser booleano o función que recibe IDs seleccionados.
+ * - Si `show` es false, el botón se muestra solo si hay selección activa.
+ *
+ * @returns {Array<ExtraButton>} Botones visibles con función onClick asignada.
+ */
+const visibleExtraButtons = computed(() =>
+    extraButtonsWithHandlers.value.filter(btn => {
+        if (!btn) return false
+
+        if (btn.show === undefined) return true
+
+        if (typeof btn.show === 'function') return btn.show(selectedIds.value)
+
+        if (btn.show === false) return selectedIds.value.length > 0
+
+        return !!btn.show
+    })
+)
+
+/**
+ * Actualiza el estado local cuando cambia la selección
+ * y emite evento global para otros subsistemas.
+ * @param ids IDs seleccionados actualmente
+ */
+const handleSelectionChange = (ids: string[]): void => {
+    selectedIds.value = [...ids]
+
+    if (import.meta.env.DEV) {
+        console.log('🔁 table-selection-updated', {
+            tableId: props.tableId,
+            selectedIds: selectedIds.value
+        })
+    }
+
+    window.dispatchEvent(
+        new CustomEvent('table-selection-updated', {
+            detail: {
+                tableId: props.tableId,
+                selectedIds: [...selectedIds.value],
+                context: props.context
+            }
+        })
+    )
+}
 
 /**
  * Emite evento global para crear un nuevo registro.
@@ -188,28 +237,23 @@ const handleDelete = (): void => {
 }
 
 /**
- * Actualiza el estado local cuando cambia la selección
- * y emite evento global para otros subsistemas.
- * @param ids IDs seleccionados actualmente
+ * Handler para cambiar el status de los registros seleccionados.
+ * @param {string[]} selectedIds IDs seleccionados en la tabla
+ * @returns {void}
  */
-const handleSelectionChange = (ids: string[]): void => {
-    selectedIds.value = [...ids]
-
-    if (import.meta.env.DEV) {
-        console.log('🔁 table-selection-updated', {
-            tableId: props.tableId,
-            selectedIds: selectedIds.value
-        })
-    }
-
-    window.dispatchEvent(
-        new CustomEvent('table-selection-updated', {
-            detail: {
-                tableId: props.tableId,
-                selectedIds: [...selectedIds.value],
-                context: props.context
-            }
-        })
-    )
+const handleChangeStatus = (): void => {
+    console.log('Cambiar status para IDs:', selectedIds.value)
+    // Aquí la lógica real para cambiar status...
 }
+
+/**
+ * Handler para resetear la contraseña de los registros seleccionados.
+ * @param {string[]} selectedIds IDs seleccionados en la tabla
+ * @returns {void}
+ */
+const handleResetPassword = (): void => {
+    console.log('Resetear contraseña para IDs:', selectedIds)
+    // Aquí la lógica real para resetear contraseña...
+}
+
 </script>
