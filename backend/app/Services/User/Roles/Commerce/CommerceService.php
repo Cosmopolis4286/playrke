@@ -2,6 +2,7 @@
 
 namespace App\Services\User\Roles\Commerce;
 
+use App\DTOs\User\Roles\CommerceDTO;
 use App\Models\Users\User;
 use App\Models\Users\Roles\Commerce\Commerce;
 use App\Models\Users\Shared\UniqueCode;
@@ -34,31 +35,38 @@ class CommerceService
 
     /**
      * Crear un comercio completo (User + Commerce + Wallet + Codes).
+     *
+     * @param CommerceDTO $dto
+     * @return array{commerce:\App\Models\Users\Roles\Commerce\Commerce,password:string}
      */
-    public function create(array $data): array
+    public function create(CommerceDTO $dto): array
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($dto) {
 
-            $plainPassword = $this->generatePassword();
+            $plainPassword = bin2hex(random_bytes(4));
 
-            $user = $this->createUser($data, $plainPassword);
+            // 1. Crear usuario
+            $user = $this->createUserFromDTO($dto, $plainPassword);
             $user->assignRole('commerce');
 
+            // 2. Crear código único
             $uniqueCode = $this->createUniqueCode($user->id);
 
+            // 3. Crear comercio
             $commerce = $this->commerceRepository->create([
-                'name'           => $data['name'],
-                'phone'          => $data['phone'],
-                'currency_id'    => $data['currency'],
-                'country_id'     => $data['country'],
+                'name'           => $dto->name,
+                'phone'          => $dto->phone,
+                'currency_id'    => $dto->currency,
+                'country_id'     => $dto->country,
                 'status'         => 'ACTIVE',
                 'user_id'        => $user->id,
                 'unique_code_id' => $uniqueCode->id,
             ]);
 
+            // 4. Crear wallet principal
             $this->walletRepository->create([
                 'user_id'     => $user->id,
-                'currency_id' => $data['currency'],
+                'currency_id' => $dto->currency,
             ]);
 
             return [
@@ -69,74 +77,68 @@ class CommerceService
     }
 
     /**
-     * Obtener comercio con relaciones necesarias para edición / detalle.
+     * Obtener un comercio con sus relaciones.
      */
-    /**
-     * Obtener un comercio por ID con sus relaciones
-     *
-     * @param string $id
-     * @return array
-     */
-    public function getById(string $id): array
+    public function getByCommerce(Commerce $commerce): array
     {
-        $commerce = Commerce::select([
-            'id',
-            'name',
-            'commission',
-            'phone',
-            'country_id',
-            'currency_id',
-            'user_id',
-            'unique_code_id',
-            'status',
-            'created_at',
-            'updated_at'
-        ])->with([
+        $commerce->load([
             'country:id,name',
             'user:id,username,email,time_zone_id',
             'user.timeZone:id,name',
             'currency:id,symbol,description',
             'otherCurrencies:id,symbol,description',
-            'allowedGames:id,name'
-        ])->findOrFail($id);
+            'allowedGames:id,name',
+        ]);
 
         return [
-            'commerce' => $commerce,
-            'user' => $commerce->user,
-            'other_currencies' => $commerce->otherCurrencies->pluck('id')->toArray(),
-            'allowed_games' => $commerce->allowedGames->pluck('id')->toArray(),
+            'commerce'         => $commerce,
+            'user'             => $commerce->user,
+            'other_currencies' => $commerce->otherCurrencies->pluck('id')->all(),
+            'allowed_games'    => $commerce->allowedGames->pluck('id')->all(),
         ];
     }
 
-
     /**
-     * Actualizar comercio y relaciones.
+     * Actualizar comercio y sus relaciones.
      */
-    public function update(string $id, array $data): void
+    public function update(Commerce $commerce, CommerceDTO $dto): void
     {
-        DB::transaction(function () use ($id, $data) {
+        DB::transaction(function () use ($commerce, $dto) {
 
-            $commerce = $this->commerceRepository->findOrFail($id);
+            // -----------------------------
+            // Actualizar datos del comercio
+            // -----------------------------
+            $this->commerceRepository->update(
+                $commerce->id,
+                array_filter([
+                    'name'        => $dto->name,
+                    'phone'       => $dto->phone,
+                    'currency_id' => $dto->currency,
+                    'country_id'  => $dto->country,
+                ])
+            );
 
-            $this->commerceRepository->update($id, array_filter([
-                'name'        => $data['name']        ?? null,
-                'phone'       => $data['phone']       ?? null,
-                'currency_id' => $data['currency']    ?? null,
-                'country_id'  => $data['country']     ?? null,
-            ]));
-
-            if (isset($data['other_currencies'])) {
-                $commerce->otherCurrencies()->sync($data['other_currencies']);
+            // -----------------------------
+            // Sincronizar monedas secundarias
+            // -----------------------------
+            if ($dto->otherCurrencies !== null) {
+                $commerce->otherCurrencies()->sync($dto->otherCurrencies);
             }
 
-            if (isset($data['allowed_games'])) {
-                $commerce->allowedGames()->sync($data['allowed_games']);
+            // -----------------------------
+            // Sincronizar juegos permitidos
+            // -----------------------------
+            if ($dto->allowedGames !== null) {
+                $commerce->allowedGames()->sync($dto->allowedGames);
             }
 
-            if (isset($data['email']) || isset($data['username'])) {
+            // -----------------------------
+            // Actualizar usuario asociado
+            // -----------------------------
+            if ($dto->email !== null || $dto->username !== null) {
                 $commerce->user()->update(array_filter([
-                    'email'    => $data['email']    ?? null,
-                    'username' => $data['username'] ?? null,
+                    'email'    => $dto->email,
+                    'username' => $dto->username,
                 ]));
             }
         });
@@ -145,36 +147,42 @@ class CommerceService
     /**
      * Eliminación física del comercio (hard delete).
      */
-    public function delete(string $id): void
+    public function delete(Commerce $commerce): void
     {
-        DB::transaction(function () use ($id) {
+        DB::transaction(function () use ($commerce) {
 
-            $commerce = $this->commerceRepository
-                ->findOrFail($id, ['user', 'otherCurrencies', 'allowedGames']);
+            // Cargar relaciones necesarias solo una vez
+            $commerce->loadMissing(['user', 'otherCurrencies', 'allowedGames']);
 
             if ($commerce->status === 'DELETED') {
                 throw new RuntimeException('El comercio ya está eliminado');
             }
 
+            // Detach relaciones many-to-many
             $commerce->otherCurrencies()->detach();
             $commerce->allowedGames()->detach();
 
+            // Eliminar dependencias
             $this->walletRepository->deleteByUserId($commerce->user_id);
-            $this->commerceRepository->delete($commerce->id);
-            $this->userRepository->delete($commerce->user_id);
+
+            // Eliminación física
+            $this->commerceRepository->delete($commerce);
+            $this->userRepository->delete($commerce->user);
         });
     }
 
     /**
      * Cambiar estado del comercio y su usuario asociado.
      */
-    public function changeStatus(string $hashedId, string $status): void
+    public function changeStatus(Commerce $commerce, string $status): void
     {
-        $commerce = $this->getCommerceByHash($hashedId);
-
         $this->assertValidStatus($status);
 
         DB::transaction(function () use ($commerce, $status) {
+
+            // Evita queries innecesarias
+            $commerce->loadMissing('user');
+
             $commerce->update(['status' => $status]);
             $commerce->user->update(['status' => $status]);
         });
@@ -183,10 +191,8 @@ class CommerceService
     /**
      * Resetear contraseña del usuario del comercio.
      */
-    public function resetPassword(string $hashedId): string
+    public function resetPassword(Commerce $commerce): string
     {
-        $commerce = $this->getCommerceByHash($hashedId);
-
         $newPassword = Str::random(12);
 
         $commerce->user->update([
@@ -201,20 +207,6 @@ class CommerceService
      |=====================================================*/
 
     /**
-     * Obtener Commerce desde HashId con su usuario.
-     */
-    private function getCommerceByHash(string $hashedId): Commerce
-    {
-        $decoded = Hashids::connection('main')->decode($hashedId);
-
-        if (empty($decoded)) {
-            throw new InvalidArgumentException('ID inválido');
-        }
-
-        return Commerce::with('user')->findOrFail((string) $decoded[0]);
-    }
-
-    /**
      * Validar estados permitidos.
      */
     private function assertValidStatus(string $status): void
@@ -225,25 +217,17 @@ class CommerceService
     }
 
     /**
-     * Generar contraseña inicial.
+     * Crear usuario a partir de DTO.
      */
-    private function generatePassword(): string
-    {
-        return bin2hex(random_bytes(4));
-    }
-
-    /**
-     * Crear usuario base para el comercio.
-     */
-    private function createUser(array $data, string $plainPassword): User
+    private function createUserFromDTO(CommerceDTO $dto, string $plainPassword): User
     {
         return $this->userRepository->create([
-            'username'          => $data['username'],
-            'email'             => $data['email'],
+            'username'          => $dto->username,
+            'email'             => $dto->email,
             'password'          => Hash::make($plainPassword),
-            'country_id'        => $data['country'],
-            'time_zone_id'      => $data['time_zone'],
-            'email_verified_at' => Carbon::now(),
+            'country_id'        => $dto->country,
+            'time_zone_id'      => $dto->timeZone,
+            'email_verified_at' => now(),
             'referral_code'     => $this->userRepository->generateUniqueReferralCode(),
             'status'            => 'ACTIVE',
         ]);

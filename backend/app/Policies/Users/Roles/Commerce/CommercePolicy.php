@@ -11,7 +11,7 @@ use App\Policies\Users\Roles\BaseRolePolicy;
  *
  * Reglas:
  * - Solo usuarios con rol admin pueden operar
- * - Comercios DELETED o BLOCKED tienen restricciones
+ * - Comercios en estados DELETED o BLOCKED no pueden mutar
  * - Compatible con authorizeResource()
  */
 class CommercePolicy extends BaseRolePolicy
@@ -45,7 +45,8 @@ class CommercePolicy extends BaseRolePolicy
      */
     public function changeStatus(User $user, Commerce $commerce): bool
     {
-        return $this->hasAccess($user);
+        return $this->hasAccess($user)
+            && $this->canOperate($commerce);
     }
 
     /**
@@ -59,6 +60,7 @@ class CommercePolicy extends BaseRolePolicy
      */
     public function changePassword(User $user, Commerce $commerce): bool
     {
-        return $this->hasAccess($user);
+        return $this->hasAccess($user)
+            && $this->canOperate($commerce);
     }
 }

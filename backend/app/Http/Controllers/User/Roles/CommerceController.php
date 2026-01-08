@@ -8,9 +8,8 @@ use App\Models\Users\Roles\Commerce\Commerce;
 use App\Services\User\Roles\Commerce\CommerceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Vinkla\Hashids\Facades\Hashids;
 
 class CommerceController extends Controller
 {
@@ -39,9 +38,7 @@ class CommerceController extends Controller
     {
         return $this->handleServiceJson(function () use ($request) {
 
-            $result = $this->service->create(
-                $request->toDTO()->toArray()
-            );
+            $result = $this->service->create($request->toDTO());
 
             return [
                 'message'  => '✅ Registro exitoso',
@@ -52,37 +49,45 @@ class CommerceController extends Controller
 
     /**
      * Actualizar un comercio
+     * @param CommerceRequest $request
+     * @param Commerce $commerce
+     * @return JsonResponse
      */
     public function update(CommerceRequest $request, Commerce $commerce): JsonResponse
     {
-        return $this->handleServiceJson(function () use ($request, $commerce) {
+        return $this->handleServiceJson(
+            function () use ($request, $commerce) {
 
-            $this->service->update(
-                $commerce->id,
-                $request->toDTO()->toArray()
-            );
+                $this->service->update(
+                    $commerce,
+                    $request->toDTO()
+                );
 
-            return [
-                'message' => '✅ Actualización exitosa',
-            ];
-        }, 'Hubo un error al editar el comercio.');
+                return [
+                    'message' => '✅ Actualización exitosa',
+                ];
+            },
+            'Hubo un error al editar el comercio.'
+        );
     }
 
     /**
      * Eliminar comercio (hard delete)
      */
-    public function destroy(string $id): RedirectResponse
+    public function destroy(string $id): JsonResponse
     {
-        return $this->handleService(function () use ($id) {
+        return $this->handleServiceJson(
+            function () use ($id) {
+                $this->service->delete(
+                    $this->decodeHashId($id)
+                );
 
-            $this->service->delete(
-                $this->decodeHashId($id)
-            );
-
-            Session::flash('message', '✅ Comercio eliminado correctamente');
-
-            return redirect()->back();
-        }, 'No se pudo eliminar el comercio.');
+                return [
+                    'message' => '✅ Comercio eliminado correctamente',
+                ];
+            },
+            'No se pudo eliminar el comercio.'
+        );
     }
 
     /**
@@ -92,46 +97,57 @@ class CommerceController extends Controller
     {
         return $this->handleServiceJson(
             fn() => [
-                'data' => $this->service->getById($commerce->id),
+                'data' => $this->service->getByCommerce($commerce),
             ],
             'No se pudo cargar la información del comercio.'
         );
     }
 
     /**
-     * Cambiar estado de comercio
+     * Cambiar el estado de un comercio.
+     *
+     * @param Commerce $commerce
+     * @param Request $request
+     *
+     * @return JsonResponse
      */
-    public function changeStatus(string $id): JsonResponse
+    public function changeStatus(Commerce $commerce, Request $request): JsonResponse
     {
-        return $this->handleServiceJson(function () use ($id) {
+        return $this->handleServiceJson(
+            function () use ($commerce, $request) {
+                $this->service->changeStatus(
+                    $commerce,
+                    $request->string('status')->value()
+                );
 
-            $this->service->changeStatus(
-                $this->decodeHashId($id),
-                request()->string('status')->value()
-            );
-
-            return [
-                'message' => '✅ Estado actualizado correctamente',
-            ];
-        }, 'No se pudo cambiar el estado del comercio.');
+                return [
+                    'message' => '✅ Estado actualizado correctamente',
+                ];
+            },
+            'No se pudo cambiar el estado del comercio.'
+        );
     }
 
     /**
-     * Generar nueva contraseña para comercio
+     * Generar una nueva contraseña para un comercio.
+     *
+     * @param Commerce $commerce Modelo resuelto vía Route Model Binding (Hashids)
+     *
+     * @return JsonResponse
      */
-    public function changePassword(string $id): JsonResponse
+    public function changePassword(Commerce $commerce): JsonResponse
     {
-        return $this->handleServiceJson(function () use ($id) {
+        return $this->handleServiceJson(
+            function () use ($commerce) {
+                $password = $this->service->resetPassword($commerce);
 
-            $password = $this->service->resetPassword(
-                $this->decodeHashId($id)
-            );
-
-            return [
-                'message'  => '✅ Contraseña generada exitosamente',
-                'password' => $password,
-            ];
-        }, 'No se pudo cambiar la contraseña del comercio.');
+                return [
+                    'message'  => '✅ Contraseña generada exitosamente',
+                    'password' => $password,
+                ];
+            },
+            'No se pudo cambiar la contraseña del comercio.'
+        );
     }
 
     /**
@@ -146,22 +162,5 @@ class CommerceController extends Controller
                 'moduleFile' => 'modules/users/roles/admin/commerce/form/commerceForm.ts',
             ],
         ]);
-    }
-
-    /**
-     * ==========================
-     * Helpers privados
-     * ==========================
-     */
-
-    private function decodeHashId(string $hashedId): string
-    {
-        $decoded = Hashids::connection('main')->decode($hashedId);
-
-        if (empty($decoded)) {
-            abort(400, 'ID inválido');
-        }
-
-        return (string) $decoded[0];
     }
 }

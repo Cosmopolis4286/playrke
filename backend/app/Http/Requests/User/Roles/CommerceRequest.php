@@ -10,8 +10,8 @@ use App\DTOs\User\Roles\CommerceDTO;
  * Request para validar datos de una Comercializadora (Commerce).
  *
  * - Se usa tanto para creación como actualización.
- * - Determina dinámicamente las reglas según la acción.
- * - Convierte los datos validados en un DTO para los Services.
+ * - Aplica reglas dinámicas según el contexto.
+ * - Convierte los datos validados en un DTO.
  */
 class CommerceRequest extends FormRequest
 {
@@ -34,27 +34,27 @@ class CommerceRequest extends FormRequest
     public function rules(): array
     {
         $commerceId = $this->getCommerceId();
+        $isUpdate   = $this->isUpdate();
 
         $rules = [
-            'country' => ['required', 'string', 'exists:countries,id'],
-            'time_zone' => ['required', 'string', 'exists:time_zones,id'],
-            'currency' => ['required', 'string', 'exists:currencies,id'],
-            'phone' => ['required', 'string', 'max:20'],
-            'name' => ['required', 'string'],
+            'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
+            'currency'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
+            'time_zone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
+            'phone'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20'],
+            'name'           => [$isUpdate ? 'sometimes' : 'required', 'string'],
+            'other_currencies'   => ['sometimes', 'array'],
             'other_currencies.*' => ['string', 'exists:currencies,id'],
         ];
 
-        // Ajustar regla unique para phone con exclusión en update
-        if ($commerceId) {
-            $rules['phone'][] = 'unique:commerces,phone,' . $commerceId . ',id';
-        } else {
-            $rules['phone'][] = 'unique:commerces,phone';
-        }
+        // Regla unique para phone
+        $rules['phone'][] = $commerceId
+            ? 'unique:commerces,phone,' . $commerceId
+            : 'unique:commerces,phone';
 
-        // Solo para creación (no update)
-        if (!$this->isUpdate()) {
+        // Solo creación
+        if (!$isUpdate) {
             $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username'];
-            $rules['email'] = ['required', 'string', 'email', 'max:40', 'unique:users,email'];
+            $rules['email']    = ['required', 'email', 'max:40', 'unique:users,email'];
         }
 
         return $rules;
@@ -69,20 +69,18 @@ class CommerceRequest extends FormRequest
     {
         return [
             'username.required' => 'El nombre de usuario es obligatorio.',
-            'username.unique' => 'El nombre de usuario no está disponible.',
-            'email.required' => 'El correo electrónico es obligatorio.',
-            'email.email' => 'El correo electrónico debe ser válido.',
-            'email.unique' => 'Este correo ya está registrado.',
-            'phone.required' => 'El teléfono es obligatorio.',
-            'phone.unique' => 'El número ' . $this->phone . ' ya está registrado.',
-            'name.required' => 'El nombre del comercio es obligatorio.',
-            'country.required' => 'El país es obligatorio.',
-            'country.exists' => 'El país seleccionado no es válido.',
-            'time_zone.required' => 'La zona horaria es obligatoria.',
-            'time_zone.exists' => 'La zona horaria seleccionada no existe.',
+            'username.unique'   => 'El nombre de usuario no está disponible.',
+            'email.required'    => 'El correo electrónico es obligatorio.',
+            'email.email'       => 'El correo electrónico debe ser válido.',
+            'email.unique'      => 'Este correo ya está registrado.',
+            'phone.required'    => 'El teléfono es obligatorio.',
+            'phone.unique'      => 'El número ya está registrado.',
+            'name.required'     => 'El nombre del comercio es obligatorio.',
+            'country.required'  => 'El país es obligatorio.',
             'currency.required' => 'La moneda principal es obligatoria.',
-            'currency.exists' => 'La moneda seleccionada no es válida. Por favor, selecciona una moneda de la lista.',
-            'other_currencies.*.exists' => 'Una o más de las monedas adicionales seleccionadas no son válidas.',
+            'time_zone.required' => 'La zona horaria es obligatoria.',
+            'other_currencies.*.exists' =>
+            'Una o más monedas adicionales no son válidas.',
         ];
     }
 
@@ -116,8 +114,6 @@ class CommerceRequest extends FormRequest
      */
     private function getCommerceId(): ?int
     {
-        /** @var \App\Models\Users\Roles\Commerce\Commerce|null $commerce */
-        $commerce = $this->route('commerce');
-        return $commerce ? $commerce->id : null;
+        return $this->route('commerce')?->id;
     }
 }

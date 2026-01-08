@@ -4,7 +4,6 @@ namespace App\Policies\Users\Roles;
 
 use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Policy base para entidades administradas por roles.
@@ -41,6 +40,9 @@ abstract class BaseRolePolicy
 
     /**
      * Valida acceso base por rol.
+     *
+     * @param User $user
+     * @return bool
      */
     protected function hasAccess(User $user): bool
     {
@@ -48,12 +50,19 @@ abstract class BaseRolePolicy
     }
 
     /**
-     * Determina si el modelo puede ser modificado
+     * Determina si el modelo puede ser operado
+     * (update, delete, acciones de dominio)
      * según su estado actual.
+     *
+     * Si el modelo no posee estado, se considera operable.
+     *
+     * @param Model $model
+     * @return bool
      */
-    protected function canMutate(Model $model): bool
+    protected function canOperate(Model $model): bool
     {
-        if (!property_exists($model, 'status')) {
+        // Modelos sin estado no tienen restricciones
+        if (!isset($model->status)) {
             return true;
         }
 
@@ -93,13 +102,8 @@ abstract class BaseRolePolicy
      */
     public function update(User $user, Model $model): bool
     {
-          Log::info('Policy update check', [
-        'user_id' => $user->id,
-        'user_roles' => $user->roles->pluck('name')->toArray(),
-        'commerce_status' => $model->status,
-    ]);
         return $this->hasAccess($user)
-            && $this->canMutate($model);
+            && $this->canOperate($model);
     }
 
     /**
