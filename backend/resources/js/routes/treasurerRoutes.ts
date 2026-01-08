@@ -12,7 +12,7 @@ export const treasurerRoutes = {
     "show": "/treasurer/{id}",
     "update": "/treasurer/{id}",
     "destroy": "/treasurer/{id}",
-    "changePassword": "/treasurer/{id}/password",
+    "resetPassword": "/treasurer/{id}/password",
     "changeStatus": "/treasurer/{id}/status",
     "payment-details": "/treasurer/payment-details/{treasurer}/{currency}"
 } as const;

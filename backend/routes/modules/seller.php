@@ -18,7 +18,7 @@ role_protected_routes(['commerce_id'], 'seller', SellerController::class, [
     'show' => ['method' => 'get', 'uri' => '{id}'],
     'update' => ['method' => 'put', 'uri' => '{id}'],
     'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-    'changePassword' => ['method' => 'put', 'uri' => '{id}/password'],
+    'resetPassword' => ['method' => 'put', 'uri' => '{id}/password'],
     'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
 ]);
 

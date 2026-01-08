@@ -12,7 +12,7 @@ export const sellerRoutes = {
     "show": "/seller/{id}",
     "update": "/seller/{id}",
     "destroy": "/seller/{id}",
-    "changePassword": "/seller/{id}/password",
+    "resetPassword": "/seller/{id}/password",
     "changeStatus": "/seller/{id}/status",
     "carton-generate": "/seller/bingo/carton/generate",
     "payment-status": "/seller/bingo/carton/payment/status",

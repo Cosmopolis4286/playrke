@@ -11,17 +11,17 @@ export async function initChangePassw(): Promise<void> {
         const target = event.target as HTMLElement;
 
         // Abrir modal de cambio de contraseña
-        if (target?.id === 'change-password') {
-            const modal = document.getElementById('modal-change-password');
+        if (target?.id === 'reset-password') {
+            const modal = document.getElementById('modal-reset-password');
             if (modal) $(modal).modal('show');
             return;
         }
 
         // Confirmar cambio de contraseña desde el modal
         if (target?.id === 'btn-confirm') {
-            const modal = target.closest('#modal-change-password');
+            const modal = target.closest('#modal-reset-password');
             if (modal) {
-                submitForm('change-password-form', ['current_password', 'new_password', 'new_password_confirmation']);
+                submitForm('reset-password-form', ['current_password', 'new_password', 'new_password_confirmation']);
                 return;
             }
         }

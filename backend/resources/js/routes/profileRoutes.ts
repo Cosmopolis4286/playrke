@@ -10,7 +10,7 @@ import { route as baseRoute } from './helper.js';
 export const profileRoutes = {
     "index": "/profile",
     "update": "/profile/{id}",
-    "changePassword": "/profile/{id}/password"
+    "resetPassword": "/profile/{id}/password"
 } as const;
 
 /**

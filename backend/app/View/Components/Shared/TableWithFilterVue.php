@@ -67,6 +67,20 @@ class TableWithFilterVue extends Component
     public array $filters;
 
     /**
+     * Botones adicionales para la interfaz, enviados al frontend como configuración.
+     *
+     * Cada botón es un array con keys como:
+     * - label: string (texto visible)
+     * - icon?: string (clases para icono, ej: 'fas fa-info-circle')
+     * - class?: string (clases CSS para el botón, ej: 'btn-info')
+     *
+     * No contiene lógica, solo configuración para renderizado en Vue.
+     *
+     * @var array<int, array<string, string>>
+     */
+    public array $extraButtons;
+
+    /**
      * Constructor.
      *
      * @param string           $title
@@ -81,6 +95,7 @@ class TableWithFilterVue extends Component
      * @param bool             $showCreateButton
      * @param bool             $showEditButton
      * @param bool             $showDeleteButton
+     * @param array            $extraButtons
      */
     public function __construct(
         string $title = '',
@@ -94,7 +109,8 @@ class TableWithFilterVue extends Component
         string $searchPlaceholder = 'Buscar en la tabla...',
         bool $showCreateButton = true,
         bool $showEditButton = true,
-        bool $showDeleteButton = true
+        bool $showDeleteButton = true,
+        array $extraButtons = []
     ) {
         $rows ??= collect();
 
@@ -109,6 +125,7 @@ class TableWithFilterVue extends Component
         $this->showCreateButton = $showCreateButton;
         $this->showEditButton = $showEditButton;
         $this->showDeleteButton = $showDeleteButton;
+        $this->extraButtons = $extraButtons;
 
         /**
          * Hashes alineados por índice.
@@ -122,6 +139,13 @@ class TableWithFilterVue extends Component
 
     /**
      * Validación estructural del componente.
+     *
+     * @param array $columns
+     * @param array $rowKeys
+     * @param string $tableId
+     * @return void
+     *
+     * @throws \InvalidArgumentException
      */
     protected function validateProps(
         array $columns,
@@ -159,6 +183,11 @@ class TableWithFilterVue extends Component
      * - ID siempre hasheado
      * - Normaliza claves nested (User.email → User_email)
      * - No existe fallback a ID real
+     *
+     * @param Collection $rows
+     * @param array $rowKeys
+     * @param array $hashedIds
+     * @return array<int, array<string, mixed>>
      */
     protected function buildVueRows(
         Collection $rows,
@@ -187,6 +216,10 @@ class TableWithFilterVue extends Component
 
     /**
      * Construye la definición de columnas para Vue.
+     *
+     * @param array $columns
+     * @param array $rowKeys
+     * @return array<int, array{key:string,label:string,html:bool}>
      */
     protected function buildVueColumns(array $columns, array $rowKeys): array
     {
@@ -201,6 +234,8 @@ class TableWithFilterVue extends Component
 
     /**
      * Renderiza la vista Blade asociada.
+     *
+     * @return \Illuminate\Contracts\View\View
      */
     public function render()
     {

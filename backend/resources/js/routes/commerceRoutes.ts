@@ -31,7 +31,7 @@ export const commerceRoutes = {
     show: '/admin/commerce/{id}',
     update: '/admin/commerce/{id}',
     destroy: '/admin/commerce/{id}',
-    changePassword: '/admin/commerce/{id}/password',
+    resetPassword: '/admin/commerce/{id}/password',
     changeStatus: '/admin/commerce/{id}/status',
     rewards: '/commerce/rewards',
     sellers: '/commerce/sellers',
@@ -46,7 +46,7 @@ export const commerceAdminRoutes = {
     show: commerceRoutes.show,
     update: commerceRoutes.update,
     destroy: commerceRoutes.destroy,
-    changePassword: commerceRoutes.changePassword,
+    resetPassword: commerceRoutes.resetPassword,
     changeStatus: commerceRoutes.changeStatus,
 } satisfies Pick<CommerceRoutes, CommerceAdminRouteName>;
 

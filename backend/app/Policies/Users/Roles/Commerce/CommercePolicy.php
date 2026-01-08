@@ -58,7 +58,7 @@ class CommercePolicy extends BaseRolePolicy
      * @param Commerce $commerce
      * @return bool
      */
-    public function changePassword(User $user, Commerce $commerce): bool
+    public function resetPassword(User $user, Commerce $commerce): bool
     {
         return $this->hasAccess($user)
             && $this->canOperate($commerce);

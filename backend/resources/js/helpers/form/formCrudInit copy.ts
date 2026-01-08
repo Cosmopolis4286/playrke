@@ -142,8 +142,8 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
             ...getStatusChangeMessages(status, entityName),
             method: 'PUT',
         },
-        'change-password': {
-            routeName: 'changePassword',
+        'reset-password': {
+            routeName: 'resetPassword',
             text: `¿Deseas generar una nueva contraseña para este ${entityName}?`,
             icon: 'warning',
             confirmButtonText: 'Sí, generar',

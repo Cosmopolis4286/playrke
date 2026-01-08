@@ -310,7 +310,7 @@ class TreasurerController extends Controller
         return redirect()->back()->with('type', 'success');
     }
 
-    public function changePassword($id)
+    public function resetPassword($id)
     {
         $res = $this->handleChangePassword('Treasurer', $id);
 

@@ -105,7 +105,7 @@ export interface ApiResponse<T = any> {
  * Servicio para gestión de usuarios
  */
 export class UserService {
-  
+
   /**
    * Obtener mi perfil completo
    */
@@ -135,7 +135,7 @@ export class UserService {
   /**
    * Cambiar contraseña
    */
-  static async changePassword(passwordData: ChangePasswordRequest): Promise<ApiResponse> {
+  static async resetPassword(passwordData: ChangePasswordRequest): Promise<ApiResponse> {
     try {
       const response: AxiosResponse<ApiResponse> = await api.put('/users/me/password', passwordData);
       return response.data;
@@ -220,7 +220,7 @@ export class UserService {
     if (error.response?.data) {
       return error.response.data;
     }
-    
+
     return {
       success: false,
       message: 'Error de conexión con el servidor',

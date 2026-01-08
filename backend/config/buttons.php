@@ -18,7 +18,7 @@ $defaultExtraButtons = [
         'title' => 'Cambiar status',
     ],
     [
-        'action' => 'change-password',
+        'action' => 'reset-password',
         'color' => 'bg-navy',
         'disabled' => true,
         'icon' => 'fa-solid fa-lock',

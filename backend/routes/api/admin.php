@@ -34,7 +34,7 @@ role_protected_routes(['admin'], 'customer', CustomerController::class, [
     'show' => ['method' => 'get', 'uri' => '{id}'],
     'update' => ['method' => 'put', 'uri' => '{id}'],
     'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-    'changePassword' => ['method' => 'put', 'uri' => '{id}/password'],
+    'resetPassword' => ['method' => 'put', 'uri' => '{id}/password'],
     'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
 ]);
 
@@ -46,7 +46,7 @@ role_protected_routes(['admin'], 'treasurer', TreasurerController::class, [
     'show' => ['method' => 'get', 'uri' => '{id}'],
     'update' => ['method' => 'put', 'uri' => '{id}'],
     'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-    'changePassword' => ['method' => 'put', 'uri' => '{id}/password'],
+    'resetPassword' => ['method' => 'put', 'uri' => '{id}/password'],
     'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
 ]);
 

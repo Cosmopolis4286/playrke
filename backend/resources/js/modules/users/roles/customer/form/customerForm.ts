@@ -36,7 +36,7 @@ export const otherCasesMap: Record<string, {
         method: 'PUT',
     },
     '5': {
-        routeName: 'changePassword',
+        routeName: 'resetPassword',
         text: 'Generar nueva contraseña a este cliente',
         icon: 'info',
         confirmButtonText: 'Sí, generar',

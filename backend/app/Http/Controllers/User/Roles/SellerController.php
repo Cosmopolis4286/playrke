@@ -346,7 +346,7 @@ class SellerController extends Controller
         return redirect()->back()->with('type', 'success');
     }
 
-    public function changePassword($id)
+    public function resetPassword($id)
     {
         $newPassw = $this->valEncrypt();
         $seller = Seller::findOrFail(decrypt($id));

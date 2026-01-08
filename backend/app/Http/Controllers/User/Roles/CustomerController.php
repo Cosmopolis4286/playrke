@@ -198,7 +198,7 @@ class CustomerController extends Controller
      * @param string $id ID hasheado con Hashids
      * @return \Illuminate\Http\JsonResponse Respuesta JSON con la nueva contraseña
      */
-    public function changePassword(string $id): \Illuminate\Http\JsonResponse
+    public function resetPassword(string $id): \Illuminate\Http\JsonResponse
     {
         try {
             // Decodificar el ID usando Hashids

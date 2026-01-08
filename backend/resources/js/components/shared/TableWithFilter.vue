@@ -32,7 +32,7 @@
                     class="btn btn-sm btn-primary ml-2"
                     @click="$emit('edit', selectedIds[0])"
                 >
-                    <i class="fas fa-edit"></i> Editar
+                    <i class="fas fa-edit"></i>
                 </button>
 
                 <button
@@ -40,7 +40,7 @@
                     class="btn btn-sm btn-danger ml-2"
                     @click="$emit('delete', selectedIds)"
                 >
-                    <i class="fas fa-trash"></i> Eliminar{{ selectedIds.length > 1 ? ` (${selectedIds.length})` : '' }}
+                    <i class="fas fa-trash"></i> {{ selectedIds.length > 1 ? ` (${selectedIds.length})` : '' }}
                 </button>
 
                 <!-- Slot para botones personalizados -->

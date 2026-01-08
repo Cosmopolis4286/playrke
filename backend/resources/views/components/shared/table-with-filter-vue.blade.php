@@ -1,3 +1,4 @@
+{{-- // backend/resources/views/components/shared/table-with-filter-vue.blade.php --}}
 <div id="table-{{ $tableId }}-vue-wrapper">
     <table-with-filter-bridge table-id="{{ $tableId }}" title="{{ $title }}"
         :columns='@json($vueColumns)' :rows='@json($vueRows)'
@@ -5,7 +6,7 @@
         :show-create-button="{{ $showCreateButton ? 'true' : 'false' }}"
         :show-edit-button="{{ $showEditButton ? 'true' : 'false' }}"
         :show-delete-button="{{ $showDeleteButton ? 'true' : 'false' }}" module-id="{{ $moduleId }}"
-        context="{{ $context }}">
+        context="{{ $context }}" :extra-buttons='@json($extraButtons)'>
         {{ $slot }}
     </table-with-filter-bridge>
 </div>

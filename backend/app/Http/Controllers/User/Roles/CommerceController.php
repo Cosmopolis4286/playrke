@@ -135,7 +135,7 @@ class CommerceController extends Controller
      *
      * @return JsonResponse
      */
-    public function changePassword(Commerce $commerce): JsonResponse
+    public function resetPassword(Commerce $commerce): JsonResponse
     {
         return $this->handleServiceJson(
             function () use ($commerce) {

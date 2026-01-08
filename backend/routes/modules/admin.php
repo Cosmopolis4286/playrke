@@ -105,10 +105,10 @@ Route::middleware('auth')->group(function () {
             'uri'    => '{id}',
             'action' => 'destroy',
         ],
-        'changePassword' => [
+        'resetPassword' => [
             'method' => 'put',
             'uri'    => '{id}/password',
-            'action' => 'changePassword',
+            'action' => 'resetPassword',
         ],
         'changeStatus' => [
             'method' => 'put',

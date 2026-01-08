@@ -12,7 +12,7 @@ export const customerRoutes = {
     "show": "/customer/{id}",
     "update": "/customer/{id}",
     "destroy": "/customer/{id}",
-    "changePassword": "/customer/{id}/password",
+    "resetPassword": "/customer/{id}/password",
     "changeStatus": "/customer/{id}/status"
 } as const;
 

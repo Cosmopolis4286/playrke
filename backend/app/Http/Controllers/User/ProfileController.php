@@ -53,7 +53,7 @@ class ProfileController extends Controller
         return redirect()->back();
     }
 
-    public function changePassword(Request $request, $id)
+    public function resetPassword(Request $request, $id)
     {
         // Obtener el usuario
         $user = User::findOrFail($id);

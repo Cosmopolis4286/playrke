@@ -23,6 +23,6 @@ Route::group(['middleware' => ['auth', 'admin'], 'prefix' => 'treasurer', 'as' =
     Route::get('getInfo/{id}', [TreasurerController::class, 'getInfo'])->name('getInfo');
     Route::put('update/{id}', [TreasurerController::class, 'update'])->name('update');
     Route::delete('delete/{id}', [TreasurerController::class, 'delete'])->name('delete');
-    Route::put('changePassw/{id}', [TreasurerController::class, 'changePassword'])->name('changePassw');
+    Route::put('changePassw/{id}', [TreasurerController::class, 'resetPassword'])->name('changePassw');
     Route::put('changeStatus/{id}', [TreasurerController::class, 'changeStatus'])->name('changeStatus');
 });

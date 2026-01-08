@@ -59,26 +59,26 @@ interface ChangePasswordData {
  * Servicio de autenticación para conectar con el backend Node.js
  */
 export class AuthService {
-  
+
   /**
    * Iniciar sesión
    */
   static async login(credentials: LoginData): Promise<AuthResponse> {
     try {
       const response: AxiosResponse<AuthResponse> = await api.post('/auth/login', credentials);
-      
+
       if (response.data.success && response.data.data) {
         // Guardar tokens en localStorage
         localStorage.setItem('auth_token', response.data.data.token);
         localStorage.setItem('refresh_token', response.data.data.refresh_token);
         localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
-        
+
         // Dispara evento personalizado para notificar el login
         window.dispatchEvent(new CustomEvent('auth:login', {
           detail: response.data.data.user
         }));
       }
-      
+
       return response.data;
     } catch (error: any) {
       return this.handleAuthError(error);
@@ -91,19 +91,19 @@ export class AuthService {
   static async register(userData: RegisterData): Promise<AuthResponse> {
     try {
       const response: AxiosResponse<AuthResponse> = await api.post('/auth/register', userData);
-      
+
       if (response.data.success && response.data.data) {
         // Guardar tokens en localStorage
         localStorage.setItem('auth_token', response.data.data.token);
         localStorage.setItem('refresh_token', response.data.data.refresh_token);
         localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
-        
+
         // Dispara evento personalizado
         window.dispatchEvent(new CustomEvent('auth:register', {
           detail: response.data.data.user
         }));
       }
-      
+
       return response.data;
     } catch (error: any) {
       return this.handleAuthError(error);
@@ -121,7 +121,7 @@ export class AuthService {
     } finally {
       // Limpiar datos locales
       clearAuthTokens();
-      
+
       // Dispara evento personalizado
       window.dispatchEvent(new CustomEvent('auth:logout'));
     }
@@ -133,12 +133,12 @@ export class AuthService {
   static async getProfile(): Promise<UserResponse> {
     try {
       const response: AxiosResponse<UserResponse> = await api.get('/auth/me');
-      
+
       if (response.data.success && response.data.data) {
         // Actualizar datos del usuario en localStorage
         localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
       }
-      
+
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
@@ -152,7 +152,7 @@ export class AuthService {
   /**
    * Cambiar contraseña
    */
-  static async changePassword(passwordData: ChangePasswordData): Promise<AuthResponse> {
+  static async resetPassword(passwordData: ChangePasswordData): Promise<AuthResponse> {
     try {
       const response: AxiosResponse<AuthResponse> = await api.put('/auth/password', passwordData);
       return response.data;
@@ -214,7 +214,7 @@ export class AuthService {
     if (error.response?.data) {
       return error.response.data;
     }
-    
+
     return {
       success: false,
       message: 'Error de conexión con el servidor',
