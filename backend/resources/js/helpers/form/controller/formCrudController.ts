@@ -79,8 +79,6 @@ async function handleCrudClick(e: MouseEvent): Promise<void> {
  * @param e - Evento CustomEvent
  */
 function handleCrudCustomEvent(event: Event): void {
-  alert('llega al controller')
-
   const ev = event as CustomEvent<TableCrudEventDetail>
   if (!ev.detail) return
 

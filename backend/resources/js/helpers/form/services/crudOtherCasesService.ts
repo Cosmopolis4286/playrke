@@ -147,7 +147,7 @@ async function showPasswordModal(password: string) {
 /**
  * Muestra resultados según respuesta
  */
-async function handleResult(ids: string[], results: any[]): Promise<void> {
+async function handleResult(action: string, ids: string[], results: any[]): Promise<void> {
   const passwordResponse = results.find((res: any) => res?.data?.password)
 
   if (passwordResponse?.data?.password) {
@@ -159,6 +159,10 @@ async function handleResult(ids: string[], results: any[]): Promise<void> {
         : 'Acción completada exitosamente'
 
     showToast(successMessage, 'success')
+  }
+
+  if (action !== 'reset-password') {
+    window.location.reload()
   }
 }
 
@@ -190,7 +194,7 @@ export async function handleOtherCases(action: string, encryptId: string, elem?:
 
     const results = await sendRequests(idsToProcess, caseData, status)
 
-    await handleResult(idsToProcess, results)
+    await handleResult(action, idsToProcess, results)
   } catch (error: any) {
     console.error(
       `Error al registrar la acción '${action}':`,

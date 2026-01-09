@@ -8,11 +8,13 @@ use App\Models\Currencies\Currency;
 use App\Models\Users\Roles\Seller\Seller;
 use App\Models\Users\Shared\UniqueCode;
 use App\Models\Users\User;
+use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Modelo para comercios
@@ -21,6 +23,8 @@ class Commerce extends Model
 {
     use SnowflakeId;
     use HasHashedRouteKey;
+    use SoftDeletes;
+    use Auditable;
 
     protected $table = 'commerces';
 
@@ -51,10 +55,10 @@ class Commerce extends Model
     {
         return match ($this->status) {
             'ACTIVE' => '<span class="badge badge-success">Activo</span>',
-            'INACTIVE' => '<span class="badge badge-warning">Inactivo</span>',
+            'INACTIVE' => '<span class="badge badge-secondary">Inactivo</span>',
             'BLOCKED' => '<span class="badge badge-danger">Bloqueado</span>',
             'DELETED' => '<span class="badge badge-dark">Eliminado</span>',
-            default => '<span class="badge badge-secondary">Desconocido</span>'
+            default => '<span class="badge badge-warning">Desconocido</span>'
         };
     }
 

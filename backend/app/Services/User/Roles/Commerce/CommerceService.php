@@ -152,7 +152,7 @@ class CommerceService
         DB::transaction(function () use ($commerce) {
 
             // Cargar relaciones necesarias solo una vez
-            $commerce->loadMissing(['user', 'otherCurrencies', 'allowedGames']);
+            $commerce->loadMissing(['otherCurrencies', 'allowedGames']);
 
             if ($commerce->status === 'DELETED') {
                 throw new RuntimeException('El comercio ya está eliminado');
@@ -162,20 +162,25 @@ class CommerceService
             $commerce->otherCurrencies()->detach();
             $commerce->allowedGames()->detach();
 
+            // ID de usuario
+            $userId = $commerce->user_id;
+
             // Eliminar dependencias
-            $this->walletRepository->deleteByUserId($commerce->user_id);
+            $this->walletRepository->deleteByUserId($userId);
 
             // Eliminación física
-            $this->commerceRepository->delete($commerce);
-            $this->userRepository->delete($commerce->user);
+            $this->commerceRepository->delete($userId);
+            $this->userRepository->delete($userId);
         });
     }
 
     /**
      * Cambiar estado del comercio y su usuario asociado.
      */
-    public function changeStatus(Commerce $commerce, string $status): void
+    public function changeStatus(Commerce $commerce): void
     {
+        $status = $commerce->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
         $this->assertValidStatus($status);
 
         DB::transaction(function () use ($commerce, $status) {

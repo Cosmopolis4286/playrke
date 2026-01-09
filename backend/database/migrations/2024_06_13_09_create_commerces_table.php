@@ -50,6 +50,9 @@ return new class extends Migration
                 ->default('ACTIVE')
                 ->comment('Estados del comercio');
 
+            // Soft deletes
+            $table->softDeletes();
+
             // Timestamps automáticos
             $table->timestamps();
 

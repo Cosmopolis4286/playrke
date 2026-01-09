@@ -48,49 +48,6 @@ class CommerceController extends Controller
     }
 
     /**
-     * Actualizar un comercio
-     * @param CommerceRequest $request
-     * @param Commerce $commerce
-     * @return JsonResponse
-     */
-    public function update(CommerceRequest $request, Commerce $commerce): JsonResponse
-    {
-        return $this->handleServiceJson(
-            function () use ($request, $commerce) {
-
-                $this->service->update(
-                    $commerce,
-                    $request->toDTO()
-                );
-
-                return [
-                    'message' => '✅ Actualización exitosa',
-                ];
-            },
-            'Hubo un error al editar el comercio.'
-        );
-    }
-
-    /**
-     * Eliminar comercio (hard delete)
-     */
-    public function destroy(string $id): JsonResponse
-    {
-        return $this->handleServiceJson(
-            function () use ($id) {
-                $this->service->delete(
-                    $this->decodeHashId($id)
-                );
-
-                return [
-                    'message' => '✅ Comercio eliminado correctamente',
-                ];
-            },
-            'No se pudo eliminar el comercio.'
-        );
-    }
-
-    /**
      * Mostrar detalle de comercio
      */
     public function show(Commerce $commerce): JsonResponse
@@ -104,6 +61,43 @@ class CommerceController extends Controller
     }
 
     /**
+     * Actualizar un comercio
+     * @param CommerceRequest $request
+     * @param Commerce $commerce
+     * @return JsonResponse
+     */
+    public function update(CommerceRequest $request, Commerce $commerce): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request, $commerce) {
+
+                $this->service->update($commerce, $request->toDTO());
+
+                return [
+                    'message' => '✅ Actualización exitosa',
+                ];
+            },
+            'Hubo un error al editar el comercio.'
+        );
+    }
+
+    /**
+     * Eliminar comercio (hard delete)
+     * @param Commerce $commerce
+     * @return JsonResponse
+     */
+    public function destroy(Commerce $commerce): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($commerce) {
+                $this->service->delete($commerce);
+                return ['message' => '✅ Comercio eliminado correctamente'];
+            },
+            'No se pudo eliminar el comercio.'
+        );
+    }
+
+    /**
      * Cambiar el estado de un comercio.
      *
      * @param Commerce $commerce
@@ -111,18 +105,12 @@ class CommerceController extends Controller
      *
      * @return JsonResponse
      */
-    public function changeStatus(Commerce $commerce, Request $request): JsonResponse
+    public function changeStatus(Commerce $commerce): JsonResponse
     {
         return $this->handleServiceJson(
-            function () use ($commerce, $request) {
-                $this->service->changeStatus(
-                    $commerce,
-                    $request->string('status')->value()
-                );
-
-                return [
-                    'message' => '✅ Estado actualizado correctamente',
-                ];
+            function () use ($commerce) {
+                $this->service->changeStatus($commerce);
+                return ['message' => '✅ Estado actualizado correctamente',];
             },
             'No se pudo cambiar el estado del comercio.'
         );

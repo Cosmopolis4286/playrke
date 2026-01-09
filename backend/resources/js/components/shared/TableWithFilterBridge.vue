@@ -235,20 +235,10 @@
       const onClick = (ids: string[]) => {
         switch (btn.action) {
           case 'changeStatus':
-            handleCrudAction({
-              action: 'change-status',
-              selectionRequirement: 'any',
-              logMessage: 'Ejecutando cambio de estado para IDs:',
-              ids
-            })
+            handleChangeStatus()
             break
           case 'resetPassword':
-            handleCrudAction({
-              action: 'reset-password',
-              selectionRequirement: 'any',
-              logMessage: 'Ejecutando reseteo de contraseña para IDs:',
-              ids
-            })
+            handleResetPassword()
             break
           default:
             console.warn(`No handler definido para el botón '${btn.label}'`)
