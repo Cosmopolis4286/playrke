@@ -2,12 +2,14 @@
 
 namespace App\Models\Users;
 
+use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Countries\Country;
 use App\Models\Users\Roles\Commerce\Commerce;
 use App\Models\Users\Roles\Company\Company;
 use App\Models\Users\Roles\Role;
 use App\Models\Users\Roles\Seller\Seller;
 use App\Models\Wallets\Wallet;
+use App\Traits\Auditable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -17,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Modelo User con Snowflake IDs
@@ -27,6 +30,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class User extends Authenticatable implements MustVerifyEmail
 {
     use Notifiable, HasRoles;
+    use SoftDeletes;
+    use Auditable;
+    use HasHashedRouteKey;
 
     /**
      * Nombre de la tabla en la base de datos

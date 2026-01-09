@@ -16,6 +16,8 @@ use Intervention\Image\Facades\Image;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Intervention\Image\Colors\Rgb\Channels\Red;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class ProfileController extends Controller
 {
@@ -53,7 +55,13 @@ class ProfileController extends Controller
         return redirect()->back();
     }
 
-    public function resetPassword(Request $request, $id)
+    /**
+     * Cambiar la contraseña del usuario autenticado
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function changePassword(Request $request, $id): RedirectResponse
     {
         // Obtener el usuario
         $user = User::findOrFail($id);

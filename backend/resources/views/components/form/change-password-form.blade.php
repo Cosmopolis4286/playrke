@@ -1,4 +1,4 @@
-<form id="resetPassword-form" action="{{ route('profile.resetPassword', ['id' => auth()->id()]) }}" method="POST">
+<form id="change-password-form" action="{{ route('profile.changePassword', ['id' => auth()->id()]) }}" method="POST">
     @csrf
     @method('PATCH')
     <div class="row">
@@ -7,6 +7,7 @@
         {{-- Nueva Contraseña --}}
         <x-form.input label="Nueva Contraseña" name="new_password" type="password" required col="col-12" />
         {{-- Confirmar Nueva Contraseña --}}
-        <x-form.input label="Confirmar Nueva Contraseña" name="new_password_confirmation" type="password" required col="col-12" />
+        <x-form.input label="Confirmar Nueva Contraseña" name="new_password_confirmation" type="password" required
+            col="col-12" />
     </div>
 </form>

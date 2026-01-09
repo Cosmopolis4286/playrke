@@ -1,11 +1,11 @@
 // services/crudOtherCasesService.ts
 import axios from '@/plugins/axios'
-import Swal from 'sweetalert2'
 import type { SweetAlertIcon } from 'sweetalert2'
 import { formCrudState as crud } from '../state/formCrudState'
 import { showToast, showToastConfirmAction } from '../ui/crudModalUI'
 import type { OtherCase } from '@/helpers/module/types/formModule.types'
 import { getSelectedIds } from '@/alpine/tableSelectionListener'
+import { showPasswordModal } from '@/helpers/user/password'
 import { route } from '@/routes/helper'
 
 /**
@@ -99,62 +99,6 @@ async function sendRequests(ids: string[], caseData: OtherCase, status?: string)
   })
 
   return Promise.all(promises)
-}
-
-/**
- * Modal para mostrar contraseña generada con botón copiar
- */
-async function showPasswordModal(password: string) {
-  await Swal.fire({
-    title: 'Nueva Contraseña Generada',
-    html: `
-      <div style="text-align: left;">
-        <p><strong>Contraseña:</strong></p>
-        <div style="position: relative; display: flex; align-items: center; gap: 8px;">
-          <div id="password-display" style="flex: 1; background-color: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 16px; word-break: break-all;">
-            ${password}
-          </div>
-          <button id="copy-password-btn" type="button" style="padding: 10px 15px; background-color: #6366f1; color: white; border: none; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px; min-width: 80px; justify-content: center;" title="Copiar al portapapeles">
-            <i class="fas fa-copy"></i>
-            <span>Copiar</span>
-          </button>
-        </div>
-        <p style="color: #6c757d; font-size: 14px; margin-top: 15px;">
-          <i class="fas fa-info-circle"></i> Guarda esta contraseña en un lugar seguro. No podrás verla nuevamente.
-        </p>
-      </div>
-    `,
-    icon: 'success',
-    confirmButtonText: 'Entendido',
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-    didOpen: () => {
-      const copyBtn = document.getElementById('copy-password-btn')
-      if (!copyBtn) return
-
-      copyBtn.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(password)
-          const btnText = copyBtn.querySelector('span')
-          const btnIcon = copyBtn.querySelector('i')
-
-          if (btnText && btnIcon) {
-            btnIcon.className = 'fas fa-check'
-            btnText.textContent = 'Copiado'
-            copyBtn.style.backgroundColor = '#10b981'
-
-            setTimeout(() => {
-              btnIcon.className = 'fas fa-copy'
-              btnText.textContent = 'Copiar'
-              copyBtn.style.backgroundColor = '#6366f1'
-            }, 2000)
-          }
-        } catch {
-          showToast('Error al copiar la contraseña', 'error')
-        }
-      })
-    }
-  })
 }
 
 /**

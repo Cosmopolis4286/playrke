@@ -2,6 +2,7 @@
 
 namespace App\Models\Users\Roles\Commerce;
 
+use App\Models\BaseModel;
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
@@ -11,7 +12,6 @@ use App\Models\Users\Shared\UniqueCode;
 use App\Models\Users\User;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,12 +20,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * Modelo para comercios
  */
-class Commerce extends Model
+class Commerce extends BaseModel
 {
-    use SnowflakeId;
-    use HasHashedRouteKey;
-    use SoftDeletes;
-    use Auditable;
+    use SnowflakeId, HasHashedRouteKey, SoftDeletes, Auditable;
 
     protected $table = 'commerces';
 

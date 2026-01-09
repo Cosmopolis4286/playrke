@@ -49,11 +49,6 @@ async function handleCrudClick(e: MouseEvent): Promise<void> {
     return
   }
 
-  if (target.closest('#btn-copy')) {
-    copyInfo('Contraseña copiada')
-    return
-  }
-
   if (target.closest('.popover-dismiss')) {
     $(target).popover('toggle')
     return

@@ -1,20 +1,20 @@
 // js/global/global.ts
 
-import { showToast } from './toastNotify';
-import { initChangePassw } from './user/changePassw';
-import { initLogout } from './user/logout';
-import { initModalFocus } from '@/helpers/modal/modals';
+import { showToast } from './toastNotify'
+import { initChangePassw } from './user/password'
+import { initLogout } from './user/logout'
+import { initModalFocus } from '@/helpers/modal/modals'
 
 /**
  * Inicializa el bloqueo de arrastre de imágenes
  * Previene que las imágenes sean arrastradas accidentalmente.
  */
 async function initDragStart(): Promise<void> {
-    document.addEventListener('dragstart', (event) => {
-        if ((event.target as HTMLElement)?.tagName === 'IMG') {
-            event.preventDefault();
-        }
-    });
+  document.addEventListener('dragstart', event => {
+    if ((event.target as HTMLElement)?.tagName === 'IMG') {
+      event.preventDefault()
+    }
+  })
 }
 
 /**
@@ -22,65 +22,65 @@ async function initDragStart(): Promise<void> {
  * @param errors Array de mensajes de error
  */
 async function showLaravelMessages(errors: string[] = []): Promise<void> {
-    if (!errors.length) return;
+  if (!errors.length) return
 
-    for (const msg of errors) {
-        try {
-            showToast(msg, 'error');
-        } catch (err) {
-            console.error('❌ Error mostrando toast de error:', err);
-        }
+  for (const msg of errors) {
+    try {
+      showToast(msg, 'error')
+    } catch (err) {
+      console.error('❌ Error mostrando toast de error:', err)
     }
+  }
 
-    if (import.meta.env.DEV) {
-        console.log(`✅ ${errors.length} LaravelErrors mostrados`);
-    }
+  if (import.meta.env.DEV) {
+    console.log(`✅ ${errors.length} LaravelErrors mostrados`)
+  }
 }
 
 /**
  * Inicializa la aplicación globalmente
  */
 export async function initGlobal(): Promise<void> {
-    try {
-        // 🔹 Logout primero por seguridad
-        await initLogout();
+  try {
+    // 🔹 Logout primero por seguridad
+    initLogout()
 
-        // 🔹 Bloquear arrastre de imágenes
-        await initDragStart();
+    // 🔹 Bloquear arrastre de imágenes
+    await initDragStart()
 
-        // 🔹 Inicializar modales accesibles
-        await initModalFocus();
+    // 🔹 Inicializar modales accesibles
+    await initModalFocus()
 
-        // 🔹 Cambio de contraseña
-        await initChangePassw();
-        if (import.meta.env.DEV) {
-            console.log('✅ initChangePassw ejecutado');
-        }
-
-        // 🔹 Mostrar mensajes flash de sesión
-        if (window.Session?.message?.trim()) {
-            showToast(window.Session.message, window.Session.type || 'success');
-        }
-
-        // 🔹 Mostrar errores de Laravel (validación)
-        if (window.LaravelErrors?.length) {
-            await showLaravelMessages(window.LaravelErrors);
-        }
-
-        if (import.meta.env.DEV) {
-            console.log('✅ initGlobal completado');
-        }
-    } catch (err) {
-        console.error('❌ Error en initGlobal:', err);
+    // 🔹 Cambio de contraseña
+    await initChangePassw()
+    if (import.meta.env.DEV) {
+      console.log('✅ initChangePassw ejecutado')
     }
+
+    // 🔹 Mostrar mensajes flash de sesión
+    if (window.Session?.message?.trim()) {
+      showToast(window.Session.message, window.Session.type || 'success')
+    }
+
+    // 🔹 Mostrar errores de Laravel (validación)
+    if (window.LaravelErrors?.length) {
+      await showLaravelMessages(window.LaravelErrors)
+    }
+
+    if (import.meta.env.DEV) {
+      console.log('✅ initGlobal completado')
+    }
+  } catch (err) {
+    console.error('❌ Error en initGlobal:', err)
+  }
 }
 
 /**
  * Inicialización segura con valores por defecto
  */
 export async function initGlobalSafe(): Promise<void> {
-    if (import.meta.env.DEV) {
-        console.log('initGlobalSafe iniciado');
-    }
-    await initGlobal();
+  if (import.meta.env.DEV) {
+    console.log('initGlobalSafe iniciado')
+  }
+  await initGlobal()
 }

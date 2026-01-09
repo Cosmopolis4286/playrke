@@ -5,7 +5,6 @@ import Swal, { showToast, showToastConfirmAction } from '@/helpers/toastNotify';
 import type { OtherCase } from '@/helpers/module/types/formModule.types';
 import { formCrudState as crud } from './state/formCrudState';
 import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form/fieldValidation';
-import { resetFormAndContainers } from './formHelpers';
 import { getSelectedIds, getCurrentEncryptId } from '@/alpine/tableSelectionListener';
 
 /**
