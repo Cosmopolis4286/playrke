@@ -31,24 +31,14 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->comment('Moneda utilizada por el vendedor');
 
-            $table->foreignSnowflake('commerce_id')
-                ->nullable()
-                ->constrained('commerces')
-                ->cascadeOnUpdate()
-                ->nullOnDelete()
-                ->comment('Comercio asociado (opcional)');
-
-            $table->foreignSnowflake('subsidiary_id')
-                ->nullable()
-                ->constrained('subsidiaries')
-                ->cascadeOnUpdate()
-                ->nullOnDelete()
-                ->comment('Sucursal asociada (opcional)');
-
             $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnDelete()
                 ->comment('ID del usuario');
+
+            $table->foreignSnowflake('manager_user_id')
+                ->constrained('users')->cascadeOnDelete()
+                ->comment('Usuario principal al que representa'); // Usuario al que vende
 
             // Estado del vendedor
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
@@ -58,8 +48,13 @@ return new class extends Migration
             // Timestamps automáticos
             $table->timestamps();
 
+            // Soft deletes
+            $table->softDeletes();
+
             // Índices compuestos para consultas frecuentes
-            $table->index(['status', 'commerce_id', 'subsidiary_id']);
+            $table->index(['status', 'manager_user_id']);
+            $table->index('manager_user_id');
+            $table->index(['country_id', 'currency_id']);
         });
     }
 

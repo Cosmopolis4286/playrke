@@ -27,7 +27,7 @@ use App\Models\BingoCreatorSale;
 use App\Models\BingoPatterns;
 use App\Models\Currencies\Currency;
 use App\Models\Commerce;
-use App\Models\CommerceCountryCurrency;
+use App\Models\CommerceCurrency;
 use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\Customer;
@@ -1714,7 +1714,7 @@ class BingoController extends Controller
 
         $currencies = match ($creatorType) {
             'admin' => Currency::where('id', '!=', 1)->distinct()->pluck('currency'),
-            'commerce_id' => CommerceCountryCurrency::getAvailableCurrencies($creatorId, 1),
+            'commerce_id' => CommerceCurrency::getAvailableCurrencies($creatorId, 1),
             default => CustomerExchangeRate::getCurrenciesByCustomer($creatorId),
         };
 

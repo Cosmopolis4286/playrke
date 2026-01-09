@@ -21,7 +21,7 @@ use App\Models\Commerce;
 use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\PhoneNumbers;
-use App\Models\SellerCountryCurrency;
+use App\Models\SellerCurrency;
 use App\Models\Role;
 use App\Models\Wallet;
 use App\Services\Games\Bingo\HandleBingoRooms;
@@ -153,7 +153,7 @@ class SellerController extends Controller
             ]);
 
             // Registrar moneda principal para Seller
-            SellerCountryCurrency::create([
+            SellerCurrency::create([
                 'seller' => $seller->id,
                 'country' => $seller->country,
                 'currency' => $seller->currency,
@@ -229,7 +229,7 @@ class SellerController extends Controller
         $seller = Seller::getById($id, ['name', 'commerce_id', 'commission', 'country', 'phone']);
 
         // Obtener monedas adicionales disponibles para el vendedor
-        $otherCurrencies = SellerCountryCurrency::getAvailableCurrencies($id);
+        $otherCurrencies = SellerCurrency::getAvailableCurrencies($id);
 
         // Obtener datos del usuario asociado al vendedor
         $userId = Seller::getValueById($id, 'user');
@@ -291,7 +291,7 @@ class SellerController extends Controller
 
                 if ($currencyChange) {
                     // Actualizar moneda Principal
-                    SellerCountryCurrency::where('seller', $seller->id)
+                    SellerCurrency::where('seller', $seller->id)
                         ->where('currency', $seller->currency)->update([
                             'country' => $seller->country,
                             'currency' => $seller->currency
@@ -410,7 +410,7 @@ class SellerController extends Controller
         $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
         // Obtenemos las monedas disponibles para el vendedor y el comercio
-        $sellerCurrencies = SellerCountryCurrency::getAvailableCurrencies($seller->id);
+        $sellerCurrencies = SellerCurrency::getAvailableCurrencies($seller->id);
         $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($seller->commerce, 'ACTIVE');
 
         // Obtenemos el campo allowed_currencies (json o null) y lo forzamos a array

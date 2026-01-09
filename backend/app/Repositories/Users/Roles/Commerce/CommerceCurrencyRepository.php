@@ -2,22 +2,22 @@
 
 namespace App\Repositories\Users\Roles\Commerce;
 
-use App\Models\Users\Roles\Commerce\CommerceCountryCurrency;
+use App\Models\Users\Roles\Commerce\CommerceCurrency;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCountryCurrencyRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de países y monedas de comercios
  */
-class CommerceCountryCurrencyRepository extends BaseRepository implements CommerceCountryCurrencyRepositoryContract
+class CommerceCurrencyRepository extends BaseRepository implements CommerceCurrencyRepositoryContract
 {
     /**
      * Constructor del repository
      *
-     * @param CommerceCountryCurrency $model
+     * @param CommerceCurrency $model
      */
-    public function __construct(CommerceCountryCurrency $model)
+    public function __construct(CommerceCurrency $model)
     {
         parent::__construct($model);
     }

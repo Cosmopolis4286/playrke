@@ -5,6 +5,7 @@ namespace App\Models\Users\Roles\Commerce;
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
+use App\Models\Games\Shared\Game;
 use App\Models\Users\Roles\Seller\Seller;
 use App\Models\Users\Shared\UniqueCode;
 use App\Models\Users\User;
@@ -109,10 +110,13 @@ class Commerce extends Model
     {
         return $this->belongsToMany(
             Currency::class,
-            'commerces_countries_currencies',
+            'commerces_currencies',
             'commerce_id',
             'currency_id'
-        )->withTimestamps();
+        )
+            ->using(CommerceCurrency::class)
+            ->withPivot(['level', 'status'])
+            ->withTimestamps();
     }
 
     /**
@@ -121,7 +125,7 @@ class Commerce extends Model
     public function allowedGames(): BelongsToMany
     {
         return $this->belongsToMany(
-            \App\Models\Games\Shared\Game::class,
+            Game::class,
             'commerces_games',
             'commerce_id',
             'game_id'

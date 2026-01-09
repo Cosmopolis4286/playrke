@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('roles', function (Blueprint $table) {
-            $table->snowflake('id')->primary(); // Snowflake en lugar de auto-increment
+            $table->snowflake('id')->primary();
             $table->string('name')->unique();
             $table->string('guard_name')->default('web');
             $table->string('prefix')->unique();

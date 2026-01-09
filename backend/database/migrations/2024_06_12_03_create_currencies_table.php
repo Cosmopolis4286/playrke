@@ -11,12 +11,23 @@ return new class extends Migration
         Schema::create('currencies', function (Blueprint $table) {
             $table->snowflake('id')->primary();
 
-            $table->string('iso_code', 10)->unique()->comment('Código de la moneda (USD, BTC, CASINO)');
-            $table->string('symbol', 12)->nullable()->comment('Símbolo de la moneda ($, €, ₿, 🎰)');
-            $table->string('name', 50)->comment('Nombre corto de la moneda (Dollar, Bitcoin, Casino Token)');
-            $table->string('description', 100)->nullable()->comment('Nombre completo o descripción extendida');
+            $table->string('iso_code', 10)
+                ->unique()
+                ->comment('Código único de la moneda (USD, BTC, CASINO)');
 
-            $table->enum('type', ['FIAT', 'CRYPTO', 'TOKEN'])->comment('Tipo de moneda');
+            $table->string('symbol', 12)
+                ->nullable()
+                ->comment('Símbolo de la moneda ($, €, ₿, 🎰)');
+
+            $table->string('name', 50)
+                ->comment('Nombre corto de la moneda (Dollar, Bitcoin, Casino Token)');
+
+            $table->string('description', 255)
+                ->nullable()
+                ->comment('Descripción extendida o nombre completo');
+
+            $table->enum('type', ['FIAT', 'CRYPTO', 'TOKEN'])
+                ->comment('Tipo de moneda');
 
             $table->foreignSnowflake('country_id')
                 ->nullable()
@@ -24,11 +35,22 @@ return new class extends Migration
                 ->onDelete('restrict')
                 ->comment('Referencia al país de la moneda (si aplica)');
 
-            $table->tinyInteger('decimal_places')->default(2)->comment('Cantidad de decimales');
+            // Índice para optimizar búsquedas por país
+            $table->index('country_id');
 
-            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+            $table->tinyInteger('decimal_places')
+                ->default(2)
+                ->unsigned()
+                ->comment('Cantidad de decimales');
+
+            $table->boolean('is_active')
+                ->default(true)
+                ->comment('true = activo, false = inactivo');
 
             $table->timestamps();
+
+            // Índice compuesto para búsquedas frecuentes por tipo y estado
+            $table->index(['type', 'is_active']);
         });
     }
 

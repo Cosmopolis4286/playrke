@@ -3,21 +3,14 @@
 namespace App\Services\User\Roles\Commerce;
 
 use App\DTOs\User\Roles\CommerceDTO;
-use App\Models\Users\User;
 use App\Models\Users\Roles\Commerce\Commerce;
-use App\Models\Users\Shared\UniqueCode;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
 use App\Repositories\Wallets\Contracts\WalletRepositoryContract;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use InvalidArgumentException;
 use RuntimeException;
-use Vinkla\Hashids\Facades\Hashids;
 
-class CommerceService
+class CommerceService extends \App\Services\BaseService
 {
     public function __construct(
         protected UserRepositoryContract $userRepository,
@@ -63,7 +56,10 @@ class CommerceService
                 'unique_code_id' => $uniqueCode->id,
             ]);
 
-            // 4. Crear wallet principal
+            // 4. Registrar monedas secundarias
+            $this->updateSecondaryCurrenciesStatus($commerce, $dto->otherCurrencies);
+
+            // 5. Crear wallet principal
             $this->walletRepository->create([
                 'user_id'     => $user->id,
                 'currency_id' => $dto->currency,
@@ -93,13 +89,17 @@ class CommerceService
         return [
             'commerce'         => $commerce,
             'user'             => $commerce->user,
-            'other_currencies' => $commerce->otherCurrencies->pluck('id')->all(),
-            'allowed_games'    => $commerce->allowedGames->pluck('id')->all(),
+            'other_currencies' => $commerce->otherCurrencies->where('status', 'ACTIVE')->pluck('id')->all(),
+            'allowed_games'    => $commerce->allowedGames->where('status', 'ACTIVE')->pluck('id')->all(),
         ];
     }
 
     /**
      * Actualizar comercio y sus relaciones.
+     *
+     * @param Commerce $commerce
+     * @param CommerceDTO $dto
+     * @return void
      */
     public function update(Commerce $commerce, CommerceDTO $dto): void
     {
@@ -119,11 +119,9 @@ class CommerceService
             );
 
             // -----------------------------
-            // Sincronizar monedas secundarias
+            // Sincronizar monedas secundarias con manejo de estado
             // -----------------------------
-            if ($dto->otherCurrencies !== null) {
-                $commerce->otherCurrencies()->sync($dto->otherCurrencies);
-            }
+            $this->updateSecondaryCurrenciesStatus($commerce, $dto->otherCurrencies);
 
             // -----------------------------
             // Sincronizar juegos permitidos
@@ -145,9 +143,53 @@ class CommerceService
     }
 
     /**
+     * Actualiza el estado 'status' de monedas secundarias asociadas a un comercio.
+     *
+     * @param Commerce $commerce
+     * @param array|null $activeCurrencyIds IDs de monedas que deben quedar activas (si es null o vacío, se inactivan todas las activas)
+     * @return void
+     */
+    protected function updateSecondaryCurrenciesStatus(Commerce $commerce, ?array $activeCurrencyIds): void
+    {
+        // Obtener todas las monedas relacionadas con su estado actual en pivot
+        $relatedCurrencies = $commerce->otherCurrencies()->withPivot('status')->get();
+
+        if (empty($activeCurrencyIds)) {
+            // Si vienen vacías o nulas, inactivar todas las monedas que estén activas y no bloqueadas
+            $currencyIdsToInactivate = $relatedCurrencies
+                ->filter(fn($c) => $c->pivot->status === 'ACTIVE')
+                ->pluck('id')
+                ->toArray();
+        } else {
+            // Si hay monedas activas explícitas, inactivar las que están activas pero no están en esa lista
+            $currencyIdsToInactivate = $relatedCurrencies
+                ->filter(fn($c) => $c->pivot->status === 'ACTIVE' && !in_array($c->id, $activeCurrencyIds))
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (!empty($currencyIdsToInactivate)) {
+            // Actualizar directamente con query para optimizar
+            DB::table('commerces_currencies')
+                ->where('commerce_id', $commerce->id)
+                ->whereIn('currency_id', $currencyIdsToInactivate)
+                ->update(['status' => 'INACTIVE']);
+        }
+
+        // Activar o crear las monedas que deben estar activas
+        if (!empty($activeCurrencyIds)) {
+            $syncData = [];
+            foreach ($activeCurrencyIds as $currencyId) {
+                $syncData[$currencyId] = ['status' => 'ACTIVE', 'level' => 1];
+            }
+            $commerce->otherCurrencies()->syncWithoutDetaching($syncData);
+        }
+    }
+
+    /**
      * Eliminación física del comercio (hard delete).
      */
-    public function delete(Commerce $commerce): void
+    public function hardDelete(Commerce $commerce): void
     {
         DB::transaction(function () use ($commerce) {
 
@@ -172,93 +214,5 @@ class CommerceService
             $this->commerceRepository->delete($userId);
             $this->userRepository->delete($userId);
         });
-    }
-
-    /**
-     * Cambiar estado del comercio y su usuario asociado.
-     */
-    public function changeStatus(Commerce $commerce): void
-    {
-        $status = $commerce->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-
-        $this->assertValidStatus($status);
-
-        DB::transaction(function () use ($commerce, $status) {
-
-            // Evita queries innecesarias
-            $commerce->loadMissing('user');
-
-            $commerce->update(['status' => $status]);
-            $commerce->user->update(['status' => $status]);
-        });
-    }
-
-    /**
-     * Resetear contraseña del usuario del comercio.
-     */
-    public function resetPassword(Commerce $commerce): string
-    {
-        $newPassword = Str::random(12);
-
-        $commerce->user->update([
-            'password' => Hash::make($newPassword),
-        ]);
-
-        return $newPassword;
-    }
-
-    /* =====================================================
-     | Helpers internos
-     |=====================================================*/
-
-    /**
-     * Validar estados permitidos.
-     */
-    private function assertValidStatus(string $status): void
-    {
-        if (!in_array($status, ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'], true)) {
-            throw new InvalidArgumentException('Estado inválido');
-        }
-    }
-
-    /**
-     * Crear usuario a partir de DTO.
-     */
-    private function createUserFromDTO(CommerceDTO $dto, string $plainPassword): User
-    {
-        return $this->userRepository->create([
-            'username'          => $dto->username,
-            'email'             => $dto->email,
-            'password'          => Hash::make($plainPassword),
-            'country_id'        => $dto->country,
-            'time_zone_id'      => $dto->timeZone,
-            'email_verified_at' => now(),
-            'referral_code'     => $this->userRepository->generateUniqueReferralCode(),
-            'status'            => 'ACTIVE',
-        ]);
-    }
-
-    /**
-     * Crear código único asociado al usuario.
-     */
-    private function createUniqueCode(string $userId): UniqueCode
-    {
-        return UniqueCode::create([
-            'uuid_code' => (string) Str::uuid(),
-            'rke_code'  => $this->generateUniqueRkeCode(),
-            'user_id'   => $userId,
-        ]);
-    }
-
-    /**
-     * Generar RKE único.
-     */
-    private function generateUniqueRkeCode(): string
-    {
-        do {
-            $code = 'RKE' . strtoupper(Str::random(8));
-        } while (UniqueCode::existsRKECode($code));
-
-        return $code;
     }
 }

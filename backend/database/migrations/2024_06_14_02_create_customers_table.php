@@ -30,7 +30,23 @@ return new class extends Migration
             // INFORMACIÓN BÁSICA DEL CLIENTE
             // ============================================
             $table->string('name', 255)->comment('Nombre del cliente');
-            $table->string('customer_id', 100)->unique()->comment('ID único del cliente (externo)');
+            $table->string('business_name', 255)->nullable()->comment('Razón social del cliente');
+
+            // ============================================
+            // DATOS DE CONTACTO
+            // ============================================
+            $table->string('phone', 20)->unique()->comment('Teléfono de contacto');
+
+            // ============================================
+            // CONFIGURACIÓN API
+            // ============================================
+            $table->string('api_route', 255)->comment('Ruta API del cliente');
+            $table->string('customer_key', 255)->unique()->comment('Llave de conexión única del cliente');
+
+            // ============================================
+            // MULTIMEDIA
+            // ============================================
+            $table->string('logo', 255)->nullable()->comment('Ruta del logo del cliente');
 
             // ============================================
             // FOREIGN KEYS
@@ -54,22 +70,6 @@ return new class extends Migration
                 ->comment('Usuario asociado al cliente');
 
             // ============================================
-            // DATOS DE CONTACTO
-            // ============================================
-            $table->string('phone', 20)->unique()->comment('Teléfono de contacto');
-
-            // ============================================
-            // CONFIGURACIÓN API
-            // ============================================
-            $table->string('api_route', 255)->comment('Ruta API del cliente');
-            $table->string('customer_key', 255)->unique()->comment('Llave de conexión única del cliente');
-
-            // ============================================
-            // MULTIMEDIA
-            // ============================================
-            $table->string('logo', 255)->nullable()->comment('Ruta del logo del cliente');
-
-            // ============================================
             // ESTADO
             // ============================================
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'])
@@ -81,6 +81,9 @@ return new class extends Migration
             // TIMESTAMPS
             // ============================================
             $table->timestamps();
+
+            // Soft deletes
+            $table->softDeletes();
 
             // ============================================
             // ÍNDICES COMPUESTOS

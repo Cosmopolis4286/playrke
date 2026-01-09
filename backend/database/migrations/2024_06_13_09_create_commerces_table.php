@@ -25,19 +25,19 @@ return new class extends Migration
                 ->constrained('countries')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
-                ->comment('ID del país del comercio');
+                ->comment('ID del país principal del comercio');
 
             $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
-                ->comment('ID de la moneda asociada');
+                ->comment('ID de la moneda principal asociada');
 
             $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
-                ->comment('ID del usuario creador');
+                ->comment('ID del usuario commercio');
 
             $table->foreignSnowflake('unique_code_id')
                 ->constrained('unique_codes')
@@ -50,13 +50,14 @@ return new class extends Migration
                 ->default('ACTIVE')
                 ->comment('Estados del comercio');
 
-            // Soft deletes
-            $table->softDeletes();
-
             // Timestamps automáticos
             $table->timestamps();
 
+            // Soft deletes
+            $table->softDeletes();
+
             // Índices compuestos para consultas frecuentes
+            $table->index('user_id');
             $table->index(['country_id', 'currency_id', 'status']);
         });
     }

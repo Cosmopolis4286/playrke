@@ -2,25 +2,25 @@
 
 namespace App\Repositories\Users\Roles\Seller;
 
-use App\Models\Users\Roles\Seller\SellerCountryCurrency;
+use App\Models\Users\Roles\Seller\SellerCurrency;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Users\Roles\Seller\Contracts\SellerCountryCurrencyRepositoryContract;
+use App\Repositories\Users\Roles\Seller\Contracts\SellerCurrencyRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repositorio para la gestión de relaciones vendedor-país-moneda.
  *
- * Implementa las operaciones específicas para el modelo SellerCountryCurrency,
+ * Implementa las operaciones específicas para el modelo SellerCurrency,
  * incluyendo gestión de estados, validaciones y estadísticas de relaciones.
  */
-class SellerCountryCurrencyRepository extends BaseRepository implements SellerCountryCurrencyRepositoryContract
+class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyRepositoryContract
 {
     /**
      * Constructor del repositorio.
      *
-     * @param SellerCountryCurrency $model Instancia del modelo SellerCountryCurrency
+     * @param SellerCurrency $model Instancia del modelo SellerCurrency
      */
-    public function __construct(SellerCountryCurrency $model)
+    public function __construct(SellerCurrency $model)
     {
         parent::__construct($model);
     }
@@ -76,7 +76,7 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
     /**
      * {@inheritDoc}
      */
-    public function getBySellerAndCurrency(string $sellerId, string $currencyId): ?SellerCountryCurrency
+    public function getBySellerAndCurrency(string $sellerId, string $currencyId): ?SellerCurrency
     {
         return $this->model->where('seller', $sellerId)
             ->where('currency_id', $currencyId)
@@ -86,7 +86,7 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
     /**
      * {@inheritDoc}
      */
-    public function getBySellerCountryAndCurrency(string $sellerId, string $countryId, string $currencyId): ?SellerCountryCurrency
+    public function getBySellerCountryAndCurrency(string $sellerId, string $countryId, string $currencyId): ?SellerCurrency
     {
         return $this->model->where('seller', $sellerId)
             ->where('country_id', $countryId)
@@ -107,7 +107,7 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
     /**
      * {@inheritDoc}
      */
-    public function createRelation(array $data): SellerCountryCurrency
+    public function createRelation(array $data): SellerCurrency
     {
         // Validar datos antes de crear
         $errors = $this->validateRelationData($data);
@@ -405,8 +405,8 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
      */
     public function getCountryDistribution(): array
     {
-        return $this->model->select('countries.name', DB::raw('COUNT(sellers_countries_currencies.id) as count'))
-            ->leftJoin('countries', 'sellers_countries_currencies.country_id', '=', 'countries.id')
+        return $this->model->select('countries.name', DB::raw('COUNT(sellers_currencies.id) as count'))
+            ->leftJoin('countries', 'sellers_currencies.country_id', '=', 'countries.id')
             ->groupBy('countries.id', 'countries.name')
             ->pluck('count', 'countries.name')
             ->toArray();
@@ -417,8 +417,8 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
      */
     public function getCurrencyDistribution(): array
     {
-        return $this->model->select('currencies.code', DB::raw('COUNT(sellers_countries_currencies.id) as count'))
-            ->leftJoin('currencies', 'sellers_countries_currencies.currency_id', '=', 'currencies.id')
+        return $this->model->select('currencies.code', DB::raw('COUNT(sellers_currencies.id) as count'))
+            ->leftJoin('currencies', 'sellers_currencies.currency_id', '=', 'currencies.id')
             ->groupBy('currencies.id', 'currencies.code')
             ->pluck('count', 'currencies.code')
             ->toArray();
@@ -483,7 +483,7 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
     private function getMostPopularCountry(): ?string
     {
         $result = $this->model->select('countries.name', DB::raw('COUNT(*) as count'))
-            ->leftJoin('countries', 'sellers_countries_currencies.country_id', '=', 'countries.id')
+            ->leftJoin('countries', 'sellers_currencies.country_id', '=', 'countries.id')
             ->groupBy('countries.id', 'countries.name')
             ->orderBy('count', 'desc')
             ->first();
@@ -499,7 +499,7 @@ class SellerCountryCurrencyRepository extends BaseRepository implements SellerCo
     private function getMostPopularCurrency(): ?string
     {
         $result = $this->model->select('currencies.code', DB::raw('COUNT(*) as count'))
-            ->leftJoin('currencies', 'sellers_countries_currencies.currency_id', '=', 'currencies.id')
+            ->leftJoin('currencies', 'sellers_currencies.currency_id', '=', 'currencies.id')
             ->groupBy('currencies.id', 'currencies.code')
             ->orderBy('count', 'desc')
             ->first();

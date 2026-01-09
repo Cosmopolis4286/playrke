@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * Contrato para el repository de países y monedas de comercios
  */
-interface CommerceCountryCurrencyRepositoryContract extends BaseRepositoryContract
+interface CommerceCurrencyRepositoryContract extends BaseRepositoryContract
 {
     /**
      * Obtiene monedas disponibles para un comercio

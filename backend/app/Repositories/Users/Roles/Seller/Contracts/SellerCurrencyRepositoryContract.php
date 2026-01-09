@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Seller\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Users\Roles\Seller\SellerCountryCurrency;
+use App\Models\Users\Roles\Seller\SellerCurrency;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar las asociaciones entre
  * vendedores, países y monedas en el sistema.
  */
-interface SellerCountryCurrencyRepositoryContract extends BaseRepositoryContract
+interface SellerCurrencyRepositoryContract extends BaseRepositoryContract
 {
     /**
      * Obtener relaciones por vendedor.
@@ -65,9 +65,9 @@ interface SellerCountryCurrencyRepositoryContract extends BaseRepositoryContract
      *
      * @param string $sellerId ID del vendedor
      * @param string $currencyId ID de la moneda
-     * @return SellerCountryCurrency|null La relación encontrada o null
+     * @return SellerCurrency|null La relación encontrada o null
      */
-    public function getBySellerAndCurrency(string $sellerId, string $currencyId): ?SellerCountryCurrency;
+    public function getBySellerAndCurrency(string $sellerId, string $currencyId): ?SellerCurrency;
 
     /**
      * Buscar relación específica por vendedor, país y moneda.
@@ -75,9 +75,9 @@ interface SellerCountryCurrencyRepositoryContract extends BaseRepositoryContract
      * @param string $sellerId ID del vendedor
      * @param string $countryId ID del país
      * @param string $currencyId ID de la moneda
-     * @return SellerCountryCurrency|null La relación encontrada o null
+     * @return SellerCurrency|null La relación encontrada o null
      */
-    public function getBySellerCountryAndCurrency(string $sellerId, string $countryId, string $currencyId): ?SellerCountryCurrency;
+    public function getBySellerCountryAndCurrency(string $sellerId, string $countryId, string $currencyId): ?SellerCurrency;
 
     /**
      * Verificar si existe una relación específica.
@@ -92,9 +92,9 @@ interface SellerCountryCurrencyRepositoryContract extends BaseRepositoryContract
      * Crear una nueva relación vendedor-país-moneda.
      *
      * @param array $data Datos de la relación
-     * @return SellerCountryCurrency La relación creada
+     * @return SellerCurrency La relación creada
      */
-    public function createRelation(array $data): SellerCountryCurrency;
+    public function createRelation(array $data): SellerCurrency;
 
     /**
      * Actualizar una relación existente.

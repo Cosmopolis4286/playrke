@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa las asociaciones entre vendedores, países y monedas,
  * incluyendo niveles de operación y estados de las relaciones.
  */
-class SellerCountryCurrency extends Model
+class SellerCurrency extends Model
 {
     use SnowflakeId;
 
@@ -24,7 +24,7 @@ class SellerCountryCurrency extends Model
      *
      * @var string
      */
-    protected $table = 'sellers_countries_currencies';
+    protected $table = 'sellers_currencies';
 
     /**
      * Los campos que se pueden asignar masivamente.
@@ -33,10 +33,8 @@ class SellerCountryCurrency extends Model
      */
     protected $fillable = [
         'seller',           // ID del vendedor
-        'country_id',       // ID del país
         'currency_id',      // ID de la moneda
         'level',            // Nivel de operación
-        'creator_user_id',  // ID del usuario creador
         'status',           // Estado de la relación (activa/inactiva)
     ];
 
@@ -49,16 +47,6 @@ class SellerCountryCurrency extends Model
         'level' => 'integer',
         'status' => 'boolean',
     ];
-
-    /**
-     * Relación con el país.
-     *
-     * @return BelongsTo
-     */
-    public function country(): BelongsTo
-    {
-        return $this->belongsTo(Country::class, 'country_id');
-    }
 
     /**
      * Relación con la moneda.
@@ -81,16 +69,6 @@ class SellerCountryCurrency extends Model
     }
 
     /**
-     * Relación con el usuario creador.
-     *
-     * @return BelongsTo
-     */
-    public function creatorUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'creator_user_id');
-    }
-
-    /**
      * Scope para filtrar por vendedor.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
@@ -100,18 +78,6 @@ class SellerCountryCurrency extends Model
     public function scopeBySeller($query, string $sellerId)
     {
         return $query->where('seller', $sellerId);
-    }
-
-    /**
-     * Scope para filtrar por país.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $countryId
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByCountry($query, string $countryId)
-    {
-        return $query->where('country_id', $countryId);
     }
 
     /**
@@ -330,9 +296,9 @@ class SellerCountryCurrency extends Model
      * @param string $sellerId ID del vendedor
      * @param string $currencyId ID de la moneda
      * @param array $fields Campos a seleccionar
-     * @return SellerCountryCurrency|null
+     * @return SellerCurrency|null
      */
-    public static function getById(string $sellerId, string $currencyId, array $fields = ['*']): ?SellerCountryCurrency
+    public static function getById(string $sellerId, string $currencyId, array $fields = ['*']): ?SellerCurrency
     {
         return self::select($fields)
             ->where('seller', $sellerId)
@@ -368,22 +334,6 @@ class SellerCountryCurrency extends Model
             ->whereNotNull('currency_id')
             ->distinct()
             ->count();
-    }
-
-    /**
-     * Obtener países disponibles para un vendedor (método heredado).
-     *
-     * @param string $sellerId ID del vendedor
-     * @return array
-     */
-    public static function getAvailableCountries(string $sellerId): array
-    {
-        return self::select('country_id')
-            ->where('seller', $sellerId)
-            ->where('status', true)
-            ->distinct()
-            ->pluck('country_id')
-            ->toArray();
     }
 
     /**

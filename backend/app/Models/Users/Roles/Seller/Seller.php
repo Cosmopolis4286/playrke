@@ -101,7 +101,7 @@ class Seller extends Model
      */
     public function countriesCurrencies(): HasMany
     {
-        return $this->hasMany(SellerCountryCurrency::class, 'seller', 'id');
+        return $this->hasMany(SellerCurrency::class, 'seller', 'id');
     }
 
     /**
