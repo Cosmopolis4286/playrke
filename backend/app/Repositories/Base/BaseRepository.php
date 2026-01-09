@@ -71,6 +71,17 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function existsByField(string $field, mixed $value): bool
+    {
+        return $this->model
+            ->newQuery()
+            ->where($field, $value)
+            ->exists();
+    }
+
+    /**
      * Crear un nuevo registro
      *
      * @param array $data Datos para crear el registro

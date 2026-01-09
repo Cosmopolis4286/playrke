@@ -137,12 +137,12 @@ async function handleOtherCases(action: string, encryptId: string, elem?: HTMLEl
             confirmButtonText: 'Sí, eliminar',
             method: 'DELETE',
         },
-        'change-status': {
+        'changeStatus': {
             routeName: 'changeStatus',
             ...getStatusChangeMessages(status, entityName),
             method: 'PUT',
         },
-        'reset-password': {
+        'resetPassword': {
             routeName: 'resetPassword',
             text: `¿Deseas generar una nueva contraseña para este ${entityName}?`,
             icon: 'warning',

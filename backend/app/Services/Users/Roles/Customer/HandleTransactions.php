@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\User\Roles\Customer;
+namespace App\Services\Users\Roles\Customer;
 
 use App\Traits\Games\Shared\SeamlessWallet;
 use Carbon\Carbon;

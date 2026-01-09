@@ -209,7 +209,7 @@
   /** Cambiar estado para uno o varios registros seleccionados */
   const handleChangeStatus = () =>
     handleCrudAction({
-      action: 'change-status',
+      action: 'changeStatus',
       selectionRequirement: 'any',
       logMessage: 'Ejecutando cambio de estado para IDs:'
     })
@@ -217,7 +217,7 @@
   /** Resetear contraseña para uno o varios registros seleccionados */
   const handleResetPassword = () =>
     handleCrudAction({
-      action: 'reset-password',
+      action: 'resetPassword',
       selectionRequirement: 'any',
       logMessage: 'Ejecutando reseteo de contraseña para IDs:'
     })

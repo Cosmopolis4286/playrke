@@ -14,30 +14,43 @@ import { route } from '@/routes/helper'
 function resolveCase(action: string, status?: string, entityName = 'registro'): OtherCase | null {
   const globalActions: Record<string, OtherCase> = {
     delete: {
-      routeName: 'destroy',
+      routeName: 'delete',
       text: `¿Deseas eliminar este ${entityName}?`,
-      icon: 'question' as SweetAlertIcon,
+      icon: 'question',
+      confirmButtonText: 'Sí, eliminar',
+      method: 'PUT'
+    },
+    destroy: {
+      routeName: 'destroy',
+      text: `¿Deseas eliminar este ${entityName}? Esta acción es irreversible.`,
+      icon: 'question',
       confirmButtonText: 'Sí, eliminar',
       method: 'DELETE'
     },
-    'change-status': {
+    changeStatus: {
       routeName: 'changeStatus',
       text: status
         ? `¿Deseas cambiar el estado a "${status}" de este ${entityName}?`
         : `¿Deseas cambiar el estado de este ${entityName}?`,
-      icon: 'question' as SweetAlertIcon,
+      icon: 'question',
       confirmButtonText: 'Sí, cambiar',
       method: 'PUT'
     },
-    'reset-password': {
+    resetPassword: {
       routeName: 'resetPassword',
       text: `¿Deseas generar una nueva contraseña para este ${entityName}?`,
-      icon: 'warning' as SweetAlertIcon,
+      icon: 'warning',
       confirmButtonText: 'Sí, generar',
       method: 'PUT'
     }
   }
-  return globalActions[action] || crud.otherCasesMap[action] || null
+
+  if (!globalActions[action] && !crud.otherCasesMap[action]) return null
+
+  return {
+    ...globalActions[action],
+    ...crud.otherCasesMap[action]
+  }
 }
 
 /**
@@ -161,7 +174,7 @@ async function handleResult(action: string, ids: string[], results: any[]): Prom
     showToast(successMessage, 'success')
   }
 
-  if (action !== 'reset-password') {
+  if (action !== 'resetPassword') {
     window.location.reload()
   }
 }
@@ -173,15 +186,17 @@ export async function handleOtherCases(action: string, encryptId: string, elem?:
   const entityName = crud.formTitleSuffix?.toLowerCase() || 'registro'
   const status = elem?.dataset?.status
 
-  console.log(
-    `Iniciando acción '${action}' para ${encryptId ? `ID: ${encryptId}` : 'IDs seleccionados'}`
-  )
-
   const caseData = resolveCase(action, status, entityName)
   if (!caseData) return console.error(`Acción no reconocida: ${action}`)
 
   const idsToProcess = resolveIds(encryptId, elem)
   if (idsToProcess.length === 0) return console.error('No hay IDs seleccionados para procesar')
+
+  if (!caseData.text) {
+    console.error('caseData sin text:', caseData)
+    showToast('Configuración inválida de la acción', 'error')
+    return
+  }
 
   const confirmText =
     idsToProcess.length > 1

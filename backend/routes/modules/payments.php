@@ -41,7 +41,7 @@ route_group('exchange-rate', 'exchange-rate.', [], ExchangeRateController::class
     'show' => ['method' => 'get', 'uri' => '{id}'],
     'update' => ['method' => 'put', 'uri' => '{id}'],
     'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-    'change-status' => ['method' => 'put', 'uri' => '{id}/status'],
+    'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
     'get-rates' => ['method' => 'get', 'uri' => 'rates'],
     'last-value' => ['method' => 'get', 'uri' => 'last-value/{currency}'],
     'historical' => ['method' => 'get', 'uri' => 'historical/{currency?}/{creatorType}/{creatorId}'],

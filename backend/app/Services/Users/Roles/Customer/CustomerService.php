@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\User\Roles\Customer;
+namespace App\Services\Users\Roles\Customer;
 
 use App\Models\Users\User;
 use App\Models\Wallets\Wallet;
@@ -21,7 +21,7 @@ use Carbon\Carbon;
  * - Obtención de información del cliente con sus relaciones
  * - Gestión de logos y archivos
  *
- * @package App\Services\User\Roles\Customer
+ * @package App\Services\Users\Roles\Customer
  */
 class CustomerService
 {

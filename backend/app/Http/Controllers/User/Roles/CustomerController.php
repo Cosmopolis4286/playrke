@@ -4,7 +4,7 @@ namespace App\Http\Controllers\User\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Roles\CustomerRequest;
-use App\Services\User\Roles\Customer\CustomerService;
+use App\Services\Users\Roles\Customer\CustomerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;

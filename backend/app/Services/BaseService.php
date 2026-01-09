@@ -2,20 +2,21 @@
 
 namespace App\Services;
 
-use App\Models\Users\User;
-use App\Models\Users\Shared\UniqueCode;
+use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 use InvalidArgumentException;
 use RuntimeException;
 
 abstract class BaseService
 {
-    /* =====================================================
-     | Validaciones
-     |=====================================================*/
+    /**
+     * Repositorio asociado al servicio.
+     */
+    protected BaseRepositoryContract $repository;
 
     /**
      * Estados válidos del sistema.
@@ -28,13 +29,17 @@ abstract class BaseService
     ];
 
     /**
-     * Validar estados permitidos.
-     *
-     * @param string $status
-     * @return void
-     *
-     * @throws InvalidArgumentException
+     * @param BaseRepositoryContract $repository
      */
+    public function __construct(BaseRepositoryContract $repository)
+    {
+        $this->repository = $repository;
+    }
+
+    /* =====================================================
+     | Validaciones
+     |=====================================================*/
+
     protected function assertValidStatus(string $status): void
     {
         if (!in_array($status, self::VALID_STATUSES, true)) {
@@ -43,86 +48,92 @@ abstract class BaseService
     }
 
     /* =====================================================
-     | Creación de usuarios y códigos
+     | Acciones comunes
      |=====================================================*/
 
     /**
-     * Crear usuario a partir de DTO.
+     * Soft delete dinámico con soporte para usuario relacionado.
      *
-     * @param object $dto Debe contener username, email, country, timeZone
-     * @param string $plainPassword
-     * @return User
+     * @param string|int|Model $model
+     * @param string|null $status Estado a aplicar (ej: DELETED)
+     * @param array $relationsToDetach Relaciones many-to-many a detach
+     * @param string|null $userRelation Relación belongsTo hacia User (ej: 'user')
      */
-    protected function createUserFromDTO(object $dto, string $plainPassword): User
-    {
-        return User::create([
-            'username'          => $dto->username,
-            'email'             => $dto->email,
-            'password'          => Hash::make($plainPassword),
-            'country_id'        => $dto->country,
-            'time_zone_id'      => $dto->timeZone,
-            'email_verified_at' => now(),
-            'referral_code'     => $this->generateUniqueReferralCode(),
-            'status'            => 'ACTIVE',
-        ]);
+    public function softDelete(
+        string|int|Model $model,
+        ?string $status = 'DELETED',
+        array $relationsToDetach = [],
+        ?string $userRelation = null
+    ): void {
+        DB::transaction(function () use ($model, $status, $relationsToDetach, $userRelation) {
+
+            /** @var Model $model */
+            $model = $model instanceof Model
+                ? $model
+                : $this->repository->findOrFail($model);
+
+            // Validar SoftDeletes en modelo principal
+            if (!in_array(SoftDeletes::class, class_uses_recursive($model), true)) {
+                throw new RuntimeException('El modelo no soporta SoftDeletes');
+            }
+
+            if ($model->trashed()) {
+                return;
+            }
+
+            /* ---------------------------------------------
+         | Actualizar status del modelo principal
+         ---------------------------------------------*/
+            if ($status !== null && isset($model->status)) {
+                $this->assertValidStatus($status);
+                $model->status = $status;
+                $model->save();
+            }
+
+            /* ---------------------------------------------
+         | Detach relaciones many-to-many
+         ---------------------------------------------*/
+            foreach ($relationsToDetach as $relation) {
+                if (method_exists($model, $relation)) {
+                    $model->$relation()->detach();
+                }
+            }
+
+            /* ---------------------------------------------
+         | Soft delete del usuario relacionado (opcional)
+         ---------------------------------------------*/
+            if ($userRelation && method_exists($model, $userRelation)) {
+                $model->loadMissing($userRelation);
+
+                $user = $model->$userRelation;
+
+                if ($user instanceof Model) {
+                    if (!in_array(SoftDeletes::class, class_uses_recursive($user), true)) {
+                        throw new RuntimeException('El usuario no soporta SoftDeletes');
+                    }
+
+                    if (!$user->trashed()) {
+                        if ($status !== null && isset($user->status)) {
+                            $user->status = $status;
+                            $user->save();
+                        }
+
+                        $user->delete();
+                    }
+                }
+            }
+
+            /* ---------------------------------------------
+         | Soft delete del modelo principal
+         ---------------------------------------------*/
+            $model->delete();
+        });
     }
 
     /**
-     * Crear código único asociado a un usuario.
-     *
-     * @param string $userId
-     * @return UniqueCode
+     * Cambio de estado genérico.
      */
-    protected function createUniqueCode(string $userId): UniqueCode
-    {
-        return UniqueCode::create([
-            'uuid_code' => (string) Str::uuid(),
-            'rke_code'  => $this->generateUniqueRkeCode(),
-            'user_id'   => $userId,
-        ]);
-    }
-
-    /**
-     * Generar RKE único.
-     *
-     * @return string
-     */
-    protected function generateUniqueRkeCode(): string
-    {
-        do {
-            $code = 'RKE' . strtoupper(Str::random(8));
-        } while (UniqueCode::existsRKECode($code));
-
-        return $code;
-    }
-
-    /**
-     * Generar código de referido único.
-     *
-     * @return string
-     */
-    protected function generateUniqueReferralCode(): string
-    {
-        do {
-            $code = strtoupper(Str::random(10));
-        } while (User::where('referral_code', $code)->exists());
-
-        return $code;
-    }
-
-    /* =====================================================
-     | Acciones comunes sobre modelos
-     |=====================================================*/
-
-    /**
-     * Cambiar estado de un modelo y su usuario asociado.
-     *
-     * @param Model $model Modelo con atributo status
-     * @param string|null $newStatus Si es null alterna ACTIVE/INACTIVE
-     * @param string $userRelation Relación BelongsTo con User
-     * @return void
-     */
-    protected function changeStatus(
+    public function changeStatus(
         Model $model,
         ?string $newStatus = null,
         string $userRelation = 'user'
@@ -134,44 +145,31 @@ abstract class BaseService
         DB::transaction(function () use ($model, $status, $userRelation) {
             $model->update(['status' => $status]);
 
-            if ($model->relationLoaded($userRelation) === false) {
-                $model->load($userRelation);
-            }
+            $model->loadMissing($userRelation);
 
-            $relation = $model->$userRelation;
-
-            if ($relation instanceof Model) {
-                $relation->update(['status' => $status]);
+            if ($model->$userRelation instanceof Model) {
+                $model->$userRelation->update(['status' => $status]);
             }
         });
     }
 
     /**
      * Resetear contraseña del usuario asociado.
-     *
-     * @param Model $model Modelo con relación user()
-     * @param int $length Longitud de la contraseña
-     * @param string $userRelation Relación BelongsTo con User
-     * @return string Contraseña en texto plano
      */
-    protected function resetPassword(
+    public function resetPassword(
         Model $model,
         int $length = 12,
         string $userRelation = 'user'
     ): string {
         $newPassword = Str::random($length);
 
-        if ($model->relationLoaded($userRelation) === false) {
-            $model->load($userRelation);
-        }
+        $model->loadMissing($userRelation);
 
-        $relation = $model->$userRelation;
-
-        if (!$relation instanceof Model) {
+        if (!$model->$userRelation instanceof Model) {
             throw new RuntimeException('Relación de usuario no encontrada');
         }
 
-        $relation->update([
+        $model->$userRelation->update([
             'password' => Hash::make($newPassword),
         ]);
 

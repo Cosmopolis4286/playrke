@@ -1,21 +1,24 @@
 <?php
 
-namespace App\Services\User\Roles\Commerce;
+namespace App\Services\Users\Roles\Commerce;
 
 use App\DTOs\User\Roles\CommerceDTO;
 use App\Models\Users\Roles\Commerce\Commerce;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
 use App\Repositories\Wallets\Contracts\WalletRepositoryContract;
+use App\Services\BaseService;
+use App\Services\Users\UserService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
-class CommerceService extends \App\Services\BaseService
+class CommerceService extends BaseService
 {
     public function __construct(
         protected UserRepositoryContract $userRepository,
         protected CommerceRepositoryContract $commerceRepository,
         protected WalletRepositoryContract $walletRepository,
+        protected UserService $userService,
     ) {}
 
     /**
@@ -39,11 +42,11 @@ class CommerceService extends \App\Services\BaseService
             $plainPassword = bin2hex(random_bytes(4));
 
             // 1. Crear usuario
-            $user = $this->createUserFromDTO($dto, $plainPassword);
+            $user = $this->userService->createUserFromDTO($dto, $plainPassword);
             $user->assignRole('commerce');
 
             // 2. Crear código único
-            $uniqueCode = $this->createUniqueCode($user->id);
+            $uniqueCode = $this->userService->createUniqueCode($user->id);
 
             // 3. Crear comercio
             $commerce = $this->commerceRepository->create([

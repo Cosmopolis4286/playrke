@@ -11,7 +11,7 @@ export const bingoAutomaticRoomRoutes = {
     "bingo.automatic.show": "/bingo-automatic-room/{id}",
     "bingo.automatic.create": "/bingo-automatic-room",
     "bingo.automatic.update": "/bingo-automatic-room/{id}",
-    "bingo.automatic.change-status": "/bingo-automatic-room/{id}/status",
+    "bingo.automatic.changeStatus": "/bingo-automatic-room/{id}/status",
     "bingo.automatic.destroy": "/bingo-automatic-room/{id}/delete",
     "bingo.automatic.copy": "/bingo-automatic-room/{id}/copy",
     "bingo.automatic.execute-job": "/bingo-automatic-room/execute-job/{creatorType}/{creatorId}"

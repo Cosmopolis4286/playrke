@@ -25,7 +25,7 @@
             </main>
 
             <!-- Modal para cambiar de contraseña -->
-            <ChangePasswordModal id="reset-password" title="Cambiar Contraseña" />
+            <ChangePasswordModal id="resetPassword" title="Cambiar Contraseña" />
 
             <!-- Pie de página -->
             <Footer />

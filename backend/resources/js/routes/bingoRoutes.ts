@@ -13,7 +13,7 @@ export const bingoRoutes = {
     "create": "/bingo/create",
     "update": "/bingo/update/{id}",
     "delete": "/bingo/delete/{id}",
-    "change-status": "/bingo/status/{id}",
+    "changeStatus": "/bingo/status/{id}",
     "replay": "/bingo/replay/{id}",
     "publish": "/bingo/publish/{id}",
     "refund": "/bingo/refund/{id}",

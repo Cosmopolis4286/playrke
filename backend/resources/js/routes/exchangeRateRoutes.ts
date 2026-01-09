@@ -13,7 +13,7 @@ export const exchangeRateRoutes = {
     "show": "/exchange-rate/{id}",
     "update": "/exchange-rate/{id}",
     "destroy": "/exchange-rate/{id}",
-    "change-status": "/exchange-rate/{id}/status",
+    "changeStatus": "/exchange-rate/{id}/status",
     "get-rates": "/exchange-rate/rates",
     "last-value": "/exchange-rate/last-value/{currency}",
     "historical": "/exchange-rate/historical/{currency?}/{creatorType}/{creatorId}"

@@ -1,4 +1,4 @@
-<form id="reset-password-form" action="{{ route('profile.resetPassword', ['id' => auth()->id()]) }}" method="POST">
+<form id="resetPassword-form" action="{{ route('profile.resetPassword', ['id' => auth()->id()]) }}" method="POST">
     @csrf
     @method('PATCH')
     <div class="row">

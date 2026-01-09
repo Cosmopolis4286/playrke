@@ -49,6 +49,15 @@ interface BaseRepositoryContract
     public function getValueById(string|int $id, string $field): mixed;
 
     /**
+     * Verificar existencia por campo dinámico.
+     *
+     * @param string $field
+     * @param mixed  $value
+     * @return bool
+     */
+    public function existsByField(string $field, mixed $value): bool;
+
+    /**
      * Crear un nuevo registro
      *
      * @param array $data Datos para crear el registro

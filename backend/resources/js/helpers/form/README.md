@@ -84,7 +84,7 @@ Orquestador principal de acciones CRUD.
 - 'create'        → Resetear form + insertInfo('create') + POST
 - 'edit'          → Resetear form + getInfo() + insertInfo('edit') + PUT
 - 'delete'        → handleOtherCases('delete')
-- 'change-status' → handleOtherCases('change-status')
+- 'changeStatus' → handleOtherCases('changeStatus')
 - custom          → handleOtherCases(action) desde otherCasesMap
 ```
 
@@ -202,9 +202,9 @@ Usuario selecciona fila → tableSelectionStore.encryptId = selectedId
     ↓
 Usuario click "Eliminar"
     ↓
-formCRUD(elem) detecta action='change-status' con data-status='DELETED'
+formCRUD(elem) detecta action='changeStatus' con data-status='DELETED'
     ↓
-handleOtherCases('change-status', encryptId, elem)
+handleOtherCases('changeStatus', encryptId, elem)
     ↓
 getStatusChangeMessages(status, entityName) → mensajes dinámicos
     ↓

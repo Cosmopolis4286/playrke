@@ -101,14 +101,14 @@ Route::middleware('auth')->group(function () {
             'action' => 'update',
         ],
         'delete' => [
-            'method' => 'delete',
-            'uri'    => '{id}',
-            'action' => 'softDelete',
+            'method' => 'put',
+            'uri'    => '{id}/delete',
+            'action' => 'delete',
         ],
         'destroy' => [
             'method' => 'delete',
             'uri'    => '{id}',
-            'action' => 'hardDelete',
+            'action' => 'destroy',
         ],
         'resetPassword' => [
             'method' => 'put',

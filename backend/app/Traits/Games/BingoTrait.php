@@ -35,7 +35,7 @@ use App\Models\Wallet;
 
 // Services
 use App\Services\Games\Bingo\HandleBingoRoomsService;
-use App\Services\User\Roles\Customer\HandleTransactions;
+use App\Services\Users\Roles\Customer\HandleTransactions;
 
 // Traits
 use App\Traits\Games\Shared\GameTrait;
@@ -786,7 +786,7 @@ trait BingoTrait
                 $creatorCommn = round(($saleAmount * $bingoConfig->room_commn) / 100, 3);
                 // Comision de PlayRKE
                 $rkeCommn = round(($saleAmount * $bingoConfig->rke_commn) / 100, 3);
-                // Restar al bote las comisiones 
+                // Restar al bote las comisiones
                 $prizePool = $saleAmount - $rkeCommn - $creatorCommn - $sellerSaleCommn;
             }
 
@@ -817,11 +817,11 @@ trait BingoTrait
 
     public function calculateCtnPrice($bingoCtnPrice, $setPrice = false, $exchangeRate = 1)
     {
-        // Calcular precio del carton en USDT 
+        // Calcular precio del carton en USDT
         $formattedPrice = round($exchangeRate * $bingoCtnPrice, 2);
 
         if ($setPrice) {
-            // Calcular precio del carton en USDT y redondear de acuerdo a la moneda 
+            // Calcular precio del carton en USDT y redondear de acuerdo a la moneda
             $formattedPrice = round($formattedPrice / $exchangeRate, 3);
 
             if (fmod($formattedPrice, 1) == 0) {
@@ -888,7 +888,7 @@ trait BingoTrait
                 return ['Error' => 'Error al generar cartones'];
             }
 
-            // Si no es modo offline y el creador es <> a un customer 
+            // Si no es modo offline y el creador es <> a un customer
             if ($gameMode != 2 && $creator['type'] !== 'customer') {
                 // Determinar la columna de saldo en función de la moneda
                 $columnBalance = $currency == 1 ? 'usdt' : 'balance';
@@ -1010,7 +1010,7 @@ trait BingoTrait
 
             if ($playersToUpdate && $recordsToInsert) {
 
-                // Actualizar el estado del jugador 
+                // Actualizar el estado del jugador
                 BingoRoomUser::where('room', $roomId)->where('winner', '0')
                     ->whereIn('id', $playersToUpdate)->update(['winner' => '1']);
 
@@ -1225,7 +1225,7 @@ trait BingoTrait
             ->select('id', 'creator_user_id', 'prize_pool', 'serial_prize', 'players')
             ->findOrFail($roomId);
 
-        // Validar si ya hay ganadores 
+        // Validar si ya hay ganadores
         if (BingoRoomUser::getWinnersCountByRoom($roomId)) return false;
 
         $prizePool = $room->prize_pool;
@@ -1545,7 +1545,7 @@ trait BingoTrait
             $bingoPattern = BingoRound::getValueByRoom($roomId, $round, 'bingo_pattern_id');
             $checkBoxes = BingoPatterns::getColumnsBoxesById($bingoPattern);
 
-            // Verificar las checkBoxes con respeto al sorteo (draw) de la ronda 
+            // Verificar las checkBoxes con respeto al sorteo (draw) de la ronda
             $lastId = BingoDraw::where('room', $roomId)->where('round', $round)
                 ->where('status', 3)->orderByDesc('id')->value('id');
 

@@ -27,7 +27,7 @@
             </section>
         </main>
         {{-- Modal para cambiar de contraseña --}}
-        <x-shared.modal id="reset-password" title="Cambiar Contraseña" :form-view="'components.form.reset-password-form'" />
+        <x-shared.modal id="resetPassword" title="Cambiar Contraseña" :form-view="'components.form.resetPassword-form'" />
         {{-- Pie de página --}}
         <x-template.footer />
     </div>

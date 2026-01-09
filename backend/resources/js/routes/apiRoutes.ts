@@ -12,7 +12,7 @@ export const apiRoutes = {
     "auth.login": "/api/auth/login",
     "auth.register": "/api/auth/register",
     "auth.forgot-password": "/api/auth/forgot-password",
-    "auth.reset-password": "/api/auth/reset-password",
+    "auth.resetPassword": "/api/auth/resetPassword",
     "ping": "/api/ping"
 } as const;
 

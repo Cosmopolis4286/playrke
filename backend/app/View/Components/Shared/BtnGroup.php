@@ -104,7 +104,7 @@ class BtnGroup extends Component
         $btn = is_array($button) ? (object) $button : $button;
 
         // Determinar si el botón debe deshabilitarse según selectedIds
-        if (in_array($btn->action, ['edit', 'delete', 'change-status'])) {
+        if (in_array($btn->action, ['edit', 'delete', 'changeStatus'])) {
             $btn->disabled = empty($this->selectedIds);
         }
 

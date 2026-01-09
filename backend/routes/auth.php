@@ -34,9 +34,9 @@ Route::middleware('guest')->group(function () {
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
 
     // Reset de contraseña (pantalla que recibe el token del correo)
-    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::get('resetPassword/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
     // Guardar nueva contraseña en base de datos
-    Route::post('reset-password', [NewPasswordController::class, 'store'])->name('password.store');
+    Route::post('resetPassword', [NewPasswordController::class, 'store'])->name('password.store');
 });
 
 /*

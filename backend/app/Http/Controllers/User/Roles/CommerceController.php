@@ -5,7 +5,7 @@ namespace App\Http\Controllers\User\Roles;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Roles\CommerceRequest;
 use App\Models\Users\Roles\Commerce\Commerce;
-use App\Services\User\Roles\Commerce\CommerceService;
+use App\Services\Users\Roles\Commerce\CommerceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,6 +82,27 @@ class CommerceController extends Controller
     }
 
     /**
+     * Eliminar comercio (soft delete)
+     * @param Commerce $commerce
+     * @return JsonResponse
+     */
+    public function delete(Commerce $commerce): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($commerce) {
+                $this->service->softDelete(
+                    $commerce,
+                    'DELETED',
+                    ['otherCurrencies', 'allowedGames'],
+                    'user'
+                );
+                return ['message' => '✅ Comercio eliminado correctamente'];
+            },
+            'No se pudo eliminar el comercio.'
+        );
+    }
+
+    /**
      * Eliminar comercio (hard delete)
      * @param Commerce $commerce
      * @return JsonResponse
@@ -90,7 +111,7 @@ class CommerceController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($commerce) {
-                $this->service->delete($commerce);
+                $this->service->hardDelete($commerce);
                 return ['message' => '✅ Comercio eliminado correctamente'];
             },
             'No se pudo eliminar el comercio.'
