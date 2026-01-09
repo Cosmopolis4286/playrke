@@ -100,10 +100,15 @@ Route::middleware('auth')->group(function () {
             'uri'    => '{id}',
             'action' => 'update',
         ],
+        'delete' => [
+            'method' => 'delete',
+            'uri'    => '{id}',
+            'action' => 'softDelete',
+        ],
         'destroy' => [
             'method' => 'delete',
             'uri'    => '{id}',
-            'action' => 'destroy',
+            'action' => 'hardDelete',
         ],
         'resetPassword' => [
             'method' => 'put',

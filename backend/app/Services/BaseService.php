@@ -4,13 +4,29 @@ namespace App\Services;
 
 use App\Models\Users\User;
 use App\Models\Users\Shared\UniqueCode;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use RuntimeException;
 
 abstract class BaseService
 {
+    /* =====================================================
+     | Validaciones
+     |=====================================================*/
+
+    /**
+     * Estados válidos del sistema.
+     */
+    protected const VALID_STATUSES = [
+        'ACTIVE',
+        'INACTIVE',
+        'BLOCKED',
+        'DELETED',
+    ];
+
     /**
      * Validar estados permitidos.
      *
@@ -21,25 +37,24 @@ abstract class BaseService
      */
     protected function assertValidStatus(string $status): void
     {
-        $validStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'];
-
-        if (!in_array($status, $validStatuses, true)) {
+        if (!in_array($status, self::VALID_STATUSES, true)) {
             throw new InvalidArgumentException("Estado inválido: {$status}");
         }
     }
 
+    /* =====================================================
+     | Creación de usuarios y códigos
+     |=====================================================*/
+
     /**
      * Crear usuario a partir de DTO.
      *
-     * @param object $dto Objeto con datos necesarios (debe tener username, email, country, timeZone)
+     * @param object $dto Debe contener username, email, country, timeZone
      * @param string $plainPassword
      * @return User
      */
     protected function createUserFromDTO(object $dto, string $plainPassword): User
     {
-        // Aquí se asume que existe un repositorio o método para crear usuarios,
-        // en este ejemplo se usa el modelo User directamente para simplificar.
-
         return User::create([
             'username'          => $dto->username,
             'email'             => $dto->email,
@@ -53,7 +68,7 @@ abstract class BaseService
     }
 
     /**
-     * Crear código único asociado al usuario.
+     * Crear código único asociado a un usuario.
      *
      * @param string $userId
      * @return UniqueCode
@@ -83,13 +98,11 @@ abstract class BaseService
 
     /**
      * Generar código de referido único.
-     * Puedes personalizar la lógica según tu necesidad.
      *
      * @return string
      */
     protected function generateUniqueReferralCode(): string
     {
-        // Ejemplo simple para generar código único alfanumérico
         do {
             $code = strtoupper(Str::random(10));
         } while (User::where('referral_code', $code)->exists());
@@ -97,52 +110,70 @@ abstract class BaseService
         return $code;
     }
 
+    /* =====================================================
+     | Acciones comunes sobre modelos
+     |=====================================================*/
 
     /**
-     * Cambiar estado del modelo y su usuario asociado.
+     * Cambiar estado de un modelo y su usuario asociado.
      *
-     * @param object $model Modelo que debe tener atributo status y relación user()
-     * @param string|null $newStatus Si es null alterna entre ACTIVE/INACTIVE
-     * @param string $userRelation Nombre de la relación con usuario, default 'user'
+     * @param Model $model Modelo con atributo status
+     * @param string|null $newStatus Si es null alterna ACTIVE/INACTIVE
+     * @param string $userRelation Relación BelongsTo con User
      * @return void
      */
-    public function changeStatus(object $model, ?string $newStatus = null, string $userRelation = 'user'): void
-    {
-        $currentStatus = $model->status;
-        $status = $newStatus ?? ($currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
+    protected function changeStatus(
+        Model $model,
+        ?string $newStatus = null,
+        string $userRelation = 'user'
+    ): void {
+        $status = $newStatus ?? ($model->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
 
         $this->assertValidStatus($status);
 
         DB::transaction(function () use ($model, $status, $userRelation) {
-            $model->loadMissing($userRelation);
-
             $model->update(['status' => $status]);
 
-            if ($model->$userRelation) {
-                $model->$userRelation->update(['status' => $status]);
+            if ($model->relationLoaded($userRelation) === false) {
+                $model->load($userRelation);
+            }
+
+            $relation = $model->$userRelation;
+
+            if ($relation instanceof Model) {
+                $relation->update(['status' => $status]);
             }
         });
     }
 
     /**
-     * Resetear contraseña del usuario asociado al modelo.
+     * Resetear contraseña del usuario asociado.
      *
-     * @param object $model Modelo que debe tener relación user()
-     * @param int $length Longitud de la nueva contraseña
-     * @param string $userRelation Nombre de la relación con usuario, default 'user'
-     * @return string Nueva contraseña en texto plano
+     * @param Model $model Modelo con relación user()
+     * @param int $length Longitud de la contraseña
+     * @param string $userRelation Relación BelongsTo con User
+     * @return string Contraseña en texto plano
      */
-    public function resetPassword(object $model, int $length = 12, string $userRelation = 'user'): string
-    {
+    protected function resetPassword(
+        Model $model,
+        int $length = 12,
+        string $userRelation = 'user'
+    ): string {
         $newPassword = Str::random($length);
 
-        $model->loadMissing($userRelation);
-
-        if ($model->$userRelation) {
-            $model->$userRelation->update([
-                'password' => Hash::make($newPassword),
-            ]);
+        if ($model->relationLoaded($userRelation) === false) {
+            $model->load($userRelation);
         }
+
+        $relation = $model->$userRelation;
+
+        if (!$relation instanceof Model) {
+            throw new RuntimeException('Relación de usuario no encontrada');
+        }
+
+        $relation->update([
+            'password' => Hash::make($newPassword),
+        ]);
 
         return $newPassword;
     }

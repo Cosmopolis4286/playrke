@@ -188,13 +188,14 @@ class CommerceService extends \App\Services\BaseService
 
     /**
      * Eliminación física del comercio (hard delete).
+     * @param Commerce $commerce
+     * @return void
      */
     public function hardDelete(Commerce $commerce): void
     {
         DB::transaction(function () use ($commerce) {
 
-            // Cargar relaciones necesarias solo una vez
-            $commerce->loadMissing(['otherCurrencies', 'allowedGames']);
+            $commerce->loadMissing(['otherCurrencies', 'allowedGames', 'user']);
 
             if ($commerce->status === 'DELETED') {
                 throw new RuntimeException('El comercio ya está eliminado');
@@ -204,15 +205,25 @@ class CommerceService extends \App\Services\BaseService
             $commerce->otherCurrencies()->detach();
             $commerce->allowedGames()->detach();
 
-            // ID de usuario
-            $userId = $commerce->user_id;
+            // Eliminar wallets del usuario
+            $this->walletRepository->deleteByUserId($commerce->user_id);
 
-            // Eliminar dependencias
-            $this->walletRepository->deleteByUserId($userId);
+            // Hard delete del comercio (eliminación física)
+            $commerce->forceDelete();
 
-            // Eliminación física
-            $this->commerceRepository->delete($userId);
-            $this->userRepository->delete($userId);
+            // Verificar que el usuario no tenga otros comercios activos (sin contar los eliminados físicamente)
+            $activeCommercesCount = \App\Models\Users\Roles\Commerce\Commerce::where('user_id', $commerce->user_id)
+                ->where('id', '<>', $commerce->id)
+                ->where('status', '!=', 'DELETED')
+                ->count();
+
+            if ($activeCommercesCount === 0) {
+                // Hard delete forzado del usuario
+                $user = $commerce->user;
+                if ($user) {
+                    $user->forceDelete();
+                }
+            }
         });
     }
 }
