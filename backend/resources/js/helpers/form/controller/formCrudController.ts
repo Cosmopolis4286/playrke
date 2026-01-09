@@ -1,10 +1,10 @@
 // backend/resources/js/helpers/form/controller/formCrudController.ts
 
-import { copyInfo } from '@/utils/copyInfo';
-import { submitForm } from '../services/formSubmitService';
-import { formCrudState as crud } from '../state/formCrudState';
-import { executeCrud } from '../services/crudExecutor';
-import type { TableCrudEventDetail } from '@/helpers/table/types';
+import { copyInfo } from '@/utils/copyInfo'
+import { submitForm } from '../services/formSubmitService'
+import { formCrudState as crud } from '../state/formCrudState'
+import { executeCrud } from '../services/crudExecutor'
+import type { TableCrudEventDetail } from '@/helpers/table/types'
 
 /**
  * Controlador central de eventos CRUD.
@@ -17,18 +17,18 @@ import type { TableCrudEventDetail } from '@/helpers/table/types';
  * ❌ No inicializa módulos
  * ❌ No maneja estado de negocio
  */
-let initialized = false;
+let initialized = false
 
 export function initFormCrudController(): void {
-    if (initialized) return;
-    initialized = true;
+  if (initialized) return
+  initialized = true
 
-    document.addEventListener('click', handleCrudClick);
-    window.addEventListener('table:crud', handleCrudCustomEvent);
+  document.addEventListener('click', handleCrudClick)
+  window.addEventListener('table:crud', handleCrudCustomEvent)
 
-    if (import.meta.env.DEV) {
-        console.info('[FormCrudController] inicializado');
-    }
+  if (import.meta.env.DEV) {
+    console.info('[FormCrudController] inicializado')
+  }
 }
 
 /**
@@ -38,35 +38,35 @@ export function initFormCrudController(): void {
  * @param e - MouseEvent del DOM
  */
 async function handleCrudClick(e: MouseEvent): Promise<void> {
-    const target = e.target as HTMLElement | null;
-    if (!target) return;
+  const target = e.target as HTMLElement | null
+  if (!target) return
 
-    /* ───────── Acciones rápidas ───────── */
+  /* ───────── Acciones rápidas ───────── */
 
-    if (target.closest('#btn-confirm')) {
-        if (!crud.moduleId) return;
-        submitForm(crud.moduleId);
-        return;
-    }
+  if (target.closest('#btn-confirm')) {
+    if (!crud.moduleId) return
+    submitForm(crud.moduleId)
+    return
+  }
 
-    if (target.closest('#btn-copy')) {
-        copyInfo('Contraseña copiada');
-        return;
-    }
+  if (target.closest('#btn-copy')) {
+    copyInfo('Contraseña copiada')
+    return
+  }
 
-    if (target.closest('.popover-dismiss')) {
-        $(target).popover('toggle');
-        return;
-    }
+  if (target.closest('.popover-dismiss')) {
+    $(target).popover('toggle')
+    return
+  }
 
-    /* ───────── Acciones CRUD ───────── */
+  /* ───────── Acciones CRUD ───────── */
 
-    if (!crud.moduleId) return;
+  if (!crud.moduleId) return
 
-    const btn = target.closest<HTMLElement>('[data-action]');
-    if (!btn) return;
+  const btn = target.closest<HTMLElement>('[data-action]')
+  if (!btn) return
 
-    await executeCrud(btn.dataset.action || '', btn.dataset.encryptId);
+  await executeCrud(btn.dataset.action || '', btn.dataset.encryptId)
 }
 
 /**
@@ -79,11 +79,12 @@ async function handleCrudClick(e: MouseEvent): Promise<void> {
  * @param e - Evento CustomEvent
  */
 function handleCrudCustomEvent(event: Event): void {
-    const ev = event as CustomEvent<TableCrudEventDetail>;
-    if (!ev.detail) return;
+  alert('llega al controller')
 
-    const { action, encryptId } = ev.detail;
+  const ev = event as CustomEvent<TableCrudEventDetail>
+  if (!ev.detail) return
 
-    executeCrud(action, encryptId);
+  const { action, encryptId } = ev.detail
+
+  executeCrud(action, encryptId)
 }
-

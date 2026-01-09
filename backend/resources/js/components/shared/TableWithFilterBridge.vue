@@ -1,72 +1,78 @@
 <template>
-    <TableWithFilter :table-id="tableId" :title="title" :columns="parsedColumns" :rows="parsedRows"
-        :filters="parsedFilters" :search-placeholder="searchPlaceholder" :debounce-delay="debounceDelay"
-        :empty-message="emptyMessage" :show-create-button="showCreateButton" :show-edit-button="showEditButton"
-        :show-delete-button="showDeleteButton" @create="handleCreate" @edit="handleEdit" @delete="handleDelete"
-        @selection-change="handleSelectionChange">
-        <!-- Reenvío de todos los slots recibidos -->
-        <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">
-            <slot :name="name" v-bind="slotData" />
-        </template>
+  <TableWithFilter
+    :table-id="tableId"
+    :title="title"
+    :columns="parsedColumns"
+    :rows="parsedRows"
+    :filters="parsedFilters"
+    :search-placeholder="searchPlaceholder"
+    :debounce-delay="debounceDelay"
+    :empty-message="emptyMessage"
+    :show-create-button="showCreateButton"
+    :show-edit-button="showEditButton"
+    :show-delete-button="showDeleteButton"
+    @create="handleCreate"
+    @edit="handleEdit"
+    @delete="handleDelete"
+    @selection-change="handleSelectionChange"
+  >
+    <!-- Reenvío de todos los slots recibidos -->
+    <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">
+      <slot :name="name" v-bind="slotData" />
+    </template>
 
-        <!-- Botones adicionales a la derecha del eliminar -->
-        <template #action-buttons="{ selectedIds }">
-            <button v-for="(btn, i) in visibleExtraButtons" :key="i"
-                :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
-                :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
-                @click="btn.onClick"
-                type="button">
-                <i v-if="btn.icon" :class="btn.icon"></i>
-                {{ btn.label }}
-            </button>
-        </template>
-    </TableWithFilter>
+    <!-- Botones adicionales a la derecha del eliminar -->
+    <template #action-buttons="{ selectedIds }">
+      <button
+        v-for="(btn, i) in visibleExtraButtons"
+        :key="i"
+        :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
+        :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
+        @click="() => btn.onClick(selectedIds)"
+        type="button"
+      >
+        <i v-if="btn.icon" :class="btn.icon"></i>
+        {{ btn.label }}
+      </button>
+    </template>
+  </TableWithFilter>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import TableWithFilter from './TableWithFilter.vue'
+  import { computed, ref } from 'vue'
+  import TableWithFilter from './TableWithFilter.vue'
 
-/**
- * Define la estructura de un botón extra que se muestra
- * junto a los botones estándar en la tabla.
- */
-interface ExtraButton {
+  /**
+   * Estructura para los botones extra que se muestran en la tabla.
+   */
+  interface ExtraButton {
     /** Texto visible en el botón */
     label: string
-
-    /** Clases de ícono FontAwesome u otra librería */
+    /** Clases CSS para ícono (FontAwesome, etc.) */
     icon?: string
-
-    /** Clases CSS para el botón (ej: 'btn-info', 'btn-danger') */
+    /** Clases CSS para el botón (ej: 'btn-info') */
     class?: string
-
     /**
      * Controla si el botón se muestra.
-     * Puede ser booleano o función que recibe los IDs seleccionados.
+     * Puede ser booleano o función que recibe IDs seleccionados.
      */
     show?: boolean | ((selectedIds: string[]) => boolean)
-
     /**
-     * Determina si el botón está deshabilitado.
-     * Recibe los IDs seleccionados, retorna true para deshabilitar.
+     * Controla si el botón está deshabilitado.
+     * Recibe IDs seleccionados y retorna booleano.
      */
     disabled?: (selectedIds: string[]) => boolean
-
-    /** Acción asociada al botón (usada para asignar handler) */
+    /** Nombre de la acción que realizará el botón */
     action?: string
-
     /**
      * Función que se ejecuta al hacer click en el botón.
      * Recibe los IDs seleccionados.
      */
-    onClick: (selectedIds: string[]) => void;  // Asegúrate que acepta el array
-}
+    onClick: (selectedIds: string[]) => void
+  }
 
-/**
- * Props recibidas desde Blade o sistema legacy.
- */
-const props = defineProps({
+  /** Props recibidas desde el componente padre */
+  const props = defineProps({
     tableId: { type: String, required: true },
     title: { type: String, required: true },
     columns: { type: [Array, String], required: true },
@@ -80,180 +86,217 @@ const props = defineProps({
     showDeleteButton: { type: Boolean, default: true },
     moduleId: { type: String, default: '' },
     context: { type: String, default: '' },
-
-    /** Botones adicionales a mostrar al lado de acciones estándar */
     extraButtons: {
-        type: Array as () => ExtraButton[],
-        default: () => []
+      type: Array as () => ExtraButton[],
+      default: () => []
     }
-})
+  })
 
-/** Estado reactivo para los IDs seleccionados */
-const selectedIds = ref<string[]>([])
+  /** IDs seleccionados actualmente en la tabla */
+  const selectedIds = ref<string[]>([])
 
-/** Computed para parsear columnas, filas y filtros si vienen como JSON string */
-const parsedColumns = computed(() =>
+  /** Computed para parsear columnas, filas y filtros si vienen como JSON string */
+  const parsedColumns = computed(() =>
     typeof props.columns === 'string' ? JSON.parse(props.columns) : props.columns
-)
-const parsedRows = computed(() =>
+  )
+  const parsedRows = computed(() =>
     typeof props.rows === 'string' ? JSON.parse(props.rows) : props.rows
-)
-const parsedFilters = computed(() =>
+  )
+  const parsedFilters = computed(() =>
     typeof props.filters === 'string' ? JSON.parse(props.filters) : props.filters
-)
+  )
 
-/**
- * Computed que asigna funciones `onClick` reales a cada botón extra,
- * basándose en la propiedad `action` enviada desde backend.
- *
- * Si no encuentra handler para un botón, asigna función que emite warning.
- *
- * @returns {Array<ExtraButton>} Array de botones con función onClick asignada.
- */
-const extraButtonsWithHandlers = computed(() => {
+  /**
+   * Tipos de requisitos para cantidad de selección en acciones CRUD.
+   * - 'any': acepta cualquier cantidad (incluso 0, salvo 'create')
+   * - 'single': solo 1 seleccionado
+   * - 'multiple': 2 o más seleccionados
+   */
+  type SelectionRequirement = 'any' | 'single' | 'multiple'
+
+  /**
+   * Opciones para la función handleCrudAction.
+   */
+  interface CrudActionOptions {
+    /** Nombre de la acción a emitir en el evento */
+    action: string
+    /** Requisito de selección para la acción (default 'any') */
+    selectionRequirement?: SelectionRequirement
+    /**
+     * Función previa al emit, puede cancelar la acción
+     * Retorna false para cancelar emisión
+     */
+    onBeforeEmit?: (ids: string[]) => boolean
+    /** Mensaje de log opcional para consola */
+    logMessage?: string
+    /** IDs sobre los que operar (por defecto usa selectedIds.value) */
+    ids?: string[]
+  }
+
+  /**
+   * Emite evento 'table:crud' con la acción y IDs dados.
+   * @param action Acción (string) para enviar
+   * @param ids Array de IDs seleccionados (default: selectedIds.value)
+   */
+  function emitTableCrudEvent(action: string, ids: string[] = selectedIds.value) {
+    const encryptId = ids.length === 1 ? ids[0] : ''
+    window.dispatchEvent(
+      new CustomEvent('table:crud', {
+        detail: {
+          action,
+          moduleId: props.moduleId,
+          tableId: props.tableId,
+          encryptId,
+          context: props.context
+        }
+      })
+    )
+  }
+
+  /**
+   * Handler genérico para acciones CRUD con validación de selección,
+   * logging y posibilidad de cancelar antes de emitir el evento.
+   *
+   * @param options Configuración de la acción
+   */
+  function handleCrudAction({
+    action,
+    selectionRequirement = 'any',
+    onBeforeEmit,
+    logMessage,
+    ids = selectedIds.value
+  }: CrudActionOptions) {
+    const count = ids.length
+
+    // Validar cantidad de IDs según requisito
+    if (
+      (selectionRequirement === 'single' && count !== 1) ||
+      (selectionRequirement === 'multiple' && count < 2) ||
+      (selectionRequirement === 'any' && count === 0 && action !== 'create')
+    ) {
+      console.warn(
+        `La acción '${action}' requiere selección ${selectionRequirement}, pero hay ${count} seleccionados.`
+      )
+      return
+    }
+
+    // Log si está definido
+    if (logMessage) {
+      console.log(logMessage, ids)
+    }
+
+    // Ejecutar función previa a emitir, cancelar si retorna false
+    if (onBeforeEmit && !onBeforeEmit(ids)) {
+      console.log(`Acción '${action}' cancelada por onBeforeEmit.`)
+      return
+    }
+
+    // Emitir evento con acción e IDs
+    emitTableCrudEvent(action, ids)
+  }
+
+  /** Handlers estándar para botones CRUD, usando el handler genérico */
+
+  /** Crear nuevo registro (sin IDs) */
+  const handleCreate = () => emitTableCrudEvent('create')
+
+  /** Editar registro seleccionado (debe haber uno solo) */
+  const handleEdit = () => handleCrudAction({ action: 'edit', selectionRequirement: 'single' })
+
+  /** Eliminar uno o varios registros seleccionados */
+  const handleDelete = () => handleCrudAction({ action: 'delete', selectionRequirement: 'any' })
+
+  /** Cambiar estado para uno o varios registros seleccionados */
+  const handleChangeStatus = () =>
+    handleCrudAction({
+      action: 'change-status',
+      selectionRequirement: 'any',
+      logMessage: 'Ejecutando cambio de estado para IDs:'
+    })
+
+  /** Resetear contraseña para uno o varios registros seleccionados */
+  const handleResetPassword = () =>
+    handleCrudAction({
+      action: 'reset-password',
+      selectionRequirement: 'any',
+      logMessage: 'Ejecutando reseteo de contraseña para IDs:'
+    })
+
+  /**
+   * Extrae los botones extras y asigna el método onClick
+   * adecuado, basado en la propiedad 'action' del botón.
+   */
+  const extraButtonsWithHandlers = computed(() => {
     return props.extraButtons.map(btn => {
-
-        let onClickFn = () => {
+      /**
+       * Función ejecutada al click, recibe IDs seleccionados.
+       * Usa el handler genérico para validar y emitir eventos.
+       */
+      const onClick = (ids: string[]) => {
+        switch (btn.action) {
+          case 'changeStatus':
+            handleCrudAction({
+              action: 'change-status',
+              selectionRequirement: 'any',
+              logMessage: 'Ejecutando cambio de estado para IDs:',
+              ids
+            })
+            break
+          case 'resetPassword':
+            handleCrudAction({
+              action: 'reset-password',
+              selectionRequirement: 'any',
+              logMessage: 'Ejecutando reseteo de contraseña para IDs:',
+              ids
+            })
+            break
+          default:
             console.warn(`No handler definido para el botón '${btn.label}'`)
         }
+      }
 
-        switch (btn.action) {
-            case 'changeStatus':
-                onClickFn = handleChangeStatus
-                break
-            case 'resetPassword':
-                onClickFn = handleResetPassword
-                break
-        }
-
-        return {
-            ...btn,
-            onClick: onClickFn
-        }
+      return {
+        ...btn,
+        onClick
+      }
     })
-})
+  })
 
-/**
- * Computed que filtra y retorna solo los botones que deben mostrarse.
- * - `show` puede ser booleano o función que recibe IDs seleccionados.
- * - Si `show` es false, el botón se muestra solo si hay selección activa.
- *
- * @returns {Array<ExtraButton>} Botones visibles con función onClick asignada.
- */
-const visibleExtraButtons = computed(() =>
+  /**
+   * Filtra y retorna solo los botones extras visibles según
+   * el valor booleano o función `show`.
+   */
+  const visibleExtraButtons = computed(() =>
     extraButtonsWithHandlers.value.filter(btn => {
-        if (!btn) return false
-
-        if (btn.show === undefined) return true
-
-        if (typeof btn.show === 'function') return btn.show(selectedIds.value)
-
-        if (btn.show === false) return selectedIds.value.length > 0
-
-        return !!btn.show
+      if (!btn) return false
+      if (btn.show === undefined) return true
+      if (typeof btn.show === 'function') return btn.show(selectedIds.value)
+      if (btn.show === false) return selectedIds.value.length > 0
+      return !!btn.show
     })
-)
+  )
 
-/**
- * Actualiza el estado local cuando cambia la selección
- * y emite evento global para otros subsistemas.
- * @param ids IDs seleccionados actualmente
- */
-const handleSelectionChange = (ids: string[]): void => {
+  /**
+   * Actualiza el array reactivo de IDs seleccionados
+   * y emite evento global para sincronizar subsistemas.
+   * @param ids IDs seleccionados actualmente
+   */
+  const handleSelectionChange = (ids: string[]): void => {
     selectedIds.value = [...ids]
-
     if (import.meta.env.DEV) {
-        console.log('🔁 table-selection-updated', {
-            tableId: props.tableId,
-            selectedIds: selectedIds.value
-        })
+      console.log('🔁 table-selection-updated', {
+        tableId: props.tableId,
+        selectedIds: selectedIds.value
+      })
     }
-
     window.dispatchEvent(
-        new CustomEvent('table-selection-updated', {
-            detail: {
-                tableId: props.tableId,
-                selectedIds: [...selectedIds.value],
-                context: props.context
-            }
-        })
+      new CustomEvent('table-selection-updated', {
+        detail: {
+          tableId: props.tableId,
+          selectedIds: [...selectedIds.value],
+          context: props.context
+        }
+      })
     )
-}
-
-/**
- * Emite evento global para crear un nuevo registro.
- */
-const handleCreate = (): void => {
-    window.dispatchEvent(
-        new CustomEvent('table:crud', {
-            detail: {
-                action: 'create',
-                moduleId: props.moduleId,
-                tableId: props.tableId,
-                context: props.context
-            }
-        })
-    )
-}
-
-/**
- * Emite evento global para editar el registro seleccionado.
- * Solo si hay exactamente un registro seleccionado.
- */
-const handleEdit = (): void => {
-    if (selectedIds.value.length !== 1) return
-
-    window.dispatchEvent(
-        new CustomEvent('table:crud', {
-            detail: {
-                action: 'edit',
-                moduleId: props.moduleId,
-                tableId: props.tableId,
-                encryptId: selectedIds.value[0],
-                context: props.context
-            }
-        })
-    )
-}
-
-/**
- * Emite evento global para eliminar registros seleccionados.
- * Si hay uno solo, se envía su ID, si hay varios, se envía cadena vacía.
- */
-const handleDelete = (): void => {
-    if (selectedIds.value.length === 0) return
-
-    window.dispatchEvent(
-        new CustomEvent('table:crud', {
-            detail: {
-                action: 'delete',
-                moduleId: props.moduleId,
-                tableId: props.tableId,
-                encryptId: selectedIds.value.length === 1 ? selectedIds.value[0] : '',
-                context: props.context
-            }
-        })
-    )
-}
-
-/**
- * Handler para cambiar el status de los registros seleccionados.
- * @param {string[]} selectedIds IDs seleccionados en la tabla
- * @returns {void}
- */
-const handleChangeStatus = (): void => {
-    console.log('Cambiar status para IDs:', selectedIds.value)
-    // Aquí la lógica real para cambiar status...
-}
-
-/**
- * Handler para resetear la contraseña de los registros seleccionados.
- * @param {string[]} selectedIds IDs seleccionados en la tabla
- * @returns {void}
- */
-const handleResetPassword = (): void => {
-    console.log('Resetear contraseña para IDs:', selectedIds)
-    // Aquí la lógica real para resetear contraseña...
-}
-
+  }
 </script>
