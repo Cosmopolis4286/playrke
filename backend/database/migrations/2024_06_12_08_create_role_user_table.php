@@ -13,48 +13,47 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('role_user', function (Blueprint $table) {
-            // -----------------------------
-            // Relaciones principales
-            // -----------------------------
+
             $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete()
-                ->comment('ID del usuario');
+                ->cascadeOnDelete();
 
             $table->foreignSnowflake('role_id')
                 ->constrained('roles')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete()
-                ->comment('ID del rol');
+                ->cascadeOnDelete();
 
-            // -----------------------------
-            // Auditoría
-            // -----------------------------
             $table->foreignSnowflake('assigned_by')
                 ->nullable()
                 ->constrained('users')
                 ->cascadeOnUpdate()
-                ->nullOnDelete()
-                ->comment('ID del usuario que asignó este rol');
+                ->nullOnDelete();
 
-            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+            $table->boolean('is_active')
+                ->default(true)
+                ->index();
 
-            // -----------------------------
-            // Expiración y control
-            // -----------------------------
-            $table->timestamp('assigned_at')->useCurrent()->comment('Fecha y hora de asignación');
-            $table->timestamp('expires_at')->nullable()->comment('Fecha de expiración del rol');
+            $table->timestamp('assigned_at')
+                ->useCurrent();
 
-            // -----------------------------
-            // Timestamps automáticos
-            // -----------------------------
+            $table->timestamp('expires_at')
+                ->nullable()
+                ->index();
+
             $table->timestamps();
 
-            // -----------------------------
-            // Clave única
-            // -----------------------------
             $table->unique(['user_id', 'role_id'], 'role_user_unique');
+
+            $table->index(
+                ['user_id', 'is_active', 'expires_at'],
+                'role_user_active_idx'
+            );
+
+            $table->index(
+                ['role_id', 'is_active'],
+                'role_user_role_active_idx'
+            );
         });
     }
 

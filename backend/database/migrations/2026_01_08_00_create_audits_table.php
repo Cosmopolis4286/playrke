@@ -6,27 +6,50 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateAuditsTable extends Migration
 {
-    public function up()
+    public function up(): void
     {
         Schema::create('audits', function (Blueprint $table) {
+
             $table->id();
+
+            // Actor humano (nullable para seeders / jobs / system)
             $table->foreignSnowflake('user_id')
-                ->constrained()
-                ->cascadeOnUpdate()
-                ->restrictOnDelete();
-            $table->string('auditable_type');
-            $table->unsignedBigInteger('auditable_id');
-            $table->string('event');
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete()
+                ->cascadeOnUpdate();
+
+            // Origen de la acción
+            $table->string('actor_type', 20)
+                ->default('system')
+                ->index();
+            // system | user | job | command | webhook
+
+            // Entidad auditada (polimórfica)
+            // morphs() YA crea índice compuesto (auditable_type, auditable_id)
+            $table->morphs('auditable');
+
+            // Evento auditado
+            $table->string('event', 30)->index();
+            // created | updated | deleted | restored | force_deleted
+
+            // Cambios
             $table->json('old_values')->nullable();
             $table->json('new_values')->nullable();
+
+            // Contexto
             $table->string('url')->nullable();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
+
             $table->timestamps();
+
+            // Índice compuesto útil (NO duplicado)
+            $table->index(['actor_type', 'event']);
         });
     }
 
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('audits');
     }

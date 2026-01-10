@@ -40,10 +40,8 @@ class ExchangeRateController extends Controller
      */
     public function index(Request $request)
     {
-        $this->getExchangeRates(true);
-
         if (Auth::check()) {
-            $user    = Auth::user();
+            $user = Auth::user();
             $isLogin = true;
         } else {
             // Inyectado por PublicTokenMiddleware
@@ -55,6 +53,9 @@ class ExchangeRateController extends Controller
 
             $isLogin = false;
         }
+
+        // Actualizar las tasas de cambio
+        app(ExchangeRateService::class)->updateRates(Auth::id(), true);
 
         $commerce = $user->commerce;
 
@@ -105,7 +106,6 @@ class ExchangeRateController extends Controller
             'exchangeRates' => $exchangeRates,
         ]);
     }
-
 
     // public function index($creatorType, $creatorId = '')
     // {
@@ -465,16 +465,32 @@ class ExchangeRateController extends Controller
         return view('modules.all.exchange-rate.historical')->with($viewData);
     }
 
-    public function getExchangeRates($checkUpdate = false)
+    /**
+     * Actualiza las tasas de cambio desde el servicio ExchangeRateService
+     * @param bool $checkUpdate Indica si se debe verificar si las tasas ya están actualizadas
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getExchangeRates(Request $request): \Illuminate\Http\JsonResponse
     {
-        $res = app(ExchangeRateService::class)->updateRates(Auth::id(), $checkUpdate);
+        try {
+            // Llamar al servicio para actualizar las tasas de cambio
+            app(ExchangeRateService::class)
+                ->updateRates(Auth::id(), $request->boolean('checkUpdate'));
 
-        if ($checkUpdate) return;
-
-        if (isset($res['Error'])) {
-            return response()->json(['type' => 'warning', 'message' => 'Ha ocurrido un error']);
-        } else {
-            return response()->json(['type' => 'success', 'message' => 'Proceso exitoso']);
+            return response()->json([
+                'type' => 'success',
+                'message' => 'Proceso exitoso'
+            ]);
+        } catch (\DomainException $e) {
+            return response()->json([
+                'type' => 'warning',
+                'message' => $e->getMessage()
+            ], 422);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Ha ocurrido un error inesperado'
+            ], 500);
         }
     }
 }

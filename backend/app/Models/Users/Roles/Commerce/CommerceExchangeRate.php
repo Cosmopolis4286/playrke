@@ -4,16 +4,17 @@ namespace App\Models\Users\Roles\Commerce;
 
 use App\Models\Currencies\Currency;
 use App\Models\Users\Roles\Commerce\Commerce;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Modelo para tasas de cambio de comercios
  */
-class CommerceExchangeRate extends Model
+class CommerceExchangeRate extends Pivot
 {
-    use SnowflakeId;
+    public $incrementing = false;
+    protected $primaryKey = null;
+    protected $keyType = 'string';
 
     protected $table = 'commerces_exchange_rates';
 
@@ -26,6 +27,8 @@ class CommerceExchangeRate extends Model
     ];
 
     protected $casts = [
+        'commerce_id' => 'string',
+        'currency_id' => 'string',
         'exchange_rate' => 'decimal:4',
         'percentage' => 'float'
     ];

@@ -32,6 +32,15 @@ interface RoleUserRepositoryContract extends BaseRepositoryContract
     public function getByRole(string $roleId): Collection;
 
     /**
+     * Verifica si un usuario tiene un rol activo por prefijo.
+     *
+     * @param string $userId
+     * @param string $prefix Ej: admin, commerce, seller, customer
+     * @return bool
+     */
+    public function userHasRolePrefix(string $userId, string $prefix): bool;
+
+    /**
      * Obtiene las asignaciones activas de un usuario.
      *
      * @param string $userId ID del usuario

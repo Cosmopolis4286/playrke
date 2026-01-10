@@ -48,6 +48,23 @@ class RoleUserRepository extends BaseRepository implements RoleUserRepositoryCon
     /**
      * {@inheritDoc}
      */
+    public function userHasRolePrefix(string $userId, string $prefix): bool
+    {
+        return $this->model
+            ->where('user_id', $userId)
+            ->whereHas('role', function ($query) use ($prefix) {
+                $query->where('prefix', $prefix);
+            })
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', Carbon::now());
+            })
+            ->exists();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function getActiveByUser(string $userId): Collection
     {
         return $this->model->where('user_id', $userId)
