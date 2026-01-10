@@ -1,94 +1,154 @@
 // helpers/form/formHelpers.ts
-import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form/fieldValidation';
 
 /**
  * Llena un formulario con valores de un objeto,
  * mapeando IDs con "-" a propiedades con "_".
+ * Permite override explícito usando data-bind.
+ *
+ * Soporta:
+ * - input (text, number, date, checkbox, radio)
+ * - textarea
+ * - select (single y multiple)
  *
  * @param data - Objeto con los datos (ej: commerce)
  * @param root - Elemento raíz del formulario (opcional)
  */
-export function fillFormFromObject<T extends Record<string, any>>(data: T, root: HTMLElement | Document = document) {
-    root.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[id]').forEach(input => {
-        const domId = input.id;
-        const prop = domId.replace(/-/g, '_'); // cambia "-" → "_"
+export function fillFormFromObject<T extends Record<string, unknown>>(
+  data: T,
+  root: HTMLElement | Document = document
+): void {
+  root
+    .querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[id]')
+    .forEach(el => {
+      const prop = el.dataset.bind ?? el.id.replace(/-/g, '_')
 
-        if (prop in data) {
-            const value = data[prop] ?? '';
-            if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
-                input.value = value;
-            } else if (input instanceof HTMLSelectElement) {
-                input.value = value.toString();
-            }
+      if (!(prop in data)) return
+
+      const value = data[prop]
+
+      // ======================
+      // INPUT
+      // ======================
+      if (el instanceof HTMLInputElement) {
+        switch (el.type) {
+          case 'checkbox':
+            el.checked = Boolean(value)
+            break
+
+          case 'radio':
+            el.checked = el.value === String(value)
+            break
+
+          default:
+            el.value = value != null ? String(value) : ''
         }
-    });
+        return
+      }
+
+      // ======================
+      // TEXTAREA
+      // ======================
+      if (el instanceof HTMLTextAreaElement) {
+        el.value = value != null ? String(value) : ''
+        return
+      }
+
+      // ======================
+      // SELECT
+      // ======================
+      if (el instanceof HTMLSelectElement) {
+        if (el.multiple && Array.isArray(value)) {
+          Array.from(el.options).forEach(option => {
+            option.selected = value.includes(option.value)
+          })
+        } else {
+          el.value = value != null ? String(value) : ''
+        }
+      }
+    })
 }
 
 /**
- * Limpia los errores de validación del formulario
+ * Limpia los errores de validación del formulario.
+ * Compatible con validaciones nativas, Bootstrap y APIs backend.
  *
  * @param formId - ID del formulario a limpiar
  */
 export function clearValidationErrors(formId: string): void {
-    const form = document.getElementById(formId);
-    if (!form) return;
+  const form = document.getElementById(formId)
+  if (!form) return
 
-    // Remover clases is-invalid
-    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+  // Remover estado de validación
+  form.classList.remove('was-validated')
 
-    // Remover mensajes de error
-    form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+  // Remover clases inválidas
+  form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'))
+
+  // Remover mensajes de error
+  form.querySelectorAll('.invalid-feedback').forEach(el => el.remove())
 }
 
 /**
- * Resetea el formulario y oculta los contenedores dinámicos
+ * Resetea el formulario y oculta contenedores dinámicos.
+ * Maneja correctamente formularios con Select2.
  *
  * @param formId - ID del formulario a resetear
- * @param containerIds - Array de IDs de contenedores a ocultar (opcional)
+ * @param containerIds - IDs de contenedores a ocultar (opcional)
  */
 export function resetFormAndContainers(formId: string, containerIds: string[] = []): void {
-    const form = document.getElementById(formId) as HTMLFormElement | null;
-    if (!form) return;
+  const form = document.getElementById(formId) as HTMLFormElement | null
+  if (!form) return
 
-    // Resetear el formulario (limpia todos los inputs, selects, etc)
-    form.reset();
+  // ======================
+  // Reset nativo
+  // ======================
+  form.reset()
 
-    // Limpiar selects con data-reset="true"
-    form.querySelectorAll<HTMLSelectElement>('select[data-reset="true"]').forEach(select => {
-        select.innerHTML = '';
-    });
+  // ======================
+  // Reset Select2
+  // ======================
+  form.querySelectorAll<HTMLSelectElement>('select').forEach(select => {
+    if (window.jQuery && (window.jQuery as any)(select).data('select2')) {
+      ;(window.jQuery as any)(select).val(null).trigger('change')
+    }
+  })
 
-    // Ocultar contenedores dinámicos especificados
-    containerIds.forEach(containerId => {
-        const container = document.getElementById(containerId);
-        container?.classList.add('d-none');
-    });
+  // ======================
+  // Limpiar selects explícitos
+  // ======================
+  form.querySelectorAll<HTMLSelectElement>('select[data-reset="true"]').forEach(select => {
+    select.innerHTML = ''
+  })
 
-    // Limpiar selects Select2 dentro del formulario
-    form.querySelectorAll<HTMLSelectElement>('select').forEach(select => {
-        if (window.jQuery && (window.jQuery as any)(select).data('select2')) {
-            (window.jQuery as any)(select).val(null).trigger('change');
-        }
-    });
+  // ======================
+  // Ocultar contenedores dinámicos
+  // ======================
+  containerIds.forEach(containerId => {
+    document.getElementById(containerId)?.classList.add('d-none')
+  })
 }
 
 /**
  * Resetea un formulario usando la utilidad compartida.
- * Además quita el atributo `readonly` de los inputs (específico de CRUD).
+ * Opcionalmente remueve el atributo readonly (uso típico en CRUD).
  *
- * @param {HTMLFormElement} form - El formulario a resetear
+ * @param form - El formulario a resetear
+ * @param options - Configuración adicional
  */
-export function resetForm(form: HTMLFormElement): void {
-    if (!form.id) {
-        console.warn('El formulario no tiene ID, no se puede resetear');
-        return;
-    }
+export function resetForm(
+  form: HTMLFormElement,
+  options: { removeReadonly?: boolean } = { removeReadonly: true }
+): void {
+  if (!form.id) {
+    console.warn('El formulario no tiene ID, no se puede resetear')
+    return
+  }
 
-    // Usar la utilidad compartida para resetear el formulario
-    resetFormAndContainers(form.id);
+  resetFormAndContainers(form.id)
 
-    // Quitar readonly a todos los inputs (funcionalidad específica de CRUD)
+  if (options.removeReadonly) {
     form.querySelectorAll<HTMLInputElement>('input[readonly]').forEach(input => {
-        input.readOnly = false;
-    });
+      input.readOnly = false
+    })
+  }
 }

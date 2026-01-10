@@ -59,18 +59,17 @@ class CommerceService extends BaseService
             $commerce = $this->commerceRepository->create([
                 'name'           => $dto->name,
                 'phone'          => $dto->phone,
-                'currency_id'    => $dto->currency,
                 'country_id'     => $dto->country,
                 'status'         => 'ACTIVE',
                 'user_id'        => $user->id,
                 'unique_code_id' => $uniqueCode->id,
             ]);
 
-            // 4. Registrar monedas secundarias
-            $this->updateSecondaryCurrenciesStatus($commerce, $dto->otherCurrencies);
+            // 4. Registrar moneda pricipal y secundarias
+            $this->updateCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
 
             // 5. Registrar juegos permitidos
-            $this->updateAllowedGamesStatus($commerce, $dto->allowedGames);
+            $this->updateAllowedGames($commerce, $dto->allowedGames);
 
             // 6. Crear wallet principal
             $this->walletRepository->create([
@@ -96,9 +95,11 @@ class CommerceService extends BaseService
             'country:id,name',
             'user:id,username,email,time_zone_id',
             'user.timeZone:id,name',
-            'currency:id,symbol,description',
-            'otherCurrenciesActive:id,symbol,description',
-            'allowedGamesActive:id,name',
+            'currenciesActive' => function ($query) {
+                $query->select('currencies.id', 'symbol', 'description')
+                    ->withPivot(['level', 'status']); // aseguramos traer datos del pivote
+            },
+            'gamesActive:id,name',
         ]);
 
         return new CommerceResource($commerce);
@@ -123,7 +124,6 @@ class CommerceService extends BaseService
                 array_filter([
                     'name'        => $dto->name,
                     'phone'       => $dto->phone,
-                    'currency_id' => $dto->currency,
                     'country_id'  => $dto->country,
                 ])
             );
@@ -131,12 +131,12 @@ class CommerceService extends BaseService
             // -----------------------------
             // Sincronizar monedas secundarias con manejo de estado
             // -----------------------------
-            $this->updateSecondaryCurrenciesStatus($commerce, $dto->otherCurrencies);
+            $this->updateCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
 
             // -----------------------------
             // Sincronizar juegos permitidos
             // -----------------------------
-            $this->updateAllowedGamesStatus($commerce, $dto->allowedGames);
+            $this->updateAllowedGames($commerce, $dto->allowedGames);
 
             // -----------------------------
             // Actualizar usuario asociado
@@ -150,29 +150,51 @@ class CommerceService extends BaseService
         });
     }
 
-    /**
-     * Actualiza el estado 'status' de monedas secundarias asociadas a un comercio.
-     *
-     * @param Commerce $commerce
-     * @param array|null $activeCurrencyIds IDs de monedas que deben quedar activas (si es null o vacío, se inactivan todas las activas)
-     * @return void
-     */
-    protected function updateSecondaryCurrenciesStatus(
+    protected function updateCurrencies(
         Commerce $commerce,
+        $currencyId,
         ?array $activeCurrencyIds
     ): void {
-        DB::transaction(function () use ($commerce, $activeCurrencyIds) {
+        DB::transaction(function () use ($commerce, $currencyId, $activeCurrencyIds) {
 
             // Normalizar input
             $activeCurrencyIds = array_values(array_unique(
                 array_map('strval', $activeCurrencyIds ?? [])
             ));
 
-            /**
-             * 1. Inactivar monedas ACTIVAS que no deben estar activas
-             */
+            // ======== Actualizar o crear moneda principal (level = 1) ========
+            if ($currencyId) {
+                $now = now();
+
+                $principal = CommerceCurrency::where('commerce_id', $commerce->id)
+                    ->where('level', 1)
+                    ->first();
+
+                if ($principal) {
+                    // Actualizar si es diferente
+                    if ($principal->currency_id != $currencyId || $principal->status !== 'ACTIVE') {
+                        $principal->currency_id = $currencyId;
+                        $principal->status = 'ACTIVE';
+                        $principal->updated_at = $now;
+                        $principal->save();
+                    }
+                } else {
+                    // Insertar nuevo registro principal
+                    CommerceCurrency::insert([
+                        'commerce_id' => $commerce->id,
+                        'currency_id' => $currencyId,
+                        'status' => 'ACTIVE',
+                        'level' => 1, // Principal
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                }
+            }
+
+            // ======== 1. Inactivar monedas ACTIVAS secundarias que no deben estar activas ========
             CommerceCurrency::where('commerce_id', $commerce->id)
                 ->where('status', 'ACTIVE')
+                ->where('level', 2)
                 ->when(
                     !empty($activeCurrencyIds),
                     fn($q) => $q->whereNotIn('currency_id', $activeCurrencyIds)
@@ -182,11 +204,10 @@ class CommerceService extends BaseService
                     'updated_at' => now(),
                 ]);
 
-            /**
-             * 2. Activar monedas EXISTENTES
-             */
+            // ======== 2. Activar monedas secundarias existentes ========
             if (!empty($activeCurrencyIds)) {
                 CommerceCurrency::where('commerce_id', $commerce->id)
+                    ->where('level', 2)
                     ->whereIn('currency_id', $activeCurrencyIds)
                     ->update([
                         'status' => 'ACTIVE',
@@ -194,12 +215,11 @@ class CommerceService extends BaseService
                     ]);
             }
 
-            /**
-             * 3. Insertar monedas que NO existen
-             */
+            // ======== 3. Insertar monedas secundarias que no existen ========
             if (!empty($activeCurrencyIds)) {
 
                 $existingIds = CommerceCurrency::where('commerce_id', $commerce->id)
+                    ->where('level', 2)
                     ->whereIn('currency_id', $activeCurrencyIds)
                     ->pluck('currency_id')
                     ->all();
@@ -214,7 +234,7 @@ class CommerceService extends BaseService
                             'commerce_id' => $commerce->id,
                             'currency_id' => $currencyId,
                             'status' => 'ACTIVE',
-                            'level' => 1,
+                            'level' => 2,
                             'created_at' => $now,
                             'updated_at' => $now,
                         ], $missingIds)
@@ -230,7 +250,7 @@ class CommerceService extends BaseService
      * @param Commerce $commerce
      * @param array|null $activeGameIds IDs de juegos que deben quedar activos
      */
-    protected function updateAllowedGamesStatus(
+    protected function updateAllowedGames(
         Commerce $commerce,
         ?array $activeGameIds
     ): void {
@@ -305,15 +325,15 @@ class CommerceService extends BaseService
     {
         DB::transaction(function () use ($commerce) {
 
-            $commerce->loadMissing(['otherCurrencies', 'allowedGames', 'user']);
+            $commerce->loadMissing(['currencies', 'games', 'user']);
 
             if ($commerce->status === 'DELETED') {
                 throw new RuntimeException('El comercio ya está eliminado');
             }
 
             // Detach relaciones many-to-many
-            $commerce->otherCurrencies()->detach();
-            $commerce->allowedGames()->detach();
+            $commerce->currencies()->detach();
+            $commerce->games()->detach();
 
             // Eliminar wallets del usuario
             $this->walletRepository->deleteByUserId($commerce->user_id);

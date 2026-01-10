@@ -2,8 +2,6 @@
 
 namespace App\Http\Resources\Users\Roles;
 
-use App\Http\Resources\Currencies\CurrencyResource;
-use App\Http\Resources\Games\GameResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class CommerceResource extends JsonResource
@@ -16,7 +14,6 @@ class CommerceResource extends JsonResource
 
             'country' => [
                 'id' => $this->country->id,
-                'code' => $this->country->code,
                 'name' => $this->country->name,
             ],
 
@@ -26,19 +23,25 @@ class CommerceResource extends JsonResource
                 'time_zone_id' => $this->user->timeZone->id ?? null,
             ],
 
-            'currency' => [
-                'id' => $this->currency->id,
-                'symbol' => $this->currency->symbol,
-                'description' => $this->currency->description,
-            ],
+            // Moneda principal (nivel 1) - debe devolver ID único, no colección
+            'currency' => $this->currenciesActive
+                ->where('pivot.level', 1)
+                ->pluck('id')
+                ->first(), // solo la principal
 
-            'other_currencies' => CurrencyResource::collection(
-                $this->whenLoaded('otherCurrenciesActive')
-            ),
+            // Otras monedas (nivel 2) - array plano de IDs
+            'other_currencies' => $this->currenciesActive
+                ->where('pivot.level', 2)
+                ->pluck('id')
+                ->values()
+                ->all(),
 
-            'allowed_games' => GameResource::collection(
-                $this->whenLoaded('allowedGamesActive')
-            ),
+            'allowed_games' => $this->whenLoaded('gamesActive', function () {
+                return $this->gamesActive
+                    ->pluck('id')
+                    ->values()
+                    ->all();
+            }),
         ];
     }
 }

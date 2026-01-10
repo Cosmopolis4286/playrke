@@ -2,7 +2,7 @@
 //   Imports
 // ==========================
 import { formCRUD } from '@/helpers/form/formCrudInit';
-import { insertOtherCurrencies } from '@/helpers/selects/insertOtherCurrencies';
+import { insertOtherCurrencies } from '@/helpers/selects/otherCurrencies';
 import { SweetAlertIcon } from 'sweetalert2';
 import { validateInput } from '@/helpers/validateInput';
 import { route } from '@/routes/sellerRoutes';

@@ -66,13 +66,13 @@ export async function submitForm(formId: string, fields: string[] = []) {
     const passwordResponse = data?.password ? { data: { password: data.password } } : null
     let timeout: number | undefined = undefined
 
-    $(`modal${formId}`).modal('show')
+    $(`modal-${formId}`).modal('hide')
 
     showToast(data.message || 'Operación exitosa', 'success')
 
     if (passwordResponse?.data?.password) {
       await showPasswordModal(passwordResponse.data.password)
-      timeout = 2500
+      timeout = 2000
     }
 
     setTimeout(() => window.location.reload(), timeout ?? 1500)

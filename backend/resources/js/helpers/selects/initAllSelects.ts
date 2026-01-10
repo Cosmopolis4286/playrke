@@ -1,155 +1,190 @@
 // resources/js/utils/initSelects.ts
-import { createDatasetGetters } from '@/utils/dataset';
+import { createDatasetGetters } from '@/utils/dataset'
 
 // Generar getters automáticamente desde appData
-const datasets = createDatasetGetters();
+const datasets = createDatasetGetters()
 
-// Cache para evitar reinicializar selects que ya fueron procesados
-const initializedSelects = new WeakSet<HTMLSelectElement>();
+// Cache para evitar reinicializar selects
+const initializedSelects = new WeakSet<HTMLSelectElement>()
 
-/**
- * Inicializa todos los selects con Select2 que no tienen data-source
- */
-function initSelect2Only(): void {
-    document.querySelectorAll<HTMLSelectElement>('select.select2').forEach(select => {
-        // Si ya fue inicializado con Select2, skip
-        if ($(select).data('select2')) return;
+// ==========================
+// Helpers internos
+// ==========================
 
-        // Si tiene data-source, será manejado por initAllSelects
-        if (select.dataset.source) return;
-
-        const placeholderText = select.dataset.placeholder || '';
-        const allowClear = select.dataset.allowClear !== 'false';
-
-        $(select).select2({
-            placeholder: placeholderText,
-            allowClear: allowClear,
-            theme: 'bootstrap4',
-            width: '100%',
-            multiple: select.multiple,
-        });
-
-        if (import.meta.env.DEV) {
-            console.log(`✅ Select2 inicializado para #${select.id}`);
-        }
-    });
+function isSelect2(select: HTMLSelectElement): boolean {
+  return select.classList.contains('select2')
 }
 
+function applySelectValue(
+  select: HTMLSelectElement,
+  value: string | number | Array<string | number>
+): void {
+  const normalized = Array.isArray(value) ? value.map(String) : String(value)
+
+  if (isSelect2(select) && $(select).data('select2')) {
+    $(select).val(normalized).trigger('change')
+  } else {
+    Array.from(select.options).forEach(option => {
+      option.selected = Array.isArray(normalized)
+        ? normalized.includes(option.value)
+        : option.value === normalized
+    })
+  }
+}
+
+// ==========================
+// Builder de opciones
+// ==========================
+
+function buildOptions(
+  select: HTMLSelectElement,
+  dataset: any[],
+  valueKey: string,
+  labelKey: string,
+  disableFn?: (selectId: string, item: any) => boolean
+): void {
+  select.innerHTML = ''
+
+  // Placeholder
+  let placeholderOption: HTMLOptionElement | null = null
+  if (select.dataset.placeholder) {
+    placeholderOption = new Option(select.dataset.placeholder, '', true, false)
+    select.appendChild(placeholderOption)
+  }
+
+  dataset
+    .sort((a, b) =>
+      String(a[labelKey]).localeCompare(String(b[labelKey]), 'es', {
+        sensitivity: 'base'
+      })
+    )
+    .forEach(item => {
+      const value = item[valueKey]
+      const label = item[labelKey]
+
+      if (value == null || label == null) return
+
+      const option = new Option(String(label), String(value), false, false)
+
+      if (disableFn?.(select.id, item)) {
+        option.disabled = true
+      }
+
+      select.appendChild(option)
+    })
+
+  // Placeholder se deshabilita al primer cambio
+  if (placeholderOption) {
+    select.addEventListener(
+      'change',
+      () => {
+        placeholderOption!.disabled = true
+      },
+      { once: true }
+    )
+  }
+}
+
+// ==========================
+// Select2 adapter
+// ==========================
+
+function initSelect2(select: HTMLSelectElement): void {
+  if ($(select).data('select2')) return
+
+  const placeholderText = '    ' + (select.dataset.placeholder || '')
+  const allowClear = select.dataset.allowClear !== 'false'
+
+  $(select).select2({
+    placeholder: placeholderText,
+    allowClear,
+    theme: 'bootstrap4',
+    width: '100%',
+    multiple: select.multiple
+  })
+
+  if (import.meta.env.DEV) {
+    console.log(`✅ Select2 inicializado para #${select.id}`)
+  }
+}
+
+// ==========================
+// API pública
+// ==========================
+
 /**
- * Inicializa todos los <select> que tengan el atributo `data-source`.
+ * Inicializa todos los <select> con data-source.
+ * Construye opciones, inicializa Select2 y aplica valores seleccionados.
  *
- * Funciona tanto para selects nativos como para Select2.
- * Permite placeholders dinámicos, selección inicial y deshabilitación condicional.
- *
- * @param selectedValues - Opcional: objeto { [selectId]: valorPreseleccionado }
- * @param disableFn - Opcional: función para deshabilitar opciones. Recibe (selectId, item) => boolean
- * @param forceReinit - Opcional: forzar reinicialización de selects ya inicializados (default: false)
+ * @param selectedValues - Valores a preseleccionar por ID de select
+ * @param disableFn - Función opcional para deshabilitar opciones
+ * @param forceReinit - Forzar reinicialización completa
  */
 export function initAllSelects(
-    selectedValues?: Partial<Record<string, string | number>>,
-    disableFn?: (selectId: string, item: any) => boolean,
-    forceReinit: boolean = false
+  selectedValues?: Partial<Record<string, any>>,
+  disableFn?: (selectId: string, item: any) => boolean,
+  forceReinit = false
 ): void {
-    // Recorremos todos los selects con data-source
-    document.querySelectorAll<HTMLSelectElement>('select[data-source]').forEach(select => {
-        // Si ya fue inicializado y no se fuerza reinicialización, skip
-        if (!forceReinit && initializedSelects.has(select)) {
-            // Si hay valores preseleccionados, actualizar sin reconstruir opciones
-            if (selectedValues?.[select.id]) {
-                select.value = String(selectedValues[select.id]);
-                // Trigger change para Select2
-                if (select.classList.contains('select2')) {
-                    $(select).trigger('change');
-                }
-            }
-            return;
-        }
-        const sourceKey = select.dataset.source as keyof typeof datasets;
-        const dataset = datasets[sourceKey]?.() ?? [];
+  document.querySelectorAll<HTMLSelectElement>('select[data-source]').forEach(select => {
+    if (!forceReinit && initializedSelects.has(select)) {
+      if (selectedValues?.[select.id] != null) {
+        applySelectValue(select, selectedValues[select.id])
+      }
+      return
+    }
 
-        if (!dataset.length) {
-            console.warn(`⚠️ Dataset '${String(sourceKey)}' no existe o está vacío para el select #${select.id}.`);
-            return;
-        }
+    const sourceKey = select.dataset.source as keyof typeof datasets
+    const dataset = datasets[sourceKey]?.() ?? []
 
-        const valueKey = select.dataset.value as keyof typeof dataset[number];
-        const labelKey = select.dataset.label as keyof typeof dataset[number];
+    if (!dataset.length) {
+      console.warn(`⚠️ Dataset '${String(sourceKey)}' vacío para #${select.id}`)
+      return
+    }
 
-        if (!valueKey || !labelKey) {
-            console.warn(`⚠️ Select #${select.id} requiere atributos 'data-value' y 'data-label'.`);
-            return;
-        }
+    const valueKey = select.dataset.value
+    const labelKey = select.dataset.label
 
-        // Limpiar select y crear placeholder si existe
-        select.innerHTML = '';
-        let placeholderOption: HTMLOptionElement | null = null;
-        if (select.dataset.placeholder) {
-            placeholderOption = new Option(select.dataset.placeholder, '', true, false);
-            select.appendChild(placeholderOption);
-        }
+    if (!valueKey || !labelKey) {
+      console.warn(`⚠️ Select #${select.id} requiere data-value y data-label`)
+      return
+    }
 
-        // Agregar opciones del dataset ordenadas por label
-        [...dataset]
-            .sort((a, b) => String(a[labelKey]).localeCompare(String(b[labelKey]), 'es', { sensitivity: 'base' }))
-            .forEach(item => {
-                const value = item[valueKey];
-                const label = item[labelKey];
+    // 1️⃣ Construir opciones
+    buildOptions(select, dataset, valueKey, labelKey, disableFn)
 
-                if (value === undefined || label === undefined) {
-                    console.warn(`⚠️ Item del dataset '${String(sourceKey)}' no tiene '${String(valueKey)}' o '${String(labelKey)}'.`);
-                    return;
-                }
+    // 2️⃣ Inicializar Select2
+    if (isSelect2(select)) {
+      initSelect2(select)
+    }
 
-                const option = new Option(
-                    String(label),
-                    String(value),
-                    false,
-                    selectedValues?.[select.id] === value
-                );
+    // 3️⃣ Aplicar selección (CLAVE)
+    if (selectedValues?.[select.id] != null) {
+      applySelectValue(select, selectedValues[select.id])
+    }
 
-                if (disableFn?.(select.id, item)) option.disabled = true;
+    initializedSelects.add(select)
+  })
 
-                select.appendChild(option);
-            });
-
-        // ⚡ Placeholder: deshabilitar si ya hay un valor seleccionado
-        if (selectedValues?.[select.id] && placeholderOption) {
-            placeholderOption.disabled = true;
-        } else if (placeholderOption) {
-            select.addEventListener('change', () => {
-                placeholderOption!.disabled = true;
-            }, { once: true });
-        }
-
-        // 🔹 Inicializar Select2 si corresponde
-        if (select.classList.contains('select2')) {
-            const placeholderText = '    ' + (select.dataset.placeholder || '');
-            const allowClear = select.dataset.allowClear !== 'false'; // true por defecto
-
-            $(select).select2({
-                placeholder: placeholderText,
-                allowClear: allowClear,
-                theme: 'bootstrap4',
-                width: '100%',
-                multiple: select.multiple,
-            });
-        }
-
-        // Marcar como inicializado
-        initializedSelects.add(select);
-    });
-
-    // Inicializar Select2 para selects que no tienen data-source
-    initSelect2Only();
+  // Inicializar Select2 simples (sin data-source)
+  initStandaloneSelect2()
 }
 
 /**
- * Limpia el cache de selects inicializados
- * Útil cuando se destruye un modal o se recarga dinámicamente contenido
+ * Inicializa Select2 en selects sin data-source
+ */
+function initStandaloneSelect2(): void {
+  document
+    .querySelectorAll<HTMLSelectElement>('select.select2:not([data-source])')
+    .forEach(select => {
+      initSelect2(select)
+    })
+}
+
+/**
+ * Limpia el cache de inicialización
  */
 export function clearSelectsCache(): void {
-    // WeakSet no tiene método clear, pero los elementos se limpian automáticamente cuando son eliminados del DOM
-    if (import.meta.env.DEV) {
-        console.log('♻️ Cache de selects se limpiará automáticamente con garbage collection');
-    }
+  if (import.meta.env.DEV) {
+    console.log('♻️ WeakSet liberará selects automáticamente')
+  }
 }

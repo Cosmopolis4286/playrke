@@ -29,7 +29,6 @@ class Commerce extends BaseModel
     protected $fillable = [
         'name',
         'country_id',
-        'currency_id',
         'phone',
         'user_id',
         'commission',
@@ -40,7 +39,6 @@ class Commerce extends BaseModel
     protected $casts = [
         'id' => 'string',
         'country_id' => 'string',
-        'currency_id' => 'string',
         'user_id' => 'string',
         'unique_code_id' => 'string',
         'commission' => 'decimal:2'
@@ -69,14 +67,6 @@ class Commerce extends BaseModel
     }
 
     /**
-     * Relación con la moneda
-     */
-    public function currency(): BelongsTo
-    {
-        return $this->belongsTo(Currency::class, 'currency_id');
-    }
-
-    /**
      * Relación con el usuario
      */
     public function user(): BelongsTo
@@ -101,9 +91,9 @@ class Commerce extends BaseModel
     }
 
     /**
-     * Monedas adicionales que maneja el comercio
+     * Monedas que maneja el comercio
      */
-    public function otherCurrencies(): BelongsToMany
+    public function currencies(): BelongsToMany
     {
         return $this->belongsToMany(
             Currency::class,
@@ -119,7 +109,7 @@ class Commerce extends BaseModel
     /**
      * Juegos permitidos para el comercio
      */
-    public function allowedGames(): BelongsToMany
+    public function games(): BelongsToMany
     {
         return $this->belongsToMany(
             Game::class,
@@ -133,20 +123,20 @@ class Commerce extends BaseModel
     }
 
     /**
-     * Monedas adicionales activas que maneja el comercio
+     * Monedas activas que maneja el comercio
      */
-    public function otherCurrenciesActive(): BelongsToMany
+    public function currenciesActive(): BelongsToMany
     {
-        return $this->otherCurrencies()
+        return $this->currencies()
             ->wherePivot('status', 'ACTIVE');
     }
 
     /**
      * Juegos permitidos activos para el comercio
      */
-    public function allowedGamesActive(): BelongsToMany
+    public function gamesActive(): BelongsToMany
     {
-        return $this->allowedGames()
+        return $this->games()
             ->wherePivot('status', 'ACTIVE');
     }
 }

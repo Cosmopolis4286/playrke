@@ -1,33 +1,67 @@
 // commerceForm.ts
-import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTimeZones } from '@/helpers/selects/insertOtherCurrencies';
-import { validateInput } from '@/helpers/validateInput';
-import { initAllSelects } from '@/helpers/selects/initAllSelects';
-import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@/helpers/form/formHelpers';
-import { commerceAdminRoutes } from '@/routes/commerceRoutes';
+import {
+  insertOtherCurrencies,
+  initCurrencySelector,
+  updateCurrency,
+  updateTimeZones
+} from '@/helpers/selects/otherCurrencies'
+import { validateInput } from '@/helpers/validateInput'
+import { initAllSelects } from '@/helpers/selects/initAllSelects'
+import {
+  fillFormFromObject,
+  clearValidationErrors,
+  resetFormAndContainers
+} from '@/helpers/form/formHelpers'
+import { commerceAdminRoutes } from '@/routes/commerceRoutes'
 
 // ==========================
 // Constantes globales
 // ==========================
-export const routes: typeof commerceAdminRoutes = commerceAdminRoutes;
-export const formTitleSuffix = 'Comercio';
-export const moduleId = 'commerce-form';
+export const routes: typeof commerceAdminRoutes = commerceAdminRoutes
+export const formTitleSuffix = 'Comercio'
+export const moduleId = 'commerce-form'
 
+// Campos requeridos (IDs del DOM)
 export const requiredFields: string[] = [
-    'name',
-    'country',
-    'time-zone',
-    'currency',
-    'phone',
-    'username',
-    'email',
-];
+  'name',
+  'country',
+  'time-zone',
+  'currency',
+  'phone',
+  'username',
+  'email'
+]
 
 // ==========================
 // Mapeo de acciones personalizadas
 // ==========================
-export const otherCasesMap: Record<string, any> = {
+export const otherCasesMap: Record<string, unknown> = {}
 
-};
+// ==========================
+// Helpers internos
+// ==========================
+
+/**
+ * Retorna un input por ID con tipado seguro
+ */
+function getInput(id: string): HTMLInputElement | null {
+  return document.getElementById(id) as HTMLInputElement | null
+}
+
+/**
+ * Muestra un contenedor removiendo `d-none`
+ */
+function showContainer(id: string): void {
+  document.getElementById(id)?.classList.remove('d-none')
+}
+
+/**
+ * Ejecuta una función cuando el callstack esté libre
+ * (mejor alternativa a setTimeout encadenados)
+ */
+function nextTick(fn: () => void): void {
+  requestAnimationFrame(() => requestAnimationFrame(fn))
+}
 
 // ==========================
 // Función: insertInfo
@@ -39,135 +73,146 @@ export const otherCasesMap: Record<string, any> = {
  * @param data - Datos para precargar en modo edición
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
-    const modal = document.getElementById(`modal-${moduleId}`);
-    if (!modal) return console.error('Modal no encontrado');
+  const modal = document.getElementById(`modal-${moduleId}`)
+  if (!modal) {
+    console.error('Modal no encontrado')
+    return
+  }
 
-    const usernameInput = document.getElementById('username') as HTMLInputElement | null;
-    const emailInput = document.getElementById('email') as HTMLInputElement | null;
+  const usernameInput = getInput('username')
+  const emailInput = getInput('email')
 
-    if (!usernameInput || !emailInput) return console.error('Inputs username/email no encontrados');
+  if (!usernameInput || !emailInput) {
+    console.error('Inputs username/email no encontrados')
+    return
+  }
 
-    // Limpiar errores de validación previos
-    clearValidationErrors('commerce-form');
+  // Limpiar errores de validación previos
+  clearValidationErrors(moduleId)
 
-    // Valores preseleccionados para selects dinámicos
-    const selectedValues: Record<string, string | number> = {};
+  // Valores preseleccionados para selects dinámicos
+  const selectedValues: Record<string, string | number> = {}
 
-    // Rellenar campos en edición
-    if (action === 'edit' && data) {
-        const { commerce, user } = data;
+  // ==========================
+  // Modo edición
+  // ==========================
+  if (action === 'edit' && data) {
+    // Datos del commerce
+    const commerce = data
 
-
-        fillFormFromObject(commerce);
-
-        usernameInput.value = user.username ?? '';
-        usernameInput.disabled = !!usernameInput.value;  // true si tiene valor, false si está vacío
-
-        emailInput.value = user.email ?? '';
-        emailInput.disabled = !!emailInput.value;
-
-        // Valores preseleccionados para selects (usando los IDs de las foreign keys)
-        selectedValues['country'] = commerce?.country_id ?? '';
-        selectedValues['currency'] = commerce?.currency_id ?? '';
-        selectedValues['time-zone'] = user?.time_zone_id ?? '';
-    } else {
-        // En modo creación, resetear formulario y ocultar contenedores dinámicos
-        resetFormAndContainers('commerce-form', ['container-currency', 'container-time-zone']);
-
-        // Habilitar campos de username y email
-        usernameInput.disabled = false;
-        emailInput.disabled = false;
+    if (import.meta.env.DEV) {
+      console.log('✏️ Modo edición - Datos recibidos:', data)
     }
 
-    // 1. Inicializar todos los selects básicos con los valores preseleccionados
-    initAllSelects(selectedValues);
+    // Rellenar campos base del commerce
+    fillFormFromObject(commerce)
 
-    // 2. En modo edición, cargar opciones de currency y time-zone programáticamente
-    if (action === 'edit' && data) {
-        const { commerce, user } = data;
+    // Usuario
+    usernameInput.value = commerce.user?.username ?? ''
+    usernameInput.disabled = Boolean(usernameInput.value)
 
-        // Esperar a que initAllSelects termine de cargar el país
-        setTimeout(() => {
-            if (import.meta.env.DEV) {
-                console.log('🔄 Modo edición - Cargando opciones para país:', commerce.country_id);
-            }
+    emailInput.value = commerce?.user?.email ?? ''
+    emailInput.disabled = Boolean(emailInput.value)
 
-            // Llamar directamente a las funciones para cargar opciones
-            updateCurrency(commerce.country_id);
-            updateTimeZones(commerce.country_id, String(user.time_zone_id));
+    // Preselección de foreign keys
+    selectedValues.country = commerce?.country?.id ?? ''
+    selectedValues.currency = commerce?.currency?.id ?? ''
+    selectedValues['time-zone'] = commerce?.user?.time_zone_id ?? ''
+  } else {
+    // ==========================
+    // Modo creación
+    // ==========================
+    resetFormAndContainers(moduleId, [
+      'container-currency',
+      'container-time-zone',
+      'container-other-currencies',
+      'container-allowed-games'
+    ])
 
-            // Esperar a que las opciones se carguen
-            setTimeout(() => {
-                const currencySelect = document.getElementById('currency') as HTMLSelectElement;
-                const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement;
+    usernameInput.disabled = false
+    emailInput.disabled = false
+  }
 
-                // Establecer currency
-                if (currencySelect && commerce?.currency_id) {
-                    if (import.meta.env.DEV) {
-                        console.log('💰 Estableciendo currency:', commerce.currency_id);
-                        console.log('💰 Opciones disponibles:', Array.from(currencySelect.options).map(o => ({ value: o.value, text: o.text })));
-                    }
+  // ==========================
+  // Inicialización de selects
+  // ==========================
+  initAllSelects(selectedValues)
 
-                    currencySelect.value = String(commerce.currency_id);
-                    $(currencySelect).trigger('change');
+  // ==========================
+  // Carga dependiente en edición
+  // ==========================
+  if (action === 'edit' && data) {
+    // Datos del commerce
+    const commerce = data
 
-                    // Mostrar el contenedor de currency
-                    const containerCurrency = document.getElementById('container-currency');
-                    containerCurrency?.classList.remove('d-none');
-                }
+    nextTick(() => {
+      if (import.meta.env.DEV) {
+        console.log('🔄 Cargando selects dependientes por país:', commerce.country?.name)
+      }
 
-                // Time-zone ya fue establecido por updateTimeZones
-                if (timeZoneSelect) {
-                    if (import.meta.env.DEV) {
-                        console.log('🕐 Time-zone establecido:', timeZoneSelect.value);
-                        console.log('🕐 Opciones disponibles:', Array.from(timeZoneSelect.options).map(o => ({ value: o.value, text: o.text })));
-                    }
+      updateCurrency(commerce.country?.id)
+      updateTimeZones(commerce.country?.id, String(commerce?.user?.time_zone_id))
+      nextTick(() => {
+        const currencySelect = document.getElementById('currency') as HTMLSelectElement | null
+        const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement | null
 
-                    // Mostrar el contenedor de time-zone
-                    const containerTimeZone = document.getElementById('container-time-zone');
-                    containerTimeZone?.classList.remove('d-none');
-                }
+        // Currency
+        if (currencySelect && commerce?.currency?.id) {
+          currencySelect.value = String(commerce.currency?.id)
+          $(currencySelect).trigger('change')
+          showContainer('container-currency')
+        }
 
-                // Insertar monedas adicionales
-                if (data?.other_currencies && data.other_currencies.length > 0) {
-                    if (import.meta.env.DEV) {
-                        console.log('💵 Insertando other currencies:', data.other_currencies);
-                    }
-                    insertOtherCurrencies(data.other_currencies);
-                }
+        // Time-zone
+        if (timeZoneSelect) {
+          showContainer('container-time-zone')
+        }
 
-                // Insertar juegos permitidos
-                if (data?.allowed_games && data.allowed_games.length > 0) {
-                    if (import.meta.env.DEV) {
-                        console.log('🎮 Insertando allowed games:', data.allowed_games);
-                    }
-                    insertOtherCurrencies(data.allowed_games);
-                }
-            }, 100); // Tiempo para que las funciones terminen de cargar opciones
-        }, 200); // Tiempo para que initAllSelects termine
-    }
+        // Otras monedas
+        if (Array.isArray(commerce?.other_currencies) && commerce.other_currencies.length > 0) {
+          if (import.meta.env.DEV) {
+            console.log('💵 Insertando other currencies:', commerce.other_currencies)
+          }
+          insertOtherCurrencies(commerce?.other_currencies)
+        }
 
-    // Mostrar modal
-    $(modal).modal('show');
+        // Juegos permitidos
+        if (Array.isArray(commerce?.allowed_games) && commerce.allowed_games.length > 0) {
+          if (import.meta.env.DEV) {
+            console.log('🎮 Insertando allowed games:', commerce.allowed_games)
+          }
+          //insertOtherCurrencies(commerce.allowed_games);
+        }
+      })
+    })
+  }
+
+  // Mostrar modal
+  $(modal).modal('show')
 }
 
+// ==========================
+// Inicialización de listeners
+// ==========================
 /**
  * Inicializa listeners globales del formulario
  */
 export function initListeners(): void {
-    // Inicializar selector de moneda/zona horaria por país
-    initCurrencySelector();
-
-    // Máscara de teléfono
-    if (typeof $ === 'function') {
-        const $phone = $('#phone');
-        if ($phone.length) $phone.mask('00000000000');
+  // Selector de moneda según país
+  initCurrencySelector()
+  // Máscara de teléfono
+  if (typeof $ === 'function') {
+    const $phone = $('#phone')
+    if ($phone.length) {
+      $phone.mask('00000000000')
     }
+  }
 
-    // Validación de input 'commission'
-    document.addEventListener('input', ({ target }) => {
-        if (target instanceof HTMLInputElement && target.id === 'commission') {
-            validateInput(target, true, 3, 35);
-        }
-    });
+  // Validación de comisión
+  document.addEventListener('input', event => {
+    const target = event.target
+    if (target instanceof HTMLInputElement && target.id === 'commission') {
+      validateInput(target, true, 3, 35)
+    }
+  })
 }

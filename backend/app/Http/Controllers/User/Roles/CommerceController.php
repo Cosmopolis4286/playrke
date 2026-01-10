@@ -93,7 +93,7 @@ class CommerceController extends Controller
                 $this->service->softDelete(
                     $commerce,
                     'DELETED',
-                    ['otherCurrencies', 'allowedGames'],
+                    ['currencies', 'games'],
                     'user'
                 );
                 return ['message' => '✅ Comercio eliminado correctamente'];

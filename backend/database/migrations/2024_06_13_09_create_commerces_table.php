@@ -25,13 +25,7 @@ return new class extends Migration
                 ->constrained('countries')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
-                ->comment('ID del país principal del comercio');
-
-            $table->foreignSnowflake('currency_id')
-                ->constrained('currencies')
-                ->cascadeOnUpdate()
-                ->restrictOnDelete()
-                ->comment('ID de la moneda principal asociada');
+                ->comment('ID del país del comercio');
 
             $table->foreignSnowflake('user_id')
                 ->constrained('users')
@@ -58,7 +52,7 @@ return new class extends Migration
 
             // Índices compuestos para consultas frecuentes
             $table->index('user_id');
-            $table->index(['country_id', 'currency_id', 'status']);
+            $table->index(['country_id', 'status']);
         });
     }
 
