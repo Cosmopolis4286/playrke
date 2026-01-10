@@ -2,28 +2,30 @@
 
 namespace App\Models\Users\Roles\Commerce;
 
-use App\Models\Games\Shared\Game;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Games\Game;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Modelo para permisos de juegos de comercios
  */
-class CommerceGame extends Model
+class CommerceGame extends Pivot
 {
-    use SnowflakeId;
+    public $incrementing = false;
+    protected $primaryKey = null;
+    protected $keyType = 'string';
 
     protected $table = 'commerces_games';
 
     protected $fillable = [
         'commerce_id',
         'game_id',
-        'is_active'
+        'status'
     ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'commerce_id' => 'string',
+        'game_id' => 'string',
     ];
 
     /**

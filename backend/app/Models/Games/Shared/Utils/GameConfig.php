@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Shared\Utils;
 
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use BradieTilley\Snowflake\Snowflake;

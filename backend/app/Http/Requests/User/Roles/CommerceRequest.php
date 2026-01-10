@@ -44,6 +44,8 @@ class CommerceRequest extends FormRequest
             'name'           => [$isUpdate ? 'sometimes' : 'required', 'string'],
             'other_currencies'   => ['sometimes', 'array'],
             'other_currencies.*' => ['string', 'exists:currencies,id'],
+            'allowed_games'      => ['sometimes', 'array'],
+            'allowed_games.*'    => ['string', 'exists:games,id'],
         ];
 
         // Regla unique para phone
@@ -79,8 +81,8 @@ class CommerceRequest extends FormRequest
             'country.required'  => 'El país es obligatorio.',
             'currency.required' => 'La moneda principal es obligatoria.',
             'time_zone.required' => 'La zona horaria es obligatoria.',
-            'other_currencies.*.exists' =>
-            'Una o más monedas adicionales no son válidas.',
+            'other_currencies.*.exists' => 'Una o más monedas adicionales no son válidas.',
+            'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
         ];
     }
 

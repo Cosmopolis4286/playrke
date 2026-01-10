@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Shared\GameRoom;
 
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use App\Models\Games\Shared\GameMode\GameModes;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Currencies\Currency;

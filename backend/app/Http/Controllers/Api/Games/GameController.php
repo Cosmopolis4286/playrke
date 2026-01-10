@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Games;
 
 use App\Http\Controllers\Controller;
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use App\Models\Users\Roles\Customer\CustomerGame;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

@@ -2,7 +2,7 @@
 
 namespace App\Traits\Users;
 
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use App\Models\Users\Roles\Player\External\ExternalPlayer;
 use App\Models\Users\Roles\Player\External\UserPurchaseCode;
 use Illuminate\Support\Str;

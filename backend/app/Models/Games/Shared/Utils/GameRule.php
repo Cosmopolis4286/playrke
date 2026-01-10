@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Shared\Utils;
 
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use App\Models\Users\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

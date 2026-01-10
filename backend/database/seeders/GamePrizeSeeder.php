@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use App\Models\Games\Shared\Utils\GamePrize;
 use Illuminate\Database\Seeder;
 

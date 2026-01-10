@@ -11,6 +11,10 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  */
 class CommerceCurrency extends Pivot
 {
+    public $incrementing = false;
+    protected $primaryKey = null;
+    protected $keyType = 'string';
+
     protected $table = 'commerces_currencies';
 
     protected $fillable = [

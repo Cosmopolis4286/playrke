@@ -3,8 +3,13 @@
 namespace App\Services\Users\Roles\Commerce;
 
 use App\DTOs\User\Roles\CommerceDTO;
+use App\Http\Resources\Users\Roles\CommerceResource;
 use App\Models\Users\Roles\Commerce\Commerce;
+use App\Models\Users\Roles\Commerce\CommerceCurrency;
+use App\Models\Users\Roles\Commerce\CommerceGame;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceGameRepositoryContract;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
 use App\Repositories\Wallets\Contracts\WalletRepositoryContract;
 use App\Services\BaseService;
@@ -17,6 +22,8 @@ class CommerceService extends BaseService
     public function __construct(
         protected UserRepositoryContract $userRepository,
         protected CommerceRepositoryContract $commerceRepository,
+        protected CommerceCurrencyRepositoryContract $currencyRepository,
+        protected CommerceGameRepositoryContract $gameRepository,
         protected WalletRepositoryContract $walletRepository,
         protected UserService $userService,
     ) {}
@@ -62,7 +69,10 @@ class CommerceService extends BaseService
             // 4. Registrar monedas secundarias
             $this->updateSecondaryCurrenciesStatus($commerce, $dto->otherCurrencies);
 
-            // 5. Crear wallet principal
+            // 5. Registrar juegos permitidos
+            $this->updateAllowedGamesStatus($commerce, $dto->allowedGames);
+
+            // 6. Crear wallet principal
             $this->walletRepository->create([
                 'user_id'     => $user->id,
                 'currency_id' => $dto->currency,
@@ -76,25 +86,22 @@ class CommerceService extends BaseService
     }
 
     /**
-     * Obtener un comercio con sus relaciones.
+     * Obtener un comercio con sus relaciones para visualización.
+     * @param Commerce $commerce
+     * @return CommerceResource
      */
-    public function getByCommerce(Commerce $commerce): array
+    public function getByCommerce(Commerce $commerce): CommerceResource
     {
         $commerce->load([
             'country:id,name',
             'user:id,username,email,time_zone_id',
             'user.timeZone:id,name',
             'currency:id,symbol,description',
-            'otherCurrencies:id,symbol,description',
-            'allowedGames:id,name',
+            'otherCurrenciesActive:id,symbol,description',
+            'allowedGamesActive:id,name',
         ]);
 
-        return [
-            'commerce'         => $commerce,
-            'user'             => $commerce->user,
-            'other_currencies' => $commerce->otherCurrencies->where('status', 'ACTIVE')->pluck('id')->all(),
-            'allowed_games'    => $commerce->allowedGames->where('status', 'ACTIVE')->pluck('id')->all(),
-        ];
+        return new CommerceResource($commerce);
     }
 
     /**
@@ -129,9 +136,7 @@ class CommerceService extends BaseService
             // -----------------------------
             // Sincronizar juegos permitidos
             // -----------------------------
-            if ($dto->allowedGames !== null) {
-                $commerce->allowedGames()->sync($dto->allowedGames);
-            }
+            $this->updateAllowedGamesStatus($commerce, $dto->allowedGames);
 
             // -----------------------------
             // Actualizar usuario asociado
@@ -152,41 +157,143 @@ class CommerceService extends BaseService
      * @param array|null $activeCurrencyIds IDs de monedas que deben quedar activas (si es null o vacío, se inactivan todas las activas)
      * @return void
      */
-    protected function updateSecondaryCurrenciesStatus(Commerce $commerce, ?array $activeCurrencyIds): void
-    {
-        // Obtener todas las monedas relacionadas con su estado actual en pivot
-        $relatedCurrencies = $commerce->otherCurrencies()->withPivot('status')->get();
+    protected function updateSecondaryCurrenciesStatus(
+        Commerce $commerce,
+        ?array $activeCurrencyIds
+    ): void {
+        DB::transaction(function () use ($commerce, $activeCurrencyIds) {
 
-        if (empty($activeCurrencyIds)) {
-            // Si vienen vacías o nulas, inactivar todas las monedas que estén activas y no bloqueadas
-            $currencyIdsToInactivate = $relatedCurrencies
-                ->filter(fn($c) => $c->pivot->status === 'ACTIVE')
-                ->pluck('id')
-                ->toArray();
-        } else {
-            // Si hay monedas activas explícitas, inactivar las que están activas pero no están en esa lista
-            $currencyIdsToInactivate = $relatedCurrencies
-                ->filter(fn($c) => $c->pivot->status === 'ACTIVE' && !in_array($c->id, $activeCurrencyIds))
-                ->pluck('id')
-                ->toArray();
-        }
+            // Normalizar input
+            $activeCurrencyIds = array_values(array_unique(
+                array_map('strval', $activeCurrencyIds ?? [])
+            ));
 
-        if (!empty($currencyIdsToInactivate)) {
-            // Actualizar directamente con query para optimizar
-            DB::table('commerces_currencies')
-                ->where('commerce_id', $commerce->id)
-                ->whereIn('currency_id', $currencyIdsToInactivate)
-                ->update(['status' => 'INACTIVE']);
-        }
+            /**
+             * 1. Inactivar monedas ACTIVAS que no deben estar activas
+             */
+            CommerceCurrency::where('commerce_id', $commerce->id)
+                ->where('status', 'ACTIVE')
+                ->when(
+                    !empty($activeCurrencyIds),
+                    fn($q) => $q->whereNotIn('currency_id', $activeCurrencyIds)
+                )
+                ->update([
+                    'status' => 'INACTIVE',
+                    'updated_at' => now(),
+                ]);
 
-        // Activar o crear las monedas que deben estar activas
-        if (!empty($activeCurrencyIds)) {
-            $syncData = [];
-            foreach ($activeCurrencyIds as $currencyId) {
-                $syncData[$currencyId] = ['status' => 'ACTIVE', 'level' => 1];
+            /**
+             * 2. Activar monedas EXISTENTES
+             */
+            if (!empty($activeCurrencyIds)) {
+                CommerceCurrency::where('commerce_id', $commerce->id)
+                    ->whereIn('currency_id', $activeCurrencyIds)
+                    ->update([
+                        'status' => 'ACTIVE',
+                        'updated_at' => now(),
+                    ]);
             }
-            $commerce->otherCurrencies()->syncWithoutDetaching($syncData);
-        }
+
+            /**
+             * 3. Insertar monedas que NO existen
+             */
+            if (!empty($activeCurrencyIds)) {
+
+                $existingIds = CommerceCurrency::where('commerce_id', $commerce->id)
+                    ->whereIn('currency_id', $activeCurrencyIds)
+                    ->pluck('currency_id')
+                    ->all();
+
+                $missingIds = array_diff($activeCurrencyIds, $existingIds);
+
+                if (!empty($missingIds)) {
+                    $now = now();
+
+                    CommerceCurrency::insert(
+                        array_map(fn($currencyId) => [
+                            'commerce_id' => $commerce->id,
+                            'currency_id' => $currencyId,
+                            'status' => 'ACTIVE',
+                            'level' => 1,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ], $missingIds)
+                    );
+                }
+            }
+        });
+    }
+
+    /**
+     * Actualiza el estado 'status' de juegos asociados a un comercio.
+     *
+     * @param Commerce $commerce
+     * @param array|null $activeGameIds IDs de juegos que deben quedar activos
+     */
+    protected function updateAllowedGamesStatus(
+        Commerce $commerce,
+        ?array $activeGameIds
+    ): void {
+        DB::transaction(function () use ($commerce, $activeGameIds) {
+
+            // Normalizar input
+            $activeGameIds = array_values(array_unique(
+                array_map('strval', $activeGameIds ?? [])
+            ));
+
+            /**
+             * 1. Inactivar juegos ACTIVOS que no deben estar activos
+             */
+            CommerceGame::where('commerce_id', $commerce->id)
+                ->where('status', 'ACTIVE')
+                ->when(
+                    !empty($activeGameIds),
+                    fn($q) => $q->whereNotIn('game_id', $activeGameIds)
+                )
+                ->update([
+                    'status' => 'INACTIVE',
+                    'updated_at' => now(),
+                ]);
+
+            /**
+             * 2. Activar juegos EXISTENTES
+             */
+            if (!empty($activeGameIds)) {
+                CommerceGame::where('commerce_id', $commerce->id)
+                    ->whereIn('game_id', $activeGameIds)
+                    ->update([
+                        'status' => 'ACTIVE',
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            /**
+             * 3. Insertar juegos que NO existen
+             */
+            if (!empty($activeGameIds)) {
+
+                $existingIds = CommerceGame::where('commerce_id', $commerce->id)
+                    ->whereIn('game_id', $activeGameIds)
+                    ->pluck('game_id')
+                    ->all();
+
+                $missingIds = array_diff($activeGameIds, $existingIds);
+
+                if (!empty($missingIds)) {
+                    $now = now();
+
+                    CommerceGame::insert(
+                        array_map(fn($gameId) => [
+                            'commerce_id' => $commerce->id,
+                            'game_id' => $gameId,
+                            'status' => 'ACTIVE',
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ], $missingIds)
+                    );
+                }
+            }
+        });
     }
 
     /**

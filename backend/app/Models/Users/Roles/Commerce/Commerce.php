@@ -6,7 +6,7 @@ use App\Models\BaseModel;
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use App\Models\Users\Roles\Seller\Seller;
 use App\Models\Users\Shared\UniqueCode;
 use App\Models\Users\User;
@@ -126,6 +126,27 @@ class Commerce extends BaseModel
             'commerces_games',
             'commerce_id',
             'game_id'
-        )->withTimestamps();
+        )
+            ->using(CommerceGame::class)
+            ->withPivot('status')
+            ->withTimestamps();
+    }
+
+    /**
+     * Monedas adicionales activas que maneja el comercio
+     */
+    public function otherCurrenciesActive(): BelongsToMany
+    {
+        return $this->otherCurrencies()
+            ->wherePivot('status', 'ACTIVE');
+    }
+
+    /**
+     * Juegos permitidos activos para el comercio
+     */
+    public function allowedGamesActive(): BelongsToMany
+    {
+        return $this->allowedGames()
+            ->wherePivot('status', 'ACTIVE');
     }
 }

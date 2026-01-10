@@ -4,7 +4,7 @@ namespace App\Models\Users\Roles\Player\External;
 
 use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use App\Models\Users\Roles\Player\External\UserPurchaseCode;
 use App\Models\Users\Roles\Seller\Seller;
 use App\Models\Users\User;

@@ -28,6 +28,15 @@ interface CommerceGameRepositoryContract extends BaseRepositoryContract
     public function getByGame($gameId): Collection;
 
     /**
+     * Obtiene juegos disponibles/permitidos para un comercio
+     *
+     * @param mixed $commerceId ID del comercio
+     * @param mixed|null $exceptGameId ID de juego a excluir
+     * @return array
+     */
+    public function getAllowedGames($commerceId, $exceptGameId = null): array;
+
+    /**
      * Obtiene permisos activos por comercio
      *
      * @param mixed $commerceId ID del comercio

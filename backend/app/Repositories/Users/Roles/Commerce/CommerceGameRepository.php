@@ -45,6 +45,26 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
     }
 
     /**
+     * Obtiene juegos disponibles/permitidos para un comercio
+     *
+     * @param mixed $commerceId ID del comercio
+     * @param mixed|null $exceptGameId ID de juego a excluir
+     * @return array
+     */
+    public function getAllowedGames($commerceId, $exceptGameId = null): array
+    {
+        $query = $this->model->select('game_id')
+            ->where('commerce_id', $commerceId)
+            ->where('status', 'ACTIVE');
+
+        if ($exceptGameId !== null) {
+            $query->where('game_id', '<>', $exceptGameId);
+        }
+
+        return $query->distinct()->pluck('game_id')->toArray();
+    }
+
+    /**
      * Obtiene permisos activos por comercio
      *
      * @param mixed $commerceId ID del comercio

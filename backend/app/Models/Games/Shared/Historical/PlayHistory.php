@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Shared\Historical;
 
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use App\Models\Commerce\Currency;
 use App\Models\Users\User;
 use App\Traits\SnowflakeId;

@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Games\Shared\Game;
+use App\Models\Games\Game;
 use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
 use App\Models\Games\Shared\GameMode\GameMode;
 use App\Models\Games\Shared\PrizePool\PrizePoolType;

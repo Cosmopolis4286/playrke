@@ -12,11 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('commerces_games', function (Blueprint $table) {
-            // PK con Snowflake
-            $table->snowflake('id')->primary();;
-            $table->foreignSnowflake('commerce_id')->constrained('commerces')->onDelete('cascade');
+            // Comercio
+            $table->foreignSnowflake('commerce_id')
+                ->constrained('commerces')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Comercio asociado');
+            // Juego
             $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
-            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+            // Estado
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE')
+                ->comment('Estado del registro');
+            // Soft deletes
             $table->softDeletes();
             $table->timestamps();
 

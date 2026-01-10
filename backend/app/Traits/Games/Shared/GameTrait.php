@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits\Games\Shared;
+namespace App\Traits\Games;
 
 use App\Models\BingoCreator;
 use App\Models\BingoRoom;
@@ -106,7 +106,7 @@ trait GameTrait
         $creatorId = $data['creator']['id'];
         $creatorType = $data['creator']['type'];
 
-        // Definir la tasa de cambio de acuerdo al $creator['type'] 
+        // Definir la tasa de cambio de acuerdo al $creator['type']
         if (in_array($creatorType, ['RKE', 'commerce_id'])) {
             $creatorExchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($creatorId, $currency);
 
@@ -133,7 +133,7 @@ trait GameTrait
 
     public function formatAmount($amount, $type)
     {
-        // Truncar a 2 decimales 
+        // Truncar a 2 decimales
         $truncated = round($amount, 2);
 
         if ($type === 'string') {
