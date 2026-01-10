@@ -5,10 +5,14 @@ namespace App\Models\Payments\ExchangeRate\Users\Roles;
 use App\Models\Currencies\Currency;
 use App\Models\Users\Roles\Commerce\Commerce;
 use App\Models\Users\User;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class CommerceExchangeRate extends Model
+class CommerceExchangeRate extends Pivot
 {
+    public $incrementing = false;
+    protected $primaryKey = null;
+    protected $keyType = 'string';
+
     protected $table = "commerces_exchange_rates";
 
     protected $fillable = [
@@ -16,6 +20,12 @@ class CommerceExchangeRate extends Model
         'status',
         'commerce_id',
         'user_id'
+    ];
+
+    protected $casts = [
+        'commerce_id' => 'string',
+        'currency_id' => 'string',
+        'user_id' => 'string'
     ];
 
     /**

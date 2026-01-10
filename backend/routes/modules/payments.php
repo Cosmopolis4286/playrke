@@ -35,17 +35,31 @@ Route::middleware('auth')
 // ====================================
 // TASAS DE CAMBIO
 // ====================================
-route_group('exchange-rate', 'exchange-rate.', [], ExchangeRateController::class, [
-    'index' => ['method' => 'get', 'uri' => '{creatorType}/{creatorId?}'],
-    'create' => ['method' => 'post', 'uri' => ''],
-    'show' => ['method' => 'get', 'uri' => '{id}'],
-    'update' => ['method' => 'put', 'uri' => '{id}'],
-    'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-    'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
-    'get-rates' => ['method' => 'get', 'uri' => 'rates'],
-    'last-value' => ['method' => 'get', 'uri' => 'last-value/{currency}'],
-    'historical' => ['method' => 'get', 'uri' => 'historical/{currency?}/{creatorType}/{creatorId}'],
-]);
+route_group(
+    'exchange-rate',
+    'exchange-rate.',
+    ['auth'],
+    ExchangeRateController::class,
+    [
+        'index'        => ['method' => 'get', 'uri' => ''],
+        'store'        => ['method' => 'post', 'uri' => ''],
+        'show'         => ['method' => 'get', 'uri' => '{id}'],
+        'update'       => ['method' => 'put', 'uri' => '{id}'],
+        'destroy'      => ['method' => 'delete', 'uri' => '{id}'],
+        'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
+    ]
+);
+
+route_public(
+    'exchange-rate/public',
+    'exchange-rate.public.',
+    ExchangeRateController::class,
+    [
+        'index' => ['method' => 'get', 'uri' => ''],
+    ],
+    'exchange_rates:read'
+);
+
 
 // ====================================
 // PAGO MÓVIL (VENEZUELA)

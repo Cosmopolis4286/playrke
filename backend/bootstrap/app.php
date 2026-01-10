@@ -22,6 +22,7 @@ return Application::configure(
         $middleware->alias([
             'multiRole' => App\Http\Middleware\MultiRoleMiddleware::class,
             'role' => App\Http\Middleware\RoleMiddleware::class,
+            'publicToken' => App\Http\Middleware\PublicTokenMiddleware::class,
         ]);
 
         /**

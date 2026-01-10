@@ -67,7 +67,7 @@ class ExchangeRateService
             $creator = $userId ? User::getCreatorUser($userId, false, true) : null;
 
             if (!$creator) {
-                $this->updateForAll('commerce_id', $data, $checkUpdate);
+                $this->updateForAll('commerce', $data, $checkUpdate);
                 $this->updateForAll('customer', $data, $checkUpdate);
             } else {
                 $this->updateForType($creator['type'], [$creator['id']], $data, $checkUpdate);
@@ -85,14 +85,14 @@ class ExchangeRateService
     /**
      * Actualiza las tasas de cambio para todos los registros de un tipo específico.
      *
-     * @param string $type 'commerce_id' o 'customer'
+     * @param string $type 'commerce' o 'customer'
      * @param array $data
      * @param bool $checkUpdate
      * @return void
      */
     private function updateForAll(string $type, array $data, bool $checkUpdate): void
     {
-        $model = $type === 'commerce_id' ? Commerce::class : Customer::class;
+        $model = $type === 'commerce' ? Commerce::class : Customer::class;
         $ids = $model::where('status', 1)->pluck('id')->toArray();
         $this->updateForType($type, $ids, $data, $checkUpdate);
     }
@@ -108,7 +108,7 @@ class ExchangeRateService
      */
     private function updateForType(string $type, array $ids, array $data, bool $checkUpdate): void
     {
-        $exchangeModel = $type === 'commerce_id' ? CommerceExchangeRate::class : CustomerExchangeRate::class;
+        $exchangeModel = $type === 'commerce' ? CommerceExchangeRate::class : CustomerExchangeRate::class;
 
         foreach ($ids as $id) {
 

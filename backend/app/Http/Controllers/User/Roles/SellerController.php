@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\User\Roles;
 
+use App\Console\Commands\HandleExchangeRatesCommand;
 use App\Models\BingoRoom;
 use App\Models\BingoCtns;
 use App\Models\BingoCtnsLot;
@@ -368,7 +369,7 @@ class SellerController extends Controller
 
         app(HandleBingoRooms::class)->checkRoomClosure();
 
-        (new HandleExchangeRates())->updateExchangeRates($creatorUser);
+        (new HandleExchangeRatesCommand())->updateRates($creatorUser);
 
         $rooms = BingoRoom::with([
             'Creator' => function ($query) use ($creatorUser) {

@@ -193,6 +193,41 @@ function role_protected_routes(
 }
 
 /**
+ * Define rutas accesibles mediante tokens públicos con scopes
+ *
+ * @param string $prefix Prefijo de la URI
+ * @param string $name Prefijo de nombres de rutas
+ * @param string $controller Controlador
+ * @param array $routes Rutas del grupo
+ * @param string $scope Scope requerido para acceder
+ */
+function route_public(
+    string $prefix,
+    string $name,
+    string $controller,
+    array $routes,
+    string $scope
+): void {
+    Route::prefix($prefix)
+        ->as($name)
+        ->middleware("publicToken:{$scope}")
+        ->controller($controller)
+        ->group(function () use ($routes) {
+            foreach ($routes as $routeName => $config) {
+                $method = strtolower($config['method'] ?? 'get');
+                $uri    = $config['uri'] ?? $routeName;
+                $action = $config['action'] ?? $routeName;
+
+                $route = Route::$method($uri, $action)->name($routeName);
+
+                if (!empty($config['middleware'])) {
+                    $route->middleware($config['middleware']);
+                }
+            }
+        });
+}
+
+/**
  * Define rutas condicionales por entorno
  *
  * @param array $environments Entornos permitidos ['local','staging']

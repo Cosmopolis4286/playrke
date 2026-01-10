@@ -11,7 +11,8 @@ use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
 use App\Models\Users\Roles\Customer\Customer;
 use App\Models\Payments\ExchangeRate\Users\Roles\CustomerExchangeRate;
 use App\Models\Payments\ExchangeRate\ExchangeRate;
-
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryContract;
+use App\Services\Currencies\CurrencyDirectoryService;
 // Services
 use App\Services\ExchangeRate\ExchangeRateService;
 
@@ -29,72 +30,151 @@ class ExchangeRateController extends Controller
 {
     use UserTrait;
 
-    public function index($creatorType, $creatorId = '')
+    public function __construct(
+        protected CommerceExchangeRateRepositoryContract $commerceExchangeRate,
+        protected CurrencyDirectoryService $currencyDirectoryService,
+    ) {}
+
+    /**
+     * Listado de tasas de cambio del usuario autenticado o público
+     */
+    public function index(Request $request)
     {
         $this->getExchangeRates(true);
 
-        switch ($creatorType) {
-            case 'customer': //customer
+        if (Auth::check()) {
+            $user    = Auth::user();
+            $isLogin = true;
+        } else {
+            // Inyectado por PublicTokenMiddleware
+            $user = $request->attributes->get('public_user');
 
-                if ($creatorId) {
-                    $customer = Customer::getValueByToken($creatorId, 'id');
-                    if (!$customer) {
-                        return response()->json(['message' => 'Token del cliente no existe'], 404);
-                    }
+            if (!$user) {
+                abort(404);
+            }
 
-                    $returnBtn = false;
-                    $isLogin = false;
-                } else {
-                    $customer = Customer::getByUserId(Auth::id(), ['id', 'token']);
-                    $isLogin = true;
-
-                    $creatorId = $customer->id;
-                }
-
-                $exchangeRate = CustomerExchangeRate::getAvailableExchangeRates($creatorId);
-                break;
-            case 'commerce_id':
-                $commerce = $this->commerce(['id', 'user']);
-
-                $creatorId = $commerce->id;
-
-                $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($creatorId);
-
-                $this->checkBankDirectoriesExistence($commerceCurrencies);
-
-                $array = array_filter($this->getAvailableCurrencies($commerce->user), fn($value) => $value !== 1);
-
-                $currencies = Currency::whereIn('id', $array)
-                    ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($creatorId) {
-                        $query->where('commerce_id', $creatorId);
-                    })->get(['id', 'symbol', 'description']);
-
-
-                $exchangeRates = CommerceExchangeRate::getAvailableExchangeRates($creatorId);
-                $isLogin = true;
-                break;
-
-            default:
-                return response()->json(['message' => 'Ruta no encontrada'], 404);
-                break;
+            $isLogin = false;
         }
 
-        $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
-            'title' => 'Tasas de Cambio',
-            'name' => 'exchange-rate',
-            'returnBtn' => $returnBtn ?? true,
-            'creator' => ['type' => $creatorType, 'id' => encrypt($creatorId)],
-            'currencies' => $currencies ?? [],
-            'exchangeRates' => $exchangeRates
-        ];
+        $commerce = $user->commerce;
 
-        if (isset($moreViewData)) {
-            $viewData = array_merge($viewData, $moreViewData);
+        if (!$commerce) {
+            abort(404);
         }
 
-        return view('modules.all.exchange-rate.index')->with($viewData);
+        $creatorId = $commerce->id;
+
+        if ($isLogin) {
+            $currencyIds = $this->commerceExchangeRate
+                ->getCurrenciesByCommerce($creatorId);
+
+            $this->currencyDirectoryService
+                ->sync($user->id, $currencyIds);
+        }
+
+        $currencies = [];
+
+        if ($isLogin) {
+            $availableCurrencyIds = array_filter(
+                $this->getAvailableCurrencies($user),
+                fn($value) => $value !== 1
+            );
+
+            $currencies = Currency::whereIn('id', $availableCurrencyIds)
+                ->whereDoesntHave('commerceExchangeRate', function ($query) use ($creatorId) {
+                    $query->where('commerce_id', $creatorId);
+                })
+                ->get(['id', 'symbol', 'description']);
+        }
+
+        // Tasas de cambio asociadas al comercio
+        $exchangeRates = CommerceExchangeRate::getAvailableExchangeRates($creatorId);
+
+        return view('modules.all.exchange-rate.index', [
+            'bladeLayout'   => $isLogin
+                ? 'layouts.layout-auth'
+                : 'layouts.layout-guest',
+            'title'         => 'Tasas de Cambio',
+            'name'          => 'exchange-rate',
+            'returnBtn'     => true,
+            'creator'       => [
+                'type' => 'commerce',
+                'id'   => encrypt($creatorId),
+            ],
+            'currencies'    => $currencies,
+            'exchangeRates' => $exchangeRates,
+        ]);
     }
+
+
+    // public function index($creatorType, $creatorId = '')
+    // {
+    //     $this->getExchangeRates(true);
+
+    //     switch ($creatorType) {
+    //         case 'customer': //customer
+
+    //             if ($creatorId) {
+    //                 $customer = Customer::getValueByToken($creatorId, 'id');
+    //                 if (!$customer) {
+    //                     return response()->json(['message' => 'Token del cliente no existe'], 404);
+    //                 }
+
+    //                 $returnBtn = false;
+    //                 $isLogin = false;
+    //             } else {
+    //                 $customer = Customer::getByUserId(Auth::id(), ['id', 'token']);
+    //                 $isLogin = true;
+
+    //                 $creatorId = $customer->id;
+    //             }
+
+    //             $exchangeRate = CustomerExchangeRate::getAvailableExchangeRates($creatorId);
+    //             break;
+    //         case 'commerce':
+    //             $commerce = $this->commerce(['id', 'user_id']);
+
+    //             $creatorId = $commerce->id;
+
+    //             // Obtener las monedas asociadas al comercio
+    //             $currencyIds = $this->commerceExchangeRate->getCurrenciesByCommerce($creatorId);
+
+    //             // Sincronizar el directorio de monedas
+    //             $this->currencyDirectoryService->sync(Auth::id(), $currencyIds);
+
+    //             $array = array_filter($this->getAvailableCurrencies($commerce->user), fn($value) => $value !== 1);
+
+    //             $currencies = Currency::whereIn('id', $array)
+    //                 ->whereDoesntHave('CommerceExchangeRate', function ($query) use ($creatorId) {
+    //                     $query->where('commerce_id', $creatorId);
+    //                 })->get(['id', 'symbol', 'description']);
+
+
+    //             $exchangeRates = CommerceExchangeRate::getAvailableExchangeRates($creatorId);
+    //             $isLogin = true;
+    //             break;
+
+    //         default:
+    //             return response()->json(['message' => 'Ruta no encontrada'], 404);
+    //             break;
+    //     }
+
+    //     $viewData = [
+    //         'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
+    //         'title' => 'Tasas de Cambio',
+    //         'name' => 'exchange-rate',
+    //         'returnBtn' => $returnBtn ?? true,
+    //         'creator' => ['type' => $creatorType, 'id' => encrypt($creatorId)],
+    //         'currencies' => $currencies ?? [],
+    //         'exchangeRates' => $exchangeRates
+    //     ];
+
+    //     if (isset($moreViewData)) {
+    //         $viewData = array_merge($viewData, $moreViewData);
+    //     }
+
+    //     return view('modules.all.exchange-rate.index')->with($viewData);
+    // }
 
     public function create(Request $request)
     {
@@ -108,7 +188,7 @@ class ExchangeRateController extends Controller
 
             if ($creator->type === 'customer') {
 
-                $user = Customer::getValueById($creatorId, 'user');
+                $user = Customer::getValueById($creatorId, 'user_id');
                 $currencyId = CustomerExchangeRate::getCustomerCurrencyValue($creatorId, $currency, 'id');
 
                 $data = [
@@ -163,7 +243,7 @@ class ExchangeRateController extends Controller
             $newExchangeRate = $request->exchange_rate;
 
             switch ($data['creatorType']) {
-                case 'commerce_id':
+                case 'commerce':
                     // Buscar el ultimo registro de CommerceExchangeRate por su ID desencriptado
                     $dataExchangeRate = CommerceExchangeRate::findOrFail($exchangeRateID);
 
@@ -254,7 +334,7 @@ class ExchangeRateController extends Controller
         $exchangeRateID = decrypt($data['id']);
 
         switch ($data['type']) {
-            case 'commerce_id':
+            case 'commerce':
                 CommerceExchangeRate::where('id', $exchangeRateID)->update(['status' => 2]);
                 break;
             case 'customer':
@@ -277,7 +357,7 @@ class ExchangeRateController extends Controller
 
         try {
             switch ($data['creatorType']) {
-                case 'commerce_id':
+                case 'commerce':
                     // Obtener el estado del comercio
                     $exchangeStatus = CommerceExchangeRate::getValueById($exchangeRateID, 'status');
 
@@ -321,7 +401,7 @@ class ExchangeRateController extends Controller
         $exchangeRateID = decrypt($data['id']);
 
         switch ($creatorType) {
-            case 'commerce_id':
+            case 'commerce':
                 $info = CommerceExchangeRate::getById($exchangeRateID, ['currency', 'exchange_rate']);
                 break;
             case 'customer':
@@ -361,7 +441,7 @@ class ExchangeRateController extends Controller
 
                 $exchangeRate = CustomerExchangeRate::getAllExchangeRatesByCurrency($creatorId, $currency);
                 break;
-            case 'commerce_id':
+            case 'commerce':
                 $creatorId = decrypt($creatorId);
                 $currency = decrypt($currency);
 
@@ -387,7 +467,7 @@ class ExchangeRateController extends Controller
 
     public function getExchangeRates($checkUpdate = false)
     {
-        $res = app(ExchangeRateService::class)->updateExchangeRates(Auth::id(), $checkUpdate);
+        $res = app(ExchangeRateService::class)->updateRates(Auth::id(), $checkUpdate);
 
         if ($checkUpdate) return;
 

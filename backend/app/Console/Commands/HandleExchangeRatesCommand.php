@@ -2,8 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Users\Customer\HandleExchangeRates;
-use App\Services\Helpers\HandleCommands;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -34,7 +32,7 @@ class HandleExchangeRatesCommand extends Command
 
         try {
             // Ejecutar la lógica principal
-            app(HandleExchangeRates::class)->updateExchangeRates();
+            app(HandleExchangeRatesCommand::class)->updateRates();
             $output = 'La tarea de control/manejo de las tasas de cambio de USD se ha ejecutado exitosamente.';
         } catch (Throwable $e) {
             // Manejo de errores con detalles específicos
@@ -50,7 +48,7 @@ class HandleExchangeRatesCommand extends Command
         }
 
         // Guardar el registro de ejecución
-        app(HandleCommands::class)->logCommandExecution($this->signature, $output, $status);
+        $this->comm->logCommandExecution($this->signature, $output, $status);
 
         // Imprimir resultado final
         if ($status === 'SUCCESS') {

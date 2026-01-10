@@ -12,9 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('commerces_exchange_rates', function (Blueprint $table) {
-            // PK con Snowflake
-            $table->snowflake('id')->primary()->comment('ID único del registro de tasa de cambio');
-
             // Comercio relacionado
             $table->foreignSnowflake('commerce_id')
                 ->constrained('commerces')
@@ -32,14 +29,19 @@ return new class extends Migration
             $table->decimal('exchange_rate', 12, 4)
                 ->default(1)
                 ->comment('Valor de cambio de la moneda');
+
             $table->double('percentage', 8, 2)
                 ->default(0)
                 ->comment('Porcentaje adicional asociado a la tasa');
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'OLD', 'DIRECTORY'])
+
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'DELETED', 'OLD', 'DIRECTORY'])
                 ->default('ACTIVE')
                 ->comment('Estado de la tasa de cambio');
 
             $table->timestamps();
+
+            // Soft deletes
+            $table->softDeletes();
 
             // Restricción única por comercio y moneda
             $table->unique(['commerce_id', 'currency_id'], 'commerce_currency_unique');

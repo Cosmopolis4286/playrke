@@ -33,27 +33,27 @@ trait UserTrait
 
     public function wallet($userId = null)
     {
-        return Wallet::with('Currency')->where('user', $userId ?? Auth::id())->first();
+        return Wallet::with('Currency')->where('user_id', $userId ?? Auth::id())->first();
     }
 
     public function commerce($fields = ['*'])
     {
-        return Commerce::select($fields)->where('user', Auth::id())->first();
+        return Commerce::select($fields)->where('user_id', Auth::id())->first();
     }
 
     public function customer($fields = ['*'])
     {
-        return Customer::select($fields)->where('user', Auth::id())->first();
+        return Customer::select($fields)->where('user_id', Auth::id())->first();
     }
 
     public function treasurer($fields = ['*'])
     {
-        return Treasurer::select($fields)->where('user', Auth::id())->first();
+        return Treasurer::select($fields)->where('user_id', Auth::id())->first();
     }
 
     public function seller($fields = ['*'])
     {
-        return Seller::select($fields)->where('user', Auth::id())->first();
+        return Seller::select($fields)->where('user_id', Auth::id())->first();
     }
 
     public function getAvailableCountries($user)
@@ -64,13 +64,13 @@ trait UserTrait
         $countries = [];
 
         switch ($creatorType) {
-            case 'user': // Jugador
+            case 'user_id': // Jugador
                 $countries = [User::getValueById($user, 'country')];
                 break;
             case 'admin': // Admin
                 # code...
                 break;
-            case 'commerce_id': // Comercio
+            case 'commerce': // Comercio
                 $commerce = Commerce::getValueByUserId($user, 'id');
                 $countries = CommerceCurrency::getAvailableCountries($commerce);
                 break;
@@ -94,7 +94,7 @@ trait UserTrait
         $creatorType = RoleRepository::getValueById(User::getValueById($user, 'user_type'), 'prefix');
 
         switch ($creatorType) {
-            case 'user': // Jugador
+            case 'user_id': // Jugador
                 $currencies = [User::getValueById($user, 'country')];
                 break;
             case 'admin': // Admin
@@ -127,14 +127,14 @@ trait UserTrait
 
         $currenciesWithoutDirectories = collect($currencyModels)->filter(function ($currency) use ($user) {
             return match ($currency->iso_code) {
-                'VES' => !PagoMovil::where('user', $user['userId'])->exists(),
-                'BRL' => !PixKey::where('user', $user['userId'])->exists(),
+                'VES' => !PagoMovil::where('user_id', $user['userId'])->exists(),
+                'BRL' => !PixKey::where('user_id', $user['userId'])->exists(),
                 'COP' => true,
                 default => throw new \InvalidArgumentException("Tipo de moneda no soportado: {$currency->iso_code}"),
             };
         })->pluck('id')->all();
 
-        if (!in_array($user['type'], ['commerce_id', 'admin'])) return;
+        if (!in_array($user['type'], ['commerce', 'admin'])) return;
 
         DB::beginTransaction();
 
@@ -203,7 +203,7 @@ trait UserTrait
             switch ($isoCode) {
                 case 'VE':
                     // Bs (Venezuela) PagoMovil
-                    $pagomovil = PagoMovil::with(['Bank', 'DocumentType'])->where('user', $user)->first();
+                    $pagomovil = PagoMovil::with(['Bank', 'DocumentType'])->where('user_id', $user)->first();
 
                     if (!$pagomovil) $error = true;
 
@@ -216,7 +216,7 @@ trait UserTrait
 
                 case 'BR':
                     // R$ (Brasil) Pix
-                    $pix = PixKey::where('user', $user)->first();
+                    $pix = PixKey::where('user_id', $user)->first();
 
                     if (!$pix) $error = true;
 
@@ -312,16 +312,16 @@ trait UserTrait
         $userRole = RoleRepository::getValueById($user->user_type, 'prefix');
 
         switch ($userRole) {
-            case 'commerce_id':
-                $commerce = $this->commerce(['id', 'user']);
+            case 'commerce':
+                $commerce = $this->commerce(['id', 'user_id']);
                 $userRoleId = $commerce->id;
                 break;
             case 'customer':
-                $customer = $this->customer(['id', 'user']);
+                $customer = $this->customer(['id', 'user_id']);
                 $userRoleId = $customer->id;
                 break;
             case 'seller':
-                $seller = $this->seller(['id', 'user']);
+                $seller = $this->seller(['id', 'user_id']);
                 $userRoleId = $seller->id;
                 break;
             default:
