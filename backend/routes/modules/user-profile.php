@@ -15,7 +15,7 @@ use App\Http\Controllers\User\{ProfileController, ReferralController};
 route_group('profile', 'profile.', ['auth'], ProfileController::class, [
     'index' => ['method' => 'get', 'uri' => ''],
     'update' => ['method' => 'put', 'uri' => '{id}'],
-    'changePassword' => ['method' => 'patch', 'uri' => '{id}/password'],
+    'changePassword' => ['method' => 'patch', 'uri' => 'password'],
 ]);
 
 // ====================================

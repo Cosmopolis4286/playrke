@@ -3,20 +3,18 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-
+use App\Models\Users\Shared\DocumentType;
+use App\Models\Users\User;
+use App\Traits\Users\UserTrait;
 // Models
-use App\Models\DocumentType;
-use App\Models\Users;
 
 // Traits
-use App\Traits\Users\UserTrait;
 
 // Otros
-use Intervention\Image\Facades\Image;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Intervention\Image\Colors\Rgb\Channels\Red;
+use Intervention\Image\ImageManagerStatic as Image;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class ProfileController extends Controller
@@ -58,33 +56,28 @@ class ProfileController extends Controller
     /**
      * Cambiar la contraseña del usuario autenticado
      * @param Request $request
-     * @param int $id
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function changePassword(Request $request, $id): RedirectResponse
+    public function changePassword(Request $request): RedirectResponse
     {
-        // Obtener el usuario
-        $user = User::findOrFail($id);
+        /** @var User|null $user */
+        $user = Auth::user();
 
-        // Validar los datos
         $request->validate([
-            'current_password' => 'required|string|max:255',
-            'new_password' => 'required|string|min:8|confirmed|different:current_password'
+            'current_password' => ['required', 'string', 'max:255'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
         ], [
             'new_password.different' => 'La nueva contraseña no puede ser la misma que la contraseña actual.',
-            'new_password.confirmed' => 'La confirmación de la nueva contraseña no coincide.'
+            'new_password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
         ]);
 
-        // Verificar que la contraseña actual sea correcta
-        if (!Hash::check($request->current_password, $user->password)) {
-            return redirect()->back()->with('msg-error', 'Contraseña actual incorrecta');
+        if (!Hash::check($request->input('current_password'), $user->password)) {
+            return redirect()->back()->with('msg-error', 'Contraseña actual incorrecta.');
         }
 
-        // Actualizar la contraseña con el hash de la nueva contraseña
-        $user->password = Hash::make($request->new_password);
+        $user->password = Hash::make($request->input('new_password'));
         $user->save();
 
-        // Redirigir con un mensaje de éxito
-        return redirect()->back()->with('message', 'Contraseña actualizada correctamente');
+        return redirect()->back()->with('message', 'Contraseña actualizada correctamente.');
     }
 }

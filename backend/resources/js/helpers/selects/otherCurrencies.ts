@@ -301,7 +301,6 @@ export function initCurrencySelector(): void {
     const selectedCountry = country.value
 
     if (!selectedCountry) {
-      alert('Por favor, seleccione un país válido.')
       resetCurrencySelection()
       return
     }

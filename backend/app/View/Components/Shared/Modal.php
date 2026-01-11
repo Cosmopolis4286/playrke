@@ -33,6 +33,11 @@ class Modal extends Component
     public ?string $formData;
 
     /**
+     * Boton de confirmacion (submit)
+     */
+    public ?string $btnConfirm;
+
+    /**
      * Constructor del componente Modal
      *
      * @param string      $id        Identificador único del modal
@@ -41,6 +46,7 @@ class Modal extends Component
      * @param string|null $style     Clases o atributos adicionales
      * @param string|null $formView  Ruta de la vista Blade a renderizar dentro del modal
      * @param array       $formVars  Variables opcionales para la vista del formulario
+     * @param string|null $btnConfirm ID del boton de confirmacion
      */
     public function __construct(
         string $id,
@@ -48,7 +54,8 @@ class Modal extends Component
         string $size = 'md',
         ?string $style = null,
         ?string $formView = null,
-        array $formVars = []
+        array $formVars = [],
+        ?string $btnConfirm = 'btn-confirm'
     ) {
         $this->id = $id;
         $this->title = $title ?? 'SIN TÍTULO';
@@ -65,6 +72,8 @@ class Modal extends Component
         $this->formData = ($formView && View::exists($formView))
             ? View::make($formView, $formVars)->render()
             : null;
+
+        $this->btnConfirm = $btnConfirm;
     }
 
     /**

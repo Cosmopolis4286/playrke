@@ -126,6 +126,7 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
     usernameInput.disabled = false
     emailInput.disabled = false
+    setOtherCurrencies([])
   }
 
   // ==========================

@@ -27,7 +27,7 @@
                 @else
                     <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cerrar</button>
                     @if ($formData)
-                        <button type="submit" class="btn btn-sm btn-primary" id="btn-confirm">Guardar</button>
+                        <button type="submit" class="btn btn-sm btn-primary" id="{{ $btnConfirm }}">Guardar</button>
                     @endif
                 @endisset
             </div>

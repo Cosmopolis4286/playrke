@@ -47,7 +47,7 @@
                 <span class="user-text-navbar">{{ $user->username }}</span>
             </button>
             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown" style="font-size: 13px">
-                <button id="resetPassword" class="dropdown-item" type="button">
+                <button id="change-password" class="dropdown-item" type="button">
                     <i class="mr-1 fa-solid fa-lock"></i>
                     Contraseña
                 </button>

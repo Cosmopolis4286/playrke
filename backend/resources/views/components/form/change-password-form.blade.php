@@ -1,4 +1,4 @@
-<form id="change-password-form" action="{{ route('profile.changePassword', ['id' => auth()->id()]) }}" method="POST">
+<form id="change-password-form" action="{{ route('profile.changePassword') }}" method="POST">
     @csrf
     @method('PATCH')
     <div class="row">
