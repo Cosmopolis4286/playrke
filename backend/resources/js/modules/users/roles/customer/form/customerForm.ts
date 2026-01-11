@@ -2,7 +2,7 @@
 import { formCRUD } from '@/helpers/form/formCrudInit';
 import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTimeZones } from '@/helpers/selects/otherCurrencies';
 import { SweetAlertIcon } from 'sweetalert2';
-import { validateInput } from '@/helpers/validateInput';
+import { validateInput } from '@/utils/validateInput';
 import { route } from '@/routes/customerRoutes';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
 import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@/helpers/form/formHelpers';

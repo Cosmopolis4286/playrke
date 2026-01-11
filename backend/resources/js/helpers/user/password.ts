@@ -1,6 +1,6 @@
 // resources/js/helpers/user/password.ts
 import { submitForm } from '../form/services/formSubmitService'
-import Swal, { showToast } from '@/helpers/toastNotify'
+import Swal, { showToast } from '@/utils/toastNotify'
 
 /**
  * Inicializa el módulo de cambio de contraseña:

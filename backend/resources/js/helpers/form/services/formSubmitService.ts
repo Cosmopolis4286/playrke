@@ -1,8 +1,8 @@
 import axios from '@/plugins/axios'
-import { validateAndFocus } from '../ui/crudFormUI'
-import { showToast } from '@/helpers/toastNotify'
+import { showToast } from '@/utils/toastNotify'
 import { ajaxStart, ajaxStop } from '@/utils/loader'
 import { showPasswordModal } from '@/helpers/user/password'
+import { validateAndFocus } from '@/utils/form/fieldValidation'
 
 export type SubmitMethod = 'post' | 'put' | 'patch' | 'delete'
 

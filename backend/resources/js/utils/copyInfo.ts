@@ -1,4 +1,4 @@
-import { showToast } from '../helpers/toastNotify';
+import { showToast } from './toastNotify';
 
 // Copiar texto (usa el texto que se pasa, no el valor de un input)
 export function copyInfo(text: string): void {

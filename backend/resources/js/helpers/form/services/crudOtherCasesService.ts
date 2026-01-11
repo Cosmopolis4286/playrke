@@ -1,4 +1,7 @@
-// services/crudOtherCasesService.ts
+/**
+ * @module helpers/form/services/crudOtherCasesService.ts
+ */
+
 import axios from '@/plugins/axios'
 import type { SweetAlertIcon } from 'sweetalert2'
 import { formCrudState as crud } from '../state/formCrudState'
@@ -125,6 +128,7 @@ async function handleResult(action: string, ids: string[], results: any[]): Prom
 
 /**
  * Función principal que orquesta todo el flujo
+ *
  */
 export async function handleOtherCases(action: string, encryptId: string, elem?: HTMLElement) {
   const entityName = crud.formTitleSuffix?.toLowerCase() || 'registro'

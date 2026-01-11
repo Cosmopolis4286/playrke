@@ -4,7 +4,7 @@
 import { formCRUD } from '@/helpers/form/formCrudInit';
 import { insertOtherCurrencies } from '@/helpers/selects/otherCurrencies';
 import { SweetAlertIcon } from 'sweetalert2';
-import { validateInput } from '@/helpers/validateInput';
+import { validateInput } from '@/utils/validateInput';
 import { route } from '@/routes/sellerRoutes';
 import { initAllSelects } from '@/helpers/selects/initAllSelects';
 

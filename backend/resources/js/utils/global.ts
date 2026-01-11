@@ -1,8 +1,8 @@
 // js/global/global.ts
 
 import { showToast } from './toastNotify'
-import { initChangePassw } from './user/password'
-import { initLogout } from './user/logout'
+import { initChangePassw } from '../helpers/user/password'
+import { initLogout } from '../helpers/user/logout'
 import { initModalFocus } from '@/helpers/modal/modals'
 
 /**

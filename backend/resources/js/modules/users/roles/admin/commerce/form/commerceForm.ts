@@ -6,7 +6,7 @@ import {
   setOtherCurrencies
 } from '@/helpers/selects/otherCurrencies'
 import { insertAllowedGames } from '@/helpers/selects/allowedGames'
-import { validateInput } from '@/helpers/validateInput'
+import { validateInput } from '@/utils/validateInput'
 import { initAllSelects } from '@/helpers/selects/initAllSelects'
 import {
   fillFormFromObject,

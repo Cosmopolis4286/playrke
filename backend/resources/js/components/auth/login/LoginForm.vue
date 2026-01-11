@@ -40,7 +40,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { showToast } from '@/helpers/toastNotify'
+import { showToast } from '@/utils/toastNotify'
 import { AuthService } from '@/services/authService'
 
 interface Props {

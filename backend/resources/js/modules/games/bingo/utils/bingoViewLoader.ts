@@ -1,4 +1,4 @@
-import mountApp from '@/helpers/vueMain'
+import mountApp from '@/utils/vueMain'
 import type { Component } from 'vue'
 
 // Definir tipo de vistas

@@ -2,7 +2,7 @@
 import axios from '@/plugins/axios'
 import { formCrudState as crud } from '../state/formCrudState'
 import { route } from '@/routes/helper'
-import { showToast } from '@/helpers/toastNotify'
+import { showToast } from '@/utils/toastNotify'
 
 export async function getInfo(encryptId: string): Promise<boolean> {
   if (!encryptId) return false

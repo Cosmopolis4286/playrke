@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import '@/helpers/mounApp'; // Se asegura de ejecutar el control visual
+import '@/utils/mounApp'; // Se asegura de ejecutar el control visual
 
 export default function mountApp(Component, props = {}) {
   const app = createApp(Component, props);

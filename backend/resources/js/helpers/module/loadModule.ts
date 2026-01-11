@@ -1,5 +1,5 @@
 // resources/js/helpers/loadModule.ts
-import { showToast } from '@/helpers/toastNotify';
+import { showToast } from '@/utils/toastNotify';
 import { onDOMReady } from '@/utils/domReady';
 
 /**

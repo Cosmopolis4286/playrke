@@ -33,6 +33,7 @@
       >
         <i v-if="btn.icon" :class="btn.icon"></i>
         {{ btn.label }}
+        <span v-if="shouldShowCount(btn, selectedIds)"> ({{ selectedIds.length }}) </span>
       </button>
     </template>
   </TableWithFilter>
@@ -105,6 +106,9 @@
   const parsedFilters = computed(() =>
     typeof props.filters === 'string' ? JSON.parse(props.filters) : props.filters
   )
+
+  const shouldShowCount = (btn: ExtraButton, selectedIds: Array<String>) =>
+    btn.action === 'changeStatus' && selectedIds.length > 1
 
   /**
    * Tipos de requisitos para cantidad de selección en acciones CRUD.
@@ -245,8 +249,16 @@
         }
       }
 
+      const disabled = (selectedIds: string[]) => {
+        if (btn.action === 'resetPassword') {
+          return selectedIds.length !== 1
+        }
+        return btn.disabled ? btn.disabled(selectedIds) : false
+      }
+
       return {
         ...btn,
+        disabled,
         onClick
       }
     })

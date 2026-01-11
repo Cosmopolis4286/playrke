@@ -1,6 +1,6 @@
 // helpers/form/formHelpers.ts
 
-import { clearFormValidation } from '@/shared/utils/form/fieldValidation'
+import { clearFormValidation } from '@/utils/form/fieldValidation'
 
 /**
  * Llena un formulario con valores de un objeto,
@@ -68,6 +68,23 @@ export function fillFormFromObject<T extends Record<string, unknown>>(
         }
       }
     })
+}
+
+/**
+ * Obtiene los IDs o nombres de los campos requeridos dentro de un formulario.
+ *
+ * @param form - Elemento formulario HTML
+ * @returns Array de strings con IDs o nombres de campos requeridos
+ */
+export function getRequiredFields(formId: string): string[] {
+  const form = document.getElementById(formId) as HTMLFormElement | null
+  let fields: string[] = []
+
+  return (fields = Array.from(
+    form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[required], select[required]')
+  )
+    .map(el => el.id || el.name)
+    .filter(Boolean) as string[])
 }
 
 /**
