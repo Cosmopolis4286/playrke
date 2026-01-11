@@ -4,6 +4,7 @@ import { submitForm } from '../services/formSubmitService'
 import { formCrudState as crud } from '../state/formCrudState'
 import { executeCrud } from '../services/crudExecutor'
 import type { TableCrudEventDetail } from '@/helpers/table/types'
+import { showPasswordModal } from '@/helpers/user/password'
 
 /**
  * Controlador central de eventos CRUD.
@@ -44,8 +45,19 @@ async function handleCrudClick(e: MouseEvent): Promise<void> {
 
   if (target.closest('#btn-confirm')) {
     if (!crud.moduleId) return
-    submitForm(crud.moduleId)
-    return
+
+    const data = await submitForm<{ password?: string }>(crud.moduleId)
+
+    const passwordResponse = data?.password ? { data: { password: data.password } } : null
+
+    let timeout: number | undefined
+
+    if (passwordResponse?.data?.password) {
+      await showPasswordModal(passwordResponse.data.password)
+      timeout = 2000
+    }
+
+    setTimeout(() => window.location.reload(), timeout ?? 1500)
   }
 
   if (target.closest('.popover-dismiss')) {

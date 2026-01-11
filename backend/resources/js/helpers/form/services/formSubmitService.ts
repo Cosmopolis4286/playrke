@@ -1,7 +1,6 @@
 import axios from '@/plugins/axios'
 import { showToast } from '@/utils/toastNotify'
 import { ajaxStart, ajaxStop } from '@/utils/loader'
-import { showPasswordModal } from '@/helpers/user/password'
 import { validateAndFocus } from '@/utils/form/fieldValidation'
 
 export type SubmitMethod = 'post' | 'put' | 'patch' | 'delete'
@@ -40,38 +39,60 @@ async function submitFormService({ form, method, url, headers = {} }: SubmitForm
   })
 }
 
-export async function submitForm(formId: string, reload: boolean = true) {
+/**
+ * Envía un formulario HTML al backend manejando validación,
+ * estado de carga, feedback visual y manejo de errores.
+ *
+ * @template T Tipo esperado de la respuesta (`data`) devuelta por el backend.
+ *
+ * @param formId - ID del elemento `<form>` en el DOM.
+ *
+ * @returns
+ * - `T` si la operación fue exitosa (`data.success === true`)
+ * - `null` si el formulario no existe, falla la validación o ocurre un error
+ *
+ * @remarks
+ * - Ejecuta `validateAndFocus` antes de enviar el formulario.
+ * - Inicia y detiene indicadores globales de carga (`ajaxStart` / `ajaxStop`).
+ * - Cierra automáticamente el modal asociado (`#modal-${formId}`) en caso de éxito.
+ * - Muestra notificaciones toast tanto en éxito como en error.
+ *
+ * @throws
+ * No lanza excepciones hacia el consumidor; cualquier error es capturado
+ * y gestionado internamente retornando `null`.
+ *
+ * @example
+ * ```ts
+ * const result = await submitForm<UserResponse>('user-form')
+ * if (result) {
+ *   console.log(result.data)
+ * }
+ * ```
+ */
+export async function submitForm<T = any>(formId: string): Promise<T | null> {
   const form = document.getElementById(formId) as HTMLFormElement | null
-  if (!form) return
+  if (!form) return null
 
-  const isValid = validateAndFocus(formId)
+  if (!validateAndFocus(formId)) return null
 
-  if (!isValid) return
+  ajaxStart()
 
   try {
-    ajaxStart()
-
     const { data } = await submitFormService({ form })
 
     if (!data?.success) {
-      throw new Error(data?.message)
+      throw new Error(data?.message ?? 'Error en la operación')
     }
-
-    const passwordResponse = data?.password ? { data: { password: data.password } } : null
-    let timeout: number | undefined = undefined
 
     $(`#modal-${formId}`).modal('hide')
+    showToast(data.message ?? 'Operación exitosa', 'success')
 
-    showToast(data.message || 'Operación exitosa', 'success')
-
-    if (passwordResponse?.data?.password) {
-      await showPasswordModal(passwordResponse.data.password)
-      timeout = 2000
-    }
-
-    if (reload) setTimeout(() => window.location.reload(), timeout ?? 1500)
+    return data as T
   } catch (error: any) {
-    showToast(error.response?.data?.message || 'Error al enviar formulario', 'error')
+    const message = error?.response?.data?.message ?? error?.message ?? 'Error al enviar formulario'
+
+    showToast(message, 'error')
+    return null
   } finally {
     ajaxStop()
   }

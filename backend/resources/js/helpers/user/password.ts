@@ -8,23 +8,20 @@ import Swal, { showToast } from '@/utils/toastNotify'
  * - Confirma cambio de contraseña
  */
 export async function initChangePassw(): Promise<void> {
-  const modal = document.getElementById('modal-change-password')
+  const modalChangePassw = document.getElementById('modal-change-password')
 
   document.addEventListener('click', event => {
     const target = event.target as HTMLElement
 
     // Abrir modal de cambio de contraseña
-    if (target?.id === 'change-password') {
-      if (modal) $(modal).modal('show')
+    if (target?.id === 'change-password' && modalChangePassw) {
+      $(modalChangePassw).modal('show')
       return
     }
-
     // Confirmar cambio de contraseña desde el modal
     if (target?.id === 'btn-change-password') {
-      if (modal) {
-        submitForm('change-password', false)
-        return
-      }
+      submitForm('change-password-form')
+      return
     }
   })
 }

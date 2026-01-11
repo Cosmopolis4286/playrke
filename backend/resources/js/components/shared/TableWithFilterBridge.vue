@@ -293,7 +293,6 @@
         detail: {
           tableId: props.tableId,
           selectedIds: [...selectedIds.value],
-          context: props.context
         }
       })
     )
