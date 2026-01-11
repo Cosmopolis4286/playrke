@@ -32,14 +32,6 @@ async function submitFormService({ form, method, url, headers = {} }: SubmitForm
 
   const realMethod = method || (hiddenMethod ? hiddenMethod.toLowerCase() : formMethod) || 'post'
 
-  console.log({
-    url: url,
-    action: form.action,
-    method: realMethod,
-    data: formData,
-    headers
-  })
-
   return axios.request({
     url: url || form.action,
     method: realMethod,
@@ -48,11 +40,13 @@ async function submitFormService({ form, method, url, headers = {} }: SubmitForm
   })
 }
 
-export async function submitForm(formId: string, fields: string[] = []) {
+export async function submitForm(formId: string) {
   const form = document.getElementById(formId) as HTMLFormElement | null
   if (!form) return
 
-  validateAndFocus(formId, fields)
+  const isValid = validateAndFocus(formId)
+
+  if (!isValid) return
 
   try {
     ajaxStart()
@@ -66,7 +60,7 @@ export async function submitForm(formId: string, fields: string[] = []) {
     const passwordResponse = data?.password ? { data: { password: data.password } } : null
     let timeout: number | undefined = undefined
 
-    $(`modal-${formId}`).modal('hide')
+    $(`#modal-${formId}`).modal('hide')
 
     showToast(data.message || 'Operación exitosa', 'success')
 

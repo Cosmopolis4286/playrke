@@ -21,7 +21,8 @@
             placeholder="Seleccionar zona horaria" col="col-sm-6" class="d-none" />
 
         <!-- Teléfono -->
-        <x-form.input label="Teléfono" name="phone" required placeholder="Ingresa el número" col="col-sm-6" maxlength="20" />
+        <x-form.input label="Teléfono" name="phone" required placeholder="Ingresa el número" col="col-sm-6"
+            maxlength="20" />
 
         <!-- Moneda principal -->
         <x-form.select container="true" label="Moneda Principal" id="currency" name="currency" required='true'
@@ -33,7 +34,7 @@
 
         <!-- Juegos Permitidos -->
         <x-form.select label="Juegos Permitidos" id="allowed-games" name="allowed_games" multiple select2
-            placeholder="Seleccionar juegos" data-source="games" data-value="id" data-label="name" col="col-sm-6" />
+            placeholder="Seleccionar juegos" data-source="games" col="col-sm-6" />
 
         <!-- Ruta API -->
         <x-form.input label="Ruta API" id="api-route" name="api_route" required col="col-sm-12 col-md-6" />
@@ -54,7 +55,8 @@
         <!-- Logo -->
         <div class="form-group col-12">
             <label for="logo">Logo</label>
-            <input type="file" id="logo" class="form-control-file" name="logo" accept="image/png, image/jpeg">
+            <input type="file" id="logo" class="form-control-file" name="logo"
+                accept="image/png, image/jpeg">
         </div>
     </div>
 </form>

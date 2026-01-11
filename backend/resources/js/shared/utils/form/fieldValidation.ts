@@ -10,48 +10,48 @@
 /**
  * Clase CSS aplicada a campos inválidos
  */
-const INVALID_CLASS = 'is-invalid';
+const INVALID_CLASS = 'is-invalid'
 
 /**
  * Clase CSS aplicada a campos válidos
  */
-const VALID_CLASS = 'is-valid';
+const VALID_CLASS = 'is-valid'
 
 /**
  * Configuración de colores para los bordes de validación
  */
 const BORDER_COLORS = {
-    invalid: '#dc3545', // Bootstrap danger color
-    valid: '#28a745',   // Bootstrap success color
-    default: '#ced4da'  // Bootstrap default border color
-} as const;
+  invalid: '#dc3545', // Bootstrap danger color
+  valid: '#28a745', // Bootstrap success color
+  default: '#ced4da' // Bootstrap default border color
+} as const
 
 /**
  * Resultado de la validación de un campo individual
  */
 export interface FieldValidationResult {
-    /** Nombre del campo */
-    fieldName: string;
-    /** Si el campo es válido */
-    isValid: boolean;
-    /** Mensaje de error (si aplica) */
-    errorMessage?: string;
-    /** Elemento HTML del campo */
-    element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
+  /** Nombre del campo */
+  fieldName: string
+  /** Si el campo es válido */
+  isValid: boolean
+  /** Mensaje de error (si aplica) */
+  errorMessage?: string
+  /** Elemento HTML del campo */
+  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null
 }
 
 /**
  * Resultado de la validación completa del formulario
  */
 export interface FormValidationResult {
-    /** Si el formulario completo es válido */
-    isValid: boolean;
-    /** Lista de campos faltantes */
-    missingFields: string[];
-    /** Detalles de validación por campo */
-    fieldResults: FieldValidationResult[];
-    /** Primer campo inválido encontrado */
-    firstInvalidField: HTMLElement | null;
+  /** Si el formulario completo es válido */
+  isValid: boolean
+  /** Lista de campos faltantes */
+  missingFields: string[]
+  /** Detalles de validación por campo */
+  fieldResults: FieldValidationResult[]
+  /** Primer campo inválido encontrado */
+  firstInvalidField: HTMLElement | null
 }
 
 /**
@@ -67,42 +67,42 @@ export interface FormValidationResult {
  * ```
  */
 export function highlightInvalidField(
-    element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
-    errorMessage?: string
+  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+  errorMessage?: string
 ): void {
-    // Remover clase válida si existe
-    element.classList.remove(VALID_CLASS);
+  // Remover clase válida si existe
+  element.classList.remove(VALID_CLASS)
 
-    // Agregar clase inválida
-    element.classList.add(INVALID_CLASS);
+  // Agregar clase inválida
+  element.classList.add(INVALID_CLASS)
 
-    // Aplicar borde rojo directamente
-    element.style.borderColor = BORDER_COLORS.invalid;
-    element.style.borderWidth = '2px';
+  // Aplicar borde rojo directamente
+  element.style.borderColor = BORDER_COLORS.invalid
+  element.style.borderWidth = '2px'
 
-    // Si hay Select2, aplicar también al contenedor
-    if (element.classList.contains('select2') && typeof $ !== 'undefined') {
-        const $element = $(element);
-        const select2Container = $element.next('.select2-container');
+  // Si hay Select2, aplicar también al contenedor
+  if (element.classList.contains('select2') && typeof $ !== 'undefined') {
+    const $element = $(element)
+    const select2Container = $element.next('.select2-container')
 
-        if (select2Container.length) {
-            select2Container.find('.select2-selection').css({
-                'border-color': BORDER_COLORS.invalid,
-                'border-width': '2px'
-            });
-        }
+    if (select2Container.length) {
+      select2Container.find('.select2-selection').css({
+        'border-color': BORDER_COLORS.invalid,
+        'border-width': '2px'
+      })
     }
+  }
 
-    // Agregar mensaje de error si se proporciona
-    if (errorMessage) {
-        removeErrorMessage(element);
-        const errorSpan = document.createElement('span');
-        errorSpan.className = 'invalid-feedback d-block';
-        errorSpan.textContent = errorMessage;
-        errorSpan.dataset.validationError = 'true';
+  // Agregar mensaje de error si se proporciona
+  if (errorMessage) {
+    removeErrorMessage(element)
+    const errorSpan = document.createElement('span')
+    errorSpan.className = 'invalid-feedback d-block'
+    errorSpan.textContent = errorMessage
+    errorSpan.dataset.validationError = 'true'
 
-        element.parentElement?.appendChild(errorSpan);
-    }
+    element.parentElement?.appendChild(errorSpan)
+  }
 }
 
 /**
@@ -117,30 +117,30 @@ export function highlightInvalidField(
  * ```
  */
 export function clearFieldValidation(
-    element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 ): void {
-    // Remover clases de validación
-    element.classList.remove(INVALID_CLASS, VALID_CLASS);
+  // Remover clases de validación
+  element.classList.remove(INVALID_CLASS, VALID_CLASS)
 
-    // Restaurar borde por defecto
-    element.style.borderColor = '';
-    element.style.borderWidth = '';
+  // Restaurar borde por defecto
+  element.style.borderColor = ''
+  element.style.borderWidth = ''
 
-    // Si hay Select2, limpiar también
-    if (element.classList.contains('select2') && typeof $ !== 'undefined') {
-        const $element = $(element);
-        const select2Container = $element.next('.select2-container');
+  // Si hay Select2, limpiar también
+  if (element.classList.contains('select2') && typeof $ !== 'undefined') {
+    const $element = $(element)
+    const select2Container = $element.next('.select2-container')
 
-        if (select2Container.length) {
-            select2Container.find('.select2-selection').css({
-                'border-color': '',
-                'border-width': ''
-            });
-        }
+    if (select2Container.length) {
+      select2Container.find('.select2-selection').css({
+        'border-color': '',
+        'border-width': ''
+      })
     }
+  }
 
-    // Remover mensaje de error
-    removeErrorMessage(element);
+  // Remover mensaje de error
+  removeErrorMessage(element)
 }
 
 /**
@@ -155,31 +155,31 @@ export function clearFieldValidation(
  * ```
  */
 export function highlightValidField(
-    element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 ): void {
-    // Remover clase inválida si existe
-    element.classList.remove(INVALID_CLASS);
+  // Remover clase inválida si existe
+  element.classList.remove(INVALID_CLASS)
 
-    // Agregar clase válida
-    element.classList.add(VALID_CLASS);
+  // Agregar clase válida
+  element.classList.add(VALID_CLASS)
 
-    // Aplicar borde verde
-    element.style.borderColor = BORDER_COLORS.valid;
+  // Aplicar borde verde
+  element.style.borderColor = BORDER_COLORS.valid
 
-    // Si hay Select2, aplicar también
-    if (element.classList.contains('select2') && typeof $ !== 'undefined') {
-        const $element = $(element);
-        const select2Container = $element.next('.select2-container');
+  // Si hay Select2, aplicar también
+  if (element.classList.contains('select2') && typeof $ !== 'undefined') {
+    const $element = $(element)
+    const select2Container = $element.next('.select2-container')
 
-        if (select2Container.length) {
-            select2Container.find('.select2-selection').css({
-                'border-color': BORDER_COLORS.valid
-            });
-        }
+    if (select2Container.length) {
+      select2Container.find('.select2-selection').css({
+        'border-color': BORDER_COLORS.valid
+      })
     }
+  }
 
-    // Remover mensaje de error si existe
-    removeErrorMessage(element);
+  // Remover mensaje de error si existe
+  removeErrorMessage(element)
 }
 
 /**
@@ -188,10 +188,10 @@ export function highlightValidField(
  * @param element - Elemento HTML del campo
  */
 function removeErrorMessage(
-    element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 ): void {
-    const errorSpan = element.parentElement?.querySelector('[data-validation-error="true"]');
-    errorSpan?.remove();
+  const errorSpan = element.parentElement?.querySelector('[data-validation-error="true"]')
+  errorSpan?.remove()
 }
 
 /**
@@ -209,20 +209,20 @@ function removeErrorMessage(
  * ```
  */
 export function isFieldValid(
-    element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null
+  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null
 ): boolean {
-    if (!element) return false;
+  if (!element) return false
 
-    const value = element.value?.trim();
+  const value = element.value?.trim()
 
-    // Validar según tipo de campo
-    if (element instanceof HTMLSelectElement) {
-        // Para selects, validar que no sea el placeholder (value vacío)
-        return value !== '' && value !== null;
-    }
+  // Validar según tipo de campo
+  if (element instanceof HTMLSelectElement) {
+    // Para selects, validar que no sea el placeholder (value vacío)
+    return value !== '' && value !== null
+  }
 
-    // Para inputs y textareas, validar que no esté vacío
-    return value !== '';
+  // Para inputs y textareas, validar que no esté vacío
+  return value !== ''
 }
 
 /**
@@ -244,65 +244,65 @@ export function isFieldValid(
  * ```
  */
 export function validateRequiredFields(
-    formId: string,
-    requiredFields: string[],
-    showErrorMessages: boolean = true
+  formId: string,
+  requiredFields: string[],
+  showErrorMessages: boolean = true
 ): FormValidationResult {
-    const form = document.getElementById(formId) as HTMLFormElement | null;
+  const form = document.getElementById(formId) as HTMLFormElement | null
 
-    if (!form) {
-        console.error(`❌ Formulario con ID "${formId}" no encontrado`);
-        return {
-            isValid: false,
-            missingFields: [],
-            fieldResults: [],
-            firstInvalidField: null
-        };
-    }
-
-    const missingFields: string[] = [];
-    const fieldResults: FieldValidationResult[] = [];
-    let firstInvalidField: HTMLElement | null = null;
-
-    // Validar cada campo requerido
-    requiredFields.forEach(fieldName => {
-        const element = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-            `[name="${fieldName}"], #${fieldName}`
-        );
-
-        const valid = isFieldValid(element);
-
-        fieldResults.push({
-            fieldName,
-            isValid: valid,
-            element,
-            errorMessage: valid ? undefined : `El campo ${fieldName} es requerido`
-        });
-
-        if (!valid) {
-            missingFields.push(fieldName);
-
-            if (element) {
-                const errorMsg = showErrorMessages ? `Este campo es requerido` : undefined;
-                highlightInvalidField(element, errorMsg);
-
-                // Guardar referencia al primer campo inválido
-                if (!firstInvalidField) {
-                    firstInvalidField = element;
-                }
-            }
-        } else if (element) {
-            // Limpiar validación de campos válidos
-            clearFieldValidation(element);
-        }
-    });
-
+  if (!form) {
+    console.error(`❌ Formulario con ID "${formId}" no encontrado`)
     return {
-        isValid: missingFields.length === 0,
-        missingFields,
-        fieldResults,
-        firstInvalidField
-    };
+      isValid: false,
+      missingFields: [],
+      fieldResults: [],
+      firstInvalidField: null
+    }
+  }
+
+  const missingFields: string[] = []
+  const fieldResults: FieldValidationResult[] = []
+  let firstInvalidField: HTMLElement | null = null
+
+  // Validar cada campo requerido
+  requiredFields.forEach(fieldName => {
+    const element = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+      `[name="${fieldName}"], #${fieldName}`
+    )
+
+    const valid = isFieldValid(element)
+
+    fieldResults.push({
+      fieldName,
+      isValid: valid,
+      element,
+      errorMessage: valid ? undefined : `El campo ${fieldName} es requerido`
+    })
+
+    if (!valid) {
+      missingFields.push(fieldName)
+
+      if (element) {
+        const errorMsg = showErrorMessages ? `Este campo es requerido` : undefined
+        highlightInvalidField(element, errorMsg)
+
+        // Guardar referencia al primer campo inválido
+        if (!firstInvalidField) {
+          firstInvalidField = element
+        }
+      }
+    } else if (element) {
+      // Limpiar validación de campos válidos
+      clearFieldValidation(element)
+    }
+  })
+
+  return {
+    isValid: missingFields.length === 0,
+    missingFields,
+    fieldResults,
+    firstInvalidField
+  }
 }
 
 /**
@@ -316,23 +316,23 @@ export function validateRequiredFields(
  * ```
  */
 export function clearFormValidation(formId: string): void {
-    const form = document.getElementById(formId) as HTMLFormElement | null;
+  const form = document.getElementById(formId) as HTMLFormElement | null
 
-    if (!form) {
-        console.error(`❌ Formulario con ID "${formId}" no encontrado`);
-        return;
-    }
+  if (!form) {
+    console.error(`❌ Formulario con ID "${formId}" no encontrado`)
+    return
+  }
 
-    // Limpiar todos los campos con clase is-invalid o is-valid
-    const invalidFields = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-        `.${INVALID_CLASS}, .${VALID_CLASS}`
-    );
+  // Limpiar todos los campos con clase is-invalid o is-valid
+  const invalidFields = form.querySelectorAll<
+    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+  >(`.${INVALID_CLASS}, .${VALID_CLASS}`)
 
-    invalidFields.forEach(field => clearFieldValidation(field));
+  invalidFields.forEach(field => clearFieldValidation(field))
 
-    // Remover todos los mensajes de error
-    const errorMessages = form.querySelectorAll('[data-validation-error="true"]');
-    errorMessages.forEach(msg => msg.remove());
+  // Remover todos los mensajes de error
+  const errorMessages = form.querySelectorAll('[data-validation-error="true"]')
+  errorMessages.forEach(msg => msg.remove())
 }
 
 /**
@@ -348,48 +348,45 @@ export function clearFormValidation(formId: string): void {
  * attachRealtimeValidation('myForm', ['name', 'email', 'phone']);
  * ```
  */
-export function attachRealtimeValidation(
-    formId: string,
-    requiredFields: string[]
-): void {
-    const form = document.getElementById(formId) as HTMLFormElement | null;
+export function attachRealtimeValidation(formId: string, requiredFields: string[]): void {
+  const form = document.getElementById(formId) as HTMLFormElement | null
 
-    if (!form) {
-        console.error(`❌ Formulario con ID "${formId}" no encontrado`);
-        return;
+  if (!form) {
+    console.error(`❌ Formulario con ID "${formId}" no encontrado`)
+    return
+  }
+
+  requiredFields.forEach(fieldName => {
+    const element = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+      `[name="${fieldName}"], #${fieldName}`
+    )
+
+    if (!element) return
+
+    // Evento para inputs y textareas
+    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+      element.addEventListener('input', () => {
+        if (isFieldValid(element)) {
+          clearFieldValidation(element)
+        }
+      })
+
+      element.addEventListener('blur', () => {
+        if (!isFieldValid(element)) {
+          highlightInvalidField(element, 'Este campo es requerido')
+        }
+      })
     }
 
-    requiredFields.forEach(fieldName => {
-        const element = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-            `[name="${fieldName}"], #${fieldName}`
-        );
-
-        if (!element) return;
-
-        // Evento para inputs y textareas
-        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-            element.addEventListener('input', () => {
-                if (isFieldValid(element)) {
-                    clearFieldValidation(element);
-                }
-            });
-
-            element.addEventListener('blur', () => {
-                if (!isFieldValid(element)) {
-                    highlightInvalidField(element, 'Este campo es requerido');
-                }
-            });
+    // Evento para selects
+    if (element instanceof HTMLSelectElement) {
+      element.addEventListener('change', () => {
+        if (isFieldValid(element)) {
+          clearFieldValidation(element)
+        } else {
+          highlightInvalidField(element, 'Debe seleccionar una opción')
         }
-
-        // Evento para selects
-        if (element instanceof HTMLSelectElement) {
-            element.addEventListener('change', () => {
-                if (isFieldValid(element)) {
-                    clearFieldValidation(element);
-                } else {
-                    highlightInvalidField(element, 'Debe seleccionar una opción');
-                }
-            });
-        }
-    });
+      })
+    }
+  })
 }

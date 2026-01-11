@@ -1,8 +1,8 @@
 // helpers/form/ui/formCrudUI.ts
-import Swal from '@/helpers/toastNotify';
-import { showToast } from '@/helpers/toastNotify';
-import { resetFormAndContainers } from '../formHelpers';
-import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form/fieldValidation';
+import Swal from '@/helpers/toastNotify'
+import { showToast } from '@/helpers/toastNotify'
+import { resetFormAndContainers } from '../formHelpers'
+import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form/fieldValidation'
 
 /**
  * Responsabilidades de UI pura para CRUD de formularios.
@@ -14,75 +14,102 @@ import { validateRequiredFields, clearFormValidation } from '@/shared/utils/form
  */
 
 export function showModal(modalId?: string): void {
-    if (!modalId) return;
-    const modal = document.querySelector(modalId) as any;
-    if (modal && typeof (window as any).$ === 'function') {
-        (window as any).$(modalId).modal('show');
-    }
+  if (!modalId) return
+  const modal = document.querySelector(modalId) as any
+  if (modal && typeof (window as any).$ === 'function') {
+    ;(window as any).$(modalId).modal('show')
+  }
 }
 
 export function hideModal(modalId?: string): void {
-    if (!modalId) return;
-    if (typeof (window as any).$ === 'function') {
-        (window as any).$(modalId).modal('hide');
-    }
+  if (!modalId) return
+  if (typeof (window as any).$ === 'function') {
+    ;(window as any).$(modalId).modal('hide')
+  }
 }
 
 export function setModalTitle(moduleId: string, title: string): void {
-    const label = document.querySelector(`#modal-${moduleId}-label`);
-    if (label) label.textContent = title;
+  const label = document.querySelector(`#modal-${moduleId}-label`)
+  if (label) label.textContent = title
 }
 
 export function resetFormUI(form: HTMLFormElement): void {
-    if (!form.id) return;
+  if (!form.id) return
 
-    resetFormAndContainers(form.id);
+  resetFormAndContainers(form.id)
 
-    form.querySelectorAll<HTMLInputElement>('input[readonly]').forEach(input => {
-        input.readOnly = false;
-    });
+  form.querySelectorAll<HTMLInputElement>('input[readonly]').forEach(input => {
+    input.readOnly = false
+  })
 }
 
-export function validateAndFocus(formId: string, fields: string[]): boolean {
-    const result = validateRequiredFields(formId, fields, true);
+/**
+ * Obtiene los IDs o nombres de los campos requeridos dentro de un formulario.
+ *
+ * @param form - Elemento formulario HTML
+ * @returns Array de strings con IDs o nombres de campos requeridos
+ */
+export function getRequiredFields(formId: string): string[] {
+  const form = document.getElementById(formId) as HTMLFormElement | null
+  let fields: string[] = []
 
-    if (!result.isValid) {
-        if (result.firstInvalidField) {
-            result.firstInvalidField.focus();
-            result.firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+  return (fields = Array.from(
+    form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[required], select[required]')
+  )
+    .map(el => el.id || el.name)
+    .filter(Boolean) as string[])
+}
 
-        showToast(
-            `Campos requeridos faltantes: ${result.missingFields.join(', ')}`,
-            'warning'
-        );
-        return false;
+/**
+ * Valida los campos requeridos y enfoca el primero inválido si los hay.
+ * @param formId
+ * @param fields
+ * @returns
+ */
+export function validateAndFocus(formId: string, fields?: string[]): boolean {
+  if (!fields || fields.length === 0) {
+    fields = getRequiredFields(formId)
+  }
+
+  const result = validateRequiredFields(formId, fields, true)
+
+  if (!result.isValid) {
+    if (result.firstInvalidField) {
+      result.firstInvalidField.focus()
+      result.firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
 
-    clearFormValidation(formId);
-    return true;
+    showToast(`${result.missingFields.length} Campos requeridos faltantes!`, 'warning')
+    return false
+  }
+
+  clearFormValidation(formId)
+  return true
 }
 
 export async function confirmAction(
-    text: string,
-    icon: 'question' | 'warning' | 'success' | 'info' = 'question',
-    confirmButtonText = 'Confirmar'
+  text: string,
+  icon: 'question' | 'warning' | 'success' | 'info' = 'question',
+  confirmButtonText = 'Confirmar'
 ): Promise<boolean> {
-    const result = await Swal.fire({
-        text,
-        icon,
-        showCancelButton: true,
-        confirmButtonText,
-        cancelButtonText: 'Cancelar'
-    });
+  const result = await Swal.fire({
+    text,
+    icon,
+    showCancelButton: true,
+    confirmButtonText,
+    cancelButtonText: 'Cancelar'
+  })
 
-    return Boolean(result.isConfirmed);
+  return Boolean(result.isConfirmed)
 }
 
-export async function showGeneratedPassword(password: string, title = 'Nueva Contraseña'): Promise<void> {
-    await Swal.fire({
-        title,
-        html: `
+export async function showGeneratedPassword(
+  password: string,
+  title = 'Nueva Contraseña'
+): Promise<void> {
+  await Swal.fire({
+    title,
+    html: `
             <div style="text-align:left">
                 <p><strong>Contraseña:</strong></p>
                 <div style="display:flex;gap:8px;align-items:center">
@@ -96,24 +123,24 @@ export async function showGeneratedPassword(password: string, title = 'Nueva Con
                 <p style="margin-top:12px;font-size:13px;color:#6c757d">Guarda esta contraseña en un lugar seguro.</p>
             </div>
         `,
-        icon: 'success',
-        confirmButtonText: 'Entendido',
-        allowOutsideClick: false,
-        didOpen: () => {
-            const btn = document.getElementById('copy-password-btn');
-            if (!btn) return;
-            btn.addEventListener('click', async () => {
-                await navigator.clipboard.writeText(password);
-                btn.textContent = 'Copiado';
-            });
-        }
-    });
+    icon: 'success',
+    confirmButtonText: 'Entendido',
+    allowOutsideClick: false,
+    didOpen: () => {
+      const btn = document.getElementById('copy-password-btn')
+      if (!btn) return
+      btn.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(password)
+        btn.textContent = 'Copiado'
+      })
+    }
+  })
 }
 
 export function showSuccess(message = 'Operación exitosa'): void {
-    showToast(message, 'success');
+  showToast(message, 'success')
 }
 
 export function showError(message = 'Error al procesar la acción'): void {
-    showToast(message, 'error');
+  showToast(message, 'error')
 }

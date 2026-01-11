@@ -1,10 +1,11 @@
 // commerceForm.ts
 import {
-  insertOtherCurrencies,
   initCurrencySelector,
   updateCurrency,
-  updateTimeZones
+  updateTimeZones,
+  setOtherCurrencies
 } from '@/helpers/selects/otherCurrencies'
+import { insertAllowedGames } from '@/helpers/selects/allowedGames'
 import { validateInput } from '@/helpers/validateInput'
 import { initAllSelects } from '@/helpers/selects/initAllSelects'
 import {
@@ -49,13 +50,6 @@ function getInput(id: string): HTMLInputElement | null {
 }
 
 /**
- * Muestra un contenedor removiendo `d-none`
- */
-function showContainer(id: string): void {
-  document.getElementById(id)?.classList.remove('d-none')
-}
-
-/**
  * Ejecuta una función cuando el callstack esté libre
  * (mejor alternativa a setTimeout encadenados)
  */
@@ -74,6 +68,7 @@ function nextTick(fn: () => void): void {
  */
 export function insertInfo(action: 'create' | 'edit', data: any = null): void {
   const modal = document.getElementById(`modal-${moduleId}`)
+  console.log(modal)
   if (!modal) {
     console.error('Modal no encontrado')
     return
@@ -145,6 +140,22 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
     // Datos del commerce
     const commerce = data
 
+    // Otras monedas
+    if (Array.isArray(commerce?.other_currencies) && commerce.other_currencies.length > 0) {
+      if (import.meta.env.DEV) {
+        console.log('💵 Insertando other currencies:', commerce.other_currencies)
+      }
+      setOtherCurrencies(commerce?.other_currencies)
+    }
+
+    // Juegos permitidos
+    if (Array.isArray(commerce?.allowed_games) && commerce.allowed_games.length > 0) {
+      if (import.meta.env.DEV) {
+        console.log('🎮 Insertando allowed games:', commerce.allowed_games)
+      }
+      //insertAllowedGames(commerce.allowed_games)
+    }
+
     nextTick(() => {
       if (import.meta.env.DEV) {
         console.log('🔄 Cargando selects dependientes por país:', commerce.country?.name)
@@ -152,38 +163,6 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 
       updateCurrency(commerce.country?.id)
       updateTimeZones(commerce.country?.id, String(commerce?.user?.time_zone_id))
-      nextTick(() => {
-        const currencySelect = document.getElementById('currency') as HTMLSelectElement | null
-        const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement | null
-
-        // Currency
-        if (currencySelect && commerce?.currency?.id) {
-          currencySelect.value = String(commerce.currency?.id)
-          $(currencySelect).trigger('change')
-          showContainer('container-currency')
-        }
-
-        // Time-zone
-        if (timeZoneSelect) {
-          showContainer('container-time-zone')
-        }
-
-        // Otras monedas
-        if (Array.isArray(commerce?.other_currencies) && commerce.other_currencies.length > 0) {
-          if (import.meta.env.DEV) {
-            console.log('💵 Insertando other currencies:', commerce.other_currencies)
-          }
-          insertOtherCurrencies(commerce?.other_currencies)
-        }
-
-        // Juegos permitidos
-        if (Array.isArray(commerce?.allowed_games) && commerce.allowed_games.length > 0) {
-          if (import.meta.env.DEV) {
-            console.log('🎮 Insertando allowed games:', commerce.allowed_games)
-          }
-          //insertOtherCurrencies(commerce.allowed_games);
-        }
-      })
     })
   }
 

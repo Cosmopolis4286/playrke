@@ -1,3 +1,4 @@
+// backend/resources/js/helpers/selects/otherCurrencies.ts
 import { getAppDataProperty } from '@/data/index' // Leer dinámicamente de AppData
 import { Currency, TimeZone } from '@/types/dataModels'
 
@@ -20,10 +21,12 @@ const country = document.getElementById('country') as HTMLSelectElement | null
 const otherCurrencies = document.getElementById('other-currencies') as HTMLSelectElement | null
 const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement | null
 
+let _selectedCurrencies: (number | string)[] = [] // Almacena las monedas alternativas seleccionadas
+
 // ==========================
 //   Funciones auxiliares
 // ==========================
-/** Limpia el select de monedas alternativas */
+/** Limpia el select de monedas alternativas y resetea el array de monedas seleccionadas */
 function clearOtherCurrencies(): void {
   if (!otherCurrencies) return
 
@@ -40,11 +43,10 @@ function clearOtherCurrencies(): void {
  * - Muestra TODAS las monedas disponibles (sin importar el país).
  * - Excluye la moneda principal seleccionada.
  * - Ordena las monedas alfabéticamente por su símbolo.
- * - Marca como seleccionadas las monedas que se pasan en `selectedCurrencies`.
- *
- * @param selectedCurrencies - Array de IDs de monedas que deben estar preseleccionadas.
+ * - Marca como seleccionadas las monedas que se pasan en `_selectedCurrencies`.
+ * @return void
  */
-export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = []): void {
+export function insertOtherCurrencies(): void {
   if (!otherCurrencies || !currency) return
 
   clearOtherCurrencies()
@@ -60,7 +62,7 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
       const option = document.createElement('option')
       option.value = String(id)
       option.textContent = `(${symbol}) ${description}`
-      if (selectedCurrencies.some(sc => String(sc) === String(id))) option.selected = true
+      if (_selectedCurrencies.some(sc => String(sc) === String(id))) option.selected = true
       otherCurrencies.appendChild(option)
     })
 
@@ -72,10 +74,38 @@ export function insertOtherCurrencies(selectedCurrencies: (number | string)[] = 
   }
 }
 
+/**
+ * Selecciona las monedas alternativas preexistentes en el select.
+ * No modifica las opciones, solo las selecciona.
+ * @return void
+ */
+export function selectOtherCurrencies(): void {
+  if (!otherCurrencies) return
+
+  // Deseleccionar todo
+  Array.from(otherCurrencies.options).forEach(option => {
+    option.selected = false
+  })
+
+  // Seleccionar las que correspondan
+  _selectedCurrencies.forEach(id => {
+    const option = Array.from(otherCurrencies.options).find(opt => opt.value === String(id))
+    if (option) option.selected = true
+  })
+
+  containerOtherCurrencies?.classList.remove('d-none')
+
+  // Refrescar Select2 si está activo
+  if (window.jQuery && (window.jQuery as any)(otherCurrencies).data('select2')) {
+    ;(window.jQuery as any)(otherCurrencies).trigger('change')
+  }
+}
+
 /** Actualiza la moneda principal según el país seleccionado */
 function updateMainCurrencyByCountry(selectedCountry: string): void {
   if (!currency) return
 
+  console.log('🌍 Actualizando moneda principal para el país ID:', selectedCountry)
   // Limpiar el select
   currency.innerHTML = ''
 
@@ -166,7 +196,7 @@ function updateTimeZonesByCountry(selectedCountry: string, selectedTimeZone?: st
 
   if (hasMultipleTimeZones && placeholder) {
     const placeholderOption = new Option(placeholder, '', true, false)
-    placeholderOption.disabled = true
+    placeholderOption.disabled = false
     timeZoneSelect.appendChild(placeholderOption)
   }
 
@@ -271,6 +301,7 @@ export function initCurrencySelector(): void {
     const selectedCountry = country.value
 
     if (!selectedCountry) {
+      alert('Por favor, seleccione un país válido.')
       resetCurrencySelection()
       return
     }
@@ -285,11 +316,12 @@ export function initCurrencySelector(): void {
   // Listener para cuando se selecciona una moneda principal manualmente
   currency?.addEventListener('change', () => {
     if (!currency.value) {
-      // Si se deselecciona la moneda, ocultar other-currencies
       containerOtherCurrencies?.classList.add('d-none')
+      _selectedCurrencies = []
       clearOtherCurrencies()
       return
     }
+    insertOtherCurrencies()
   })
 
   _currencySelectorInitialized = true
@@ -316,4 +348,9 @@ export function updateCurrency(countryId: string | number): void {
  */
 export function resetCurrencySelectorState(): void {
   _currencySelectorInitialized = false
+}
+
+// Setea las monedas alternativas seleccionadas
+export function setOtherCurrencies(selectedCurrencies: (number | string)[] = []): void {
+  _selectedCurrencies = selectedCurrencies
 }
