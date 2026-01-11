@@ -4,8 +4,8 @@ import { formCrudState as crud } from '../state/formCrudState'
 import { route } from '@/routes/helper'
 import { showToast } from '@/helpers/toastNotify'
 
-export async function getInfo(encryptId: string): Promise<void> {
-  if (!encryptId) return
+export async function getInfo(encryptId: string): Promise<boolean> {
+  if (!encryptId) return false
 
   const url = route(crud.routes, 'show', { id: encryptId })
 
@@ -21,11 +21,9 @@ export async function getInfo(encryptId: string): Promise<void> {
       throw new Error(data.message || 'Error desconocido al cargar info')
     }
 
-    console.log('Datos obtenidos:', data)
-
     if (data?.data) {
       crud.insertInfo?.('edit', data.data)
-      $(crud.modalId!).modal('show')
+      return true
     } else {
       // No hay datos pero no es error HTTP
       console.warn('No hay datos disponibles para el ID:', encryptId)

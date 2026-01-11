@@ -1,5 +1,7 @@
 // helpers/form/formHelpers.ts
 
+import { clearFormValidation } from '@/shared/utils/form/fieldValidation'
+
 /**
  * Llena un formulario con valores de un objeto,
  * mapeando IDs con "-" a propiedades con "_".
@@ -144,6 +146,7 @@ export function resetForm(
     return
   }
 
+  // Reset usando la utilidad compartida
   resetFormAndContainers(form.id)
 
   if (options.removeReadonly) {
@@ -151,4 +154,9 @@ export function resetForm(
       input.readOnly = false
     })
   }
+
+  // Limpiar validaciones
+  clearFormValidation(form.id)
+  // Limpiar errores de validación
+  clearValidationErrors(form.id)
 }
