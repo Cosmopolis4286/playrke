@@ -40,7 +40,7 @@ async function submitFormService({ form, method, url, headers = {} }: SubmitForm
   })
 }
 
-export async function submitForm(formId: string) {
+export async function submitForm(formId: string, reload: boolean = true) {
   const form = document.getElementById(formId) as HTMLFormElement | null
   if (!form) return
 
@@ -69,7 +69,7 @@ export async function submitForm(formId: string) {
       timeout = 2000
     }
 
-    setTimeout(() => window.location.reload(), timeout ?? 1500)
+    if (reload) setTimeout(() => window.location.reload(), timeout ?? 1500)
   } catch (error: any) {
     showToast(error.response?.data?.message || 'Error al enviar formulario', 'error')
   } finally {

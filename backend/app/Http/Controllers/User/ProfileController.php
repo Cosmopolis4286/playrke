@@ -5,21 +5,19 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Users\Shared\DocumentType;
 use App\Models\Users\User;
+use App\Services\Users\ProfileService;
 use App\Traits\Users\UserTrait;
-// Models
-
-// Traits
-
-// Otros
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Intervention\Image\ImageManagerStatic as Image;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class ProfileController extends Controller
 {
     use UserTrait;
+
+    public function __construct(
+        protected ProfileService $profileService,
+    ) {}
 
     public function index()
     {
@@ -40,7 +38,7 @@ class ProfileController extends Controller
         if (empty($files) == false) {
             if ($user->foto != $nombreimg) {
                 $ruta = public_path('imgSystem/imgUsers/' . $nombreimg);
-                Image::make($request->file("foto"))
+                InterventionImage::make($request->file("foto"))
                     ->resize(100, null, function ($constraint) {
                         $constraint->aspectRatio();
                     })->save($ruta);
@@ -55,29 +53,37 @@ class ProfileController extends Controller
 
     /**
      * Cambiar la contraseña del usuario autenticado
+     *
      * @param Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return JsonResponse
      */
-    public function changePassword(Request $request): RedirectResponse
+    public function changePassword(Request $request): JsonResponse
     {
-        /** @var User|null $user */
-        $user = Auth::user();
+        $request->validate(
+            [
+                'current_password' => ['required', 'current_password'],
+                'new_password' => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
+            ],
+            [
+                'new_password.different' => 'La nueva contraseña no puede ser la misma que la contraseña actual.',
+                'new_password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
+            ]
+        );
 
-        $request->validate([
-            'current_password' => ['required', 'string', 'max:255'],
-            'new_password' => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
-        ], [
-            'new_password.different' => 'La nueva contraseña no puede ser la misma que la contraseña actual.',
-            'new_password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
-        ]);
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $this->profileService->changePassword(
+                    $request->user()->id,
+                    $request->new_password
+                );
 
-        if (!Hash::check($request->input('current_password'), $user->password)) {
-            return redirect()->back()->with('msg-error', 'Contraseña actual incorrecta.');
-        }
+                // $request->session()->regenerate();
 
-        $user->password = Hash::make($request->input('new_password'));
-        $user->save();
-
-        return redirect()->back()->with('message', 'Contraseña actualizada correctamente.');
+                return [
+                    'message' => '✅ Contraseña actualizada correctamente',
+                ];
+            },
+            'No se pudo cambiar la contraseña.'
+        );
     }
 }

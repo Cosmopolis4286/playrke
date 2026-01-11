@@ -22,7 +22,7 @@ export async function initChangePassw(): Promise<void> {
     // Confirmar cambio de contraseña desde el modal
     if (target?.id === 'btn-change-password') {
       if (modal) {
-        submitForm('change-password-form')
+        submitForm('change-password', false)
         return
       }
     }

@@ -85,8 +85,6 @@
     showCreateButton: { type: Boolean, default: true },
     showEditButton: { type: Boolean, default: true },
     showDeleteButton: { type: Boolean, default: true },
-    moduleId: { type: String, default: '' },
-    context: { type: String, default: '' },
     extraButtons: {
       type: Array as () => ExtraButton[],
       default: () => []
@@ -143,15 +141,12 @@
    * @param ids Array de IDs seleccionados (default: selectedIds.value)
    */
   function emitTableCrudEvent(action: string, ids: string[] = selectedIds.value) {
-    const encryptId = ids.length === 1 ? ids[0] : ''
     window.dispatchEvent(
       new CustomEvent('table:crud', {
         detail: {
           action,
-          moduleId: props.moduleId,
-          tableId: props.tableId,
-          encryptId,
-          context: props.context
+          encryptIds: ids,
+          tableId: props.tableId
         }
       })
     )
@@ -195,6 +190,7 @@
       return
     }
 
+    console.log('ids', ids)
     // Emitir evento con acción e IDs
     emitTableCrudEvent(action, ids)
   }
@@ -285,6 +281,7 @@
    */
   const handleSelectionChange = (ids: string[]): void => {
     selectedIds.value = [...ids]
+    return
     if (import.meta.env.DEV) {
       console.log('🔁 table-selection-updated', {
         tableId: props.tableId,

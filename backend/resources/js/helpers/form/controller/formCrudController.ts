@@ -1,6 +1,5 @@
 // backend/resources/js/helpers/form/controller/formCrudController.ts
 
-import { copyInfo } from '@/utils/copyInfo'
 import { submitForm } from '../services/formSubmitService'
 import { formCrudState as crud } from '../state/formCrudState'
 import { executeCrud } from '../services/crudExecutor'
@@ -53,15 +52,6 @@ async function handleCrudClick(e: MouseEvent): Promise<void> {
     $(target).popover('toggle')
     return
   }
-
-  /* ───────── Acciones CRUD ───────── */
-
-  if (!crud.moduleId) return
-
-  const btn = target.closest<HTMLElement>('[data-action]')
-  if (!btn) return
-
-  await executeCrud(btn.dataset.action || '', btn.dataset.encryptId)
 }
 
 /**
@@ -77,7 +67,7 @@ function handleCrudCustomEvent(event: Event): void {
   const ev = event as CustomEvent<TableCrudEventDetail>
   if (!ev.detail) return
 
-  const { action, encryptId } = ev.detail
+  const { action, encryptIds } = ev.detail
 
-  executeCrud(action, encryptId)
+  executeCrud(action, encryptIds)
 }

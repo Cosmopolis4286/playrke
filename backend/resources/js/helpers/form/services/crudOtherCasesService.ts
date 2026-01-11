@@ -7,14 +7,13 @@ import type { SweetAlertIcon } from 'sweetalert2'
 import { formCrudState as crud } from '../state/formCrudState'
 import { showToast, showToastConfirmAction } from '../ui/crudModalUI'
 import type { OtherCase } from '@/helpers/module/types/formModule.types'
-import { getSelectedIds } from '@/alpine/tableSelectionListener'
 import { showPasswordModal } from '@/helpers/user/password'
 import { route } from '@/routes/helper'
 
 /**
  * Resuelve el caso de acción personalizado o global
  */
-function resolveCase(action: string, status?: string, entityName = 'registro'): OtherCase | null {
+function resolveCase(action: string, entityName = 'registro'): OtherCase | null {
   const globalActions: Record<string, OtherCase> = {
     delete: {
       routeName: 'delete',
@@ -32,9 +31,7 @@ function resolveCase(action: string, status?: string, entityName = 'registro'): 
     },
     changeStatus: {
       routeName: 'changeStatus',
-      text: status
-        ? `¿Deseas cambiar el estado a "${status}" de este ${entityName}?`
-        : `¿Deseas cambiar el estado de este ${entityName}?`,
+      text: `¿Deseas cambiar el estado de este ${entityName}?`,
       icon: 'question',
       confirmButtonText: 'Sí, cambiar',
       method: 'PUT'
@@ -57,17 +54,6 @@ function resolveCase(action: string, status?: string, entityName = 'registro'): 
 }
 
 /**
- * Obtiene los IDs a procesar: seleccionados en tabla o ID individual
- */
-function resolveIds(encryptId: string, elem?: HTMLElement): string[] {
-  const tableId = elem?.closest('[data-table-id]')?.getAttribute('data-table-id')
-  const selectedIds = tableId ? getSelectedIds(tableId) : []
-  if (selectedIds.length > 0) return selectedIds
-  if (encryptId) return [encryptId]
-  return []
-}
-
-/**
  * Muestra confirmación al usuario
  */
 async function confirmAction(
@@ -81,9 +67,8 @@ async function confirmAction(
 /**
  * Envía las peticiones axios para cada ID
  */
-async function sendRequests(ids: string[], caseData: OtherCase, status?: string): Promise<any[]> {
+async function sendRequests(ids: string[], caseData: OtherCase): Promise<any[]> {
   const requestData: Record<string, any> = {}
-  if (status) requestData.status = status
 
   const promises = ids.map(id => {
     const fullUrl = route(crud.routes, caseData.routeName, { id }) ?? ''
@@ -130,15 +115,15 @@ async function handleResult(action: string, ids: string[], results: any[]): Prom
  * Función principal que orquesta todo el flujo
  *
  */
-export async function handleOtherCases(action: string, encryptId: string, elem?: HTMLElement) {
+export async function handleOtherCases(action: string, encryptIds: string[]) {
   const entityName = crud.formTitleSuffix?.toLowerCase() || 'registro'
-  const status = elem?.dataset?.status
 
-  const caseData = resolveCase(action, status, entityName)
+  const caseData = resolveCase(action, entityName)
   if (!caseData) return console.error(`Acción no reconocida: ${action}`)
 
-  const idsToProcess = resolveIds(encryptId, elem)
-  if (idsToProcess.length === 0) return console.error('No hay IDs seleccionados para procesar')
+    console.log('encryptIds', encryptIds)
+
+  if (encryptIds.length === 0) return console.error('No hay IDs seleccionados para procesar')
 
   if (!caseData.text) {
     console.error('caseData sin text:', caseData)
@@ -147,17 +132,17 @@ export async function handleOtherCases(action: string, encryptId: string, elem?:
   }
 
   const confirmText =
-    idsToProcess.length > 1
-      ? caseData.text.replace('este', `estos ${idsToProcess.length}`)
+    encryptIds.length > 1
+      ? caseData.text.replace('este', `estos ${encryptIds.length}`)
       : caseData.text
 
   try {
     const confirmed = await confirmAction(confirmText, caseData.icon!, caseData.confirmButtonText!)
     if (!confirmed) return showToast('Los cambios no se guardaron', 'info')
 
-    const results = await sendRequests(idsToProcess, caseData, status)
+    const results = await sendRequests(encryptIds, caseData)
 
-    await handleResult(action, idsToProcess, results)
+    await handleResult(action, encryptIds, results)
   } catch (error: any) {
     console.error(
       `Error al registrar la acción '${action}':`,

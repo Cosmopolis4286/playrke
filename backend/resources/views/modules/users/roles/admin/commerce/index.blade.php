@@ -23,8 +23,6 @@
                 ]
             ]
         ]"
-        module-id="commerce-form"
-        context="commerce"
         table-id="commerce-table"
         search-placeholder="Buscar por nombre, email, teléfono..."
         :extra-buttons="[
