@@ -55,16 +55,6 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryCon
         return $this->model->where('customer_code', $customerCode)->value($column);
     }
 
-    public function getActiveCustomers(): Collection
-    {
-        return $this->model->where('status', 'ACTIVE')->get();
-    }
-
-    public function getInactiveCustomers(): Collection
-    {
-        return $this->model->where('status', 'INACTIVE')->get();
-    }
-
     public function getBlockedCustomers(): Collection
     {
         return $this->model->where('status', 'BLOCKED')->get();

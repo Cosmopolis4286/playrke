@@ -24,10 +24,6 @@ interface CustomerRepositoryContract extends BaseRepositoryContract
 
     public function getValueByCustomerCode(string $customerCode, string $column);
 
-    public function getActiveCustomers(): Collection;
-
-    public function getInactiveCustomers(): Collection;
-
     public function getBlockedCustomers(): Collection;
 
     public function getByCountry($countryId): Collection;

@@ -57,14 +57,6 @@ interface CommerceRepositoryContract extends BaseRepositoryContract
     public function existsValue(string $column, $value): bool;
 
     /**
-     * Obtiene todos los comercios activos
-     *
-     * @param array $fields Campos a seleccionar
-     * @return Collection
-     */
-    public function getActiveCommerces(array $fields = ['*']): Collection;
-
-    /**
      * Obtiene comercios por país
      *
      * @param mixed $countryId ID del país
@@ -79,14 +71,6 @@ interface CommerceRepositoryContract extends BaseRepositoryContract
      * @return Collection
      */
     public function getByCurrency($currencyId): Collection;
-
-    /**
-     * Obtiene comercios por estado
-     *
-     * @param string $status Estado del comercio
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection;
 
     /**
      * Obtiene comercios inactivos

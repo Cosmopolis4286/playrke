@@ -189,9 +189,9 @@ class AdminController extends Controller
 
         try {
             $users = match ($userRole) {
-                'commerce' => $this->getFilteredUsers($this->commerces->getActiveCommerces(['name', 'user_id']), $excludedUsers),
-                'customer' => $this->getFilteredUsers($this->customers->getAll(['name', 'user_id']), $excludedUsers),
-                'treasurer' => $this->getFilteredUsers($this->treasurers->getAll(['name', 'user_id']), $excludedUsers),
+                'commerce' => $this->getFilteredUsers($this->commerces->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
+                'customer' => $this->getFilteredUsers($this->customers->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
+                'treasurer' => $this->getFilteredUsers($this->treasurers->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
                 default => []
             };
 

@@ -27,10 +27,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Obtener todos los registros
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection
+     * {@inheritDoc}
      */
     public function all(array $columns = ['*']): Collection
     {
@@ -38,11 +35,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Buscar un registro por ID
-     *
-     * @param string|int $id ID del registro
-     * @param array $columns Columnas a seleccionar
-     * @return Model|null
+     * {@inheritDoc}
      */
     public function find(string|int $id, array $columns = ['*']): ?Model
     {
@@ -50,12 +43,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Buscar un registro por ID o lanzar excepción
-     *
-     * @param string|int $id ID del registro
-     * @param array $columns Columnas a seleccionar
-     * @return Model
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     * {@inheritDoc}
      */
     public function findOrFail(string|int $id, array $columns = ['*']): Model
     {
@@ -82,10 +70,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Crear un nuevo registro
-     *
-     * @param array $data Datos para crear el registro
-     * @return Model
+     * {@inheritDoc}
      */
     public function create(array $data): Model
     {
@@ -93,11 +78,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Actualizar un registro existente
-     *
-     * @param string|int $id ID del registro a actualizar
-     * @param array $data Datos para actualizar
-     * @return Model
+     * {@inheritDoc}
      */
     public function update(string|int $id, array $data): Model
     {
@@ -107,10 +88,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Eliminar un registro
-     *
-     * @param string|int $id ID del registro a eliminar
-     * @return bool
+     * {@inheritDoc}
      */
     public function delete(string|int $id): bool
     {
@@ -118,11 +96,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Buscar registros con condiciones
-     *
-     * @param array $conditions Condiciones de búsqueda
-     * @param array $columns Columnas a seleccionar
-     * @return Collection
+     * {@inheritDoc}
      */
     public function where(array $conditions, array $columns = ['*']): Collection
     {
@@ -140,12 +114,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Paginar resultados
-     *
-     * @param int $perPage Registros por página
-     * @param array $columns Columnas a seleccionar
-     * @param int $page Página actual
-     * @return LengthAwarePaginator
+     * {@inheritDoc}
      */
     public function paginate(int $perPage = 15, array $columns = ['*'], int $page = 1): LengthAwarePaginator
     {
@@ -153,10 +122,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Verificar si existe un registro
-     *
-     * @param string|int $id ID del registro
-     * @return bool
+     * {@inheritDoc}
      */
     public function exists(string|int $id): bool
     {
@@ -164,10 +130,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Contar registros
-     *
-     * @param array $conditions Condiciones de conteo
-     * @return int
+     * {@inheritDoc}
      */
     public function count(array $conditions = []): int
     {
@@ -185,11 +148,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Buscar primer registro que coincida
-     *
-     * @param array $conditions Condiciones de búsqueda
-     * @param array $columns Columnas a seleccionar
-     * @return Model|null
+     * {@inheritDoc}
      */
     public function first(array $conditions, array $columns = ['*']): ?Model
     {
@@ -207,19 +166,15 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Resetear modelo para nueva consulta
-     *
-     * @return void
+     * {@inheritDoc}
      */
-    protected function resetModel(): void
+    public function resetModel(): void
     {
         $this->model = $this->model->newInstance();
     }
 
     /**
-     * Obtener instancia fresca del modelo
-     *
-     * @return Model
+     * {@inheritDoc}
      */
     public function getModel(): Model
     {
@@ -227,12 +182,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     }
 
     /**
-     * Obtiene todos los registros con relaciones cargadas.
-     *
-     * @param array $relations Relaciones Eloquent a cargar (ej: ['country:id,name', 'user:id,email'])
-     * @param array $fields Campos a seleccionar en la tabla principal
-     *
-     * @return Collection
+     * {@inheritDoc}
      */
     public function getAllWithRelations(array $relations = [], array $fields = ['*']): Collection
     {
@@ -240,5 +190,13 @@ abstract class BaseRepository implements BaseRepositoryContract
             ->select($fields)
             ->with($relations)
             ->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getByStatus(bool $status,  array $fields = ['*']): Collection
+    {
+        return $this->model->where('status', $status)->get($fields);
     }
 }

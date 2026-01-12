@@ -31,21 +31,6 @@ interface TreasurerRepositoryContract extends BaseRepositoryContract
     public function getByCurrency(string $currencyId): Collection;
 
     /**
-     * Obtiene tesoreros activos.
-     *
-     * @return Collection<Treasurer> Tesoreros activos
-     */
-    public function getActive(): Collection;
-
-    /**
-     * Obtiene tesoreros por estado.
-     *
-     * @param bool $status Estado del tesorero
-     * @return Collection<Treasurer> Tesoreros filtrados
-     */
-    public function getByStatus(bool $status): Collection;
-
-    /**
      * Obtiene un tesorero por código UUID.
      *
      * @param string $uuidCode Código UUID

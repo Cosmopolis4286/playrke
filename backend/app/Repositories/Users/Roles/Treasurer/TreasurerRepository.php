@@ -27,16 +27,6 @@ class TreasurerRepository extends BaseRepository implements TreasurerRepositoryC
         return $this->model->where('currency', $currencyId)->get();
     }
 
-    public function getActive(): Collection
-    {
-        return $this->model->where('status', true)->get();
-    }
-
-    public function getByStatus(bool $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
     public function getByUuidCode(string $uuidCode): mixed
     {
         return $this->model->where('uuid_code', $uuidCode)->first();

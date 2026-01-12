@@ -87,17 +87,6 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryCon
     }
 
     /**
-     * Obtiene todos los comercios activos
-     *
-     * @param array $fields Campos a seleccionar
-     * @return Collection
-     */
-    public function getActiveCommerces(array $fields = ['*']): Collection
-    {
-        return $this->model->where('status', 'ACTIVE')->get($fields);
-    }
-
-    /**
      * Obtiene comercios por país
      *
      * @param mixed $countryId ID del país
@@ -117,17 +106,6 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryCon
     public function getByCurrency($currencyId): Collection
     {
         return $this->model->where('currency_id', $currencyId)->get();
-    }
-
-    /**
-     * Obtiene comercios por estado
-     *
-     * @param string $status Estado del comercio
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
     }
 
     /**

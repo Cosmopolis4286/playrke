@@ -135,4 +135,13 @@ interface BaseRepositoryContract
      * @return Collection
      */
     public function getAllWithRelations(array $relations = [], array $fields = ['*']): Collection;
+
+    /**
+     * Obtiene registros por estado.
+     *
+     * @param bool $status Estado del registro
+     * @param array $fields Campos a seleccionar
+     * @return Collection
+     */
+    public function getByStatus(bool $status, array $fields = ['*']): Collection;
 }
