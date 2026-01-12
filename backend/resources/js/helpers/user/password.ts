@@ -1,6 +1,7 @@
 // resources/js/helpers/user/password.ts
 import { submitForm } from '../form/services/formSubmitService'
 import Swal, { showToast } from '@/utils/toastNotify'
+import { initPasswordToggle } from '../form/ui/passwordToggle'
 
 /**
  * Inicializa el módulo de cambio de contraseña:
@@ -8,6 +9,8 @@ import Swal, { showToast } from '@/utils/toastNotify'
  * - Confirma cambio de contraseña
  */
 export async function initChangePassw(): Promise<void> {
+  initPasswordToggle()
+
   const modalChangePassw = document.getElementById('modal-change-password')
 
   document.addEventListener('click', event => {

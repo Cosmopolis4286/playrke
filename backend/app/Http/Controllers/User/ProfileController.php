@@ -65,6 +65,7 @@ class ProfileController extends Controller
                 'new_password' => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
             ],
             [
+                'current_password.current_password' => 'La contraseña actual es incorrecta.',
                 'new_password.different' => 'La nueva contraseña no puede ser la misma que la contraseña actual.',
                 'new_password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
             ]
