@@ -1,13 +1,13 @@
-import mountApp from '@/utils/vueMain'
+import mountApp from '@js/utils/vueMain'
 import type { Component } from 'vue'
 
 // Definir tipo de vistas
 type BingoViewName = 'Form' | 'GameInfo' | 'Summary'
 
 const views: Record<BingoViewName, () => Promise<{ default: Component }>> = {
-    Form: () => import('@/components/games/bingo/views/form/BingoForm.vue'),
-    GameInfo: () => import('@/components/games/bingo/views/gameInfo/GameInfo.vue'),
-    Summary: () => import('@/components/games/bingo/views/summary/Summary.vue'),
+    Form: () => import('@js/components/games/bingo/views/form/BingoForm.vue'),
+    GameInfo: () => import('@js/components/games/bingo/views/gameInfo/GameInfo.vue'),
+    Summary: () => import('@js/components/games/bingo/views/summary/Summary.vue'),
 }
 
 // Obtener vista desde window (fallback: 'GameInfo')

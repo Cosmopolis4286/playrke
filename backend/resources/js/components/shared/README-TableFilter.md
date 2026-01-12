@@ -68,7 +68,7 @@ Componente Blade que envuelve el sistema Vue para fácil uso.
 </template>
 
 <script setup>
-import TableWithFilter from '@/components/shared/TableWithFilter.vue'
+import TableWithFilter from '@js/components/shared/TableWithFilter.vue'
 
 const columns = [
     { key: 'name', label: 'Nombre' },

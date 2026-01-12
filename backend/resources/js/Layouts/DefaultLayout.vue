@@ -1,8 +1,8 @@
 <template>
   <main id="containerFirst">
     <img id="bgImg" :src="bgImg" alt="Background" />
-    <div id="containerRKE">
-      <div class="login_logo">
+    <div id="guest-layout__card">
+      <div class="guest-layout__logo">
         <img :src="logo" alt="PlayRKE" />
         <p class="login_content_text"><slot name="login-text" /></p>
       </div>

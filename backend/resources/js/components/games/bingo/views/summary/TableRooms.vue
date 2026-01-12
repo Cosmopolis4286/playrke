@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import { BingoService, type BingoRoom } from '@/services/bingoService'
+import { BingoService, type BingoRoom } from '@js/services/bingoService'
 
 interface Props {
   rooms: BingoRoom[]

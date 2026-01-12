@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
-import { termsContent } from '@/modules/shared/utils/info/termsContent'
+import { termsContent } from '@js/modules/shared/utils/info/termsContent'
 
 defineProps<{
     title: string

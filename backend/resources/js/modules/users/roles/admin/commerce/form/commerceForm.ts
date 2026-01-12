@@ -4,16 +4,16 @@ import {
   updateCurrency,
   updateTimeZones,
   setOtherCurrencies
-} from '@/helpers/selects/otherCurrencies'
-import { insertAllowedGames, selectedAllowedGames } from '@/helpers/selects/allowedGames'
-import { validateInput } from '@/utils/validateInput'
-import { initAllSelects } from '@/helpers/selects/initAllSelects'
+} from '@js/helpers/selects/otherCurrencies'
+import { insertAllowedGames, selectedAllowedGames } from '@js/helpers/selects/allowedGames'
+import { validateInput } from '@js/utils/validateInput'
+import { initAllSelects } from '@js/helpers/selects/initAllSelects'
 import {
   fillFormFromObject,
   clearValidationErrors,
   resetFormAndContainers
-} from '@/helpers/form/formHelpers'
-import { commerceAdminRoutes } from '@/routes/commerceRoutes'
+} from '@js/helpers/form/formHelpers'
+import { commerceAdminRoutes } from '@js/routes/commerceRoutes'
 
 // ==========================
 // Constantes globales

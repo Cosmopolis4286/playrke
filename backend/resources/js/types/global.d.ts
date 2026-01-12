@@ -1,5 +1,5 @@
 // resources/js/types/global.d.ts
-import type { AppData } from '@/data/index';
+import type { AppData } from '@js/data/index';
 import type Echo from 'laravel-echo';
 
 export { };

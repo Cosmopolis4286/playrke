@@ -1,5 +1,5 @@
 // components/shared/table-filter-bridge-init.ts
-import { createVueAppWithSharedComponents } from '@/helpers/vue/registerSharedComponents'
+import { createVueAppWithSharedComponents } from '@js/helpers/vue/registerSharedComponents'
 
 /**
  * Registro para evitar listeners duplicados por módulo

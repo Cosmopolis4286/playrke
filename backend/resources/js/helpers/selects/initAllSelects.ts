@@ -1,5 +1,5 @@
 // resources/js/utils/initSelects.ts
-import { createDatasetGetters } from '@/utils/dataset'
+import { createDatasetGetters } from '@js/utils/dataset'
 
 // Generar getters automáticamente desde appData
 const datasets = createDatasetGetters()

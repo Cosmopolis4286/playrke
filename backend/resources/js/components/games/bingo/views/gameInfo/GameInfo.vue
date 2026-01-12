@@ -25,7 +25,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 
-import axios from '@/plugins/axios';
+import axios from '@js/plugins/axios';
 import echo from "@/plugins/echo";
 
 import BingoBoard from "@/components/games/bingo/views/gameInfo/BingoBoard.vue";

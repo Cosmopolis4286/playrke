@@ -40,8 +40,8 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { showToast } from '@/utils/toastNotify'
-import { AuthService } from '@/services/authService'
+import { showToast } from '@js/utils/toastNotify'
+import { AuthService } from '@js/services/authService'
 
 interface Props {
     register?: boolean

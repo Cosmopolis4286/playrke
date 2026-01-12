@@ -1,13 +1,13 @@
 // js/system.ts
-import '@/utils/mounApp' // loader / wrapper global (side effects controlados)
+import '@js/utils/mounApp' // loader / wrapper global (side effects controlados)
 
 import Alpine from 'alpinejs'
-import { tableSelection } from '@/alpine/tableSelection'
-import { loadModule } from '@/helpers/module/loadModule'
-import { initFormCrud } from '@/helpers/form/formCrudLoadModule'
-import { initAppData, getAppData, type AppData } from '@/data'
-import { initGlobalSafe } from '@/utils/global'
-import { initLogout } from '@/helpers/user/logout'
+import { tableSelection } from '@js/alpine/tableSelection'
+import { loadModule } from '@js/helpers/module/loadModule'
+import { initFormCrud } from '@js/helpers/form/formCrudLoadModule'
+import { initAppData, getAppData, type AppData } from '@js/data'
+import { initGlobalSafe } from '@js/utils/global'
+import { initLogout } from '@js/helpers/user/logout'
 
 let bootstrapPromise: Promise<void> | null = null
 

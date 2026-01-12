@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import AuthLayout from '@/Layouts/AuthLayout.vue';
+import AuthLayout from '@js/Layouts/AuthLayout.vue';
 import { ref } from 'vue';
 
 const email = ref('');

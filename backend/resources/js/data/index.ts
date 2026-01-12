@@ -1,4 +1,4 @@
-import { getJsonData } from '@/utils/getJsonData';
+import { getJsonData } from '@js/utils/getJsonData';
 
 /**
  * Interfaz global de appData

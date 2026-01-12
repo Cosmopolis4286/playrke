@@ -1,4 +1,4 @@
-import { backendClient as api } from '@/plugins/axios';
+import { backendClient as api } from '@js/plugins/axios';
 import type { AxiosResponse } from 'axios';
 
 // Tipos para el servicio de Bingo
@@ -155,7 +155,7 @@ export interface RoomListResponse {
  * Servicio para gestión de Bingo
  */
 export class BingoService {
-  
+
   // === SALAS DE BINGO ===
 
   /**
@@ -463,7 +463,7 @@ export class BingoService {
     if (error.response?.data) {
       return error.response.data;
     }
-    
+
     return {
       success: false,
       message: 'Error de conexión con el servidor',

@@ -457,7 +457,7 @@ class AuthTest extends TestCase
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import Button from '@/components/ui/Button.vue'
+import Button from '@js/components/ui/Button.vue'
 
 describe('Button', () => {
   it('renders correctly', () => {

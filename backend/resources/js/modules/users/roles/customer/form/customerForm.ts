@@ -1,11 +1,11 @@
 // customerForm.ts
-import { formCRUD } from '@/helpers/form/formCrudInit';
-import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTimeZones } from '@/helpers/selects/otherCurrencies';
+import { formCRUD } from '@js/helpers/form/formCrudInit';
+import { insertOtherCurrencies, initCurrencySelector, updateCurrency, updateTimeZones } from '@js/helpers/selects/otherCurrencies';
 import { SweetAlertIcon } from 'sweetalert2';
-import { validateInput } from '@/utils/validateInput';
-import { route } from '@/routes/customerRoutes';
-import { initAllSelects } from '@/helpers/selects/initAllSelects';
-import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@/helpers/form/formHelpers';
+import { validateInput } from '@js/utils/validateInput';
+import { route } from '@js/routes/customerRoutes';
+import { initAllSelects } from '@js/helpers/selects/initAllSelects';
+import { fillFormFromObject, clearValidationErrors, resetFormAndContainers } from '@js/helpers/form/formHelpers';
 
 // Re-exportar route para que otros módulos puedan usarla directamente
 export { route };

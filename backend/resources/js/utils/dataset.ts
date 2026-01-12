@@ -1,5 +1,5 @@
-import { getAppDataProperty, type AppData } from '@/data/index';
-import { getAppDataSync } from '@/app';
+import { getAppDataProperty, type AppData } from '@js/data/index';
+import { getAppDataSync } from '@js/app';
 
 /**
  * Extrae las keys de un tipo de mapa de datasets.

@@ -27,13 +27,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import CardHeader from '@/components/utils/CardHeader.vue'
-import CurrencyTabs from '@/components/utils/CurrencyTabs.vue'
-import BtnGroup from '@/components/utils/BtnGroup.vue'
-import TableRooms from '@/components/games/bingo/views/summary/TableRooms.vue'
-import { BingoService } from '@/services/bingoService'
-import type { BingoRoom } from '@/services/bingoService'
-import { getRoute } from '@/routes/bingoRoutes' 
+import CardHeader from '@js/components/utils/CardHeader.vue'
+import CurrencyTabs from '@js/components/utils/CurrencyTabs.vue'
+import BtnGroup from '@js/components/utils/BtnGroup.vue'
+import TableRooms from '@js/components/games/bingo/views/summary/TableRooms.vue'
+import { BingoService } from '@js/services/bingoService'
+import type { BingoRoom } from '@js/services/bingoService'
+import { getRoute } from '@js/routes/bingoRoutes'
 
 // Props
 interface Props {

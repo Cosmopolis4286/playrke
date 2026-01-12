@@ -2,13 +2,13 @@
  * @module helpers/form/services/crudOtherCasesService.ts
  */
 
-import axios from '@/plugins/axios'
+import axios from '@js/plugins/axios'
 import type { SweetAlertIcon } from 'sweetalert2'
 import { formCrudState as crud } from '../state/formCrudState'
 import { showToast, showToastConfirmAction } from '../ui/crudModalUI'
-import type { OtherCase } from '@/helpers/module/types/formModule.types'
-import { showPasswordModal } from '@/helpers/user/password'
-import { route } from '@/routes/helper'
+import type { OtherCase } from '@js/helpers/module/types/formModule.types'
+import { showPasswordModal } from '@js/helpers/user/password'
+import { route } from '@js/routes/helper'
 
 /**
  * Resuelve el caso de acción personalizado o global

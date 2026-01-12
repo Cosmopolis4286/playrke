@@ -7,7 +7,7 @@
  * @module utils/form/fieldValidation
  */
 
-import { showToast } from '@/utils/toastNotify'
+import { showToast } from '@js/utils/toastNotify'
 
 /**
  * Clase CSS aplicada a campos inválidos

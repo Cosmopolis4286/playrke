@@ -1,12 +1,12 @@
 // ==========================
 //   Imports
 // ==========================
-import { formCRUD } from '@/helpers/form/formCrudInit';
-import { insertOtherCurrencies } from '@/helpers/selects/otherCurrencies';
+import { formCRUD } from '@js/helpers/form/formCrudInit';
+import { insertOtherCurrencies } from '@js/helpers/selects/otherCurrencies';
 import { SweetAlertIcon } from 'sweetalert2';
-import { validateInput } from '@/utils/validateInput';
-import { route } from '@/routes/sellerRoutes';
-import { initAllSelects } from '@/helpers/selects/initAllSelects';
+import { validateInput } from '@js/utils/validateInput';
+import { route } from '@js/routes/sellerRoutes';
+import { initAllSelects } from '@js/helpers/selects/initAllSelects';
 
 // Re-exportar route para que otros módulos puedan usarla directamente
 export { route };

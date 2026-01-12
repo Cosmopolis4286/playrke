@@ -35,12 +35,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-// import AppLoader from '@/components/shared/AppLoader.vue' // Componente no existe - loader manejado por mounApp.ts
-import Navbar from '@/components/template/Navbar.vue'
-import SidebarSelector from '@/components/template/sidebar/SidebarSelector.vue'
-import SweetAlert from '@/components/sweetalert/SweetAlert.vue' // O el wrapper que uses para sweetalert
-import ChangePasswordModal from '@/components/shared/modal/ChangePasswordModal.vue'
-import Footer from '@/components/template/Footer.vue'
+// import AppLoader from '@js/components/shared/AppLoader.vue' // Componente no existe - loader manejado por mounApp.ts
+import Navbar from '@js/components/template/Navbar.vue'
+import SidebarSelector from '@js/components/template/sidebar/SidebarSelector.vue'
+import SweetAlert from '@js/components/sweetalert/SweetAlert.vue' // O el wrapper que uses para sweetalert
+import ChangePasswordModal from '@js/components/shared/modal/ChangePasswordModal.vue'
+import Footer from '@js/components/template/Footer.vue'
 
 // Control simple para loader (actualmente no usado - loader manejado por mounApp.ts)
 // const loading = ref(true)

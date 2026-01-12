@@ -1,6 +1,6 @@
 // helpers/form/formHelpers.ts
 
-import { clearFormValidation } from '@/utils/form/fieldValidation'
+import { clearFormValidation } from '@js/utils/form/fieldValidation'
 
 /**
  * Llena un formulario con valores de un objeto,

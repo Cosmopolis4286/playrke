@@ -1,4 +1,4 @@
-import { backendClient as api } from '@/plugins/axios';
+import { backendClient as api } from '@js/plugins/axios';
 import type { AxiosResponse } from 'axios';
 
 // Tipos para el servicio de usuarios

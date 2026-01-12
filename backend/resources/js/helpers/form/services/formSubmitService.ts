@@ -1,7 +1,7 @@
-import axios from '@/plugins/axios'
-import { showToast } from '@/utils/toastNotify'
-import { ajaxStart, ajaxStop } from '@/utils/loader'
-import { validateAndFocus } from '@/utils/form/fieldValidation'
+import axios from '@js/plugins/axios'
+import { showToast } from '@js/utils/toastNotify'
+import { ajaxStart, ajaxStop } from '@js/utils/loader'
+import { validateAndFocus } from '@js/utils/form/fieldValidation'
 
 export type SubmitMethod = 'post' | 'put' | 'patch' | 'delete'
 

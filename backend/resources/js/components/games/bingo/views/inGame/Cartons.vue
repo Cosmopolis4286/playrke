@@ -5,7 +5,7 @@
         <span class="sr-only">Cargando cartones...</span>
       </div>
     </div>
-    
+
     <div
       v-for="(card, index) in displayCards"
       :key="card.id || index"
@@ -43,7 +43,7 @@
         </div>
       </div>
     </div>
-    
+
     <div v-if="!loading && displayCards.length === 0" class="col-12 text-center">
       <p class="text-muted">No hay cartones disponibles</p>
     </div>
@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
-import { BingoService, type BingoCard } from '@/services/bingoService';
+import { BingoService, type BingoCard } from '@js/services/bingoService';
 
 // Props
 interface Props {
@@ -75,7 +75,7 @@ const defaultLogo = "/img/rke.png";
 
 const letterMap = {
   B: "B",
-  I: "I", 
+  I: "I",
   N: "N",
   G: "G",
   O: "O",
@@ -86,7 +86,7 @@ const letterMap = {
  */
 async function loadMyCards() {
   if (!props.roomId) return;
-  
+
   loading.value = true;
   try {
     const response = await BingoService.getMyCardsInRoom(props.roomId);
@@ -113,7 +113,7 @@ const displayCards = computed(() => {
 function getCardNumber(card: BingoCard, letter: string, position: number): number | null {
   const matrix = card.cardMatrix;
   if (!matrix || !matrix[letter as keyof typeof matrix]) return null;
-  
+
   const columnNumbers = matrix[letter as keyof typeof matrix];
   return columnNumbers[position - 1] || null;
 }

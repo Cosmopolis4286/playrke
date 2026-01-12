@@ -1,4 +1,4 @@
-import { backendClient as api } from '@/plugins/axios';
+import { backendClient as api } from '@js/plugins/axios';
 import type { AxiosResponse } from 'axios';
 
 // Tipos para el servicio de billeteras
@@ -102,7 +102,7 @@ export interface ApiResponse<T = any> {
  * Servicio para gestión de billeteras
  */
 export class WalletService {
-  
+
   /**
    * Crear nueva billetera
    */
@@ -272,7 +272,7 @@ export class WalletService {
     if (error.response?.data) {
       return error.response.data;
     }
-    
+
     return {
       success: false,
       message: 'Error de conexión con el servidor',

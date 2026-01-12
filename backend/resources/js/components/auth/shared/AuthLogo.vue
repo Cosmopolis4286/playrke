@@ -1,5 +1,5 @@
 <template>
-    <div class="login_logo">
+    <div class="guest-layout__logo">
         <img :src="logo" alt="PlayRKE" />
         <p class="login_content_text">
             <slot />

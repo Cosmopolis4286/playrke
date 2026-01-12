@@ -145,7 +145,7 @@ import { reactive, ref, computed, onMounted } from "vue";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import { BingoService } from '@/services/bingoService';
+import { BingoService } from '@js/services/bingoService';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -269,7 +269,7 @@ async function createRoom() {
     };
 
     const response = await BingoService.createRoom(roomData);
-    
+
     if (response.success) {
       console.log('Sala creada exitosamente:', response.data);
       // Aquí podrías redirigir o mostrar mensaje de éxito

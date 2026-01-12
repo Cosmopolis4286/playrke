@@ -1,4 +1,4 @@
-import { axios, clearAuthTokens } from '@/plugins/axios';
+import { axios, clearAuthTokens } from '@js/plugins/axios';
 import { router } from '@inertiajs/vue3';
 
 /**

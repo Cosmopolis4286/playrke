@@ -1,8 +1,8 @@
 // helpers/vue/registerSharedComponents.ts
 import { App, createApp } from 'vue'
-import TableFilter from '@/components/shared/TableFilter.vue'
-import TableWithFilter from '@/components/shared/TableWithFilter.vue'
-import TableWithFilterBridge from '@/components/shared/TableWithFilterBridge.vue'
+import TableFilter from '@js/components/shared/TableFilter.vue'
+import TableWithFilter from '@js/components/shared/TableWithFilter.vue'
+import TableWithFilterBridge from '@js/components/shared/TableWithFilterBridge.vue'
 
 /**
  * Registra componentes Vue compartidos globalmente

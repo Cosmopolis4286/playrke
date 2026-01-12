@@ -3,7 +3,7 @@
 import { showToast } from './toastNotify'
 import { initChangePassw } from '../helpers/user/password'
 import { initLogout } from '../helpers/user/logout'
-import { initModalFocus } from '@/helpers/modal/modals'
+import { initModalFocus } from '@js/helpers/modal/modals'
 
 /**
  * Inicializa el bloqueo de arrastre de imágenes

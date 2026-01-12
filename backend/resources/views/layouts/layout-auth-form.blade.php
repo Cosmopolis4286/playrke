@@ -20,8 +20,8 @@
 <body>
     <main id="containerFirst">
         <img id="bgImg" src="{{ asset('img/body/bg_6.jpg') }}">
-        <div id="containerRKE">
-            <div class="login_logo">
+        <div id="guest-layout__card">
+            <div class="guest-layout__logo">
                 <img src="{{ asset('img/log.png') }}" alt="PlayRKE">
                 <p class="login_content_text"></p>
             </div>

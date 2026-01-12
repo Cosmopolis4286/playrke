@@ -1,7 +1,7 @@
 import { formCrudState as crud } from '../state/formCrudState'
 import { resetForm } from '../formHelpers'
 import { getInfo } from './getInfoService'
-import { route } from '@/routes/helper'
+import { route } from '@js/routes/helper'
 
 /**
  * Configura el formulario antes de enviarlo

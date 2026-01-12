@@ -33,8 +33,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import AuthLayout from '@/Layouts/AuthLayout.vue'
-import backendClient, { getCsrfCookie } from '@/plugins/axios'
+import AuthLayout from '@js/Layouts/AuthLayout.vue'
+import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 
 const login = ref('')
 const password = ref('')

@@ -251,9 +251,9 @@ showToast('Acción completada') → reload()
 ```typescript
 // resources/js/modules/users/roles/admin/seller/form/sellerForm.ts
 
-import { formCRUD } from '@/helpers/form/formCrudInit';
-import { fillFormFromObject } from '@/helpers/form/formHelpers';
-import { route } from '@/routes/sellerRoutes';
+import { formCRUD } from '@js/helpers/form/formCrudInit';
+import { fillFormFromObject } from '@js/helpers/form/formHelpers';
+import { route } from '@js/routes/sellerRoutes';
 import { SweetAlertIcon } from 'sweetalert2';
 
 export { route };
@@ -357,14 +357,14 @@ public function index()
 
 ### Limpiar errores de validación manualmente
 ```typescript
-import { clearValidationErrors } from '@/helpers/form/formHelpers';
+import { clearValidationErrors } from '@js/helpers/form/formHelpers';
 
 clearValidationErrors('my-form-id');
 ```
 
 ### Llenar formulario desde objeto
 ```typescript
-import { fillFormFromObject } from '@/helpers/form/formHelpers';
+import { fillFormFromObject } from '@js/helpers/form/formHelpers';
 
 const userData = {
     first_name: 'John',  // Llenará input con id="first-name"
@@ -377,14 +377,14 @@ fillFormFromObject(userData);
 
 ### Reset completo con contenedores
 ```typescript
-import { resetFormAndContainers } from '@/helpers/form/formHelpers';
+import { resetFormAndContainers } from '@js/helpers/form/formHelpers';
 
 resetFormAndContainers('commerce-form', ['container-currency', 'container-time-zone']);
 ```
 
 ### Registrar listener de tabla personalizado
 ```typescript
-import { registerTableListener } from '@/helpers/form/formCrudInit';
+import { registerTableListener } from '@js/helpers/form/formCrudInit';
 
 // En caso de necesitar registrar manualmente
 registerTableListener('custom-table-id');

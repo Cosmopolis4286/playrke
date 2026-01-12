@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
-import { privacyContent } from '@/modules/shared/utils/info/privacyContent'
+import { privacyContent } from '@js/modules/shared/utils/info/privacyContent'
 
 defineProps<{
     title: string

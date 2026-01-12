@@ -15,7 +15,7 @@ InertiaProgress.init({
 // Pages (glob estático, Vite cachea automáticamente)
 // ─────────────────────────────────────────────────────────────
 const pages = import.meta.glob<{ default: DefineComponent }>(
-    '@/Pages/**/*.vue'
+    '@js/Pages/**/*.vue'
 )
 
 // ─────────────────────────────────────────────────────────────

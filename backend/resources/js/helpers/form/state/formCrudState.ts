@@ -1,5 +1,5 @@
 // helpers/form/formCrudState.ts
-import type { ModuleType } from '@/helpers/module/types/formModule.types';
+import type { ModuleType } from '@js/helpers/module/types/formModule.types';
 
 /**
  * Estado CRUD global (lazy, seguro y desacoplado).

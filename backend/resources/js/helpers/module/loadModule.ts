@@ -1,6 +1,6 @@
 // resources/js/helpers/loadModule.ts
-import { showToast } from '@/utils/toastNotify';
-import { onDOMReady } from '@/utils/domReady';
+import { showToast } from '@js/utils/toastNotify';
+import { onDOMReady } from '@js/utils/domReady';
 
 /**
  * Cache interno para módulos ya cargados
@@ -15,7 +15,7 @@ const moduleCache: Record<string, Promise<any>> = {};
  * IMPORTANTE: Usamos el alias @/ que apunta a /resources/js/
  * Vite procesa correctamente estos paths en build
  */
-const modules = import.meta.glob<Record<string, any>>('@/modules/**/*.ts', {
+const modules = import.meta.glob<Record<string, any>>('@js/modules/**/*.ts', {
     eager: false
 });
 

@@ -3,8 +3,8 @@
 import { submitForm } from '../services/formSubmitService'
 import { formCrudState as crud } from '../state/formCrudState'
 import { executeCrud } from '../services/crudExecutor'
-import type { TableCrudEventDetail } from '@/helpers/table/types'
-import { showPasswordModal } from '@/helpers/user/password'
+import type { TableCrudEventDetail } from '@js/helpers/table/types'
+import { showPasswordModal } from '@js/helpers/user/password'
 
 /**
  * Controlador central de eventos CRUD.

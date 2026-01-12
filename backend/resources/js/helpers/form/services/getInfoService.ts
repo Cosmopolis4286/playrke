@@ -1,8 +1,8 @@
 // helpers/form/services/getInfoService.ts
-import axios from '@/plugins/axios'
+import axios from '@js/plugins/axios'
 import { formCrudState as crud } from '../state/formCrudState'
-import { route } from '@/routes/helper'
-import { showToast } from '@/utils/toastNotify'
+import { route } from '@js/routes/helper'
+import { showToast } from '@js/utils/toastNotify'
 
 export async function getInfo(encryptId: string): Promise<boolean> {
   if (!encryptId) return false
