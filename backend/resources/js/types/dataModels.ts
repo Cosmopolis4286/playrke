@@ -4,36 +4,37 @@
  * Información de una moneda
  */
 export interface Currency {
-    id: number;
-    symbol: string;
-    description: string;
-    name: string;
-    country_id: number; // ID del país asociado
+  readonly id: number
+  readonly symbol: string
+  readonly description: string
+  readonly name: string
+  readonly country_id: number // ID del país asociado
 }
 
 /**
  * Información de un país
  */
 export interface Country {
-    id: number;
-    name: string;
-    iso_code: string; // Código ISO, ej: "BR"
+  readonly id: number
+  readonly name: string
+  readonly iso_code: string // Código ISO, ej: "BR"
 }
+
 /**
  * Información básica de un juego
  */
 export interface Game {
-    readonly id: number;       // Identificador único del juego (ej: 1 para Bingo)
-    readonly name: string;     // Nombre descriptivo del juego (ej: "Brasília Time")
-    readonly status: number;   // Estado actual del juego (ej: 0=inactivo, 1=activo)
+  readonly id: number // Identificador único del juego (ej: 1 para Bingo)
+  readonly name: string // Nombre descriptivo del juego (ej: "Brasília Time")
+  readonly status: string // Estado actual del juego (ej: 'ACTIVE', 'INACTIVE')
 }
 
 /**
  * Información de zona horaria
  */
 export interface TimeZone {
-    id: string;         // Ej: "America/Sao_Paulo"
-    name: string;       // Nombre descriptivo, ej: "Brasília Time"
-    utc: string;        // Offset UTC, ej: "UTC-03"
-    country_id?: number; // ID del país asociado (opcional)
+  readonly id: string // Ej: "America/Sao_Paulo"
+  readonly name: string // Nombre descriptivo, ej: "Brasília Time"
+  readonly utc: string // Offset UTC, ej: "UTC-03"
+  readonly country_id?: number // ID del país asociado (opcional)
 }

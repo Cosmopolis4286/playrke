@@ -8,6 +8,8 @@ import { Currency, TimeZone } from '@/types/dataModels'
 const arrCurrencies = getAppDataProperty<Currency[]>('currencies', [])
 const arrTimeZones = getAppDataProperty<TimeZone[]>('timeZones', [])
 
+let _selectedCurrencies: (number | string)[] = [] // Almacena las monedas alternativas seleccionadas
+
 // ==========================
 //   Elementos del DOM
 // ==========================
@@ -20,8 +22,6 @@ const containerTimeZone = document.getElementById('container-time-zone') as HTML
 const country = document.getElementById('country') as HTMLSelectElement | null
 const otherCurrencies = document.getElementById('other-currencies') as HTMLSelectElement | null
 const timeZoneSelect = document.getElementById('time-zone') as HTMLSelectElement | null
-
-let _selectedCurrencies: (number | string)[] = [] // Almacena las monedas alternativas seleccionadas
 
 // ==========================
 //   Funciones auxiliares

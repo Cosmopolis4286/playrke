@@ -24,9 +24,10 @@ return new class extends Migration
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
                 ->default('ACTIVE')
                 ->comment('Estado del registro');
+            // Timestamps automáticos
+            $table->timestamps();
             // Soft deletes
             $table->softDeletes();
-            $table->timestamps();
 
             // Evita duplicados: un comercio solo puede tener un registro por juego
             $table->unique(['commerce_id', 'game_id'], 'commerce_game_unique');

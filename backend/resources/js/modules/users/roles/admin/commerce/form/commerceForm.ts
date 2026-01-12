@@ -5,7 +5,7 @@ import {
   updateTimeZones,
   setOtherCurrencies
 } from '@/helpers/selects/otherCurrencies'
-import { insertAllowedGames } from '@/helpers/selects/allowedGames'
+import { insertAllowedGames, selectedAllowedGames } from '@/helpers/selects/allowedGames'
 import { validateInput } from '@/utils/validateInput'
 import { initAllSelects } from '@/helpers/selects/initAllSelects'
 import {
@@ -140,30 +140,32 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
   if (action === 'edit' && data) {
     // Datos del commerce
     const commerce = data
+    const otherCurrencies = commerce?.other_currencies
+    const allowedGames = commerce?.allowed_games
 
     // Otras monedas
-    if (Array.isArray(commerce?.other_currencies) && commerce.other_currencies.length > 0) {
+    if (Array.isArray(otherCurrencies) && otherCurrencies.length > 0) {
       if (import.meta.env.DEV) {
-        console.log('💵 Insertando other currencies:', commerce.other_currencies)
+        console.log('💵 Insertando other currencies:', otherCurrencies)
       }
-      setOtherCurrencies(commerce?.other_currencies)
+      setOtherCurrencies(otherCurrencies)
     }
 
     // Juegos permitidos
-    if (Array.isArray(commerce?.allowed_games) && commerce.allowed_games.length > 0) {
+    if (Array.isArray(allowedGames) && allowedGames.length > 0) {
       if (import.meta.env.DEV) {
-        console.log('🎮 Insertando allowed games:', commerce.allowed_games)
+        console.log('🎮 Insertando allowed games:', allowedGames)
       }
-      //insertAllowedGames(commerce.allowed_games)
+      selectedAllowedGames(allowedGames)
     }
 
     nextTick(() => {
       if (import.meta.env.DEV) {
-        console.log('🔄 Cargando selects dependientes por país:', commerce.country?.name)
+        console.log('🔄 Cargando selects dependientes por país:', commerce?.country?.name)
       }
 
-      updateCurrency(commerce.country?.id)
-      updateTimeZones(commerce.country?.id, String(commerce?.user?.time_zone_id))
+      updateCurrency(commerce?.country?.id)
+      updateTimeZones(commerce?.country?.id, String(commerce?.user?.time_zone_id))
     })
   }
 
@@ -180,6 +182,9 @@ export function insertInfo(action: 'create' | 'edit', data: any = null): void {
 export function initListeners(): void {
   // Selector de moneda según país
   initCurrencySelector()
+  // Insertar juegos disponibles
+  insertAllowedGames()
+
   // Máscara de teléfono
   if (typeof $ === 'function') {
     const $phone = $('#phone')
