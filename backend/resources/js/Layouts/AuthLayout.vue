@@ -1,86 +1,56 @@
+<template>
+    <div
+        class="d-flex flex-column min-vh-100 hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
+        <!-- Loader visible mientras la app se carga (Loader manejado por mounApp.ts) -->
+        <!-- <AppLoader v-if="loading" /> -->
+
+        <!-- Contenedor principal -->
+        <div id="app-wrapper" class="flex-grow-1">
+            <!-- Barra de navegación -->
+            <Navbar />
+
+            <!-- Sidebar selector -->
+            <SidebarSelector />
+
+            <!-- Alertas SweetAlert -->
+            <SweetAlert />
+
+            <!-- Contenido principal -->
+            <main class="content-wrapper">
+                <div class="content-header">
+                    <div class="container-fluid">
+                        <slot />
+                    </div>
+                </div>
+            </main>
+
+            <!-- Modal para cambiar de contraseña -->
+            <ChangePasswordModal id="resetPassword" title="Cambiar Contraseña" />
+
+            <!-- Pie de página -->
+            <Footer />
+        </div>
+    </div>
+</template>
+
 <script setup lang="ts">
-  import { useHead } from '@vueuse/head'
-  import '@/css/global/guest.css'
-  import '@/css/global/auth-pages.css'
+import { ref, onMounted } from 'vue'
+// import AppLoader from '@js/components/shared/AppLoader.vue' // Componente no existe - loader manejado por mounApp.ts
+import Navbar from '@js/components/template/Navbar.vue'
+import SidebarSelector from '@js/components/template/sidebar/SidebarSelector.vue'
+import SweetAlert from '@js/components/sweetalert/SweetAlert.vue' // O el wrapper que uses para sweetalert
+import ChangePasswordModal from '@js/components/shared/modal/ChangePasswordModal.vue'
+import Footer from '@js/components/template/Footer.vue'
 
-  // Definir las props con sus tipos explícitos
-  const props = defineProps<{
-    title?: string
-    bgImg?: string
-    logo?: string
-  }>()
+// Control simple para loader (actualmente no usado - loader manejado por mounApp.ts)
+// const loading = ref(true)
 
-  // Usamos useHead para manejar el título y los metadatos
-  useHead({
-    title: `PlayRKE - ${props.title ?? ''}`,
-    meta: [
-      { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: 'https://www.playrke.com/' },
-      { property: 'og:site_name', content: 'PlayRKE' },
-      {
-        name: 'description',
-        content:
-          'Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online. Gana rápido y retira seguro con PlayRKE.'
-      }
-    ],
-    link: [{ rel: 'icon', href: './img/fav.ico', sizes: '192x192' }]
-  })
+onMounted(() => {
+    // Simula que la app ya cargó, oculta el loader y muestra contenido
+    // loading.value = false
+})
 </script>
 
-<template>
-  <main class="guest-layout">
-    <div id="guest-layout__card">
-      <!-- Logo -->
-      <div class="guest-layout__logo">
-        <img :src="'./img/logo.png'" alt="PlayRKE" />
-        <p class="login_content_text">
-          <slot name="logo-text" />
-        </p>
-      </div>
-
-      <!-- Form -->
-      <div class="container-form">
-        <slot name="auth-form" />
-      </div>
-
-      <!-- Footer -->
-      <div class="login_footer">
-        <slot name="footer-info" />
-
-        <div class="info_rke">
-          <a class="info-user-rke" href="#" data-val="terms">Términos y Condiciones</a>
-          <a class="info-user-rke" href="#" data-val="about">Quiénes Somos</a>
-          <a class="info-user-rke" href="#" data-val="privacy">Privacidad</a>
-        </div>
-
-        <div class="login_footer_link">
-          <div class="name_pg mr-3">PlayRKE © {{ new Date().getFullYear() }}</div>
-
-          <div class="content_rs">
-            <a
-              class="fab fa-facebook"
-              title="Facebook"
-              href="https://www.facebook.com/my.play.rke"
-              target="_blank"
-              aria-label="Facebook"
-            />
-            <a
-              class="fab fa-instagram"
-              title="Instagram"
-              href="https://www.instagram.com/my.play.rke"
-              target="_blank"
-              aria-label="Instagram"
-            />
-            <a
-              class="fab fa-telegram"
-              title="Telegram"
-              href="https://t.me/+rV3KWBuuKOtjYzkx"
-              target="_blank"
-              aria-label="Telegram"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  </main>
-</template>
+<style scoped>
+/* Aquí puedes poner estilos scoped o dejar que vengan de tu CSS global */
+</style>

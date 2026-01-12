@@ -1,7 +1,7 @@
 <template>
     <div class="guest-layout__logo">
         <img :src="logo" alt="PlayRKE" />
-        <p class="login_content_text">
+        <p class="guest-layout__logo-text">
             <slot />
         </p>
     </div>

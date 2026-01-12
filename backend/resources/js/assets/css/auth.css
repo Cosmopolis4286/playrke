@@ -637,7 +637,7 @@
        ============================================== */
 
     /* Mantenemos las clases existentes para compatibilidad */
-    .login_form_item {
+    .auth-form__field {
         @apply auth__form-item;
     }
 
@@ -661,7 +661,7 @@
         @apply auth__input--error;
     }
 
-    .login_form_item_check {
+    .auth-form__field_check {
         @apply auth__checkbox;
     }
 

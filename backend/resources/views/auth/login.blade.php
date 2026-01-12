@@ -4,7 +4,7 @@
 @section('content')
     <form action="{{ route('login') }}" method="post" id="form-login">@csrf
         <!-- Input para email o nombre de usuario -->
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <i class="e_mc fa-solid fa-user" aria-hidden="true"></i>
             <input id="user-email" type="text" class="@error('login') is-invalid @enderror" name="login"
                 value="{{ old('login') }}" placeholder="Email/Username" aria-label="Email o Nombre de Usuario">
@@ -14,7 +14,7 @@
             <span class="er_nw">{{ $message }}</span>
         @enderror
         <!-- Input para contraseña -->
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <i class="e_mc fa-solid fa-lock" aria-hidden="true"></i>
             <i id="eyeClose" class="eye_mc fa-solid fa-eye-slash" style="display: none"
                 aria-label="Ocultar contraseña"></i>
@@ -23,14 +23,14 @@
             <i id="eyeOpen" class="eye_mc fa-solid fa-eye" aria-label="Mostrar contraseña"></i>
         </div>
         <!-- Botón para iniciar sesión -->
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <button type="submit" id="Ingresar">Iniciar Sesión
                 <span id="loader-btn" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
                     style="display: none"></span>
             </button>
         </div>
         <!-- Enlace para recuperar contraseña -->
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <a href="{{ route('password.request') }}" class="forget_password">¿Olvidaste tu contraseña?</a>
         </div>
     </form>

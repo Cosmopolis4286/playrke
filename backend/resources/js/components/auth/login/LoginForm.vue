@@ -1,7 +1,7 @@
 <template>
     <form @submit.prevent="submit" id="form-login">
         <!-- Email/Username -->
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <i class="e_mc fa-solid fa-user"></i>
             <input v-model="form.login" type="text" placeholder="Email/Username"
                 aria-label="Email o Nombre de Usuario" />
@@ -9,7 +9,7 @@
         <p v-if="form.errors.login" class="er_nw">{{ form.errors.login }}</p>
 
         <!-- Password -->
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <i class="e_mc fa-solid fa-lock"></i>
             <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Contraseña"
                 aria-label="Contraseña" class="pass" />
@@ -18,7 +18,7 @@
         </div>
 
         <!-- Botón login -->
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <button type="submit" id="Ingresar">
                 Iniciar Sesión
                 <span v-if="loading" id="loader-btn" class="spinner-border spinner-border-sm"></span>
@@ -26,12 +26,12 @@
         </div>
 
         <!-- Olvidé contraseña -->
-        <div class="login_form_item" v-if="passwordRequestUrl">
+        <div class="auth-form__field" v-if="passwordRequestUrl">
             <a :href="passwordRequestUrl" class="forget_password">¿Olvidaste tu contraseña?</a>
         </div>
 
         <!-- Registro -->
-        <div class="login_form_item" v-if="register">
+        <div class="auth-form__field" v-if="register">
             <a href="/register">¿No tienes una cuenta? Regístrate</a>
         </div>
     </form>
@@ -110,7 +110,7 @@ async function submit() {
 </script>
 
 <style scoped>
-.login_form_item {
+.auth-form__field {
     margin-bottom: 1rem;
 }
 

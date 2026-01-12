@@ -3,7 +3,7 @@
 @section('content')
     <form action="{{ route('register') }}" method="post" id="form-register">@csrf
         <div id="grupo__email">
-            <div class="login_form_item">
+            <div class="auth-form__field">
                 <label for="email" class="sr-only">E-mail</label>
                 <i class="e_mc fa-solid fa-envelope"></i>
                 <input type="email" class="@error('email') is-invalid @enderror" id="email" placeholder="E-mail"
@@ -15,7 +15,7 @@
             <p class="formulario__input-error">Ingrese un E-mail válido.</p>
         </div>
         <div id="grupo__username">
-            <div class="login_form_item">
+            <div class="auth-form__field">
                 <label for="username" class="sr-only">Nombre de Usuario</label>
                 <i class="e_mc fa-solid fa-user"></i>
                 <input type="text" class="@error('username') is-invalid @enderror" id="username"
@@ -26,7 +26,7 @@
             </div>
             <p class="formulario__input-error">Su nombre de usuario debe tener de 4-16 caracteres</p>
         </div>
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <label for="country" class="sr-only">País</label>
             <i class="e_mc fa-solid fa-earth-americas"></i>
             <i class="eye_down fa-solid fa-chevron-down"></i>
@@ -40,7 +40,7 @@
             </div>
         </div>
         <div id="grupo__password">
-            <div class="login_form_item">
+            <div class="auth-form__field">
                 <label for="password" class="sr-only">Contraseña</label>
                 <i class="e_mc fa-solid fa-lock"></i>
                 <input type="hidden" id="van" value="0">
@@ -52,7 +52,7 @@
             </div>
             <p class="formulario__input-error">Su contraseña tiene que ser mínimo de 8 caracteres.</p>
         </div>
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <label for="password2" class="sr-only">Repetir Contraseña</label>
             <i class="e_mc fa-solid fa-unlock"></i>
             <i class="eye_mc fa-solid fa-eye"></i>
@@ -60,7 +60,7 @@
                 placeholder="Repetir Contraseña" required>
         </div>
         <p class="er_nw" id="no_pass" style="display: none">Las contraseñas no son iguales.</p>
-        <div class="login_form_item_check" id="grupo__terminos">
+        <div class="auth-form__field_check" id="grupo__terminos">
             <input type="checkbox" name="politicas" id="politicas" required>
             <label for="politicas">
                 <div id="acep_term">Acepto los <a href="#" class="terms">Términos y Condiciones </a> y
@@ -70,7 +70,7 @@
                 </div>
             </label>
         </div>
-        <div class="login_form_item">
+        <div class="auth-form__field">
             <button id="btn-register" class="btn btn-primary" type="submit">Registrarse
                 <span id="loader-btn-register" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
                     style="display: none"></span>

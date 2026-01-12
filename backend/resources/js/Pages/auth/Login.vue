@@ -1,86 +1,98 @@
 <template>
-    <AuthLayout title="Iniciar sesión">
-        <template #logo-text>
-            Ingresa a tu cuenta
-        </template>
+  <GuestLayout title="Iniciar sesión">
+    <template #logo-text> Ingresa a tu cuenta </template>
 
-        <template #auth-form>
-            <form @submit.prevent="submit">
-                <div>
-                    <label for="login">Correo electrónico</label>
-                    <input id="login" v-model="login" type="text" autocomplete="username" required />
-                </div>
+    <template #auth-form>
+      <form @submit.prevent="submit" id="form-login">
+        <div>
+          <label for="login">Correo electrónico</label>
+          <input
+            id="login"
+            v-model.trim="form.login"
+            type="text"
+            autocomplete="username"
+            :disabled="isBusy"
+            required
+          />
+        </div>
 
-                <div>
-                    <label for="password">Contraseña</label>
-                    <input id="password" v-model="password" type="password" autocomplete="current-password" required />
-                </div>
+        <div>
+          <label for="password">Contraseña</label>
+          <input
+            id="password"
+            v-model="form.password"
+            type="password"
+            autocomplete="current-password"
+            :disabled="isBusy"
+            required
+          />
+        </div>
 
-                <button type="submit" :disabled="loading">
-                    {{ loading ? 'Ingresando…' : 'Iniciar sesión' }}
-                </button>
-            </form>
-        </template>
+        <button type="submit" :disabled="isBusy">
+          {{ isBusy ? 'Ingresando…' : 'Iniciar sesión' }}
+        </button>
+      </form>
+    </template>
 
-        <template #footer-info>
-            <p class="text-center">
-                ¿No tienes cuenta?
-                <a href="/register" class="text-primary">Regístrate</a>
-            </p>
-        </template>
-    </AuthLayout>
+    <template #footer-content>
+      <p class="text-center">
+        ¿No tienes cuenta?
+        <a href="/register" class="text-primary">Regístrate</a>
+      </p>
+    </template>
+  </GuestLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import AuthLayout from '@js/Layouts/AuthLayout.vue'
-import backendClient, { getCsrfCookie } from '@js/plugins/axios'
+  import { reactive, ref, computed } from 'vue'
+  import GuestLayout from '@js/Layouts/GuestLayout.vue'
+  import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 
-const login = ref('')
-const password = ref('')
-const loading = ref(false)
-let isSubmitting = false // Flag adicional para prevenir dobles llamadas
+  interface LoginPayload {
+    login: string
+    password: string
+  }
 
-// Log para detectar múltiples montajes del componente
-onMounted(() => {
-    console.log('🔵 Componente Login montado')
-})
+  const form = reactive<LoginPayload>({
+    login: '',
+    password: ''
+  })
 
-/**
- * Envío del formulario de login
- * - Obtiene CSRF (Sanctum)
- * - Ejecuta login por sesión
- * - Redirige al dashboard
- */
-const submit = async () => {
-    // Doble protección contra envíos duplicados
-    if (loading.value || isSubmitting) {
-        console.warn('⚠️ Login ya en proceso, ignorando intento duplicado')
-        return
-    }
+  const loading = ref(false)
+
+  // Estado único para bloquear submit + inputs
+  const isBusy = computed(() => loading.value)
+
+  /**
+   * Login por sesión (Sanctum)
+   */
+  const submit = async (): Promise<void> => {
+    if (isBusy.value) return
 
     loading.value = true
-    isSubmitting = true
 
     try {
-        // Necesario SOLO para login / register
-        await getCsrfCookie()
+      // Requerido solo para auth basada en sesión
+      await getCsrfCookie()
 
-        const response = await backendClient.post('/api/auth/login', {
-            login: login.value,
-            password: password.value,
-        })
+      await backendClient.post('/api/auth/login', {
+        login: form.login,
+        password: form.password
+      })
 
-        console.log('✅ Login exitoso:', response.status)
-
-        // Redirección completa del navegador para inicializar la sesión correctamente
-        window.location.href = '/dashboard'
+      // Redirección dura para inicializar sesión correctamente
+      window.location.replace('/dashboard')
     } catch (error: any) {
-        console.error('❌ Error de login:', error)
-        alert('Credenciales inválidas')
+      console.error('Error de login:', error)
+
+      const message =
+        error?.response?.status === 422
+          ? 'Credenciales inválidas'
+          : 'Error inesperado. Intenta nuevamente.'
+
+      alert(message)
     } finally {
-        loading.value = false
-        isSubmitting = false
+      loading.value = false
     }
-}
+  }
 </script>

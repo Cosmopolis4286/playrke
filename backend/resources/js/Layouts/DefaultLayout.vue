@@ -4,21 +4,21 @@
     <div id="guest-layout__card">
       <div class="guest-layout__logo">
         <img :src="logo" alt="PlayRKE" />
-        <p class="login_content_text"><slot name="login-text" /></p>
+        <p class="guest-layout__logo-text"><slot name="login-text" /></p>
       </div>
       <div class="container-form">
         <slot />
       </div>
       <div class="login_footer">
         <slot name="pre-footer" />
-        <div class="info_rke">
-          <a href="#" class="info-user-rke" data-val="terms" @click.prevent="$emit('info', 'terms')">Términos y Condiciones</a>
-          <a href="#" class="info-user-rke" data-val="about" @click.prevent="$emit('info', 'about')">Quienes Somos</a>
-          <a href="#" class="info-user-rke" data-val="privacy" @click.prevent="$emit('info', 'privacy')">Privacidad</a>
+        <div class="guest-layout__legal">
+          <a href="#" class="guest-layout__legal-link" data-val="terms" @click.prevent="$emit('info', 'terms')">Términos y Condiciones</a>
+          <a href="#" class="guest-layout__legal-link" data-val="about" @click.prevent="$emit('info', 'about')">Quienes Somos</a>
+          <a href="#" class="guest-layout__legal-link" data-val="privacy" @click.prevent="$emit('info', 'privacy')">Privacidad</a>
         </div>
-        <div class="login_footer_link">
-          <div class="mr-3 name_pg">PlayRKE © {{ currentYear }}</div>
-          <div class="content_rs">
+        <div class="guest-layout__footer-bottom">
+          <div class="mr-3 guest-layout__copyright">PlayRKE © {{ currentYear }}</div>
+          <div class="guest-layout__socials">
             <a
               class="fab fa-facebook"
               title="Facebook"

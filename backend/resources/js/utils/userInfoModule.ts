@@ -9,17 +9,17 @@ import axios from "@/plugins/axios";
 
 /**
  * Inicializa los eventos para mostrar la información de un usuario en un modal.
- * 
- * - Selecciona todos los elementos con la clase `.info-user-rke`.
+ *
+ * - Selecciona todos los elementos con la clase `.guest-layout__legal-link`.
  * - Al hacer click, realiza una petición GET con Axios para obtener la información.
  * - Inserta la respuesta en el modal `#app-info` y lo muestra.
- * 
+ *
  * Requiere:
  * - Un input hidden con id `#5K3_70K` que contenga el token CSRF.
  * - Un modal con id `#app-info` y un elemento `.modal-body` donde se cargará la información.
  */
 export function initUserInfoModal(): void {
-    const userElements = document.querySelectorAll<HTMLElement>(".info-user-rke");
+    const userElements = document.querySelectorAll<HTMLElement>(".guest-layout__legal-link");
     const modal = document.getElementById("app-info");
     const modalBody = modal?.querySelector<HTMLElement>(".modal-body");
 

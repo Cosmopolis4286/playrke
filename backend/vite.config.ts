@@ -41,11 +41,6 @@ function getAllJsTsFiles(dir: string, baseDir: string = dir): string[] {
       const relativePath = path.relative(baseDir, fullPath).split(path.sep).join('/')
       const fullRelativePath = `resources/js/${relativePath}`
 
-      // Excluir OnlineLayout.vue (no usado - app usa Blade layouts)
-      if (fullRelativePath.includes('Layouts/OnlineLayout.vue')) {
-        continue
-      }
-
       results.push(fullRelativePath)
     }
   }

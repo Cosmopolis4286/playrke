@@ -1,7 +1,7 @@
 @extends('layouts.layout-external')
 @section('title', 'Confirmar Email')
 @section('content')
-    <div class="login_form_item text-center">
+    <div class="auth-form__field text-center">
         <span class="verify_email_tx">
             ¡Gracias por registrarte! Antes de comenzar, debes verificar tu dirección
             de correo electrónico haciendo clic en el enlance recibido. Revisa la bandeja
@@ -16,7 +16,7 @@
             </button>
         </div>
     @endif
-    <div class="login_form_item">
+    <div class="auth-form__field">
         <form id="form-verification" method="POST" action="{{ route('verification.send') }}">@csrf</form>
         <button id="btn-verification" class="tx_btn_sendv" type="button">Reenviar correo de verificación</button>
     </div>

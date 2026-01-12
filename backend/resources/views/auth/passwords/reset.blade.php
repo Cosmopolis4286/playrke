@@ -4,7 +4,7 @@
     <form id="pass_chg" method="POST" action="{{ route('password.update') }}">@csrf
         <div class="content_form_items">
             <div class="content_form_info">
-                <div class="login_form_item">
+                <div class="auth-form__field">
                     <i class="e_mc fa-solid fa-envelope"></i>
                     <input id="email" type="email" class="@error('email') is-invalid @enderror" name="email"
                         value="{{ $email ?? old('email') }}">
@@ -12,7 +12,7 @@
                 @error('email')
                     <strong class="er_nw">{{ $message }}</strong>
                 @enderror
-                <div class="login_form_item">
+                <div class="auth-form__field">
                     <i class="e_mc fa-solid fa-lock"></i>
                     <input type="hidden" id="van" value="0">
                     <input id="password" type="password" class="pass @error('password') is-invalid @enderror"
@@ -21,11 +21,11 @@
                 @error('password')
                     <strong class="er_nw">{{ $message }}</strong>
                 @enderror
-                <div class="login_form_item">
+                <div class="auth-form__field">
                     <i class="e_mc fa-solid fa-unlock"></i><i class="eye_mc fa-solid fa-eye"></i>
                     <input id="password-confirm" type="password" class="pass" name="password_confirmation">
                 </div>
-                <div class="login_form_item">
+                <div class="auth-form__field">
                     <button type="button" id="change_pass">Modificar Contraseña</button>
                 </div>
             </div>
