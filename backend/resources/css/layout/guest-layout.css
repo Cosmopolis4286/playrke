@@ -118,31 +118,30 @@ button {
 
 .guest-layout__card {
     background-color: #000413f3;
-    border: #23003f88 solid 1px;
-    border-radius: 13px;
+    border: #23003f88 solid 2px;
+    border-radius: 24px;
     position: relative;
     display: grid;
     justify-content: center;
     align-items: center;
-    max-width: 372px;
-    margin: 0 2.25%;
-    padding: 15.5px;
+    max-width: 385px;
+    margin: 0 2.75%;
+    padding: 16px;
 }
 
 .guest-layout__logo {
-    margin-bottom: 0.5%;
     width: 100%;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 
 .guest-layout__logo img {
-    width: 79%;
+    width: 78%;
 }
 
 .guest-layout__logo-text {
-    line-height: 0px;
     color: var(--gray-1);
     font-size: 1em;
     font-weight: var(--light);
@@ -159,19 +158,18 @@ button {
     align-items: center;
 }
 
-.guest-layout__footer_ck {
-    z-index: 0;
+.auth-footer {
     text-align: center;
     position: relative;
     width: 100%;
     border: 1px solid #000c41;
     border-right: none;
     border-left: none;
-    margin-top: 2.5%;
-    margin-bottom: 1%;
 }
 
-
+.auth-footer__link {
+    position: relative;
+}
 
 .guest-layout__legal {
     display: flex;
@@ -219,6 +217,43 @@ button {
 
 } */
 
+.auth-form__input,
+#dropdown_select {
+    width: 100%;
+    background-color: #07001f;
+    padding-left: 6.15%;
+    font-size: 0.9em;
+    margin: 0.5px auto;
+    font-weight: var(--light);
+    border: 1px solid #3d0183;
+    transition: all 0.4s;
+    color: var(--gray-3);
+    background-color: #00052b;
+    border-radius: 11px;
+    height: 40px !important;
+}
+
+.auth-form__input input:hover,
+#dropdown_select:hover {
+    border: 2px solid #3d00a0;
+}
+
+.auth-form__error {
+    font-size: 12.5px !important;
+    color: brown !important;
+    margin-left: 2.5px !important;
+    text-align: left !important;
+}
+
+.auth-form__helper {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    color: var(--crear);
+    font-size: 0.85em;
+    font-style: var(--light);
+}
+
 .e_mc {
     color: var(--eye);
     position: absolute;
@@ -252,27 +287,6 @@ button {
     color: #b3b3b3 !important;
 }
 
-.auth-form__field input,
-#dropdown_select {
-    width: 100%;
-    background-color: #07001f;
-    padding-left: 6.15%;
-    font-size: 0.9em;
-    margin: 0.5px auto;
-    font-weight: var(--light);
-    border: 1px solid #3d0183;
-    transition: all 0.4s;
-    color: var(--gray-3);
-    background-color: #00052b;
-    border-radius: 11px;
-    height: 40px !important;
-}
-
-.auth-form__field input:hover,
-#dropdown_select:hover {
-    border: 2px solid #3d00a0;
-}
-
 .auth-form__field button {
     width: 100%;
     background-color: #07001f;
@@ -287,42 +301,6 @@ button {
 
 .auth-form__field button:hover {
     border: 2px solid #0502c7f5 !important;
-}
-
-.auth-form__field .forget_password {
-    margin-top: -0.25%;
-    margin-bottom: -1.25%;
-    display: flex;
-    justify-content: center;
-    color: var(--crear);
-    font-size: 0.85em;
-    font-style: var(--light);
-}
-
-.pre_tx_link {
-    color: #005ce6;
-    font-size: 0.96em;
-}
-
-.sep_r {
-    color: #20009d;
-    font-size: 0.9em;
-}
-
-.user_tx_link {
-    color: #00d4f5;
-    text-transform: uppercase;
-    font-size: 1.08em;
-}
-
-@media screen and (max-width:365px) {
-    .pre_tx_link {
-        font-size: 0.85em;
-    }
-
-    .user_tx_link {
-        font-size: 0.94em;
-    }
 }
 
 @media screen and (max-width:333px) {
@@ -351,13 +329,6 @@ button {
 }
 
 /*Check Regis*/
-.formulario__input-error,
-.er_nw {
-    font-size: 12.5px !important;
-    color: brown !important;
-    margin-left: 2.5px !important;
-    text-align: left !important;
-}
 
 #dropdown_list {
     cursor: pointer;

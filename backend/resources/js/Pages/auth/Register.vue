@@ -18,7 +18,7 @@
               :disabled="isBusy"
             />
           </div>
-          <p class="formulario__input-error" v-if="errors.email">
+          <p class="auth-form__error" v-if="errors.email">
             {{ errors.email }}
           </p>
         </div>
@@ -37,7 +37,7 @@
               :disabled="isBusy"
             />
           </div>
-          <p class="formulario__input-error" v-if="errors.username">
+          <p class="auth-form__error" v-if="errors.username">
             {{ errors.username }}
           </p>
         </div>
@@ -80,7 +80,7 @@
               :disabled="isBusy"
             />
           </div>
-          <p class="formulario__input-error" v-if="errors.password">
+          <p class="auth-form__error" v-if="errors.password">
             {{ errors.password }}
           </p>
         </div>
@@ -131,18 +131,16 @@
     </template>
 
     <template #footer-content>
-      <div class="login_footer_ck">
-        <a href="/login">
-          <span class="pre_tx_link">¿Ya tienes una cuenta?</span>
-          <span class="sep_r"></span>
-          <span class="user_tx_link">Inicia sesión</span>
-        </a>
-      </div>
+      <Link href="/login">
+        <span>¿Ya tienes una cuenta?</span>
+        <strong class="user_tx_link">Inicia sesión</strong>
+      </Link>
     </template>
   </GuestLayout>
 </template>
 <script setup lang="ts">
   import { reactive, ref, computed } from 'vue'
+  import { Link } from '@inertiajs/vue3'
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 

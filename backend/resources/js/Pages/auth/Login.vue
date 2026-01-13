@@ -1,50 +1,82 @@
 <template>
   <GuestLayout title="Iniciar sesión">
+    <!-- Logo -->
     <template #logo-text> Ingresa a tu cuenta </template>
 
+    <!-- Form -->
     <template #auth-form>
-      <form @submit.prevent="submit" id="form-login">
-        <div>
-          <label for="login">Correo electrónico</label>
+      <form class="auth-form" novalidate @submit.prevent="submit">
+        <!-- Login -->
+        <fieldset class="auth-form__field">
+          <i class="auth-form__icon fa-solid fa-user" aria-hidden="true"></i>
+
           <input
-            id="login"
             v-model.trim="form.login"
             type="text"
-            autocomplete="username"
-            :disabled="isBusy"
+            class="auth-form__input"
+            placeholder="Email or Username"
+            aria-label="Email or Username"
+            maxlength="40"
             required
+            :disabled="isBusy"
           />
-        </div>
+        </fieldset>
 
-        <div>
-          <label for="password">Contraseña</label>
+        <p v-if="errors.login" class="auth-form__error">
+          {{ errors.login }}
+        </p>
+
+        <!-- Password -->
+        <fieldset class="auth-form__field auth-form__field--password">
+          <i class="auth-form__icon fa-solid fa-lock" aria-hidden="true"></i>
+
           <input
-            id="password"
             v-model="form.password"
-            type="password"
-            autocomplete="current-password"
-            :disabled="isBusy"
+            :type="showPassword ? 'text' : 'password'"
+            class="auth-form__input"
+            placeholder="Password"
+            aria-label="Password"
             required
+            :disabled="isBusy"
           />
-        </div>
 
-        <button type="submit" :disabled="isBusy">
-          {{ isBusy ? 'Ingresando…' : 'Iniciar sesión' }}
+          <button
+            type="button"
+            class="auth-form__toggle-password"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            @click="togglePassword"
+          >
+            <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+          </button>
+        </fieldset>
+
+        <!-- Submit -->
+        <button type="submit" class="auth-form__submit" :disabled="isBusy">
+          Sign In
+
+          <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
         </button>
+
+        <!-- Forgot -->
+        <p class="auth-form__helper">
+          <Link href="/forgot-password"> Forgot your password? </Link>
+        </p>
       </form>
     </template>
 
+    <!-- Footer -->
     <template #footer-content>
-      <p class="text-center">
-        ¿No tienes cuenta?
-        <a href="/register" class="text-primary">Regístrate</a>
-      </p>
+      <Link href="/register" class="auth-footer__link">
+        <span>Don’t have an account?</span>
+        <strong>Sign up</strong>
+      </Link>
     </template>
   </GuestLayout>
 </template>
 
 <script setup lang="ts">
   import { reactive, ref, computed } from 'vue'
+  import { Link } from '@inertiajs/vue3'
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 
@@ -58,21 +90,38 @@
     password: ''
   })
 
-  const loading = ref(false)
+  const errors = reactive({
+    login: ''
+  })
 
-  // Estado único para bloquear submit + inputs
+  const loading = ref(false)
+  const showPassword = ref(false)
+
   const isBusy = computed(() => loading.value)
 
   /**
-   * Login por sesión (Sanctum)
+   * Toggle password visibility
+   */
+  const togglePassword = () => {
+    showPassword.value = !showPassword.value
+  }
+
+  /**
+   * Submit login (Laravel Sanctum session-based)
    */
   const submit = async (): Promise<void> => {
     if (isBusy.value) return
 
+    errors.login = ''
+
+    if (!form.login || !form.password) {
+      errors.login = 'All fields are required'
+      return
+    }
+
     loading.value = true
 
     try {
-      // Requerido solo para auth basada en sesión
       await getCsrfCookie()
 
       await backendClient.post('/api/auth/login', {
@@ -80,17 +129,13 @@
         password: form.password
       })
 
-      // Redirección dura para inicializar sesión correctamente
+      // Redirección dura para sesión
       window.location.replace('/dashboard')
     } catch (error: any) {
-      console.error('Error de login:', error)
-
-      const message =
+      errors.login =
         error?.response?.status === 422
           ? 'Credenciales inválidas'
           : 'Error inesperado. Intenta nuevamente.'
-
-      alert(message)
     } finally {
       loading.value = false
     }

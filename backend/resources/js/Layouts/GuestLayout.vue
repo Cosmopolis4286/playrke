@@ -44,7 +44,9 @@
       </section>
       <!-- Footer -->
       <footer class="guest-layout__footer">
-        <slot name="footer-content" />
+        <aside class="auth-footer">
+          <slot name="footer-content" />
+        </aside>
         <nav class="guest-layout__legal">
           <a class="guest-layout__legal-link" href="#" data-val="terms"> Terms and Conditions </a>
           <a class="guest-layout__legal-link" href="#" data-val="about"> About Us </a>

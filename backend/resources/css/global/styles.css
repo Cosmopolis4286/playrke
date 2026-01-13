@@ -12305,13 +12305,13 @@ a.text-dark:focus {
   box-shadow: 3px 0px 30px rgba(163, 163, 163, 0.4);
 }
 
-.formulario__input-error {
+.auth-form__error {
   font-size: 12px;
   margin-bottom: 0;
   display: none;
 }
 
-.formulario__input-error-activo {
+.auth-form__error-activo {
   display: block;
 }
 

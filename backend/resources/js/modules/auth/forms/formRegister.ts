@@ -27,19 +27,19 @@ const fieldsValid: Record<string, boolean> = {
  */
 function validateField(pattern: RegExp, input: HTMLInputElement, fieldName: string) {
     const group = document.getElementById(`grupo__${fieldName}`);
-    const errorMsg = group?.querySelector<HTMLElement>('.formulario__input-error');
+    const errorMsg = group?.querySelector<HTMLElement>('.auth-form__error');
 
     if (!group || !errorMsg) return;
 
     if (pattern.test(input.value)) {
         group.classList.remove('formulario__grupo-incorrecto');
         group.classList.add('formulario__grupo-correcto');
-        errorMsg.classList.remove('formulario__input-error-activo');
+        errorMsg.classList.remove('auth-form__error-activo');
         fieldsValid[fieldName] = true;
     } else {
         group.classList.add('formulario__grupo-incorrecto');
         group.classList.remove('formulario__grupo-correcto');
-        errorMsg.classList.add('formulario__input-error-activo');
+        errorMsg.classList.add('auth-form__error-activo');
         fieldsValid[fieldName] = false;
     }
 }

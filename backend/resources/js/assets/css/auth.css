@@ -653,7 +653,7 @@
         @apply auth__error;
     }
 
-    .formulario__input-error {
+    .auth-form__error {
         @apply auth__error;
     }
 
