@@ -31,20 +31,20 @@
     <section class="guest-layout__card">
       <!-- Header / Logo -->
       <header class="guest-layout__header">
-        <figure class="guest-layout__logo">
+        <div class="guest-layout__logo">
           <img class="guest-layout__logo-image" :src="'./img/logo.png'" alt="PlayRKE" />
-          <figcaption class="guest-layout__logo-text">
-            <slot name="logo-text" />
-          </figcaption>
-        </figure>
+        </div>
+        <div class="guest-layout__header-text">
+          <slot name="header-text" />
+        </div>
       </header>
       <!-- Form -->
       <section class="guest-layout__form">
-        <slot name="auth-form" />
+        <slot name="form-content" />
       </section>
       <!-- Footer -->
       <footer class="guest-layout__footer">
-        <aside class="auth-footer">
+        <aside class="guest-layout__footer-content">
           <slot name="footer-content" />
         </aside>
         <nav class="guest-layout__legal">
@@ -53,7 +53,7 @@
           <a class="guest-layout__legal-link" href="#" data-val="privacy"> Privacy </a>
         </nav>
         <section class="guest-layout__footer-bottom">
-          <p class="guest-layout__copyright mr-3">PlayRKE © {{ new Date().getFullYear() }}</p>
+          <p class="guest-layout__copyright">PlayRKE © {{ new Date().getFullYear() }}</p>
           <nav class="guest-layout__socials" aria-label="Social media">
             <a
               class="guest-layout__social-icon fab fa-facebook"

@@ -1,8 +1,8 @@
 <template>
   <GuestLayout title="Registrarse">
-    <template #logo-text> Crea tu cuenta </template>
+    <template #header-text> Crea tu cuenta </template>
 
-    <template #auth-form>
+    <template #form-content>
       <form @submit.prevent="submit" id="form-register">
         <!-- Email -->
         <div id="grupo__email">
@@ -131,9 +131,9 @@
     </template>
 
     <template #footer-content>
-      <Link href="/login">
+      <Link href="/login" class="auth-footer__link">
         <span>¿Ya tienes una cuenta?</span>
-        <strong class="user_tx_link">Inicia sesión</strong>
+        <strong>Inicia sesión</strong>
       </Link>
     </template>
   </GuestLayout>

@@ -1,15 +1,13 @@
 <template>
   <GuestLayout title="Iniciar sesión">
     <!-- Logo -->
-    <template #logo-text> Ingresa a tu cuenta </template>
-
+    <template #header-text> Ingresa a tu cuenta </template>
     <!-- Form -->
-    <template #auth-form>
+    <template #form-content>
       <form class="auth-form" novalidate @submit.prevent="submit">
         <!-- Login -->
         <fieldset class="auth-form__field">
           <i class="auth-form__icon fa-solid fa-user" aria-hidden="true"></i>
-
           <input
             v-model.trim="form.login"
             type="text"
@@ -27,9 +25,8 @@
         </p>
 
         <!-- Password -->
-        <fieldset class="auth-form__field auth-form__field--password">
-          <i class="auth-form__icon fa-solid fa-lock" aria-hidden="true"></i>
-
+        <fieldset class="auth-form__field">
+          <i class="auth-form__icon fa-solid fa-lock"></i>
           <input
             v-model="form.password"
             :type="showPassword ? 'text' : 'password'"
@@ -39,7 +36,6 @@
             required
             :disabled="isBusy"
           />
-
           <button
             type="button"
             class="auth-form__toggle-password"
@@ -49,21 +45,17 @@
             <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
           </button>
         </fieldset>
-
         <!-- Submit -->
         <button type="submit" class="auth-form__submit" :disabled="isBusy">
           Sign In
-
           <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
         </button>
-
         <!-- Forgot -->
         <p class="auth-form__helper">
           <Link href="/forgot-password"> Forgot your password? </Link>
         </p>
       </form>
     </template>
-
     <!-- Footer -->
     <template #footer-content>
       <Link href="/register" class="auth-footer__link">
