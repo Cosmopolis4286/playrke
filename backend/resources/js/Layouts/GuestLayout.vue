@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { useHead } from '@vueuse/head'
   import '@/css/layout/guest-layout.css'
+  import '@fortawesome/fontawesome-free/css/all.min.css'
 
   // Definir las props con sus tipos explícitos
   const props = defineProps<{
@@ -47,13 +48,8 @@
         <aside class="guest-layout__footer-content">
           <slot name="footer-content" />
         </aside>
-        <nav class="guest-layout__legal">
-          <a class="guest-layout__legal-link" href="#" data-val="terms"> Terms and Conditions </a>
-          <a class="guest-layout__legal-link" href="#" data-val="about"> About Us </a>
-          <a class="guest-layout__legal-link" href="#" data-val="privacy"> Privacy </a>
-        </nav>
-        <section class="guest-layout__footer-bottom">
-          <p class="guest-layout__copyright">PlayRKE © {{ new Date().getFullYear() }}</p>
+        <section class="guest-layout__footer-socials">
+          <span class="guest-layout__copyright">PlayRKE © {{ new Date().getFullYear() }}</span>
           <nav class="guest-layout__socials" aria-label="Social media">
             <a
               class="guest-layout__social-icon fab fa-facebook"
@@ -78,6 +74,11 @@
             />
           </nav>
         </section>
+        <nav class="guest-layout__legal">
+          <a class="guest-layout__legal-link" href="#" data-val="terms"> Terms and Conditions </a>
+          <a class="guest-layout__legal-link" href="#" data-val="about"> About Us </a>
+          <a class="guest-layout__legal-link" href="#" data-val="privacy"> Privacy </a>
+        </nav>
       </footer>
     </section>
   </main>

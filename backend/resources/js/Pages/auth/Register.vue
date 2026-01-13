@@ -6,18 +6,18 @@
       <form @submit.prevent="submit" id="form-register">
         <!-- Email -->
         <div id="grupo__email">
-          <div class="login_form_item">
-            <label for="email" class="sr-only">E-mail</label>
-            <i class="e_mc fa-solid fa-envelope"></i>
+          <fieldset class="auth-form__field">
+            <i class="auth-form__icon fa-solid fa-envelope"></i>
             <input
               id="email"
               type="email"
               v-model.trim="form.email"
+              class="auth-form__input"
               placeholder="E-mail"
               required
               :disabled="isBusy"
             />
-          </div>
+          </fieldset>
           <p class="auth-form__error" v-if="errors.email">
             {{ errors.email }}
           </p>
@@ -25,27 +25,27 @@
 
         <!-- Username -->
         <div id="grupo__username">
-          <div class="login_form_item">
-            <label for="username" class="sr-only">Nombre de Usuario</label>
-            <i class="e_mc fa-solid fa-user"></i>
+          <fieldset class="auth-form__field">
+            <i class="auth-form__icon fa-solid fa-user"></i>
             <input
               id="username"
               type="text"
               v-model.trim="form.username"
+              class="auth-form__input"
               placeholder="Nombre de Usuario"
               required
               :disabled="isBusy"
             />
-          </div>
+          </fieldset>
           <p class="auth-form__error" v-if="errors.username">
             {{ errors.username }}
           </p>
         </div>
 
         <!-- Country -->
-        <div class="login_form_item">
+        <fieldset class="auth-form__field">
           <label class="sr-only">País</label>
-          <i class="e_mc fa-solid fa-earth-americas"></i>
+          <i class="auth-form__icon fa-solid fa-earth-americas"></i>
           <i class="eye_down fa-solid fa-chevron-down"></i>
 
           <div id="dropdown_select" @click="toggleCountries">
@@ -64,31 +64,31 @@
               {{ country.name }}
             </div>
           </div>
-        </div>
+        </fieldset>
 
         <!-- Password -->
         <div id="grupo__password">
-          <div class="login_form_item">
-            <label for="password" class="sr-only">Contraseña</label>
-            <i class="e_mc fa-solid fa-lock"></i>
+          <fieldset class="auth-form__field">
+            <i class="auth-form__icon fa-solid fa-lock"></i>
             <input
               id="password"
               type="password"
               v-model="form.password"
+              class="auth-form__input"
               placeholder="Contraseña"
               required
               :disabled="isBusy"
             />
-          </div>
+          </fieldset>
           <p class="auth-form__error" v-if="errors.password">
             {{ errors.password }}
           </p>
         </div>
 
         <!-- Password confirmation -->
-        <div class="login_form_item">
+        <fieldset class="auth-form__field">
           <label for="password2" class="sr-only">Repetir Contraseña</label>
-          <i class="e_mc fa-solid fa-unlock"></i>
+          <i class="auth-form__icon fa-solid fa-unlock"></i>
           <input
             id="password2"
             type="password"
@@ -97,7 +97,7 @@
             required
             :disabled="isBusy"
           />
-        </div>
+        </fieldset>
 
         <p class="er_nw" v-if="passwordMismatch">Las contraseñas no son iguales.</p>
 
@@ -121,12 +121,16 @@
         </div>
 
         <!-- Submit -->
-        <div class="login_form_item">
+        <fieldset class="auth-form__field">
           <button type="submit" class="btn btn-primary" :disabled="isBusy">
             Registrarse
             <span v-if="isBusy" class="spinner-border spinner-border-sm" role="status" />
           </button>
-        </div>
+        </fieldset>
+        <button type="submit" class="auth-form__submit" :disabled="isBusy">
+          Registrarse
+          <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+        </button>
       </form>
     </template>
 
