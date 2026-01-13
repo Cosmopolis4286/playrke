@@ -99,7 +99,7 @@ button:hover {
 
 .guest-layout__card {
     position: relative;
-    max-width: 385px;
+    max-width: 395px;
     width: 100%;
     padding: 16px;
     display: grid;
@@ -229,8 +229,7 @@ button:hover {
 }
 
 /* Input */
-.auth-form__input,
-#dropdown_select {
+.auth-form__input {
     width: 100%;
     height: var(--input-height);
     padding: 0 42px 0 36px;
@@ -247,8 +246,7 @@ button:hover {
     color: #b3b3b3;
 }
 
-.auth-form__input:hover,
-#dropdown_select:hover {
+.auth-form__input:hover {
     border-color: var(--input-border-hover);
 }
 
@@ -309,72 +307,25 @@ button:hover {
 }
 
 /* ======================================================
-   DROPDOWN
-====================================================== */
-#dropdown_list {
-    position: absolute;
-    z-index: 999;
-    width: 100%;
-    max-height: 132px;
-    display: none;
-    overflow-y: auto;
-    background-color: var(--input-bg);
-    border: 1.5px solid #260053;
-    border-radius: var(--radius-md);
-}
-
-.auth-form__field:hover #dropdown_list {
-    display: block;
-}
-
-#dropdown_list::-webkit-scrollbar {
-    width: 10px;
-    background-color: #1d0041;
-}
-
-#dropdown_list::-webkit-scrollbar-thumb {
-    background-color: rgb(0, 0, 124);
-    border-radius: 8px;
-}
-
-.dropdown_list_item {
-    padding-left: 36px;
-}
-
-.dropdown_list_item:hover {
-    background-color: #280157;
-    transition: background-color 0.3s;
-}
-
-/* ======================================================
    CHECKBOX
 ====================================================== */
-.auth-form__field_check {
+.auth-form__checkbox {
     position: relative;
     width: 100%;
     display: flex;
+    justify-content: center;
     align-items: center;
-    font-size: 10.75px;
+    font-size: 10.5px;
     font-weight: var(--light);
     color: var(--gray-3);
 }
 
-.auth-form__field_check input {
+.auth-form__checkbox input {
     position: absolute;
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
     width: 12px;
-}
-
-/* ======================================================
-   MISC
-====================================================== */
-.verify_email_tx {
-    font-size: 14px;
-    color: #f8f8f8;
-    background-color: rgb(7, 0, 39);
-    border-radius: 12px;
 }
 
 /* ======================================================

@@ -2,7 +2,7 @@
   <GuestLayout title="Iniciar sesión">
     <template #header-text> Ingresa a tu cuenta </template>
     <template #form-content>
-      <form class="auth-form" novalidate @submit.prevent="submit">
+      <form novalidate @submit.prevent="submit">
         <fieldset class="auth-form__field">
           <i class="auth-form__icon fa-solid fa-user" aria-hidden="true"></i>
           <input
