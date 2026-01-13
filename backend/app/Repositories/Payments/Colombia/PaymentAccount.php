@@ -70,14 +70,6 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
     /**
      * {@inheritDoc}
      */
-    public function getByStatus(bool $isActive): Collection
-    {
-        return $this->model->where('status', $isActive)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getActiveAccounts(): Collection
     {
         return $this->getByStatus(true);

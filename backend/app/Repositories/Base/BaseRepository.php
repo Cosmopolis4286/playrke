@@ -195,7 +195,7 @@ abstract class BaseRepository implements BaseRepositoryContract
     /**
      * {@inheritDoc}
      */
-    public function getByStatus(bool $status,  array $fields = ['*']): Collection
+    public function getByStatus(string $status,  array $fields = ['*']): Collection
     {
         return $this->model->where('status', $status)->get($fields);
     }

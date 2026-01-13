@@ -29,14 +29,6 @@ class SellerRepository extends BaseRepository implements SellerRepositoryContrac
     /**
      * {@inheritDoc}
      */
-    public function getByStatus(bool $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getActiveSellers(): Collection
     {
         return $this->getByStatus(true);

@@ -71,14 +71,6 @@ interface PhoneNumbersRepositoryContract extends BaseRepositoryContract
     public function isPhoneNumberActive(string $phoneNumber): bool;
 
     /**
-     * Obtener números por estado.
-     *
-     * @param bool $isActive Estado del número
-     * @return Collection Colección de números con el estado especificado
-     */
-    public function getByStatus(bool $isActive): Collection;
-
-    /**
      * Obtener todos los números activos.
      *
      * @return Collection Colección de todos los números activos

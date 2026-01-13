@@ -130,17 +130,6 @@ class CommerceCurrencyRepository extends BaseRepository implements CommerceCurre
     }
 
     /**
-     * Obtiene registros por estado
-     *
-     * @param string $status Estado del registro
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtiene registros activos
      *
      * @return Collection

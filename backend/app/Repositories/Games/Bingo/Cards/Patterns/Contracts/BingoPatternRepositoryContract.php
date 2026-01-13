@@ -44,14 +44,6 @@ interface BingoPatternRepositoryContract extends BaseRepositoryContract
     public function findByName(string $name): ?BingoPattern;
 
     /**
-     * Obtener patrones por estado
-     *
-     * @param string $status
-     * @return Collection<int, BingoPattern>
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtener patrones activos
      *
      * @return Collection<int, BingoPattern>

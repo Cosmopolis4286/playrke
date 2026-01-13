@@ -47,20 +47,6 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
     }
 
     /**
-     * Obtener cuentas por estado
-     *
-     * @param string $status Estado (ACTIVE/INACTIVE/BLOCKED)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
-     */
-    public function getByStatus(string $status, array $columns = ['*']): Collection
-    {
-        return $this->model->where('status', strtoupper($status))
-            ->orderBy('created_at', 'desc')
-            ->get($columns);
-    }
-
-    /**
      * Obtener cuentas activas
      *
      * @param array $columns Columnas a seleccionar

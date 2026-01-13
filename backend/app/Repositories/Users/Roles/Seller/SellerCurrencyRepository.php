@@ -52,14 +52,6 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     /**
      * {@inheritDoc}
      */
-    public function getByStatus(bool $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getActiveRelations(): Collection
     {
         return $this->getByStatus(true);

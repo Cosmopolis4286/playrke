@@ -55,14 +55,6 @@ interface PaymentAccountRepositoryContract extends BaseRepositoryContract
     public function getByAccountNumber(string $accountNumber): Collection;
 
     /**
-     * Obtener cuentas por estado (activas o inactivas).
-     *
-     * @param bool $isActive Estado de la cuenta
-     * @return Collection Colección de cuentas con el estado especificado
-     */
-    public function getByStatus(bool $isActive): Collection;
-
-    /**
      * Obtener todas las cuentas activas.
      *
      * @return Collection Colección de todas las cuentas activas

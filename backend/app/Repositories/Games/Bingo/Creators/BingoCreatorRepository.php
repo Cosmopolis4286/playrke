@@ -96,17 +96,6 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
     }
 
     /**
-     * Obtener todos los creadores por estado
-     *
-     * @param string $status
-     * @return Collection<int, BingoCreator>
-     */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtener creadores activos
      *
      * @return Collection<int, BingoCreator>

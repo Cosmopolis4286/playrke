@@ -41,14 +41,6 @@ interface TransactionRepositoryContract extends BaseRepositoryContract
     public function getByCustomer(string $customerId): Collection;
 
     /**
-     * Obtiene transacciones por estado.
-     *
-     * @param string $status Estado de la transacción
-     * @return Collection<Transaction> Transacciones con el estado
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtiene transacciones por tipo.
      *
      * @param string $type Tipo de transacción

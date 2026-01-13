@@ -56,14 +56,6 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
     /**
      * {@inheritDoc}
      */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getByType(string $type): Collection
     {
         return $this->model->where('transaction_type', $type)->get();

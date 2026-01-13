@@ -28,17 +28,6 @@ class RoleRepository extends BaseRepository implements RoleRepositoryContract
     }
 
     /**
-     * Obtener roles por estado (activo/inactivo)
-     *
-     * @param bool $status
-     * @return Collection<Role>
-     */
-    public function getByStatus(bool $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtener roles activos
      *
      * @return Collection<Role>

@@ -90,14 +90,6 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     /**
      * {@inheritDoc}
      */
-    public function getByStatus(bool $isActive): Collection
-    {
-        return $this->model->where('status', $isActive)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getActiveNumbers(): Collection
     {
         return $this->getByStatus(true);

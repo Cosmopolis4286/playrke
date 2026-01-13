@@ -55,20 +55,6 @@ class CountryRepository extends BaseRepository implements CountryRepositoryContr
     }
 
     /**
-     * Obtener países por estado
-     *
-     * @param string $status Estado del país (ACTIVE/INACTIVE/BLOCKED)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<Country>
-     */
-    public function getByStatus(string $status, array $columns = ['*']): Collection
-    {
-        return $this->model->where('status', strtoupper($status))
-            ->orderBy('name')
-            ->get($columns);
-    }
-
-    /**
      * Obtener países activos
      *
      * @param array $columns Columnas a seleccionar

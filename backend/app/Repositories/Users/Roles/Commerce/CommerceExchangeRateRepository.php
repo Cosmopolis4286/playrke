@@ -181,17 +181,6 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
     }
 
     /**
-     * Obtiene registros por estado
-     *
-     * @param string $status Estado de la tasa
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtiene tasas activas
      *
      * @return Collection

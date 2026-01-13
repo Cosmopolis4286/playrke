@@ -51,17 +51,6 @@ class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraf
     }
 
     /**
-     * Obtiene drafts por estado
-     *
-     * @param string $status Estado del draft
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtiene drafts activos
      *
      * @return Collection

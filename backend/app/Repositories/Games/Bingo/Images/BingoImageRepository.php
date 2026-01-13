@@ -82,17 +82,6 @@ class BingoImageRepository extends BaseRepository implements BingoImageRepositor
     }
 
     /**
-     * Obtener imágenes por estado
-     *
-     * @param string $status
-     * @return Collection<int, BingoImage>
-     */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtener imágenes activas
      *
      * @return Collection<int, BingoImage>

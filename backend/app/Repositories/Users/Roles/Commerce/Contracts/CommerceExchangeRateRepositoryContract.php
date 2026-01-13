@@ -91,14 +91,6 @@ interface CommerceExchangeRateRepositoryContract extends BaseRepositoryContract
     public function getByCurrency($currencyId): Collection;
 
     /**
-     * Obtiene registros por estado
-     *
-     * @param string $status Estado de la tasa
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtiene tasas activas
      *
      * @return Collection

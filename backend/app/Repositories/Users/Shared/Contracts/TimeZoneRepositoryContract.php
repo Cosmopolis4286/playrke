@@ -46,14 +46,6 @@ interface TimeZoneRepositoryContract extends BaseRepositoryContract
     public function getInactive(): Collection;
 
     /**
-     * Obtiene las zonas horarias por estado.
-     *
-     * @param bool $status Estado de las zonas horarias
-     * @return Collection<TimeZone> Colección filtrada por estado
-     */
-    public function getByStatus(bool $status): Collection;
-
-    /**
      * Obtiene zonas horarias por nombre (búsqueda parcial).
      *
      * @param string $name Nombre a buscar

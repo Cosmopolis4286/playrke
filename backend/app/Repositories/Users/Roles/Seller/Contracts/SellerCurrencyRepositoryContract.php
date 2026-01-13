@@ -39,14 +39,6 @@ interface SellerCurrencyRepositoryContract extends BaseRepositoryContract
     public function getByCurrency(string $currencyId): Collection;
 
     /**
-     * Obtener relaciones por estado.
-     *
-     * @param bool $status Estado de la relación (activa/inactiva)
-     * @return Collection Colección de relaciones con el estado especificado
-     */
-    public function getByStatus(bool $status): Collection;
-
-    /**
      * Obtener todas las relaciones activas.
      *
      * @return Collection Colección de relaciones activas

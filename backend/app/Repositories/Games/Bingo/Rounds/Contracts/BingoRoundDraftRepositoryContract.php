@@ -30,14 +30,6 @@ interface BingoRoundDraftRepositoryContract extends BaseRepositoryContract
     public function getByAutomaticRoom($automaticBingoRoomId, array $fields = ['*']): ?BingoRoundDraft;
 
     /**
-     * Obtiene drafts por estado
-     *
-     * @param string $status Estado del draft
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtiene drafts activos
      *
      * @return Collection

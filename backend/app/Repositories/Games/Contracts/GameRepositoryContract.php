@@ -22,15 +22,6 @@ interface GameRepositoryContract extends BaseRepositoryContract
     public function findByName(string $name, array $columns = ['*']): ?Game;
 
     /**
-     * Obtener juegos por estado
-     *
-     * @param string $status Estado del juego (ACTIVE/INACTIVE/MAINTENANCE)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<Game>
-     */
-    public function getByStatus(string $status, array $columns = ['*']): Collection;
-
-    /**
      * Obtener juegos activos
      *
      * @param array $columns Columnas a seleccionar

@@ -31,15 +31,6 @@ interface BinanceAccountsRepositoryContract extends BaseRepositoryContract
     public function getByUserId(string $userId, array $columns = ['*']): Collection;
 
     /**
-     * Obtener cuentas por estado
-     *
-     * @param string $status Estado (ACTIVE/INACTIVE/BLOCKED)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
-     */
-    public function getByStatus(string $status, array $columns = ['*']): Collection;
-
-    /**
      * Obtener cuentas activas
      *
      * @param array $columns Columnas a seleccionar

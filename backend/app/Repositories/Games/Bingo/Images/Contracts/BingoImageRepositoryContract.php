@@ -51,14 +51,6 @@ interface BingoImageRepositoryContract extends BaseRepositoryContract
     public function findByRoute(string $route): ?BingoImage;
 
     /**
-     * Obtener imágenes por estado
-     *
-     * @param string $status
-     * @return Collection<int, BingoImage>
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtener imágenes activas
      *
      * @return Collection<int, BingoImage>

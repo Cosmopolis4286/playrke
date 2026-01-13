@@ -15,14 +15,6 @@ use Illuminate\Database\Eloquent\Collection;
 interface RoleRepositoryContract extends BaseRepositoryContract
 {
     /**
-     * Obtener roles por estado.
-     *
-     * @param bool $status Estado del rol (activo/inactivo)
-     * @return Collection Colección de roles con el estado especificado
-     */
-    public function getByStatus(bool $status): Collection;
-
-    /**
      * Obtener todos los roles activos.
      *
      * @return Collection Colección de roles activos

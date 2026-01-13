@@ -30,9 +30,4 @@ class UserPurchaseCodeRepository extends BaseRepository implements UserPurchaseC
     {
         return $this->model->where('status', 'active')->get();
     }
-
-    public function getByStatus(string $status)
-    {
-        return $this->model->where('status', $status)->get();
-    }
 }

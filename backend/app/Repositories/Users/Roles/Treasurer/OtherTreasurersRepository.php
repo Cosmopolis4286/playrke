@@ -44,14 +44,6 @@ class OtherTreasurersRepository extends BaseRepository implements OtherTreasurer
     /**
      * {@inheritDoc}
      */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getActiveTesoreros(): Collection
     {
         return $this->getByStatus('ACTIVE');

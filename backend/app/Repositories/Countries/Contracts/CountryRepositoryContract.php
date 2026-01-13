@@ -40,15 +40,6 @@ interface CountryRepositoryContract extends BaseRepositoryContract
     public function findByName(string $name, array $columns = ['*']): ?Country;
 
     /**
-     * Obtener países por estado
-     *
-     * @param string $status Estado del país (ACTIVE/INACTIVE/BLOCKED)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<Country>
-     */
-    public function getByStatus(string $status, array $columns = ['*']): Collection;
-
-    /**
      * Obtener países activos
      *
      * @param array $columns Columnas a seleccionar

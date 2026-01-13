@@ -54,17 +54,6 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
     }
 
     /**
-     * Obtener salas por estado
-     *
-     * @param string $status
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtener salas activas
      *
      * @return Collection<int, BingoRoomAutomatic>

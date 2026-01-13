@@ -31,14 +31,6 @@ interface OtherTreasurersRepositoryContract extends BaseRepositoryContract
     public function existsByCreatorUser(string $creatorUserId): bool;
 
     /**
-     * Obtener tesoreros por estado.
-     *
-     * @param string $status Estado del tesorero (ACTIVE, INACTIVE, BLOCKED)
-     * @return Collection Colección de tesoreros con el estado especificado
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtener tesoreros activos.
      *
      * @return Collection Colección de tesoreros activos

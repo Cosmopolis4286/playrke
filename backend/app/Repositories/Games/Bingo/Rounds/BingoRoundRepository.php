@@ -100,17 +100,6 @@ class BingoRoundRepository extends BaseRepository implements BingoRoundRepositor
     }
 
     /**
-     * Obtiene rondas por estado
-     *
-     * @param string $status Estado de la ronda
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtiene rondas por tipo de premio
      *
      * @param string $prizeType Tipo de premio

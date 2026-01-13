@@ -75,17 +75,6 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
     }
 
     /**
-     * Obtener sorteos por estado
-     *
-     * @param int $status
-     * @return Collection<int, BingoDraw>
-     */
-    public function getByStatus(int $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtener sorteos por sala y estado
      *
      * @param string $roomId

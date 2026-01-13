@@ -77,14 +77,6 @@ interface CommerceCurrencyRepositoryContract extends BaseRepositoryContract
     public function getByLevel(int $level): Collection;
 
     /**
-     * Obtiene registros por estado
-     *
-     * @param string $status Estado del registro
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtiene registros activos
      *
      * @return Collection

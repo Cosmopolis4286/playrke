@@ -34,20 +34,6 @@ class CommandLogRepository extends BaseRepository implements CommandLogRepositor
     }
 
     /**
-     * Obtener logs por estado
-     *
-     * @param string $status Estado del comando (success/error)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<CommandLog>
-     */
-    public function getByStatus(string $status, array $columns = ['*']): Collection
-    {
-        return $this->model->where('status', $status)
-            ->orderBy('executed_at', 'desc')
-            ->get($columns);
-    }
-
-    /**
      * Obtener logs de errores
      *
      * @param array $columns Columnas a seleccionar

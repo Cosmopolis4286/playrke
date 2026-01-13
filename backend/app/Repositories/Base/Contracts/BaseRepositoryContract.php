@@ -139,9 +139,9 @@ interface BaseRepositoryContract
     /**
      * Obtiene registros por estado.
      *
-     * @param bool $status Estado del registro
+     * @param string $status Estado del registro
      * @param array $fields Campos a seleccionar
      * @return Collection
      */
-    public function getByStatus(bool $status, array $fields = ['*']): Collection;
+    public function getByStatus(string $status, array $fields = ['*']): Collection;
 }

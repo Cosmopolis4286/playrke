@@ -12,5 +12,4 @@ interface UserPurchaseCodeRepositoryContract extends BaseRepositoryContract
     public function getByUser(string $userId);
     public function getByCode(string $code);
     public function getActive();
-    public function getByStatus(string $status);
 }

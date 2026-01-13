@@ -22,15 +22,6 @@ interface CommandLogRepositoryContract extends BaseRepositoryContract
     public function getByCommand(string $command, array $columns = ['*']): Collection;
 
     /**
-     * Obtener logs por estado
-     *
-     * @param string $status Estado del comando (success/error)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<CommandLog>
-     */
-    public function getByStatus(string $status, array $columns = ['*']): Collection;
-
-    /**
      * Obtener logs de errores
      *
      * @param array $columns Columnas a seleccionar

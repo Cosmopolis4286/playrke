@@ -58,14 +58,6 @@ interface BingoRoundRepositoryContract extends BaseRepositoryContract
     public function existsRounds($roomId): bool;
 
     /**
-     * Obtiene rondas por estado
-     *
-     * @param string $status Estado de la ronda
-     * @return Collection
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtiene rondas por tipo de premio
      *
      * @param string $prizeType Tipo de premio

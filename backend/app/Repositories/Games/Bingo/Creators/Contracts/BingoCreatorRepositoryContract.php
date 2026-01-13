@@ -63,14 +63,6 @@ interface BingoCreatorRepositoryContract extends BaseRepositoryContract
     public function getByCreatorType(string $creatorType): Collection;
 
     /**
-     * Obtener todos los creadores por estado
-     *
-     * @param string $status
-     * @return Collection<int, BingoCreator>
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtener creadores activos
      *
      * @return Collection<int, BingoCreator>

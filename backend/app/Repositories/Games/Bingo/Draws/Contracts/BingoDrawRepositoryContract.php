@@ -43,14 +43,6 @@ interface BingoDrawRepositoryContract extends BaseRepositoryContract
     public function getFirstDrawChip(string $roomId): ?BingoDraw;
 
     /**
-     * Obtener sorteos por estado
-     *
-     * @param int $status
-     * @return Collection<int, BingoDraw>
-     */
-    public function getByStatus(int $status): Collection;
-
-    /**
      * Obtener sorteos por sala y estado
      *
      * @param string $roomId

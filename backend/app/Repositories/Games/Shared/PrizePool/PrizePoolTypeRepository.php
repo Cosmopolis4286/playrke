@@ -29,14 +29,6 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function getByStatus(bool $isActive): Collection
-    {
-        return $this->model->where('status', $isActive)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getActiveTypes(): Collection
     {
         return $this->getByStatus(true);

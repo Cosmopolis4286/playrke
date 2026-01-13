@@ -31,20 +31,6 @@ class GameRepository extends BaseRepository implements GameRepositoryContract
     }
 
     /**
-     * Obtener juegos por estado
-     *
-     * @param string $status Estado del juego (ACTIVE/INACTIVE/MAINTENANCE)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<Game>
-     */
-    public function getByStatus(string $status, array $columns = ['*']): Collection
-    {
-        return $this->model->where('status', strtoupper($status))
-            ->orderBy('name')
-            ->get($columns);
-    }
-
-    /**
      * Obtener juegos activos
      *
      * @param array $columns Columnas a seleccionar

@@ -15,14 +15,6 @@ use Illuminate\Database\Eloquent\Collection;
 interface PrizePoolTypeRepositoryContract extends BaseRepositoryContract
 {
     /**
-     * Obtener tipos de pool por estado.
-     *
-     * @param bool $isActive Estado del tipo (activo/inactivo)
-     * @return Collection Colección de tipos con el estado especificado
-     */
-    public function getByStatus(bool $isActive): Collection;
-
-    /**
      * Obtener todos los tipos activos.
      *
      * @return Collection Colección de tipos activos

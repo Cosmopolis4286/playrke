@@ -82,17 +82,6 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
     }
 
     /**
-     * Obtener patrones por estado
-     *
-     * @param string $status
-     * @return Collection<int, BingoPattern>
-     */
-    public function getByStatus(string $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
      * Obtener patrones activos
      *
      * @return Collection<int, BingoPattern>

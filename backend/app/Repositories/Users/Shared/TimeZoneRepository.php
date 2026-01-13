@@ -62,14 +62,6 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryCon
     /**
      * {@inheritDoc}
      */
-    public function getByStatus(bool $status): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getByName(string $name): Collection
     {
         return $this->model->where('name', 'LIKE', "%{$name}%")->get();

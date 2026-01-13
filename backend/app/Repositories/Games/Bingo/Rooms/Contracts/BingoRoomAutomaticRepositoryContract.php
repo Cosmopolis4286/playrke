@@ -28,14 +28,6 @@ interface BingoRoomAutomaticRepositoryContract extends BaseRepositoryContract
     public function getByCreator(string $creatorType, string $creatorId): Collection;
 
     /**
-     * Obtener salas por estado
-     *
-     * @param string $status
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getByStatus(string $status): Collection;
-
-    /**
      * Obtener salas activas
      *
      * @return Collection<int, BingoRoomAutomatic>

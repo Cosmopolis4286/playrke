@@ -15,14 +15,6 @@ use Illuminate\Database\Eloquent\Collection;
 interface SellerRepositoryContract extends BaseRepositoryContract
 {
     /**
-     * Obtener vendedores por estado.
-     *
-     * @param bool $status Estado del vendedor (activo/inactivo)
-     * @return Collection Colección de vendedores con el estado especificado
-     */
-    public function getByStatus(bool $status): Collection;
-
-    /**
      * Obtener todos los vendedores activos.
      *
      * @return Collection Colección de vendedores activos
