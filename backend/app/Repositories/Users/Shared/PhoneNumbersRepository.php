@@ -39,7 +39,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     public function getActiveByUser(string $userId): Collection
     {
         return $this->model->where('user_id', $userId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->get();
     }
 
@@ -57,7 +57,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     public function getActiveByCountry(string $countryId): Collection
     {
         return $this->model->where('country_id', $countryId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->get();
     }
 
@@ -83,7 +83,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     public function isPhoneNumberActive(string $phoneNumber): bool
     {
         return $this->model->where('phone_number', $phoneNumber)
-            ->where('is_active', true)
+            ->where('status', true)
             ->exists();
     }
 
@@ -92,7 +92,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
      */
     public function getByStatus(bool $isActive): Collection
     {
-        return $this->model->where('is_active', $isActive)->get();
+        return $this->model->where('status', $isActive)->get();
     }
 
     /**
@@ -134,7 +134,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
             'user_id' => $userId,
             'country_id' => $countryId,
             'phone_number' => $phoneNumber,
-            'is_active' => $isActive
+            'status' => $isActive
         ]);
     }
 
@@ -144,7 +144,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     public function updateStatus(string $phoneNumberId, bool $isActive): bool
     {
         return $this->model->where('id', $phoneNumberId)
-            ->update(['is_active' => $isActive]) > 0;
+            ->update(['status' => $isActive]) > 0;
     }
 
     /**
@@ -203,7 +203,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     public function bulkUpdateStatus(array $phoneNumberIds, bool $isActive): int
     {
         return $this->model->whereIn('id', $phoneNumberIds)
-            ->update(['is_active' => $isActive]);
+            ->update(['status' => $isActive]);
     }
 
     /**
@@ -212,8 +212,8 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     public function getPhoneNumberStatistics(): array
     {
         $total = $this->model->count();
-        $active = $this->model->where('is_active', true)->count();
-        $inactive = $this->model->where('is_active', false)->count();
+        $active = $this->model->where('status', true)->count();
+        $inactive = $this->model->where('status', false)->count();
         $uniqueUsers = $this->model->distinct('user_id')->count();
         $uniqueCountries = $this->model->distinct('country_id')->count();
         $duplicateNumbers = $this->model->select('phone_number')
@@ -240,7 +240,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     {
         $total = $this->model->where('country_id', $countryId)->count();
         $active = $this->model->where('country_id', $countryId)
-            ->where('is_active', true)->count();
+            ->where('status', true)->count();
         $uniqueUsers = $this->model->where('country_id', $countryId)
             ->distinct('user_id')->count();
 
@@ -261,7 +261,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     {
         $total = $this->model->where('user_id', $userId)->count();
         $active = $this->model->where('user_id', $userId)
-            ->where('is_active', true)->count();
+            ->where('status', true)->count();
         $countries = $this->model->where('user_id', $userId)
             ->distinct('country_id')->pluck('country_id');
 
@@ -308,7 +308,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     {
         return $this->model->where('user_id', $userId)
             ->where('country_id', $countryId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->exists();
     }
 
@@ -319,7 +319,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
     {
         return $this->model->where('user_id', $userId)
             ->where('country_id', $countryId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->first();
     }
 

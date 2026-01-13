@@ -30,7 +30,7 @@ class TimeZone extends Model
         'name',
         'utc',
         'country_id',
-        'is_active',
+        'status',
     ];
 
     /**
@@ -39,7 +39,7 @@ class TimeZone extends Model
     protected $casts = [
         'id' => 'string',
         'country_id' => 'string',
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     /**

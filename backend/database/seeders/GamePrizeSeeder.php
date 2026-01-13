@@ -19,16 +19,16 @@ class GamePrizeSeeder extends Seeder
         }
 
         $prizes = [
-            ['description' => 'Cartón Lleno', 'code' => 'FLHE', 'game_id' => $gameId, 'is_active' => true],
-            ['description' => 'Serial',      'code' => 'SRL',  'game_id' => $gameId, 'is_active' => true],
-            ['description' => 'Canto',       'code' => 'SONG', 'game_id' => $gameId, 'is_active' => true],
+            ['description' => 'Cartón Lleno', 'code' => 'FLHE', 'game_id' => $gameId, 'status' => true],
+            ['description' => 'Serial',      'code' => 'SRL',  'game_id' => $gameId, 'status' => true],
+            ['description' => 'Canto',       'code' => 'SONG', 'game_id' => $gameId, 'status' => true],
         ];
 
         // Insertar o actualizar cada premio de forma idempotente
         foreach ($prizes as $prize) {
             GamePrize::updateOrCreate(
                 ['code' => $prize['code'], 'game_id' => $prize['game_id']],
-                ['description' => $prize['description'], 'is_active' => $prize['is_active']]
+                ['description' => $prize['description'], 'status' => $prize['status']]
             );
         }
     }

@@ -23,10 +23,10 @@ class DocumentTypeSeeder extends Seeder
 
         // Datos a insertar o actualizar
         $documentTypes = [
-            ['value' => 'CPF', 'description' => 'CPF',        'country_id' => $brasilId,    'is_active' => true],
-            ['value' => 'V',   'description' => 'Venezolano', 'country_id' => $venezuelaId, 'is_active' => true],
-            ['value' => 'E',   'description' => 'Extranjero', 'country_id' => $venezuelaId, 'is_active' => true],
-            ['value' => 'J',   'description' => 'Comercio',   'country_id' => $venezuelaId, 'is_active' => true],
+            ['value' => 'CPF', 'description' => 'CPF',        'country_id' => $brasilId,    'status' => true],
+            ['value' => 'V',   'description' => 'Venezolano', 'country_id' => $venezuelaId, 'status' => true],
+            ['value' => 'E',   'description' => 'Extranjero', 'country_id' => $venezuelaId, 'status' => true],
+            ['value' => 'J',   'description' => 'Comercio',   'country_id' => $venezuelaId, 'status' => true],
         ];
 
         // Insertar o actualizar cada tipo de documento de forma idempotente
@@ -42,7 +42,7 @@ class DocumentTypeSeeder extends Seeder
                 ],
                 [
                     'description' => $type['description'],
-                    'is_active'   => $type['is_active'],
+                    'status'   => $type['status'],
                 ]
             );
         }

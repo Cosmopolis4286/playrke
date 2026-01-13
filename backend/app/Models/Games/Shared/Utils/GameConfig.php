@@ -37,7 +37,7 @@ class GameConfig extends Model
         'param',
         'value',
         'description',
-        'is_active',
+        'status',
     ];
 
     // ========================
@@ -47,7 +47,7 @@ class GameConfig extends Model
         'param' => 'string',
         'value' => 'string',
         'description' => 'string',
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     // ========================
@@ -145,7 +145,7 @@ class GameConfig extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', true);
     }
 
     /**
@@ -153,7 +153,7 @@ class GameConfig extends Model
      */
     public function scopeInactive($query)
     {
-        return $query->where('is_active', false);
+        return $query->where('status', false);
     }
 
     /**

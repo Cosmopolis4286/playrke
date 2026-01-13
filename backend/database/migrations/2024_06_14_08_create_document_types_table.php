@@ -19,14 +19,14 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->nullOnDelete();
 
-            $table->boolean('is_active')->default(true);
+            $table->boolean('status')->default(true);
             $table->timestamps();
 
             // Índice único para evitar duplicados por país
             $table->unique(['country_id', 'code'], 'uq_document_types_country_code');
 
             // Índice para consultas frecuentes por país y estado
-            $table->index(['country_id', 'is_active'], 'idx_document_types_country_status');
+            $table->index(['country_id', 'status'], 'idx_document_types_country_status');
         });
     }
 

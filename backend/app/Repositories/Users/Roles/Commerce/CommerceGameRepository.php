@@ -73,7 +73,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
     public function getActiveByCommerce($commerceId): Collection
     {
         return $this->model->where('commerce_id', $commerceId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->get();
     }
 
@@ -86,7 +86,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
     public function getInactiveByCommerce($commerceId): Collection
     {
         return $this->model->where('commerce_id', $commerceId)
-            ->where('is_active', false)
+            ->where('status', false)
             ->get();
     }
 
@@ -99,7 +99,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
     public function getCommercesWithGamePermission($gameId): Collection
     {
         return $this->model->where('game_id', $gameId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->get();
     }
 
@@ -114,7 +114,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
     {
         return $this->model->where('commerce_id', $commerceId)
             ->where('game_id', $gameId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->exists();
     }
 
@@ -143,7 +143,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
     {
         return $this->model->where('commerce_id', $commerceId)
             ->where('game_id', $gameId)
-            ->update(['is_active' => true]) > 0;
+            ->update(['status' => true]) > 0;
     }
 
     /**
@@ -157,7 +157,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
     {
         return $this->model->where('commerce_id', $commerceId)
             ->where('game_id', $gameId)
-            ->update(['is_active' => false]) > 0;
+            ->update(['status' => false]) > 0;
     }
 
     /**
@@ -169,7 +169,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
     public function activateAllByCommerce($commerceId): int
     {
         return $this->model->where('commerce_id', $commerceId)
-            ->update(['is_active' => true]);
+            ->update(['status' => true]);
     }
 
     /**
@@ -181,7 +181,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
     public function deactivateAllByCommerce($commerceId): int
     {
         return $this->model->where('commerce_id', $commerceId)
-            ->update(['is_active' => false]);
+            ->update(['status' => false]);
     }
 
     /**
@@ -200,7 +200,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
                 'game_id' => $gameId
             ],
             [
-                'is_active' => $isActive
+                'status' => $isActive
             ]
         );
     }
@@ -212,7 +212,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
      */
     public function getAllActivePermissions(): Collection
     {
-        return $this->model->where('is_active', true)->get();
+        return $this->model->where('status', true)->get();
     }
 
     /**
@@ -222,6 +222,6 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
      */
     public function getAllInactivePermissions(): Collection
     {
-        return $this->model->where('is_active', false)->get();
+        return $this->model->where('status', false)->get();
     }
 }

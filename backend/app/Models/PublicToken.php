@@ -12,7 +12,7 @@ class PublicToken extends Model
         'token_hash',
         'scopes',
         'expires_at',
-        'is_active',
+        'status',
     ];
 
     protected $casts = [
@@ -24,7 +24,7 @@ class PublicToken extends Model
     public function scopeValid($query)
     {
         return $query
-            ->where('is_active', true)
+            ->where('status', true)
             ->where(function ($q) {
                 $q->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());

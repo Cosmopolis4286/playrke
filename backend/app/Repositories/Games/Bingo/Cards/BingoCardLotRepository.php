@@ -36,8 +36,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         $query = $this->model->where('room_id', $roomId);
 
         // Aplicar filtros
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         if (isset($filters['user_id'])) {
@@ -67,7 +67,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         $query = $this->model->where('room_user_id', $roomUserId);
 
         if ($isActive !== null) {
-            $query->where('is_active', $isActive);
+            $query->where('status', $isActive);
         }
 
         return $query->with(['room', 'seller', 'currency'])
@@ -87,8 +87,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
             $query->where('room_id', $filters['room_id']);
         }
 
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         if (isset($filters['date_from'])) {
@@ -116,8 +116,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
             $query->where('room_id', $filters['room_id']);
         }
 
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         return $query->with(['room', 'roomUser.user', 'seller'])
@@ -137,8 +137,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
             $query->where('room_id', $filters['room_id']);
         }
 
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         if (isset($filters['seller_id'])) {
@@ -156,7 +156,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function getLotStatsByRoom(string $roomId): array
     {
         $stats = $this->model->where('room_id', $roomId)
-                            ->where('is_active', true)
+                            ->where('status', true)
                             ->selectRaw('
                                 COUNT(*) as total_lots,
                                 SUM(card_count) as total_cards,
@@ -181,7 +181,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function getLotStatsByUser(string $roomUserId): array
     {
         $stats = $this->model->where('room_user_id', $roomUserId)
-                            ->where('is_active', true)
+                            ->where('status', true)
                             ->selectRaw('
                                 COUNT(*) as total_lots,
                                 SUM(card_count) as total_cards,
@@ -204,7 +204,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function changeLotsStatus(array $lotIds, bool $isActive): int
     {
         return $this->model->whereIn('id', $lotIds)
-                          ->update(['is_active' => $isActive]);
+                          ->update(['status' => $isActive]);
     }
 
     /**
@@ -213,7 +213,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function getActiveLotsInRoom(string $roomId, array $columns = ['*']): Collection
     {
         return $this->model->where('room_id', $roomId)
-                          ->where('is_active', true)
+                          ->where('status', true)
                           ->select($columns)
                           ->with(['roomUser.user', 'seller', 'currency'])
                           ->orderBy('created_at', 'desc')
@@ -226,7 +226,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function getInactiveLotsInRoom(string $roomId, array $columns = ['*']): Collection
     {
         return $this->model->where('room_id', $roomId)
-                          ->where('is_active', false)
+                          ->where('status', false)
                           ->select($columns)
                           ->with(['roomUser.user', 'seller', 'currency'])
                           ->orderBy('created_at', 'desc')
@@ -240,7 +240,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     {
         $result = $this->model->where('seller_id', $sellerId)
                              ->whereBetween('created_at', [$dateFrom, $dateTo])
-                             ->where('is_active', true)
+                             ->where('status', true)
                              ->sum('commission_amount');
 
         return floatval($result ?? 0);
@@ -254,7 +254,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         $query = $this->model->where('room_user_id', $roomUserId);
 
         if ($isActive !== null) {
-            $query->where('is_active', $isActive);
+            $query->where('status', $isActive);
         }
 
         return $query->with(['room', 'seller', 'currency'])
@@ -274,8 +274,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
             $query->where('room_id', $filters['room_id']);
         }
 
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         return $query->with(['room', 'roomUser.user', 'seller', 'currency'])
@@ -289,9 +289,9 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function countLotsByStatus(string $roomId): array
     {
         $counts = $this->model->where('room_id', $roomId)
-                             ->select('is_active', DB::raw('count(*) as total'))
-                             ->groupBy('is_active')
-                             ->pluck('total', 'is_active')
+                             ->select('status', DB::raw('count(*) as total'))
+                             ->groupBy('status')
+                             ->pluck('total', 'status')
                              ->toArray();
 
         return [

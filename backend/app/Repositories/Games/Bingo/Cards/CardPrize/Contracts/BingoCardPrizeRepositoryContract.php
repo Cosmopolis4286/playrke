@@ -40,7 +40,7 @@ interface BingoCardPrizeRepositoryContract extends BaseRepositoryContract
      * @return Collection<BingoCardPrize> Premios del creador
      *
      * @example
-     * $prizes = $repository->getPrizesByCreator('456', ['is_active' => true]);
+     * $prizes = $repository->getPrizesByCreator('456', ['status' => true]);
      */
     public function getPrizesByCreator(string $creatorUserId, array $filters = []): Collection;
 
@@ -322,7 +322,7 @@ interface BingoCardPrizeRepositoryContract extends BaseRepositoryContract
      * @return int Número de premios actualizados
      *
      * @example
-     * $updated = $repository->bulkUpdatePrizes(['1', '2'], ['is_active' => false]);
+     * $updated = $repository->bulkUpdatePrizes(['1', '2'], ['status' => false]);
      */
     public function bulkUpdatePrizes(array $prizeIds, array $updateData): int;
 

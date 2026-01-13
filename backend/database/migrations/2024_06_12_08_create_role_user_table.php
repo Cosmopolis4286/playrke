@@ -30,7 +30,7 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->nullOnDelete();
 
-            $table->boolean('is_active')
+            $table->boolean('status')
                 ->default(true)
                 ->index();
 
@@ -46,12 +46,12 @@ return new class extends Migration
             $table->unique(['user_id', 'role_id'], 'role_user_unique');
 
             $table->index(
-                ['user_id', 'is_active', 'expires_at'],
+                ['user_id', 'status', 'expires_at'],
                 'role_user_active_idx'
             );
 
             $table->index(
-                ['role_id', 'is_active'],
+                ['role_id', 'status'],
                 'role_user_role_active_idx'
             );
         });

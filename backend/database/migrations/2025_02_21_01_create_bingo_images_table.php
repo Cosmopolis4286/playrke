@@ -25,13 +25,13 @@ return new class extends Migration
             $table->string('route', 255)->comment('Ruta del archivo de la imagen');
             $table->string('code', 8)->comment('Código identificador de la imagen');
 
-            $table->boolean('is_active')->default(true)
+            $table->boolean('status')->default(true)
                 ->comment('true = activo, false = inactivo');
 
             $table->timestamps();
 
             // Índices para consultas frecuentes
-            $table->index(['user_id', 'type', 'is_active']);
+            $table->index(['user_id', 'type', 'status']);
         });
     }
 

@@ -25,7 +25,7 @@ class PrizePoolType extends Model
      */
     protected $fillable = [
         'description',  // Descripción del tipo de pool de premios
-        'is_active',    // Estado del tipo (activo/inactivo)
+        'status',    // Estado del tipo (activo/inactivo)
     ];
 
     /**
@@ -34,7 +34,7 @@ class PrizePoolType extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     /**
@@ -55,7 +55,7 @@ class PrizePoolType extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', true);
     }
 
     /**
@@ -66,7 +66,7 @@ class PrizePoolType extends Model
      */
     public function scopeInactive($query)
     {
-        return $query->where('is_active', false);
+        return $query->where('status', false);
     }
 
     /**
@@ -78,7 +78,7 @@ class PrizePoolType extends Model
      */
     public function scopeByStatus($query, bool $isActive)
     {
-        return $query->where('is_active', $isActive);
+        return $query->where('status', $isActive);
     }
 
     /**
@@ -132,7 +132,7 @@ class PrizePoolType extends Model
      */
     public function activate(): bool
     {
-        return $this->update(['is_active' => true]);
+        return $this->update(['status' => true]);
     }
 
     /**
@@ -142,7 +142,7 @@ class PrizePoolType extends Model
      */
     public function deactivate(): bool
     {
-        return $this->update(['is_active' => false]);
+        return $this->update(['status' => false]);
     }
 
     /**

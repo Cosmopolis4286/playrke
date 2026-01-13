@@ -31,7 +31,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function getByStatus(bool $isActive): Collection
     {
-        return $this->model->where('is_active', $isActive)->get();
+        return $this->model->where('status', $isActive)->get();
     }
 
     /**
@@ -87,7 +87,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     {
         return $this->model->create([
             'description' => $this->normalizeDescription($description),
-            'is_active' => $isActive
+            'status' => $isActive
         ]);
     }
 
@@ -106,7 +106,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     public function updateStatus(string $typeId, bool $isActive): bool
     {
         return $this->model->where('id', $typeId)
-            ->update(['is_active' => $isActive]) > 0;
+            ->update(['status' => $isActive]) > 0;
     }
 
     /**
@@ -139,7 +139,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     public function bulkUpdateStatus(array $typeIds, bool $isActive): int
     {
         return $this->model->whereIn('id', $typeIds)
-            ->update(['is_active' => $isActive]);
+            ->update(['status' => $isActive]);
     }
 
     /**
@@ -148,8 +148,8 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     public function getTypeStatistics(): array
     {
         $total = $this->model->count();
-        $active = $this->model->where('is_active', true)->count();
-        $inactive = $this->model->where('is_active', false)->count();
+        $active = $this->model->where('status', true)->count();
+        $inactive = $this->model->where('status', false)->count();
         $averageDescriptionLength = $this->model->avg(DB::raw('LENGTH(description)'));
         $longestDescription = $this->model->orderByRaw('LENGTH(description) DESC')->first();
         $shortestDescription = $this->model->orderByRaw('LENGTH(description) ASC')->first();
@@ -185,7 +185,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
         $query = $this->model->orderBy('description');
 
         if ($activeOnly) {
-            $query->where('is_active', true);
+            $query->where('status', true);
         }
 
         return $query->get();
@@ -283,7 +283,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
         $query = $this->model->orderBy('description');
 
         if ($activeOnly) {
-            $query->where('is_active', true);
+            $query->where('status', true);
         }
 
         return $query->pluck('description', 'id')->toArray();
@@ -332,7 +332,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     public function getDescriptionSuggestions(string $partialText, int $limit = 5): Collection
     {
         return $this->model->where('description', 'LIKE', "%{$partialText}%")
-            ->where('is_active', true)
+            ->where('status', true)
             ->orderBy('description')
             ->limit($limit)
             ->get();

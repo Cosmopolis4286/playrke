@@ -63,7 +63,7 @@ return new class extends Migration
             $table->string('game_round', 10)
                 ->comment('Ronda del juego');
             
-            $table->boolean('is_active')
+            $table->boolean('status')
                 ->default(false)
                 ->comment('Estado de activación del premio: true = activo, false = inactivo');
             

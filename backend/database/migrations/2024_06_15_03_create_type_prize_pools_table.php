@@ -15,7 +15,7 @@ return new class extends Migration
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID del tipo de premio en el pool');
             $table->string('description', 50)->comment('Descripción legible del tipo de premio');
-            $table->boolean('is_active')->default(true)
+            $table->boolean('status')->default(true)
                 ->comment('true = activo, false = inactivo'); // útil para filtrar tipos obsoletos
             $table->timestamps(); // created_at y updated_at
         });

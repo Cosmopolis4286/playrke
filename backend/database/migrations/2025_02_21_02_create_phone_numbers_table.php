@@ -25,14 +25,14 @@ return new class extends Migration
             $table->string('phone_number', 20)
                 ->comment('Número de teléfono incluyendo código país');
 
-            $table->boolean('is_active')->default(true)
+            $table->boolean('status')->default(true)
                 ->comment('true = activo, false = inactivo');
 
             $table->timestamps();
 
             // Índices para búsquedas frecuentes
-            $table->index(['user_id', 'is_active']);
-            $table->index(['country_id', 'is_active']);
+            $table->index(['user_id', 'status']);
+            $table->index(['country_id', 'status']);
         });
     }
 

@@ -45,7 +45,7 @@ class Currency extends Model
         'type',
         'country_id',
         'decimal_places',
-        'is_active',
+        'status',
     ];
 
     // ========================
@@ -58,7 +58,7 @@ class Currency extends Model
         'type' => 'string',
         'country_id' => 'string',
         'decimal_places' => 'integer',
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     // ========================
@@ -182,7 +182,7 @@ class Currency extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', true);
     }
 
     /**
@@ -190,7 +190,7 @@ class Currency extends Model
      */
     public function scopeInactive($query)
     {
-        return $query->where('is_active', false);
+        return $query->where('status', false);
     }
 
     /**

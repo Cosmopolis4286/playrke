@@ -17,12 +17,12 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryCon
 
     public function getActiveGameModes(): Collection
     {
-        return $this->model->where('is_active', true)->get();
+        return $this->model->where('status', true)->get();
     }
 
     public function getInactiveGameModes(): Collection
     {
-        return $this->model->where('is_active', false)->get();
+        return $this->model->where('status', false)->get();
     }
 
     public function getByDescription(string $description): ?GameMode
@@ -38,20 +38,20 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryCon
     public function activateGameMode($gameModeId): bool
     {
         return $this->model->where('id', $gameModeId)
-            ->update(['is_active' => true]) > 0;
+            ->update(['status' => true]) > 0;
     }
 
     public function deactivateGameMode($gameModeId): bool
     {
         return $this->model->where('id', $gameModeId)
-            ->update(['is_active' => false]) > 0;
+            ->update(['status' => false]) > 0;
     }
 
     public function createGameMode(string $description, bool $isActive = true): GameMode
     {
         return $this->model->create([
             'description' => $description,
-            'is_active' => $isActive
+            'status' => $isActive
         ]);
     }
 
@@ -73,7 +73,7 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryCon
 
     public function getGameModesByStatus(bool $isActive = true): Collection
     {
-        return $this->model->where('is_active', $isActive)->get();
+        return $this->model->where('status', $isActive)->get();
     }
 
     public function toggleGameModeStatus($gameModeId): bool
@@ -81,7 +81,7 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryCon
         $gameMode = $this->model->find($gameModeId);
 
         if ($gameMode) {
-            return $gameMode->update(['is_active' => !$gameMode->is_active]);
+            return $gameMode->update(['status' => !$gameMode->is_active]);
         }
 
         return false;
@@ -90,20 +90,20 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryCon
     public function bulkActivateGameModes(array $gameModeIds): int
     {
         return $this->model->whereIn('id', $gameModeIds)
-            ->update(['is_active' => true]);
+            ->update(['status' => true]);
     }
 
     public function bulkDeactivateGameModes(array $gameModeIds): int
     {
         return $this->model->whereIn('id', $gameModeIds)
-            ->update(['is_active' => false]);
+            ->update(['status' => false]);
     }
 
     public function getGameModeStatistics(): array
     {
         $total = $this->model->count();
-        $active = $this->model->where('is_active', true)->count();
-        $inactive = $this->model->where('is_active', false)->count();
+        $active = $this->model->where('status', true)->count();
+        $inactive = $this->model->where('status', false)->count();
 
         return [
             'total' => $total,

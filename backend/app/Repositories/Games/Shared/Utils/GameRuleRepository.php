@@ -34,17 +34,17 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryCon
 
     public function getActiveRules(): Collection
     {
-        return $this->model->where('is_active', true)->get();
+        return $this->model->where('status', true)->get();
     }
 
     public function getInactiveRules(): Collection
     {
-        return $this->model->where('is_active', false)->get();
+        return $this->model->where('status', false)->get();
     }
 
     public function getRulesByStatus(bool $isActive): Collection
     {
-        return $this->model->where('is_active', $isActive)->get();
+        return $this->model->where('status', $isActive)->get();
     }
 
     public function getByEncrypted(string $encrypted): ?GameRule
@@ -60,14 +60,14 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryCon
     public function getRulesByGameAndStatus($gameId, bool $isActive = true): Collection
     {
         return $this->model->where('game_id', $gameId)
-            ->where('is_active', $isActive)
+            ->where('status', $isActive)
             ->get();
     }
 
     public function getUserRulesByStatus($userId, bool $isActive = true): Collection
     {
         return $this->model->where('user_id', $userId)
-            ->where('is_active', $isActive)
+            ->where('status', $isActive)
             ->get();
     }
 
@@ -79,14 +79,14 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryCon
             'rules' => $rules,
             'encrypted' => $encrypted,
             'image' => $image,
-            'is_active' => $isActive
+            'status' => $isActive
         ]);
     }
 
     public function updateRuleStatus($ruleId, bool $isActive): bool
     {
         return $this->model->where('id', $ruleId)
-            ->update(['is_active' => $isActive]) > 0;
+            ->update(['status' => $isActive]) > 0;
     }
 
     public function activateRule($ruleId): bool
@@ -119,14 +119,14 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryCon
     public function bulkUpdateStatus(array $ruleIds, bool $isActive): int
     {
         return $this->model->whereIn('id', $ruleIds)
-            ->update(['is_active' => $isActive]);
+            ->update(['status' => $isActive]);
     }
 
     public function getRuleStatistics(): array
     {
         $total = $this->model->count();
-        $active = $this->model->where('is_active', true)->count();
-        $inactive = $this->model->where('is_active', false)->count();
+        $active = $this->model->where('status', true)->count();
+        $inactive = $this->model->where('status', false)->count();
         $withImages = $this->model->whereNotNull('image')->count();
 
         return [
@@ -143,7 +143,7 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryCon
     {
         $total = $this->model->where('game_id', $gameId)->count();
         $active = $this->model->where('game_id', $gameId)
-            ->where('is_active', true)->count();
+            ->where('status', true)->count();
         $users = $this->model->where('game_id', $gameId)
             ->distinct('user_id')->count();
         $withImages = $this->model->where('game_id', $gameId)
@@ -162,7 +162,7 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryCon
     {
         $total = $this->model->where('user_id', $userId)->count();
         $active = $this->model->where('user_id', $userId)
-            ->where('is_active', true)->count();
+            ->where('status', true)->count();
         $games = $this->model->where('user_id', $userId)
             ->distinct('game_id')->count();
         $withImages = $this->model->where('user_id', $userId)
@@ -189,7 +189,7 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryCon
     public function searchRulesByContent(string $searchTerm): Collection
     {
         return $this->model->where('rules', 'LIKE', "%{$searchTerm}%")
-            ->where('is_active', true)
+            ->where('status', true)
             ->get();
     }
 

@@ -24,7 +24,7 @@ return new class extends Migration
                 ->constrained('users')
                 ->cascadeOnDelete();
 
-            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+            $table->boolean('status')->default(true)->comment('true = activo, false = inactivo');
 
             $table->timestamps();
 

@@ -23,7 +23,7 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Descripción o uso del sonido');
 
-            $table->boolean('is_active')
+            $table->boolean('status')
                 ->default(true)
                 ->comment('true = activo, false = inactivo');
 

@@ -96,7 +96,7 @@ class BingoCardPrize extends Model
         'winning_card_id',
         'currency_id',
         'game_round',
-        'is_active',
+        'status',
         'prize_type',
         'winning_pattern',
         'usd_amount',
@@ -111,7 +111,7 @@ class BingoCardPrize extends Model
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
-        'is_active' => 'boolean',
+        'status' => 'boolean',
         'usd_amount' => 'decimal:2',
         'local_amount' => 'decimal:8',
         'claimed_at' => 'datetime',
@@ -351,7 +351,7 @@ class BingoCardPrize extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', true);
     }
 
     /**
@@ -362,7 +362,7 @@ class BingoCardPrize extends Model
      */
     public function scopeInactive($query)
     {
-        return $query->where('is_active', false);
+        return $query->where('status', false);
     }
 
     /**

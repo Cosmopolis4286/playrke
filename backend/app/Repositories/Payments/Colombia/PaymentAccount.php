@@ -39,7 +39,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
     public function getActiveByUser(string $userId): Collection
     {
         return $this->model->where('user_id', $userId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->get();
     }
 
@@ -72,7 +72,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
      */
     public function getByStatus(bool $isActive): Collection
     {
-        return $this->model->where('is_active', $isActive)->get();
+        return $this->model->where('status', $isActive)->get();
     }
 
     /**
@@ -149,7 +149,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
             'account_number' => $accountNumber,
             'document_number' => $documentNumber,
             'user_id' => $userId,
-            'is_active' => $isActive
+            'status' => $isActive
         ]);
     }
 
@@ -159,7 +159,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
     public function updateStatus(string $accountId, bool $isActive): bool
     {
         return $this->model->where('id', $accountId)
-            ->update(['is_active' => $isActive]) > 0;
+            ->update(['status' => $isActive]) > 0;
     }
 
     /**
@@ -208,7 +208,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
     public function bulkUpdateStatus(array $accountIds, bool $isActive): int
     {
         return $this->model->whereIn('id', $accountIds)
-            ->update(['is_active' => $isActive]);
+            ->update(['status' => $isActive]);
     }
 
     /**
@@ -217,8 +217,8 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
     public function getAccountStatistics(): array
     {
         $total = $this->model->count();
-        $active = $this->model->where('is_active', true)->count();
-        $inactive = $this->model->where('is_active', false)->count();
+        $active = $this->model->where('status', true)->count();
+        $inactive = $this->model->where('status', false)->count();
         $uniqueUsers = $this->model->distinct('user_id')->count();
         $bancolombiaCount = $this->model->where('gateway', 'BANCOLOMBIA')->count();
         $daviplataCount = $this->model->where('gateway', 'DAVIPLATA')->count();
@@ -246,7 +246,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
     {
         $total = $this->model->where('gateway', $gateway)->count();
         $active = $this->model->where('gateway', $gateway)
-            ->where('is_active', true)->count();
+            ->where('status', true)->count();
         $uniqueUsers = $this->model->where('gateway', $gateway)
             ->distinct('user_id')->count();
 
@@ -267,7 +267,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
     {
         $total = $this->model->where('user_id', $userId)->count();
         $active = $this->model->where('user_id', $userId)
-            ->where('is_active', true)->count();
+            ->where('status', true)->count();
         $gateways = $this->model->where('user_id', $userId)
             ->distinct('gateway')->pluck('gateway');
 
@@ -316,7 +316,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
     {
         return $this->model->where('user_id', $userId)
             ->where('gateway', $gateway)
-            ->where('is_active', true)
+            ->where('status', true)
             ->exists();
     }
 
@@ -327,7 +327,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
     {
         return $this->model->where('user_id', $userId)
             ->where('gateway', $gateway)
-            ->where('is_active', true)
+            ->where('status', true)
             ->first();
     }
 

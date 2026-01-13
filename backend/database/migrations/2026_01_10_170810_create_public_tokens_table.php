@@ -20,13 +20,13 @@ return new class extends Migration
             $table->json('scopes');
 
             $table->timestamp('expires_at')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->boolean('status')->default(true);
 
             $table->timestamp('last_used_at')->nullable();
             $table->timestamps();
 
-            $table->index(['user_id', 'is_active']);
-            $table->index(['is_active', 'expires_at']);
+            $table->index(['user_id', 'status']);
+            $table->index(['status', 'expires_at']);
         });
     }
 

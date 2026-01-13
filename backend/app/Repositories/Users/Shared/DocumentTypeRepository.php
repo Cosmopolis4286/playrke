@@ -29,7 +29,7 @@ class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepos
     {
         return $this->model
             ->where('country_id', $countryId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->get();
     }
 
@@ -65,7 +65,7 @@ class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepos
     public function getDocumentTypesByStatus(bool $isActive = true): Collection
     {
         return $this->model
-            ->where('is_active', $isActive)
+            ->where('status', $isActive)
             ->get();
     }
 
@@ -105,7 +105,7 @@ class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepos
             'country_id'  => $countryId,
             'code'        => $code,
             'description' => $description,
-            'is_active'   => $isActive,
+            'status'   => $isActive,
         ]);
     }
 
@@ -118,12 +118,12 @@ class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepos
 
     public function activateDocumentType(int $documentTypeId): bool
     {
-        return $this->updateDocumentType($documentTypeId, ['is_active' => true]);
+        return $this->updateDocumentType($documentTypeId, ['status' => true]);
     }
 
     public function deactivateDocumentType(int $documentTypeId): bool
     {
-        return $this->updateDocumentType($documentTypeId, ['is_active' => false]);
+        return $this->updateDocumentType($documentTypeId, ['status' => false]);
     }
 
     /** ----------------------------------------

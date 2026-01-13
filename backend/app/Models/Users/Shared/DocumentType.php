@@ -15,11 +15,11 @@ class DocumentType extends Model
         'code',
         'description',
         'country_id',
-        'is_active'
+        'status'
     ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'status' => 'boolean'
     ];
 
     public function country(): BelongsTo

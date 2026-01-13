@@ -53,7 +53,7 @@ class CurrencyRepository extends BaseRepository implements CurrencyRepositoryCon
      */
     public function getActive(array $columns = ['*']): Collection
     {
-        return $this->model->where('is_active', true)
+        return $this->model->where('status', true)
             ->orderBy('name')
             ->get($columns);
     }
@@ -66,7 +66,7 @@ class CurrencyRepository extends BaseRepository implements CurrencyRepositoryCon
      */
     public function getInactive(array $columns = ['*']): Collection
     {
-        return $this->model->where('is_active', false)
+        return $this->model->where('status', false)
             ->orderBy('name')
             ->get($columns);
     }
@@ -210,7 +210,7 @@ class CurrencyRepository extends BaseRepository implements CurrencyRepositoryCon
     public function getActiveByType(string $type, array $columns = ['*']): Collection
     {
         return $this->model->where('type', strtoupper($type))
-            ->where('is_active', true)
+            ->where('status', true)
             ->orderBy('name')
             ->get($columns);
     }

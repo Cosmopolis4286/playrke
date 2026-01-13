@@ -27,7 +27,7 @@ class PhoneNumbers extends Model
         'user_id',       // ID del usuario propietario
         'country_id',    // ID del país del número
         'phone_number',  // Número de teléfono
-        'is_active',     // Estado del número (activo/inactivo)
+        'status',     // Estado del número (activo/inactivo)
     ];
 
     /**
@@ -36,7 +36,7 @@ class PhoneNumbers extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     /**
@@ -79,7 +79,7 @@ class PhoneNumbers extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', true);
     }
 
     /**

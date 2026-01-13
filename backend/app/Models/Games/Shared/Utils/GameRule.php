@@ -18,11 +18,11 @@ class GameRule extends Model
         'image',
         'rules',
         'encrypted',
-        'is_active',
+        'status',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     public function user(): BelongsTo

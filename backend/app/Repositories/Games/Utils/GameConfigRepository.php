@@ -72,7 +72,7 @@ class GameConfigRepository extends BaseRepository implements GameConfigRepositor
     public function getActiveGameConfigs(string $gameId, array $columns = ['*']): Collection
     {
         return $this->model->where('game_id', $gameId)
-            ->where('is_active', true)
+            ->where('status', true)
             ->orderBy('param')
             ->get($columns);
     }
@@ -87,7 +87,7 @@ class GameConfigRepository extends BaseRepository implements GameConfigRepositor
     public function getInactiveGameConfigs(string $gameId, array $columns = ['*']): Collection
     {
         return $this->model->where('game_id', $gameId)
-            ->where('is_active', false)
+            ->where('status', false)
             ->orderBy('param')
             ->get($columns);
     }
@@ -156,7 +156,7 @@ class GameConfigRepository extends BaseRepository implements GameConfigRepositor
             [
                 'value' => $value,
                 'description' => $description,
-                'is_active' => $isActive,
+                'status' => $isActive,
             ]
         );
     }
@@ -217,7 +217,7 @@ class GameConfigRepository extends BaseRepository implements GameConfigRepositor
     {
         return $this->model->where('game_id', $gameId)
             ->where('param', $param)
-            ->update(['is_active' => $isActive]) > 0;
+            ->update(['status' => $isActive]) > 0;
     }
 
     /**
@@ -291,7 +291,7 @@ class GameConfigRepository extends BaseRepository implements GameConfigRepositor
     public function getGameConfigStats(string $gameId): array
     {
         $total = $this->model->where('game_id', $gameId)->count();
-        $active = $this->model->where('game_id', $gameId)->where('is_active', true)->count();
+        $active = $this->model->where('game_id', $gameId)->where('status', true)->count();
         $inactive = $total - $active;
 
         return [

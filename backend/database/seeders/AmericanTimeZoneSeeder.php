@@ -63,7 +63,7 @@ class AmericanTimeZoneSeeder extends Seeder
                     [
                         'utc'        => $utc,
                         'country_id' => $countryId,
-                        'is_active'  => true,
+                        'status'  => true,
                         'updated_at' => $now,
                     ]
                 );

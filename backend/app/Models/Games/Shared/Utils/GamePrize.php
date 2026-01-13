@@ -15,11 +15,11 @@ class GamePrize extends Model
         'description',
         'code',
         'game_id',
-        'is_active'
+        'status'
     ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'status' => 'boolean'
     ];
 
     public function game(): BelongsTo

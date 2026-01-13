@@ -69,7 +69,7 @@ return new class extends Migration
                 ->unsigned()
                 ->comment('Comisión del vendedor');
             
-            $table->boolean('is_active')
+            $table->boolean('status')
                 ->default(true)
                 ->comment('Estado del lote: true = activo, false = inactivo');
 
@@ -78,8 +78,8 @@ return new class extends Migration
 
             // Índices para consultas frecuentes y rendimiento
             $table->index(['room_id', 'room_user_id'], 'idx_bingo_card_lots_room_user');
-            $table->index(['room_id', 'is_active'], 'idx_bingo_card_lots_room_active');
-            $table->index(['seller_id', 'is_active'], 'idx_bingo_card_lots_seller_active');
+            $table->index(['room_id', 'status'], 'idx_bingo_card_lots_room_active');
+            $table->index(['seller_id', 'status'], 'idx_bingo_card_lots_seller_active');
             $table->index('created_at', 'idx_bingo_card_lots_created');
 
             // Índice único para evitar duplicados

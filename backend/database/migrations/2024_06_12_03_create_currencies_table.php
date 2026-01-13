@@ -43,14 +43,14 @@ return new class extends Migration
                 ->unsigned()
                 ->comment('Cantidad de decimales');
 
-            $table->boolean('is_active')
+            $table->boolean('status')
                 ->default(true)
                 ->comment('true = activo, false = inactivo');
 
             $table->timestamps();
 
             // Índice compuesto para búsquedas frecuentes por tipo y estado
-            $table->index(['type', 'is_active']);
+            $table->index(['type', 'status']);
         });
     }
 

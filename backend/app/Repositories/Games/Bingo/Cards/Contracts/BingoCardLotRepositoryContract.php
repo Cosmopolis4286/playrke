@@ -24,11 +24,11 @@ interface BingoCardLotRepositoryContract extends BaseRepositoryContract
      * Obtiene todos los lotes de una sala específica
      *
      * @param string $roomId ID de la sala de bingo
-     * @param array $filters Filtros adicionales ['is_active' => true, 'user_id' => '...']
+     * @param array $filters Filtros adicionales ['status' => true, 'user_id' => '...']
      * @return Collection<BingoCardLot> Lotes de la sala
      *
      * @example
-     * $lotes = $repository->getLotsByRoom('123', ['is_active' => true]);
+     * $lotes = $repository->getLotsByRoom('123', ['status' => true]);
      */
     public function getLotsByRoom(string $roomId, array $filters = []): Collection;
 
@@ -48,11 +48,11 @@ interface BingoCardLotRepositoryContract extends BaseRepositoryContract
      * Obtiene lotes por vendedor
      *
      * @param string $sellerId ID del vendedor
-     * @param array $filters Filtros adicionales ['room_id' => '...', 'is_active' => true]
+     * @param array $filters Filtros adicionales ['room_id' => '...', 'status' => true]
      * @return Collection<BingoCardLot> Lotes del vendedor
      *
      * @example
-     * $lotes = $repository->getLotsBySeller('321', ['is_active' => true]);
+     * $lotes = $repository->getLotsBySeller('321', ['status' => true]);
      */
     public function getLotsBySeller(string $sellerId, array $filters = []): Collection;
 

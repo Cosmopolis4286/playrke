@@ -17,14 +17,14 @@ class RoleSeeder extends Seeder
         // Definimos todos los roles del sistema
         // 'type' indica si es rol web o API
         $roles = [
-            ['name' => 'Jugador',   'prefix' => 'player',     'description' => 'Jugador/Usuario del sistema', 'is_active' => true, 'type' => 'web'],
-            ['name' => 'Admin',     'prefix' => 'admin',      'description' => 'Administrador',               'is_active' => true, 'type' => 'web'],
-            ['name' => 'Comercio',  'prefix' => 'commerce',   'description' => 'Comercio',                    'is_active' => true, 'type' => 'web'],
-            ['name' => 'Sucursal',  'prefix' => 'subsidiary', 'description' => 'Sucursal de un comercio',     'is_active' => true, 'type' => 'web'],
-            ['name' => 'Vendedor',  'prefix' => 'seller',     'description' => 'Vendedor asociado',           'is_active' => true, 'type' => 'web'],
-            ['name' => 'Proveedor', 'prefix' => 'provider',   'description' => 'Proveedor del sistema',       'is_active' => true, 'type' => 'api'],      // API guard
-            ['name' => 'Cliente',   'prefix' => 'customer',   'description' => 'Cliente final',               'is_active' => true, 'type' => 'api'],      // API guard
-            ['name' => 'Tesorero',  'prefix' => 'treasurer',  'description' => 'Responsable financiero',      'is_active' => true, 'type' => 'web'],
+            ['name' => 'Jugador',   'prefix' => 'player',     'description' => 'Jugador/Usuario del sistema', 'status' => true, 'type' => 'web'],
+            ['name' => 'Admin',     'prefix' => 'admin',      'description' => 'Administrador',               'status' => true, 'type' => 'web'],
+            ['name' => 'Comercio',  'prefix' => 'commerce',   'description' => 'Comercio',                    'status' => true, 'type' => 'web'],
+            ['name' => 'Sucursal',  'prefix' => 'subsidiary', 'description' => 'Sucursal de un comercio',     'status' => true, 'type' => 'web'],
+            ['name' => 'Vendedor',  'prefix' => 'seller',     'description' => 'Vendedor asociado',           'status' => true, 'type' => 'web'],
+            ['name' => 'Proveedor', 'prefix' => 'provider',   'description' => 'Proveedor del sistema',       'status' => true, 'type' => 'api'],      // API guard
+            ['name' => 'Cliente',   'prefix' => 'customer',   'description' => 'Cliente final',               'status' => true, 'type' => 'api'],      // API guard
+            ['name' => 'Tesorero',  'prefix' => 'treasurer',  'description' => 'Responsable financiero',      'status' => true, 'type' => 'web'],
         ];
 
         // Añadimos ID único (Snowflake) y timestamps
@@ -57,7 +57,7 @@ class RoleSeeder extends Seeder
                 $spatieRole->prefix = $role['prefix'];
                 $spatieRole->type = $role['type'];
                 $spatieRole->description = $role['description'];
-                $spatieRole->is_active = $role['is_active'];
+                $spatieRole->is_active = $role['status'];
                 $spatieRole->save();
             }
         }

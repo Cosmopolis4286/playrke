@@ -45,8 +45,8 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
             $query->where('prize_type', $filters['prize_type']);
         }
 
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         if (isset($filters['game_round'])) {
@@ -66,8 +66,8 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
         $query = $this->model->where('creator_user_id', $creatorUserId);
 
         // Aplicar filtros
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         if (isset($filters['prize_status'])) {
@@ -99,8 +99,8 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
             $query->where('creator_user_id', $filters['creator_user_id']);
         }
 
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         return $query->with(['room', 'creatorUser', 'winningCard', 'currency'])
@@ -164,7 +164,7 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
      */
     public function getActivePrizes(array $filters = []): Collection
     {
-        $query = $this->model->where('is_active', true);
+        $query = $this->model->where('status', true);
 
         // Aplicar filtros adicionales
         if (isset($filters['room_id'])) {
@@ -213,8 +213,8 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
             $query->where('prize_status', $filters['prize_status']);
         }
 
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         return $query->with(['room', 'creatorUser', 'cardLot', 'winningCard', 'currency'])
@@ -256,7 +256,7 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
     public function togglePrizeActivation(string $prizeId, bool $isActive): bool
     {
         return $this->model->where('id', $prizeId)
-                          ->update(['is_active' => $isActive]) > 0;
+                          ->update(['status' => $isActive]) > 0;
     }
 
     /**
@@ -524,7 +524,7 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
     public function getPendingPaymentsByCreator(string $creatorUserId): Collection
     {
         return $this->model->where('creator_user_id', $creatorUserId)
-                          ->where('is_active', true)
+                          ->where('status', true)
                           ->where('prize_status', 'waiting')
                           ->with(['room', 'creatorUser', 'winningCard', 'currency'])
                           ->orderBy('created_at', 'desc')
@@ -588,8 +588,8 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
             $query->where('prize_status', $filters['prize_status']);
         }
 
-        if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         return $query->with(['room', 'seller', 'winningCard', 'currency'])

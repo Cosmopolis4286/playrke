@@ -23,7 +23,7 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Juego asociado al premio');
 
-            $table->boolean('is_active')
+            $table->boolean('status')
                 ->default(true)
                 ->comment('true = activo, false = inactivo');
 

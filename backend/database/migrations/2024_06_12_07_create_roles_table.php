@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('prefix')->unique();
             $table->enum('type', ['web', 'api'])->default('web')->comment('Tipo de rol: web o api');
             $table->string('description')->nullable();
-            $table->boolean('is_active')->default(true)->comment('true = activo, false = inactivo');
+            $table->boolean('status')->default(true)->comment('true = activo, false = inactivo');
             $table->timestamps();
         });
     }

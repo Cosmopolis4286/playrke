@@ -16,10 +16,10 @@ class CurrencySeeder extends Seeder
             ->toArray();
 
         $currencies = [
-            ['iso_code' => 'USDT', 'symbol' => 'USDT', 'name' => 'USDT', 'description' => 'Tether USDT', 'country_id' => null, 'type' => 'CRYPTO', 'decimal_places' => 2, 'is_active' => true],
-            ['iso_code' => 'BRL', 'symbol' => 'R$', 'name' => 'Real', 'description' => 'Real brasileño', 'country_id' => $countries['BR'] ?? null, 'type' => 'FIAT', 'decimal_places' => 2, 'is_active' => true],
-            ['iso_code' => 'COP', 'symbol' => '$', 'name' => 'Peso', 'description' => 'Peso colombiano', 'country_id' => $countries['CO'] ?? null, 'type' => 'FIAT', 'decimal_places' => 2, 'is_active' => true],
-            ['iso_code' => 'VES', 'symbol' => 'Bs', 'name' => 'Bolívar', 'description' => 'Bolívar venezolano', 'country_id' => $countries['VE'] ?? null, 'type' => 'FIAT', 'decimal_places' => 2, 'is_active' => true],
+            ['iso_code' => 'USDT', 'symbol' => 'USDT', 'name' => 'USDT', 'description' => 'Tether USDT', 'country_id' => null, 'type' => 'CRYPTO', 'decimal_places' => 2, 'status' => true],
+            ['iso_code' => 'BRL', 'symbol' => 'R$', 'name' => 'Real', 'description' => 'Real brasileño', 'country_id' => $countries['BR'] ?? null, 'type' => 'FIAT', 'decimal_places' => 2, 'status' => true],
+            ['iso_code' => 'COP', 'symbol' => '$', 'name' => 'Peso', 'description' => 'Peso colombiano', 'country_id' => $countries['CO'] ?? null, 'type' => 'FIAT', 'decimal_places' => 2, 'status' => true],
+            ['iso_code' => 'VES', 'symbol' => 'Bs', 'name' => 'Bolívar', 'description' => 'Bolívar venezolano', 'country_id' => $countries['VE'] ?? null, 'type' => 'FIAT', 'decimal_places' => 2, 'status' => true],
         ];
 
         $snowflake = new Snowflake();
@@ -34,7 +34,7 @@ class CurrencySeeder extends Seeder
         Currency::upsert(
             $currencies,
             ['iso_code'], // clave única
-            ['symbol', 'name', 'description', 'country_id', 'type', 'decimal_places', 'is_active', 'updated_at']
+            ['symbol', 'name', 'description', 'country_id', 'type', 'decimal_places', 'status', 'updated_at']
         );
     }
 }

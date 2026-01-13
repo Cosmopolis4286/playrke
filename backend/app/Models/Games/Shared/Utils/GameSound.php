@@ -12,10 +12,10 @@ class GameSound extends Model
     protected $fillable = [
         'file',
         'description',
-        'is_active',
+        'status',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 }

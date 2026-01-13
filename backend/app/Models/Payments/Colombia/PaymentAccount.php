@@ -35,7 +35,7 @@ class PaymentAccount extends Model
         'account_number',  // Número de cuenta
         'document_number', // Número de documento
         'user_id',         // ID del usuario propietario
-        'is_active',       // Estado de la cuenta
+        'status',       // Estado de la cuenta
     ];
 
     /**
@@ -44,7 +44,7 @@ class PaymentAccount extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     /**
@@ -110,7 +110,7 @@ class PaymentAccount extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', true);
     }
 
     /**

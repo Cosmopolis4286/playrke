@@ -16,17 +16,17 @@ class GameSoundRepository extends BaseRepository implements GameSoundRepositoryC
 
     public function getActiveSounds(): Collection
     {
-        return $this->model->where('is_active', true)->get();
+        return $this->model->where('status', true)->get();
     }
 
     public function getInactiveSounds(): Collection
     {
-        return $this->model->where('is_active', false)->get();
+        return $this->model->where('status', false)->get();
     }
 
     public function getSoundsByStatus(bool $isActive): Collection
     {
-        return $this->model->where('is_active', $isActive)->get();
+        return $this->model->where('status', $isActive)->get();
     }
 
     public function getByFile(string $file): ?GameSound
@@ -47,7 +47,7 @@ class GameSoundRepository extends BaseRepository implements GameSoundRepositoryC
     public function searchSoundsByDescription(string $searchTerm): Collection
     {
         return $this->model->where('description', 'LIKE', "%{$searchTerm}%")
-            ->where('is_active', true)
+            ->where('status', true)
             ->get();
     }
 
@@ -56,14 +56,14 @@ class GameSoundRepository extends BaseRepository implements GameSoundRepositoryC
         return $this->model->create([
             'file' => $file,
             'description' => $description,
-            'is_active' => $isActive
+            'status' => $isActive
         ]);
     }
 
     public function updateSoundStatus($soundId, bool $isActive): bool
     {
         return $this->model->where('id', $soundId)
-            ->update(['is_active' => $isActive]) > 0;
+            ->update(['status' => $isActive]) > 0;
     }
 
     public function activateSound($soundId): bool
@@ -96,14 +96,14 @@ class GameSoundRepository extends BaseRepository implements GameSoundRepositoryC
     public function bulkUpdateStatus(array $soundIds, bool $isActive): int
     {
         return $this->model->whereIn('id', $soundIds)
-            ->update(['is_active' => $isActive]);
+            ->update(['status' => $isActive]);
     }
 
     public function getSoundStatistics(): array
     {
         $total = $this->model->count();
-        $active = $this->model->where('is_active', true)->count();
-        $inactive = $this->model->where('is_active', false)->count();
+        $active = $this->model->where('status', true)->count();
+        $inactive = $this->model->where('status', false)->count();
         $withDescription = $this->model->whereNotNull('description')->count();
         $withoutDescription = $this->model->whereNull('description')->count();
 
@@ -168,7 +168,7 @@ class GameSoundRepository extends BaseRepository implements GameSoundRepositoryC
 
     public function getPopularSounds(int $limit = 10): Collection
     {
-        return $this->model->where('is_active', true)
+        return $this->model->where('status', true)
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();

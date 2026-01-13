@@ -21,14 +21,14 @@ return new class extends Migration
                 ->comment('Descripción del modo de juego');
 
             // Estado activo/inactivo
-            $table->boolean('is_active')->default(true)
+            $table->boolean('status')->default(true)
                 ->comment('true = activo, false = inactivo');
 
             // Timestamps automáticos
             $table->timestamps();
 
             // Índice por estado para consultas rápidas
-            $table->index(['is_active', 'description']);
+            $table->index(['status', 'description']);
         });
     }
 

@@ -13,11 +13,11 @@ class GameMode extends Model
 
     protected $fillable = [
         'description',
-        'is_active',
+        'status',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     public function prizePoolTypes(): HasMany
