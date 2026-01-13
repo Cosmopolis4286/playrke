@@ -20,9 +20,7 @@ return new class extends Migration
             $table->string('value', 100)->nullable(); // Valor del parámetro
             $table->string('description', 150)->nullable();
 
-            $table->boolean('status')
-                ->default(true)
-                ->comment('true = activo, false = inactivo');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 
             $table->timestamps();
 

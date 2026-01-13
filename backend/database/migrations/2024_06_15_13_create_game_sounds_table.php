@@ -23,9 +23,7 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Descripción o uso del sonido');
 
-            $table->boolean('status')
-                ->default(true)
-                ->comment('true = activo, false = inactivo');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 
             $table->timestamps();
         });

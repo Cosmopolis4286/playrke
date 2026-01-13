@@ -51,27 +51,25 @@ return new class extends Migration
             $table->integer('card_count')
                 ->unsigned()
                 ->comment('Cantidad de cartones');
-            
+
             $table->decimal('card_price', 10, 2)
                 ->unsigned()
                 ->comment('Precio unitario del cartón');
-            
+
             $table->decimal('exchange_rate', 10, 4)
                 ->unsigned()
                 ->comment('Tipo de cambio aplicado');
-            
+
             $table->decimal('sale_amount', 12, 2)
                 ->unsigned()
                 ->comment('Monto total de la venta');
-            
+
             $table->decimal('commission_amount', 10, 2)
                 ->nullable()
                 ->unsigned()
                 ->comment('Comisión del vendedor');
-            
-            $table->boolean('status')
-                ->default(true)
-                ->comment('Estado del lote: true = activo, false = inactivo');
+
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 
             $table->timestamps();
             $table->softDeletes();

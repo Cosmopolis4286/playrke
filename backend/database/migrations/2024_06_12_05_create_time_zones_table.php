@@ -30,9 +30,8 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->comment('ID del país asociado (opcional)');
 
-            // Estado activo/inactivo
-            $table->boolean('status')->default(true)
-                ->comment('true = activo, false = inactivo');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])
+                ->default('ACTIVE');
 
             // Timestamps automáticos
             $table->timestamps();

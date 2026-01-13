@@ -25,8 +25,8 @@ return new class extends Migration
             $table->string('route', 255)->comment('Ruta del archivo de la imagen');
             $table->string('code', 8)->comment('Código identificador de la imagen');
 
-            $table->boolean('status')->default(true)
-                ->comment('true = activo, false = inactivo');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])
+                ->default('ACTIVE');
 
             $table->timestamps();
 

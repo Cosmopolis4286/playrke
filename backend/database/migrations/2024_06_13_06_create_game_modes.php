@@ -20,9 +20,7 @@ return new class extends Migration
                 ->unique()
                 ->comment('Descripción del modo de juego');
 
-            // Estado activo/inactivo
-            $table->boolean('status')->default(true)
-                ->comment('true = activo, false = inactivo');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 
             // Timestamps automáticos
             $table->timestamps();

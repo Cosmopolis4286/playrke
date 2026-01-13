@@ -62,25 +62,24 @@ return new class extends Migration
             // Datos del premio
             $table->string('game_round', 10)
                 ->comment('Ronda del juego');
-            
-            $table->boolean('status')
-                ->default(false)
+
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('INACTIVE')
                 ->comment('Estado de activación del premio: true = activo, false = inactivo');
-            
+
             $table->enum('prize_type', ['full_house', 'single_line', 'serial'])
                 ->comment('Tipo de premio: full_house = Casa Llena, single_line = Línea Simple, serial = Serial');
-            
+
             $table->string('winning_pattern', 100)
                 ->comment('Patrón del cartón ganador');
-            
+
             $table->decimal('usd_amount', 12, 2)
                 ->unsigned()
                 ->comment('Monto en USD');
-            
+
             $table->decimal('local_amount', 12, 8)
                 ->unsigned()
                 ->comment('Monto en moneda local');
-            
+
             $table->enum('prize_status', ['waiting', 'claimed', 'cancelled', 'suspended'])
                 ->default('waiting')
                 ->comment('Estado del premio: waiting = esperando, claimed = reclamado, cancelled = cancelado, suspended = suspendido');
@@ -89,12 +88,12 @@ return new class extends Migration
             $table->timestamp('claimed_at')
                 ->nullable()
                 ->comment('Fecha y hora cuando se reclamó el premio');
-            
+
             $table->string('verification_code', 20)
                 ->nullable()
                 ->unique()
                 ->comment('Código de verificación del premio');
-            
+
             $table->text('prize_notes')
                 ->nullable()
                 ->comment('Notas adicionales sobre el premio');

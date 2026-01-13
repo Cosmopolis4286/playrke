@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('game_prizes', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único del premio');
-            
+
             $table->string('description', 50)->comment('Descripción legible del premio');
             $table->string('code', 10)->comment('Código único interno del premio')->index();
 
@@ -23,9 +23,8 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Juego asociado al premio');
 
-            $table->boolean('status')
-                ->default(true)
-                ->comment('true = activo, false = inactivo');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])
+                ->default('ACTIVE');
 
             $table->timestamps();
 

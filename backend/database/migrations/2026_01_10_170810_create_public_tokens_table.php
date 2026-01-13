@@ -20,8 +20,7 @@ return new class extends Migration
             $table->json('scopes');
 
             $table->timestamp('expires_at')->nullable();
-            $table->boolean('status')->default(true);
-
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamp('last_used_at')->nullable();
             $table->timestamps();
 

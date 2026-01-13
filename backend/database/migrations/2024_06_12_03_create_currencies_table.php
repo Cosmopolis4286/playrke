@@ -43,9 +43,8 @@ return new class extends Migration
                 ->unsigned()
                 ->comment('Cantidad de decimales');
 
-            $table->boolean('status')
-                ->default(true)
-                ->comment('true = activo, false = inactivo');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])
+                ->default('ACTIVE');
 
             $table->timestamps();
 

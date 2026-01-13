@@ -30,9 +30,8 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->nullOnDelete();
 
-            $table->boolean('status')
-                ->default(true)
-                ->index();
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])
+                ->default('ACTIVE')->index();
 
             $table->timestamp('assigned_at')
                 ->useCurrent();

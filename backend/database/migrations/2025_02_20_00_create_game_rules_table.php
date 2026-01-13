@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('image', 30)->nullable();
             $table->text('rules');
             $table->string('encrypted', 12);
-            $table->boolean('status')->default(true)->comment('true = activo, false = inactivo');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();
         });
     }
