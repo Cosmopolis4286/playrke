@@ -1,7 +1,5 @@
 <template>
   <GuestLayout title="Registrarse">
-    <template #header-text> Crea tu cuenta </template>
-
     <template #form-content>
       <form novalidate @submit.prevent="submit" class="auth-form">
         <!-- Email -->

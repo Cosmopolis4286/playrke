@@ -28,7 +28,7 @@
     --input-bg: #00052b;
     --input-border: #3d0183;
     --input-border-hover: #3d00a0;
-    --input-height: 40px;
+    --input-height: 38px;
     --radius-md: 11px;
 
     /* Layout */
@@ -99,14 +99,14 @@ button:hover {
 
 .guest-layout__card {
     position: relative;
-    max-width: 395px;
+    max-width: 380px;
     width: 100%;
     padding: 16px;
     display: grid;
     place-items: center;
     background-color: #000413f3;
     border: 2px solid #23003f88;
-    border-radius: 24px;
+    border-radius: 20px;
 }
 
 /* ======================================================
@@ -135,7 +135,7 @@ button:hover {
    LOGO IMAGE
 ====================================================== */
 .guest-layout__logo-image {
-    max-height: 120px;
+    max-height: 130px;
 }
 
 /* ======================================================
@@ -225,7 +225,7 @@ button:hover {
     width: 100%;
     display: flex;
     align-items: center;
-    margin-bottom: 6px;
+    margin: 2% auto;
 }
 
 /* Input */
@@ -256,6 +256,7 @@ button:hover {
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
+        z-index: 999;
     font-size: 0.78em;
     color: var(--eye);
     pointer-events: none;
@@ -263,7 +264,7 @@ button:hover {
 
 .auth-form__toggle-password {
     position: absolute;
-    right: 14px;
+    right: 9px;
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.8em;
@@ -280,13 +281,14 @@ button:hover {
 /* Submit */
 .auth-form__submit {
     width: 100%;
-    height: 42px;
-    margin: 8px 0;
+    height: 40px;
+    margin: 2% auto;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.14em;
+    font-size: 1.1em;
     letter-spacing: 1px;
+    padding-top: 1%;
     text-transform: uppercase;
     color: var(--white);
     background-color: #07001f;
@@ -407,4 +409,101 @@ button:hover {
         -webkit-animation-duration: 1.5s;
         animation-duration: 1.5s;
     }
+}
+
+/* ======================================================
+   DROPDOWN
+====================================================== */
+
+.auth-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+/* Trigger */
+.auth-dropdown__trigger {
+    width: 100%;
+    height: var(--input-height);
+    padding: 0 42px 0 36px;
+    font-size: 0.9em;
+    font-weight: var(--light);
+    color: var(--gray-3);
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.auth-dropdown__trigger:hover {
+    border-color: var(--input-border-hover);
+}
+
+.auth-dropdown__trigger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Chevron */
+.auth-dropdown__chevron {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 0.8em;
+}
+
+/* List */
+.auth-dropdown__list {
+    list-style: none;
+    position: absolute;
+    top: 78%;
+    left: 0;
+    z-index: 1000;
+    width: 100%;
+    max-height: 140px;
+    overflow-y: auto;
+    background-color: var(--input-bg);
+    border: 1.5px solid #260053;
+    border-radius: var(--radius-md);
+}
+
+/* Scroll */
+.auth-dropdown__list::-webkit-scrollbar {
+    width: 10px;
+    background-color: #1d0041;
+}
+
+.auth-dropdown__list::-webkit-scrollbar-thumb {
+    background-color: rgb(0, 0, 124);
+    border-radius: 8px;
+}
+
+/* Item */
+.auth-dropdown__item {
+    line-height: 1.1;
+    cursor: pointer;
+}
+
+.auth-dropdown__item:hover {
+    background-color: #280157;
+}
+
+/* ======================================================
+   DROPDOWN ANIMATION
+====================================================== */
+
+.auth-dropdown-enter-active,
+.auth-dropdown-leave-active {
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+
+.auth-dropdown-enter-from,
+.auth-dropdown-leave-to {
+    opacity: 0;
+    transform: translateY(-6px);
 }

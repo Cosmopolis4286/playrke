@@ -1,6 +1,10 @@
 <template>
   <GuestLayout title="Iniciar sesión">
-    <template #header-text> Ingresa a tu cuenta </template>
+    <template #header-text>
+      <p v-if="errors.login" class="auth-form__error">
+        {{ errors.login }}
+      </p>
+    </template>
     <template #form-content>
       <form novalidate @submit.prevent="submit">
         <fieldset class="auth-form__field">
@@ -16,9 +20,6 @@
             :disabled="isBusy"
           />
         </fieldset>
-        <p v-if="errors.login" class="auth-form__error">
-          {{ errors.login }}
-        </p>
         <fieldset class="auth-form__field">
           <i class="auth-form__icon fa-solid fa-lock"></i>
           <input
@@ -40,7 +41,7 @@
           </button>
         </fieldset>
         <button type="submit" class="auth-form__submit" :disabled="isBusy">
-          Sign In
+          Iniciar sesión
           <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
         </button>
         <p class="auth-form__helper">
