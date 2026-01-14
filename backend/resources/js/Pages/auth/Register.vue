@@ -72,18 +72,22 @@
             :disabled="isBusy"
           />
         </fieldset>
-        <p v-if="passwordMismatch" class="auth-form__error">Las contraseñas no coinciden</p>
+        <p v-if="errors.password_confirmation" class="auth-form__error">
+          {{ errors.password_confirmation }}
+        </p>
 
         <!-- Terms -->
-        <label class="auth-form__checkbox">
-          <input type="checkbox" v-model="form.politicas" required :disabled="isBusy" />
+        <div class="auth-form__checkbox">
+          <input type="checkbox" v-model="form.politics" required :disabled="isBusy" />
           <span class="auth-form__checkbox-text">
             Acepto los
             <a href="#" class="auth-form__link">Términos y Condiciones</a>
             y la
             <a href="#" class="auth-form__link">Política de Privacidad</a>
           </span>
-        </label>
+        </div>
+
+        <p v-if="errors.politics" class="auth-form__error">{{ errors.politics }}</p>
 
         <!-- Submit -->
         <button type="submit" class="auth-form__submit" :disabled="isBusy">
@@ -101,67 +105,72 @@
     </template>
   </GuestLayout>
 </template>
+
 <script setup lang="ts">
   import { reactive, ref, computed } from 'vue'
   import { Link } from '@inertiajs/vue3'
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import backendClient, { getCsrfCookie } from '@js/plugins/axios'
   import AuthDropdown from '@js/components/auth/AuthDropdown.vue'
+  import { useRegisterValidation } from '@js/composables/user/useRegisterValidation'
 
   interface Country {
     id: number
     name: string
   }
 
+  /**
+   * Props recibidas con la lista de países disponibles para el dropdown.
+   */
   defineProps<{ countries: Country[] }>()
 
+  // Estado reactivo del formulario
   const form = reactive({
     email: '',
     username: '',
     country: '',
     password: '',
     password_confirmation: '',
-    politicas: false
+    politics: false
   })
 
-  const errors = reactive<Record<string, string>>({})
+  // Estado para controlar el loading y bloqueo de inputs
   const loading = ref(false)
-  const showCountries = ref(false)
-  const selectedCountry = ref<Country | null>(null)
 
+  // Computed para simplificar condición de formulario bloqueado
   const isBusy = computed(() => loading.value)
 
-  const passwordMismatch = computed(
-    () =>
-      form.password && form.password_confirmation && form.password !== form.password_confirmation
-  )
+  // Uso del composable que contiene la validación del formulario
+  const { errors, validate } = useRegisterValidation(form)
 
-  const toggleCountries = () => {
-    showCountries.value = !showCountries.value
-  }
-
-  const selectCountry = (country: Country) => {
-    selectedCountry.value = country
-    form.country = String(country.id)
-    showCountries.value = false
-  }
-
+  /**
+   * Envía el formulario de registro al backend.
+   * - Previene envíos si ya está cargando o la validación falla.
+   * - Maneja errores de validación desde backend y errores inesperados.
+   */
   const submit = async () => {
-    if (isBusy.value || passwordMismatch.value) return
+    if (isBusy.value) return
 
-    Object.keys(errors).forEach(k => delete errors[k])
+    // Ejecuta la validación con yup; si no es válido, detiene submit
+    const valid = await validate()
+    if (!valid) return
+
     loading.value = true
-
     try {
+      // Obtener CSRF cookie antes de hacer la petición POST
       await getCsrfCookie()
 
+      // Enviar datos al endpoint de registro
       await backendClient.post('/api/auth/register', form)
 
+      // Redirigir al dashboard si todo OK
       window.location.replace('/dashboard')
     } catch (error: any) {
       if (error?.response?.status === 422) {
+        // Asigna errores de validación que venga del backend
         Object.assign(errors, error.response.data.errors)
       } else {
+        // Mensaje genérico para errores inesperados
         errors.email = 'Error inesperado. Intenta nuevamente.'
       }
     } finally {

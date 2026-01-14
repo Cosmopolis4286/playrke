@@ -17,14 +17,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Modelo para los premios de cartones de bingo
- * 
+ *
  * Representa un premio otorgado a un cartón ganador en una sala de bingo.
  * Incluye información sobre el tipo de premio, montos, estado y patrón ganador.
- * 
+ *
  * @package App\Models\Games\Bingo\Cards
  * @author Sistema PlayRKE
  * @version 1.0
- * 
+ *
  * @property int $id ID único del premio
  * @property string $room_id ID de la sala de bingo
  * @property string $creator_user_id ID del usuario creador
@@ -46,7 +46,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
  * @property \Carbon\Carbon|null $deleted_at Fecha de eliminación suave
- * 
+ *
  * @property-read BingoRoom $room Sala de bingo asociada
  * @property-read User $creatorUser Usuario creador del premio
  * @property-read Seller|null $seller Vendedor asociado
@@ -127,7 +127,7 @@ class BingoCardPrize extends Model
 
     /**
      * Relación con la sala de bingo
-     * 
+     *
      * @return BelongsTo<BingoRoom, BingoCardPrize>
      */
     public function room(): BelongsTo
@@ -137,7 +137,7 @@ class BingoCardPrize extends Model
 
     /**
      * Relación con el usuario creador del premio
-     * 
+     *
      * @return BelongsTo<User, BingoCardPrize>
      */
     public function creatorUser(): BelongsTo
@@ -147,7 +147,7 @@ class BingoCardPrize extends Model
 
     /**
      * Relación con el vendedor (opcional)
-     * 
+     *
      * @return BelongsTo<Seller, BingoCardPrize>
      */
     public function seller(): BelongsTo
@@ -157,7 +157,7 @@ class BingoCardPrize extends Model
 
     /**
      * Relación con el usuario en la sala
-     * 
+     *
      * @return BelongsTo<BingoRoomUser, BingoCardPrize>
      */
     public function roomUser(): BelongsTo
@@ -167,7 +167,7 @@ class BingoCardPrize extends Model
 
     /**
      * Relación con el lote de cartones
-     * 
+     *
      * @return BelongsTo<BingoCardLot, BingoCardPrize>
      */
     public function cardLot(): BelongsTo
@@ -177,7 +177,7 @@ class BingoCardPrize extends Model
 
     /**
      * Relación con el cartón ganador
-     * 
+     *
      * @return BelongsTo<BingoCard, BingoCardPrize>
      */
     public function winningCard(): BelongsTo
@@ -187,7 +187,7 @@ class BingoCardPrize extends Model
 
     /**
      * Relación con la moneda utilizada
-     * 
+     *
      * @return BelongsTo<Currency, BingoCardPrize>
      */
     public function currency(): BelongsTo
@@ -197,7 +197,7 @@ class BingoCardPrize extends Model
 
     /**
      * Relación con los pagos del premio
-     * 
+     *
      * @return HasMany<BingoCardPrizePayment>
      */
     public function payments(): HasMany
@@ -207,7 +207,7 @@ class BingoCardPrize extends Model
 
     /**
      * Obtener la descripción del tipo de premio
-     * 
+     *
      * @return string
      */
     public function getPrizeTypeDescriptionAttribute(): string
@@ -217,7 +217,7 @@ class BingoCardPrize extends Model
 
     /**
      * Obtener la descripción del estado del premio
-     * 
+     *
      * @return string
      */
     public function getPrizeStatusDescriptionAttribute(): string
@@ -227,7 +227,7 @@ class BingoCardPrize extends Model
 
     /**
      * Verificar si el premio está esperando ser reclamado
-     * 
+     *
      * @return bool
      */
     public function isWaiting(): bool
@@ -237,7 +237,7 @@ class BingoCardPrize extends Model
 
     /**
      * Verificar si el premio ha sido reclamado
-     * 
+     *
      * @return bool
      */
     public function isClaimed(): bool
@@ -247,12 +247,12 @@ class BingoCardPrize extends Model
 
     /**
      * Verificar si el premio está activo
-     * 
+     *
      * @return bool
      */
     public function isActive(): bool
     {
-        return $this->is_active;
+        return $this->status;
     }
 
     /**
@@ -275,7 +275,7 @@ class BingoCardPrize extends Model
      */
     public function activate(): bool
     {
-        $this->is_active = true;
+        $this->status = true;
         return $this->save();
     }
 
@@ -286,7 +286,7 @@ class BingoCardPrize extends Model
      */
     public function deactivate(): bool
     {
-        $this->is_active = false;
+        $this->status = false;
         return $this->save();
     }
 

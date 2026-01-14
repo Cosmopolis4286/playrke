@@ -424,7 +424,7 @@ class BingoRoomAutomatic extends Model
     {
         $nextExecution = $this->getNextExecutionTime();
 
-        return $this->is_active &&
+        return $this->status &&
                $nextExecution &&
                $nextExecution->isPast();
     }

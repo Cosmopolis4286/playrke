@@ -112,7 +112,7 @@ class PrizePoolType extends Model
      */
     public function isActive(): bool
     {
-        return $this->is_active === true;
+        return $this->status === true;
     }
 
     /**
@@ -122,7 +122,7 @@ class PrizePoolType extends Model
      */
     public function isInactive(): bool
     {
-        return $this->is_active === false;
+        return $this->status === false;
     }
 
     /**

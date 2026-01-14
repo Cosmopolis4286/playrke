@@ -81,7 +81,7 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryCon
         $gameMode = $this->model->find($gameModeId);
 
         if ($gameMode) {
-            return $gameMode->update(['status' => !$gameMode->is_active]);
+            return $gameMode->update(['status' => !$gameMode->status]);
         }
 
         return false;

@@ -11,24 +11,21 @@
     --bold: 700;
 
     /* Colors */
-    --primary: #000005;
-    --secondary: #030044;
-    --white: #f4f4f4;
+    --white: #ffffff;
     --black: #000000;
-
-    /* Grays */
-    --eye: #ababab;
-    --crear: #d3d3d3;
-    --gray-1: #0034f5;
-    --gray-2: #000000;
-    --gray-3: #e5e5e5;
-    --gray-4: #0d09ff36;
+    --gray-1: #e5e5e5;
+    --gray-2: #d3d3d3;
+    --gray-3: #ababab;
+    --blue-1: oklch(37.9% 0.146 265.522);
+    --dark-purple: #07001f;
+    --violet-950: oklch(28.3% 0.141 291.089);
+    --stage-950: oklch(12.9% 0.042 264.695);
 
     /* Inputs */
-    --input-bg: #00052b;
+    --input-bg: #000633;
     --input-border: #3d0183;
-    --input-border-hover: #3d00a0;
-    --input-height: 38px;
+    --input-border-hover: #0502c7f5;
+    --input-height: 37.5px;
     --radius-md: 11px;
 
     /* Layout */
@@ -104,8 +101,8 @@ button:hover {
     padding: 16px;
     display: grid;
     place-items: center;
-    background-color: #000413f3;
-    border: 2px solid #23003f88;
+    background-color: var(--stage-950);
+    border: 2px solid var(--input-bg);
     border-radius: 20px;
 }
 
@@ -145,7 +142,7 @@ button:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--gray-1);
+    color: var(--blue-1);
     font-size: 1em;
     font-weight: var(--light);
     text-align: center;
@@ -235,7 +232,7 @@ button:hover {
     padding: 0 42px 0 36px;
     font-size: 0.9em;
     font-weight: var(--light);
-    color: var(--gray-3);
+    color: var(--gray-1);
     background-color: var(--input-bg);
     border: 1px solid var(--input-border);
     border-radius: var(--radius-md);
@@ -256,9 +253,9 @@ button:hover {
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-        z-index: 999;
+    z-index: 999;
     font-size: 0.78em;
-    color: var(--eye);
+    color: var(--gray-3);
     pointer-events: none;
 }
 
@@ -268,7 +265,7 @@ button:hover {
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.8em;
-    color: var(--eye);
+    color: var(--gray-3);
 }
 
 /* Error */
@@ -283,6 +280,7 @@ button:hover {
     width: 100%;
     height: 40px;
     margin: 2% auto;
+    gap: 2%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -291,21 +289,22 @@ button:hover {
     padding-top: 1%;
     text-transform: uppercase;
     color: var(--white);
-    background-color: #07001f;
-    border: 2px solid #02007ef5;
+    background-color: var(--dark-purple);
+    border: 2px solid var(--input-border);
     border-radius: var(--radius-md);
 }
 
 .auth-form__submit:hover {
-    border-color: #0502c7f5;
+    border-color: var(--input-border-hover);
 }
 
 /* Helper */
 .auth-form__helper {
     margin: 0;
     text-align: center;
-    font-size: 0.85em;
-    color: var(--crear);
+    font-size: 0.8em;
+    color: var(--gray-2) !important;
+    text-decoration: none;
 }
 
 /* ======================================================
@@ -315,19 +314,15 @@ button:hover {
     position: relative;
     width: 100%;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    font-size: 10.5px;
+    font-size: 10.4px;
     font-weight: var(--light);
-    color: var(--gray-3);
+    color: var(--gray-1);
 }
 
-.auth-form__checkbox input {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
+.auth-form__checkbox-text {
+    padding-top: 2px;
 }
 
 /* ======================================================
@@ -453,6 +448,7 @@ button:hover {
     transform: translateY(-50%);
     pointer-events: none;
     font-size: 0.8em;
+    color: var(--gray-3);
 }
 
 /* List */
@@ -461,30 +457,37 @@ button:hover {
     position: absolute;
     top: 78%;
     left: 0;
-    z-index: 1000;
+    z-index: 1200;
     width: 100%;
-    max-height: 140px;
+    max-height: 150px;
     overflow-y: auto;
+    padding: 11px;
     background-color: var(--input-bg);
-    border: 1.5px solid #260053;
+    border: 1.5px solid var(--violet-950);
     border-radius: var(--radius-md);
+    box-shadow: 0 12px 24px rgba(108, 99, 255, 0.15);
 }
 
 /* Scroll */
 .auth-dropdown__list::-webkit-scrollbar {
-    width: 10px;
-    background-color: #1d0041;
+    width: 6px;
 }
 
 .auth-dropdown__list::-webkit-scrollbar-thumb {
-    background-color: rgb(0, 0, 124);
-    border-radius: 8px;
+    background-color: #6c63ff;
+    border-radius: 10px;
 }
 
 /* Item */
 .auth-dropdown__item {
-    line-height: 1.1;
+    width: 100%;
+    padding: 3px;
+    font-size: 0.9rem;
+    color: var(--gray-3);
     cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-radius: 6px;
+    user-select: none;
 }
 
 .auth-dropdown__item:hover {

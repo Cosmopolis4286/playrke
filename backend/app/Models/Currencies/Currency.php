@@ -120,7 +120,7 @@ class Currency extends Model
      */
     public function getIsActiveStatusAttribute(): bool
     {
-        return $this->is_active === true;
+        return $this->status === true;
     }
 
     /**

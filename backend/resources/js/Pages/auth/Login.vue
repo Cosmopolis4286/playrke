@@ -41,18 +41,18 @@
           </button>
         </fieldset>
         <button type="submit" class="auth-form__submit" :disabled="isBusy">
-          Iniciar sesión
+          <span class="auth-form__submit-text">Iniciar sesión</span>
           <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
         </button>
         <p class="auth-form__helper">
-          <Link href="/forgot-password"> Forgot your password? </Link>
+          <Link href="/forgot-password">¿Olvidaste tu contraseña?</Link>
         </p>
       </form>
     </template>
     <template #footer-content>
       <Link href="/register" class="auth-footer__link">
-        <span>Don’t have an account?</span>
-        <strong>Sign up</strong>
+        <span>¿No tienes una cuenta?</span>
+        <strong>Crear una</strong>
       </Link>
     </template>
   </GuestLayout>
@@ -99,7 +99,7 @@
     errors.login = ''
 
     if (!form.login || !form.password) {
-      errors.login = 'All fields are required'
+      errors.login = 'Todos los campos son obligatorios'
       return
     }
 

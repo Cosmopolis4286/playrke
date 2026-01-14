@@ -57,7 +57,7 @@ class RoleSeeder extends Seeder
                 $spatieRole->prefix = $role['prefix'];
                 $spatieRole->type = $role['type'];
                 $spatieRole->description = $role['description'];
-                $spatieRole->is_active = $role['status'];
+                $spatieRole->status = $role['status'];
                 $spatieRole->save();
             }
         }

@@ -273,7 +273,7 @@ class GameConfigRepository extends BaseRepository implements GameConfigRepositor
                 $config->param,
                 $config->value,
                 $config->description,
-                $config->is_active
+                $config->status
             );
 
             $cloned++;

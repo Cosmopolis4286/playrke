@@ -164,7 +164,7 @@ class PhoneNumbers extends Model
      */
     public function isActive(): bool
     {
-        return $this->is_active === true;
+        return $this->status === true;
     }
 
     /**

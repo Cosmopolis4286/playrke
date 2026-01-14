@@ -47,7 +47,7 @@ class AuthenticationTest extends TestCase
         $role->prefix = 'player';
         $role->type = 'web';
         $role->description = 'Test player role';
-        $role->is_active = true;
+        $role->status = true;
         $role->save();
     }
 

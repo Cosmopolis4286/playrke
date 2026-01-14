@@ -7,7 +7,7 @@
 
     <transition name="auth-dropdown">
       <ul v-show="open" class="auth-dropdown__list">
-        <lis
+        <li
           v-for="option in options"
           :key="option.value"
           class="auth-dropdown__item"
