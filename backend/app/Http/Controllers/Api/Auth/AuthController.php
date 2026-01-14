@@ -4,17 +4,30 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Countries\Country;
+use App\Models\Currencies\Currency;
 use App\Models\Users\User;
+use App\Models\Wallets\Wallet;
+use App\Repositories\Users\UserRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    protected UserRepository $userRepository;
+
+    public function __construct(UserRepository $userRepository)
+    {
+        // Inyección de dependencia para generar códigos únicos
+        $this->userRepository = $userRepository;
+    }
+
     /**
      * Handle login request
      *
@@ -23,8 +36,7 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        // Log para detectar llamadas duplicadas
-        \Log::info('📥 Login request received', [
+        Log::info('📥 Login request received', [
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
@@ -32,18 +44,13 @@ class AuthController extends Controller
         ]);
 
         try {
-            // Authenticate the user
             $request->authenticate();
-
-            // Regenerate session
             $request->session()->regenerate();
 
             $user = Auth::user();
+            /** @var \App\Models\Users\User $user */
+            $user->load(['roles:id,prefix', 'country:id,iso_code_2', 'wallets']); // Solo campos necesarios
 
-            // Load relationships
-            $user->load(['roles', 'country', 'wallets']);
-
-            // Get user's primary role
             $role = $user->roles->first();
 
             return response()->json([
@@ -53,15 +60,15 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'username' => $user->username,
                     'email' => $user->email,
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'full_name' => $user->first_name . ' ' . $user->last_name,
-                    'avatar' => $user->avatar_url ?? null,
+                    // 'first_name' => $user->first_name,
+                    // 'last_name' => $user->last_name,
+                    // 'full_name' => trim($user->first_name . ' ' . $user->last_name),
+                    'avatar' => $user->avatar_url,
                     'country_code' => $user->country?->iso_code_2,
                     'role' => $role?->prefix,
                     'roles' => $user->roles->pluck('prefix'),
                     'verified' => !is_null($user->email_verified_at),
-                    'created_at' => $user->created_at,
+                    'created_at' => $user->created_at->toISOString(),
                 ],
             ]);
         } catch (ValidationException $e) {
@@ -84,8 +91,8 @@ class AuthController extends Controller
         $validated = $request->validate([
             'username' => ['required', 'string', 'min:3', 'max:50', 'unique:users', 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'first_name' => ['required', 'string', 'min:2', 'max:100'],
-            'last_name' => ['required', 'string', 'min:2', 'max:100'],
+            'first_name' => ['nullable', 'string', 'min:2', 'max:100'],
+            'last_name' => ['nullable', 'string', 'min:2', 'max:100'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'country_id' => ['nullable', 'exists:countries,id'],
         ], [
@@ -97,48 +104,39 @@ class AuthController extends Controller
             'email.required' => 'El email es requerido.',
             'email.email' => 'El email debe ser una dirección válida.',
             'email.unique' => 'Este email ya está registrado.',
-            'first_name.required' => 'El nombre es requerido.',
-            'first_name.min' => 'El nombre debe tener al menos 2 caracteres.',
-            'last_name.required' => 'El apellido es requerido.',
-            'last_name.min' => 'El apellido debe tener al menos 2 caracteres.',
+            //'first_name.required' => 'El nombre es requerido.',
+            //'first_name.min' => 'El nombre debe tener al menos 2 caracteres.',
+            //'last_name.required' => 'El apellido es requerido.',
+            //'last_name.min' => 'El apellido debe tener al menos 2 caracteres.',
             'password.required' => 'La contraseña es requerida.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'country_id.exists' => 'El país seleccionado no es válido.',
         ]);
 
-        // Usar país por defecto si no se proporciona (Venezuela)
-        $countryId = $validated['country_id'] ?? \App\Models\Countries\Country::where('iso_code_2', 'VE')->value('id');
+        $countryId = $validated['country_id'] ?? Country::where('iso_code_2', 'VE')->value('id');
 
         DB::beginTransaction();
 
         try {
-            // Crear usuario
             $user = User::create([
                 'username' => $validated['username'],
                 'email' => $validated['email'],
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
+                'first_name' => $validated['first_name'] ?? null,
+                'last_name' => $validated['last_name'] ?? null,
                 'password' => Hash::make($validated['password']),
                 'country_id' => $countryId,
                 'status' => 'ACTIVE',
-                'referral_code' => app(\App\Repositories\Users\UserRepository::class)->generateUniqueReferralCode(),
+                'referral_code' => $this->userRepository->generateUniqueReferralCode(),
             ]);
 
-            // Asignar rol de player por defecto
             $user->assignRole('player');
 
-            // Obtener la moneda del país del usuario
-            $currency = \App\Models\Currencies\Currency::where('country_id', $countryId)->first();
+            $currency = Currency::where('country_id', $countryId)->first()
+                ?? Currency::where('iso_code', 'VES')->first();
 
-            // Si no hay moneda específica para el país, usar VES por defecto
-            if (!$currency) {
-                $currency = \App\Models\Currencies\Currency::where('iso_code', 'VES')->first();
-            }
-
-            // Crear wallet para el usuario
             if ($currency) {
-                \App\Models\Wallets\Wallet::create([
+                Wallet::create([
                     'user_id' => $user->id,
                     'currency_id' => $currency->id,
                     'balance' => 0.00,
@@ -148,14 +146,10 @@ class AuthController extends Controller
 
             DB::commit();
 
-            // Hacer login automático
             Auth::login($user);
-
-            // Regenerar sesión
             $request->session()->regenerate();
 
-            // Cargar relaciones
-            $user->load(['roles', 'country', 'wallets.currency']);
+            $user->load(['roles:id,prefix', 'country:id,iso_code_2', 'wallets.currency:id,iso_code']);
 
             return response()->json([
                 'success' => true,
@@ -166,21 +160,20 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'first_name' => $user->first_name,
                     'last_name' => $user->last_name,
-                    'full_name' => $user->first_name . ' ' . $user->last_name,
+                    'full_name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')),
                     'country_code' => $user->country?->iso_code_2,
                     'role' => 'player',
                     'roles' => ['player'],
                     'verified' => false,
-                    'created_at' => $user->created_at,
+                    'created_at' => $user->created_at->toISOString(),
                 ],
             ], 201);
-
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
-            \Log::error('Error en registro de usuario', [
+            Log::error('Error en registro de usuario', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -227,26 +220,23 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Load relationships
-        $user->load(['roles', 'country', 'wallets']);
+        $user->load(['roles:id,prefix', 'country:id,iso_code_2', 'wallets']);
 
-        // Get user's primary role
         $role = $user->roles->first();
 
-        // Devuelve directamente el objeto user (compatibilidad con frontend que espera User)
         return response()->json([
             'id' => $user->id,
             'username' => $user->username,
             'email' => $user->email,
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
-            'full_name' => $user->first_name . ' ' . $user->last_name,
-            'avatar' => $user->avatar_url ?? null,
+            'full_name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')),
+            'avatar' => $user->avatar_url,
             'country_code' => $user->country?->iso_code_2,
             'role' => $role?->prefix,
             'roles' => $user->roles->pluck('prefix'),
             'verified' => !is_null($user->email_verified_at),
-            'created_at' => $user->created_at,
+            'created_at' => $user->created_at->toISOString(),
         ]);
     }
 
@@ -258,7 +248,6 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        // Reutiliza la lógica existente en user() para consistencia
         return $this->user($request);
     }
 
@@ -274,8 +263,7 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        // TODO: Implement password reset logic
-        // This would typically send a password reset email
+        // TODO: Implementar lógica real para reseteo de contraseña, como envío de email
 
         return response()->json([
             'success' => true,
@@ -297,7 +285,7 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        // TODO: Implement password reset logic
+        // TODO: Implementar lógica real para restablecer la contraseña con token válido
 
         return response()->json([
             'success' => true,

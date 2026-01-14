@@ -59,69 +59,11 @@
 </template>
 
 <script setup lang="ts">
-  import { reactive, ref, computed } from 'vue'
-  import { Link } from '@inertiajs/vue3'
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
-  import backendClient, { getCsrfCookie } from '@js/plugins/axios'
+  import { Link } from '@inertiajs/vue3'
+  import { useLogin } from '@js/composables/auth/useLogin'
+  import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
 
-  interface LoginPayload {
-    login: string
-    password: string
-  }
-
-  const form = reactive<LoginPayload>({
-    login: '',
-    password: ''
-  })
-
-  const errors = reactive({
-    login: ''
-  })
-
-  const loading = ref(false)
-  const showPassword = ref(false)
-
-  const isBusy = computed(() => loading.value)
-
-  /**
-   * Toggle password visibility
-   */
-  const togglePassword = () => {
-    showPassword.value = !showPassword.value
-  }
-
-  /**
-   * Submit login (Laravel Sanctum session-based)
-   */
-  const submit = async (): Promise<void> => {
-    if (isBusy.value) return
-
-    errors.login = ''
-
-    if (!form.login || !form.password) {
-      errors.login = 'Todos los campos son obligatorios'
-      return
-    }
-
-    loading.value = true
-
-    try {
-      await getCsrfCookie()
-
-      await backendClient.post('/api/auth/login', {
-        login: form.login,
-        password: form.password
-      })
-
-      // Redirección dura para sesión
-      window.location.replace('/dashboard')
-    } catch (error: any) {
-      errors.login =
-        error?.response?.status === 422
-          ? 'Credenciales inválidas'
-          : 'Error inesperado. Intenta nuevamente.'
-    } finally {
-      loading.value = false
-    }
-  }
+  const { form, errors, loading, isBusy, submit } = useLogin()
+  const { showPassword, togglePassword } = usePasswordToggle()
 </script>
