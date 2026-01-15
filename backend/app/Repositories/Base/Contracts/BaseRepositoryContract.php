@@ -48,6 +48,15 @@ interface BaseRepositoryContract
      */
     public function getValueById(string|int $id, string $field): mixed;
 
+        /**
+     * Obtener registros por IDs (método legacy)
+     *
+     * @param array $Ids Array de IDs
+     * @param array $fields Campos a seleccionar
+     * @return Collection
+     */
+    public function getByIds(array $Ids, array $fields = ['*']): Collection;
+
     /**
      * Verificar existencia por campo dinámico.
      *

@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Models\Users;
+namespace App\Models;
 
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Countries\Country;
-use App\Models\Users\Roles\Commerce\Commerce;
-use App\Models\Users\Roles\Company\Company;
-use App\Models\Users\Roles\Role;
-use App\Models\Users\Roles\Seller\Seller;
+use App\Models\Users\Commerce\Commerce;
+use App\Models\Users\Company\Company;
+use App\Models\Users\Role;
+use App\Models\Users\Seller\Seller;
 use App\Models\Wallets\Wallet;
 use App\Traits\Auditable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;

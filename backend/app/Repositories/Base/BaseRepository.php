@@ -61,6 +61,14 @@ abstract class BaseRepository implements BaseRepositoryContract
     /**
      * {@inheritDoc}
      */
+    public function getByIds(array $Ids, array $fields = ['*']): Collection
+    {
+        return $this->model->whereIn('id', $Ids)->get($fields);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function existsByField(string $field, mixed $value): bool
     {
         return $this->model

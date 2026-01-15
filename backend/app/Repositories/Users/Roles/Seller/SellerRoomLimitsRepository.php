@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Seller;
 
-use App\Models\Users\Roles\Seller\SellerRoomLimits;
+use App\Models\Users\Seller\SellerRoomLimits;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Seller\Contracts\SellerRoomLimitsRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

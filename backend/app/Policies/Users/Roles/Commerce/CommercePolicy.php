@@ -2,8 +2,8 @@
 
 namespace App\Policies\Users\Roles\Commerce;
 
-use App\Models\Users\Roles\Commerce\Commerce;
-use App\Models\Users\User;
+use App\Models\Users\Commerce\Commerce;
+use App\Models\User;
 use App\Policies\Users\Roles\BaseRolePolicy;
 
 /**

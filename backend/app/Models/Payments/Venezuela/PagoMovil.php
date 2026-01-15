@@ -2,7 +2,7 @@
 
 namespace App\Models\Payments\Venezuela;
 
-use App\Models\Users\User;
+use App\Models\User;
 use App\Models\Users\Shared\DocumentType;
 use App\Models\Banks\BankVenezuela;
 use App\Traits\SnowflakeId;

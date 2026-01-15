@@ -2,7 +2,7 @@
 
 namespace App\Models\Wallets\Crypto\Binance;
 
-use App\Models\Users\User;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use BradieTilley\Snowflake\Snowflake;

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
-use App\Models\Users\User;
+use App\Models\User;
 use App\Models\Wallets\Wallet;
 use App\Repositories\Users\UserRepository;
 use Illuminate\Http\JsonResponse;

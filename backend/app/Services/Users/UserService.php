@@ -2,7 +2,7 @@
 
 namespace App\Services\Users;
 
-use App\Models\Users\User;
+use App\Models\User;
 use App\Models\Users\Shared\UniqueCode;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
 use App\Services\BaseService;

@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Users\Roles\Treasurer;
+namespace App\Models\Users\Treasurer;
 
 use App\Models\Countries\Country;
-use App\Models\Users\User;
+use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 

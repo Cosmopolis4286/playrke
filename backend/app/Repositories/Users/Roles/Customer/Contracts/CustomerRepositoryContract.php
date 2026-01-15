@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Customer\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Users\Customer\Customer;
 use Illuminate\Database\Eloquent\Collection;
 
 interface CustomerRepositoryContract extends BaseRepositoryContract

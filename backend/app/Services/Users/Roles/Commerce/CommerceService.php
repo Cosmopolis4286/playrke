@@ -4,9 +4,9 @@ namespace App\Services\Users\Roles\Commerce;
 
 use App\DTOs\User\Roles\CommerceDTO;
 use App\Http\Resources\Users\Roles\CommerceResource;
-use App\Models\Users\Roles\Commerce\Commerce;
-use App\Models\Users\Roles\Commerce\CommerceCurrency;
-use App\Models\Users\Roles\Commerce\CommerceGame;
+use App\Models\Users\Commerce\Commerce;
+use App\Models\Users\Commerce\CommerceCurrency;
+use App\Models\Users\Commerce\CommerceGame;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryContract;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceGameRepositoryContract;
@@ -40,7 +40,7 @@ class CommerceService extends BaseService
      * Crear un comercio completo (User + Commerce + Wallet + Codes).
      *
      * @param CommerceDTO $dto
-     * @return array{commerce:\App\Models\Users\Roles\Commerce\Commerce,password:string}
+     * @return array{commerce:\App\Models\Users\Commerce\Commerce,password:string}
      */
     public function create(CommerceDTO $dto): array
     {
@@ -342,7 +342,7 @@ class CommerceService extends BaseService
             $commerce->forceDelete();
 
             // Verificar que el usuario no tenga otros comercios activos (sin contar los eliminados físicamente)
-            $activeCommercesCount = \App\Models\Users\Roles\Commerce\Commerce::where('user_id', $commerce->user_id)
+            $activeCommercesCount = \App\Models\Users\Commerce\Commerce::where('user_id', $commerce->user_id)
                 ->where('id', '<>', $commerce->id)
                 ->where('status', '!=', 'DELETED')
                 ->count();

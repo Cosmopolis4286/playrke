@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Users\Roles;
+namespace App\Models\Users;
 
-use App\Models\Users\User;
+use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;

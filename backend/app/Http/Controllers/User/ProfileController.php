@@ -4,7 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Users\Shared\DocumentType;
-use App\Models\Users\User;
+use App\Models\User;
 use App\Services\Users\ProfileService;
 use App\Traits\Users\UserTrait;
 use Illuminate\Http\JsonResponse;

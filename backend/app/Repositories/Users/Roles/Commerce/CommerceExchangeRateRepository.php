@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Commerce;
 
-use App\Models\Users\Roles\Commerce\CommerceExchangeRate;
+use App\Models\Users\Commerce\CommerceExchangeRate;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

@@ -349,18 +349,6 @@ class CurrencyRepository extends BaseRepository implements CurrencyRepositoryCon
     }
 
     /**
-     * Obtener monedas por IDs (método legacy)
-     *
-     * @param array $currencyIds Array de IDs
-     * @param array $fields Campos a seleccionar
-     * @return Collection<Currency>
-     */
-    public function getByIds(array $currencyIds, array $fields = ['*']): Collection
-    {
-        return $this->model->whereIn('id', $currencyIds)->get($fields);
-    }
-
-    /**
      * Obtener IDs de monedas por países (método legacy)
      *
      * @param array $countryIds Array de IDs de países

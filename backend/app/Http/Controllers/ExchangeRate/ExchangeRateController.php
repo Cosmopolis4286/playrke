@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 // Models
 use App\Models\Currencies\Currency;
 use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
-use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Users\Customer\Customer;
 use App\Models\Payments\ExchangeRate\Users\Roles\CustomerExchangeRate;
 use App\Models\Payments\ExchangeRate\ExchangeRate;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryContract;

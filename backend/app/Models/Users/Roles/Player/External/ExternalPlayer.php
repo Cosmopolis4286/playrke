@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Models\Users\Roles\Player\External;
+namespace App\Models\Users\Player\External;
 
 use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;
 use App\Models\Games\Game;
-use App\Models\Users\Roles\Player\External\UserPurchaseCode;
-use App\Models\Users\Roles\Seller\Seller;
-use App\Models\Users\User;
+use App\Models\Users\Player\External\UserPurchaseCode;
+use App\Models\Users\Seller\Seller;
+use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

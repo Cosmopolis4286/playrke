@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Users\Roles\Customer;
+namespace App\Models\Users\Customer;
 
-use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Users\Customer\Customer;
 use App\Models\Games\Game;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

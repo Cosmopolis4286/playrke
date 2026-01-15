@@ -4,8 +4,8 @@ namespace App\Models\Currencies;
 
 use App\Models\Countries\Country;
 use App\Models\Payments\ExchangeRate\ExchangeRate;
-use App\Models\Users\Roles\Commerce\CommerceExchangeRate;
-use App\Models\Users\Roles\Seller\Seller;
+use App\Models\Users\Commerce\CommerceExchangeRate;
+use App\Models\Users\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;

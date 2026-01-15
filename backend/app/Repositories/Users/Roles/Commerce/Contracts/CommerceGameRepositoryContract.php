@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Commerce\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Users\Roles\Commerce\CommerceGame;
+use App\Models\Users\Commerce\CommerceGame;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

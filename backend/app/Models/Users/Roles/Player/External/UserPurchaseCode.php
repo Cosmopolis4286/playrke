@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users\Roles\Player\External;
+namespace App\Models\Users\Player\External;
 
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

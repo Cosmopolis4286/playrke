@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Models\Users\Roles\Commerce;
+namespace App\Models\Users\Commerce;
 
 use App\Models\BaseModel;
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
 use App\Models\Games\Game;
-use App\Models\Users\Roles\Seller\Seller;
+use App\Models\Users\Seller\Seller;
 use App\Models\Users\Shared\UniqueCode;
-use App\Models\Users\User;
+use App\Models\User;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

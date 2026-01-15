@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Treasurer\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Users\Roles\Treasurer\OtherTreasurers;
+use App\Models\Users\Treasurer\OtherTreasurers;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

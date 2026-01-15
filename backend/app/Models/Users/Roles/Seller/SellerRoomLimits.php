@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users\Roles\Seller;
+namespace App\Models\Users\Seller;
 
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Game;

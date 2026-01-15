@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Player\External;
 
-use App\Models\Users\Roles\Player\External\UserPurchaseCode;
+use App\Models\Users\Player\External\UserPurchaseCode;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Player\External\Contracts\UserPurchaseCodeRepositoryContract;
 

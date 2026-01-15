@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Customer;
 
-use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Users\Customer\Customer;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Customer\Contracts\CustomerRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

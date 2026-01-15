@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Bingo\Cards\Patterns;
 
-use App\Models\Users\User;
+use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

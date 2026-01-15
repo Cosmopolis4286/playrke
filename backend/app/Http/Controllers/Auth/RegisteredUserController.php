@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Currencies\Currency;
-use App\Models\Users\User;
+use App\Models\User;
 use App\Models\Wallets\Wallet;
 use App\Repositories\Countries\CountryRepository;
 use App\Repositories\Users\UserRepository;

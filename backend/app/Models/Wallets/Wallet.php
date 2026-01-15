@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Models\Wallets;
 
 use App\Models\Currencies\Currency;
-use App\Models\Users\User;
+use App\Models\User;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

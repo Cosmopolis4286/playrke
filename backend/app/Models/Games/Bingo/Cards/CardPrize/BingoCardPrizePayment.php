@@ -4,9 +4,9 @@ namespace App\Models\Games\Bingo\Cards\CardPrize;
 
 use App\Models\Currencies\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Users\Roles\Player\External\ExternalPlayers;
-use App\Models\Users\Roles\Seller\Seller;
-use App\Models\Users\User;
+use App\Models\Users\Player\External\ExternalPlayers;
+use App\Models\Users\Seller\Seller;
+use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

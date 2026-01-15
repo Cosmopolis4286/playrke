@@ -3,8 +3,8 @@
 namespace App\Models\Payments\ExchangeRate\Users\Roles;
 
 use App\Models\Currencies\Currency;
-use App\Models\Users\Roles\Commerce\Commerce;
-use App\Models\Users\User;
+use App\Models\Users\Commerce\Commerce;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class CommerceExchangeRate extends Pivot

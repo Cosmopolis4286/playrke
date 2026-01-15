@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Player\External\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Users\Roles\Player\External\ExternalPlayer;
+use App\Models\Users\Player\External\ExternalPlayer;
 use Illuminate\Database\Eloquent\Collection;
 
 interface ExternalPlayerRepositoryContract extends BaseRepositoryContract

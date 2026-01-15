@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Models\Users\Roles\Seller;
+namespace App\Models\Users\Seller;
 
 use App\Models\Currencies\Currency;
 use App\Models\Countries\Country;
-use App\Models\Users\Roles\Commerce\Commerce;
-use App\Models\Users\User;
+use App\Models\Users\Commerce\Commerce;
+use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

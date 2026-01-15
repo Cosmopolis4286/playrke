@@ -2,9 +2,9 @@
 
 namespace App\Services\Users\Roles\Customer;
 
-use App\Models\Users\User;
+use App\Models\User;
 use App\Models\Wallets\Wallet;
-use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Users\Customer\Customer;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;

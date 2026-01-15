@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Users\User;
+use App\Models\User;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
 use App\Repositories\Users\UserRepository;

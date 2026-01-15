@@ -3,7 +3,7 @@
 namespace App\Models\Users\Shared;
 
 use App\Models\Countries\Country;
-use App\Models\Users\User;
+use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

@@ -9,7 +9,7 @@ use App\Models\Games\Bingo\Creators\BingoCreator;
 use App\Models\Games\Bingo\Creators\BingoCreatorSale;
 use App\Models\Games\GameStatus;
 use App\Models\Games\GameExchangeRate;
-use App\Models\Users\User;
+use App\Models\User;
 use App\Models\Sellers\SellerRoomLimits;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

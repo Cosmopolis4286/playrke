@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Users\Roles\Role;
+use App\Models\Users\Role;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

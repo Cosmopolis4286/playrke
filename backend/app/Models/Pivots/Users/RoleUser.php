@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Models\Users\Roles;
+namespace App\Models\Pivots\Users;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\Users\User;
-use App\Models\Users\Roles\Role;
+use App\Models\User;
+use App\Models\Users\Role;
 
 /**
  * Modelo pivot para la relación User ↔ Role

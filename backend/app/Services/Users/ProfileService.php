@@ -2,7 +2,7 @@
 
 namespace App\Services\Users;
 
-use App\Models\Users\User;
+use App\Models\User;
 use App\Services\BaseService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;

@@ -2,7 +2,7 @@
 
 namespace App\Policies\Users\Roles;
 
-use App\Models\Users\User;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 /**

@@ -3,11 +3,11 @@
 namespace App\Services\ExchangeRate;
 
 use App\Models\Currencies\Currency;
-use App\Models\Users\Roles\Commerce\Commerce;
+use App\Models\Users\Commerce\Commerce;
 use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
-use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Users\Customer\Customer;
 use App\Models\Payments\ExchangeRate\Users\Roles\CustomerExchangeRate;
-use App\Models\Users\User;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;

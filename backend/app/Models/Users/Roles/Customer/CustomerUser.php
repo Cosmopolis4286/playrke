@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Users\Roles\Customer;
+namespace App\Models\Users\Customer;
 
-use App\Models\Users\Roles\Customer\Customer;
+use App\Models\Users\Customer\Customer;
 use App\Models\Countries\Country;
 use App\Models\Currencies\Currency;
 use App\Traits\SnowflakeId;

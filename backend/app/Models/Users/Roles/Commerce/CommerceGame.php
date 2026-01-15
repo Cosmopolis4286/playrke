@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users\Roles\Commerce;
+namespace App\Models\Users\Commerce;
 
 use App\Models\Games\Game;
 use Illuminate\Database\Eloquent\Relations\Pivot;

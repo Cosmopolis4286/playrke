@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles;
 
-use App\Models\Users\Roles\Role;
+use App\Models\Users\Role;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Contracts\RoleRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

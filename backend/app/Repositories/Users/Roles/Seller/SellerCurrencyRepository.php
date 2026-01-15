@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Seller;
 
-use App\Models\Users\Roles\Seller\SellerCurrency;
+use App\Models\Users\Seller\SellerCurrency;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Users\Roles\Seller\Contracts\SellerCurrencyRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

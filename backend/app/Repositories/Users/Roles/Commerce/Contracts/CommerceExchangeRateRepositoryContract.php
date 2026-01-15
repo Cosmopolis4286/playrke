@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Commerce\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Users\Roles\Commerce\CommerceExchangeRate;
+use App\Models\Users\Commerce\CommerceExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

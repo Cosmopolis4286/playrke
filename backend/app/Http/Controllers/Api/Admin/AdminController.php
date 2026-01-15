@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Users\User;
+use App\Models\User;
 use App\Models\BingoRoom;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;

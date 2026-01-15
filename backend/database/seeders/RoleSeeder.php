@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Users\Roles\Role;
+use App\Models\Users\Role;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role as SpatieRole;

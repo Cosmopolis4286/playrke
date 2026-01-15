@@ -2,13 +2,13 @@
 
 namespace App\Services\Currencies;
 
-use App\Models\Currencies\Currency;
 use App\Models\Payments\Brasil\PixKey;
 use App\Models\Payments\Venezuela\PagoMovil;
-use App\Models\Users\Roles\Commerce\Commerce;
-use App\Models\Users\Roles\Commerce\CommerceExchangeRate;
-use App\Models\Users\Roles\Customer\Customer;
-use App\Models\Users\Roles\Seller\Seller;
+use App\Models\Users\Commerce\Commerce;
+use App\Models\Users\Commerce\CommerceExchangeRate;
+use App\Models\Users\Customer\Customer;
+use App\Models\Users\Seller\Seller;
+use App\Repositories\Currencies\Contracts\CurrencyRepositoryContract;
 use App\Repositories\Users\Roles\Contracts\RoleUserRepositoryContract;
 use Illuminate\Support\Facades\DB;
 
@@ -16,44 +16,42 @@ class CurrencyDirectoryService
 {
     public function __construct(
         protected RoleUserRepositoryContract $roleUserRepository,
+        protected CurrencyRepositoryContract $currencyRepository,
     ) {}
 
-    /** Sincroniza los directorios de monedas para un usuario dado.
-     *  @param int $userId
-     *  @param array $currencyIds
-     *  @return void
+    /**
+     * Sincroniza los directorios de monedas para un usuario dado.
+     *
+     * @param int   $userId
+     * @param array $currencyIds
+     * @return void
      */
     public function sync(int $userId, array $currencyIds): void
     {
-        // Resolver el ID del propietario del directorio
         $directoryOwnerId = $this->resolveDirectoryOwnerId($userId);
 
-        if (!$directoryOwnerId) {
+        if (!$directoryOwnerId || empty($currencyIds)) {
             return;
         }
 
-        // Obtener los modelos de moneda
-        $currencyModels = Currency::getCurrenciesById(
+        $currencies = $this->currencyRepository->getByIds(
             $currencyIds,
             ['id', 'iso_code']
         );
 
-        // Filtrar las monedas sin directorio
-        $withoutDirectories = $currencyModels
+        $currencyIdsWithoutDirectory = $currencies
             ->filter(
                 fn($currency) =>
                 $this->hasNoDirectory($directoryOwnerId, $currency->iso_code)
             )
             ->pluck('id')
-            ->values()
             ->all();
 
-        if (empty($withoutDirectories)) {
+        if (empty($currencyIdsWithoutDirectory)) {
             return;
         }
 
-        DB::transaction(function () use ($directoryOwnerId, $withoutDirectories) {
-            // Obtener el ID de la comercializadora
+        DB::transaction(function () use ($directoryOwnerId, $currencyIdsWithoutDirectory) {
             $commerceId = Commerce::getValueByUserId($directoryOwnerId, 'id');
 
             if (!$commerceId) {
@@ -61,26 +59,27 @@ class CurrencyDirectoryService
             }
 
             // Obtener los IDs de las últimas tasas de cambio por moneda
-            $latestIds = CommerceExchangeRate::selectRaw('MAX(id) as id')
+            $latestExchangeRateIds = CommerceExchangeRate::query()
                 ->where('commerce', $commerceId)
+                ->selectRaw('MAX(id) as id')
                 ->groupBy('currency')
                 ->pluck('id');
-
             // Actualizar los estados de las tasas de cambio
             CommerceExchangeRate::where('commerce', $commerceId)
-                ->whereIn('id', $latestIds)
+                ->whereIn('id', $latestExchangeRateIds)
                 ->where('exchange_rate', 0)
                 ->whereIn('status', ['ACTIVE', 'DIRECTORY'])
                 ->update(['status' => 'INACTIVE']);
 
             CommerceExchangeRate::where('commerce', $commerceId)
-                ->whereIn('id', $latestIds)
+                ->whereIn('id', $latestExchangeRateIds)
                 ->where('exchange_rate', '>', 0)
-                ->whereIn('currency', $withoutDirectories)
+                ->whereIn('currency', $currencyIdsWithoutDirectory)
                 ->where('status', '!=', 'DIRECTORY')
                 ->update(['status' => 'DIRECTORY']);
         });
     }
+
 
     /** Resuelve el ID del propietario del directorio según el rol del usuario.
      *  @param int $userId
