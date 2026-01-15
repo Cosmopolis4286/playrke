@@ -1,12 +1,10 @@
 <?php
 
-declare(strict_types=1);
-
-namespace App\Repositories\Settings;
+namespace App\Repositories;
 
 use App\Models\Setting;
-use App\Repositories\Base\BaseRepository;
-use App\Repositories\Settings\Contracts\SettingRepositoryContract;
+use App\Repositories\BaseRepository;
+use App\Repositories\Contracts\SettingRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -17,10 +15,10 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de base de datos relacionadas con
  * los parámetros de configuración del sistema.
  *
- * @package App\Repositories\Settings
+ * @package App\Repositories
  * @version 1.2
  */
-class SettingRepository extends BaseRepository implements SettingRepositoryContract
+class SettingRepository extends BaseRepository implements SettingRepositoryInterface
 {
     public function __construct(Setting $model)
     {

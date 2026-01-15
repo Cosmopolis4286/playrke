@@ -5,8 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Filesystem\Filesystem;
 use ReflectionClass;
-use App\Repositories\Settings\Contracts\SettingRepositoryContract;
-use App\Repositories\Settings\SettingRepository;
+use App\Repositories\Contracts\SettingRepositoryInterface;
+use App\Repositories\SettingRepository;
 use App\Models\Setting;
 
 /**
@@ -26,7 +26,7 @@ class RepositoryServiceProvider extends ServiceProvider
     public function register(): void
     {
         // 1. Repositorios críticos con inyección de dependencias
-        $this->app->bind(SettingRepositoryContract::class, function ($app) {
+        $this->app->bind(SettingRepositoryInterface::class, function ($app) {
             return new SettingRepository($app->make(Setting::class));
         });
 
@@ -74,7 +74,7 @@ class RepositoryServiceProvider extends ServiceProvider
             foreach ($reflection->getInterfaces() as $interface) {
                 if ($interface->isInterface() && str_ends_with($interface->getShortName(), 'Contract')) {
                     // Evitar volver a registrar SettingRepository
-                    if ($interface->getName() === SettingRepositoryContract::class) {
+                    if ($interface->getName() === SettingRepositoryInterface::class) {
                         continue;
                     }
 

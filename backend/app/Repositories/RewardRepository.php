@@ -1,12 +1,10 @@
 <?php
 
-declare(strict_types=1);
-
-namespace App\Repositories\Rewards;
+namespace App\Repositories;
 
 use App\Models\Reward;
-use App\Repositories\Base\BaseRepository;
-use App\Repositories\Rewards\Contracts\RewardRepositoryContract;
+use App\Repositories\BaseRepository;
+use App\Contracts\RewardRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -17,11 +15,11 @@ use Carbon\Carbon;
  * Implementa todas las operaciones de base de datos relacionadas con
  * las recompensas del sistema.
  *
- * @package App\Repositories\Rewards
+ * @package App\Repositories
  * @author Sistema de Gestión de Recompensas
  * @version 1.0
  */
-class RewardRepository extends BaseRepository implements RewardRepositoryContract
+class RewardRepository extends BaseRepository implements RewardRepositoryInterface
 {
     public function __construct(Reward $model)
     {

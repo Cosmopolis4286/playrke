@@ -11,7 +11,7 @@ use App\Repositories\Users\Contracts\UserRepositoryContract;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryInterface;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceGameRepositoryContract;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
-use App\Repositories\Wallets\Contracts\WalletRepositoryContract;
+use App\Repositories\Contracts\WalletRepositoryInterface;
 use App\Services\BaseService;
 use App\Services\Users\UserService;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +24,7 @@ class CommerceService extends BaseService
         protected CommerceRepositoryContract $commerceRepository,
         protected CommerceCurrencyRepositoryInterface $currencyRepository,
         protected CommerceGameRepositoryContract $gameRepository,
-        protected WalletRepositoryContract $walletRepository,
+        protected WalletRepositoryInterface $walletRepository,
         protected UserService $userService,
     ) {}
 

@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Player\External;
 
 use App\Models\Users\Player\External\UserPurchaseCode;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Users\Roles\Player\External\Contracts\UserPurchaseCodeRepositoryContract;
 
 /**

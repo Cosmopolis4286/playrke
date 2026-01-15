@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Repositories\Games\Bingo\Cards\CardPrize\Contracts;
 
 use App\Models\Bingo\Cards\CardPrize\BingoCardPrize;

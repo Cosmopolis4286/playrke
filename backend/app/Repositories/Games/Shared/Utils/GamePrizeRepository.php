@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Shared\Utils;
 
 use App\Models\Shared\Utils\GamePrize;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Games\Shared\Utils\Contracts\GamePrizeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;

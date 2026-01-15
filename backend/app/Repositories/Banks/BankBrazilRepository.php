@@ -3,7 +3,7 @@
 namespace App\Repositories\Banks;
 
 use App\Models\Banks\BankBrazil;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Banks\Contracts\BankBrazilRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

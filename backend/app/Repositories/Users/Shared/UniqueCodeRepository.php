@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Shared;
 
 use App\Models\Users\Shared\UniqueCode;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Users\Shared\Contracts\UniqueCodeRepositoryContract;
 
 /**

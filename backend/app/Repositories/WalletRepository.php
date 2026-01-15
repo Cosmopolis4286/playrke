@@ -1,12 +1,10 @@
 <?php
 
-declare(strict_types=1);
-
-namespace App\Repositories\Wallets;
+namespace App\Repositories;
 
 use App\Models\Wallet;
-use App\Repositories\Base\BaseRepository;
-use App\Repositories\Wallets\Contracts\WalletRepositoryContract;
+use App\Repositories\BaseRepository;
+use App\Repositories\Contracts\WalletRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -16,11 +14,11 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de base de datos relacionadas con
  * las wallets de usuarios, incluyendo consultas complejas y estadísticas.
  *
- * @package App\Repositories\Wallets
+ * @package App\Repositories
  * @author Sistema de Gestión de Wallets
  * @version 1.0
  */
-class WalletRepository extends BaseRepository implements WalletRepositoryContract
+class WalletRepository extends BaseRepository implements WalletRepositoryInterface
 {
     public function __construct(Wallet $model)
     {

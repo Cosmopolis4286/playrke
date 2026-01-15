@@ -3,7 +3,7 @@
 namespace App\Repositories\Countries;
 
 use App\Models\Country;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Countries\Contracts\CountryRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

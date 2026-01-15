@@ -1,12 +1,10 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Repositories\Games\Bingo\Cards\CardPrize;
 
 use App\Models\Bingo\Cards\CardPrize\BingoCardPrizePayment;
 use App\Repositories\Games\Bingo\Cards\CardPrize\Contracts\BingoCardPrizePaymentRepositoryContract;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;

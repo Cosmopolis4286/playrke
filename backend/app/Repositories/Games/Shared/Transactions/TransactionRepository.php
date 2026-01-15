@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Shared\Transactions;
 
 use App\Models\Shared\Transactions\Transaction;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Games\Shared\Transactions\Contracts\TransactionRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;

@@ -3,7 +3,7 @@
 namespace App\Repositories\ExchangeRate;
 
 use App\Models\ExchangeRate;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\ExchangeRate\Contracts\ExchangeRateRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

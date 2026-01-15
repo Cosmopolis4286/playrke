@@ -3,7 +3,7 @@
 namespace App\Repositories\Directories\Fiat\Venezuela;
 
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Directories\Fiat\Venezuela\Contracts\PagoMovilRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

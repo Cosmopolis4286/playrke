@@ -8,7 +8,7 @@ use App\Models\Country;
 use App\Models\Currency;
 use App\Repositories\CurrencyRepository;
 use App\Repositories\Countries\CountryRepository;
-use App\Repositories\Settings\Contracts\SettingRepositoryContract;
+use App\Repositories\Contracts\SettingRepositoryInterface;
 
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\Auth;
@@ -19,14 +19,14 @@ use Illuminate\Support\Facades\View;
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * @var SettingRepositoryContract
+     * @var SettingRepositoryInterface
      */
-    protected SettingRepositoryContract $settings;
+    protected SettingRepositoryInterface $settings;
 
     /**
      * Inyecta el repositorio en el constructor
      */
-    public function __construct(SettingRepositoryContract $settings)
+    public function __construct(SettingRepositoryInterface $settings)
     {
         $this->settings = $settings;
     }

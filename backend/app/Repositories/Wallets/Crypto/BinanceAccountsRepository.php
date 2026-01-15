@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Wallets\Crypto;
+namespace App\Repositories\Crypto;
 
 use App\Models\Directories\Crypto\Binance\BinanceAccounts;
-use App\Repositories\Base\BaseRepository;
-use App\Repositories\Wallets\Crypto\Contracts\BinanceAccountsRepositoryContract;
+use App\Repositories\BaseRepository;
+use App\Repositories\Crypto\Contracts\BinanceAccountsRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Repositories\Settings\SettingRepository;
+use App\Repositories\SettingRepository;
 use Illuminate\Support\Facades\Log;
 
 class SettingsConfigServiceProvider extends ServiceProvider

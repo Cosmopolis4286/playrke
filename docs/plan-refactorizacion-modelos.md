@@ -134,7 +134,7 @@ interface [Nombre]RepositoryContract extends BaseRepositoryInterface
 namespace App\Repositories\[Categoria];
 
 use App\Models\[Modelo];
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\[Categoria]\Contracts\[Nombre]RepositoryContract;
 
 /**

@@ -4,7 +4,7 @@ namespace App\Repositories\Games\Bingo\Creators;
 
 use App\Models\Bingo\Creators\BingoCreatorSale;
 use App\Models\Bingo\Rooms\Config\BingoRoomConfig;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Games\Bingo\Creators\Contracts\BingoCreatorSaleRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;

@@ -1,8 +1,6 @@
 <?php
 
-declare(strict_types=1);
-
-namespace App\Repositories\Wallets\Contracts;
+namespace App\Contracts;
 
 use App\Models\Wallet;
 use App\Contracts\BaseRepositoryInterface;
@@ -14,11 +12,11 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos disponibles para gestionar wallets de usuarios,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
  *
- * @package App\Repositories\Contracts\Wallets
+ * @package App\Contracts
  * @author Sistema de Gestión de Wallets
  * @version 1.0
  */
-interface WalletRepositoryContract extends BaseRepositoryInterface
+interface WalletRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene todas las wallets de un usuario específico

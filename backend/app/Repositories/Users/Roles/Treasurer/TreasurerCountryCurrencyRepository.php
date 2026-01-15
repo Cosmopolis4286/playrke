@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Treasurer;
 
 use App\Models\Users\Treasurer\TreasurerCountryCurrency;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Users\Roles\Treasurer\Contracts\TreasurerCountryCurrencyRepositoryInterface;
 
 /**

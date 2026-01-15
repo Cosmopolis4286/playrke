@@ -3,7 +3,7 @@
 namespace App\Repositories\Users;
 
 use App\Models\User;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;

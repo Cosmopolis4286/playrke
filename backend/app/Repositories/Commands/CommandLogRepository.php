@@ -3,7 +3,7 @@
 namespace App\Repositories\Commands;
 
 use App\Models\Commands\CommandLog;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Commands\Contracts\CommandLogRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;

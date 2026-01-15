@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Shared;
 
 use App\Models\Users\Shared\DocumentType;
-use App\Repositories\Base\BaseRepository;
+use App\Repositories\BaseRepository;
 use App\Repositories\Users\Shared\Contracts\DocumentTypeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

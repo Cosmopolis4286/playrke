@@ -1,8 +1,6 @@
 <?php
 
-declare(strict_types=1);
-
-namespace App\Repositories\Rewards\Contracts;
+namespace App\Contracts;
 
 use App\Models\Reward;
 use App\Contracts\BaseRepositoryInterface;
@@ -14,11 +12,11 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos disponibles para gestionar recompensas del sistema,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
  *
- * @package App\Repositories\Contracts\Rewards
+ * @package App\Contracts\Rewards
  * @author Sistema de Gestión de Recompensas
  * @version 1.0
  */
-interface RewardRepositoryContract extends BaseRepositoryInterface
+interface RewardRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene todas las recompensas de un usuario creador

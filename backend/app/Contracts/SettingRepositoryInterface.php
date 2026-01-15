@@ -1,8 +1,6 @@
 <?php
 
-declare(strict_types=1);
-
-namespace App\Repositories\Settings\Contracts;
+namespace App\Contracts;
 
 use App\Models\Setting;
 use App\Contracts\BaseRepositoryInterface;
@@ -15,10 +13,10 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  * Define los métodos disponibles para gestionar parámetros de configuración,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
  *
- * @package App\Repositories\Settings\Contracts
+ * @package App\Contracts
  * @version 1.2
  */
-interface SettingRepositoryContract extends BaseRepositoryInterface
+interface SettingRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene el valor de un parámetro específico

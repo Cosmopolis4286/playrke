@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\Settings\Contracts\SettingRepositoryContract;
+use App\Repositories\Contracts\SettingRepositoryInterface;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\View;
@@ -15,14 +15,14 @@ use Illuminate\Support\Facades\View;
 class PublicController extends Controller
 {
     /**
-     * @var SettingRepositoryContract
+     * @var SettingRepositoryInterface
      */
-    protected SettingRepositoryContract $settings;
+    protected SettingRepositoryInterface $settings;
 
     /**
      * Inyecta el repositorio en el constructor
      */
-    public function __construct(SettingRepositoryContract $settings)
+    public function __construct(SettingRepositoryInterface $settings)
     {
         $this->settings = $settings;
     }
