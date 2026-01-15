@@ -1,16 +1,15 @@
 <?php
 
-namespace App\Repositories\Users;
+namespace App\Repositories;
 
 use App\Models\User;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Contracts\UserRepositoryContract;
+use App\Contracts\UserRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
-class UserRepository extends BaseRepository implements UserRepositoryContract
+class UserRepository extends BaseRepository implements UserRepositoryInterface
 {
     public function __construct(User $model)
     {

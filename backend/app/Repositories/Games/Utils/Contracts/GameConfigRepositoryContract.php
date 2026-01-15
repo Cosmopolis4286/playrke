@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Utils\Contracts;
+namespace App\Repositories\Utils\Contracts;
 
 use App\Models\Shared\Utils\GameConfig;
 use App\Contracts\BaseRepositoryInterface;

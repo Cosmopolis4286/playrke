@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Creators\Contracts;
+namespace App\Repositories\Bingo\Creators\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Creators\BingoCreator;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos que debe implementar el repositorio para gestionar
  * los creadores de salas de bingo de forma eficiente y organizada.
  *
- * @package App\Repositories\Games\Bingo\Creators\Contracts
+ * @package App\Repositories\Bingo\Creators\Contracts
  * @author Sistema PlayRKE
  * @version 1.0
  */

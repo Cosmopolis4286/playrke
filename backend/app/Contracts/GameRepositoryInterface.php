@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Contracts;
+namespace App\Contracts;
 
 use App\Models\Game;
 use App\Contracts\BaseRepositoryInterface;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Contrato para el repositorio de juegos
  * Define métodos específicos para operaciones con Game
  */
-interface GameRepositoryContract extends BaseRepositoryInterface
+interface GameRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Buscar juego por nombre

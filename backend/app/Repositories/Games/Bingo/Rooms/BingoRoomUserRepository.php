@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Rooms;
+namespace App\Repositories\Bingo\Rooms;
 
 use App\Models\Bingo\Rooms\User\BingoRoomUser;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Bingo\Rooms\Contracts\BingoRoomUserRepositoryContract;
+use App\Repositories\Bingo\Rooms\Contracts\BingoRoomUserRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de usuarios de salas de bingo
  */
-class BingoRoomUserRepository extends BaseRepository implements BingoRoomUserRepositoryContract
+class BingoRoomUserRepository extends BaseRepository implements BingoRoomUserRepositoryInterface
 {
     /**
      * Constructor del repository

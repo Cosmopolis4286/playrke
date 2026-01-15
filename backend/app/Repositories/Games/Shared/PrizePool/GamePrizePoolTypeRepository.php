@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\PrizePool;
+namespace App\Repositories\Shared\PrizePool;
 
 use App\Models\Shared\PrizePool\GamePrizePoolType;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\PrizePool\Contracts\GamePrizePoolTypeRepositoryContract;
+use App\Repositories\Shared\PrizePool\Contracts\GamePrizePoolTypeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoolTypeRepositoryContract

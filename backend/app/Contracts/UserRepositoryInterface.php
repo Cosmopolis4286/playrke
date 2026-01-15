@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Contracts;
+namespace App\Contracts;
 
 use App\Models\User;
 use App\Contracts\BaseRepositoryInterface;
@@ -8,12 +8,12 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 
 /**
- * Interface UserRepositoryContract
+ * Interface UserRepositoryInterface
  *
  * Define operaciones avanzadas para la gestión de usuarios.
  * Extiende BaseRepositoryInterface para los métodos CRUD base.
  */
-interface UserRepositoryContract extends BaseRepositoryInterface
+interface UserRepositoryInterface extends BaseRepositoryInterface
 {
     /* -----------------------------------------------------------------
      | Búsquedas básicas

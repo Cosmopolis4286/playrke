@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\Utils;
+namespace App\Repositories\Shared\Utils;
 
 use App\Models\Shared\Utils\GameStatus;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\Utils\Contracts\GameStatusRepositoryContract;
+use App\Repositories\Shared\Utils\Contracts\GameStatusRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

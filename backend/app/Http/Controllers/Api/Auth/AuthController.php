@@ -8,7 +8,7 @@ use App\Models\Country;
 use App\Models\Currency;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Repositories\Users\UserRepository;
+use App\Repositories\UserRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

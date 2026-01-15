@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\GameMode;
+namespace App\Repositories\Shared\GameMode;
 
 use App\Models\Shared\GameMode\GameModeAssignment;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\GameMode\Contracts\GameModeAssignmentRepositoryContract;
+use App\Repositories\Shared\GameMode\Contracts\GameModeAssignmentRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 class GameModeAssignmentRepository extends BaseRepository implements GameModeAssignmentRepositoryContract

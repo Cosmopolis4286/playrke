@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Shared;
+namespace App\Repositories\Shared;
 
 use App\Models\PhoneNumbers;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Shared\Contracts\PhoneNumbersRepositoryContract;
+use App\Repositories\Shared\Contracts\PhoneNumbersRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

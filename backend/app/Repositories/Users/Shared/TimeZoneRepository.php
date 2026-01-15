@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Shared;
+namespace App\Repositories\Shared;
 
 use App\Models\TimeZone;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Shared\Contracts\TimeZoneRepositoryContract;
+use App\Repositories\Shared\Contracts\TimeZoneRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 

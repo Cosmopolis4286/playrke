@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Draws;
+namespace App\Repositories\Bingo\Draws;
 
 use App\Models\Bingo\Draws\BingoDrawCode;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Bingo\Draws\Contracts\BingoDrawCodeRepositoryContract;
+use App\Repositories\Bingo\Draws\Contracts\BingoDrawCodeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para los códigos de sorteo (número y símbolo) asociados a las salas de bingo.
  *
- * @package App\Repositories\Games\Bingo\Draws
+ * @package App\Repositories\Bingo\Draws
  * @author Sistema PlayRKE
  * @version 1.0
  */

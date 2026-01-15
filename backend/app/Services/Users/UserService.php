@@ -4,7 +4,7 @@ namespace App\Services\Users;
 
 use App\Models\User;
 use App\Models\Shared\UniqueCode;
-use App\Repositories\Users\Contracts\UserRepositoryContract;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\BaseService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -12,9 +12,9 @@ use Illuminate\Support\Str;
 class UserService extends BaseService
 {
     /**
-     * @param UserRepositoryContract $repository
+     * @param UserRepositoryInterface $repository
      */
-    public function __construct(UserRepositoryContract $repository)
+    public function __construct(UserRepositoryInterface $repository)
     {
         parent::__construct($repository);
     }

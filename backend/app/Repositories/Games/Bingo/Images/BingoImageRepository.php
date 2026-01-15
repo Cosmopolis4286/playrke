@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Images;
+namespace App\Repositories\Bingo\Images;
 
 use App\Models\Bingo\Images\BingoImage;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Bingo\Images\Contracts\BingoImageRepositoryContract;
+use App\Repositories\Bingo\Images\Contracts\BingoImageRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para las imágenes utilizadas en el sistema de bingo.
  *
- * @package App\Repositories\Games\Bingo\Images
+ * @package App\Repositories\Bingo\Images
  * @author Sistema PlayRKE
  * @version 1.0
  */

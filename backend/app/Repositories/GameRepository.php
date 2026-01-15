@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Repositories\Games;
+namespace App\Repositories;
 
 use App\Models\Game;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Contracts\GameRepositoryContract;
+use App\Contracts\GameRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repositorio para operaciones con juegos
  * Maneja todas las consultas complejas relacionadas con Game
  */
-class GameRepository extends BaseRepository implements GameRepositoryContract
+class GameRepository extends BaseRepository implements GameRepositoryInterface
 {
     public function __construct(Game $model)
     {

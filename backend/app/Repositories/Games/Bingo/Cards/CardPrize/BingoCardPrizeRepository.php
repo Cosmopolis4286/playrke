@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Cards\CardPrize;
+namespace App\Repositories\Bingo\Cards\CardPrize;
 
 use App\Models\Bingo\Cards\CardPrize\BingoCardPrize;
-use App\Repositories\Games\Bingo\Cards\CardPrize\Contracts\BingoCardPrizeRepositoryContract;
+use App\Repositories\Bingo\Cards\CardPrize\Contracts\BingoCardPrizeRepositoryContract;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +16,7 @@ use Carbon\Carbon;
  * Implementa todas las operaciones de base de datos relacionadas con
  * los premios de cartones de bingo.
  *
- * @package App\Repositories\Games\Bingo\Cards\CardPrize
+ * @package App\Repositories\Bingo\Cards\CardPrize
  * @author Sistema de Gestión de Premios de Bingo
  * @version 1.0
  */

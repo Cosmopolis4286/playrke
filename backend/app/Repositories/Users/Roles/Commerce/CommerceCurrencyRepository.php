@@ -1,10 +1,8 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Commerce;
+namespace App\Repositories\Roles\Commerce;
 
-use App\Models\RolesCurrency;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

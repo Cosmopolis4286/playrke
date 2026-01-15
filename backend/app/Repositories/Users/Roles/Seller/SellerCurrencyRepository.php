@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Seller;
+namespace App\Repositories\Roles\Seller;
 
 use App\Models\Users\Seller\SellerCurrency;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Seller\Contracts\SellerCurrencyRepositoryInterface;
+use App\Repositories\Roles\Seller\Contracts\SellerCurrencyRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

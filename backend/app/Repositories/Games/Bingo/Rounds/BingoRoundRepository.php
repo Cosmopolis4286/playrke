@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Rounds;
+namespace App\Repositories\Bingo\Rounds;
 
 use App\Models\Bingo\Rounds\BingoRound;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Bingo\Rounds\Contracts\BingoRoundRepositoryContract;
+use App\Repositories\Bingo\Rounds\Contracts\BingoRoundRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

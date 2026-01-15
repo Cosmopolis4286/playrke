@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Repositories\Users\Roles;
+namespace App\Repositories\Roles;
 
 use App\Models\Users\RoleUser;
 use App\Models\User;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Contracts\RoleUserRepositoryContract;
+use App\Repositories\Roles\Contracts\RoleUserRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
  * incluyendo gestión de asignaciones, consultas por estado de activación,
  * fechas de expiración y operaciones masivas.
  */
-class RoleUserRepository extends BaseRepository implements RoleUserRepositoryContract
+class RoleUserRepository extends BaseRepository implements RoleUserRepositoryInterface
 {
     /**
      * Constructor del repositorio.

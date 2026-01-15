@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\Room;
+namespace App\Repositories\Shared\Room;
 
 use App\Models\Shared\Room\Room;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\Room\Contracts\RoomRepositoryContract;
+use App\Repositories\Shared\Room\Contracts\RoomRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Player\External;
+namespace App\Repositories\Roles\Player\External;
 
 use App\Models\Users\Player\External\ExternalPlayer;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Player\External\Contracts\ExternalPlayerRepositoryContract;
+use App\Repositories\Roles\Player\External\Contracts\ExternalPlayerRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 

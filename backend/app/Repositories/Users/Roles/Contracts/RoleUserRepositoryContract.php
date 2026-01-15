@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Contracts;
+namespace App\Repositories\Roles\Contracts;
 
 use App\Models\User;
 use App\Contracts\BaseRepositoryInterface;
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
  * de roles a usuarios, incluyendo consultas por usuario, rol, estado
  * de activación, fechas de expiración y gestión de asignaciones.
  */
-interface RoleUserRepositoryContract extends BaseRepositoryInterface
+interface RoleUserRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene todas las asignaciones de roles de un usuario específico.

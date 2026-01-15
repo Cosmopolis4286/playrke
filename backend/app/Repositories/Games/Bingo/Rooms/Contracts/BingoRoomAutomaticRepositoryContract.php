@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Rooms\Contracts;
+namespace App\Repositories\Bingo\Rooms\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Rooms\BingoRoomAutomatic;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos que debe implementar el repositorio para gestionar
  * las salas de bingo automáticas con configuración programada.
  *
- * @package App\Repositories\Games\Bingo\Rooms\Contracts
+ * @package App\Repositories\Bingo\Rooms\Contracts
  * @author Sistema PlayRKE
  * @version 1.0
  */

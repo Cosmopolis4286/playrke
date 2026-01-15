@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\Users\Contracts\UserRepositoryContract;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Http\JsonResponse;
 
 class DemoCredentialsController extends Controller
 {
-    protected UserRepositoryContract $userRepository;
+    protected UserRepositoryInterface $userRepository;
 
-    public function __construct(UserRepositoryContract $userRepository)
+    public function __construct(UserRepositoryInterface $userRepository)
     {
         $this->userRepository = $userRepository;
     }

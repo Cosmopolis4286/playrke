@@ -13,7 +13,7 @@ use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Directories\Fiat\Colombia\PaymentAccount;
 use App\Models\Pix;
 use App\Repositories\User\Roles\RoleRepository;
-use App\Repositories\Users\Roles\Contracts\RoleRepositoryContract;
+use App\Repositories\Roles\Contracts\RoleRepositoryContract;
 use App\Traits\Users\UserTrait;
 
 class DirectoryController extends Controller

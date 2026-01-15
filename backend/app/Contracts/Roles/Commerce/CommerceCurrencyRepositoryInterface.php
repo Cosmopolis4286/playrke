@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Commerce\Contracts;
+namespace App\Contracts\Roles\Commerce;
 
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;

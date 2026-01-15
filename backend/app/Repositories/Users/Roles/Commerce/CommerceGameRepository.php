@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Commerce;
+namespace App\Repositories\Roles\Commerce;
 
 use App\Models\RolesGame;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceGameRepositoryContract;
+use App\Repositories\Roles\Commerce\Contracts\CommerceGameRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de permisos de juegos de comercios
  */
-class CommerceGameRepository extends BaseRepository implements CommerceGameRepositoryContract
+class CommerceGameRepository extends BaseRepository implements CommerceGameRepositoryInterface
 {
     /**
      * Constructor del repository

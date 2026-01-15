@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\Utils;
+namespace App\Repositories\Shared\Utils;
 
 use App\Models\Shared\Utils\GameRule;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\Utils\Contracts\GameRuleRepositoryContract;
+use App\Repositories\Shared\Utils\Contracts\GameRuleRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 

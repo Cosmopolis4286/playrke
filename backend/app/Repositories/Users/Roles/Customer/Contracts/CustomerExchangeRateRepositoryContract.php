@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Customer\Contracts;
+namespace App\Repositories\Roles\Customer\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Customer\CustomerExchangeRate;

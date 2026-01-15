@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\Utils;
+namespace App\Repositories\Shared\Utils;
 
 use App\Models\Shared\Utils\GameExchangeRate;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\Utils\Contracts\GameExchangeRateRepositoryContract;
+use App\Repositories\Shared\Utils\Contracts\GameExchangeRateRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 class GameExchangeRateRepository extends BaseRepository implements GameExchangeRateRepositoryContract

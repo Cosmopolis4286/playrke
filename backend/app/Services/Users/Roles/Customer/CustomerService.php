@@ -5,7 +5,7 @@ namespace App\Services\Users\Roles\Customer;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Users\Customer\Customer;
-use App\Repositories\Users\Contracts\UserRepositoryContract;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -28,10 +28,10 @@ class CustomerService
     /**
      * Constructor del servicio.
      *
-     * @param UserRepositoryContract $userRepository Repositorio de usuarios
+     * @param UserRepositoryInterface $userRepository Repositorio de usuarios
      */
     public function __construct(
-        protected UserRepositoryContract $userRepository
+        protected UserRepositoryInterface $userRepository
     ) {}
 
     /**

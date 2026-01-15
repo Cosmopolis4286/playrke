@@ -9,13 +9,13 @@ use App\Models\RolesExchangeRate;
 use App\Models\Users\Customer\Customer;
 use App\Models\Users\Seller\Seller;
 use App\Contracts\CurrencyRepositoryInterface;
-use App\Repositories\Users\Roles\Contracts\RoleUserRepositoryContract;
+use App\Repositories\Roles\Contracts\RoleUserRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
 class CurrencyDirectoryService
 {
     public function __construct(
-        protected RoleUserRepositoryContract $roleUserRepository,
+        protected RoleUserRepositoryInterface $roleUserRepository,
         protected CurrencyRepositoryInterface $currencyRepository,
     ) {}
 

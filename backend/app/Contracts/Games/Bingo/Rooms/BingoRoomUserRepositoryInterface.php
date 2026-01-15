@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Rooms\Contracts;
+namespace App\Contracts\Games\Bingo\Rooms;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Rooms\User\BingoRoomUser;
@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * Contrato para el repository de usuarios de salas de bingo
  */
-interface BingoRoomUserRepositoryContract extends BaseRepositoryInterface
+interface BingoRoomUserRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene un jugador por sala, usuario creador y jugador

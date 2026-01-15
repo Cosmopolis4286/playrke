@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Seller\Contracts;
+namespace App\Repositories\Roles\Seller\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Seller\SellerCurrency;

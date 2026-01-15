@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Utils;
+namespace App\Repositories\Utils;
 
 use App\Models\Shared\Utils\GameConfig;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Utils\Contracts\GameConfigRepositoryContract;
+use App\Repositories\Utils\Contracts\GameConfigRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

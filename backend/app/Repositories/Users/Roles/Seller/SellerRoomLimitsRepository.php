@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Seller;
+namespace App\Repositories\Roles\Seller;
 
 use App\Models\Users\Seller\SellerRoomLimits;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Seller\Contracts\SellerRoomLimitsRepositoryContract;
+use App\Repositories\Roles\Seller\Contracts\SellerRoomLimitsRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Commerce;
+namespace App\Repositories\Roles\Commerce;
 
 use App\Models\Roles;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
+use App\Repositories\Roles\Commerce\Contracts\CommerceRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

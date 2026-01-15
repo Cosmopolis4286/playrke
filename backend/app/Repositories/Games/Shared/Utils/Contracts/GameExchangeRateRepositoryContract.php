@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Shared\Utils\Contracts;
+namespace App\Repositories\Shared\Utils\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Utils\GameExchangeRate;

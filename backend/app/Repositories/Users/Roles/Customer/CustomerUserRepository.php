@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Customer;
+namespace App\Repositories\Roles\Customer;
 
 use App\Models\Users\Customer\CustomerUser;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Customer\Contracts\CustomerUserRepositoryContract;
+use App\Repositories\Roles\Customer\Contracts\CustomerUserRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
-class CustomerUserRepository extends BaseRepository implements CustomerUserRepositoryContract
+class CustomerUserRepository extends BaseRepository implements CustomerUserRepositoryInterface
 {
     public function __construct(CustomerUser $model)
     {

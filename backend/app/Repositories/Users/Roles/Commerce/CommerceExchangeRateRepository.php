@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Commerce;
+namespace App\Repositories\Roles\Commerce;
 
 use App\Models\RolesExchangeRate;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryContract;
+use App\Repositories\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

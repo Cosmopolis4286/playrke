@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Shared\Room\Contracts;
+namespace App\Repositories\Shared\Room\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Room\Room;

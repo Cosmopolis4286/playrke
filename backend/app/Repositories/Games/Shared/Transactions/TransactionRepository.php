@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\Transactions;
+namespace App\Repositories\Shared\Transactions;
 
 use App\Models\Shared\Transactions\Transaction;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\Transactions\Contracts\TransactionRepositoryContract;
+use App\Repositories\Shared\Transactions\Contracts\TransactionRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
 

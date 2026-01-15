@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Player\External\Contracts;
+namespace App\Repositories\Roles\Player\External\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 

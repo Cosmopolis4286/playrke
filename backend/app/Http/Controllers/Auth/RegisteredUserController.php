@@ -7,7 +7,7 @@ use App\Models\Currency;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Repositories\Countries\CountryRepository;
-use App\Repositories\Users\UserRepository;
+use App\Repositories\UserRepository;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\GameRoom;
+namespace App\Repositories\Shared\GameRoom;
 
 use App\Models\Shared\GameRoom\GameRoomJackpot;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\GameRoom\Contracts\GameRoomJackpotRepositoryContract;
+use App\Repositories\Shared\GameRoom\Contracts\GameRoomJackpotRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpotRepositoryContract

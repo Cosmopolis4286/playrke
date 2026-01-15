@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Player\External;
+namespace App\Repositories\Roles\Player\External;
 
 use App\Models\Users\Player\External\UserPurchaseCode;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Player\External\Contracts\UserPurchaseCodeRepositoryContract;
+use App\Repositories\Roles\Player\External\Contracts\UserPurchaseCodeRepositoryContract;
 
 /**
  * Repositorio para UserPurchaseCode.

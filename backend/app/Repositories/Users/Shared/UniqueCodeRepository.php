@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Shared;
+namespace App\Repositories\Shared;
 
 use App\Models\Shared\UniqueCode;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Shared\Contracts\UniqueCodeRepositoryContract;
+use App\Repositories\Shared\Contracts\UniqueCodeRepositoryContract;
 
 /**
  * Repositorio para UniqueCode.

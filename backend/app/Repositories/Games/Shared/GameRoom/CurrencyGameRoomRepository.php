@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\GameRoom;
+namespace App\Repositories\Shared\GameRoom;
 
 use App\Models\Shared\GameRoom\CurrencyGameRoom;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\GameRoom\Contracts\CurrencyGameRoomRepositoryContract;
+use App\Repositories\Shared\GameRoom\Contracts\CurrencyGameRoomRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 

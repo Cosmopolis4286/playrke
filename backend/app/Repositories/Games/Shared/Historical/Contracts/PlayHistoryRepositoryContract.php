@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Shared\Historical\Contracts;
+namespace App\Repositories\Shared\Historical\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Historical\PlayHistory;

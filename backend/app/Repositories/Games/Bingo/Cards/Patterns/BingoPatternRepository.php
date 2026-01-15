@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Cards\Patterns;
+namespace App\Repositories\Bingo\Cards\Patterns;
 
 use App\Models\Bingo\Cards\Patterns\BingoPattern;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Bingo\Cards\Patterns\Contracts\BingoPatternRepositoryContract;
+use App\Repositories\Bingo\Cards\Patterns\Contracts\BingoPatternRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para los patrones de cartones de bingo utilizados en el juego.
  *
- * @package App\Repositories\Games\Bingo\Cards\Patterns
+ * @package App\Repositories\Bingo\Cards\Patterns
  * @author Sistema PlayRKE
  * @version 1.0
  */

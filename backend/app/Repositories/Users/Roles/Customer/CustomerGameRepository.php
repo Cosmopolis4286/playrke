@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Customer;
+namespace App\Repositories\Roles\Customer;
 
 use App\Models\Users\Customer\CustomerGame;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Customer\Contracts\CustomerGameRepositoryContract;
+use App\Repositories\Roles\Customer\Contracts\CustomerGameRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
-class CustomerGameRepository extends BaseRepository implements CustomerGameRepositoryContract
+class CustomerGameRepository extends BaseRepository implements CustomerGameRepositoryInterface
 {
     public function __construct(CustomerGame $model)
     {

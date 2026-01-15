@@ -7,10 +7,10 @@ use App\Http\Resources\Users\Roles\CommerceResource;
 use App\Models\Roles;
 use App\Models\RolesCurrency;
 use App\Models\RolesGame;
-use App\Repositories\Users\Contracts\UserRepositoryContract;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryInterface;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceGameRepositoryContract;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
+use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\Roles\Commerce\Contracts\CommerceCurrencyRepositoryInterface;
+use App\Repositories\Roles\Commerce\Contracts\CommerceGameRepositoryInterface;
+use App\Repositories\Roles\Commerce\Contracts\CommerceRepositoryContract;
 use App\Repositories\Contracts\WalletRepositoryInterface;
 use App\Services\BaseService;
 use App\Services\Users\UserService;
@@ -20,10 +20,10 @@ use RuntimeException;
 class CommerceService extends BaseService
 {
     public function __construct(
-        protected UserRepositoryContract $userRepository,
+        protected UserRepositoryInterface $userRepository,
         protected CommerceRepositoryContract $commerceRepository,
         protected CommerceCurrencyRepositoryInterface $currencyRepository,
-        protected CommerceGameRepositoryContract $gameRepository,
+        protected CommerceGameRepositoryInterface $gameRepository,
         protected WalletRepositoryInterface $walletRepository,
         protected UserService $userService,
     ) {}

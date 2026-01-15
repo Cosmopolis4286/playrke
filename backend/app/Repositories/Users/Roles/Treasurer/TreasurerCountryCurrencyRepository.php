@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Treasurer;
+namespace App\Repositories\Roles\Treasurer;
 
 use App\Models\Users\Treasurer\TreasurerCountryCurrency;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Treasurer\Contracts\TreasurerCountryCurrencyRepositoryInterface;
+use App\Repositories\Roles\Treasurer\Contracts\TreasurerCountryCurrencyRepositoryInterface;
 
 /**
  * Repositorio para TreasurerCountryCurrency.

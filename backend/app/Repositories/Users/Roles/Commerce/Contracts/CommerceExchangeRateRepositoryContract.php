@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Commerce\Contracts;
+namespace App\Repositories\Roles\Commerce\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\RolesExchangeRate;

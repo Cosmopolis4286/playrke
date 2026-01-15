@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Games\Shared\PrizePool;
+namespace App\Repositories\Shared\PrizePool;
 
 use App\Models\Shared\PrizePool\PrizePoolType;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Shared\PrizePool\Contracts\PrizePoolTypeRepositoryContract;
+use App\Repositories\Shared\PrizePool\Contracts\PrizePoolTypeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 

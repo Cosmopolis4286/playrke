@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Cards;
+namespace App\Repositories\Bingo\Cards;
 
 use App\Models\Bingo\Cards\BingoCardLot;
-use App\Repositories\Games\Bingo\Cards\Contracts\BingoCardLotRepositoryContract;
+use App\Repositories\Bingo\Cards\Contracts\BingoCardLotRepositoryContract;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de base de datos relacionadas con
  * los lotes de cartones de bingo, incluyendo consultas complejas y estadísticas.
  *
- * @package App\Repositories\Games\Bingo\Cards
+ * @package App\Repositories\Bingo\Cards
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */

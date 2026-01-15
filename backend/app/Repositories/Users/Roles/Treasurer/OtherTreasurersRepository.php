@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Treasurer;
+namespace App\Repositories\Roles\Treasurer;
 
 use App\Models\Users\Treasurer\OtherTreasurers;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Roles\Treasurer\Contracts\OtherTreasurersRepositoryContract;
+use App\Repositories\Roles\Treasurer\Contracts\OtherTreasurersRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

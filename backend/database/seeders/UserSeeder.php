@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Country;
 use App\Models\Currency;
-use App\Repositories\Users\UserRepository;
+use App\Repositories\UserRepository;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;

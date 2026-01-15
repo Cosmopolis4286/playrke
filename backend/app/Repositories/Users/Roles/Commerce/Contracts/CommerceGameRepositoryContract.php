@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Users\Roles\Commerce\Contracts;
+namespace App\Repositories\Roles\Commerce\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\RolesGame;
@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * Contrato para el repository de permisos de juegos de comercios
  */
-interface CommerceGameRepositoryContract extends BaseRepositoryInterface
+interface CommerceGameRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene permisos por comercio

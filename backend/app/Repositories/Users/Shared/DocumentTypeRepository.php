@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Users\Shared;
+namespace App\Repositories\Shared;
 
 use App\Models\DocumentType;
 use App\Repositories\BaseRepository;
-use App\Repositories\Users\Shared\Contracts\DocumentTypeRepositoryContract;
+use App\Repositories\Shared\Contracts\DocumentTypeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepositoryContract

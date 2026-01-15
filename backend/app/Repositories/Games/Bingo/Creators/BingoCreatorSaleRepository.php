@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Creators;
+namespace App\Repositories\Bingo\Creators;
 
 use App\Models\Bingo\Creators\BingoCreatorSale;
 use App\Models\Bingo\Rooms\Config\BingoRoomConfig;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Bingo\Creators\Contracts\BingoCreatorSaleRepositoryContract;
+use App\Repositories\Bingo\Creators\Contracts\BingoCreatorSaleRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para las ventas y comisiones de creadores de salas de bingo.
  *
- * @package App\Repositories\Games\Bingo\Creators
+ * @package App\Repositories\Bingo\Creators
  * @author Sistema PlayRKE
  * @version 1.0
  */

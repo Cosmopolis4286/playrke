@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Shared\Transactions\Contracts;
+namespace App\Repositories\Shared\Transactions\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;

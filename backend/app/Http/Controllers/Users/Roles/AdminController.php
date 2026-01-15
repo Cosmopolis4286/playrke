@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Users\Roles;
 use App\Http\Controllers\Controller;
 use App\Repositories\Countries\Contracts\CountryRepositoryContract;
 use App\Contracts\CurrencyRepositoryInterface;
-use App\Repositories\Games\Contracts\GameRepositoryContract;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
-use App\Repositories\Users\Roles\Customer\Contracts\CustomerRepositoryContract;
-use App\Repositories\Users\Roles\Treasurer\Contracts\TreasurerRepositoryContract;
-use App\Repositories\Users\Roles\Treasurer\Contracts\OtherTreasurersRepositoryContract;
-use App\Repositories\Users\Shared\Contracts\TimeZoneRepositoryContract;
+use App\Repositories\Contracts\GameRepositoryInterface;
+use App\Repositories\Roles\Commerce\Contracts\CommerceRepositoryContract;
+use App\Repositories\Roles\Customer\Contracts\CustomerRepositoryContract;
+use App\Repositories\Roles\Treasurer\Contracts\TreasurerRepositoryContract;
+use App\Repositories\Roles\Treasurer\Contracts\OtherTreasurersRepositoryContract;
+use App\Repositories\Shared\Contracts\TimeZoneRepositoryContract;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Log;
@@ -39,7 +39,7 @@ class AdminController extends Controller
         protected OtherTreasurersRepositoryContract $otherTreasurers,
         protected CountryRepositoryContract $countries,
         protected CurrencyRepositoryInterface $currencies,
-        protected GameRepositoryContract $games,
+        protected GameRepositoryInterface $games,
         protected TimeZoneRepositoryContract $timeZones
     ) {}
 
