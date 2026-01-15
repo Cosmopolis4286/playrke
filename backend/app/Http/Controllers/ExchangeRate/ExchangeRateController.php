@@ -6,11 +6,11 @@ namespace App\Http\Controllers\ExchangeRate;
 use App\Http\Controllers\Controller;
 
 // Models
-use App\Models\Currencies\Currency;
-use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
+use App\Models\Currency;
+use App\Models\Pivots\ExchangeRate\CommerceExchangeRate;
 use App\Models\Users\Customer\Customer;
-use App\Models\Payments\ExchangeRate\Users\Roles\CustomerExchangeRate;
-use App\Models\Payments\ExchangeRate\ExchangeRate;
+use App\Models\Pivots\ExchangeRate\CustomerExchangeRate;
+use App\Models\ExchangeRate;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryContract;
 use App\Services\Currencies\CurrencyDirectoryService;
 // Services

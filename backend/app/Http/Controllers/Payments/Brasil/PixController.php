@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Payments\Brasil;
+namespace App\Http\Controllers\Directories\Fiat\Brazil;
 
 use App\Http\Controllers\Controller;
 

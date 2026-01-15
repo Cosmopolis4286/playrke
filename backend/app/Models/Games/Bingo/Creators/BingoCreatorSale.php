@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Games\Bingo\Creators;
+namespace App\Models\Bingo\Creators;
 
-use App\Models\Currencies\Currency;
-use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Currency;
+use App\Models\Bingo\Rooms\BingoRoom;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa las ventas realizadas por creadores de salas de bingo.
  * Incluye información sobre montos, comisiones y premios acumulados por sala y moneda.
  *
- * @package App\Models\Games\Bingo\Creators
+ * @package App\Models\Bingo\Creators
  * @author Sistema PlayRKE
  * @version 1.0
  *

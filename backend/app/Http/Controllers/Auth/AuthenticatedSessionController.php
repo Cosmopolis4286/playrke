@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\Countries\Country;
-use App\Models\Currencies\Currency;
+use App\Models\Country;
+use App\Models\Currency;
 use App\Repositories\Currencies\CurrencyRepository;
 use App\Repositories\Countries\CountryRepository;
 use App\Repositories\Settings\Contracts\SettingRepositoryContract;

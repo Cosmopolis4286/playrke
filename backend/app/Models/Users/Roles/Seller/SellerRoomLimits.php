@@ -2,8 +2,8 @@
 
 namespace App\Models\Users\Seller;
 
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Game;
+use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Game;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

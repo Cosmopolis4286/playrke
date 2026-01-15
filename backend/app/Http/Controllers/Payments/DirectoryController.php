@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BankVenezuela;
 use App\Models\BinanceAccounts;
 use App\Models\Commerce;
-use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
+use App\Models\Pivots\ExchangeRate\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\DocumentType;
 use App\Models\Payments\Venezuela\PagoMovil;

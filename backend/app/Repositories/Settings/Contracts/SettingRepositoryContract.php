@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Settings\Contracts;
 
-use App\Models\Settings\Setting;
+use App\Models\Setting;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

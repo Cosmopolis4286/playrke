@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Payments\ExchangeRate;
+namespace App\Models;
 
-use App\Models\Currencies\Currency;
+use App\Models\Currency;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

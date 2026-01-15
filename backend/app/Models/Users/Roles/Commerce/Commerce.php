@@ -4,9 +4,9 @@ namespace App\Models\Users\Commerce;
 
 use App\Models\BaseModel;
 use App\Models\Concerns\HasHashedRouteKey;
-use App\Models\Countries\Country;
-use App\Models\Currencies\Currency;
-use App\Models\Games\Game;
+use App\Models\Country;
+use App\Models\Currency;
+use App\Models\Game;
 use App\Models\Users\Seller\Seller;
 use App\Models\Users\Shared\UniqueCode;
 use App\Models\User;

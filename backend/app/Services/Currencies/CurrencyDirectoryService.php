@@ -2,7 +2,7 @@
 
 namespace App\Services\Currencies;
 
-use App\Models\Payments\Brasil\PixKey;
+use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Payments\Venezuela\PagoMovil;
 use App\Models\Users\Commerce\Commerce;
 use App\Models\Users\Commerce\CommerceExchangeRate;

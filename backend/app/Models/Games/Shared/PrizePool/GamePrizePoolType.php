@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Games\Shared\PrizePool;
+namespace App\Models\Shared\PrizePool;
 
-use App\Models\Games\Shared\GameMode\GameMode;
-use App\Models\Games\Game;
+use App\Models\Shared\GameMode\GameMode;
+use App\Models\Game;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

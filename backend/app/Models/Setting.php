@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Models\Settings;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,7 +13,7 @@ use BradieTilley\Snowflake\Snowflake;
  *
  * Representa parámetros de configuración del sistema con sus valores y estados.
  *
- * @package App\Models\Settings
+ * @package App\Models
  *
  * @property string $id ID único de la configuración
  * @property string $param Nombre del parámetro de configuración

@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Payments\DirectoryController;
 use App\Http\Controllers\ExchangeRate\ExchangeRateController;
-use App\Http\Controllers\Payments\Brasil\PixController;
+use App\Http\Controllers\Directories\Fiat\Brazil\PixController;
 use App\Http\Controllers\Payments\Colombia\PaymentAccountController;
 use App\Http\Controllers\Payments\Venezuela\PagoMovilController;
 use App\Http\Controllers\Payments\PaymentController;

@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\GameRoom;
 
-use App\Models\Games\Shared\GameRoom\GameRoomJackpot;
+use App\Models\Shared\GameRoom\GameRoomJackpot;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Shared\GameRoom\Contracts\GameRoomJackpotRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

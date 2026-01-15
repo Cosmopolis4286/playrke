@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Bingo\Rooms\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Games\Bingo\Rooms\BingoRoomConfig;
+use App\Models\Bingo\Rooms\BingoRoomConfig;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

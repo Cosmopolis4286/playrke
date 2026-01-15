@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Countries\Contracts;
 
-use App\Models\Countries\Country;
+use App\Models\Country;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

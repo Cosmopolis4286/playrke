@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Currencies\Currency;
+use App\Models\Currency;
 use App\Models\User;
-use App\Models\Wallets\Wallet;
+use App\Models\Wallet;
 use App\Repositories\Countries\CountryRepository;
 use App\Repositories\Users\UserRepository;
 use Illuminate\Auth\Events\Registered;

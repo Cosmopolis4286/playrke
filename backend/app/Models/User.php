@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasHashedRouteKey;
-use App\Models\Countries\Country;
+use App\Models\Country;
 use App\Models\Users\Commerce\Commerce;
 use App\Models\Users\Company\Company;
 use App\Models\Users\Role;
 use App\Models\Users\Seller\Seller;
-use App\Models\Wallets\Wallet;
+use App\Models\Wallet;
 use App\Traits\Auditable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;

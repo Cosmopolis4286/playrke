@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Models\Games\Bingo\Cards;
+namespace App\Models\Bingo\Cards;
 
-use App\Models\Currencies\Currency;
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
+use App\Models\Currency;
+use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Bingo\Rooms\User\BingoRoomUser;
 use App\Models\Users\Seller\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;
@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Cada lote contiene información sobre la cantidad de cartones, precios, comisiones
  * y está asociado a una sala específica y un jugador.
  *
- * @package App\Models\Games\Bingo\Cards
+ * @package App\Models\Bingo\Cards
  * @author Sistema PlayRKE
  * @version 1.0
  *

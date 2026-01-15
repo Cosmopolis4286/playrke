@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Countries\Country;
-use App\Models\Currencies\Currency;
+use App\Models\Country;
+use App\Models\Currency;
 use App\Repositories\Users\UserRepository;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Models\Games\Bingo\Cards\CardPrice;
+namespace App\Models\Bingo\Cards\CardPrice;
 
-use App\Models\Currencies\Currency;
-use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Currency;
+use App\Models\Bingo\Rooms\BingoRoom;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa el precio de un cartón de bingo en una sala y moneda específica.
  * Cada precio está asociado a una sala, una moneda y tiene un usuario creador.
  *
- * @package App\Models\Games\Bingo\Cards\CardPrice
+ * @package App\Models\Bingo\Cards\CardPrice
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  *

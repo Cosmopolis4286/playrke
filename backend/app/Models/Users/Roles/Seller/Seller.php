@@ -2,8 +2,8 @@
 
 namespace App\Models\Users\Seller;
 
-use App\Models\Currencies\Currency;
-use App\Models\Countries\Country;
+use App\Models\Currency;
+use App\Models\Country;
 use App\Models\Users\Commerce\Commerce;
 use App\Models\User;
 use App\Traits\SnowflakeId;

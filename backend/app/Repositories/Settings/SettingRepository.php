@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Settings;
 
-use App\Models\Settings\Setting;
+use App\Models\Setting;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Settings\Contracts\SettingRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

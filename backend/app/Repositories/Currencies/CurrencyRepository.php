@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Currencies;
 
-use App\Models\Currencies\Currency;
+use App\Models\Currency;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Currencies\Contracts\CurrencyRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

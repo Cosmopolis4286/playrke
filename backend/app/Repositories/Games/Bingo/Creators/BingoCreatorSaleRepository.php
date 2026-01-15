@@ -2,8 +2,8 @@
 
 namespace App\Repositories\Games\Bingo\Creators;
 
-use App\Models\Games\Bingo\Creators\BingoCreatorSale;
-use App\Models\Games\Bingo\Rooms\Config\BingoRoomConfig;
+use App\Models\Bingo\Creators\BingoCreatorSale;
+use App\Models\Bingo\Rooms\Config\BingoRoomConfig;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Bingo\Creators\Contracts\BingoCreatorSaleRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

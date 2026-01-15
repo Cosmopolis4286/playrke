@@ -7,7 +7,7 @@ use App\Models\BingoRoom;
 use App\Models\BingoCtns;
 use App\Models\BingoDraw;
 use App\Models\Wallet;
-use App\Models\Currencies\Currency;
+use App\Models\Currency;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

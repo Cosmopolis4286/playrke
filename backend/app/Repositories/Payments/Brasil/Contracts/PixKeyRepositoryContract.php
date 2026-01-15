@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Payments\Brasil\Contracts;
+namespace App\Repositories\Directories\Fiat\Brazil\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Payments\Brasil\PixKey;
+use App\Models\Directories\Fiat\Brazil\PixKey;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

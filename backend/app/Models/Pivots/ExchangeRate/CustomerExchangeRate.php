@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Payments\ExchangeRate\Users\Roles;
+namespace App\Models\Pivots\ExchangeRate;
 
 use App\Models\Users\Customer\Customer;
-use App\Models\Currencies\Currency;
+use App\Models\Currency;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

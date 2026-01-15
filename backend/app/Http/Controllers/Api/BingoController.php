@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 
-use App\Models\Games\Bingo\Cards\BingoCard;
-use App\Models\Games\Bingo\Draws\BingoDraw;
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Shared\Historical\PlayHistory;
+use App\Models\Bingo\Cards\BingoCard;
+use App\Models\Bingo\Draws\BingoDraw;
+use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Shared\Historical\PlayHistory;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

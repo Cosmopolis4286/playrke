@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Shared\Historical\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Games\Shared\Historical\PlayHistory;
+use App\Models\Shared\Historical\PlayHistory;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
 

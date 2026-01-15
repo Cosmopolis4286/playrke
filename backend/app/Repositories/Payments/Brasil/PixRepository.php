@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories\Payments\Brasil;
+namespace App\Repositories\Directories\Fiat\Brazil;
 
-use App\Models\Payments\Brasil\Pix;
+use App\Models\Directories\Fiat\Brazil\Pix;
 
 class PixRepository
 {

@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Bingo\Cards\Patterns\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
+use App\Models\Bingo\Cards\Patterns\BingoPattern;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

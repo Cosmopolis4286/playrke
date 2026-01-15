@@ -6,7 +6,7 @@ namespace App\Traits\Games;
 use App\Models\Customer;
 use App\Models\CustomerGame;
 use App\Models\CustomerUser;
-use App\Models\Games;
+use App\Models;
 use App\Models\Transactions;
 use App\Traits\Users\Roles\Customer\CustomerTrait;
 // Traits

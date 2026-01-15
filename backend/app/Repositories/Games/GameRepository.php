@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games;
 
-use App\Models\Games\Game;
+use App\Models\Game;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Contracts\GameRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

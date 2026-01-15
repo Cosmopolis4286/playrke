@@ -2,7 +2,7 @@
 
 namespace App\Models\Users\Commerce;
 
-use App\Models\Games\Game;
+use App\Models\Game;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

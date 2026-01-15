@@ -1,5 +1,5 @@
 @php
-    use App\Models\Wallets\Wallet;
+    use App\Models\Wallet;
     $wallet = Wallet::with('Currency')->where('user_id', Auth::id())->first();
     $user = auth()->user();
 @endphp

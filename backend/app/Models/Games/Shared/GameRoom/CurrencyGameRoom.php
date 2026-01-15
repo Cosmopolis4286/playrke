@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Models\Games\Shared\GameRoom;
+namespace App\Models\Shared\GameRoom;
 
-use App\Models\Games\Game;
-use App\Models\Games\Shared\GameMode\GameModes;
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Currencies\Currency;
+use App\Models\Game;
+use App\Models\Shared\GameMode\GameModes;
+use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Currency;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

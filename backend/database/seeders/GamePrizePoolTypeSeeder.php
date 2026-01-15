@@ -3,10 +3,10 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Games\Game;
-use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
-use App\Models\Games\Shared\GameMode\GameMode;
-use App\Models\Games\Shared\PrizePool\PrizePoolType;
+use App\Models\Game;
+use App\Models\Shared\PrizePool\GamePrizePoolType;
+use App\Models\Shared\GameMode\GameMode;
+use App\Models\Shared\PrizePool\PrizePoolType;
 use BradieTilley\Snowflake\Snowflake;
 
 class GamePrizePoolTypeSeeder extends Seeder

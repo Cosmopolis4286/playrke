@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Shared\GameRoom;
+namespace App\Models\Shared\GameRoom;
 
 use App\Models\Commerce\Currency;
 use App\Traits\SnowflakeId;

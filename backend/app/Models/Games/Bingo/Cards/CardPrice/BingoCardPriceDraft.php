@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Models\Games\Bingo\Cards\CardPrice;
+namespace App\Models\Bingo\Cards\CardPrice;
 
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Bingo\Rooms\BingoRoomAutomatic;
+use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Bingo\Rooms\BingoRoomAutomatic;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * precios para una sala de bingo o sala autom\u00e1tica. Los borradores pueden estar
  * activos o ejecutados.
  *
- * @package App\Models\Games\Bingo\Cards\CardPrice
+ * @package App\Models\Bingo\Cards\CardPrice
  * @author Sistema de Gesti\u00f3n de Bingo
  * @version 1.0
  *

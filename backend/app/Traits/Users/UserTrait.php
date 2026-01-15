@@ -2,10 +2,10 @@
 
 namespace App\Traits\Users;
 
-use App\Models\Countries\Country;
-use App\Models\Currencies\Currency;
+use App\Models\Country;
+use App\Models\Currency;
 use App\Models\ExchangeRate\CommerceExchangeRate;
-use App\Models\Payments\Brasil\PixKey;
+use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Payments\Venezuela\PagoMovil;
 use App\Models\Users\Commerce\Commerce;
 use App\Models\Users\Commerce\CommerceCurrency;
@@ -14,7 +14,7 @@ use App\Models\Users\Seller\Seller;
 use App\Models\Users\Seller\SellerCurrency;
 use App\Models\Users\Treasurer\Treasurer;
 use App\Models\User;
-use App\Models\Wallets\Wallet;
+use App\Models\Wallet;
 use App\Repositories\User\Roles\RoleRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

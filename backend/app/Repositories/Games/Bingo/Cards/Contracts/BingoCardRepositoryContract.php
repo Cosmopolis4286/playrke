@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Games\Bingo\Cards\Contracts;
 
-use App\Models\Games\Bingo\Cards\BingoCard;
+use App\Models\Bingo\Cards\BingoCard;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Wallets\Crypto\Binance;
+namespace App\Models\Directories\Crypto\Binance;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;

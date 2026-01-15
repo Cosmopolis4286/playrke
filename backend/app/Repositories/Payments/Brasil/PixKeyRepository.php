@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Payments\Brasil;
+namespace App\Repositories\Directories\Fiat\Brazil;
 
-use App\Models\Payments\Brasil\PixKey;
+use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Payments\Brasil\Contracts\PixKeyRepositoryContract;
+use App\Repositories\Directories\Fiat\Brazil\Contracts\PixKeyRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Payments\Brasil;
+namespace App\Models\Directories\Fiat\Brazil;
 
 use App\Models\Banks\BankBrazil;
 use App\Models\User;

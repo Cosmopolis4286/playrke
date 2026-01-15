@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Shared\Room;
+namespace App\Models\Shared\Room;
 
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

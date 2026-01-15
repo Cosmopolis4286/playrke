@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards\CardPrize;
+namespace App\Models\Bingo\Cards\CardPrize;
 
-use App\Models\Currencies\Currency;
-use App\Models\Games\Bingo\Cards\BingoCard;
-use App\Models\Games\Bingo\Cards\BingoCardLot;
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
+use App\Models\Currency;
+use App\Models\Bingo\Cards\BingoCard;
+use App\Models\Bingo\Cards\BingoCardLot;
+use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Bingo\Rooms\User\BingoRoomUser;
 use App\Models\Users\Seller\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;
@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Representa un premio otorgado a un cartón ganador en una sala de bingo.
  * Incluye información sobre el tipo de premio, montos, estado y patrón ganador.
  *
- * @package App\Models\Games\Bingo\Cards
+ * @package App\Models\Bingo\Cards
  * @author Sistema PlayRKE
  * @version 1.0
  *

@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Countries\Country;
+use App\Models\Country;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 

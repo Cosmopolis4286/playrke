@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Currencies;
+namespace App\Models;
 
-use App\Models\Countries\Country;
-use App\Models\Payments\ExchangeRate\ExchangeRate;
+use App\Models\Country;
+use App\Models\ExchangeRate;
 use App\Models\Users\Commerce\CommerceExchangeRate;
 use App\Models\Users\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;

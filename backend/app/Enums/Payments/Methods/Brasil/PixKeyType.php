@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Enums\Payments\Brasil;
+namespace App\Enums\Directories\Fiat\Brazil;
 
 /**
  * Enum con los tipos de clave PIX permitidos.

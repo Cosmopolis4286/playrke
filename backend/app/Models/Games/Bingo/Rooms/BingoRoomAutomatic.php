@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Games\Bingo\Rooms;
+namespace App\Models\Bingo\Rooms;
 
-use App\Models\Games\Shared\GameMode\GameModes;
-use App\Models\Games\Shared\PrizePool\PrizePoolType;
+use App\Models\Shared\GameMode\GameModes;
+use App\Models\Shared\PrizePool\PrizePoolType;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa las salas de bingo programadas automáticamente.
  * Incluye configuración de horarios, precios, comisiones y patrones de juego.
  *
- * @package App\Models\Games\Bingo\Rooms
+ * @package App\Models\Bingo\Rooms
  * @author Sistema PlayRKE
  * @version 1.0
  *

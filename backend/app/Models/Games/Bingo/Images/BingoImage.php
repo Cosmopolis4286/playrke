@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Images;
+namespace App\Models\Bingo\Images;
 
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\File;
  * Representa las imágenes utilizadas en el sistema de bingo.
  * Incluye información sobre tipo, parámetros, ruta del archivo y estado.
  *
- * @package App\Models\Games\Bingo\Images
+ * @package App\Models\Bingo\Images
  * @author Sistema PlayRKE
  * @version 1.0
  *

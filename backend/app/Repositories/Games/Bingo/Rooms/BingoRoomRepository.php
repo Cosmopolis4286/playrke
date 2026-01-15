@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Bingo\Rooms;
 
-use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Bingo\Rooms\BingoRoom;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Bingo\Contracts\BingoRoomRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

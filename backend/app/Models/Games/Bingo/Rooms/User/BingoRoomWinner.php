@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Games\Bingo\Rooms\User;
+namespace App\Models\Bingo\Rooms\User;
 
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Bingo\Rounds\BingoRound;
+use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Bingo\Rounds\BingoRound;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Wallets\Contracts;
 
-use App\Models\Wallets\Wallet;
+use App\Models\Wallet;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

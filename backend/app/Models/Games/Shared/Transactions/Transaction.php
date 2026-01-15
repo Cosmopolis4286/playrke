@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Shared\Transactions;
+namespace App\Models\Shared\Transactions;
 
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

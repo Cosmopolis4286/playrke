@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Games\Shared\Historical;
+namespace App\Models\Shared\Historical;
 
-use App\Models\Games\Game;
+use App\Models\Game;
 use App\Models\Commerce\Currency;
 use App\Models\User;
 use App\Traits\SnowflakeId;

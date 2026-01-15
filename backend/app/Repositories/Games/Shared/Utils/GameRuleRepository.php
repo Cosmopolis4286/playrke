@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\Utils;
 
-use App\Models\Games\Shared\Utils\GameRule;
+use App\Models\Shared\Utils\GameRule;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Shared\Utils\Contracts\GameRuleRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

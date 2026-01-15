@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Games\Bingo\Rooms\User;
+namespace App\Models\Bingo\Rooms\User;
 
-use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Bingo\Rooms\BingoRoom;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

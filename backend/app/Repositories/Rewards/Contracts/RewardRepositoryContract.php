@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Rewards\Contracts;
 
-use App\Models\Rewards\Reward;
+use App\Models\Reward;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

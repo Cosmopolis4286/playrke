@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Payments\ExchangeRate\Users\Roles;
+namespace App\Models\Pivots\ExchangeRate;
 
-use App\Models\Currencies\Currency;
+use App\Models\Currency;
 use App\Models\Users\Commerce\Commerce;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Pivot;

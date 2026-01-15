@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Games\Bingo\Rounds;
+namespace App\Models\Bingo\Rounds;
 
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Bingo\Rooms\BingoRoomAutomatic;
+use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Bingo\Rooms\BingoRoomAutomatic;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

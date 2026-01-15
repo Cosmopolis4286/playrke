@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\Countries\Country;
-use App\Models\Currencies\Currency;
+use App\Models\Country;
+use App\Models\Currency;
 use App\Models\User;
-use App\Models\Wallets\Wallet;
+use App\Models\Wallet;
 use App\Repositories\Users\UserRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Shared;
 
 use App\Http\Controllers\Controller;
-use App\Models\Wallets\Wallet;
+use App\Models\Wallet;
 use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;

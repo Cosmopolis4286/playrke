@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Shared\Utils\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Games\Shared\Utils\GamePrize;
+use App\Models\Shared\Utils\GamePrize;
 use Illuminate\Database\Eloquent\Collection;
 
 interface GamePrizeRepositoryContract extends BaseRepositoryContract

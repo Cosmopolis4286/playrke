@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Models\Rewards;
+namespace App\Models;
 
 use App\Models\User;
 use App\Traits\SnowflakeId;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa recompensas que pueden ser productos o servicios,
  * individuales o en kit, creadas por usuarios del sistema.
  *
- * @package App\Models\Rewards
+ * @package App\Models
  * @author Sistema de Gestión de Recompensas
  * @version 1.0
  *

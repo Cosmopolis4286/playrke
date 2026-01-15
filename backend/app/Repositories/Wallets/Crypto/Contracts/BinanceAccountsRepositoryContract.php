@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Wallets\Crypto\Contracts;
 
-use App\Models\Wallets\Crypto\Binance\BinanceAccounts;
+use App\Models\Directories\Crypto\Binance\BinanceAccounts;
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 

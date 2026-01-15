@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Countries;
+namespace App\Models;
 
 use App\Models\Users\Player\External\ExternalPlayers;
 use App\Models\Users\Seller\Seller;

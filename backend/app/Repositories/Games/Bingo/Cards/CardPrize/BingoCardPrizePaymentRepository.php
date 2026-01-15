@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Games\Bingo\Cards\CardPrize;
 
-use App\Models\Games\Bingo\Cards\CardPrize\BingoCardPrizePayment;
+use App\Models\Bingo\Cards\CardPrize\BingoCardPrizePayment;
 use App\Repositories\Games\Bingo\Cards\CardPrize\Contracts\BingoCardPrizePaymentRepositoryContract;
 use App\Repositories\Base\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;

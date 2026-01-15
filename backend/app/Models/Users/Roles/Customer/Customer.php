@@ -2,8 +2,8 @@
 
 namespace App\Models\Users\Customer;
 
-use App\Models\Countries\Country;
-use App\Models\Currencies\Currency;
+use App\Models\Country;
+use App\Models\Currency;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -156,7 +156,7 @@ class Customer extends Model
     public function allowedGames(): BelongsToMany
     {
         return $this->belongsToMany(
-            \App\Models\Games\Shared\Game::class,
+            \App\Models\Shared\Game::class,
             'customers_games',
             'customer_id',
             'game_id'

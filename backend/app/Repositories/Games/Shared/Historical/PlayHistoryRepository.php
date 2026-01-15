@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\Historical;
 
-use App\Models\Games\Shared\Historical\PlayHistory;
+use App\Models\Shared\Historical\PlayHistory;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Shared\Historical\Contracts\PlayHistoryRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

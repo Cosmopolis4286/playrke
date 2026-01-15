@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use BradieTilley\Snowflake\Snowflake;

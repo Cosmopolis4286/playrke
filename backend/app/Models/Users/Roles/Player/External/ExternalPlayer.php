@@ -2,9 +2,9 @@
 
 namespace App\Models\Users\Player\External;
 
-use App\Models\Currencies\Currency;
-use App\Models\Countries\Country;
-use App\Models\Games\Game;
+use App\Models\Currency;
+use App\Models\Country;
+use App\Models\Game;
 use App\Models\Users\Player\External\UserPurchaseCode;
 use App\Models\Users\Seller\Seller;
 use App\Models\User;

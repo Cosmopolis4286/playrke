@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Countries\Country;
+use App\Models\Country;
 use Illuminate\Database\Seeder;
 use BradieTilley\Snowflake\Snowflake;
 

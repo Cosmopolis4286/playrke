@@ -2,11 +2,11 @@
 
 namespace App\Services\ExchangeRate;
 
-use App\Models\Currencies\Currency;
+use App\Models\Currency;
 use App\Models\Users\Commerce\Commerce;
-use App\Models\Payments\ExchangeRate\Users\Roles\CommerceExchangeRate;
+use App\Models\Pivots\ExchangeRate\CommerceExchangeRate;
 use App\Models\Users\Customer\Customer;
-use App\Models\Payments\ExchangeRate\Users\Roles\CustomerExchangeRate;
+use App\Models\Pivots\ExchangeRate\CustomerExchangeRate;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

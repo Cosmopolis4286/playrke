@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\GameMode;
 
-use App\Models\Games\Shared\GameMode\GameMode;
+use App\Models\Shared\GameMode\GameMode;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Shared\GameMode\Contracts\GameModeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

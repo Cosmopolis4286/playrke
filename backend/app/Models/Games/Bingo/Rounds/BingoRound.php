@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models\Games\Bingo\Rounds;
+namespace App\Models\Bingo\Rounds;
 
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
-use App\Models\Games\Bingo\Rooms\User\BingoRoomWinner;
+use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Bingo\Cards\Patterns\BingoPattern;
+use App\Models\Bingo\Rooms\User\BingoRoomWinner;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

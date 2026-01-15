@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\BingoRoom;
 use App\Models\BingoDraw;
 use App\Models\Wallet;
-use App\Models\Currencies\Currency;
+use App\Models\Currency;
 use App\Events\Games\Bingo\BingoNumberCalled;
 use App\Events\Games\Bingo\BingoGameStarted;
 use Illuminate\Foundation\Testing\RefreshDatabase;

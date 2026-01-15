@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Settings\Setting;
+use App\Models\Setting;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 

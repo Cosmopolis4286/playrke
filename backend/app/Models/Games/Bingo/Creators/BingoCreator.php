@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Games\Bingo\Creators;
+namespace App\Models\Bingo\Creators;
 
-use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Bingo\Rooms\BingoRoom;
 use App\Models\Users\Role;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa la entidad que gestiona los creadores de salas de bingo.
  * Incluye información sobre el usuario creador, tipo de creador, comisiones y configuraciones.
  *
- * @package App\Models\Games\Bingo\Creators
+ * @package App\Models\Bingo\Creators
  * @author Sistema PlayRKE
  * @version 1.0
  *

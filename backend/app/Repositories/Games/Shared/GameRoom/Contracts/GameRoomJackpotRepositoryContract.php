@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Shared\GameRoom\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Games\Shared\GameRoom\GameRoomJackpot;
+use App\Models\Shared\GameRoom\GameRoomJackpot;
 use Illuminate\Database\Eloquent\Collection;
 
 interface GameRoomJackpotRepositoryContract extends BaseRepositoryContract

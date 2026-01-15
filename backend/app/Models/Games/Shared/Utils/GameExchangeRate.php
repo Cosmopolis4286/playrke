@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Games\Shared\Utils;
+namespace App\Models\Shared\Utils;
 
-use App\Models\Games\Game;
-use App\Models\Currencies\Currency;
+use App\Models\Game;
+use App\Models\Currency;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

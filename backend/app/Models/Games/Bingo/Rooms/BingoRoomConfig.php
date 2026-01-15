@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Games\Bingo\Rooms;
+namespace App\Models\Bingo\Rooms;
 
-use App\Models\Games\Shared\GameMode\GameModes;
-use App\Models\Games\Shared\PrizePool\PrizePoolType;
+use App\Models\Shared\GameMode\GameModes;
+use App\Models\Shared\PrizePool\PrizePoolType;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

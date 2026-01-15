@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Shared\Utils\Contracts;
 
 use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Games\Shared\Utils\GameRule;
+use App\Models\Shared\Utils\GameRule;
 use Illuminate\Database\Eloquent\Collection;
 
 interface GameRuleRepositoryContract extends BaseRepositoryContract

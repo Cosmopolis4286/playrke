@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Currencies\Currency;
-use App\Models\Countries\Country;
+use App\Models\Currency;
+use App\Models\Country;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 

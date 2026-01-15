@@ -7,7 +7,7 @@ use Illuminate\Filesystem\Filesystem;
 use ReflectionClass;
 use App\Repositories\Settings\Contracts\SettingRepositoryContract;
 use App\Repositories\Settings\SettingRepository;
-use App\Models\Settings\Setting;
+use App\Models\Setting;
 
 /**
  * RepositoryServiceProvider

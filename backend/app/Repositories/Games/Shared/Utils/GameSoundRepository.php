@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\Utils;
 
-use App\Models\Games\Shared\Utils\GameSound;
+use App\Models\Shared\Utils\GameSound;
 use App\Repositories\Base\BaseRepository;
 use App\Repositories\Games\Shared\Utils\Contracts\GameSoundRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

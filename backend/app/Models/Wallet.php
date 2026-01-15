@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Models\Wallets;
+namespace App\Models;
 
-use App\Models\Currencies\Currency;
+use App\Models\Currency;
 use App\Models\User;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * en una moneda específica. Cada wallet tiene un estado que determina
  * si está activa, inactiva o bloqueada.
  *
- * @package App\Models\Wallets
+ * @package App\Models
  * @author Sistema de Gestión de Wallets
  * @version 1.0
  *

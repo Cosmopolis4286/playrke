@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Models\Games\Bingo\Rooms;
+namespace App\Models\Bingo\Rooms;
 
-use App\Models\Games\Bingo\Cards\BingoCard;
-use App\Models\Games\Bingo\Cards\CardPrice\BingoCardPrice;
-use App\Models\Games\Bingo\Cards\BingoCardLot;
-use App\Models\Games\Bingo\Creators\BingoCreator;
-use App\Models\Games\Bingo\Creators\BingoCreatorSale;
-use App\Models\Games\GameStatus;
-use App\Models\Games\GameExchangeRate;
+use App\Models\Bingo\Cards\BingoCard;
+use App\Models\Bingo\Cards\CardPrice\BingoCardPrice;
+use App\Models\Bingo\Cards\BingoCardLot;
+use App\Models\Bingo\Creators\BingoCreator;
+use App\Models\Bingo\Creators\BingoCreatorSale;
+use App\Models\GameStatus;
+use App\Models\GameExchangeRate;
 use App\Models\User;
 use App\Models\Sellers\SellerRoomLimits;
 use Illuminate\Database\Eloquent\Model;
