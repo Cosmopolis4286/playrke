@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users\Customer;
+namespace App\Models\Roles\Customer;
 
 use App\Models\Country;
 use App\Models\Currency;
@@ -156,7 +156,7 @@ class Customer extends Model
     public function allowedGames(): BelongsToMany
     {
         return $this->belongsToMany(
-            \App\Models\Shared\Game::class,
+            \App\Models\Game::class,
             'customers_games',
             'customer_id',
             'game_id'

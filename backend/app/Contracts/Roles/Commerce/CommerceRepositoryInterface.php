@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Repositories\Roles\Commerce\Contracts;
+namespace App\Contracts\Roles\Commerce;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Roles;
+use App\Models\Roles\Commerce;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de comercios
  */
-interface CommerceRepositoryContract extends BaseRepositoryInterface
+interface CommerceRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene comercio por ID de usuario

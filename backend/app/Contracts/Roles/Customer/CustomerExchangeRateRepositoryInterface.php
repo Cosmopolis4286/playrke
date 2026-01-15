@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Roles\Customer\Contracts;
+namespace App\Contracts\Roles\Customer;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Users\Customer\CustomerExchangeRate;
+use App\Models\Pivots\Roles\Customer\CustomerExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
 interface CustomerExchangeRateRepositoryInterface extends BaseRepositoryInterface

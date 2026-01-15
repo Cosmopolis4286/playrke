@@ -4,7 +4,7 @@ namespace App\Repositories\Directories\Fiat\Colombia;
 
 use App\Models\Directories\Fiat\Colombia\PaymentAccount;
 use App\Repositories\BaseRepository;
-use App\Repositories\Directories\Fiat\Colombia\Contracts\PaymentAccountRepositoryContract;
+use App\Contracts\Directories\Fiat\Colombia\PaymentAccountRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Implementa las operaciones específicas para el modelo PaymentAccount,
  * incluyendo validaciones por gateway, gestión de cuentas y estadísticas.
  */
-class PaymentAccountRepository extends BaseRepository implements PaymentAccountRepositoryContract
+class PaymentAccountRepository extends BaseRepository implements PaymentAccountRepositoryInterface
 {
     /**
      * Constructor del repositorio.

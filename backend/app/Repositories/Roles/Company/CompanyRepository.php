@@ -4,11 +4,11 @@ namespace App\Repositories\Roles\Company;
 
 use App\Models\Roles\Company;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Company\Contracts\CompanyRepositoryContract;
+use App\Contracts\Roles\Company\CompanyRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
-class CompanyRepository extends BaseRepository implements CompanyRepositoryContract
+class CompanyRepository extends BaseRepository implements CompanyRepositoryInterface
 {
     public function __construct(Company $model)
     {

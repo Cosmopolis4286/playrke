@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Roles\Customer\Contracts;
+namespace App\Contracts\Roles\Customer;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Users\Customer\CustomerUser;
+use App\Models\Roles\Customer\CustomerUser;
 use Illuminate\Database\Eloquent\Collection;
 
 interface CustomerUserRepositoryInterface extends BaseRepositoryInterface

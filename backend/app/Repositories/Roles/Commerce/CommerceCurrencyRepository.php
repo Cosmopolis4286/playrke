@@ -2,6 +2,8 @@
 
 namespace App\Repositories\Roles\Commerce;
 
+use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
+use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 

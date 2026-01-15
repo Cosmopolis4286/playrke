@@ -4,7 +4,7 @@ namespace App\Repositories\Directories\Fiat\Brazil;
 
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Repositories\BaseRepository;
-use App\Repositories\Directories\Fiat\Brazil\Contracts\PixKeyRepositoryContract;
+use App\Contracts\Directories\Fiat\Brazil\PixKeyRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
  * Implementa las operaciones específicas para el modelo PixKey,
  * incluyendo validaciones por tipo, gestión de claves y estadísticas.
  */
-class PixKeyRepository extends BaseRepository implements PixKeyRepositoryContract
+class PixKeyRepository extends BaseRepository implements PixKeyRepositoryInterface
 {
     /**
      * Constructor del repositorio.

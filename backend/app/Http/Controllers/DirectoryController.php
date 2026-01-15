@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Payments;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankVenezuela;
@@ -12,8 +12,6 @@ use App\Models\DocumentType;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Directories\Fiat\Colombia\PaymentAccount;
 use App\Models\Pix;
-use App\Repositories\User\Roles\RoleRepository;
-use App\Repositories\Roles\Contracts\RoleRepositoryContract;
 use App\Traits\Users\UserTrait;
 
 class DirectoryController extends Controller
@@ -25,7 +23,7 @@ class DirectoryController extends Controller
      * Constructor con inyección de dependencias
      */
     public function __construct(
-        //protected CommerceRepositoryContract $commerces,
+        //protected CommerceRepositoryInterface $commerces,
     ) {}
 
     public function index($countryCode)

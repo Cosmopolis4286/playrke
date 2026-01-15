@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Roles\Customer;
 
-use App\Models\Users\Customer\CustomerGame;
+use App\Models\Roles\Customer\CustomerGame;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Customer\Contracts\CustomerGameRepositoryInterface;
+use App\Contracts\Roles\Customer\CustomerGameRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 class CustomerGameRepository extends BaseRepository implements CustomerGameRepositoryInterface

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Games;
 
 use App\Http\Controllers\Controller;
 use App\Models\Game;
-use App\Models\Users\Customer\CustomerGame;
+use App\Models\Roles\Customer\CustomerGame;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

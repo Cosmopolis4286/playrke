@@ -4,7 +4,7 @@ namespace App\Repositories\Directories\Fiat\Venezuela;
 
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Repositories\BaseRepository;
-use App\Repositories\Directories\Fiat\Venezuela\Contracts\PagoMovilRepositoryContract;
+use App\Contracts\Directories\Fiat\Venezuela\PagoMovilRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Implementa las operaciones específicas para el modelo PagoMovil,
  * incluyendo validaciones, consultas por parámetros y estadísticas.
  */
-class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryContract
+class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryInterface
 {
     /**
      * Constructor del repositorio.

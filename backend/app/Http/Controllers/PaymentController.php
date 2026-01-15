@@ -1,11 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Payments;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\BingoCtnsPayment;
-
 use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller

@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Repositories\Roles\Company\Contracts;
+namespace App\Contracts\Roles\Company;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Roles\Company;
 use Illuminate\Database\Eloquent\Collection;
 
-interface CompanyRepositoryContract extends BaseRepositoryInterface
+interface CompanyRepositoryInterface extends BaseRepositoryInterface
 {
     public function findBySlug(string $slug): ?Company;
 

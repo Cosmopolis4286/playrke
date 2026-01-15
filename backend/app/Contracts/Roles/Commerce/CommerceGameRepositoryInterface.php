@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Roles\Commerce\Contracts;
+namespace App\Contracts\Roles\Commerce;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;

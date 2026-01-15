@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Roles\Customer;
 
-use App\Models\Users\Customer\Customer;
+use App\Models\Roles\Customer\Customer;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Customer\Contracts\CustomerRepositoryContract;
+use App\Contracts\Roles\Customer\CustomerRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 

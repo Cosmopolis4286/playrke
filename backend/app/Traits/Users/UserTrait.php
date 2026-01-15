@@ -9,7 +9,7 @@ use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Roles;
 use App\Models\RolesCurrency;
-use App\Models\Users\Customer\Customer;
+use App\Models\Roles\Customer\Customer;
 use App\Models\Users\Seller\Seller;
 use App\Models\Users\Seller\SellerCurrency;
 use App\Models\Users\Treasurer\Treasurer;

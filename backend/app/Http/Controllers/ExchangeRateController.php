@@ -8,10 +8,10 @@ use App\Http\Controllers\Controller;
 // Models
 use App\Models\Currency;
 use App\Models\Pivots\ExchangeRate\CommerceExchangeRate;
-use App\Models\Users\Customer\Customer;
+use App\Models\Roles\Customer\Customer;
 use App\Models\Pivots\ExchangeRate\CustomerExchangeRate;
 use App\Models\ExchangeRate;
-use App\Repositories\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryInterface;
+use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Services\Currencies\CurrencyDirectoryService;
 // Services
 use App\Services\ExchangeRate\ExchangeRateService;

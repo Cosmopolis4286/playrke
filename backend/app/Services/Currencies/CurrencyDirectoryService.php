@@ -6,10 +6,10 @@ use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Roles;
 use App\Models\RolesExchangeRate;
-use App\Models\Users\Customer\Customer;
+use App\Models\Roles\Customer\Customer;
 use App\Models\Users\Seller\Seller;
 use App\Contracts\CurrencyRepositoryInterface;
-use App\Repositories\Roles\Contracts\RoleUserRepositoryInterface;
+use App\Contracts\RoleUserRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
 class CurrencyDirectoryService

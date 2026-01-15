@@ -7,8 +7,8 @@ use App\Contracts\UserRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Users\Roles\CommerceDTO;
 use App\Http\Resources\Users\Roles\CommerceResource;
-use App\Repositories\Roles\Commerce\Contracts\CommerceGameRepositoryInterface;
-use App\Repositories\Roles\Commerce\Contracts\CommerceRepositoryContract;
+use App\Contracts\Roles\Commerce\CommerceGameRepositoryInterface;
+use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Services\BaseService;
 use App\Services\Users\UserService;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +18,7 @@ class CommerceService extends BaseService
 {
     public function __construct(
         protected UserRepositoryInterface $userRepository,
-        protected CommerceRepositoryContract $commerceRepository,
+        protected CommerceRepositoryInterface $commerceRepository,
         protected CommerceCurrencyRepositoryInterface $currencyRepository,
         protected CommerceGameRepositoryInterface $gameRepository,
         protected WalletRepositoryInterface $walletRepository,

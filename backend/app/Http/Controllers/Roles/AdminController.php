@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\CurrencyRepositoryInterface;
 use App\Repositories\Contracts\GameRepositoryInterface;
-use App\Repositories\Roles\Commerce\Contracts\CommerceRepositoryContract;
-use App\Repositories\Roles\Customer\Contracts\CustomerRepositoryContract;
+use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
+use App\Contracts\Roles\Customer\CustomerRepositoryContract;
 use App\Repositories\Roles\Treasurer\Contracts\TreasurerRepositoryContract;
 use App\Repositories\Roles\Treasurer\Contracts\OtherTreasurersRepositoryContract;
 use App\Contracts\Shared\TimeZoneRepositoryInterface;
@@ -33,7 +33,7 @@ class AdminController extends Controller
      * Constructor con inyección de dependencias
      */
     public function __construct(
-        protected CommerceRepositoryContract $commerces,
+        protected CommerceRepositoryInterface $commerces,
         protected CustomerRepositoryContract $customers,
         protected TreasurerRepositoryContract $treasurers,
         protected OtherTreasurersRepositoryContract $otherTreasurers,

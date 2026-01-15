@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Roles\Contracts;
+namespace App\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Users\Role;
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar los roles del sistema,
  * incluyendo operaciones de consulta, creación, actualización y asignación.
  */
-interface RoleRepositoryContract extends BaseRepositoryInterface
+interface RoleRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener todos los roles activos.

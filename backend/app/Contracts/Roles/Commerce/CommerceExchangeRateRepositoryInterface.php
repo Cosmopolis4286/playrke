@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Roles\Commerce\Contracts;
+namespace App\Contracts\Roles\Commerce;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\RolesExchangeRate;
+use App\Models\Pivots\Roles\Commerce\CommerceExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

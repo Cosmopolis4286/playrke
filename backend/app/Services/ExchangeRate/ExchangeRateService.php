@@ -5,7 +5,7 @@ namespace App\Services\ExchangeRate;
 use App\Models\Currency;
 use App\Models\Roles;
 use App\Models\Pivots\ExchangeRate\CommerceExchangeRate;
-use App\Models\Users\Customer\Customer;
+use App\Models\Roles\Customer\Customer;
 use App\Models\Pivots\ExchangeRate\CustomerExchangeRate;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;

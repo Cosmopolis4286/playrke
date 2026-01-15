@@ -2,15 +2,15 @@
 
 namespace App\Repositories\Roles\Commerce;
 
-use App\Models\Roles;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Commerce\Contracts\CommerceRepositoryContract;
+use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
+use App\Models\Roles\Commerce;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de comercios
  */
-class CommerceRepository extends BaseRepository implements CommerceRepositoryContract
+class CommerceRepository extends BaseRepository implements CommerceRepositoryInterface
 {
     /**
      * Constructor del repository

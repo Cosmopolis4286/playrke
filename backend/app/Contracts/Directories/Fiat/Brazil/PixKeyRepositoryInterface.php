@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Directories\Fiat\Brazil\Contracts;
+namespace App\Contracts\Directories\Fiat\Brazil;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Directories\Fiat\Brazil\PixKey;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar claves PIX,
  * incluyendo validaciones por tipo, usuario, banco y valor de clave.
  */
-interface PixKeyRepositoryContract extends BaseRepositoryInterface
+interface PixKeyRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener claves PIX por usuario.

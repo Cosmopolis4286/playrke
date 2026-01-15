@@ -5,7 +5,7 @@ namespace App\Models\Pivots\Roles;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
-use App\Models\Users\Role;
+use App\Models;
 
 /**
  * Modelo pivot para la relación User ↔ Role

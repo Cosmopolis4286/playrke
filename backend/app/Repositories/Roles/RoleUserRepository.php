@@ -2,10 +2,10 @@
 
 namespace App\Repositories\Roles;
 
-use App\Models\Users\RoleUser;
+use App\ModelsUser;
 use App\Models\User;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Contracts\RoleUserRepositoryInterface;
+use App\Contracts\RoleUserRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
