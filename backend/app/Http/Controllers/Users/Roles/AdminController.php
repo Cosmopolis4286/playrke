@@ -10,7 +10,7 @@ use App\Repositories\Roles\Commerce\Contracts\CommerceRepositoryContract;
 use App\Repositories\Roles\Customer\Contracts\CustomerRepositoryContract;
 use App\Repositories\Roles\Treasurer\Contracts\TreasurerRepositoryContract;
 use App\Repositories\Roles\Treasurer\Contracts\OtherTreasurersRepositoryContract;
-use App\Repositories\Shared\Contracts\TimeZoneRepositoryContract;
+use App\Contracts\Shared\TimeZoneRepositoryInterface;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +40,7 @@ class AdminController extends Controller
         protected CountryRepositoryInterface $countries,
         protected CurrencyRepositoryInterface $currencies,
         protected GameRepositoryInterface $games,
-        protected TimeZoneRepositoryContract $timeZones
+        protected TimeZoneRepositoryInterface $timeZones
     ) {}
 
     /**

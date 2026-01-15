@@ -2,16 +2,13 @@
 
 namespace App\Services\Users\Roles\Commerce;
 
+use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
+use App\Contracts\UserRepositoryInterface;
+use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Users\Roles\CommerceDTO;
 use App\Http\Resources\Users\Roles\CommerceResource;
-use App\Models\Roles;
-use App\Models\RolesCurrency;
-use App\Models\RolesGame;
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Repositories\Roles\Commerce\Contracts\CommerceCurrencyRepositoryInterface;
 use App\Repositories\Roles\Commerce\Contracts\CommerceGameRepositoryInterface;
 use App\Repositories\Roles\Commerce\Contracts\CommerceRepositoryContract;
-use App\Repositories\Contracts\WalletRepositoryInterface;
 use App\Services\BaseService;
 use App\Services\Users\UserService;
 use Illuminate\Support\Facades\DB;

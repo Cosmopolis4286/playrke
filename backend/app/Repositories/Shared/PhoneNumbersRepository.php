@@ -4,7 +4,7 @@ namespace App\Repositories\Shared;
 
 use App\Models\PhoneNumbers;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\Contracts\PhoneNumbersRepositoryContract;
+use App\Contracts\Shared\PhoneNumbersRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

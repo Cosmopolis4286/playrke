@@ -4,10 +4,10 @@ namespace App\Repositories\Shared;
 
 use App\Models\DocumentType;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\Contracts\DocumentTypeRepositoryContract;
+use App\Contracts\Shared\DocumentTypeRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
-class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepositoryContract
+class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepositoryInterface
 {
     public function __construct(DocumentType $model)
     {

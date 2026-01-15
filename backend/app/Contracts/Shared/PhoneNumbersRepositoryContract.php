@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Shared\Contracts;
+namespace App\Contracts\Shared;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\PhoneNumbers;

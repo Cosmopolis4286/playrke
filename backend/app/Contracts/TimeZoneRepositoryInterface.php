@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Shared\Contracts;
+namespace App\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * del sistema, incluyendo consultas por país, estado, UTC y búsquedas
  * por nombre y configuraciones de zona horaria.
  */
-interface TimeZoneRepositoryContract extends BaseRepositoryInterface
+interface TimeZoneRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene una zona horaria por ID con campos específicos.

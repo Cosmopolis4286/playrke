@@ -4,7 +4,7 @@ namespace App\Repositories\Shared;
 
 use App\Models\Shared\UniqueCode;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\Contracts\UniqueCodeRepositoryContract;
+use App\Contracts\Shared\UniqueCodeRepositoryContract;
 
 /**
  * Repositorio para UniqueCode.

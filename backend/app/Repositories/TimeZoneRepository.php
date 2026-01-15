@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Shared;
+namespace App\Repositories;
 
+use App\Contracts\TimeZoneRepositoryInterface;
 use App\Models\TimeZone;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\Contracts\TimeZoneRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * incluyendo consultas por país, estado, UTC y gestión de
  * configuraciones de zona horaria.
  */
-class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryContract
+class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryInterface
 {
     /**
      * Constructor del repositorio.
