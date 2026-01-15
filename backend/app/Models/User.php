@@ -7,7 +7,7 @@ use App\Models\Country;
 use App\Models\Roles\Company;
 use App\Models\Role;
 use App\Models\Roles\Commerce;
-use App\Models\Users\Seller\Seller;
+use App\Models\Roles\Seller;
 use App\Models\Wallet;
 use App\Traits\Auditable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;

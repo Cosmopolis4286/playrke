@@ -6,7 +6,7 @@ use App\Contracts\BaseRepositoryInterface;
 use App\Models\Roles\Customer\Customer;
 use Illuminate\Database\Eloquent\Collection;
 
-interface CustomerRepositoryContract extends BaseRepositoryInterface
+interface CustomerRepositoryInterface extends BaseRepositoryInterface
 {
     public function getByUserId($userId): ?Customer;
 

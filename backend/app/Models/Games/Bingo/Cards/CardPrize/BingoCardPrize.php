@@ -7,7 +7,7 @@ use App\Models\Bingo\Cards\BingoCard;
 use App\Models\Bingo\Cards\BingoCardLot;
 use App\Models\Bingo\Rooms\BingoRoom;
 use App\Models\Bingo\Rooms\User\BingoRoomUser;
-use App\Models\Users\Seller\Seller;
+use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

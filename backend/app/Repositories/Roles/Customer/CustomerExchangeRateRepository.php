@@ -4,7 +4,7 @@ namespace App\Repositories\Roles\Customer;
 
 use App\Repositories\BaseRepository;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
-use App\Models\Pivots\Roles\Customer\CustomerExchangeRate;
+use App\Models\Roles\Customer\CustomerExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
 class CustomerExchangeRateRepository extends BaseRepository implements CustomerExchangeRateRepositoryInterface

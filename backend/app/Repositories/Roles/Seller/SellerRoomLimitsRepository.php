@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Roles\Seller;
 
-use App\Models\Users\Seller\SellerRoomLimits;
+use App\Models\Roles\SellerRoomLimits;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Seller\Contracts\SellerRoomLimitsRepositoryContract;
+use App\Contracts\Roles\Seller\SellerRoomLimitsRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * incluyendo gestión de límites por vendedor, sala y juego, así como
  * operaciones de comisiones y accesos.
  */
-class SellerRoomLimitsRepository extends BaseRepository implements SellerRoomLimitsRepositoryContract
+class SellerRoomLimitsRepository extends BaseRepository implements SellerRoomLimitsRepositoryInterface
 {
     /**
      * Constructor del repositorio.

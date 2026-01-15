@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Roles\Treasurer\Contracts;
+namespace App\Contracts\Roles\Treasurer;
 
 use App\Contracts\BaseRepositoryInterface;
 

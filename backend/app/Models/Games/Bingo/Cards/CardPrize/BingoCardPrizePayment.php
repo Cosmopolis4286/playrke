@@ -5,7 +5,7 @@ namespace App\Models\Bingo\Cards\CardPrize;
 use App\Models\Currency;
 use App\Models\Bingo\Rooms\BingoRoom;
 use App\Models\Users\Player\External\ExternalPlayers;
-use App\Models\Users\Seller\Seller;
+use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -14,14 +14,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Modelo para los pagos de premios de cartones de bingo
- * 
+ *
  * Representa un pago realizado por un premio ganado en bingo.
  * Incluye información sobre el método de pago, monto, comprobante y estado del pago del premio.
- * 
+ *
  * @package App\Models\Bingo\Cards
  * @author Sistema PlayRKE
  * @version 1.0
- * 
+ *
  * @property int $id ID único del pago de premio
  * @property string $card_prize_id ID del premio del cartón
  * @property string $payment_method Método de pago utilizado
@@ -40,7 +40,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
  * @property \Carbon\Carbon|null $deleted_at Fecha de eliminación suave
- * 
+ *
  * @property-read BingoCardPrize $cardPrize Premio del cartón asociado
  * @property-read BingoRoom $room Sala de bingo asociada
  * @property-read User $creatorUser Usuario creador del pago
@@ -116,7 +116,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Relación con el premio del cartón
-     * 
+     *
      * @return BelongsTo<BingoCardPrize, BingoCardPrizePayment>
      */
     public function cardPrize(): BelongsTo
@@ -126,7 +126,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Relación con la sala de bingo
-     * 
+     *
      * @return BelongsTo<BingoRoom, BingoCardPrizePayment>
      */
     public function room(): BelongsTo
@@ -136,7 +136,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Relación con el usuario creador del pago
-     * 
+     *
      * @return BelongsTo<User, BingoCardPrizePayment>
      */
     public function creatorUser(): BelongsTo
@@ -146,7 +146,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Relación con el vendedor (opcional)
-     * 
+     *
      * @return BelongsTo<Seller, BingoCardPrizePayment>
      */
     public function seller(): BelongsTo
@@ -156,7 +156,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Relación con el jugador externo
-     * 
+     *
      * @return BelongsTo<ExternalPlayers, BingoCardPrizePayment>
      */
     public function externalPlayer(): BelongsTo
@@ -166,7 +166,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Relación con el usuario que recibe el pago
-     * 
+     *
      * @return BelongsTo<User, BingoCardPrizePayment>
      */
     public function user(): BelongsTo
@@ -176,7 +176,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Relación con la moneda utilizada
-     * 
+     *
      * @return BelongsTo<Currency, BingoCardPrizePayment>
      */
     public function currency(): BelongsTo
@@ -186,7 +186,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Obtener la descripción del método de pago
-     * 
+     *
      * @return string
      */
     public function getPaymentMethodDescriptionAttribute(): string
@@ -196,7 +196,7 @@ class BingoCardPrizePayment extends Model
 
     /**
      * Obtener la descripción del estado del pago
-     * 
+     *
      * @return string
      */
     public function getPaymentStatusDescriptionAttribute(): string

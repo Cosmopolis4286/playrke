@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Roles\Seller;
 
-use App\Models\Users\Seller\Seller;
+use App\Models\Roles\Seller;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Seller\Contracts\SellerRepositoryContract;
+use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * Implementa las operaciones específicas para el modelo Seller,
  * incluyendo gestión de estados, comisiones, búsquedas y estadísticas.
  */
-class SellerRepository extends BaseRepository implements SellerRepositoryContract
+class SellerRepository extends BaseRepository implements SellerRepositoryInterface
 {
     /**
      * Constructor del repositorio.

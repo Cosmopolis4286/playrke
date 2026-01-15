@@ -5,7 +5,7 @@ namespace App\Models\Bingo\Cards;
 use App\Models\Currency;
 use App\Models\Bingo\Rooms\BingoRoom;
 use App\Models\Users\Player\External\ExternalPlayers;
-use App\Models\Users\Seller\Seller;
+use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

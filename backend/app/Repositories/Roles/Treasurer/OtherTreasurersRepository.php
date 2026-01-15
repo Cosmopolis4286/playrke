@@ -4,7 +4,7 @@ namespace App\Repositories\Roles\Treasurer;
 
 use App\Models\Users\Treasurer\OtherTreasurers;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Treasurer\Contracts\OtherTreasurersRepositoryContract;
+use App\Contracts\Roles\Treasurer\OtherTreasurersRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Implementa las operaciones específicas para el modelo OtherTreasurers,
  * incluyendo gestión de permisos de juegos, monedas y estados.
  */
-class OtherTreasurersRepository extends BaseRepository implements OtherTreasurersRepositoryContract
+class OtherTreasurersRepository extends BaseRepository implements OtherTreasurersRepositoryInterface
 {
     /**
      * Constructor del repositorio.

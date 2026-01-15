@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Models\Pivots\Roles\Customer;
+namespace App\Models\Roles\Customer;
 
 use App\Models\Currency;
 use App\Models\Roles\Customer\Customer;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Modelo para tasas de cambio de clientes
  */
-class CustomerExchangeRate extends Pivot
+class CustomerExchangeRate extends Model
 {
     public $incrementing = false;
     protected $primaryKey = null;

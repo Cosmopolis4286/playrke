@@ -6,7 +6,7 @@ use App\Models\Currency;
 use App\Models\Country;
 use App\Models\Game;
 use App\Models\Users\Player\External\UserPurchaseCode;
-use App\Models\Users\Seller\Seller;
+use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

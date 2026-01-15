@@ -7,7 +7,7 @@ use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Game;
-use App\Models\Users\Seller\Seller;
+use App\Models\Roles\Seller;
 use App\Models\Shared\UniqueCode;
 use App\Models\User;
 use App\Traits\Auditable;

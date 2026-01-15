@@ -2,7 +2,6 @@
 
 namespace App\Repositories\Directories\Fiat\Brazil;
 
-use App\Models\Directories\Fiat\Brazil\Pix;
 
 class PixRepository
 {

@@ -2,10 +2,11 @@
 
 namespace App\Repositories\Roles\Seller;
 
-use App\Models\Users\Seller\SellerCurrency;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Seller\Contracts\SellerCurrencyRepositoryInterface;
+use App\Contracts\Roles\Seller\SellerCurrencyRepositoryInterface;
+use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Repositorio para la gestión de relaciones vendedor-país-moneda.

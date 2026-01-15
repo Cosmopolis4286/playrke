@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Roles\Treasurer\Contracts;
+namespace App\Contracts\Roles\Treasurer;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Treasurer\OtherTreasurers;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar otros tesoreros,
  * incluyendo permisos de juegos, monedas y estados de los tesoreros.
  */
-interface OtherTreasurersRepositoryContract extends BaseRepositoryInterface
+interface OtherTreasurersRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener un tesorero por usuario creador.

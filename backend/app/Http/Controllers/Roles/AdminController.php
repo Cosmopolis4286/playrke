@@ -7,9 +7,9 @@ use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\CurrencyRepositoryInterface;
 use App\Repositories\Contracts\GameRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
-use App\Contracts\Roles\Customer\CustomerRepositoryContract;
-use App\Repositories\Roles\Treasurer\Contracts\TreasurerRepositoryContract;
-use App\Repositories\Roles\Treasurer\Contracts\OtherTreasurersRepositoryContract;
+use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
+use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
+use App\Contracts\Roles\Treasurer\OtherTreasurersRepositoryInterface;
 use App\Contracts\Shared\TimeZoneRepositoryInterface;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Users\UserTrait;
@@ -34,9 +34,9 @@ class AdminController extends Controller
      */
     public function __construct(
         protected CommerceRepositoryInterface $commerces,
-        protected CustomerRepositoryContract $customers,
-        protected TreasurerRepositoryContract $treasurers,
-        protected OtherTreasurersRepositoryContract $otherTreasurers,
+        protected CustomerRepositoryInterface $customers,
+        protected TreasurerRepositoryInterface $treasurers,
+        protected OtherTreasurersRepositoryInterface $otherTreasurers,
         protected CountryRepositoryInterface $countries,
         protected CurrencyRepositoryInterface $currencies,
         protected GameRepositoryInterface $games,

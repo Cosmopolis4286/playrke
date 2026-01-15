@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Models\Users\Seller;
+namespace App\Models\Roles;
 
 use App\Models\Bingo\Rooms\BingoRoom;
 use App\Models\Game;
 use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Modelo para límites de salas de vendedores.
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * para salas de juego particulares, gestionando el acceso y configuración
  * de comisiones por vendedor.
  */
-class SellerRoomLimits extends Model
+class SellerRoomLimits extends Pivot
 {
     use SnowflakeId;
 

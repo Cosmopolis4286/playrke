@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Roles\Seller\Contracts;
+namespace App\Contracts\Roles\Seller;
 
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * de vendedores en diferentes salas de juego, incluyendo consultas por juego,
  * sala, vendedor y gestión de comisiones.
  */
-interface SellerRoomLimitsRepositoryContract extends BaseRepositoryInterface
+interface SellerRoomLimitsRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene todos los límites de un vendedor específico.

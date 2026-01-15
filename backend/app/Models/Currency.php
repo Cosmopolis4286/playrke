@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Models\Country;
 use App\Models\ExchangeRate;
 use App\Models\RolesExchangeRate;
-use App\Models\Users\Seller\Seller;
+use App\Models\Roles\Seller;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;

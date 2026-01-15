@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Roles\Seller\Contracts;
+namespace App\Contracts\Roles\Seller;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Users\Seller\SellerCurrency;
+use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

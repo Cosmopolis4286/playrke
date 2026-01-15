@@ -4,7 +4,7 @@ namespace App\Repositories\Roles\Treasurer;
 
 use App\Models\Users\Treasurer\TreasurerCountryCurrency;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Treasurer\Contracts\TreasurerCountryCurrencyRepositoryInterface;
+use App\Contracts\Roles\Treasurer\TreasurerCountryCurrencyRepositoryInterface;
 
 /**
  * Repositorio para TreasurerCountryCurrency.

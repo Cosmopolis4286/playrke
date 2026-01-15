@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Models\Users\Seller;
+namespace App\Models\Pivots\Roles\Seller;
 
 use App\Models\Currency;
-use App\Models\Country;
-use App\Models\User;
+use App\Models\Roles\Seller;
 use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Modelo para la gestión de relaciones vendedor-país-moneda.
@@ -15,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa las asociaciones entre vendedores, países y monedas,
  * incluyendo niveles de operación y estados de las relaciones.
  */
-class SellerCurrency extends Model
+class SellerCurrency extends Pivot
 {
     use SnowflakeId;
 

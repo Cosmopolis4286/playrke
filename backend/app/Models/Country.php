@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Users\Player\External\ExternalPlayers;
-use App\Models\Users\Seller\Seller;
+use App\Models\Roles\Seller;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use BradieTilley\Snowflake\Snowflake;

@@ -4,13 +4,13 @@ namespace App\Repositories\Roles\Treasurer;
 
 use App\Models\Users\Treasurer\Treasurer;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Treasurer\Contracts\TreasurerRepositoryContract;
+use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repositorio para la gestión de tesoreros.
  */
-class TreasurerRepository extends BaseRepository implements TreasurerRepositoryContract
+class TreasurerRepository extends BaseRepository implements TreasurerRepositoryInterface
 {
     public function __construct(Treasurer $model)
     {
