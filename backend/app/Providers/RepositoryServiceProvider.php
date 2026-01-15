@@ -9,51 +9,28 @@ use App\Contracts\SettingRepositoryInterface;
 use App\Repositories\SettingRepository;
 use App\Models\Setting;
 
-/**
- * RepositoryServiceProvider
- *
- * Este proveedor se encarga de:
- *  1. Registrar manualmente los repositorios críticos con inyección de dependencias
- *  2. Registrar automáticamente el resto de repositorios que implementen contratos
- */
 class RepositoryServiceProvider extends ServiceProvider
 {
-    /**
-     * Registrar servicios en el contenedor de Laravel
-     *
-     * @return void
-     */
     public function register(): void
     {
-        // 1. Repositorios críticos con inyección de dependencias
-        $this->app->bind(SettingRepositoryInterface::class, function ($app) {
+        // Repositorio crítico con dependencias explícitas
+        $this->app->singleton(SettingRepositoryInterface::class, function ($app) {
             return new SettingRepository($app->make(Setting::class));
         });
 
-        // 2. Registro automático del resto de repositorios
+        // Registro automático de repositories
         $this->registerRepositoriesAutomatically(app_path('Repositories'));
     }
 
-    /**
-     * Registro automático de repositorios que implementen contratos
-     *
-     * @param string $basePath
-     * @return void
-     */
     private function registerRepositoriesAutomatically(string $basePath): void
     {
         $filesystem = new Filesystem();
 
         foreach ($filesystem->allFiles($basePath) as $file) {
-            // Saltar archivos dentro de Contracts/
-            if (str_contains($file->getPath(), 'Contracts')) {
-                continue;
-            }
 
             $namespace = $this->getClassNamespace($file->getPathname());
 
-            // Saltar si namespace no existe
-            if (empty($namespace)) {
+            if (!$namespace) {
                 continue;
             }
 
@@ -65,32 +42,35 @@ class RepositoryServiceProvider extends ServiceProvider
 
             $reflection = new ReflectionClass($className);
 
-            // Saltar interfaces y clases abstractas
-            if ($reflection->isInterface() || $reflection->isAbstract()) {
+            if ($reflection->isAbstract() || $reflection->isInterface()) {
                 continue;
             }
 
-            // Detectar contratos implementados
             foreach ($reflection->getInterfaces() as $interface) {
-                if ($interface->isInterface() && str_ends_with($interface->getShortName(), 'Contract')) {
-                    // Evitar volver a registrar SettingRepository
-                    if ($interface->getName() === SettingRepositoryInterface::class) {
-                        continue;
-                    }
 
-                    // Vinculación automática: interfaz => implementación
-                    $this->app->bind($interface->getName(), $className);
+                // SOLO RepositoryInterfaces
+                if (!str_ends_with($interface->getShortName(), 'RepositoryInterface')) {
+                    continue;
                 }
+
+                // Evitar doble binding explícito
+                if ($interface->getName() === SettingRepositoryInterface::class) {
+                    continue;
+                }
+
+                // Evitar sobrescribir bindings ya registrados
+                if ($this->app->bound($interface->getName())) {
+                    continue;
+                }
+
+                $this->app->singleton(
+                    $interface->getName(),
+                    $className
+                );
             }
         }
     }
 
-    /**
-     * Obtener el namespace de una clase desde un archivo PHP
-     *
-     * @param string $file
-     * @return string
-     */
     private function getClassNamespace(string $file): string
     {
         $src = file_get_contents($file);
@@ -100,15 +80,5 @@ class RepositoryServiceProvider extends ServiceProvider
         }
 
         return '';
-    }
-
-    /**
-     * Inicializar servicios después del registro
-     *
-     * @return void
-     */
-    public function boot(): void
-    {
-        // No se requiere lógica adicional en boot()
     }
 }

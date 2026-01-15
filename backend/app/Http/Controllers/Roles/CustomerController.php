@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Users\Roles;
+namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\Roles\CustomerRequest;
@@ -25,7 +25,7 @@ use Illuminate\Support\Str;
  * - Retornar respuestas HTTP apropiadas
  * - Manejar errores y logging
  *
- * @package App\Http\Controllers\Users\Roles
+ * @package App\Http\Controllers\Roles
  */
 class CustomerController extends Controller
 {

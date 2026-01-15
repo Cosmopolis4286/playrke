@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Users\Roles\Treasurer;
+namespace App\Http\Controllers\Roles\Treasurer;
 
 use App\Http\Controllers\Controller;
 
@@ -17,7 +17,7 @@ class OtherTreasurersController extends Controller
 {
     use UserTrait;
 
-    public function getInfo($id) // Obtener Info 
+    public function getInfo($id) // Obtener Info
     {
         $id = decrypt($id);
 

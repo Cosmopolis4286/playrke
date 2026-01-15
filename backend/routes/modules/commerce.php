@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Users\Roles\CommerceController;
+use App\Http\Controllers\Roles\CommerceController;
 use Illuminate\Support\Facades\Route;
 
 /*

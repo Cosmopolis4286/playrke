@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Users\Roles\CustomerController;
+use App\Http\Controllers\Roles\CustomerController;
 
 /*
 |--------------------------------------------------------------------------

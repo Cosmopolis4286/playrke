@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Users\Roles\Treasurer;
+namespace App\Http\Controllers\Roles\Treasurer;
 
 use App\Traits\Helpers\EncryptTrait;
 use App\Models\Users;

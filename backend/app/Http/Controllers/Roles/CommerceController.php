@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Users\Roles;
+namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\Roles\CommerceRequest;
-use App\Models\Roles;
-use App\Services\Users\Roles\Commerce\CommerceService;
+use App\Models\Roles\Commerce;
+use App\Services\Roles\Commerce\CommerceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

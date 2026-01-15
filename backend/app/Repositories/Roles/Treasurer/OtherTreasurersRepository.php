@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Roles\Treasurer;
 
-use App\Models\Users\Treasurer\OtherTreasurers;
+use App\Models\Roles\Treasurer\OtherTreasurers;
 use App\Repositories\BaseRepository;
 use App\Contracts\Roles\Treasurer\OtherTreasurersRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;

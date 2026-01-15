@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Users\Roles;
+namespace App\Http\Controllers\Roles;
 
 use App\Console\Commands\HandleExchangeRatesCommand;
 use App\Models\BingoRoom;

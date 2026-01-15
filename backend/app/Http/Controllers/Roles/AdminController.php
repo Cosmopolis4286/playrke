@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Http\Controllers\Users\Roles;
+namespace App\Http\Controllers\Roles;
 
-use App\Http\Controllers\Controller;
 use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\CurrencyRepositoryInterface;
-use App\Repositories\Contracts\GameRepositoryInterface;
+use App\Contracts\GameRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
 use App\Contracts\Roles\Treasurer\OtherTreasurersRepositoryInterface;
-use App\Contracts\Shared\TimeZoneRepositoryInterface;
+use App\Contracts\TimeZoneRepositoryInterface;
+use App\Http\Controllers\Controller;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Log;

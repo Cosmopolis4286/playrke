@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users\Treasurer;
+namespace App\Models\Roles\Treasurer;
 
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

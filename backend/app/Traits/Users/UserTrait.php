@@ -12,7 +12,7 @@ use App\Models\RolesCurrency;
 use App\Models\Roles\Customer\Customer;
 use App\Models\Roles\Seller;
 use App\Models\Roles\SellerCurrency;
-use App\Models\Users\Treasurer\Treasurer;
+use App\Models\Roles\Treasurer\Treasurer;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Repositories\User\Roles\RoleRepository;
