@@ -12,7 +12,7 @@ use App\Models\Treasurer;
 use App\Models\TreasurerCountryCurrency;
 use App\Models\PhoneNumbers;
 use App\Models\Role;
-use App\Models\UniqueCode;
+use App\Models\Shared\UniqueCode;
 use App\Models\Wallet;
 use App\Traits\Helpers\FiltersTrait;
 use App\Traits\Users\UserTrait;

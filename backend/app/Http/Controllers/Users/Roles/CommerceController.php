@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Users\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\Roles\CommerceRequest;
-use App\Models\Users\Commerce\Commerce;
+use App\Models\Roles;
 use App\Services\Users\Roles\Commerce\CommerceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;

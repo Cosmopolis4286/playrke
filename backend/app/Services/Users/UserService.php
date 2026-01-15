@@ -3,7 +3,7 @@
 namespace App\Services\Users;
 
 use App\Models\User;
-use App\Models\Users\Shared\UniqueCode;
+use App\Models\Shared\UniqueCode;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
 use App\Services\BaseService;
 use Illuminate\Support\Facades\Hash;

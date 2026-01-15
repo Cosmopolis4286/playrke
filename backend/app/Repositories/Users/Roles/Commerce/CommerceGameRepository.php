@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Commerce;
 
-use App\Models\Users\Commerce\CommerceGame;
+use App\Models\RolesGame;
 use App\Repositories\BaseRepository;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceGameRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

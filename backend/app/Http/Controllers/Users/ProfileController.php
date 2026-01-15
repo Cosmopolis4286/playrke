@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Users;
 
 use App\Http\Controllers\Controller;
-use App\Models\Users\Shared\DocumentType;
+use App\Models\DocumentType;
 use App\Models\User;
 use App\Services\Users\ProfileService;
 use App\Traits\Users\UserTrait;

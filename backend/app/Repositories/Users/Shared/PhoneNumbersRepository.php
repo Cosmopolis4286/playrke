@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Shared;
 
-use App\Models\Users\Shared\PhoneNumbers;
+use App\Models\PhoneNumbers;
 use App\Repositories\BaseRepository;
 use App\Repositories\Users\Shared\Contracts\PhoneNumbersRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Shared\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Users\Shared\PhoneNumbers;
+use App\Models\PhoneNumbers;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

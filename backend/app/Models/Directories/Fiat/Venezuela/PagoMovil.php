@@ -3,7 +3,7 @@
 namespace App\Models\Directories\Fiat\Venezuela;
 
 use App\Models\User;
-use App\Models\Users\Shared\DocumentType;
+use App\Models\DocumentType;
 use App\Models\Banks\BankVenezuela;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

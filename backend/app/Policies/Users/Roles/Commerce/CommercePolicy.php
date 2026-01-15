@@ -2,7 +2,7 @@
 
 namespace App\Policies\Users\Commerce;
 
-use App\Models\Users\Commerce\Commerce;
+use App\Models\Roles;
 use App\Models\User;
 use App\Policies\Users\RolePolicy;
 

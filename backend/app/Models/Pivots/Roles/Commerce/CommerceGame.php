@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Models\Users\Commerce;
+namespace App\Models\Pivots\Roles\Commerce;
 
 use App\Models\Game;
+use App\Models\Roles\Commerce;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

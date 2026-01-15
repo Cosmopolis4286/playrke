@@ -3,7 +3,7 @@
 namespace App\Services\ExchangeRate;
 
 use App\Models\Currency;
-use App\Models\Users\Commerce\Commerce;
+use App\Models\Roles;
 use App\Models\Pivots\ExchangeRate\CommerceExchangeRate;
 use App\Models\Users\Customer\Customer;
 use App\Models\Pivots\ExchangeRate\CustomerExchangeRate;

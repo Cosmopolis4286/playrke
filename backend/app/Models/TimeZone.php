@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users\Shared;
+namespace App\Models;
 
 use App\Models\Country;
 use App\Traits\SnowflakeId;

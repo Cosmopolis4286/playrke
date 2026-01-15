@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Pivots\Users;
+namespace App\Models\Pivots\Roles;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Shared;
 
-use App\Models\Users\Shared\TimeZone;
+use App\Models\TimeZone;
 use App\Repositories\BaseRepository;
 use App\Repositories\Users\Shared\Contracts\TimeZoneRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Models\Country;
 use App\Models\ExchangeRate;
-use App\Models\Users\Commerce\CommerceExchangeRate;
+use App\Models\RolesExchangeRate;
 use App\Models\Users\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

@@ -1,36 +1,33 @@
 <?php
 
-namespace App\Models\Users\Commerce;
+namespace App\Models\Pivots\Roles\Commerce;
 
 use App\Models\Currency;
-use App\Models\Users\Commerce\Commerce;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
- * Modelo para tasas de cambio de comercios
+ * Modelo pivot para monedas de comercios
  */
-class CommerceExchangeRate extends Pivot
+class CommerceCurrency extends Pivot
 {
     public $incrementing = false;
     protected $primaryKey = null;
     protected $keyType = 'string';
 
-    protected $table = 'commerces_exchange_rates';
+    protected $table = 'commerces_currencies';
 
     protected $fillable = [
         'commerce_id',
         'currency_id',
-        'exchange_rate',
-        'percentage',
+        'level',
         'status'
     ];
 
     protected $casts = [
         'commerce_id' => 'string',
         'currency_id' => 'string',
-        'exchange_rate' => 'decimal:4',
-        'percentage' => 'float'
+        'level' => 'integer'
     ];
 
     /**

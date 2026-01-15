@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users;
+namespace App\Models;
 
 use App\Models\User;
 use App\Traits\SnowflakeId;

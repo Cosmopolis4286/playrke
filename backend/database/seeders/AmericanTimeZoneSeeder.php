@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Country;
-use App\Models\Users\Shared\TimeZone;
+use App\Models\TimeZone;
 use Illuminate\Database\Seeder;
 
 class AmericanTimeZoneSeeder extends Seeder

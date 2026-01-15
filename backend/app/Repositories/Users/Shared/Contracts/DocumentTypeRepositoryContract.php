@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Shared\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Users\Shared\DocumentType;
+use App\Models\DocumentType;
 use Illuminate\Database\Eloquent\Collection;
 
 interface DocumentTypeRepositoryContract extends BaseRepositoryInterface

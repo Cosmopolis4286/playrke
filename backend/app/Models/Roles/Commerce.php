@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users\Commerce;
+namespace App\Models\Roles;
 
 use App\Models\BaseModel;
 use App\Models\Concerns\HasHashedRouteKey;
@@ -8,7 +8,7 @@ use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Game;
 use App\Models\Users\Seller\Seller;
-use App\Models\Users\Shared\UniqueCode;
+use App\Models\Shared\UniqueCode;
 use App\Models\User;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;

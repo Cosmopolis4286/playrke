@@ -8,7 +8,7 @@ use App\Models\Country;
 use App\Models\Currency;
 use App\Repositories\CurrencyRepository;
 use App\Repositories\Countries\CountryRepository;
-use App\Repositories\Contracts\SettingRepositoryInterface;
+use App\Contracts\SettingRepositoryInterface;
 
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\Auth;

@@ -4,8 +4,8 @@ namespace App\Models;
 
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Country;
-use App\Models\Users\Commerce\Commerce;
-use App\Models\Users\Company\Company;
+use App\Models\Roles;
+use App\Models\Roles\Company;
 use App\Models\Users\Role;
 use App\Models\Users\Seller\Seller;
 use App\Models\Wallet;
@@ -179,11 +179,11 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Zona horaria del usuario
      *
-     * @return BelongsTo<\App\Models\Users\Shared\TimeZone, self>
+     * @return BelongsTo<\App\Models\TimeZone, self>
      */
     public function timeZone(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Users\Shared\TimeZone::class, 'time_zone_id');
+        return $this->belongsTo(\App\Models\TimeZone::class, 'time_zone_id');
     }
 
     /**

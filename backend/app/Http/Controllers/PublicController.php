@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\Contracts\SettingRepositoryInterface;
+use App\Contracts\SettingRepositoryInterface;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\View;

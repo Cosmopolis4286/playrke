@@ -5,7 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Filesystem\Filesystem;
 use ReflectionClass;
-use App\Repositories\Contracts\SettingRepositoryInterface;
+use App\Contracts\SettingRepositoryInterface;
 use App\Repositories\SettingRepository;
 use App\Models\Setting;
 

@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Roles\Company\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Users\Company\Company;
+use App\Models\Roles\Company;
 use Illuminate\Database\Eloquent\Collection;
 
 interface CompanyRepositoryContract extends BaseRepositoryInterface

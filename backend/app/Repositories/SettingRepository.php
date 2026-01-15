@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Setting;
 use App\Repositories\BaseRepository;
-use App\Repositories\Contracts\SettingRepositoryInterface;
+use App\Contracts\SettingRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;

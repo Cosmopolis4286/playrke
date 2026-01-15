@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Users\Shared\DocumentType;
+use App\Models\DocumentType;
 use App\Repositories\Countries\CountryRepository;
 
 class DocumentTypeSeeder extends Seeder
