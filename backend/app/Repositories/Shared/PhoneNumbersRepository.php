@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Shared;
 
-use App\Models\PhoneNumbers;
+use App\Models\Shared\PhoneNumbers;
 use App\Repositories\BaseRepository;
-use App\Contracts\Shared\PhoneNumbersRepositoryContract;
+use App\Contracts\Shared\PhoneNumbersRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Implementa las operaciones específicas para el modelo PhoneNumbers,
  * incluyendo validaciones por país, usuario y formato de números.
  */
-class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepositoryContract
+class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepositoryInterface
 {
     /**
      * Constructor del repositorio.

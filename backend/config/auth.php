@@ -52,7 +52,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',       // Modelo Eloquent para usuarios
-            'model' => env('AUTH_MODEL', App\Models\Users\User::class),
+            'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
 
         // Alternativa: si usaras base de datos directamente

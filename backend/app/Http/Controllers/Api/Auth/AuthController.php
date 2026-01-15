@@ -48,7 +48,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             $user = Auth::user();
-            /** @var \App\Models\Users\User $user */
+            /** @var \App\Models\User $user */
             $user->load(['roles:id,prefix', 'country:id,iso_code_2', 'wallets']); // Solo campos necesarios
 
             $role = $user->roles->first();

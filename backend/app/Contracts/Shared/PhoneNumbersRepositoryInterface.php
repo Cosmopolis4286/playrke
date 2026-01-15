@@ -3,7 +3,7 @@
 namespace App\Contracts\Shared;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\PhoneNumbers;
+use App\Models\Shared\PhoneNumbers;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar números de teléfono de usuarios,
  * incluyendo validaciones por país, usuario y estado.
  */
-interface PhoneNumbersRepositoryContract extends BaseRepositoryInterface
+interface PhoneNumbersRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener números de teléfono por usuario.

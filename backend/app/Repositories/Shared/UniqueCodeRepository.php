@@ -4,12 +4,12 @@ namespace App\Repositories\Shared;
 
 use App\Models\Shared\UniqueCode;
 use App\Repositories\BaseRepository;
-use App\Contracts\Shared\UniqueCodeRepositoryContract;
+use App\Contracts\Shared\UniqueCodeRepositoryInterface;
 
 /**
  * Repositorio para UniqueCode.
  */
-class UniqueCodeRepository extends BaseRepository implements UniqueCodeRepositoryContract
+class UniqueCodeRepository extends BaseRepository implements UniqueCodeRepositoryInterface
 {
     public function __construct(UniqueCode $model)
     {

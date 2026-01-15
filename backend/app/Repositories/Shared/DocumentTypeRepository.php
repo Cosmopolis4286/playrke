@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Shared;
 
-use App\Models\DocumentType;
 use App\Repositories\BaseRepository;
 use App\Contracts\Shared\DocumentTypeRepositoryInterface;
+use App\Models\Shared\DocumentType;
 use Illuminate\Database\Eloquent\Collection;
 
 class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepositoryInterface
