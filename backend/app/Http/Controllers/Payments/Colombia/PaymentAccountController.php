@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Payments\Colombia;
+namespace App\Http\Controllers\Directories\Fiat\Colombia;
 
 use App\Http\Controllers\Controller;
-use App\Models\Payments\Colombia\PaymentAccount;
+use App\Models\Directories\Fiat\Colombia\PaymentAccount;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

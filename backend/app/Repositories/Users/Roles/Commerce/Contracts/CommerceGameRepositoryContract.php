@@ -2,14 +2,14 @@
 
 namespace App\Repositories\Users\Roles\Commerce\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Commerce\CommerceGame;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de permisos de juegos de comercios
  */
-interface CommerceGameRepositoryContract extends BaseRepositoryContract
+interface CommerceGameRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene permisos por comercio

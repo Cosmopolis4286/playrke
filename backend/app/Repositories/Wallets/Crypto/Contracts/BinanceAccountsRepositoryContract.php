@@ -3,14 +3,14 @@
 namespace App\Repositories\Wallets\Crypto\Contracts;
 
 use App\Models\Directories\Crypto\Binance\BinanceAccounts;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repositorio de cuentas Binance
  * Define métodos específicos para operaciones con BinanceAccounts
  */
-interface BinanceAccountsRepositoryContract extends BaseRepositoryContract
+interface BinanceAccountsRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener cuentas por tipo

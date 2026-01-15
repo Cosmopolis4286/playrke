@@ -3,13 +3,13 @@
 namespace App\Repositories\Banks\Contracts;
 
 use App\Models\Banks\BankBrazil;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 
 /**
  * Contrato para el repositorio de bancos de Brasil
  * Define métodos específicos para operaciones con BankBrazil
  */
-interface BankBrazilRepositoryContract extends BaseRepositoryContract
+interface BankBrazilRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Buscar banco por código ISPB

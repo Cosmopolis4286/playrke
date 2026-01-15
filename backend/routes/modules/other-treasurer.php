@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\User\Roles\Treasurer\OtherTreasurersController;
+use App\Http\Controllers\Users\Roles\Treasurer\OtherTreasurersController;
 use Illuminate\Support\Facades\Route;
 
 /*

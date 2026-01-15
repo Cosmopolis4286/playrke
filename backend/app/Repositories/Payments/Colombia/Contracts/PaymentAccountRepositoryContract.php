@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Payments\Colombia\Contracts;
+namespace App\Repositories\Directories\Fiat\Colombia\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Payments\Colombia\PaymentAccount;
+use App\Contracts\BaseRepositoryInterface;
+use App\Models\Directories\Fiat\Colombia\PaymentAccount;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar cuentas de pago colombianas,
  * incluyendo validaciones por gateway, usuario y número de cuenta.
  */
-interface PaymentAccountRepositoryContract extends BaseRepositoryContract
+interface PaymentAccountRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener cuentas de pago por usuario.

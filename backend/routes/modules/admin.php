@@ -1,12 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\User\Roles\{
+use App\Http\Controllers\Users\Roles\{
     AdminController,
     CommerceController,
     CustomerController
 };
-use App\Http\Controllers\User\Roles\Treasurer\{
+use App\Http\Controllers\Users\Roles\Treasurer\{
     TreasurerController,
     OtherTreasurersController
 };

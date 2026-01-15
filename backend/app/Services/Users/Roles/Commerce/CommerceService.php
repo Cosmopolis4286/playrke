@@ -2,13 +2,13 @@
 
 namespace App\Services\Users\Roles\Commerce;
 
-use App\DTOs\User\Roles\CommerceDTO;
+use App\DTOs\Users\Roles\CommerceDTO;
 use App\Http\Resources\Users\Roles\CommerceResource;
 use App\Models\Users\Commerce\Commerce;
 use App\Models\Users\Commerce\CommerceCurrency;
 use App\Models\Users\Commerce\CommerceGame;
 use App\Repositories\Users\Contracts\UserRepositoryContract;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryInterface;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceGameRepositoryContract;
 use App\Repositories\Users\Roles\Commerce\Contracts\CommerceRepositoryContract;
 use App\Repositories\Wallets\Contracts\WalletRepositoryContract;
@@ -22,7 +22,7 @@ class CommerceService extends BaseService
     public function __construct(
         protected UserRepositoryContract $userRepository,
         protected CommerceRepositoryContract $commerceRepository,
-        protected CommerceCurrencyRepositoryContract $currencyRepository,
+        protected CommerceCurrencyRepositoryInterface $currencyRepository,
         protected CommerceGameRepositoryContract $gameRepository,
         protected WalletRepositoryContract $walletRepository,
         protected UserService $userService,

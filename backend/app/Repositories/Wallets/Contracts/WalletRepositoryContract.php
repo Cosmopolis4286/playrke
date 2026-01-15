@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Wallets\Contracts;
 
 use App\Models\Wallet;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema de Gestión de Wallets
  * @version 1.0
  */
-interface WalletRepositoryContract extends BaseRepositoryContract
+interface WalletRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene todas las wallets de un usuario específico

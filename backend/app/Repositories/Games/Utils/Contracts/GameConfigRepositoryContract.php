@@ -3,14 +3,14 @@
 namespace App\Repositories\Games\Utils\Contracts;
 
 use App\Models\Shared\Utils\GameConfig;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repositorio de configuraciones de juego
  * Define métodos específicos para operaciones con GameConfig
  */
-interface GameConfigRepositoryContract extends BaseRepositoryContract
+interface GameConfigRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener configuración por juego y parámetro

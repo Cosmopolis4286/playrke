@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Payments\Colombia;
+namespace App\Repositories\Directories\Fiat\Colombia;
 
-use App\Models\Payments\Colombia\PaymentAccount;
+use App\Models\Directories\Fiat\Colombia\PaymentAccount;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Payments\Colombia\Contracts\PaymentAccountRepositoryContract;
+use App\Repositories\Directories\Fiat\Colombia\Contracts\PaymentAccountRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

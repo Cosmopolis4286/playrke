@@ -3,13 +3,13 @@
 namespace App\Repositories\Banks\Contracts;
 
 use App\Models\Banks\BankVenezuela;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 
 /**
  * Contrato para el repositorio de bancos de Venezuela
  * Define métodos específicos para operaciones con BankVenezuela
  */
-interface BankVenezuelaRepositoryContract extends BaseRepositoryContract
+interface BankVenezuelaRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Buscar banco por código

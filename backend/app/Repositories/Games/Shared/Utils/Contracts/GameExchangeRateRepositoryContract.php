@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Games\Shared\Utils\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Utils\GameExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
-interface GameExchangeRateRepositoryContract extends BaseRepositoryContract
+interface GameExchangeRateRepositoryContract extends BaseRepositoryInterface
 {
     public function getGameExchangeRateValue($gameId, int $room, $currencyId, string $column = 'exchange_rate');
 

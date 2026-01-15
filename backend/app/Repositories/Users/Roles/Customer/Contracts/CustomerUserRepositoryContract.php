@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Users\Roles\Customer\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Customer\CustomerUser;
 use Illuminate\Database\Eloquent\Collection;
 
-interface CustomerUserRepositoryContract extends BaseRepositoryContract
+interface CustomerUserRepositoryContract extends BaseRepositoryInterface
 {
     public function getByUserId($customerId, string $userId): ?CustomerUser;
 

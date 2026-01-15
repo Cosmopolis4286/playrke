@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Bingo\Images\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Images\BingoImage;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema PlayRKE
  * @version 1.0
  */
-interface BingoImageRepositoryContract extends BaseRepositoryContract
+interface BingoImageRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener imágenes por tipo

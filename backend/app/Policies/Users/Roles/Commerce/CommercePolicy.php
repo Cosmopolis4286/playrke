@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Policies\Users\Roles\Commerce;
+namespace App\Policies\Users\Commerce;
 
 use App\Models\Users\Commerce\Commerce;
 use App\Models\User;
-use App\Policies\Users\Roles\BaseRolePolicy;
+use App\Policies\Users\RolePolicy;
 
 /**
  * Policy de autorización para el dominio Commerce.
@@ -14,7 +14,7 @@ use App\Policies\Users\Roles\BaseRolePolicy;
  * - Comercios en estados DELETED o BLOCKED no pueden mutar
  * - Compatible con authorizeResource()
  */
-class CommercePolicy extends BaseRolePolicy
+class CommercePolicy extends RolePolicy
 {
     /**
      * Rol requerido para operar sobre comercios.

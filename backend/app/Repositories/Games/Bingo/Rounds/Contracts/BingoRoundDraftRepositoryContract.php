@@ -2,14 +2,14 @@
 
 namespace App\Repositories\Games\Bingo\Rounds\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Rounds\BingoRoundDraft;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de drafts de rondas de bingo
  */
-interface BingoRoundDraftRepositoryContract extends BaseRepositoryContract
+interface BingoRoundDraftRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene draft por sala de bingo

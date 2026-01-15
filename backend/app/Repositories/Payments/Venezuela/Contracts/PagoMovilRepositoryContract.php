@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Payments\Venezuela\Contracts;
+namespace App\Repositories\Directories\Fiat\Venezuela\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
-use App\Models\Payments\Venezuela\PagoMovil;
+use App\Contracts\BaseRepositoryInterface;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar registros de pago móvil,
  * incluyendo validaciones, consultas por usuario, documento y banco.
  */
-interface PagoMovilRepositoryContract extends BaseRepositoryContract
+interface PagoMovilRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener registros de pago móvil por usuario.

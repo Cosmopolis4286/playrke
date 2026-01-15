@@ -2,14 +2,14 @@
 
 namespace App\Repositories\Games\Bingo\Rooms\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Rooms\User\BingoRoomUser;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de usuarios de salas de bingo
  */
-interface BingoRoomUserRepositoryContract extends BaseRepositoryContract
+interface BingoRoomUserRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene un jugador por sala, usuario creador y jugador

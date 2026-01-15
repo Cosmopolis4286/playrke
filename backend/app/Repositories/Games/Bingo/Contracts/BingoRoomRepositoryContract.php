@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Bingo\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Rooms\BingoRoom;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Contrato específico para el repositorio de salas de Bingo
  * Define métodos específicos para operaciones con BingoRoom
  */
-interface BingoRoomRepositoryContract extends BaseRepositoryContract
+interface BingoRoomRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Buscar sala por código encriptado

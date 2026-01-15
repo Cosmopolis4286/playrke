@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\PrizePool\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\PrizePool\PrizePoolType;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar los tipos de pool de premios,
  * incluyendo operaciones de consulta, creación, actualización y activación.
  */
-interface PrizePoolTypeRepositoryContract extends BaseRepositoryContract
+interface PrizePoolTypeRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener todos los tipos activos.

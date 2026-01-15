@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Payments\Colombia;
+namespace App\Models\Directories\Fiat\Colombia;
 
 use App\Models\User;
 use App\Traits\SnowflakeId;

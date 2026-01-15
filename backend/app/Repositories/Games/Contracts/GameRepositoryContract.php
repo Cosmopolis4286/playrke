@@ -3,14 +3,14 @@
 namespace App\Repositories\Games\Contracts;
 
 use App\Models\Game;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repositorio de juegos
  * Define métodos específicos para operaciones con Game
  */
-interface GameRepositoryContract extends BaseRepositoryContract
+interface GameRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Buscar juego por nombre

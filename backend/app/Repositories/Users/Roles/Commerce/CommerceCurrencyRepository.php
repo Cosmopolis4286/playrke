@@ -4,13 +4,13 @@ namespace App\Repositories\Users\Roles\Commerce;
 
 use App\Models\Users\Commerce\CommerceCurrency;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryContract;
+use App\Repositories\Users\Roles\Commerce\Contracts\CommerceCurrencyRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de países y monedas de comercios
  */
-class CommerceCurrencyRepository extends BaseRepository implements CommerceCurrencyRepositoryContract
+class CommerceCurrencyRepository extends BaseRepository implements CommerceCurrencyRepositoryInterface
 {
     /**
      * Constructor del repository

@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Users\Roles\Customer\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Customer\CustomerGame;
 use Illuminate\Database\Eloquent\Collection;
 
-interface CustomerGameRepositoryContract extends BaseRepositoryContract
+interface CustomerGameRepositoryContract extends BaseRepositoryInterface
 {
     public function getByGameID($customerId, $gameId): ?CustomerGame;
 

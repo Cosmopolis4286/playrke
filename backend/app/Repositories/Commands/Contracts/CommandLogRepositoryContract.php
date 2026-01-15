@@ -3,14 +3,14 @@
 namespace App\Repositories\Commands\Contracts;
 
 use App\Models\Commands\CommandLog;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repositorio de logs de comandos
  * Define métodos específicos para operaciones con CommandLog
  */
-interface CommandLogRepositoryContract extends BaseRepositoryContract
+interface CommandLogRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener logs por comando específico

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Shared\InformationController;
+use App\Http\Controllers\InformationController;
 
 /*
 |--------------------------------------------------------------------------

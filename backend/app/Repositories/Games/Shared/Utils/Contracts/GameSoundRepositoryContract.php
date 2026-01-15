@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Games\Shared\Utils\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Utils\GameSound;
 use Illuminate\Database\Eloquent\Collection;
 
-interface GameSoundRepositoryContract extends BaseRepositoryContract
+interface GameSoundRepositoryContract extends BaseRepositoryInterface
 {
     public function getActiveSounds(): Collection;
 

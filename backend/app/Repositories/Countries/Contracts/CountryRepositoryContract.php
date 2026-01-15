@@ -3,14 +3,14 @@
 namespace App\Repositories\Countries\Contracts;
 
 use App\Models\Country;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repositorio de países
  * Define métodos específicos para operaciones con Country
  */
-interface CountryRepositoryContract extends BaseRepositoryContract
+interface CountryRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Buscar país por código ISO de 2 letras

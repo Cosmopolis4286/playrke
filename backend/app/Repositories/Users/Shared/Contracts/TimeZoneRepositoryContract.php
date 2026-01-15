@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Shared\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * del sistema, incluyendo consultas por país, estado, UTC y búsquedas
  * por nombre y configuraciones de zona horaria.
  */
-interface TimeZoneRepositoryContract extends BaseRepositoryContract
+interface TimeZoneRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene una zona horaria por ID con campos específicos.

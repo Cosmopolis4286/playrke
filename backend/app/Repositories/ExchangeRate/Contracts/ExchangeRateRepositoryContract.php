@@ -2,7 +2,7 @@
 
 namespace App\Repositories\ExchangeRate\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\ExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar los tipos de cambio del sistema,
  * incluyendo operaciones de consulta, creación, actualización y estadísticas.
  */
-interface ExchangeRateRepositoryContract extends BaseRepositoryContract
+interface ExchangeRateRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener tipo de cambio por moneda.

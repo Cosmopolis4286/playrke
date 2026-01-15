@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Games\Bingo\Cards\Contracts;
 
 use App\Models\Bingo\Cards\BingoCardPayment;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */
-interface BingoCardPaymentRepositoryContract extends BaseRepositoryContract
+interface BingoCardPaymentRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene todos los pagos de una sala específica

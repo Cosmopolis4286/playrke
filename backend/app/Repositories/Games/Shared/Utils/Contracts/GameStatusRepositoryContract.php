@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\Utils\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Utils\GameStatus;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar los estados de juegos,
  * incluyendo operaciones de consulta, creación, actualización y eliminación.
  */
-interface GameStatusRepositoryContract extends BaseRepositoryContract
+interface GameStatusRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener un estado por su valor único.

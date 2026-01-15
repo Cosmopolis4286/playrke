@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Payments\Venezuela;
+namespace App\Http\Controllers\Directories\Fiat\Venezuela;
 
 use App\Http\Controllers\Controller;
 
-use App\Models\Payments\Venezuela\PagoMovil;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Traits\Users\UserTrait;
 
 use Illuminate\Http\Request;

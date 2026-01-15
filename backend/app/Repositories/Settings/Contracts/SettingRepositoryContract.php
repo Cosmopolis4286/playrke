@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Settings\Contracts;
 
 use App\Models\Setting;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -18,7 +18,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  * @package App\Repositories\Settings\Contracts
  * @version 1.2
  */
-interface SettingRepositoryContract extends BaseRepositoryContract
+interface SettingRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene el valor de un parámetro específico

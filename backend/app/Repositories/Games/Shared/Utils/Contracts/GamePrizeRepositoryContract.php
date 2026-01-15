@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Games\Shared\Utils\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Utils\GamePrize;
 use Illuminate\Database\Eloquent\Collection;
 
-interface GamePrizeRepositoryContract extends BaseRepositoryContract
+interface GamePrizeRepositoryContract extends BaseRepositoryInterface
 {
     public function getValueByDescription($gameId, string $description, string $column = 'id');
 

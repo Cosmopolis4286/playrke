@@ -2,12 +2,12 @@
 
 namespace App\Repositories\Users\Roles\Player\External\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 
 /**
  * Contrato para el repositorio de UserPurchaseCode.
  */
-interface UserPurchaseCodeRepositoryContract extends BaseRepositoryContract
+interface UserPurchaseCodeRepositoryContract extends BaseRepositoryInterface
 {
     public function getByUser(string $userId);
     public function getByCode(string $code);

@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Users\Commerce\Commerce;
-use App\Policies\Users\Roles\Commerce\CommercePolicy;
+use App\Policies\Users\Commerce\CommercePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 

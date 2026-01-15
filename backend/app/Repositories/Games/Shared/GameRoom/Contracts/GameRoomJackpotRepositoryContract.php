@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Games\Shared\GameRoom\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\GameRoom\GameRoomJackpot;
 use Illuminate\Database\Eloquent\Collection;
 
-interface GameRoomJackpotRepositoryContract extends BaseRepositoryContract
+interface GameRoomJackpotRepositoryContract extends BaseRepositoryInterface
 {
     public function getByCurrency($currencyId): Collection;
 

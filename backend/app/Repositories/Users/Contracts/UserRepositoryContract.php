@@ -3,7 +3,7 @@
 namespace App\Repositories\Users\Contracts;
 
 use App\Models\User;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 
@@ -11,9 +11,9 @@ use Illuminate\Support\Collection as SupportCollection;
  * Interface UserRepositoryContract
  *
  * Define operaciones avanzadas para la gestión de usuarios.
- * Extiende BaseRepositoryContract para los métodos CRUD base.
+ * Extiende BaseRepositoryInterface para los métodos CRUD base.
  */
-interface UserRepositoryContract extends BaseRepositoryContract
+interface UserRepositoryContract extends BaseRepositoryInterface
 {
     /* -----------------------------------------------------------------
      | Búsquedas básicas

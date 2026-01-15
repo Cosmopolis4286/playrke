@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Seller\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Seller\Seller;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar los vendedores del sistema,
  * incluyendo operaciones de consulta, creación, comisiones y estadísticas.
  */
-interface SellerRepositoryContract extends BaseRepositoryContract
+interface SellerRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener todos los vendedores activos.

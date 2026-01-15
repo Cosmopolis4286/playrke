@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\Historical\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Historical\PlayHistory;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
@@ -13,7 +13,7 @@ use Carbon\Carbon;
  * Define los métodos específicos para gestionar el historial de partidas,
  * incluyendo consultas por usuario, juego, fecha y estadísticas de juego.
  */
-interface PlayHistoryRepositoryContract extends BaseRepositoryContract
+interface PlayHistoryRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener historial de juegos por usuario.

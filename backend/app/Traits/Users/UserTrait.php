@@ -6,7 +6,7 @@ use App\Models\Country;
 use App\Models\Currency;
 use App\Models\ExchangeRate\CommerceExchangeRate;
 use App\Models\Directories\Fiat\Brazil\PixKey;
-use App\Models\Payments\Venezuela\PagoMovil;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Users\Commerce\Commerce;
 use App\Models\Users\Commerce\CommerceCurrency;
 use App\Models\Users\Customer\Customer;

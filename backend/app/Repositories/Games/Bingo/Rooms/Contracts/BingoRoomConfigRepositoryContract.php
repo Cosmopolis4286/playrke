@@ -2,14 +2,14 @@
 
 namespace App\Repositories\Games\Bingo\Rooms\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Rooms\BingoRoomConfig;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de configuraciones de salas de bingo
  */
-interface BingoRoomConfigRepositoryContract extends BaseRepositoryContract
+interface BingoRoomConfigRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene la configuración por ID de sala

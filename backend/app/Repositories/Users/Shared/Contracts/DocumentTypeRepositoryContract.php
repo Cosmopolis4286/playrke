@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Users\Shared\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Shared\DocumentType;
 use Illuminate\Database\Eloquent\Collection;
 
-interface DocumentTypeRepositoryContract extends BaseRepositoryContract
+interface DocumentTypeRepositoryContract extends BaseRepositoryInterface
 {
     public function getByCountry(int $countryId): Collection;
 

@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +16,7 @@ abstract class BaseService
     /**
      * Repositorio asociado al servicio.
      */
-    protected BaseRepositoryContract $repository;
+    protected BaseRepositoryInterface $repository;
 
     /**
      * Estados válidos del sistema.
@@ -29,9 +29,9 @@ abstract class BaseService
     ];
 
     /**
-     * @param BaseRepositoryContract $repository
+     * @param BaseRepositoryInterface $repository
      */
-    public function __construct(BaseRepositoryContract $repository)
+    public function __construct(BaseRepositoryInterface $repository)
     {
         $this->repository = $repository;
     }

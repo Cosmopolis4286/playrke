@@ -4,12 +4,12 @@ namespace App\Repositories\Users\Roles\Treasurer;
 
 use App\Models\Users\Treasurer\TreasurerCountryCurrency;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Users\Roles\Treasurer\Contracts\TreasurerCountryCurrencyRepositoryContract;
+use App\Repositories\Users\Roles\Treasurer\Contracts\TreasurerCountryCurrencyRepositoryInterface;
 
 /**
  * Repositorio para TreasurerCountryCurrency.
  */
-class TreasurerCountryCurrencyRepository extends BaseRepository implements TreasurerCountryCurrencyRepositoryContract
+class TreasurerCountryCurrencyRepository extends BaseRepository implements TreasurerCountryCurrencyRepositoryInterface
 {
     public function __construct(TreasurerCountryCurrency $model)
     {

@@ -93,14 +93,14 @@ Cada modelo debe seguir la siguiente estructura:
 - Definir interface con métodos específicos del dominio
 - Usar **PHPDoc completo en español**
 - Seguir nomenclatura descriptiva en **inglés**
-- Extender `BaseRepositoryContract`
+- Extender `BaseRepositoryInterface`
 
 ```php
 <?php
 
 namespace App\Repositories\[Categoria]\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -109,7 +109,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define las operaciones específicas para [descripción de funcionalidad],
  * incluyendo [lista de operaciones principales].
  */
-interface [Nombre]RepositoryContract extends BaseRepositoryContract
+interface [Nombre]RepositoryContract extends BaseRepositoryInterface
 {
     /**
      * [Descripción del método en español].

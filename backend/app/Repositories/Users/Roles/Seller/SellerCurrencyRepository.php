@@ -4,7 +4,7 @@ namespace App\Repositories\Users\Roles\Seller;
 
 use App\Models\Users\Seller\SellerCurrency;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Users\Roles\Seller\Contracts\SellerCurrencyRepositoryContract;
+use App\Repositories\Users\Roles\Seller\Contracts\SellerCurrencyRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Implementa las operaciones específicas para el modelo SellerCurrency,
  * incluyendo gestión de estados, validaciones y estadísticas de relaciones.
  */
-class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyRepositoryContract
+class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyRepositoryInterface
 {
     /**
      * Constructor del repositorio.

@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Role;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar los roles del sistema,
  * incluyendo operaciones de consulta, creación, actualización y asignación.
  */
-interface RoleRepositoryContract extends BaseRepositoryContract
+interface RoleRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener todos los roles activos.

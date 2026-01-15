@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Games\Shared\GameMode\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\GameMode\GameMode;
 use Illuminate\Database\Eloquent\Collection;
 
-interface GameModeRepositoryContract extends BaseRepositoryContract
+interface GameModeRepositoryContract extends BaseRepositoryInterface
 {
     public function getActiveGameModes(): Collection;
 

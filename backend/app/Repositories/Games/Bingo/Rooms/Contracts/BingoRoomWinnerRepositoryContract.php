@@ -2,13 +2,13 @@
 
 namespace App\Repositories\Games\Bingo\Rooms\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de ganadores de salas de bingo
  */
-interface BingoRoomWinnerRepositoryContract extends BaseRepositoryContract
+interface BingoRoomWinnerRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene ganadores por sala

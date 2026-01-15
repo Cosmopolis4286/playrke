@@ -2,12 +2,12 @@
 
 namespace App\Repositories\Users\Roles\Treasurer\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 
 /**
  * Contrato para el repositorio de TreasurerCountryCurrency.
  */
-interface TreasurerCountryCurrencyRepositoryContract extends BaseRepositoryContract
+interface TreasurerCountryCurrencyRepositoryInterface extends BaseRepositoryInterface
 {
     public function getByTreasurer(string $treasurerId);
     public function getByCountry(string $countryId);

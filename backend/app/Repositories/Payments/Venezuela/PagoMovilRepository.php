@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Payments\Venezuela;
+namespace App\Repositories\Directories\Fiat\Venezuela;
 
-use App\Models\Payments\Venezuela\PagoMovil;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Repositories\Base\BaseRepository;
-use App\Repositories\Payments\Venezuela\Contracts\PagoMovilRepositoryContract;
+use App\Repositories\Directories\Fiat\Venezuela\Contracts\PagoMovilRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

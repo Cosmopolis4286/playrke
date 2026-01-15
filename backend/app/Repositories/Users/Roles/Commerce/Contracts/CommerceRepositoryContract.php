@@ -2,14 +2,14 @@
 
 namespace App\Repositories\Users\Roles\Commerce\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Commerce\Commerce;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de comercios
  */
-interface CommerceRepositoryContract extends BaseRepositoryContract
+interface CommerceRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene comercio por ID de usuario

@@ -3,12 +3,12 @@
 namespace App\Services\Currencies;
 
 use App\Models\Directories\Fiat\Brazil\PixKey;
-use App\Models\Payments\Venezuela\PagoMovil;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Users\Commerce\Commerce;
 use App\Models\Users\Commerce\CommerceExchangeRate;
 use App\Models\Users\Customer\Customer;
 use App\Models\Users\Seller\Seller;
-use App\Repositories\Currencies\Contracts\CurrencyRepositoryContract;
+use App\Contracts\CurrencyRepositoryInterface;
 use App\Repositories\Users\Roles\Contracts\RoleUserRepositoryContract;
 use Illuminate\Support\Facades\DB;
 
@@ -16,7 +16,7 @@ class CurrencyDirectoryService
 {
     public function __construct(
         protected RoleUserRepositoryContract $roleUserRepository,
-        protected CurrencyRepositoryContract $currencyRepository,
+        protected CurrencyRepositoryInterface $currencyRepository,
     ) {}
 
     /**

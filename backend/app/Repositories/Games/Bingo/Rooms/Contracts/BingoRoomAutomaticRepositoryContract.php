@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Bingo\Rooms\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Rooms\BingoRoomAutomatic;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema PlayRKE
  * @version 1.0
  */
-interface BingoRoomAutomaticRepositoryContract extends BaseRepositoryContract
+interface BingoRoomAutomaticRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener salas por creador

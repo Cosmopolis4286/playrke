@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Seller\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Seller\SellerCurrency;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar las asociaciones entre
  * vendedores, países y monedas en el sistema.
  */
-interface SellerCurrencyRepositoryContract extends BaseRepositoryContract
+interface SellerCurrencyRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener relaciones por vendedor.

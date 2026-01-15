@@ -2,13 +2,13 @@
 
 namespace App\Repositories\Users\Roles\Commerce\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de países y monedas de comercios
  */
-interface CommerceCurrencyRepositoryContract extends BaseRepositoryContract
+interface CommerceCurrencyRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene monedas disponibles para un comercio

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Rewards\Contracts;
 
 use App\Models\Reward;
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema de Gestión de Recompensas
  * @version 1.0
  */
-interface RewardRepositoryContract extends BaseRepositoryContract
+interface RewardRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene todas las recompensas de un usuario creador

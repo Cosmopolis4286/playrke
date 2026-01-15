@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Games\Shared\GameMode\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\GameMode\GameModeAssignment;
 use Illuminate\Database\Eloquent\Collection;
 
-interface GameModeAssignmentRepositoryContract extends BaseRepositoryContract
+interface GameModeAssignmentRepositoryContract extends BaseRepositoryInterface
 {
     public function getByGame($gameId): Collection;
 

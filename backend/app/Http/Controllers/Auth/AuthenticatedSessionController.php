@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Country;
 use App\Models\Currency;
-use App\Repositories\Currencies\CurrencyRepository;
+use App\Repositories\CurrencyRepository;
 use App\Repositories\Countries\CountryRepository;
 use App\Repositories\Settings\Contracts\SettingRepositoryContract;
 

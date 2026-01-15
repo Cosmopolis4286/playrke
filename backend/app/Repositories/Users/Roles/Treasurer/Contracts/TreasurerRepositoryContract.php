@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Users\Roles\Treasurer\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * del sistema, incluyendo consultas por país, moneda, estado
  * y gestión de información financiera.
  */
-interface TreasurerRepositoryContract extends BaseRepositoryContract
+interface TreasurerRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene tesoreros por país.

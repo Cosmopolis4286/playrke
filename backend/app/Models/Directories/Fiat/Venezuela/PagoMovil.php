@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Payments\Venezuela;
+namespace App\Models\Directories\Fiat\Venezuela;
 
 use App\Models\User;
 use App\Models\Users\Shared\DocumentType;

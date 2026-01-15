@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Bingo\Draws\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Bingo\Draws\BingoDrawCode;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema PlayRKE
  * @version 1.0
  */
-interface BingoDrawCodeRepositoryContract extends BaseRepositoryContract
+interface BingoDrawCodeRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener código por sala

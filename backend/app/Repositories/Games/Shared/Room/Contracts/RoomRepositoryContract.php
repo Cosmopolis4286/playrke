@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\Room\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Room\Room;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar las salas del sistema,
  * incluyendo operaciones de consulta, creación, tipos de sala y estadísticas.
  */
-interface RoomRepositoryContract extends BaseRepositoryContract
+interface RoomRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtener todas las salas por tipo.

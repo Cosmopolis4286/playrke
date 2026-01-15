@@ -2,13 +2,13 @@
 
 namespace App\Repositories\Games\Shared\GameRoom\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de monedas en salas de juego
  */
-interface CurrencyGameRoomRepositoryContract extends BaseRepositoryContract
+interface CurrencyGameRoomRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Crea nueva moneda en sala

@@ -2,7 +2,7 @@
 
 namespace App\Models\Banks;
 
-use App\Models\Payments\Venezuela\PagoMovil;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\SnowflakeId;

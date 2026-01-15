@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Games\Bingo\BingoController;
-use App\Http\Controllers\User\Roles\SellerController;
+use App\Http\Controllers\Users\Roles\SellerController;
 
 /*
 |--------------------------------------------------------------------------

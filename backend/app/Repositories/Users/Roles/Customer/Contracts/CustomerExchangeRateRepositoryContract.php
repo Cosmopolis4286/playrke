@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Users\Roles\Customer\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Customer\CustomerExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
-interface CustomerExchangeRateRepositoryContract extends BaseRepositoryContract
+interface CustomerExchangeRateRepositoryContract extends BaseRepositoryInterface
 {
     public function getAllExchangeRatesByCurrency($customerId, string $currencyId): Collection;
 

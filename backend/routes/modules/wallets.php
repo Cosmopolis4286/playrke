@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Wallets\Crypto\BinanceController;
-use App\Http\Controllers\Wallets\WalletController;
+use App\Http\Controllers\Crypto\BinanceController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 /*

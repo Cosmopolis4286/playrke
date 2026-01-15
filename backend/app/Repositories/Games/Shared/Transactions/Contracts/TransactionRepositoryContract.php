@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Shared\Transactions\Contracts;
 
-use App\Repositories\Base\Contracts\BaseRepositoryContract;
+use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * del sistema, incluyendo consultas por código, cliente, estado,
  * tipo de transacción y montos.
  */
-interface TransactionRepositoryContract extends BaseRepositoryContract
+interface TransactionRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene el valor de una transacción por código.

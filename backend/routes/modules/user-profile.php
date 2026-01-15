@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\User\{ProfileController, ReferralController};
+use App\Http\Controllers\Users\{ProfileController, ReferralController};
 
 /*
 |--------------------------------------------------------------------------
