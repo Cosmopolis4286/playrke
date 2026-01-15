@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Repositories\Crypto;
+namespace App\Repositories\Directories\Crypto;
 
 use App\Models\Directories\Crypto\Binance\BinanceAccounts;
 use App\Repositories\BaseRepository;
-use App\Repositories\Crypto\Contracts\BinanceAccountsRepositoryContract;
+use App\Contracts\Directories\Crypto\BinanceAccountsRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repositorio para operaciones con cuentas Binance
  * Maneja todas las consultas complejas relacionadas con BinanceAccounts
  */
-class BinanceAccountsRepository extends BaseRepository implements BinanceAccountsRepositoryContract
+class BinanceAccountsRepository extends BaseRepository implements BinanceAccountsRepositoryInterface
 {
     public function __construct(BinanceAccounts $model)
     {

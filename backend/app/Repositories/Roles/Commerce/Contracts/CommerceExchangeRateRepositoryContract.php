@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * Contrato para el repository de tasas de cambio de comercios
  */
-interface CommerceExchangeRateRepositoryContract extends BaseRepositoryInterface
+interface CommerceExchangeRateRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene todas las tasas de cambio por moneda

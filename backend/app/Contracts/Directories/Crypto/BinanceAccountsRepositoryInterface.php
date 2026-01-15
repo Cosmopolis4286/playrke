@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Crypto\Contracts;
+namespace App\Contracts\Directories\Crypto;
 
 use App\Models\Directories\Crypto\Binance\BinanceAccounts;
 use App\Contracts\BaseRepositoryInterface;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Contrato para el repositorio de cuentas Binance
  * Define métodos específicos para operaciones con BinanceAccounts
  */
-interface BinanceAccountsRepositoryContract extends BaseRepositoryInterface
+interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener cuentas por tipo

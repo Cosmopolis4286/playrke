@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Currency;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Repositories\Countries\CountryRepository;
+use App\Repositories\CountryRepository;
 use App\Repositories\UserRepository;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;

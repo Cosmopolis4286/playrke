@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Banks\Contracts;
+namespace App\Contracts\Banks;
 
 use App\Models\Banks\BankBrazil;
 use App\Contracts\BaseRepositoryInterface;
@@ -9,7 +9,7 @@ use App\Contracts\BaseRepositoryInterface;
  * Contrato para el repositorio de bancos de Brasil
  * Define métodos específicos para operaciones con BankBrazil
  */
-interface BankBrazilRepositoryContract extends BaseRepositoryInterface
+interface BankBrazilRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Buscar banco por código ISPB

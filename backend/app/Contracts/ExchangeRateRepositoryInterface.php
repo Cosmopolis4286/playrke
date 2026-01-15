@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\ExchangeRate\Contracts;
+namespace App\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\ExchangeRate;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar los tipos de cambio del sistema,
  * incluyendo operaciones de consulta, creación, actualización y estadísticas.
  */
-interface ExchangeRateRepositoryContract extends BaseRepositoryInterface
+interface ExchangeRateRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener tipo de cambio por moneda.

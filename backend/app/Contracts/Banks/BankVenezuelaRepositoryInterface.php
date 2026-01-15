@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Banks\Contracts;
+namespace App\Contracts\Banks;
 
 use App\Models\Banks\BankVenezuela;
 use App\Contracts\BaseRepositoryInterface;
@@ -9,7 +9,7 @@ use App\Contracts\BaseRepositoryInterface;
  * Contrato para el repositorio de bancos de Venezuela
  * Define métodos específicos para operaciones con BankVenezuela
  */
-interface BankVenezuelaRepositoryContract extends BaseRepositoryInterface
+interface BankVenezuelaRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Buscar banco por código

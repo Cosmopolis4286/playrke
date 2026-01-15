@@ -4,10 +4,10 @@ namespace App\Repositories\Roles\Customer;
 
 use App\Models\Users\Customer\CustomerExchangeRate;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Customer\Contracts\CustomerExchangeRateRepositoryContract;
+use App\Repositories\Roles\Customer\Contracts\CustomerExchangeRateRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
-class CustomerExchangeRateRepository extends BaseRepository implements CustomerExchangeRateRepositoryContract
+class CustomerExchangeRateRepository extends BaseRepository implements CustomerExchangeRateRepositoryInterface
 {
     public function __construct(CustomerExchangeRate $model)
     {

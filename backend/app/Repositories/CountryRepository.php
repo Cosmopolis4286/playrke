@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Repositories\Countries;
+namespace App\Repositories;
 
 use App\Models\Country;
 use App\Repositories\BaseRepository;
-use App\Repositories\Countries\Contracts\CountryRepositoryContract;
+use App\Contracts\CountryRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repositorio para operaciones con países
  * Maneja todas las consultas complejas relacionadas con Country
  */
-class CountryRepository extends BaseRepository implements CountryRepositoryContract
+class CountryRepository extends BaseRepository implements CountryRepositoryInterface
 {
     public function __construct(Country $model)
     {

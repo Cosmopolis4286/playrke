@@ -11,7 +11,7 @@ use App\Models\Pivots\ExchangeRate\CommerceExchangeRate;
 use App\Models\Users\Customer\Customer;
 use App\Models\Pivots\ExchangeRate\CustomerExchangeRate;
 use App\Models\ExchangeRate;
-use App\Repositories\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryContract;
+use App\Repositories\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryInterface;
 use App\Services\Currencies\CurrencyDirectoryService;
 // Services
 use App\Services\ExchangeRate\ExchangeRateService;
@@ -31,7 +31,7 @@ class ExchangeRateController extends Controller
     use UserTrait;
 
     public function __construct(
-        protected CommerceExchangeRateRepositoryContract $commerceExchangeRate,
+        protected CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
         protected CurrencyDirectoryService $currencyDirectoryService,
     ) {}
 

@@ -4,13 +4,13 @@ namespace App\Repositories\Roles\Commerce;
 
 use App\Models\RolesExchangeRate;
 use App\Repositories\BaseRepository;
-use App\Repositories\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryContract;
+use App\Repositories\Roles\Commerce\Contracts\CommerceExchangeRateRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de tasas de cambio de comercios
  */
-class CommerceExchangeRateRepository extends BaseRepository implements CommerceExchangeRateRepositoryContract
+class CommerceExchangeRateRepository extends BaseRepository implements CommerceExchangeRateRepositoryInterface
 {
     /**
      * Constructor del repository

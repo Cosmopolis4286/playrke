@@ -4,7 +4,7 @@ namespace App\Repositories\Commands;
 
 use App\Models\Commands\CommandLog;
 use App\Repositories\BaseRepository;
-use App\Repositories\Commands\Contracts\CommandLogRepositoryContract;
+use App\Contracts\Commands\CommandLogRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
 
@@ -12,7 +12,7 @@ use Carbon\Carbon;
  * Repositorio para operaciones con logs de comandos
  * Maneja todas las consultas complejas relacionadas con CommandLog
  */
-class CommandLogRepository extends BaseRepository implements CommandLogRepositoryContract
+class CommandLogRepository extends BaseRepository implements CommandLogRepositoryInterface
 {
     public function __construct(CommandLog $model)
     {

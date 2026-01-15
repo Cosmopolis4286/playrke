@@ -4,7 +4,7 @@ namespace App\Repositories\Banks;
 
 use App\Models\Banks\BankBrazil;
 use App\Repositories\BaseRepository;
-use App\Repositories\Banks\Contracts\BankBrazilRepositoryContract;
+use App\Contracts\Banks\BankBrazilRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  *
  * Maneja todas las consultas complejas relacionadas con BankBrazil
  */
-class BankBrazilRepository extends BaseRepository implements BankBrazilRepositoryContract
+class BankBrazilRepository extends BaseRepository implements BankBrazilRepositoryInterface
 {
     /**
      * Constructor

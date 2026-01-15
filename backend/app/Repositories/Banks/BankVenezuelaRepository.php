@@ -4,14 +4,14 @@ namespace App\Repositories\Banks;
 
 use App\Models\Banks\BankVenezuela;
 use App\Repositories\BaseRepository;
-use App\Repositories\Banks\Contracts\BankVenezuelaRepositoryContract;
+use App\Contracts\Banks\BankVenezuelaRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repositorio para operaciones con bancos de Venezuela
  * Maneja todas las consultas complejas relacionadas con BankVenezuela
  */
-class BankVenezuelaRepository extends BaseRepository implements BankVenezuelaRepositoryContract
+class BankVenezuelaRepository extends BaseRepository implements BankVenezuelaRepositoryInterface
 {
     public function __construct(BankVenezuela $model)
     {

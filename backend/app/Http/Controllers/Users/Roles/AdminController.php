@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Users\Roles;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\Countries\Contracts\CountryRepositoryContract;
+use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\CurrencyRepositoryInterface;
 use App\Repositories\Contracts\GameRepositoryInterface;
 use App\Repositories\Roles\Commerce\Contracts\CommerceRepositoryContract;
@@ -37,7 +37,7 @@ class AdminController extends Controller
         protected CustomerRepositoryContract $customers,
         protected TreasurerRepositoryContract $treasurers,
         protected OtherTreasurersRepositoryContract $otherTreasurers,
-        protected CountryRepositoryContract $countries,
+        protected CountryRepositoryInterface $countries,
         protected CurrencyRepositoryInterface $currencies,
         protected GameRepositoryInterface $games,
         protected TimeZoneRepositoryContract $timeZones

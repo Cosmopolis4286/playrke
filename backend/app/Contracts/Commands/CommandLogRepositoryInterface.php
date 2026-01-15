@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Commands\Contracts;
+namespace App\Contracts\Commands;
 
 use App\Models\Commands\CommandLog;
 use App\Contracts\BaseRepositoryInterface;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Contrato para el repositorio de logs de comandos
  * Define métodos específicos para operaciones con CommandLog
  */
-interface CommandLogRepositoryContract extends BaseRepositoryInterface
+interface CommandLogRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener logs por comando específico

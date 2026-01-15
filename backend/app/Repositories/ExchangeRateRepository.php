@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\ExchangeRate;
+namespace App\Repositories;
 
 use App\Models\ExchangeRate;
 use App\Repositories\BaseRepository;
-use App\Repositories\ExchangeRate\Contracts\ExchangeRateRepositoryContract;
+use App\Contracts\ExchangeRateRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Implementa las operaciones específicas para el modelo ExchangeRate,
  * incluyendo gestión de valores, conversiones y estadísticas.
  */
-class ExchangeRateRepository extends BaseRepository implements ExchangeRateRepositoryContract
+class ExchangeRateRepository extends BaseRepository implements ExchangeRateRepositoryInterface
 {
     /**
      * Constructor del repositorio.

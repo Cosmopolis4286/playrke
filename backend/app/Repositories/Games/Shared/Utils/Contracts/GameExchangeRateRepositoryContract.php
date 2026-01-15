@@ -6,7 +6,7 @@ use App\Contracts\BaseRepositoryInterface;
 use App\Models\Shared\Utils\GameExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
-interface GameExchangeRateRepositoryContract extends BaseRepositoryInterface
+interface GameExchangeRateRepositoryInterface extends BaseRepositoryInterface
 {
     public function getGameExchangeRateValue($gameId, int $room, $currencyId, string $column = 'exchange_rate');
 

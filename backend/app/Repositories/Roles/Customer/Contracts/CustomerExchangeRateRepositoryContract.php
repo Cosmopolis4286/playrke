@@ -6,7 +6,7 @@ use App\Contracts\BaseRepositoryInterface;
 use App\Models\Users\Customer\CustomerExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
-interface CustomerExchangeRateRepositoryContract extends BaseRepositoryInterface
+interface CustomerExchangeRateRepositoryInterface extends BaseRepositoryInterface
 {
     public function getAllExchangeRatesByCurrency($customerId, string $currencyId): Collection;
 

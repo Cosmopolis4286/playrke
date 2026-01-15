@@ -7,7 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Repositories\CurrencyRepository;
-use App\Repositories\Countries\CountryRepository;
+use App\Repositories\CountryRepository;
 use App\Contracts\SettingRepositoryInterface;
 
 use Illuminate\Http\{Request, JsonResponse};

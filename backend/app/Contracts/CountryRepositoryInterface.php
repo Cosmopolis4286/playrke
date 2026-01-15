@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Countries\Contracts;
+namespace App\Contracts;
 
 use App\Models\Country;
 use App\Contracts\BaseRepositoryInterface;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Contrato para el repositorio de países
  * Define métodos específicos para operaciones con Country
  */
-interface CountryRepositoryContract extends BaseRepositoryInterface
+interface CountryRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Buscar país por código ISO de 2 letras
