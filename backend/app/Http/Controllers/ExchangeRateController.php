@@ -28,10 +28,7 @@ class ExchangeRateController extends Controller
         return $this->handleService(function () use ($request) {
             $context = $this->service->context($request);
 
-            return view(
-                'modules.all.exchange-rate.index',
-                $context->toView()
-            );
+            return view('modules.exchange-rate.index', $context->toView());
         }, 'No se pudo cargar la lista de tasas de cambios.');
     }
 

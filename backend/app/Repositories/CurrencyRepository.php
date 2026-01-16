@@ -128,8 +128,8 @@ class CurrencyRepository extends BaseRepository implements CurrencyRepositoryInt
     {
         return $this->model->where(function ($query) use ($searchTerm) {
             $query->where('name', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%")
-                  ->orWhere('iso_code', 'like', "%{$searchTerm}%");
+                ->orWhere('description', 'like', "%{$searchTerm}%")
+                ->orWhere('iso_code', 'like', "%{$searchTerm}%");
         })->orderBy('name')->get($columns);
     }
 
@@ -367,5 +367,20 @@ class CurrencyRepository extends BaseRepository implements CurrencyRepositoryInt
     public function getCountriesByCurrencies(array $currencyIds): array
     {
         return $this->model->whereIn('id', $currencyIds)->pluck('country_id')->toArray();
+    }
+
+    public function getAvailableForCommerceExcludingAssigned(string $creatorId, array $currencyIds): array
+    {
+        if (empty($currencyIds)) {
+            return [];
+        }
+
+        return $this->model->query()
+            ->whereIn('id', $currencyIds)
+            ->whereDoesntHave('commerceExchangeRates', function ($query) use ($creatorId) {
+                $query->where('commerce_id', $creatorId);
+            })
+            ->get(['id', 'symbol', 'description'])
+            ->toArray();
     }
 }

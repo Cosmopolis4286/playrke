@@ -1,0 +1,118 @@
+<?php
+
+namespace App\Services\Roles\Seller;
+
+use App\Contracts\Roles\Seller\SellerCurrencyRepositoryInterface;
+use InvalidArgumentException;
+
+class SellerCurrencyService
+{
+    protected SellerCurrencyRepositoryInterface $repository;
+
+    public function __construct(SellerCurrencyRepositoryInterface $repository)
+    {
+        $this->repository = $repository;
+    }
+
+    /**
+     * Cambia el estado activo/inactivo de una relación
+     *
+     * @param string $relationId
+     * @param bool $status
+     * @return bool
+     */
+    public function updateStatus(string $relationId, bool $status): bool
+    {
+        return $this->repository->updateStatus($relationId, $status);
+    }
+
+    /**
+     * Elimina una relación por su ID
+     *
+     * @param string $relationId
+     * @return bool
+     */
+    public function deleteRelation(string $relationId): bool
+    {
+        return $this->repository->deleteRelation($relationId);
+    }
+
+    /**
+     * Obtiene países disponibles para un vendedor
+     *
+     * @param string $sellerId
+     * @param bool $activeOnly
+     * @return array
+     */
+    public function getAvailableCountries(string $sellerId, bool $activeOnly = true): array
+    {
+        return $this->repository->getAvailableCountries($sellerId, $activeOnly);
+    }
+
+    /**
+     * Obtiene monedas disponibles para un vendedor
+     *
+     * @param string $sellerId
+     * @param bool $activeOnly
+     * @return array
+     */
+    public function getAvailableCurrencies(string $sellerId, bool $activeOnly = true): array
+    {
+        return $this->repository->getAvailableCurrencies($sellerId, $activeOnly);
+    }
+
+    /**
+     * Verifica si un vendedor puede operar en un país y moneda específicos
+     *
+     * @param string $sellerId
+     * @param string $countryId
+     * @param string $currencyId
+     * @return bool
+     */
+    public function canOperateIn(string $sellerId, string $countryId, string $currencyId): bool
+    {
+        return $this->repository->canSellerOperateInCountryCurrency($sellerId, $countryId, $currencyId);
+    }
+
+    /**
+     * Obtiene el nivel de operación para un vendedor en un país y moneda
+     *
+     * @param string $sellerId
+     * @param string $countryId
+     * @param string $currencyId
+     * @return int|null
+     */
+    public function getOperationLevel(string $sellerId, string $countryId, string $currencyId): ?int
+    {
+        return $this->repository->getOperationLevel($sellerId, $countryId, $currencyId);
+    }
+
+    /**
+     * Actualiza el nivel de operación para un vendedor en un país y moneda
+     *
+     * @param string $sellerId
+     * @param string $countryId
+     * @param string $currencyId
+     * @param int $level
+     * @return bool
+     * @throws InvalidArgumentException
+     */
+    public function updateOperationLevel(string $sellerId, string $countryId, string $currencyId, int $level): bool
+    {
+        if ($level < 1 || $level > 10) {
+            throw new InvalidArgumentException('El nivel debe estar entre 1 y 10');
+        }
+
+        return $this->repository->updateOperationLevel($sellerId, $countryId, $currencyId, $level);
+    }
+
+    /**
+     * Obtiene estadísticas generales de las relaciones
+     *
+     * @return array
+     */
+    public function getStatistics(): array
+    {
+        return $this->repository->getRelationStatistics();
+    }
+}
